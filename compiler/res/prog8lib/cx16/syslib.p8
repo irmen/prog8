@@ -637,6 +637,7 @@ asmsub save_vera_context() clobbers(A) {
         lda  cx16.VERA_CTRL
         sta  _vera_storage+3
         eor  #1
+        sta  _vera_storage+7
         sta  cx16.VERA_CTRL
         lda  cx16.VERA_ADDR_L
         sta  _vera_storage+4
@@ -644,8 +645,6 @@ asmsub save_vera_context() clobbers(A) {
         sta  _vera_storage+5
         lda  cx16.VERA_ADDR_H
         sta  _vera_storage+6
-        lda  cx16.VERA_CTRL
-        sta  _vera_storage+7
         rts
 _vera_storage:  .byte 0,0,0,0,0,0,0,0
     }}
@@ -750,21 +749,21 @@ asmsub  cleanup_at_exit() {
 
 asmsub  set_irq(uword handler @AY, bool useKernal @Pc) clobbers(A)  {
 	%asm {{
-        sta  _modified+1
-        sty  _modified+2
-        lda  #0
-        adc  #0
-        sta  _use_kernal
-        sei
-        lda  #<_irq_handler
-        sta  cx16.CINV
-        lda  #>_irq_handler
-        sta  cx16.CINV+1
-        lda  cx16.VERA_IEN
-        ora  #%00000001     ; enable the vsync irq
-        sta  cx16.VERA_IEN
-        cli
-        rts
+	        sta  _modified+1
+	        sty  _modified+2
+	        lda  #0
+	        rol  a
+	        sta  _use_kernal
+		sei
+		lda  #<_irq_handler
+		sta  cx16.CINV
+		lda  #>_irq_handler
+		sta  cx16.CINV+1
+                lda  cx16.VERA_IEN
+                ora  #%00000001     ; enable the vsync irq
+                sta  cx16.VERA_IEN
+		cli
+		rts
 
 _irq_handler    jsr  _irq_handler_init
 _modified	jsr  $ffff                      ; modified

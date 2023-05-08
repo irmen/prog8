@@ -161,7 +161,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val targetIdent = assignment.target.identifier
         val targetMemory = assignment.target.memory
         val targetArray = assignment.target.array
-        val vmDt = irType(assignment.value.type)
+        val valueDt = irType(assignment.value.type)
+        val targetDt = irType(assignment.target.type)
         val result = mutableListOf<IRCodeChunkBase>()
 
         var valueRegister = -1
@@ -169,30 +170,42 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val zero = codeGen.isZero(assignment.value)
         if(!zero) {
             // calculate the assignment value
-            if (vmDt == IRDataType.FLOAT) {
+            if (valueDt == IRDataType.FLOAT) {
                 val tr = expressionEval.translateExpression(assignment.value)
                 valueFpRegister = tr.resultFpReg
                 addToResult(result, tr, -1, valueFpRegister)
             } else {
+                val extendByteToWord = if(targetDt != valueDt) {
+                    // usually an error EXCEPT when a byte is assigned to a word.
+                    if(targetDt==IRDataType.WORD && valueDt==IRDataType.BYTE)
+                        true
+                    else
+                        throw AssemblyError("assignment value and target dt mismatch")
+                } else false
                 if (assignment.value is PtMachineRegister) {
                     valueRegister = (assignment.value as PtMachineRegister).register
+                    if(extendByteToWord)
+                        addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=valueRegister), null)
                 } else {
                     val tr = expressionEval.translateExpression(assignment.value)
                     valueRegister = tr.resultReg
                     addToResult(result, tr, valueRegister, -1)
+                    if(extendByteToWord) {
+                        val opcode = if(assignment.value.type in SignedDatatypes) Opcode.EXTS else Opcode.EXT
+                        addInstr(result, IRInstruction(opcode, IRDataType.BYTE, reg1 = valueRegister), null)
+                    }
                 }
             }
         }
 
         if(targetIdent!=null) {
             val instruction = if(zero) {
-                IRInstruction(Opcode.STOREZM, vmDt, labelSymbol = targetIdent.name)
+                IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = targetIdent.name)
             } else {
-                if (vmDt == IRDataType.FLOAT) {
-                    IRInstruction(Opcode.STOREM, vmDt, fpReg1 = valueFpRegister, labelSymbol = targetIdent.name)
-                }
+                if (targetDt == IRDataType.FLOAT)
+                    IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = targetIdent.name)
                 else
-                    IRInstruction(Opcode.STOREM, vmDt, reg1 = valueRegister, labelSymbol = targetIdent.name)
+                    IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = targetIdent.name)
             }
             result += IRCodeChunk(null, null).also { it += instruction }
             return result
@@ -214,9 +227,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 if(zero) {
                     // there's no STOREZIX instruction
                     valueRegister = codeGen.registers.nextFree()
-                    code += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegister, immediate = 0)
+                    code += IRInstruction(Opcode.LOAD, targetDt, reg1=valueRegister, immediate = 0)
                 }
-                code += IRInstruction(Opcode.STOREIX, vmDt, reg1=valueRegister, reg2=idxReg, labelSymbol = variable)
+                code += IRInstruction(Opcode.STOREIX, targetDt, reg1=valueRegister, reg2=idxReg, labelSymbol = variable)
                 result += code
                 return result
             }
@@ -225,59 +238,59 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             if(zero) {
                 if(fixedIndex!=null) {
                     val offset = fixedIndex*itemsize
-                    val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, vmDt, labelSymbol = "$variable+$offset") }
+                    val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = "$variable+$offset") }
                     result += chunk
                 } else {
                     val (code, indexReg) = loadIndexReg(targetArray, itemsize)
                     result += code
-                    result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZX, vmDt, reg1=indexReg, labelSymbol = variable) }
+                    result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol = variable) }
                 }
             } else {
-                if(vmDt== IRDataType.FLOAT) {
+                if(targetDt== IRDataType.FLOAT) {
                     if(fixedIndex!=null) {
                         val offset = fixedIndex*itemsize
-                        val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, vmDt, fpReg1 = valueFpRegister, labelSymbol = "$variable+$offset") }
+                        val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = "$variable+$offset") }
                         result += chunk
                     } else {
                         val (code, indexReg) = loadIndexReg(targetArray, itemsize)
                         result += code
-                        result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREX, vmDt, reg1 = indexReg, fpReg1 = valueFpRegister, labelSymbol = variable) }
+                        result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = valueFpRegister, labelSymbol = variable) }
                     }
                 } else {
                     if(fixedIndex!=null) {
                         val offset = fixedIndex*itemsize
-                        val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, vmDt, reg1 = valueRegister, labelSymbol = "$variable+$offset") }
+                        val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = "$variable+$offset") }
                         result += chunk
                     } else {
                         val (code, indexReg) = loadIndexReg(targetArray, itemsize)
                         result += code
-                        result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREX, vmDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable) }
+                        result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREX, targetDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable) }
                     }
                 }
             }
             return result
         }
         else if(targetMemory!=null) {
-            require(vmDt== IRDataType.BYTE) { "must be byte type ${targetMemory.position}"}
+            require(targetDt == IRDataType.BYTE) { "must be byte type ${targetMemory.position}"}
             if(zero) {
                 if(targetMemory.address is PtNumber) {
-                    val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, vmDt, address = (targetMemory.address as PtNumber).number.toInt()) }
+                    val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, targetDt, address = (targetMemory.address as PtNumber).number.toInt()) }
                     result += chunk
                 } else {
                     val tr = expressionEval.translateExpression(targetMemory.address)
                     val addressReg = tr.resultReg
                     addToResult(result, tr, tr.resultReg, -1)
-                    result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZI, vmDt, reg1=addressReg) }
+                    result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZI, targetDt, reg1=addressReg) }
                 }
             } else {
                 if(targetMemory.address is PtNumber) {
-                    val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, vmDt, reg1=valueRegister, address=(targetMemory.address as PtNumber).number.toInt()) }
+                    val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, targetDt, reg1=valueRegister, address=(targetMemory.address as PtNumber).number.toInt()) }
                     result += chunk
                 } else {
                     val tr = expressionEval.translateExpression(targetMemory.address)
                     val addressReg = tr.resultReg
                     addToResult(result, tr, tr.resultReg, -1)
-                    result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREI, vmDt, reg1=valueRegister, reg2=addressReg) }
+                    result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREI, targetDt, reg1=valueRegister, reg2=addressReg) }
                 }
             }
 

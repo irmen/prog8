@@ -22,7 +22,10 @@ psg {
         ;    waveform = one of PULSE,SAWTOOTH,TRIANGLE,NOISE.
         ;    pulsewidth = 0-63.  Specifies the pulse width for waveform=PULSE.
         envelope_states[voice_num] = 255
-        sys.set_irqd()
+        %asm {{
+            php
+            sei
+        }}
         cx16.r0 = $f9c2 + voice_num * 4
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(cx16.r0)
@@ -33,7 +36,9 @@ psg {
         cx16.VERA_DATA0 = waveform | pulsewidth
         envelope_volumes[voice_num] = mkword(volume, 0)
         envelope_maxvolumes[voice_num] = volume
-        sys.clear_irqd()
+        %asm {{
+            plp
+        }}
     }
 
 ;    sub freq_hz(ubyte voice_num, float hertz) {
@@ -48,7 +53,10 @@ psg {
         ;    voice_num = 0-15,  vera_freq = 0-65535  calculate this via the formula given in the Vera's PSG documentation.
         ;    (https://github.com/x16community/x16-docs/blob/master/VERA%20Programmer's%20Reference.md)
         ;    Write freq MSB first and then LSB to reduce the chance on clicks
-        sys.set_irqd()
+        %asm {{
+            php
+            sei
+        }}
         cx16.r0 = $f9c1 + voice_num * 4
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(cx16.r0)
@@ -57,7 +65,9 @@ psg {
         cx16.VERA_DATA0 = msb(vera_freq)
         cx16.VERA_ADDR_L--
         cx16.VERA_DATA0 = lsb(vera_freq)
-        sys.clear_irqd()
+        %asm {{
+            plp
+        }}
     }
 
     sub volume(ubyte voice_num, ubyte vol) {
@@ -106,12 +116,11 @@ psg {
         ; you have to call this routine every 1/60th second, for example from your vsync irq handler,
         ; or just install this routine as the only irq handler if you don't have to do other things there.
         ; Example: cx16.set_irq(&psg.envelopes_irq, true)
-        ; NOTE: this routine calls save/restore_vera_context() for you, don't nest this!
+        ; NOTE: this routine calls save/restore_vera_context() for you, don't nest this or call it yourself!
 
         ; cx16.r0 = the volume word (volume scaled by 256)
         ; cx16.r1L = the voice number
         ; cx16.r2L = attack value
-
         pushw(cx16.r0)
         push(cx16.r1L)
         push(cx16.r2L)

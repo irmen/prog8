@@ -357,6 +357,15 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                 }
             }
+
+            if(expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+                if(assignOptimizedComparisonBytes(expr, assign))
+                    return true
+            } else  if(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+                if(assignOptimizedComparisonWords(expr, assign))
+                    return true
+            }
+
             val origTarget = assign.target.origAstTarget
             if(origTarget!=null) {
                 assignConstantByte(assign.target, 0)
@@ -381,13 +390,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         if(expr.type !in IntegerDatatypes)
             return false
 
-        fun simpleLogicalBytesExpr() {
-            // both left and right expression operands are simple.
-            if (expr.right is PtNumber || expr.right is PtIdentifier)
-                assignLogicalWithSimpleRightOperandByte(assign.target, expr.left, expr.operator, expr.right)
-            else if (expr.left is PtNumber || expr.left is PtIdentifier)
-                assignLogicalWithSimpleRightOperandByte(assign.target, expr.right, expr.operator, expr.left)
-            else {
+        if(expr.operator in setOf("&", "|", "^", "and", "or", "xor")) {
+            if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+                if (expr.right.isSimple()) {
+                    if (expr.right is PtNumber || expr.right is PtIdentifier) {
+                        assignLogicalWithSimpleRightOperandByte(assign.target, expr.left, expr.operator, expr.right)
+                        return true
+                    }
+                    else if (expr.left is PtNumber || expr.left is PtIdentifier) {
+                        assignLogicalWithSimpleRightOperandByte(assign.target, expr.right, expr.operator, expr.left)
+                        return true
+                    }
+                }
+
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
@@ -399,42 +414,28 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("invalid operator")
                 }
                 assignRegisterByte(assign.target, CpuRegister.A, false)
+                return true
             }
-        }
-
-        fun simpleLogicalWordsExpr() {
-            // both left and right expression operands are simple.
-            if (expr.right is PtNumber || expr.right is PtIdentifier)
-                assignLogicalWithSimpleRightOperandWord(assign.target, expr.left, expr.operator, expr.right)
-            else if (expr.left is PtNumber || expr.left is PtIdentifier)
-                assignLogicalWithSimpleRightOperandWord(assign.target, expr.right, expr.operator, expr.left)
-            else {
-                assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                asmgen.saveRegisterStack(CpuRegister.Y, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD)
+            else if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+                if (expr.right.isSimple()) {
+                    if (expr.right is PtNumber || expr.right is PtIdentifier) {
+                        assignLogicalWithSimpleRightOperandWord(assign.target, expr.left, expr.operator, expr.right)
+                        return true
+                    }
+                    else if (expr.left is PtNumber || expr.left is PtIdentifier) {
+                        assignLogicalWithSimpleRightOperandWord(assign.target, expr.right, expr.operator, expr.left)
+                        return true
+                    }
+                }
+                assignExpressionWordOperandsLeftAYRightScratchW1(expr)
                 when (expr.operator) {
-                    "&", "and" -> asmgen.out("  pla |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla |  and  P8ZP_SCRATCH_W1")
-                    "|", "or" -> asmgen.out("  pla |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla |  ora  P8ZP_SCRATCH_W1")
-                    "^", "xor" -> asmgen.out("  pla |  eor  P8ZP_SCRATCH_W1+1 |  tay |  pla |  eor  P8ZP_SCRATCH_W1")
+                    "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_W1 |  pha |  tya |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla")
+                    "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_W1 |  pha |  tya |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla")
+                    "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_W1 |  pha |  tya |  eor  P8ZP_SCRATCH_W1+1 |  tay |  pla")
                     else -> throw AssemblyError("invalid operator")
                 }
                 assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-            }
-        }
-
-        if(expr.operator in setOf("&", "|", "^", "and", "or", "xor")) {
-            if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
-                if (expr.right.isSimple()) {
-                    simpleLogicalBytesExpr()
-                    return true
-                }
-            }
-            if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
-                if (expr.right.isSimple()) {
-                    simpleLogicalWordsExpr()
-                    return true
-                }
+                return true
             }
             return false
         }
@@ -468,12 +469,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return true
             } else if(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes &&
                     expr.left.isSimple() && expr.right.isSimple()) {
-                assignExpressionToRegister(expr.left, RegisterOrPair.AY, false)
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                asmgen.saveRegisterStack(CpuRegister.Y, false)
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", DataType.UWORD)
-                asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
+                assignExpressionWordOperandsLeftAYRightScratchW1(expr)
                 if(expr.operator=="==") {
                     asmgen.out("""
                         cmp  P8ZP_SCRATCH_W1
@@ -525,9 +521,44 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignRegisterByte(assign.target, CpuRegister.A, dt in SignedDatatypes)
                         return true
                     }
-                    else -> return false
+                    else -> {
+                        assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
+                        asmgen.out("  pha")
+                        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)
+                        asmgen.out("  pla")
+                        if(expr.operator=="+")
+                            asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
+                        else
+                            asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
+                        assignRegisterByte(assign.target, CpuRegister.A, dt in SignedDatatypes)
+                        return true
+                    }
                 }
             } else if(dt in WordDatatypes) {
+
+                fun doAddOrSubWordExpr() {
+                    assignExpressionWordOperandsLeftAYRightScratchW1(expr)
+                    if(expr.operator=="+")
+                        asmgen.out("""
+                                clc
+                                adc  P8ZP_SCRATCH_W1
+                                pha
+                                tya
+                                adc  P8ZP_SCRATCH_W1+1
+                                tay
+                                pla""")
+                    else
+                        asmgen.out("""
+                                sec
+                                sbc  P8ZP_SCRATCH_W1
+                                pha
+                                tya
+                                sbc  P8ZP_SCRATCH_W1+1
+                                tay
+                                pla""")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                }
+
                 when (right) {
                     is PtAddressOf -> {
                         assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
@@ -603,30 +634,37 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     is PtTypeCast -> {
                         val castedValue = right.value
-                        if(right.type in WordDatatypes && castedValue.type in ByteDatatypes) {
-                            if(castedValue is PtIdentifier) {
-                                val castedSymname = asmgen.asmVariableName(castedValue)
-                                assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
-                                if(expr.operator=="+")
-                                    asmgen.out("""
-                                        clc
-                                        adc  $castedSymname
-                                        bcc  +
-                                        iny
-    +""")
-                                else
-                                    asmgen.out("""
-                                        sec
-                                        sbc  $castedSymname
-                                        bcs  +
-                                        dey
-    +""")
-                                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                return true
-                            }
+                        if(right.type in WordDatatypes && castedValue.type in ByteDatatypes && castedValue is PtIdentifier) {
+                            val castedSymname = asmgen.asmVariableName(castedValue)
+                            assignExpressionToRegister(left, RegisterOrPair.AY, dt == DataType.WORD)
+                            if (expr.operator == "+")
+                                asmgen.out(
+                                    """
+                                    clc
+                                    adc  $castedSymname
+                                    bcc  +
+                                    iny
++"""
+                                )
+                            else
+                                asmgen.out(
+                                    """
+                                    sec
+                                    sbc  $castedSymname
+                                    bcs  +
+                                    dey
++"""
+                                )
+                            assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                            return true
                         }
+                        doAddOrSubWordExpr()
+                        return true
                     }
-                    else -> return false
+                    else -> {
+                        doAddOrSubWordExpr()
+                        return true
+                    }
                 }
             }
         }
@@ -682,7 +720,394 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
         }
+        else if(expr.operator=="*") {
+            val value = expr.right.asConstInteger()
+            if(value==null) {
+                when(expr.type) {
+                    in ByteDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type in SignedDatatypes)
+                        asmgen.out("  pha")
+                        assignExpressionToRegister(expr.right, RegisterOrPair.Y, expr.type in SignedDatatypes)
+                        asmgen.out("  pla |  jsr  math.multiply_bytes")
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
+                        return true
+                    }
+                    in WordDatatypes -> {
+                        assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                        asmgen.out("""
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            ldy  math.multiply_words.result+1""")
+                        assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                        return true
+                    }
+                    else -> return false
+                }
+            } else {
+                when (expr.type) {
+                    in ByteDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type in SignedDatatypes)
+                        if (value in asmgen.optimizedByteMultiplications)
+                            asmgen.out("  jsr  math.mul_byte_${value}")
+                        else
+                            asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes")
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
+                        return true
+                    }
+                    in WordDatatypes -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type in SignedDatatypes)
+                        if (value in asmgen.optimizedWordMultiplications)
+                            asmgen.out("  jsr  math.mul_word_${value}")
+                        else
+                            asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  #<$value
+                            ldy  #>$value
+                            jsr  math.multiply_words
+                            lda  math.multiply_words.result
+                            ldy  math.multiply_words.result+1""")
+                        assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                        return true
+                    }
+                    else -> return false
+                }
+            }
+        }
+        else if(expr.operator=="/") {
+            when(expr.type) {
+                DataType.UBYTE -> {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                    asmgen.out("  pha")
+                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
+                    asmgen.out("  pla |  jsr  math.divmod_ub_asm")
+                    assignRegisterByte(assign.target, CpuRegister.Y, false)
+                    return true
+                }
+                DataType.BYTE -> {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, true)
+                    asmgen.out("  pha")
+                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, true)
+                    asmgen.out("  pla |  jsr  math.divmod_b_asm")
+                    assignRegisterByte(assign.target, CpuRegister.Y, true)
+                    return true
+                }
+                DataType.UWORD -> {
+                    assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                    asmgen.out("  jsr  math.divmod_uw_asm")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    return true
+                }
+                DataType.WORD -> {
+                    assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                    asmgen.out("  jsr  math.divmod_w_asm")
+                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    return true
+                }
+                else -> return false
+            }
+        }
+        else if(expr.operator=="%") {
+            when(expr.type) {
+                DataType.UBYTE -> {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                    asmgen.out("  pha")
+                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
+                    asmgen.out("  pla |  jsr  math.divmod_ub_asm")
+                    if(assign.target.register==RegisterOrPair.A)
+                        asmgen.out("  cmp  #0")     // fix the status register
+                    else
+                        assignRegisterByte(assign.target, CpuRegister.A, false)
+                    return true
+                }
+                DataType.UWORD -> {
+                    assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                    asmgen.out("  jsr  math.divmod_uw_asm")
+                    assignVariableWord(assign.target, "P8ZP_SCRATCH_W2")
+                    return true
+                }
+                else -> return false
+            }
+        }
+
         return false
+    }
+
+    private fun assignOptimizedComparisonBytes(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        val signed = expr.left.type == DataType.BYTE || expr.right.type ==  DataType.BYTE
+
+        fun assignExpressionOperandsLeftScratchRightA() {
+            if(expr.right.isSimple()) {
+                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_B1", expr.left.type)
+                assignExpressionToRegister(expr.right, RegisterOrPair.A, signed)
+            } else {
+                assignExpressionToRegister(expr.right, RegisterOrPair.A, signed)
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_B1", expr.left.type)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
+            }
+        }
+
+        when(expr.operator) {
+            "==" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_B1
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "!=" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_B1
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "<" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                if(signed)
+                    asmgen.out("""
+                        clc
+                        sbc  P8ZP_SCRATCH_B1
+                        bvc  +
+                        eor  #$80
++                       bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
+                else
+                    asmgen.out("""
+                        tay
+                        lda  #0
+                        cpy  P8ZP_SCRATCH_B1
+                        beq  +
+                        rol  a
++""")
+            }
+            "<=" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                if(signed)
+                    asmgen.out("""
+                        sec
+                        sbc  P8ZP_SCRATCH_B1
+                        bvc  +
+                        eor  #$80
++                       bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
+                else
+                    asmgen.out("""
+                        cmp  P8ZP_SCRATCH_B1
+                        lda  #0
+                        rol  a""")
+            }
+            ">" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                if(signed)
+                    asmgen.out("""
+                        sec
+                        sbc  P8ZP_SCRATCH_B1
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
+                else
+                    asmgen.out("""
+                        cmp  P8ZP_SCRATCH_B1
+                        lda  #0
+                        rol  a
+                        eor  #1""")
+            }
+            ">=" -> {
+                assignExpressionOperandsLeftScratchRightA()
+                if(signed)
+                    asmgen.out("""
+                        clc
+                        sbc  P8ZP_SCRATCH_B1
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1                        
++""")
+                else
+                asmgen.out("""
+                        cmp  P8ZP_SCRATCH_B1
+                        beq  +
+                        bcc  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+            }
+            else -> return false
+        }
+
+        assignRegisterByte(assign.target, CpuRegister.A, signed)
+        return true
+    }
+
+    private fun assignOptimizedComparisonWords(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        val signed = expr.left.type == DataType.WORD || expr.right.type ==  DataType.WORD
+        when(expr.operator) {
+            "==" -> {
+                assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_W1
+                    bne  +
+                    cpy  P8ZP_SCRATCH_W1+1
+                    bne  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++""")
+            }
+            "!=" -> {
+                assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                asmgen.out("""
+                    cmp  P8ZP_SCRATCH_W1
+                    bne  +
+                    cpy  P8ZP_SCRATCH_W1+1
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "<" -> {
+                if(signed) {
+                    assignExpressionWordOperandsLeftAYRightScratchW1(expr)
+                    asmgen.out("""
+		cmp  P8ZP_SCRATCH_W1
+        tya
+		sbc  P8ZP_SCRATCH_W1+1
+		bvc  +
+		eor  #${'$'}80
++		bpl  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                }
+                else {
+                    assignExpressionWordOperandsLeftAYRightScratchW1(expr)
+                    asmgen.out("""
+		cpy  P8ZP_SCRATCH_W1+1
+		bcc  +
+        bne  ++
+		cmp  P8ZP_SCRATCH_W1
+		bcs  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                }
+            }
+            "<=" -> {
+                if(signed) {
+                    assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                    asmgen.out("""
+		cmp  P8ZP_SCRATCH_W1
+        tya
+		sbc  P8ZP_SCRATCH_W1+1
+		bvc  +
+		eor  #${'$'}80
++		bmi  +
+        lda  #1
+        bne  ++
++       lda  #0
++""")
+                }
+                else {
+                    assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                    asmgen.out("""
+		cpy  P8ZP_SCRATCH_W1+1
+		bcc  ++
+		bne  +
+		cmp  P8ZP_SCRATCH_W1
+		bcc  ++                        
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                }
+            }
+            ">" -> {
+                if(signed) {
+                    assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                    asmgen.out("""
+		cmp  P8ZP_SCRATCH_W1
+        tya
+		sbc  P8ZP_SCRATCH_W1+1
+		bvc  +
+		eor  #${'$'}80
++		bpl  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                }
+                else {
+                    assignExpressionWordOperandsLeftScratchW1RightAY(expr)
+                    asmgen.out("""
+		cpy  P8ZP_SCRATCH_W1+1
+		bcc  +
+        bne  ++
+		cmp  P8ZP_SCRATCH_W1
+		bcs  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                }
+            }
+            ">=" -> {
+                if(signed) {
+                    assignExpressionWordOperandsLeftAYRightScratchW1(expr)
+                    asmgen.out("""
+		cmp  P8ZP_SCRATCH_W1
+        tya
+		sbc  P8ZP_SCRATCH_W1+1
+		bvc  +
+		eor  #${'$'}80
++		bmi  +
+        lda  #1
+        bne  ++
++       lda  #0
++""")
+                }
+                else {
+                    assignExpressionWordOperandsLeftAYRightScratchW1(expr)
+                    asmgen.out("""
+		cpy  P8ZP_SCRATCH_W1+1
+		bcc  ++
+		bne  +
+		cmp  P8ZP_SCRATCH_W1
+		bcc  ++                        
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                }
+            }
+            else -> return false
+        }
+
+        assignRegisterByte(assign.target, CpuRegister.A, signed)
+        return true
     }
 
     private fun assignLogicalWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
@@ -850,6 +1275,34 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return
             }
             else -> throw AssemblyError("invalid dt")
+        }
+    }
+
+    private fun assignExpressionWordOperandsLeftScratchW1RightAY(expr: PtBinaryExpression) {
+        if(expr.right.isSimple()) {
+            assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.left.type)
+            assignExpressionToRegister(expr.right, RegisterOrPair.AY, expr.right.type in SignedDatatypes)
+        } else {
+            assignExpressionToRegister(expr.right, RegisterOrPair.AY, expr.right.type in SignedDatatypes)
+            asmgen.saveRegisterStack(CpuRegister.A, false)
+            asmgen.saveRegisterStack(CpuRegister.Y, false)
+            assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.left.type)
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
+        }
+    }
+
+    private fun assignExpressionWordOperandsLeftAYRightScratchW1(expr: PtBinaryExpression) {
+        if(expr.left.isSimple()) {
+            assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", expr.left.type)
+            assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type in SignedDatatypes)
+        } else {
+            assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type in SignedDatatypes)
+            asmgen.saveRegisterStack(CpuRegister.A, false)
+            asmgen.saveRegisterStack(CpuRegister.Y, false)
+            assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", expr.left.type)
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
         }
     }
 
@@ -2058,14 +2511,24 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister, signed: Boolean) {
-        // we make an exception in the type check for assigning something to a register pair AX, AY or XY
-        // these will be correctly typecasted from a byte to a word value here
-        if(target.register !in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
-            require(target.datatype in ByteDatatypes) { "assign target must be byte type ${target.position}"}
+        val assignAsWord = target.datatype in WordDatatypes
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("  st${register.name.lowercase()}  ${target.asmVarname}")
+                if(assignAsWord) {
+                    if(target.datatype in SignedDatatypes) {
+                        if(register!=CpuRegister.A)
+                            asmgen.out("  t${register.name.lowercase()}a")
+                        asmgen.signExtendAYlsb(if(target.datatype in SignedDatatypes) DataType.BYTE else DataType.UBYTE)
+                        asmgen.out("  sty  ${target.asmVarname}+1")
+                    } else {
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  ${target.asmVarname}+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  ${target.asmVarname}+1")
+                    }
+                }
             }
             TargetStorageKind.MEMORY -> {
                 when(register) {
@@ -2076,6 +2539,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
+                if(assignAsWord)
+                    TODO("assign register as word into Array not yet supported")
                 if (target.constArrayIndexValue!=null) {
                     when (register) {
                         CpuRegister.A -> asmgen.out("  sta  ${target.asmVarname}+${target.constArrayIndexValue}")
@@ -2237,6 +2702,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.STACK -> {
+                if(assignAsWord)
+                    TODO("assign register as word onto Stack not yet supported")
                 when(register) {
                     CpuRegister.A -> asmgen.out(" sta  P8ESTACK_LO,x |  dex")
                     CpuRegister.X -> throw AssemblyError("can't use X here")

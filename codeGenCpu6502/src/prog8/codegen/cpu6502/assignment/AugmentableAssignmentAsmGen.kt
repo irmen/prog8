@@ -772,13 +772,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
-                        lda  $name
-                        cmp  $otherName
-                        bcc  +
                         lda  #0
-                        beq  ++
-+                       lda  #1
-+                       sta  $name""")
+                        ldy  $name
+                        cpy  $otherName
+                        rol  a
+                        eor  #1
+                        sta  $name""")
                 }
                 else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
@@ -798,13 +797,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<=" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
-                        lda  $otherName
-                        cmp  $name
-                        bcs  +
                         lda  #0
-                        beq  ++
-+                       lda  #1
-+                       sta  $name""")
+                        ldy  $otherName
+                        cpy  $name
+                        rol  a
+                        sta  $name""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
@@ -823,13 +820,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             ">" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
-                        lda  $name
-                        cmp  $otherName
+                        lda  #0
+                        ldy  $name
+                        cpy  $otherName
                         beq  +
-                        bcs  ++
-+                       lda  #0
-                        beq  ++
-+                       lda  #1
+                        rol  a
 +                       sta  $name""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
@@ -849,13 +844,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             ">=" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
-                        lda  $name
-                        cmp  $otherName
-                        bcs  +
                         lda  #0
-                        beq  ++
-+                       lda  #1
-+                       sta  $name""")
+                        ldy  $name
+                        cpy  $otherName
+                        rol  a
+                        sta  $name""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
@@ -963,13 +956,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
-                        lda  $name
-                        cmp  #$value
-                        bcc  +
                         lda  #0
-                        beq  ++
-+                       lda  #1
-+                       sta  $name""")
+                        ldy  $name
+                        cpy  #$value
+                        rol  a
+                        eor  #1
+                        sta  $name""")
                 }
                 else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
@@ -989,13 +981,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<=" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
-                        lda  #$value
-                        cmp  $name
-                        bcs  +
                         lda  #0
-                        beq  ++
-+                       lda  #1
-+                       sta  $name""")
+                        ldy  #$value
+                        cpy  $name
+                        rol  a
+                        sta  $name""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
@@ -1014,13 +1004,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             ">" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
-                        lda  $name
-                        cmp  #$value
+                        lda  #0
+                        ldy  $name
+                        cpy  #$value
                         beq  +
-                        bcs  ++
-+                       lda  #0
-                        beq  ++
-+                       lda  #1
+                        rol  a
 +                       sta  $name""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
@@ -1040,13 +1028,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             ">=" -> {
                 if(dt==DataType.UBYTE) {
                     asmgen.out("""
-                        lda  $name
-                        cmp  #$value
-                        bcs  +
                         lda  #0
-                        beq  ++
-+                       lda  #1
-+                       sta  $name""")
+                        ldy  $name
+                        cpy  #$value
+                        rol  a
+                        sta  $name""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""

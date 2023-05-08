@@ -284,7 +284,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BREAKPOINT -> InsBREAKPOINT()
             Opcode.CLC -> { statusCarry = false; nextPc() }
             Opcode.SEC -> { statusCarry = true; nextPc() }
-            Opcode.BINARYDATA -> TODO("BINARYDATA not yet supported in VM")
             Opcode.LOADCPU -> InsLOADCPU(ins)
             Opcode.STORECPU -> InsSTORECPU(ins)
             Opcode.STOREZCPU -> InsSTOREZCPU(ins)

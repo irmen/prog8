@@ -91,27 +91,27 @@ bger        reg1, reg2,       address   - jump to location in program given by l
 bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
 bles        reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (signed)
- ( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
-sz          reg1, reg2                  - set reg1=1 if reg2==0,  otherwise set reg1=0
-snz         reg1, reg2                  - set reg1=1 if reg2!=0,  otherwise set reg1=0
-seq         reg1, reg2                  - set reg1=1 if reg1 == reg2,  otherwise set reg1=0
-sne         reg1, reg2                  - set reg1=1 if reg1 != reg2,  otherwise set reg1=0
-slt         reg1, reg2                  - set reg1=1 if reg1 < reg2 (unsigned),  otherwise set reg1=0
-slts        reg1, reg2                  - set reg1=1 if reg1 < reg2 (signed),  otherwise set reg1=0
-sle         reg1, reg2                  - set reg1=1 if reg1 <= reg2 (unsigned),  otherwise set reg1=0
-sles        reg1, reg2                  - set reg1=1 if reg1 <= reg2 (signed),  otherwise set reg1=0
-sgt         reg1, reg2                  - set reg1=1 if reg1 > reg2 (unsigned),  otherwise set reg1=0
-sgts        reg1, reg2                  - set reg1=1 if reg1 > reg2 (signed),  otherwise set reg1=0
-sge         reg1, reg2                  - set reg1=1 if reg1 >= reg2 (unsigned),  otherwise set reg1=0
-sges        reg1, reg2                  - set reg1=1 if reg1 >= reg2 (signed),  otherwise set reg1=0
+( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
+sz          reg1, reg2                  - set reg1=1.b if reg2==0,  otherwise set reg1=0.b
+snz         reg1, reg2                  - set reg1=1.b if reg2!=0,  otherwise set reg1=0.b
+seq         reg1, reg2                  - set reg1=1.b if reg1 == reg2,  otherwise set reg1=0.b
+sne         reg1, reg2                  - set reg1=1.b if reg1 != reg2,  otherwise set reg1=0.b
+slt         reg1, reg2                  - set reg1=1.b if reg1 < reg2 (unsigned),  otherwise set reg1=0.b
+slts        reg1, reg2                  - set reg1=1.b if reg1 < reg2 (signed),  otherwise set reg1=0.b
+sle         reg1, reg2                  - set reg1=1.b if reg1 <= reg2 (unsigned),  otherwise set reg1=0.b
+sles        reg1, reg2                  - set reg1=1.b if reg1 <= reg2 (signed),  otherwise set reg1=0.b
+sgt         reg1, reg2                  - set reg1=1.b if reg1 > reg2 (unsigned),  otherwise set reg1=0.b
+sgts        reg1, reg2                  - set reg1=1.b if reg1 > reg2 (signed),  otherwise set reg1=0.b
+sge         reg1, reg2                  - set reg1=1.b if reg1 >= reg2 (unsigned),  otherwise set reg1=0.b
+sges        reg1, reg2                  - set reg1=1.b if reg1 >= reg2 (signed),  otherwise set reg1=0.b
 
 
 ARITHMETIC
 ----------
 All have type b or w or f. Note: result types are the same as operand types! E.g. byte*byte->byte.
 
-ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (ext.w not yet implemented as we don't have longs yet)
 exts        reg1                            - reg1 = signed extension of reg1 (byte to word, or word to long)  (note: ext.w is not yet implemented as we don't have longs yet)
+ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (ext.w not yet implemented as we don't have longs yet)
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
@@ -216,7 +216,6 @@ msig [b, w]   reg1, reg2                  - reg1 becomes the most significant by
 concat [b, w] reg1, reg2                  - reg1 = concatenated lsb/lsw of reg1 (as lsb) and lsb/lsw of reg2 (as msb) into word or int (int not yet implemented; requires 32bits regs)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
-binarydata                                - 'instruction' to hold inlined binary data bytes
  */
 
 enum class Opcode {
@@ -374,8 +373,7 @@ enum class Opcode {
     POP,
     MSIG,
     CONCAT,
-    BREAKPOINT,
-    BINARYDATA
+    BREAKPOINT
 }
 
 val OpcodesThatJump = setOf(
@@ -653,7 +651,6 @@ val instructionFormats = mutableMapOf(
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
     Opcode.BREAKPOINT to InstructionFormat.from("N"),
-    Opcode.BINARYDATA to InstructionFormat.from("N"),
 )
 
 
@@ -667,9 +664,8 @@ data class IRInstruction(
     val immediate: Int?=null,   // 0-$ff or $ffff if word
     val immediateFp: Float?=null,
     val address: Int?=null,       // 0-$ffff
-    val labelSymbol: String?=null,          // symbolic label name as alternative to value (so only for Branch/jump/call Instructions!)
-    val binaryData: Collection<UByte>?=null,
-    var branchTarget: IRCodeChunkBase? = null    // will be linked after loading
+    val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
+    var branchTarget: IRCodeChunkBase? = null    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
 ) {
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
     // This knowledge is useful in IL assembly optimizers to see how registers are used.
@@ -685,10 +681,6 @@ data class IRInstruction(
         require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
         require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
         if(reg1!=null && reg2!=null) require(reg1!=reg2) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type
-
-        require((opcode==Opcode.BINARYDATA && binaryData!=null) || (opcode!=Opcode.BINARYDATA && binaryData==null)) {
-            "binarydata inconsistency"
-        }
 
         val formats = instructionFormats.getValue(opcode)
         require (type != null || formats.containsKey(null)) { "missing type" }

@@ -292,7 +292,7 @@ str = P8ZP_SCRATCH_W1
 	sta  modify_pattern2+2
 	jsr  _match
 	lda  #0
-	adc  #0
+	rol  a
 	ldx  P8ZP_SCRATCH_REG
 	rts
 
