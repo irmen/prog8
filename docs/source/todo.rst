@@ -3,7 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- AssignmentAsmGen: TODO use utility function   <- do that
 - fix crash: uword remainder = seconds_uword % $0003 ==0
 - fix VM: void string.copy(".prg", &output_filename + string.length(output_filename))
 - try to optimize newexpr a bit more
