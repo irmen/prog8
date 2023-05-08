@@ -529,7 +529,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignRegisterByte(assign.target, CpuRegister.A, dt in SignedDatatypes)
                         return true
                     }
-                    else -> return false
+                    else -> {
+                        assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
+                        asmgen.out("  pha")
+                        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)
+                        asmgen.out("  pla")
+                        if(expr.operator=="+")
+                            asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
+                        else
+                            asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
+                        assignRegisterByte(assign.target, CpuRegister.A, dt in SignedDatatypes)
+                        return true
+                    }
                 }
             } else if(dt in WordDatatypes) {
                 when (right) {
@@ -630,7 +641,30 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                     }
-                    else -> return false
+                    else -> {
+                        assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", right.type)
+                        assignExpressionToRegister(left, RegisterOrPair.AY, left.type==DataType.WORD)
+                        if(expr.operator=="+")
+                            asmgen.out("""
+                                clc
+                                adc  P8ZP_SCRATCH_W2
+                                pha
+                                tya
+                                adc  P8ZP_SCRATCH_W2+1
+                                tay
+                                pla""")
+                        else
+                            asmgen.out("""
+                                sec
+                                sbc  P8ZP_SCRATCH_W2
+                                pha
+                                tya
+                                sbc  P8ZP_SCRATCH_W2+1
+                                tay
+                                pla""")
+                        assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                        return true
+                    }
                 }
             }
         }

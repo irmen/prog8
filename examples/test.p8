@@ -3,31 +3,13 @@
 
 main {
 
-    uword vv = 60
-
-        sub print_time(uword seconds) {
-            ubyte remainder = seconds % $0003 ==0
-            txt.print_uw(remainder)
-            txt.nl()
-        }
-
-        sub print_time2(ubyte seconds) {
-            ubyte remainder = seconds % 3 ==0
-            txt.print_uw(remainder)
-            txt.nl()
-        }
-
+    word[5] dx = [111,222,333,444,555]
 
     sub start() {
-        print_time(9870)
-        print_time(9871)
-        print_time(9872)
-        print_time(9873)
-        txt.nl()
-        print_time2(50)
-        print_time2(51)
-        print_time2(52)
-        print_time2(53)
+        uword hit_x = 999
+        cx16.r0=2
+        uword new_head_x = hit_x + dx[cx16.r0L] as uword
+        txt.print_uw(new_head_x)
     }
 }
 
