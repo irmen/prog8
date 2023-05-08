@@ -3,7 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- fix crash: uword remainder = seconds_uword % $0003 ==0
 - fix VM problem with param passing: void string.copy(".prg", &output_filename + string.length(output_filename))
 - try to optimize newexpr a bit more
 

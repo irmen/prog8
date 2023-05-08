@@ -2511,14 +2511,24 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister, signed: Boolean) {
-        // we make an exception in the type check for assigning something to a register pair AX, AY or XY
-        // these will be correctly typecasted from a byte to a word value here
-        if(target.register !in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY))
-            require(target.datatype in ByteDatatypes) { "assign target must be byte type ${target.position}"}
+        val assignAsWord = target.datatype in WordDatatypes
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("  st${register.name.lowercase()}  ${target.asmVarname}")
+                if(assignAsWord) {
+                    if(target.datatype in SignedDatatypes) {
+                        if(register!=CpuRegister.A)
+                            asmgen.out("  t${register.name.lowercase()}a")
+                        asmgen.signExtendAYlsb(if(target.datatype in SignedDatatypes) DataType.BYTE else DataType.UBYTE)
+                        asmgen.out("  sty  ${target.asmVarname}+1")
+                    } else {
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  ${target.asmVarname}+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  ${target.asmVarname}+1")
+                    }
+                }
             }
             TargetStorageKind.MEMORY -> {
                 when(register) {
@@ -2529,6 +2539,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
+                if(assignAsWord)
+                    TODO("assign register as word into Array not yet supported")
                 if (target.constArrayIndexValue!=null) {
                     when (register) {
                         CpuRegister.A -> asmgen.out("  sta  ${target.asmVarname}+${target.constArrayIndexValue}")
@@ -2690,6 +2702,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.STACK -> {
+                if(assignAsWord)
+                    TODO("assign register as word onto Stack not yet supported")
                 when(register) {
                     CpuRegister.A -> asmgen.out(" sta  P8ESTACK_LO,x |  dex")
                     CpuRegister.X -> throw AssemblyError("can't use X here")
