@@ -44,20 +44,14 @@ class VmProgramLoader {
                 when(child) {
                     is IRAsmSubroutine -> throw IRParseException("vm does not support asmsubs (use normal sub): ${child.label}")
                     is IRCodeChunk -> programChunks += child
-                    is IRInlineAsmChunk -> {
-                        val replacement = addAssemblyToProgram(child, programChunks, variableAddresses)
-                        chunkReplacements += Pair(child, replacement)
-                    }
-                    is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
+                    is IRInlineAsmChunk -> throw IRParseException("encountered unconverted inline assembly chunk")
+                    is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
                     is IRSubroutine -> {
                         subroutines[child.label] = child
                         child.chunks.forEach { chunk ->
                             when (chunk) {
-                                is IRInlineAsmChunk -> {
-                                    val replacement = addAssemblyToProgram(chunk, programChunks, variableAddresses)
-                                    chunkReplacements += Pair(chunk, replacement)
-                                }
-                                is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")  // TODO
+                                is IRInlineAsmChunk -> throw IRParseException("encountered unconverted inline assembly chunk")
+                                is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
                                 is IRCodeChunk -> programChunks += chunk
                                 else -> throw AssemblyError("weird chunk type")
                             }
@@ -331,28 +325,6 @@ class VmProgramLoader {
                 }
             }
             require(variable.onetimeInitializationStringValue==null) { "in vm/ir, strings should have been converted into bytearrays." }
-        }
-    }
-
-
-    private fun addAssemblyToProgram(
-        asmChunk: IRInlineAsmChunk,
-        chunks: MutableList<IRCodeChunk>,
-        symbolAddresses: MutableMap<String, Int>,
-    ): IRCodeChunk {
-        if(asmChunk.isIR) {
-            val chunk = IRCodeChunk(asmChunk.label, asmChunk.next)
-            asmChunk.assembly.lineSequence().forEach {
-                val parsed = parseIRCodeLine(it.trim(), Pair(chunk, chunk.instructions.size), placeholders)
-                parsed.fold(
-                    ifLeft = { instruction -> chunk += instruction },
-                    ifRight = { label -> symbolAddresses[label] = chunk.instructions.size }
-                )
-            }
-            chunks += chunk
-            return chunk
-        } else {
-            throw IRParseException("vm currently does not support real inlined assembly (only IR): ${asmChunk.label}")
         }
     }
 }

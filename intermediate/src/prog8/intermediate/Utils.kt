@@ -78,9 +78,7 @@ fun parseIRValue(value: String): Float {
 private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
 private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
-fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholders: MutableMap<Pair<IRCodeChunk, Int>, String>): Either<IRInstruction, String> {
-    // Note: this function is used from multiple places:
-    // the IR File Reader but also the VirtualMachine itself to make sense of any inline vmasm blocks.
+fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     val labelmatch = labelPattern.matchEntire(line.trim())
     if(labelmatch!=null)
         return right(labelmatch.groupValues[1])     // it's a label.
@@ -117,10 +115,8 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
     var address: Int? = null
     var labelSymbol: String? = null
 
-    fun parseValueOrPlaceholder(operand: String, location: Pair<IRCodeChunk, Int>?): Float? {
+    fun parseValueOrPlaceholder(operand: String): Float? {
         return if(operand[0].isLetter()) {
-            if(location!=null)
-                placeholders[location] = operand
             null
         } else {
             parseIRValue(operand)
@@ -156,7 +152,7 @@ fun parseIRCodeLine(line: String, location: Pair<IRCodeChunk, Int>?, placeholder
             if(!oper[0].isLetter())
                 throw IRParseException("expected symbol name: $oper")
             labelSymbol = oper
-            val value = parseValueOrPlaceholder(oper, location)
+            val value = parseValueOrPlaceholder(oper)
             if(value!=null)
                 address = value.toInt()
         }

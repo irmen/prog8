@@ -4,7 +4,7 @@ TODO
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
 - fix VM problem with param passing: void string.copy(".prg", &output_filename + string.length(output_filename))
-- try to optimize newexpr a bit more
+   some work on this is on a git shelf
 
 ...
 
@@ -33,6 +33,7 @@ Compiler:
 - ir: peephole opt: (maybe just integrate this in the variable/register allocator though?) reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
+- try to optimize newexpr a bit more? Although maybe just spend effort on a new codegen based on the IR.
 - PtAst/IR: more complex common subexpression eliminations
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit or my binaryen kotlin library?
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer

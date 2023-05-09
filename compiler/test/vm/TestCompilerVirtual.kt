@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import prog8.ast.expressions.BuiltinFunctionCall
 import prog8.ast.statements.Assignment
 import prog8.code.target.C64Target
@@ -244,25 +245,26 @@ main {
         val exc = shouldThrow<Exception> {
             VmRunner().runProgram(virtfile.readText())
         }
-        exc.message shouldContain("does not support real inlined assembly")
+        exc.message shouldContain("encountered unconverted inline assembly chunk")
     }
 
-    test("inline asm for virtual target with IR is accepted") {
+    test("inline asm for virtual target with IR is accepted and converted to regular instructions") {
         val src = """
 main {
   sub start() {
     %ir {{
+        loadr.b r1,r2
         return
     }}
   }
 }"""
-        val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
-
         val target = VMTarget()
         val result = compileText(target, false, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
+        val irSrc = virtfile.readText()
+        irSrc.shouldContain("loadr.b r1,r2")
+        irSrc.shouldNotContain("INLINEASM")
+        VmRunner().runProgram(irSrc)
     }
 
     test("addresses from labels/subroutines not yet supported in VM") {

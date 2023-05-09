@@ -170,7 +170,10 @@ class IRProgram(val name: String,
     fun validate() {
         blocks.forEach { block ->
             if(block.isNotEmpty()) {
-                block.children.filterIsInstance<IRInlineAsmChunk>().forEach { chunk -> require(chunk.instructions.isEmpty()) }
+                block.children.filterIsInstance<IRInlineAsmChunk>().forEach { chunk ->
+                    require(chunk.instructions.isEmpty())
+                    require(!chunk.isIR) { "inline IR-asm should have been converted into regular code chunk"}
+                }
                 block.children.filterIsInstance<IRSubroutine>().forEach { sub ->
                     if(sub.chunks.isNotEmpty()) {
                         require(sub.chunks.first().label == sub.label) { "first chunk in subroutine should have sub name (label) as its label" }
@@ -179,15 +182,18 @@ class IRProgram(val name: String,
                         if (chunk is IRCodeChunk) {
                             require(chunk.instructions.isNotEmpty() || chunk.label != null)
                             if(chunk.instructions.lastOrNull()?.opcode in OpcodesThatJump)
-                                require(chunk.next == null) { "chunk ending with a jump shouldn't be linked to next" }
+                                require(chunk.next == null) { "chunk ending with a jump or return shouldn't be linked to next" }
                             else {
                                 // if chunk is NOT the last in the block, it needs to link to next.
                                 val isLast = sub.chunks.last() === chunk
                                 require(isLast || chunk.next != null) { "chunk needs to be linked to next" }
                             }
                         }
-                        else
+                        else {
                             require(chunk.instructions.isEmpty())
+                            if(chunk is IRInlineAsmChunk)
+                                require(!chunk.isIR) { "inline IR-asm should have been converted into regular code chunk"}
+                        }
                         chunk.instructions.forEach {
                             if(it.labelSymbol!=null && it.opcode in OpcodesThatBranch)
                                 require(it.branchTarget != null) { "branching instruction to label should have branchTarget set" }
@@ -234,6 +240,65 @@ class IRProgram(val name: String,
             }
         }
         return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
+    }
+
+    fun convertAsmChunks() {
+        fun convert(asmChunk: IRInlineAsmChunk): IRCodeChunks {
+            val chunks = mutableListOf<IRCodeChunkBase>()
+            var chunk = IRCodeChunk(asmChunk.label, null)
+            asmChunk.assembly.lineSequence().forEach {
+                val parsed = parseIRCodeLine(it.trim())
+                parsed.fold(
+                    ifLeft = { instruction -> chunk += instruction },
+                    ifRight = { label ->
+                        val lastChunk = chunk
+                        if(chunk.isNotEmpty() || chunk.label!=null)
+                            chunks += chunk
+                        chunk = IRCodeChunk(label, null)
+                        val lastInstr = lastChunk.instructions.lastOrNull()
+                        if(lastInstr==null || lastInstr.opcode !in OpcodesThatJump)
+                            lastChunk.next = chunk
+                    }
+                )
+            }
+            if(chunk.isNotEmpty() || chunk.label!=null)
+                chunks += chunk
+            chunks.lastOrNull()?.let {
+                val lastInstr = it.instructions.lastOrNull()
+                if(lastInstr==null || lastInstr.opcode !in OpcodesThatJump)
+                    it.next = asmChunk.next
+            }
+            return chunks
+        }
+
+        blocks.forEach { block ->
+            val chunkReplacementsInBlock = mutableListOf<Pair<IRCodeChunkBase, IRCodeChunks>>()
+            block.children.filterIsInstance<IRInlineAsmChunk>().forEach { asmchunk ->
+                if(asmchunk.isIR) chunkReplacementsInBlock += asmchunk to convert(asmchunk)
+                // non-IR asm cannot be converted
+            }
+            chunkReplacementsInBlock.reversed().forEach { (old, new) ->
+                val index = block.children.indexOf(old)
+                block.children.removeAt(index)
+                new.reversed().forEach { block.children.add(index, it) }
+            }
+            chunkReplacementsInBlock.clear()
+
+            block.children.filterIsInstance<IRSubroutine>().forEach { sub ->
+                val chunkReplacementsInSub = mutableListOf<Pair<IRCodeChunkBase, IRCodeChunks>>()
+                sub.chunks.filterIsInstance<IRInlineAsmChunk>().forEach { asmchunk ->
+                    if(asmchunk.isIR) chunkReplacementsInSub += asmchunk to convert(asmchunk)
+                    // non-IR asm cannot be converted
+                }
+
+                chunkReplacementsInSub.reversed().forEach { (old, new) ->
+                    val index = sub.chunks.indexOf(old)
+                    sub.chunks.removeAt(index)
+                    new.reversed().forEach { sub.chunks.add(index, it) }
+                }
+                chunkReplacementsInSub.clear()
+            }
+        }
     }
 }
 
@@ -418,7 +483,7 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
         assembly.lineSequence().forEach { line ->
             val t = line.trim()
             if(t.isNotEmpty()) {
-                val result = parseIRCodeLine(t, null, mutableMapOf())
+                val result = parseIRCodeLine(t)
                 result.fold(
                     ifLeft = { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts,readFpRegsCounts, writeFpRegsCounts, regsTypes) },
                     ifRight = { /* labels can be skipped */ }

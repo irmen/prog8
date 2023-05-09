@@ -68,6 +68,7 @@ class IRFileReader {
         blocks.forEach{ program.addBlock(it) }
 
         program.linkChunks()
+        program.convertAsmChunks()
         program.validate()
 
         return program
@@ -302,7 +303,7 @@ class IRFileReader {
         if(text.isNotBlank()) {
             text.lineSequence().forEach { line ->
                 if (line.isNotBlank() && !line.startsWith(';')) {
-                    val result = parseIRCodeLine(line, null, mutableMapOf())
+                    val result = parseIRCodeLine(line)
                     result.fold(
                         ifLeft = {
                             chunk += it
