@@ -53,6 +53,7 @@ class IRCodeGen(
         replaceMemoryMappedVars(irProg)
         ensureFirstChunkLabels(irProg)
         irProg.linkChunks()
+        irProg.convertAsmChunks()
 
         val optimizer = IRPeepholeOptimizer(irProg)
         optimizer.optimize(options.optimize, errors)

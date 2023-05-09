@@ -27,6 +27,8 @@ There is no distinction between signed and unsigned integers.
 Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
+NOTE: Labels in source text should always start with an underscore.
+
 
 LOAD/STORE
 ----------

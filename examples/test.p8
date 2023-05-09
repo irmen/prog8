@@ -1,24 +1,25 @@
 %import textio
-%option no_sysinit
+%import string
 %zeropage basicsafe
 
 main {
-    ; TODO
-    asmsub derp(bool flag @Pc) -> bool @Pc {
-        %asm {{
-            bcc  +
-            lda  #'1'
-            jmp  cbm.CHROUT
-+           lda  #'0'
-            jmp  cbm.CHROUT
-        }}
-    }
+
     sub start() {
-        ubyte xx = 0
-        ubyte yy=0
-        void derp(xx+1)
-        void derp(xx+42)
-        void derp(xx-yy)
+        uword seconds_uword = 1
+        uword remainder = seconds_uword % $0003 ==0
+        txt.print_uw(remainder)
+
+        blerp()
+    }
+
+    sub blerp() {
+        %ir {{
+_xxx:
+        loadr  r2,r3
+_yyy:
+        loadr  r3,r4
+        return
+        }}
     }
 }
 
