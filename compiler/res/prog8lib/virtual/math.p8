@@ -161,16 +161,14 @@ math {
 
     sub rnd() -> ubyte {
         %ir {{
-            syscall 33
-            pop.b r0
+            syscall 33 (): r0.b
             returnr.b r0
         }}
     }
 
     sub rndw() -> uword {
         %ir {{
-            syscall 34
-            pop.w r0
+            syscall 34 (): r0.w
             returnr.w r0
         }}
     }
@@ -178,11 +176,9 @@ math {
     sub rndseed(uword seed1, uword seed2) {
         ; -- reset the pseudo RNG's seed values. Defaults are: $a55a, $7653.
         %ir {{
-            loadm.w r65535,math.rndseed.seed1
-            setparam.w r65535,0
+            loadm.w r65534,math.rndseed.seed1
             loadm.w r65535,math.rndseed.seed2
-            setparam.w r65535,1
-            syscall 31
+            syscall 31 (r65534.w, r65535.w)
             return
         }}
     }

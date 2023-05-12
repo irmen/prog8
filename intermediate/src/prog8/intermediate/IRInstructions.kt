@@ -1,5 +1,7 @@
 package prog8.intermediate
 
+import prog8.code.core.CpuRegister
+import prog8.code.core.RegisterOrStatusflag
 import prog8.code.core.toHex
 
 /*
@@ -54,12 +56,16 @@ CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction number given by location
 jumpa                   address       - continue running at memory address (note: only used to encode a physical cpu jump to fixed address instruction)
-setparam    reg1,       argpos        - sets reg1 as the value for the parameter in the given position for an upcoming function call (call, callr, syscall, or even jump opcode).
-call                    location      - save current instruction location+1, continue execution at instruction nr given by location. No return value is expected.
-callr       reg1,       location      - like call but expects the routine to  return a value with a returnr instruction, it then puts that in reg1
-syscall                 value         - do a systemcall identified by call number, result value(s) are pushed on value stack so need to be POPped off (depends on syscall)
+call  label(argument register list) [: resultreg.type]
+                                      - calls a subroutine with the given arguments and return value (optional).
+                                        save current instruction location+1, continue execution at instruction nr of the label.
+                                        the argument register list is positional and includes the datatype, ex.: r4.b,r5.w,fp1.f
+syscall  number (argument register list) [: resultreg.type]
+                                      - do a systemcall identified by number, result value(s) are pushed on value stack by the syscall code so
+                                        will be POPped off into the given resultregister if any.
 return                                - restore last saved instruction location and continue at that instruction. No return value.
 returnr     reg1                      - like return, but also returns the value in reg1 to the caller
+
 
 
 BRANCHING and CONDITIONALS
@@ -232,15 +238,12 @@ enum class Opcode {
     STOREX,
     STOREIX,
     STOREZM,
-    STOREZCPU,
     STOREZI,
     STOREZX,
 
     JUMP,
     JUMPA,
-    SETPARAM,
     CALL,
-    CALLR,
     SYSCALL,
     RETURN,
     RETURNR,
@@ -388,7 +391,6 @@ val OpcodesThatBranch = setOf(
     Opcode.RETURN,
     Opcode.RETURNR,
     Opcode.CALL,
-    Opcode.CALLR,
     Opcode.SYSCALL,
     Opcode.BSTCC,
     Opcode.BSTCS,
@@ -418,8 +420,7 @@ val OpcodesThatBranch = setOf(
 
 val OpcodesForCpuRegisters = setOf(
     Opcode.LOADCPU,
-    Opcode.STORECPU,
-    Opcode.STOREZCPU
+    Opcode.STORECPU
 )
 
 enum class IRDataType {
@@ -442,7 +443,9 @@ data class InstructionFormat(val datatype: IRDataType?,
                              val fpReg1: OperandDirection,
                              val fpReg2: OperandDirection,
                              val address: OperandDirection,
-                             val immediate: Boolean) {
+                             val immediate: Boolean,
+                             val funcCall: Boolean,
+                             val sysCall: Boolean) {
     companion object {
         fun from(spec: String): Map<IRDataType?, InstructionFormat> {
             val result = mutableMapOf<IRDataType?, InstructionFormat>()
@@ -455,33 +458,37 @@ data class InstructionFormat(val datatype: IRDataType?,
                 var immediate = false
                 val splits = part.splitToSequence(',').iterator()
                 val typespec = splits.next()
+                var funcCall = false
+                var sysCall = false
                 while(splits.hasNext()) {
                     when(splits.next()) {
-                        "<r1" -> { reg1=OperandDirection.READ }
-                        ">r1" -> { reg1=OperandDirection.WRITE }
-                        "<>r1" -> { reg1=OperandDirection.READWRITE }
+                        "<r1" -> reg1 = OperandDirection.READ
+                        ">r1" -> reg1 = OperandDirection.WRITE
+                        "<>r1" -> reg1 = OperandDirection.READWRITE
                         "<r2" -> reg2 = OperandDirection.READ
-                        "<fr1" -> { fpreg1=OperandDirection.READ }
-                        ">fr1" -> { fpreg1=OperandDirection.WRITE }
-                        "<>fr1" -> { fpreg1=OperandDirection.READWRITE }
+                        "<fr1" -> fpreg1 = OperandDirection.READ
+                        ">fr1" -> fpreg1 = OperandDirection.WRITE
+                        "<>fr1" -> fpreg1 = OperandDirection.READWRITE
                         "<fr2" -> fpreg2 = OperandDirection.READ
                         ">i", "<>i" -> throw IllegalArgumentException("can't write into an immediate value")
                         "<i" -> immediate = true
                         "<a" -> address = OperandDirection.READ
                         ">a" -> address = OperandDirection.WRITE
                         "<>a" -> address = OperandDirection.READWRITE
+                        "call" -> funcCall = true
+                        "syscall" -> sysCall = true
                         else -> throw IllegalArgumentException(spec)
                     }
                 }
 
                 if(typespec=="N")
-                    result[null] = InstructionFormat(null, reg1, reg2, fpreg1, fpreg2, address, immediate)
+                    result[null] = InstructionFormat(null, reg1, reg2, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('B' in typespec)
-                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, fpreg1, fpreg2, address, immediate)
+                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('W' in typespec)
-                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, fpreg1, fpreg2, address, immediate)
+                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('F' in typespec)
-                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, fpreg1, fpreg2, address, immediate)
+                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
             }
             return result
         }
@@ -513,15 +520,12 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREIX    to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREZM    to InstructionFormat.from("BW,>a         | F,>a"),
-    Opcode.STOREZCPU  to InstructionFormat.from("BW"),
     Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPA      to InstructionFormat.from("N,<a"),
-    Opcode.SETPARAM     to InstructionFormat.from("BW,<r1,<i     | F,<fr1,<i"),
-    Opcode.CALL       to InstructionFormat.from("N,<a"),
-    Opcode.CALLR      to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
-    Opcode.SYSCALL    to InstructionFormat.from("N,<i"),
+    Opcode.CALL       to InstructionFormat.from("N,call"),
+    Opcode.SYSCALL    to InstructionFormat.from("N,syscall"),
     Opcode.RETURN     to InstructionFormat.from("N"),
     Opcode.RETURNR    to InstructionFormat.from("BW,>r1        | F,>fr1"),
     Opcode.BSTCC      to InstructionFormat.from("N,<a"),
@@ -653,6 +657,14 @@ val instructionFormats = mutableMapOf(
 )
 
 
+class FunctionCallArgs(
+    var arguments: List<ArgumentSpec>,
+    val returns: RegSpec?
+) {
+    class RegSpec(val dt: IRDataType, val registerNum: Int, val cpuRegister: RegisterOrStatusflag?)
+    class ArgumentSpec(val name: String, val address: Int?, val reg: RegSpec)
+}
+
 data class IRInstruction(
     val opcode: Opcode,
     val type: IRDataType?=null,
@@ -664,7 +676,8 @@ data class IRInstruction(
     val immediateFp: Float?=null,
     val address: Int?=null,       // 0-$ffff
     val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
-    var branchTarget: IRCodeChunkBase? = null    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
+    var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
+    val fcallArgs: FunctionCallArgs? = null       // will be set for the CALL and SYSCALL instructions.
 ) {
     // reg1 and fpreg1 can be IN/OUT/INOUT (all others are readonly INPUT)
     // This knowledge is useful in IL assembly optimizers to see how registers are used.
@@ -694,13 +707,10 @@ data class IRInstruction(
         if(format.fpReg1==OperandDirection.UNUSED) require(fpReg1==null) { "invalid fpReg1" }
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
-            if(type==IRDataType.FLOAT) {
-                if(opcode!=Opcode.SETPARAM)
-                    require(immediateFp !=null) {"missing immediate fp value"}
-                else
-                    require(immediateFp==null) {"setparam never has immediateFp only immediate"}
-            }
-            else require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
+            if(type==IRDataType.FLOAT)
+                require(immediateFp !=null) {"missing immediate fp value"}
+            else
+                require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
         }
         if(type!=IRDataType.FLOAT)
             require(fpReg1==null && fpReg2==null) {"int instruction can't use fp reg"}
@@ -811,36 +821,70 @@ data class IRInstruction(
             IRDataType.FLOAT -> result.add(".f ")
             else -> result.add(" ")
         }
-        reg1?.let {
-            result.add("r$it")
-            result.add(",")
-        }
-        reg2?.let {
-            result.add("r$it")
-            result.add(",")
-        }
-        fpReg1?.let {
-            result.add("fr$it")
-            result.add(",")
-        }
-        fpReg2?.let {
-            result.add("fr$it")
-            result.add(",")
-        }
-        immediate?.let {
-            result.add(it.toHex())
-            result.add(",")
-        }
-        immediateFp?.let {
-            result.add(it.toString())
-            result.add(",")
-        }
-        address?.let {
-            result.add(it.toHex())
-            result.add(",")
-        }
-        labelSymbol?.let {
-            result.add(it)
+
+        if(this.fcallArgs!=null) {
+            immediate?.let { result.add(it.toHex()) }
+            labelSymbol?.let { result.add(it) }
+            result.add("(")
+            fcallArgs.arguments.forEach {
+                val location = if(it.address==null) {
+                    if(it.name.isBlank()) "" else it.name+"="
+                } else "${it.address}="
+
+                if(it.reg.cpuRegister!=null)
+                    TODO("handle cpuregister ${it.reg.cpuRegister}")
+
+                when(it.reg.dt) {
+                    IRDataType.BYTE -> result.add("${location}r${it.reg.registerNum}.b,")
+                    IRDataType.WORD -> result.add("${location}r${it.reg.registerNum}.w,")
+                    IRDataType.FLOAT -> result.add("${location}fr${it.reg.registerNum}.f,")
+                }
+            }
+            if(result.last().endsWith(',')) {
+                result.add(result.removeLast().trimEnd(','))
+            }
+            result.add(")")
+            fcallArgs.returns?.let {
+                result.add(":")
+                when(it.dt) {
+                    IRDataType.BYTE -> result.add("r${it.registerNum}.b")
+                    IRDataType.WORD -> result.add("r${it.registerNum}.w")
+                    IRDataType.FLOAT -> result.add("fr${it.registerNum}.f")
+                }
+            }
+        } else {
+
+            reg1?.let {
+                result.add("r$it")
+                result.add(",")
+            }
+            reg2?.let {
+                result.add("r$it")
+                result.add(",")
+            }
+            fpReg1?.let {
+                result.add("fr$it")
+                result.add(",")
+            }
+            fpReg2?.let {
+                result.add("fr$it")
+                result.add(",")
+            }
+            immediate?.let {
+                result.add(it.toHex())
+                result.add(",")
+            }
+            immediateFp?.let {
+                result.add(it.toString())
+                result.add(",")
+            }
+            address?.let {
+                result.add(it.toHex())
+                result.add(",")
+            }
+            labelSymbol?.let {
+                result.add(it)
+            }
         }
         if(result.last() == ",")
             result.removeLast()

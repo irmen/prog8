@@ -82,11 +82,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val left  = exprGen.translateExpression(call.args[0])
         val right = exprGen.translateExpression(call.args[1])
         addToResult(result, left, left.resultReg, -1)
-        addInstr(result, IRInstruction(Opcode.SETPARAM, IRDataType.WORD, reg1=left.resultReg, immediate = 0), null)
         addToResult(result, right, right.resultReg, -1)
-        addInstr(result, IRInstruction(Opcode.SETPARAM, IRDataType.WORD, reg1=right.resultReg, immediate = 1), null)
-        addInstr(result, IRInstruction(Opcode.SYSCALL, immediate = IMSyscall.COMPARE_STRINGS.number), null)
-        addInstr(result, IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=left.resultReg), null)
+        result += codeGen.makeSyscall(IMSyscall.COMPARE_STRINGS, listOf(IRDataType.WORD to left.resultReg, IRDataType.WORD to right.resultReg), IRDataType.BYTE to left.resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, left.resultReg, -1)
     }
 
@@ -118,13 +115,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.SETPARAM, IRDataType.WORD, reg1 = tr.resultReg, immediate = 0)
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = tr.resultReg, immediate = array.length)
-            it += IRInstruction(Opcode.SETPARAM, IRDataType.BYTE, reg1 = tr.resultReg, immediate = 1)
-            it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number)
-            it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
-        }
+        val lengthReg = codeGen.registers.nextFree()
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = array.length), null)
+        result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }
 
@@ -143,13 +136,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.SETPARAM, IRDataType.WORD, reg1 = tr.resultReg, immediate = 0)
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = tr.resultReg, immediate = array.length)
-            it += IRInstruction(Opcode.SETPARAM, IRDataType.BYTE, reg1 = tr.resultReg, immediate = 1)
-            it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number)
-            it += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=tr.resultReg)
-        }
+        val lengthReg = codeGen.registers.nextFree()
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = array.length), null)
+        result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }
 
@@ -271,12 +260,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.SETPARAM, IRDataType.WORD, reg1 = tr.resultReg, immediate = 0)
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = tr.resultReg, immediate = if(array.dt==DataType.STR) array.length!!-1 else array.length)
-            it += IRInstruction(Opcode.SETPARAM, IRDataType.BYTE, reg1 = tr.resultReg, immediate = 1)
-            it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number)
-        }
+        val lengthReg = codeGen.registers.nextFree()
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(array.dt==DataType.STR) array.length!!-1 else array.length), null)
+        result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), null)
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
@@ -296,12 +282,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.SETPARAM, IRDataType.WORD, reg1 = tr.resultReg, immediate = 0)
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = tr.resultReg, immediate = if(array.dt==DataType.STR) array.length!!-1 else array.length)
-            it += IRInstruction(Opcode.SETPARAM, IRDataType.BYTE, reg1 = tr.resultReg, immediate = 1)
-            it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number)
-        }
+        val lengthReg = codeGen.registers.nextFree()
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(array.dt==DataType.STR) array.length!!-1 else array.length), null)
+        result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), null)
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 

@@ -11,8 +11,7 @@ sub print_f(float value) {
     ; ---- prints the floating point value (without a newline).
     %ir {{
         loadm.f fr65535,floats.print_f.value
-        setparam.f fr65535,0
-        syscall 25
+        syscall 25 (fr65535.f)
         return
     }}
 }
@@ -127,8 +126,7 @@ sub ceil(float value) -> float {
 
 sub rndf() -> float {
     %ir {{
-        syscall 35
-        pop.f fr0
+        syscall 35 () : fr0.f
         returnr.f fr0
     }}
 }
@@ -136,8 +134,8 @@ sub rndf() -> float {
 sub rndseedf(float seed) {
     %ir {{
         loadm.f  fr65535,floats.rndseedf.seed
-        setparam.f fr65535,0
-        syscall 32
+        syscall 32 (fr65535.f)
+        return
     }}
 }
 

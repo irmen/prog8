@@ -122,39 +122,47 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
             parseIRValue(operand)
         }
     }
-
-    operands.forEach { oper ->
-        if(oper[0] == '&')
-            throw IRParseException("address-of should be done with normal LOAD <symbol>")
-        else if(oper[0] in "rR") {
-            if(reg1==null) reg1 = oper.substring(1).toInt()
-            else if(reg2==null) reg2 = oper.substring(1).toInt()
-            else throw IRParseException("too many register operands")
-        } else if (oper[0] in "fF" && oper[1] in "rR") {
-            if(fpReg1==null) fpReg1 = oper.substring(2).toInt()
-            else if(fpReg2==null) fpReg2 = oper.substring(2).toInt()
-            else throw IRParseException("too many fp register operands")
-        } else if (oper[0].isDigit() || oper[0] == '$' || oper[0]=='%' || oper[0]=='-' || oper.startsWith("0x")) {
-            val value = parseIRValue(oper)
-            if(format.immediate) {
-                if(immediateInt==null && immediateFp==null) {
-                    if (type == IRDataType.FLOAT)
-                        immediateFp = value
-                    else
-                        immediateInt = value.toInt()
+    if(format.sysCall) {
+        val call = parseCall(rest)
+        val syscallNum = parseIRValue(call.target).toInt()
+        return left(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
+    } else if (format.funcCall) {
+        val call = parseCall(rest)
+        return left(IRInstruction(Opcode.CALL, labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns)))
+    } else {
+        operands.forEach { oper ->
+            if (oper[0] == '&')
+                throw IRParseException("address-of should be done with normal LOAD <symbol>")
+            else if (oper[0] in "rR") {
+                if (reg1 == null) reg1 = oper.substring(1).toInt()
+                else if (reg2 == null) reg2 = oper.substring(1).toInt()
+                else throw IRParseException("too many register operands")
+            } else if (oper[0] in "fF" && oper[1] in "rR") {
+                if (fpReg1 == null) fpReg1 = oper.substring(2).toInt()
+                else if (fpReg2 == null) fpReg2 = oper.substring(2).toInt()
+                else throw IRParseException("too many fp register operands")
+            } else if (oper[0].isDigit() || oper[0] == '$' || oper[0] == '%' || oper[0] == '-' || oper.startsWith("0x")) {
+                val value = parseIRValue(oper)
+                if (format.immediate) {
+                    if (immediateInt == null && immediateFp == null) {
+                        if (type == IRDataType.FLOAT)
+                            immediateFp = value
+                        else
+                            immediateInt = value.toInt()
+                    } else {
+                        address = value.toInt()
+                    }
                 } else {
                     address = value.toInt()
                 }
             } else {
-                address = value.toInt()
+                if (!oper[0].isLetter())
+                    throw IRParseException("expected symbol name: $oper")
+                labelSymbol = oper
+                val value = parseValueOrPlaceholder(oper)
+                if (value != null)
+                    address = value.toInt()
             }
-        } else {
-            if(!oper[0].isLetter())
-                throw IRParseException("expected symbol name: $oper")
-            labelSymbol = oper
-            val value = parseValueOrPlaceholder(oper)
-            if(value!=null)
-                address = value.toInt()
         }
     }
 
@@ -194,10 +202,6 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
             null -> {}
         }
     }
-    if(format.immediate && opcode==Opcode.SETPARAM && immediateInt==null) {
-        immediateInt = immediateFp!!.toInt()
-        immediateFp = null
-    }
 
     if(format.address!=OperandDirection.UNUSED && address==null && labelSymbol==null)
         throw IRParseException("requires address or symbol for $line")
@@ -224,3 +228,52 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
 
     return left(IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol))
 }
+
+private class ParsedCall(
+    val target: String,
+    val args: List<FunctionCallArgs.ArgumentSpec>,
+    val returns: FunctionCallArgs.RegSpec?
+)
+
+private fun parseCall(rest: String): ParsedCall {
+
+    fun parseRegspec(reg: String): FunctionCallArgs.RegSpec {
+        val pattern = Regex("f?r([0-9]+)\\.(.)")
+        val match = pattern.matchEntire(reg) ?: throw IRParseException("invalid regspec $reg")
+        val num =  match.groups[1]!!.value.toInt()
+        val type = when(match.groups[2]!!.value) {
+            "b" -> IRDataType.BYTE
+            "w" -> IRDataType.WORD
+            "f" -> IRDataType.FLOAT
+            else -> throw IRParseException("invalid type spec in $reg")
+        }
+        return FunctionCallArgs.RegSpec(type, num, null)        // TODO parse cpu register
+    }
+
+    fun parseArgs(args: String): List<FunctionCallArgs.ArgumentSpec> {
+        if(args.isBlank())
+            return emptyList()
+        return args.split(',').map {
+            if(it.contains('=')) {
+                val (argVar, argReg) = it.split('=')
+                FunctionCallArgs.ArgumentSpec(argVar, null, parseRegspec(argReg))   // address will be set later
+            } else {
+                FunctionCallArgs.ArgumentSpec("", null, parseRegspec(it))   // address will be set later
+            }
+        }
+    }
+
+    val pattern = Regex("(?<target>.+?)\\((?<arglist>.*?)\\)(:(?<returns>.+?))?")
+    val match = pattern.matchEntire(rest.replace(" ","")) ?: throw IRParseException("invalid call spec $rest")
+    val target = match.groups["target"]!!.value
+    val args = match.groups["arglist"]!!.value
+    val arguments = parseArgs(args)
+    val returns = match.groups["returns"]?.value
+    return ParsedCall(
+        target,
+        arguments,
+        if(returns==null) null else parseRegspec(returns)
+    )
+}
+
+

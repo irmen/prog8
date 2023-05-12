@@ -5,11 +5,14 @@
 main {
 
     sub start() {
-        uword seconds_uword = 1
-        uword remainder = seconds_uword % $0003 ==0
-        txt.print_uw(remainder)
-
-        blerp()
+        txt.chrout('!')
+        txt.print("test")
+        txt.nl()
+;        uword seconds_uword = 1
+;        uword remainder = seconds_uword % $0003 ==0
+;        txt.print_uw(remainder)
+;
+;        blerp()
     }
 
     sub blerp() {

@@ -168,27 +168,27 @@ class VmProgramLoader {
             }
         }
 
-        chunks.forEach {
-            it.instructions.withIndex().forEach { (index, ins) ->
-                if(ins.opcode==Opcode.SETPARAM && ins.address==null) {
-                    val call = findCall(it, index)
-                    if(call.opcode==Opcode.SYSCALL) {
-                        // there is no variable to set, SYSCALLs get their args from the stack.
-                    } else if(call.labelSymbol!=null) {
-                        // set the address in the instruction to the subroutine's parameter variable's address
-                        // this avoids having to look it up every time the SETPARAM instruction is encountered during execution
-                        val target = subroutines.getValue(call.labelSymbol!!)
-                        val paramVar = target.parameters[ins.immediate!!]
-                        val address = variableAddresses.getValue(paramVar.name)
-                        it.instructions[index] = ins.copy(address = address)
-                    } else
-                        throw IRParseException("weird call $call")
+        subroutines.forEach {
+            it.value.chunks.forEach { chunk ->
+                chunk.instructions.withIndex().forEach { (index, ins) ->
+                    if(ins.opcode==Opcode.CALL) {
+                        val fcallspec = ins.fcallArgs!!
+                        val argsWithAddresses = fcallspec.arguments.map { arg ->
+                            if(arg.address!=null)
+                                arg
+                            else {
+                                val address = variableAddresses.getValue(ins.labelSymbol + "." + arg.name)
+                                FunctionCallArgs.ArgumentSpec(arg.name, address, arg.reg)
+                            }
+                        }
+                        fcallspec.arguments = argsWithAddresses
+                    }
                 }
             }
         }
     }
 
-    private val functionCallOpcodes = setOf(Opcode.CALL, Opcode.CALLR, Opcode.SYSCALL, Opcode.JUMP, Opcode.JUMPA)
+    private val functionCallOpcodes = setOf(Opcode.CALL, Opcode.SYSCALL, Opcode.JUMP, Opcode.JUMPA)
     private fun findCall(it: IRCodeChunk, startIndex: Int): IRInstruction {
         var idx = startIndex
         while(it.instructions[idx].opcode !in functionCallOpcodes)
