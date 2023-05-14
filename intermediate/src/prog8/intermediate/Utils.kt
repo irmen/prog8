@@ -1,10 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.*
-import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
-import prog8.code.core.InternalCompilerException
-import prog8.code.core.PassByReferenceDatatypes
+import prog8.code.core.*
 
 
 fun getTypeString(dt : DataType): String = when(dt) {
@@ -225,7 +222,7 @@ private class ParsedCall(
 private fun parseCall(rest: String): ParsedCall {
 
     fun parseRegspec(reg: String): FunctionCallArgs.RegSpec {
-        val pattern = Regex("f?r([0-9]+)\\.(.)")
+        val pattern = Regex("f?r([0-9]+)\\.(.)(@.{1,2})?$")
         val match = pattern.matchEntire(reg) ?: throw IRParseException("invalid regspec $reg")
         val num =  match.groups[1]!!.value.toInt()
         val type = when(match.groups[2]!!.value) {
@@ -234,7 +231,12 @@ private fun parseCall(rest: String): ParsedCall {
             "f" -> IRDataType.FLOAT
             else -> throw IRParseException("invalid type spec in $reg")
         }
-        return FunctionCallArgs.RegSpec(type, num, null)        // TODO parse cpu register
+        val cpuRegister: RegisterOrStatusflag? =
+            if(match.groups[3]!=null) {
+                val cpuRegStr = match.groups[3]!!.value.drop(1)
+                parseRegisterOrStatusflag(cpuRegStr)
+            } else null
+        return FunctionCallArgs.RegSpec(type, num, cpuRegister)
     }
 
     fun parseArgs(args: String): List<FunctionCallArgs.ArgumentSpec> {
@@ -261,6 +263,18 @@ private fun parseCall(rest: String): ParsedCall {
         arguments,
         if(returns==null) null else parseRegspec(returns)
     )
+}
+
+
+internal fun parseRegisterOrStatusflag(regs: String): RegisterOrStatusflag {
+    var reg: RegisterOrPair? = null
+    var sf: Statusflag? = null
+    try {
+        reg = RegisterOrPair.valueOf(regs)
+    } catch (x: IllegalArgumentException) {
+        sf = Statusflag.valueOf(regs)
+    }
+    return RegisterOrStatusflag(reg, sf)
 }
 
 

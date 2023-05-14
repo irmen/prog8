@@ -504,17 +504,6 @@ class IRFileReader {
         }
     }
 
-    private fun parseRegisterOrStatusflag(regs: String): RegisterOrStatusflag {
-        var reg: RegisterOrPair? = null
-        var sf: Statusflag? = null
-        try {
-            reg = RegisterOrPair.valueOf(regs)
-        } catch (x: IllegalArgumentException) {
-            sf = Statusflag.valueOf(regs)
-        }
-        return RegisterOrStatusflag(reg, sf)
-    }
-
     private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
 
     private fun parsePosition(strpos: String): Position {
