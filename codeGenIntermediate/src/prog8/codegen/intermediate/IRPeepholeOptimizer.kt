@@ -250,14 +250,16 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             }
 
             // replace call + return --> jump
-            if(idx>0 && ins.opcode==Opcode.RETURN) {
-                val previous = chunk.instructions[idx-1]
-                if(previous.opcode==Opcode.CALL || previous.opcode==Opcode.CALLR) {
-                    chunk.instructions[idx-1] = IRInstruction(Opcode.JUMP, address = previous.address, labelSymbol = previous.labelSymbol, branchTarget = previous.branchTarget)
-                    chunk.instructions.removeAt(idx)
-                    changed = true
-                }
-            }
+            // This can no longer be done here on the IR level, with the current CALL opcode that encodes the full subroutine call setup.
+            // If machine code is ever generated from this IR, *that* should possibly optimize the JSR + RTS into a JMP.
+//            if(idx>0 && ins.opcode==Opcode.RETURN) {
+//                val previous = chunk.instructions[idx-1]
+//                if(previous.opcode==Opcode.CALL) {
+//                    chunk.instructions[idx-1] = IRInstruction(Opcode.JUMP, address = previous.address, labelSymbol = previous.labelSymbol, branchTarget = previous.branchTarget)
+//                    chunk.instructions.removeAt(idx)
+//                    changed = true
+//                }
+//            }
         }
         return changed
     }

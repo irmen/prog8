@@ -34,7 +34,7 @@ main {
 
 
 irq {
-    const ubyte BAR_Y_OFFSET = 6
+    const ubyte BAR_Y_OFFSET = 5
     uword next_irq_line = 0
     ubyte anim1 = 0
     ubyte av1 = 0

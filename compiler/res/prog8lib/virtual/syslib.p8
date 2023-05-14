@@ -8,7 +8,7 @@ sys {
     sub  reset_system()  {
         ; Soft-reset the system back to initial power-on Basic prompt.
         %ir {{
-            syscall 0
+            syscall 0 ()
         }}
     }
 
@@ -16,15 +16,14 @@ sys {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
         %ir {{
             loadm.w r65535,sys.wait.jiffies
-            setparam.w r65535,0
-            syscall 13
+            syscall 13 (r65535.w)
         }}
     }
 
     sub waitvsync() {
         ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
         %ir {{
-            syscall 14
+            syscall 14()
         }}
     }
 
@@ -64,8 +63,7 @@ sys {
         ; -- immediately exit the program with a return code in the A register
         %ir {{
             loadm.b r65535,sys.exit.returnvalue
-            setparam.b r65535,0
-            syscall 1
+            syscall 1 (r65535.b)
         }}
     }
 
@@ -85,39 +83,31 @@ sys {
     sub gfx_enable(ubyte mode) {
         %ir {{
             loadm.b r65535,sys.gfx_enable.mode
-            setparam.b r65535,0
-            syscall 8
+            syscall 8 (r65535.b)
         }}
     }
 
     sub gfx_clear(ubyte color) {
         %ir {{
             loadm.b r65535,sys.gfx_clear.color
-            setparam.b r65535,0
-            syscall 9
+            syscall 9 (r65535.b)
         }}
     }
 
     sub gfx_plot(uword xx, uword yy, ubyte color) {
         %ir {{
-            loadm.w r65535,sys.gfx_plot.xx
-            setparam.w r65535,0
-            loadm.w r65535,sys.gfx_plot.yy
-            setparam.w r65535,1
+            loadm.w r65533,sys.gfx_plot.xx
+            loadm.w r65534,sys.gfx_plot.yy
             loadm.b r65535,sys.gfx_plot.color
-            setparam.b r65535,2
-            syscall 10
+            syscall 10 (r65533.w, r65534.w, r65535.b)
         }}
     }
 
     sub gfx_getpixel(uword xx, uword yy) -> ubyte {
         %ir {{
-            loadm.w r65535,sys.gfx_getpixel.xx
-            setparam.w r65535,0
+            loadm.w r65534,sys.gfx_getpixel.xx
             loadm.w r65535,sys.gfx_getpixel.yy
-            setparam.w r65535,1
-            syscall 30
-            pop.b r0
+            syscall 30 (r65534.w, r65535.w): r0.b
             returnr.b r0
         }}
     }

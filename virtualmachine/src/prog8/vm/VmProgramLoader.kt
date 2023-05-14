@@ -67,7 +67,7 @@ class VmProgramLoader {
 
         programChunks.forEach {
             it.instructions.forEach { ins ->
-                if (ins.labelSymbol != null && ins.opcode !in OpcodesThatBranch && ins.opcode !in OpcodesForCpuRegisters)
+                if (ins.labelSymbol != null && ins.opcode !in OpcodesThatBranch)
                     require(ins.address != null) { "instruction with labelSymbol for a var should have value set to the memory address" }
             }
         }
@@ -152,43 +152,39 @@ class VmProgramLoader {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
                     val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
                     val opcode = chunk.instructions[line].opcode
-                    if(target==null) {
-                        // exception allowed: storecpu/loadcpu instructions that refer to CPU registers
-                        if(opcode !in OpcodesForCpuRegisters)
-                            throw IRParseException("placeholder not found in variables nor labels: $label")
-                    }
-                    else if(opcode in OpcodesThatBranch) {
+                    if(target==null)
+                        throw IRParseException("placeholder not found in variables nor labels: $label")
+                    else if(opcode in OpcodesThatBranch)
                         chunk.instructions[line] = chunk.instructions[line].copy(branchTarget = target, address = null)
-                    } else {
+                    else
                         throw IRParseException("vm cannot yet load a label address as a value: ${chunk.instructions[line]}")        // TODO
-                    }
                 }
             } else {
                 chunk.instructions[line] = chunk.instructions[line].copy(address = replacement)
             }
         }
 
-        chunks.forEach {
-            it.instructions.withIndex().forEach { (index, ins) ->
-                if(ins.opcode==Opcode.SETPARAM && ins.address==null) {
-                    val call = findCall(it, index)
-                    if(call.opcode==Opcode.SYSCALL) {
-                        // there is no variable to set, SYSCALLs get their args from the stack.
-                    } else if(call.labelSymbol!=null) {
-                        // set the address in the instruction to the subroutine's parameter variable's address
-                        // this avoids having to look it up every time the SETPARAM instruction is encountered during execution
-                        val target = subroutines.getValue(call.labelSymbol!!)
-                        val paramVar = target.parameters[ins.immediate!!]
-                        val address = variableAddresses.getValue(paramVar.name)
-                        it.instructions[index] = ins.copy(address = address)
-                    } else
-                        throw IRParseException("weird call $call")
+        subroutines.forEach {
+            it.value.chunks.forEach { chunk ->
+                chunk.instructions.withIndex().forEach { (index, ins) ->
+                    if(ins.opcode==Opcode.CALL) {
+                        val fcallspec = ins.fcallArgs!!
+                        val argsWithAddresses = fcallspec.arguments.map { arg ->
+                            if(arg.address!=null)
+                                arg
+                            else {
+                                val address = variableAddresses.getValue(ins.labelSymbol + "." + arg.name)
+                                FunctionCallArgs.ArgumentSpec(arg.name, address, arg.reg)
+                            }
+                        }
+                        fcallspec.arguments = argsWithAddresses
+                    }
                 }
             }
         }
     }
 
-    private val functionCallOpcodes = setOf(Opcode.CALL, Opcode.CALLR, Opcode.SYSCALL, Opcode.JUMP, Opcode.JUMPA)
+    private val functionCallOpcodes = setOf(Opcode.CALL, Opcode.SYSCALL, Opcode.JUMP, Opcode.JUMPA)
     private fun findCall(it: IRCodeChunk, startIndex: Int): IRInstruction {
         var idx = startIndex
         while(it.instructions[idx].opcode !in functionCallOpcodes)

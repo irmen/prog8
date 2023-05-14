@@ -441,7 +441,7 @@ class TestVmCodeGen: FunSpec({
         irChunks.size shouldBe 1
     }
 
-    test("romsub allowed in codegen") {
+    test("romsub allowed in ir-codegen") {
 //main {
 //    romsub $5000 = routine()
 //
@@ -452,7 +452,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", null, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
-        val romsub = PtAsmSub("routine", 0x5000u, emptySet(), emptyList(), emptyList(), false, Position.DUMMY)
+        val romsub = PtAsmSub("routine", 0x5000u, setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
         block.add(romsub)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         val call = PtFunctionCall("main.routine", true, DataType.UNDEFINED, Position.DUMMY)

@@ -1575,4 +1575,14 @@ class IRCodeGen(
         irSymbolTable.add(staticVar)
         return tempvar
     }
+
+    fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
+        return IRCodeChunk(label, null).also {
+            val args = params.map { (dt, reg)->
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(dt, reg, null))
+            }
+            val returnSpec = if(returns==null) null else FunctionCallArgs.RegSpec(returns.first, returns.second, null)
+            it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number, fcallArgs = FunctionCallArgs(args, returnSpec))
+        }
+    }
 }

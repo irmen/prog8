@@ -32,7 +32,7 @@ class BreakpointException(val pcChunk: IRCodeChunk, val pcIndex: Int): Exception
 
 @Suppress("FunctionName")
 class VirtualMachine(irProgram: IRProgram) {
-    class CallSiteContext(val returnChunk: IRCodeChunk, val returnIndex: Int, val returnValueReg: Int?, val returnValueFpReg: Int?)
+    class CallSiteContext(val returnChunk: IRCodeChunk, val returnIndex: Int, val fcallSpec: FunctionCallArgs)
     val memory = Memory()
     val program: List<IRCodeChunk>
     val registers = Registers()
@@ -176,8 +176,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZI -> InsSTOREZI(ins)
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPA -> throw IllegalArgumentException("vm program can't jump to system memory address (JUMPA)")
-            Opcode.SETPARAM -> InsSETPARAM(ins)
-            Opcode.CALL, Opcode.CALLR -> InsCALL(ins)
+            Opcode.CALL -> InsCALL(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
             Opcode.RETURNR -> InsRETURNR(ins)
@@ -284,9 +283,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BREAKPOINT -> InsBREAKPOINT()
             Opcode.CLC -> { statusCarry = false; nextPc() }
             Opcode.SEC -> { statusCarry = true; nextPc() }
-            Opcode.LOADCPU -> InsLOADCPU(ins)
-            Opcode.STORECPU -> InsSTORECPU(ins)
-            Opcode.STOREZCPU -> InsSTOREZCPU(ins)
 
             Opcode.FFROMUB -> InsFFROMUB(ins)
             Opcode.FFROMSB -> InsFFROMSB(ins)
@@ -363,7 +359,7 @@ class VirtualMachine(irProgram: IRProgram) {
             value.dt=null
         }
         val call = Syscall.fromInt(i.immediate!!)
-        SysCalls.call(call, this)   // note: any result value(s) are pushed back on the value stack
+        SysCalls.call(call, i.fcallArgs!!, this)   // note: any result value(s) are pushed back on the value stack
         nextPc()
     }
 
@@ -373,86 +369,6 @@ class VirtualMachine(irProgram: IRProgram) {
             breakpointHandler?.invoke(pcChunk, pcIndex)
         else
             throw BreakpointException(pcChunk, pcIndex)
-    }
-
-    private fun InsLOADCPU(i: IRInstruction) {
-        val reg = i.labelSymbol!!
-        val value: UInt
-        if(reg.startsWith('r')) {
-            val regnum = reg.substring(1).toInt()
-            val regAddr = cx16virtualregsBaseAddress + regnum*2
-            value = memory.getUW(regAddr).toUInt()
-        } else {
-            value = when(reg) {
-                "a" -> registers.cpuA.toUInt()
-                "x" -> registers.cpuX.toUInt()
-                "y" -> registers.cpuY.toUInt()
-                "ax" -> (registers.cpuA.toUInt() shl 8) or registers.cpuX.toUInt()
-                "ay" -> (registers.cpuA.toUInt() shl 8) or registers.cpuY.toUInt()
-                "xy" -> (registers.cpuX.toUInt() shl 8) or registers.cpuY.toUInt()
-                "pc" -> if(statusCarry) 1u else 0u
-                "pz" -> if(statusZero) 1u else 0u
-                "pn" -> if(statusNegative) 1u else 0u
-                "pv" -> throw IllegalArgumentException("overflow status register not supported in VM")
-                else -> throw IllegalArgumentException("invalid cpu reg")
-            }
-        }
-        when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
-            else -> throw java.lang.IllegalArgumentException("invalid cpu reg type")
-        }
-        nextPc()
-    }
-
-    private fun InsSTORECPU(i: IRInstruction) {
-        val value: UInt = when(i.type!!) {
-            IRDataType.BYTE -> registers.getUB(i.reg1!!).toUInt()
-            IRDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
-            IRDataType.FLOAT -> throw IllegalArgumentException("there are no float cpu registers")
-        }
-        StoreCPU(value, i.type!!, i.labelSymbol!!)
-        nextPc()
-    }
-
-    private fun InsSTOREZCPU(i: IRInstruction) {
-        StoreCPU(0u, i.type!!, i.labelSymbol!!)
-        nextPc()
-    }
-
-    private fun StoreCPU(value: UInt, dt: IRDataType, regStr: String) {
-        if(regStr.startsWith('r')) {
-            val regnum = regStr.substring(1).toInt()
-            val regAddr = cx16virtualregsBaseAddress + regnum*2
-            when(dt) {
-                IRDataType.BYTE -> memory.setUB(regAddr, value.toUByte())
-                IRDataType.WORD -> memory.setUW(regAddr, value.toUShort())
-                else -> throw IllegalArgumentException("invalid reg dt")
-            }
-        } else {
-            when (regStr) {
-                "a" -> registers.cpuA = value.toUByte()
-                "x" -> registers.cpuX = value.toUByte()
-                "y" -> registers.cpuY = value.toUByte()
-                "ax" -> {
-                    registers.cpuA = (value and 255u).toUByte()
-                    registers.cpuX = (value shr 8).toUByte()
-                }
-                "ay" -> {
-                    registers.cpuA = (value and 255u).toUByte()
-                    registers.cpuY = (value shr 8).toUByte()
-                }
-                "xy" -> {
-                    registers.cpuX = (value and 255u).toUByte()
-                    registers.cpuY = (value shr 8).toUByte()
-                }
-                "pc" -> statusCarry = value == 1u
-                "pz" -> statusZero = value == 1u
-                "pn" -> statusNegative = value == 1u
-                "pv" -> throw IllegalArgumentException("overflow status register not supported in VM")
-                else -> throw IllegalArgumentException("invalid cpu reg")
-            }
-        }
     }
 
     private fun InsLOAD(i: IRInstruction) {
@@ -603,30 +519,17 @@ class VirtualMachine(irProgram: IRProgram) {
     private class SyscallParamValue(var dt: IRDataType?, var value: Comparable<*>?)
     private val syscallParams = Array(100) { SyscallParamValue(null, null) }
 
-    private fun InsSETPARAM(i: IRInstruction) {
-        // store the argument value into the retrieved subroutine's parameter variable (already cached in the instruction's address)
-        // the reason this is a special instruction is to be flexible in implementing the call convention
-        val address = i.address
-        if(address==null) {
-            // this param is for a SYSCALL (that has no param variable address, instead it goes via the stack)
-            syscallParams[i.immediate!!].dt = i.type!!
-            syscallParams[i.immediate!!].value = when(i.type!!) {
-                IRDataType.BYTE -> registers.getUB(i.reg1!!)
-                IRDataType.WORD -> registers.getUW(i.reg1!!)
-                IRDataType.FLOAT -> registers.getFloat(i.fpReg1!!)
-            }
-        } else {
-            when (i.type!!) {
-                IRDataType.BYTE -> memory.setUB(address, registers.getUB(i.reg1!!))
-                IRDataType.WORD -> memory.setUW(address, registers.getUW(i.reg1!!))
-                IRDataType.FLOAT -> memory.setFloat(address, registers.getFloat(i.fpReg1!!))
+    private fun InsCALL(i: IRInstruction) {
+        i.fcallArgs!!.arguments.forEach { arg ->
+            require(arg.address!=null) {"argument variable should have been given its memory address as well"}
+            when(arg.reg.dt) {
+                IRDataType.BYTE -> memory.setUB(arg.address!!, registers.getUB(arg.reg.registerNum))
+                IRDataType.WORD -> memory.setUW(arg.address!!, registers.getUW(arg.reg.registerNum))
+                IRDataType.FLOAT -> memory.setFloat(arg.address!!, registers.getFloat(arg.reg.registerNum))
             }
         }
-        nextPc()
-    }
-
-    private fun InsCALL(i: IRInstruction) {
-        callStack.push(CallSiteContext(pcChunk, pcIndex+1, i.reg1, i.fpReg1))
+        // store the call site and jump
+        callStack.push(CallSiteContext(pcChunk, pcIndex+1, i.fcallArgs!!))
         branchTo(i)
     }
 
@@ -646,10 +549,11 @@ class VirtualMachine(irProgram: IRProgram) {
             exit(0)
         else {
             val context = callStack.pop()
+            val returns = context.fcallSpec.returns
             when (i.type!!) {
                 IRDataType.BYTE -> {
-                    if(context.returnValueReg!=null)
-                        registers.setUB(context.returnValueReg, registers.getUB(i.reg1!!))
+                    if(returns!=null)
+                        registers.setUB(returns.registerNum, registers.getUB(i.reg1!!))
                     else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
@@ -657,8 +561,8 @@ class VirtualMachine(irProgram: IRProgram) {
                     }
                 }
                 IRDataType.WORD -> {
-                    if(context.returnValueReg!=null)
-                        registers.setUW(context.returnValueReg, registers.getUW(i.reg1!!))
+                    if(returns!=null)
+                        registers.setUW(returns.registerNum, registers.getUW(i.reg1!!))
                     else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
@@ -666,8 +570,8 @@ class VirtualMachine(irProgram: IRProgram) {
                     }
                 }
                 IRDataType.FLOAT -> {
-                    if(context.returnValueFpReg!=null)
-                        registers.setFloat(context.returnValueFpReg, registers.getFloat(i.fpReg1!!))
+                    if(returns!=null)
+                        registers.setFloat(returns.registerNum, registers.getFloat(i.fpReg1!!))
                     else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
@@ -2302,8 +2206,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private var window: GraphicsWindow? = null
 
-    fun gfx_enable() {
-        window = when(valueStack.pop().toInt()) {
+    fun gfx_enable(mode: UByte) {
+        window = when(mode.toInt()) {
             0 -> GraphicsWindow(320, 240, 3)
             1 -> GraphicsWindow(640, 480, 2)
             else -> throw IllegalArgumentException("invalid screen mode")
@@ -2311,25 +2215,20 @@ class VirtualMachine(irProgram: IRProgram) {
         window!!.start()
     }
 
-    fun gfx_clear() {
-        window?.clear(valueStack.pop().toInt())
+    fun gfx_clear(color: UByte) {
+        window?.clear(color.toInt())
     }
 
-    fun gfx_plot() {
-        val color = valueStack.pop()
-        val y = valueStack.popw()
-        val x = valueStack.popw()
+    fun gfx_plot(x: UShort, y: UShort, color: UByte) {
         window?.plot(x.toInt(), y.toInt(), color.toInt())
     }
 
-    fun gfx_getpixel() {
-        val y = valueStack.popw()
-        val x = valueStack.popw()
-        if(window==null)
-            valueStack.push(0u)
+    fun gfx_getpixel(x: UShort, y: UShort): UByte {
+        return if(window==null)
+            0u
         else {
             val color = Color(window!!.getpixel(x.toInt(), y.toInt()))
-            valueStack.push(color.green.toUByte())      // gets called from a syscall, return value via stack.
+            color.green.toUByte()
         }
     }
 
