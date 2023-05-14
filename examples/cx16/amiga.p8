@@ -15,14 +15,14 @@ main {
         palette.set_rgb(amigacolors, len(amigacolors))
 
         cx16.VERA_DC_VSCALE = 64        ; have the vertical resolution so it is 640*240 - more or less Amiga's default non interlaced mode
-        gfx2.text_charset(3)
+        gfx2.text_charset(1)
 
         screen_titlebar()
         window_workbench()
         window_system()
         window_shell()
-        gfx2.text(280, 210, 1, sc:"640x480(240) 4 colors")
-        gfx2.text(280, 220, 1, sc:"Mockup drawn using Prog8 gfx2 library")
+        gfx2.text(280, 210, 1, iso:"640x480(240) 4 colors")
+        gfx2.text(280, 220, 1, iso:"Mockup drawn using Prog8 gfx2 library")
 
         repeat {
         }
@@ -30,7 +30,7 @@ main {
 
     sub screen_titlebar() {
         gfx2.fillrect(0, 0, gfx2.width, 10, 2)
-        gfx2.text(8,1, 1, sc:"AmigaOS 3.1    2,002,448 graphics mem  16,504,384 other mem")
+        gfx2.text(8,1, 1, iso:"AmigaOS 3.1    2,002,448 graphics mem  16,504,384 other mem")
         gfx2.horizontal_line(0, 10, gfx2.width, 1)
         widget.window_order_icon(gfx2.width-widget.window_order_icon.width, 0, false)
     }
@@ -42,7 +42,7 @@ main {
         const uword width = 600
         const uword height = 220
 
-        widget.window_titlebar(win_x, win_y, width, sc:"Workbench", false)
+        widget.window_titlebar(win_x, win_y, width, iso:"Workbench", false)
         ; gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2,0)    ; clear window pane
         widget.window_leftborder(win_x, win_y, height, false)
         widget.window_bottomborder(win_x, win_y, width, height)
@@ -51,8 +51,8 @@ main {
         vector_v(win_x+width - 390, win_y+height-20)
         vector_v(win_x+width - 390 -14, win_y+height-20)
 
-        widget.icon(45,40, sc:"Ram Disk")
-        widget.icon(45,90, sc:"Workbench3.1")
+        widget.icon(45,40, iso:"Ram Disk")
+        widget.icon(45,90, iso:"Workbench3.1")
     }
 
     sub vector_v(uword x, uword y) {
@@ -70,17 +70,17 @@ main {
         const uword win_x = 320
         const uword win_y = 40
 
-        widget.window_titlebar(win_x, win_y, width, sc:"System", false)
+        widget.window_titlebar(win_x, win_y, width, iso:"System", false)
         gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2, 0)    ; clear window pane
         widget.window_leftborder(win_x, win_y, height, false)
         widget.window_bottomborder(win_x, win_y, width, height)
         widget.window_rightborder(win_x, win_y, width, height, false)
 
-        widget.icon(win_x+16, win_y+14, sc:"FixFonts")
-        widget.icon(win_x+16+80, win_y+14, sc:"NoFastMem")
-        widget.icon(win_x+16, win_y+56, sc:"Format")
-        widget.icon(win_x+16+80, win_y+56, sc:"RexxMast")
-        widget.icon(win_x+16+160, win_y+56, sc:"Shell")
+        widget.icon(win_x+16, win_y+14, iso:"FixFonts")
+        widget.icon(win_x+16+80, win_y+14, iso:"NoFastMem")
+        widget.icon(win_x+16, win_y+56, iso:"Format")
+        widget.icon(win_x+16+80, win_y+56, iso:"RexxMast")
+        widget.icon(win_x+16+160, win_y+56, iso:"Shell")
     }
 
     sub window_shell() {
@@ -89,14 +89,14 @@ main {
         const uword width = 500
         const uword height = 65
 
-        widget.window_titlebar(win_x, win_y, width, sc:"AmigaShell", true)
+        widget.window_titlebar(win_x, win_y, width, iso:"AmigaShell", true)
         gfx2.fillrect(win_x+3, win_y+11, width-4, height-11-2,0)    ; clear window pane
         widget.window_leftborder(win_x, win_y, height, true)
         widget.window_bottomborder(win_x, win_y, width, height)
         widget.window_rightborder(win_x, win_y, width, height, true)
 
-        gfx2.text(win_x+5, win_y+12, 1, sc:"New Shell process 3")
-        gfx2.text(win_x+5, win_y+12+8, 1, sc:"3.Workbench3.1:>")
+        gfx2.text(win_x+5, win_y+12, 1, iso:"New Shell process 3")
+        gfx2.text(win_x+5, win_y+12+8, 1, iso:"3.Workbench3.1:>")
         gfx2.fillrect(win_x+5+17*8, win_y+12+8, 8, 8, 1)        ; cursor
     }
 }
