@@ -3,8 +3,6 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- fix romsub encoding into IR
-
 ...
 
 

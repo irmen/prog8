@@ -1,8 +1,10 @@
 package prog8.intermediate
 
 import prog8.code.*
+import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.InternalCompilerException
+import prog8.code.core.PassByReferenceDatatypes
 
 
 fun getTypeString(dt : DataType): String = when(dt) {
@@ -262,3 +264,15 @@ private fun parseCall(rest: String): ParsedCall {
 }
 
 
+fun irType(type: DataType): IRDataType {
+    return when(type) {
+        DataType.BOOL,
+        DataType.UBYTE,
+        DataType.BYTE -> IRDataType.BYTE
+        DataType.UWORD,
+        DataType.WORD -> IRDataType.WORD
+        DataType.FLOAT -> IRDataType.FLOAT
+        in PassByReferenceDatatypes -> IRDataType.WORD
+        else -> throw AssemblyError("no IR datatype for $type")
+    }
+}

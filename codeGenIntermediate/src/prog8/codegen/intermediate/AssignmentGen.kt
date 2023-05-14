@@ -46,7 +46,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         assignment: PtAugmentedAssign
     ): IRCodeChunks {
         val value = assignment.value
-        val vmDt = codeGen.irType(value.type)
+        val vmDt = irType(value.type)
         return when(assignment.operator) {
             "+" -> expressionEval.operatorPlusInplace(address, null, vmDt, value)
             "-" -> expressionEval.operatorMinusInplace(address, null, vmDt, value)
@@ -72,7 +72,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun assignVarAugmented(symbol: String, assignment: PtAugmentedAssign): IRCodeChunks {
         val value = assignment.value
-        val targetDt = codeGen.irType(assignment.target.type)
+        val targetDt = irType(assignment.target.type)
         return when (assignment.operator) {
             "+=" -> expressionEval.operatorPlusInplace(null, symbol, targetDt, value)
             "-=" -> expressionEval.operatorMinusInplace(null, symbol, targetDt, value)
@@ -161,8 +161,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val targetIdent = assignment.target.identifier
         val targetMemory = assignment.target.memory
         val targetArray = assignment.target.array
-        val valueDt = codeGen.irType(assignment.value.type)
-        val targetDt = codeGen.irType(assignment.target.type)
+        val valueDt = irType(assignment.value.type)
+        val targetDt = irType(assignment.target.type)
         val result = mutableListOf<IRCodeChunkBase>()
 
         var valueRegister = -1

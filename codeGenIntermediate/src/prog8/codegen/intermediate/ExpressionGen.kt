@@ -28,10 +28,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     fun translateExpression(expr: PtExpression): ExpressionCodeResult {
         return when (expr) {
             is PtMachineRegister -> {
-                ExpressionCodeResult(emptyList(), codeGen.irType(expr.type), expr.register, -1)
+                ExpressionCodeResult(emptyList(), irType(expr.type), expr.register, -1)
             }
             is PtNumber -> {
-                val vmDt = codeGen.irType(expr.type)
+                val vmDt = irType(expr.type)
                 val code = IRCodeChunk(null, null)
                 if(vmDt==IRDataType.FLOAT) {
                     val resultFpRegister = codeGen.registers.nextFreeFloat()
@@ -45,7 +45,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             is PtIdentifier -> {
-                val vmDt = codeGen.irType(expr.type)
+                val vmDt = irType(expr.type)
                 val code = IRCodeChunk(null, null)
                 if (expr.type in PassByValueDatatypes) {
                     if(vmDt==IRDataType.FLOAT) {
@@ -66,7 +66,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             is PtAddressOf -> {
-                val vmDt = codeGen.irType(expr.type)
+                val vmDt = irType(expr.type)
                 val symbol = expr.identifier.name
                 // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
                 val code = IRCodeChunk(null, null)
@@ -142,7 +142,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(arrayIx: PtArrayIndexer): ExpressionCodeResult {
         val eltSize = codeGen.program.memsizer.memorySize(arrayIx.type)
-        val vmDt = codeGen.irType(arrayIx.type)
+        val vmDt = irType(arrayIx.type)
         val result = mutableListOf<IRCodeChunkBase>()
         val arrayVarSymbol = arrayIx.variable.name
 
@@ -192,7 +192,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(expr.value)
         addToResult(result, tr, tr.resultReg, tr.resultFpReg)
-        val vmDt = codeGen.irType(expr.type)
+        val vmDt = irType(expr.type)
         when(expr.operator) {
             "+" -> { }
             "-" -> {
@@ -308,12 +308,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             else -> throw AssemblyError("weird cast type")
         }
 
-        return ExpressionCodeResult(result, codeGen.irType(cast.type), actualResultReg2, actualResultFpReg2)
+        return ExpressionCodeResult(result, irType(cast.type), actualResultReg2, actualResultFpReg2)
     }
 
     private fun translate(binExpr: PtBinaryExpression): ExpressionCodeResult {
         require(!codeGen.options.useNewExprCode)
-        val vmDt = codeGen.irType(binExpr.left.type)
+        val vmDt = irType(binExpr.left.type)
         val signed = binExpr.left.type in SignedDatatypes
         return when(binExpr.operator) {
             "+" -> operatorPlus(binExpr, vmDt)
@@ -343,7 +343,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 // assign the arguments
                 val argRegisters = mutableListOf<FunctionCallArgs.ArgumentSpec>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
-                    val paramDt = codeGen.irType(parameter.type)
+                    val paramDt = irType(parameter.type)
                     val tr = translateExpression(arg)
                     if(paramDt==IRDataType.FLOAT)
                         argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, tr.resultFpReg, null)))
@@ -353,7 +353,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
                 // return value
                 val returnRegSpec = if(fcall.void) null else {
-                    val returnIrType = codeGen.irType(callTarget.returnType!!)
+                    val returnIrType = irType(callTarget.returnType!!)
                     if(returnIrType==IRDataType.FLOAT)
                         FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), null)
                     else
@@ -374,7 +374,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 // assign the arguments
                 val argRegisters = mutableListOf<FunctionCallArgs.ArgumentSpec>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
-                    val paramDt = codeGen.irType(parameter.type)
+                    val paramDt = irType(parameter.type)
                     val tr = translateExpression(arg)
                     if(paramDt==IRDataType.FLOAT)
                         argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, tr.resultFpReg, parameter.register)))
@@ -388,7 +388,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         null
                     else if(callTarget.returns.size==1) {
                         val returns = callTarget.returns[0]
-                        val returnIrType = codeGen.irType(returns.type)
+                        val returnIrType = irType(returns.type)
                         if(returnIrType==IRDataType.FLOAT)
                             FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
                         else
@@ -396,7 +396,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     } else {
                         // multiple return values: take the first *register* (not status flag) return value and ignore the rest.
                         val returns = callTarget.returns.first { it.register.registerOrPair!=null }
-                        val returnIrType = codeGen.irType(returns.type)
+                        val returnIrType = irType(returns.type)
                         if(returnIrType==IRDataType.FLOAT)
                             FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
                         else

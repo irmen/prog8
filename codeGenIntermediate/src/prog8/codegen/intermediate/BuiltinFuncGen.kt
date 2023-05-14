@@ -93,7 +93,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, leftTr, leftTr.resultReg, -1)
         val rightTr = exprGen.translateExpression(call.args[1])
         addToResult(result, rightTr, rightTr.resultReg, -1)
-        val dt = codeGen.irType(call.args[0].type)
+        val dt = irType(call.args[0].type)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.CMP, dt, reg1=leftTr.resultReg, reg2=rightTr.resultReg)
         }
@@ -188,7 +188,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcSgn(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        val vmDt = codeGen.irType(call.type)
+        val vmDt = irType(call.type)
         val tr = exprGen.translateExpression(call.args.single())
         addToResult(result, tr, tr.resultReg, -1)
         val resultReg = codeGen.registers.nextFree()
@@ -438,7 +438,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcRolRor(opcode: Opcode, call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val vmDt = codeGen.irType(call.args[0].type)
+        val vmDt = irType(call.args[0].type)
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
