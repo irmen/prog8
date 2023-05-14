@@ -283,8 +283,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BREAKPOINT -> InsBREAKPOINT()
             Opcode.CLC -> { statusCarry = false; nextPc() }
             Opcode.SEC -> { statusCarry = true; nextPc() }
-            Opcode.LOADCPU -> InsLOADCPU(ins)
-            Opcode.STORECPU -> InsSTORECPU(ins)
 
             Opcode.FFROMUB -> InsFFROMUB(ins)
             Opcode.FFROMSB -> InsFFROMSB(ins)
@@ -371,81 +369,6 @@ class VirtualMachine(irProgram: IRProgram) {
             breakpointHandler?.invoke(pcChunk, pcIndex)
         else
             throw BreakpointException(pcChunk, pcIndex)
-    }
-
-    private fun InsLOADCPU(i: IRInstruction) {
-        val reg = i.labelSymbol!!
-        val value: UInt
-        if(reg.startsWith('r')) {
-            val regnum = reg.substring(1).toInt()
-            val regAddr = cx16virtualregsBaseAddress + regnum*2
-            value = memory.getUW(regAddr).toUInt()
-        } else {
-            value = when(reg) {
-                "a" -> registers.cpuA.toUInt()
-                "x" -> registers.cpuX.toUInt()
-                "y" -> registers.cpuY.toUInt()
-                "ax" -> (registers.cpuA.toUInt() shl 8) or registers.cpuX.toUInt()
-                "ay" -> (registers.cpuA.toUInt() shl 8) or registers.cpuY.toUInt()
-                "xy" -> (registers.cpuX.toUInt() shl 8) or registers.cpuY.toUInt()
-                "pc" -> if(statusCarry) 1u else 0u
-                "pz" -> if(statusZero) 1u else 0u
-                "pn" -> if(statusNegative) 1u else 0u
-                "pv" -> throw IllegalArgumentException("overflow status register not supported in VM")
-                else -> throw IllegalArgumentException("invalid cpu reg")
-            }
-        }
-        when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
-            else -> throw java.lang.IllegalArgumentException("invalid cpu reg type")
-        }
-        nextPc()
-    }
-
-    private fun InsSTORECPU(i: IRInstruction) {
-        val value: UInt = when(i.type!!) {
-            IRDataType.BYTE -> registers.getUB(i.reg1!!).toUInt()
-            IRDataType.WORD -> registers.getUW(i.reg1!!).toUInt()
-            IRDataType.FLOAT -> throw IllegalArgumentException("there are no float cpu registers")
-        }
-        StoreCPU(value, i.type!!, i.labelSymbol!!)
-        nextPc()
-    }
-
-    private fun StoreCPU(value: UInt, dt: IRDataType, regStr: String) {
-        if(regStr.startsWith('r')) {
-            val regnum = regStr.substring(1).toInt()
-            val regAddr = cx16virtualregsBaseAddress + regnum*2
-            when(dt) {
-                IRDataType.BYTE -> memory.setUB(regAddr, value.toUByte())
-                IRDataType.WORD -> memory.setUW(regAddr, value.toUShort())
-                else -> throw IllegalArgumentException("invalid reg dt")
-            }
-        } else {
-            when (regStr) {
-                "a" -> registers.cpuA = value.toUByte()
-                "x" -> registers.cpuX = value.toUByte()
-                "y" -> registers.cpuY = value.toUByte()
-                "ax" -> {
-                    registers.cpuA = (value and 255u).toUByte()
-                    registers.cpuX = (value shr 8).toUByte()
-                }
-                "ay" -> {
-                    registers.cpuA = (value and 255u).toUByte()
-                    registers.cpuY = (value shr 8).toUByte()
-                }
-                "xy" -> {
-                    registers.cpuX = (value and 255u).toUByte()
-                    registers.cpuY = (value shr 8).toUByte()
-                }
-                "pc" -> statusCarry = value == 1u
-                "pz" -> statusZero = value == 1u
-                "pn" -> statusNegative = value == 1u
-                "pv" -> throw IllegalArgumentException("overflow status register not supported in VM")
-                else -> throw IllegalArgumentException("invalid cpu reg")
-            }
-        }
     }
 
     private fun InsLOAD(i: IRInstruction) {

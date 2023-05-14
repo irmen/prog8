@@ -1,6 +1,5 @@
 package prog8.intermediate
 
-import prog8.code.core.CpuRegister
 import prog8.code.core.RegisterOrStatusflag
 import prog8.code.core.toHex
 
@@ -39,15 +38,11 @@ loadi       reg1, reg2                - load reg1 with value at memory indirect,
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2
 loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2
 loadr       reg1, reg2                - load reg1 with value in register reg2
-loadcpu     reg1,         cpureg      - load reg1 with value from cpu register (register/registerpair/statusflag)
-
 storem      reg1,         address     - store reg1 at memory address
-storecpu    reg1,         cpureg      - store reg1 in cpu register (register/registerpair/statusflag)
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2
 storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2
 storezm                   address     - store zero at memory address
-storezcpu                 cpureg      - store zero in cpu register (register/registerpair/statusflag)
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg
 
@@ -60,6 +55,9 @@ call  label(argument register list) [: resultreg.type]
                                       - calls a subroutine with the given arguments and return value (optional).
                                         save current instruction location+1, continue execution at instruction nr of the label.
                                         the argument register list is positional and includes the datatype, ex.: r4.b,r5.w,fp1.f
+                                        If the call is to a rom-routine, 'label' will be a hexadecimal address instead such as $ffd2
+                                        If the arguments should be passed in CPU registers, they'll have a @REGISTER postfix.
+                                        For example: call $ffd2(r5.b@A)
 syscall  number (argument register list) [: resultreg.type]
                                       - do a systemcall identified by number, result value(s) are pushed on value stack by the syscall code so
                                         will be POPped off into the given resultregister if any.
@@ -231,9 +229,7 @@ enum class Opcode {
     LOADX,
     LOADIX,
     LOADR,
-    LOADCPU,
     STOREM,
-    STORECPU,
     STOREI,
     STOREX,
     STOREIX,
@@ -418,11 +414,6 @@ val OpcodesThatBranch = setOf(
     Opcode.BLES
 )
 
-val OpcodesForCpuRegisters = setOf(
-    Opcode.LOADCPU,
-    Opcode.STORECPU
-)
-
 enum class IRDataType {
     BYTE,
     WORD,
@@ -513,9 +504,7 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADX      to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADIX     to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<fr2"),
-    Opcode.LOADCPU    to InstructionFormat.from("BW,>r1"),
     Opcode.STOREM     to InstructionFormat.from("BW,<r1,>a     | F,<fr1,>a"),
-    Opcode.STORECPU   to InstructionFormat.from("BW,<r1"),
     Opcode.STOREI     to InstructionFormat.from("BW,<r1,<r2    | F,<fr1,<r1"),
     Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREIX    to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
@@ -823,33 +812,47 @@ data class IRInstruction(
         }
 
         if(this.fcallArgs!=null) {
-            immediate?.let { result.add(it.toHex()) }
-            labelSymbol?.let { result.add(it) }
+            immediate?.let { result.add(it.toHex()) }       // syscall
+            labelSymbol?.let { result.add(it) }             // regular subroutine call
+            address?.let { result.add(address.toHex()) }    // romcall
             result.add("(")
             fcallArgs.arguments.forEach {
                 val location = if(it.address==null) {
                     if(it.name.isBlank()) "" else it.name+"="
                 } else "${it.address}="
 
-                if(it.reg.cpuRegister!=null)
-                    TODO("handle cpuregister ${it.reg.cpuRegister}")
+                val cpuReg = if(it.reg.cpuRegister==null) "" else {
+                    if(it.reg.cpuRegister.registerOrPair!=null)
+                        "@"+it.reg.cpuRegister.registerOrPair.toString()
+                    else
+                        "@"+it.reg.cpuRegister.statusflag.toString()
+                }
 
                 when(it.reg.dt) {
-                    IRDataType.BYTE -> result.add("${location}r${it.reg.registerNum}.b,")
-                    IRDataType.WORD -> result.add("${location}r${it.reg.registerNum}.w,")
-                    IRDataType.FLOAT -> result.add("${location}fr${it.reg.registerNum}.f,")
+                    IRDataType.BYTE -> result.add("${location}r${it.reg.registerNum}.b$cpuReg,")
+                    IRDataType.WORD -> result.add("${location}r${it.reg.registerNum}.w$cpuReg,")
+                    IRDataType.FLOAT -> result.add("${location}fr${it.reg.registerNum}.f$cpuReg,")
                 }
             }
             if(result.last().endsWith(',')) {
                 result.add(result.removeLast().trimEnd(','))
             }
             result.add(")")
-            fcallArgs.returns?.let {
+            val returns = fcallArgs.returns
+            if(returns!=null) {
                 result.add(":")
-                when(it.dt) {
-                    IRDataType.BYTE -> result.add("r${it.registerNum}.b")
-                    IRDataType.WORD -> result.add("r${it.registerNum}.w")
-                    IRDataType.FLOAT -> result.add("fr${it.registerNum}.f")
+                when (returns.dt) {
+                    IRDataType.BYTE -> result.add("r${returns.registerNum}.b")
+                    IRDataType.WORD -> result.add("r${returns.registerNum}.w")
+                    IRDataType.FLOAT -> result.add("fr${returns.registerNum}.f")
+                }
+                if(returns.cpuRegister!=null) {
+                    val cpuReg =
+                        if(returns.cpuRegister.registerOrPair!=null)
+                            returns.cpuRegister.registerOrPair.toString()
+                        else
+                            returns.cpuRegister.statusflag.toString()
+                    result.add("@"+cpuReg)
                 }
             }
         } else {

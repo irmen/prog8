@@ -211,21 +211,6 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
             throw IRParseException("labelsymbol confused with register?: $labelSymbol")
     }
 
-    if(opcode in OpcodesForCpuRegisters) {
-        val reg = operands.last().lowercase()
-        if(reg !in setOf(
-                "a", "x", "y",
-                "ax", "ay", "xy",
-                "r0", "r1", "r2", "r3",
-                "r4", "r5", "r6", "r7",
-                "r8", "r9", "r10","r11",
-                "r12", "r13", "r14", "r15",
-                "pc", "pz", "pv","pn"))
-            throw IRParseException("invalid cpu reg: $reg")
-
-        return left(IRInstruction(opcode, type, reg1, labelSymbol = reg))
-    }
-
     return left(IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol))
 }
 

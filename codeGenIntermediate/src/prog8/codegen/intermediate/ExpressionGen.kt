@@ -4,7 +4,10 @@ import prog8.code.StRomSub
 import prog8.code.StStaticVariable
 import prog8.code.StSub
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.AssemblyError
+import prog8.code.core.DataType
+import prog8.code.core.PassByValueDatatypes
+import prog8.code.core.SignedDatatypes
 import prog8.intermediate.*
 
 internal class ExpressionCodeResult(val chunks: IRCodeChunks, val dt: IRDataType, val resultReg: Int, val resultFpReg: Int) {
@@ -361,10 +364,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, call, null)
                 return if(fcall.void)
                     ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
-                else if(call.fcallArgs!!.returns!!.dt==IRDataType.FLOAT)
-                    ExpressionCodeResult(result, codeGen.irType(fcall.type), -1, call.fcallArgs!!.returns!!.registerNum)
+                else if(fcall.type==DataType.FLOAT)
+                    ExpressionCodeResult(result, returnRegSpec!!.dt, -1, returnRegSpec.registerNum)
                 else
-                    ExpressionCodeResult(result, codeGen.irType(fcall.type), call.fcallArgs!!.returns!!.registerNum, -1)
+                    ExpressionCodeResult(result, returnRegSpec!!.dt, returnRegSpec.registerNum, -1)
             }
             is StRomSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
@@ -401,30 +404,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                 }
                 // create the call
-                val call = IRInstruction(Opcode.CALL, address = callTarget.address.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec))
+                val call =
+                    if(callTarget.address==null)
+                        IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec))
+                    else
+                        IRInstruction(Opcode.CALL, address = callTarget.address!!.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec))
                 addInstr(result, call, null)
-                if(fcall.void) {
-                    return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
-                } else {
-                    val regStr = if(callTarget.returns.isEmpty())
-                        throw AssemblyError("expect a return value")
-                    else if(callTarget.returns.size==1) {
-                        val returns = callTarget.returns.single()
-                        if(returns.register.registerOrPair!=null) returns.register.registerOrPair.toString() else returns.register.statusflag.toString()
-                    } else {
-                        // multiple return values: take the first *register* (not status flag) return value and ignore the rest.
-                        callTarget.returns.first { it.register.registerOrPair!=null }.toString()
-                    }
-                    return if(fcall.type==DataType.FLOAT) {
-                        val resultFpReg = codeGen.registers.nextFreeFloat()
-                        addInstr(result, IRInstruction(Opcode.LOADCPU, IRDataType.FLOAT, fpReg1 = resultFpReg, labelSymbol = regStr), null)
-                        ExpressionCodeResult(result, returnRegSpec!!.dt, -1, resultFpReg)
-                    } else {
-                        val resultReg = codeGen.registers.nextFree()
-                        addInstr(result, IRInstruction(Opcode.LOADCPU, returnRegSpec!!.dt, reg1 = resultReg, labelSymbol = regStr), null)
-                        ExpressionCodeResult(result, returnRegSpec.dt, resultReg, -1)
-                    }
-                }
+                return if(fcall.void)
+                    ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+                else if(fcall.type==DataType.FLOAT)
+                    ExpressionCodeResult(result, returnRegSpec!!.dt, -1, returnRegSpec.registerNum)
+                else
+                    ExpressionCodeResult(result, returnRegSpec!!.dt, returnRegSpec.registerNum, -1)
             }
             else -> throw AssemblyError("invalid node type")
         }

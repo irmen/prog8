@@ -3,7 +3,7 @@ TODO
 
 For next minor release
 ^^^^^^^^^^^^^^^^^^^^^^
-- fix VM problem with param passing: void string.copy(".prg", &output_filename + string.length(output_filename))
+- fix romsub encoding into IR
 
 ...
 
