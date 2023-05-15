@@ -1270,7 +1270,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 else left / right
             }
             "%" -> {
-                if(right==0.toUByte()) 0xffu
+                if(right==0.toUByte()) 0u
                 else left % right
             }
             else -> throw IllegalArgumentException("operator byte $operator")
@@ -1286,7 +1286,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 else left / value
             }
             "%" -> {
-                if(value==0.toUByte()) 0xffu
+                if(value==0.toUByte()) 0u
                 else left % value
             }
             else -> throw IllegalArgumentException("operator byte $operator")
@@ -1298,7 +1298,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val left = registers.getUB(reg1)
         val right = registers.getUB(reg2)
         val division = if(right==0.toUByte()) 0xffu else left / right
-        val remainder = if(right==0.toUByte()) 0xffu else left % right
+        val remainder = if(right==0.toUByte()) 0u else left % right
         valueStack.push(division.toUByte())
         valueStack.push(remainder.toUByte())
     }
@@ -1306,7 +1306,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun divAndModConstUByte(reg1: Int, value: UByte) {
         val left = registers.getUB(reg1)
         val division = if(value==0.toUByte()) 0xffu else left / value
-        val remainder = if(value==0.toUByte()) 0xffu else left % value
+        val remainder = if(value==0.toUByte()) 0u else left % value
         valueStack.push(division.toUByte())
         valueStack.push(remainder.toUByte())
     }
@@ -1315,7 +1315,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val left = registers.getUW(reg1)
         val right = registers.getUW(reg2)
         val division = if(right==0.toUShort()) 0xffffu else left / right
-        val remainder = if(right==0.toUShort()) 0xffffu else left % right
+        val remainder = if(right==0.toUShort()) 0u else left % right
         valueStack.pushw(division.toUShort())
         valueStack.pushw(remainder.toUShort())
     }
@@ -1323,7 +1323,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun divAndModConstUWord(reg1: Int, value: UShort) {
         val left = registers.getUW(reg1)
         val division = if(value==0.toUShort()) 0xffffu else left / value
-        val remainder = if(value==0.toUShort()) 0xffffu else left % value
+        val remainder = if(value==0.toUShort()) 0u else left % value
         valueStack.pushw(division.toUShort())
         valueStack.pushw(remainder.toUShort())
     }
@@ -1337,7 +1337,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 else left / right
             }
             "%" -> {
-                if(right==0.toUByte()) 0xffu
+                if(right==0.toUByte()) 0u
                 else left % right
             }
             else -> throw IllegalArgumentException("operator byte $operator")
@@ -1389,7 +1389,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 else left / right
             }
             "%" -> {
-                if(right==0.toUShort()) 0xffffu
+                if(right==0.toUShort()) 0u
                 else left % right
             }
             else -> throw IllegalArgumentException("operator word $operator")
@@ -1405,7 +1405,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 else left / value
             }
             "%" -> {
-                if(value==0.toUShort()) 0xffffu
+                if(value==0.toUShort()) 0u
                 else left % value
             }
             else -> throw IllegalArgumentException("operator word $operator")
@@ -1422,7 +1422,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 else left / right
             }
             "%" -> {
-                if(right==0.toUShort()) 0xffffu
+                if(right==0.toUShort()) 0u
                 else left % right
             }
             else -> throw IllegalArgumentException("operator word $operator")
