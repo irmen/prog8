@@ -1,3 +1,4 @@
+========================
 Upgrading from version 8
 ========================
 
@@ -21,9 +22,9 @@ Parameters and return values passed via the carry status flag (@Pc) now need to 
 (Previously also ``ubyte`` was allowed but as the value is just a single bit, this wasn't really correct)
 
 
-``cbm`` contains kernal calls
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Instead of ``c64``, the CBM compatible kernal calls such as CHROUT, and variables, are now
+Standard Commodore kernal calls moved to ``cbm``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Instead of ``c64``, the CBM compatible kernal calls (such as CHROUT) and a bunch of variables, are now
 located in the ``cbm`` module.  You don't have to import this module as it is part of the syslib.
 
 * replace all references such as ``c64.CHROUT`` with the ``cbm`` module instead to fix those undefined symbol errors.
