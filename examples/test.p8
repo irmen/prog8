@@ -1,18 +1,21 @@
+%import floats
 %import textio
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        word vfrom = $1000
-        word vto = $1000
+        word ww = -1234
+        float fl = 123.34
+        byte bb = -99
 
-        word xx
-        for xx in vfrom to vto step -1 {
-            txt.print_w(xx)
-            txt.spc()
-        }
-skip:
+        txt.print_w(abs(ww))
+        txt.nl()
+        txt.print_b(abs(bb))
+        txt.nl()
+        floats.print_f(abs(fl))
+        txt.nl()
+        floats.print_f(sqrt(fl))
         txt.nl()
     }
 }

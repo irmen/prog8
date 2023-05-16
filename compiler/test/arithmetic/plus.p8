@@ -93,7 +93,7 @@ main {
 
     sub plus_float(float  a1, float a2, float  c) {
         float r = a1+a2
-        if floats.fabs(r-c)<0.00001
+        if abs(r-c)<0.00001
             txt.print(" ok  ")
         else
             txt.print("err! ")

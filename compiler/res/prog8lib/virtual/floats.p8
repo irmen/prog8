@@ -25,14 +25,6 @@ sub pow(float value, float power) -> float {
     }}
 }
 
-sub fabs(float value) -> float {
-    %ir {{
-        loadm.f fr0,floats.fabs.value
-        fabs.f fr0,fr0
-        returnr.f fr0
-    }}
-}
-
 sub sin(float angle) -> float {
     %ir {{
         loadm.f fr0,floats.sin.angle
@@ -77,14 +69,6 @@ sub log2(float value) -> float {
     %ir {{
         loadm.f fr0,floats.log2.value
         flog.f fr0,fr0
-        returnr.f fr0
-    }}
-}
-
-sub sqrtf(float value) -> float {
-    %ir {{
-        loadm.f fr0,floats.sqrtf.value
-        sqrt.f fr0,fr0
         returnr.f fr0
     }}
 }

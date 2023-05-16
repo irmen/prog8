@@ -44,11 +44,17 @@ For loops now do a check at the start and skip the whole loop if the start value
 This is the normal behavior of most other programming languages.
 
 
-For 9.0 major changes
-^^^^^^^^^^^^^^^^^^^^^
-- DONE: added min() max() builtin functions
-- DONE: rename sqrt16() to just sqrt(), make it accept multiple numeric types. Renamed floats.sqrt() to floats.sqrtf() but you can just use sqrt()
-- DONE: abs() now supports multiple datatypes including float. No need to use floats.fabs() anymore.
-- DONE: divmod() now supports multiple datatypes.  divmodw() has been removed.
+divmod(), sqrt() and abs() builtin functions accept multiple data types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- ``divmodw()`` doesn't exist anymore, just use ``divmod()``.
+- ``sqrt16()`` doesn't exist anymore, just use ``sqrt()``.
+- ``floats.fabs()`` and ``floats.sqrt()`` don't exist anymore, just use ``abs()`` and ``sqrt()`` they now accept floating point as well.
 
+
+min() and max() are new builtin functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you used symbols named ``min`` or ``max`` you have to choose a new name as these are now
+reserved for the two new builtin functions.
+Code that uses an if statement and a comparison to determine the greater or lesser of two values,
+can now be optimized by just using one of these new builtin functions.
 

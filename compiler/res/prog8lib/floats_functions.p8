@@ -39,18 +39,6 @@ sub pow(float value, float power) -> float {
     }}
 }
 
-sub fabs(float value) -> float {
-    %asm {{
-        stx  P8ZP_SCRATCH_REG
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
-        jsr  ABS
-        ldx  P8ZP_SCRATCH_REG
-        rts
-    }}
-}
-
 sub sin(float angle) -> float {
     %asm {{
         lda  #<angle
@@ -123,18 +111,6 @@ sub log2(float value) -> float {
         ldy  #>FL_LOG2_const
         jsr  MOVFM
         jsr  FDIVT
-        ldx  P8ZP_SCRATCH_REG
-        rts
-    }}
-}
-
-sub sqrtf(float value) -> float {
-    %asm {{
-        lda  #<value
-        ldy  #>value
-        jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
-        jsr  SQR
         ldx  P8ZP_SCRATCH_REG
         rts
     }}

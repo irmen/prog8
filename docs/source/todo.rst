@@ -5,8 +5,8 @@ For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
 - DONE: added min() max() builtin functions
-- DONE: rename sqrt16() to just sqrt(), make it accept multiple numeric types. Renamed floats.sqrt() to floats.sqrtf() but you can just use sqrt()
-- DONE: abs() now supports multiple datatypes including float. No need to use floats.fabs() anymore.
+- DONE: rename sqrt16() to just sqrt(), make it accept multiple numeric types including float. Removed floats.sqrt().
+- DONE: abs() now supports multiple datatypes including float. Removed floats.fabs().
 - DONE: divmod() now supports multiple datatypes.  divmodw() has been removed.
 - DONE: cx16diskio module merged into diskio (which got specialized for commander x16 target). load() and load_raw() with extra ram bank parameter are gone.
 - DONE: drivenumber parameter removed from all routines in diskio module. The drive to work on is now simply stored as a diskio.drivenumber variable, which defaults to 8.
