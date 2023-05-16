@@ -202,6 +202,7 @@ Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-fil
     targetsystem.rst
     technical.rst
     portingguide.rst
+    upgrading8.rst
     todo.rst
 
 

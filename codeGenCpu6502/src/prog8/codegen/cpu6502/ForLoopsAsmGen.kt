@@ -64,16 +64,20 @@ internal class ForLoopsAsmGen(private val program: PtProgram,
 +                               bpl  $endLabel""")
                         else
                             asmgen.out("""
-                                clc
+                                sec
                                 sbc  $varname
                                 bvc  +
                                 eor  #${'$'}80
 +                               bmi  $endLabel""")
                     } else {
                         if(stepsize<0)
-                            asmgen.out("  cmp  $varname  |  bcs  $endLabel")
+                            asmgen.out("""
+                                cmp  $varname
+                                beq  +
+                                bcs  $endLabel
++""")
                         else
-                            asmgen.out("  cmp  $varname  |  bcc  $endLabel |  beq  $endLabel")
+                            asmgen.out("  cmp  $varname  |  bcc  $endLabel")
                         asmgen.out("  sta  $modifiedLabel+1")
                     }
                     asmgen.out(loopLabel)
@@ -106,16 +110,20 @@ $modifiedLabel          cmp  #0         ; modified
 +                               bpl  $endLabel""")
                         else
                             asmgen.out("""
-                                clc
+                                sec
                                 sbc  $varname
                                 bvc  +
                                 eor  #${'$'}80
 +                               bmi  $endLabel""")
                     } else {
                         if(stepsize<0)
-                            asmgen.out("  cmp  $varname  |  bcs  $endLabel")
+                            asmgen.out("""
+                                cmp  $varname
+                                beq  +
+                                bcs  $endLabel
++""")
                         else
-                            asmgen.out("  cmp  $varname  |  bcc  $endLabel |  beq  $endLabel")
+                            asmgen.out("  cmp  $varname  |  bcc  $endLabel")
                         asmgen.out("  sta  $modifiedLabel+1")
                     }
                     asmgen.out(loopLabel)
@@ -291,14 +299,17 @@ $endLabel""")
         if(iterableDt==DataType.ARRAY_W) {
             if(stepsize<0)
                 asmgen.out("""
-                    sta  P8ZP_SCRATCH_REG
-	                cmp  $fromVar
-	                tya
-	                sbc  $fromVar+1
+                    sta  P8ZP_SCRATCH_W2        ; to
+                    sty  P8ZP_SCRATCH_W2+1      ; to
+                    lda  $fromVar
+	                cmp  P8ZP_SCRATCH_W2
+                    lda  $fromVar+1
+	                sbc  P8ZP_SCRATCH_W2+1
 	                bvc  +
 	                eor  #${'$'}80
-+           		bpl  $endLabel
-                    lda  P8ZP_SCRATCH_REG""")
++           		bmi  $endLabel
+                    lda  P8ZP_SCRATCH_W2
+                    ldy  P8ZP_SCRATCH_W2+1""")
             else
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_REG

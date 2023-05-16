@@ -1,16 +1,19 @@
+%import textio
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        ubyte @shared foo = derp(99)
-    }
+        word vfrom = $1000
+        word vto = $1000
 
-    asmsub derp(ubyte xx @Y) -> ubyte @ A {
-        %asm {{
-            rts
-
-        }}
+        word xx
+        for xx in vfrom to vto step -1 {
+            txt.print_w(xx)
+            txt.spc()
+        }
+skip:
+        txt.nl()
     }
 }
 
