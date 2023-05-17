@@ -4,8 +4,8 @@ Upgrading from version 8
 
 How to upgrade older programs written for Prog8 version 8 or earlier to version 9.
 
-cx16diskio -> diskio
-^^^^^^^^^^^^^^^^^^^^
+``cx16diskio`` is now just ``diskio``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``cx16diskio`` module is gone, just use ``diskio``. The drivenumber is no longer a parameter on all routines.
 
@@ -16,8 +16,8 @@ The ``cx16diskio`` module is gone, just use ``diskio``. The drivenumber is no lo
   and then call the load routine normally.
 
 
-@Pc now ``bool``
-^^^^^^^^^^^^^^^^
+@Pc param and return value is now always ``bool``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Parameters and return values passed via the carry status flag (@Pc) now need to be declared as ``bool``.
 (Previously also ``ubyte`` was allowed but as the value is just a single bit, this wasn't really correct)
 
@@ -52,10 +52,10 @@ divmod(), sqrt() and abs() builtin functions accept multiple data types
 - ``floats.fabs()`` and ``floats.sqrt()`` don't exist anymore, just use ``abs()`` and ``sqrt()`` they now accept floating point as well.
 
 
-min() and max() are new builtin functions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you used symbols named ``min`` or ``max`` you have to choose a new name as these are now
-reserved for the two new builtin functions.
+min(), max() and clamp() are new builtin functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you used symbols named ``min`` or ``max`` or ``clamp``, you have to choose a new name as these are now
+reserved for these new builtin functions.
 Code that uses an if statement and a comparison to determine the greater or lesser of two values,
 can now be optimized by just using one of these new builtin functions.
-
+For floats, use ``floats.minf()``, ``floats.maxf()`` and ``floats.clampf()``.

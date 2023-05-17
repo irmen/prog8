@@ -24,6 +24,10 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
     "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x ushr 8 and 255).toDouble()} },
     "mkword" to ::builtinMkword,
+    "clamp__ubyte" to ::builtinClampUByte,
+    "clamp__byte" to ::builtinClampByte,
+    "clamp__uword" to ::builtinClampUWord,
+    "clamp__word" to ::builtinClampWord,
     "min__ubyte" to ::builtinMinUByte,
     "min__byte" to ::builtinMinByte,
     "min__uword" to ::builtinMinUWord,
@@ -245,3 +249,44 @@ private fun builtinMaxUWord(args: List<Expression>, position: Position, program:
     val result = max(val1.number.toInt(), val2.number.toInt())
     return NumericLiteral(DataType.UWORD, result.toDouble(), position)
 }
+
+private fun builtinClampUByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if(args.size!=3)
+        throw SyntaxError("clamp requires 3 arguments", position)
+    val value = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(max(value.number, minimum.number), maximum.number)
+    return NumericLiteral(DataType.UBYTE, result, position)
+}
+
+private fun builtinClampByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if(args.size!=3)
+        throw SyntaxError("clamp requires 3 arguments", position)
+    val value = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(max(value.number, minimum.number), maximum.number)
+    return NumericLiteral(DataType.BYTE, result, position)
+}
+
+private fun builtinClampUWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if(args.size!=3)
+        throw SyntaxError("clamp requires 3 arguments", position)
+    val value = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(max(value.number, minimum.number), maximum.number)
+    return NumericLiteral(DataType.UWORD, result, position)
+}
+
+private fun builtinClampWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if(args.size!=3)
+        throw SyntaxError("clamp requires 3 arguments", position)
+    val value = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(max(value.number, minimum.number), maximum.number)
+    return NumericLiteral(DataType.WORD, result, position)
+}
+

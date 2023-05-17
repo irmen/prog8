@@ -555,3 +555,111 @@ func_pokew   .proc
 	sta  (P8ZP_SCRATCH_W1),y
 	rts
 	.pend
+
+
+func_clamp_byte .proc
+	; signed value in A, result in A
+	; minimum in P8ZP_SCRATCH_W1
+	; maximum in P8ZP_SCRATCH_W1+1
+	tay
+	sec
+	sbc  P8ZP_SCRATCH_W1+1
+	bvc  +
+	eor  #$80
++       bmi  +
+	lda  P8ZP_SCRATCH_W1+1
+	tay
+	jmp  ++
++       tya
++	sec
+	sbc  P8ZP_SCRATCH_W1
+	bvc  +
+	eor  #$80
++       bmi  +
+	tya
+	rts
++       lda  P8ZP_SCRATCH_W1
+	rts
+	.pend
+
+
+func_clamp_ubyte .proc
+	; value in A, result in A
+	; minimum in P8ZP_SCRATCH_W1
+	; maximum in P8ZP_SCRATCH_W1+1
+	cmp  P8ZP_SCRATCH_W1+1
+	bcc  +
+	lda  P8ZP_SCRATCH_W1+1
++       cmp  P8ZP_SCRATCH_W1
+	bcc  +
+	rts
++       lda  P8ZP_SCRATCH_W1
+	rts
+	.pend
+
+func_clamp_word .proc
+	; signed value in AY, result in AY
+	; minimum in P8ZP_SCRATCH_W1
+	; maximum in P8ZP_SCRATCH_W2
+	sta  P8ZP_SCRATCH_B1
+	sty  P8ZP_SCRATCH_REG
+	ldy  P8ZP_SCRATCH_W2+1
+	lda  P8ZP_SCRATCH_W2
+	cmp  P8ZP_SCRATCH_B1
+	tya
+	sbc  P8ZP_SCRATCH_REG
+	bvc  +
+	eor  #$80
++       bpl  +
+	lda  P8ZP_SCRATCH_W2
+	ldy  P8ZP_SCRATCH_W2+1
+	sta  P8ZP_SCRATCH_B1
+	sty  P8ZP_SCRATCH_REG
++	ldy  P8ZP_SCRATCH_W1+1
+	lda  P8ZP_SCRATCH_W1
+	cmp  P8ZP_SCRATCH_B1
+	tya
+	sbc  P8ZP_SCRATCH_REG
+	bvc  +
+	eor  #$80
++       bpl  +
+	ldy  P8ZP_SCRATCH_REG
+	lda  P8ZP_SCRATCH_B1
+	rts
++	ldy  P8ZP_SCRATCH_W1+1
+	lda  P8ZP_SCRATCH_W1
+	rts
+	.pend
+
+func_clamp_uword .proc
+	; value in AY, result in AY
+	; minimum in P8ZP_SCRATCH_W1
+	; maximum in P8ZP_SCRATCH_W2
+	sta  P8ZP_SCRATCH_B1
+	sty  P8ZP_SCRATCH_REG
+	cpy  P8ZP_SCRATCH_W2+1
+	bcc  ++
+	bne  +
+	cmp  P8ZP_SCRATCH_W2
+	bcc  ++
++       beq  +
+	lda  P8ZP_SCRATCH_W2
+	ldy  P8ZP_SCRATCH_W2+1
+	sta  P8ZP_SCRATCH_B1
+	sty  P8ZP_SCRATCH_REG
++	ldy  P8ZP_SCRATCH_REG
+	lda  P8ZP_SCRATCH_B1
+	cpy  P8ZP_SCRATCH_W1+1
+	bcc  ++
+	bne  +
+	cmp  P8ZP_SCRATCH_W1
+	bcc  ++
++       beq  +
+	ldy  P8ZP_SCRATCH_REG
+	lda  P8ZP_SCRATCH_B1
+	rts
++	ldy  P8ZP_SCRATCH_W1+1
+	lda  P8ZP_SCRATCH_W1
+	rts
+
+	.pend

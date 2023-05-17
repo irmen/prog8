@@ -1212,7 +1212,7 @@ class IRCodeGen(
                     val afterIfLabel = createLabelName()
                     addInstr(
                         result,
-                        IRInstruction(elseBranch, IRDataType.BYTE, reg1 = compResultReg, labelSymbol = elseLabel),
+                        IRInstruction(elseBranch, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = elseLabel),
                         null
                     )
                     result += translateNode(ifElse.ifScope)
@@ -1224,7 +1224,7 @@ class IRCodeGen(
                     val afterIfLabel = createLabelName()
                     addInstr(
                         result,
-                        IRInstruction(elseBranch, IRDataType.BYTE, reg1 = compResultReg, labelSymbol = afterIfLabel),
+                        IRInstruction(elseBranch, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = afterIfLabel),
                         null
                     )
                     result += translateNode(ifElse.ifScope)

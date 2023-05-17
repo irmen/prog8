@@ -38,6 +38,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "pokew" -> funcPokeW(call)
             "pokemon" -> ExpressionCodeResult.EMPTY     // easter egg function
             "mkword" -> funcMkword(call)
+            "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword" -> funcClamp(call)
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(call)
             "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(call)
             "sort" -> funcSort(call)
@@ -322,6 +323,42 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = lsbTr.resultReg, reg2 = msbTr.resultReg)
         }
         return ExpressionCodeResult(result, IRDataType.WORD, lsbTr.resultReg, -1)
+    }
+
+    private fun funcClamp(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val type = irType(call.type)
+        val valueTr = exprGen.translateExpression(call.args[0])
+        val minimumTr = exprGen.translateExpression(call.args[1])
+        val maximumTr = exprGen.translateExpression(call.args[2])
+        result += valueTr.chunks
+        result += minimumTr.chunks
+        result += maximumTr.chunks
+        if(type==IRDataType.FLOAT) {
+            result += codeGen.makeSyscall(
+                IMSyscall.CLAMP_FLOAT, listOf(
+                    valueTr.dt to valueTr.resultFpReg,
+                    minimumTr.dt to minimumTr.resultFpReg,
+                    maximumTr.dt to maximumTr.resultFpReg,
+                ), type to valueTr.resultFpReg
+            )
+            return ExpressionCodeResult(result, type, -1, valueTr.resultFpReg)
+        } else {
+            val syscall = when(call.type) {
+                DataType.UBYTE -> IMSyscall.CLAMP_UBYTE
+                DataType.BYTE -> IMSyscall.CLAMP_BYTE
+                DataType.UWORD -> IMSyscall.CLAMP_UWORD
+                DataType.WORD -> IMSyscall.CLAMP_WORD
+                else -> throw AssemblyError("invalid dt")
+            }
+            result += codeGen.makeSyscall(syscall, listOf(
+                    valueTr.dt to valueTr.resultReg,
+                    minimumTr.dt to minimumTr.resultReg,
+                    maximumTr.dt to maximumTr.resultReg,
+                ), type to valueTr.resultReg
+            )
+            return ExpressionCodeResult(result, type, valueTr.resultReg, -1)
+        }
     }
 
     private fun funcMin(call: PtBuiltinFunctionCall): ExpressionCodeResult {

@@ -15,7 +15,7 @@ syn keyword prog8BuiltInFunc any all len reverse sort
 " Miscellaneous functions
 syn keyword prog8BuiltInFunc cmp divmod lsb msb mkword min max peek peekw poke pokew push pushw pop popw rsave rsavex rrestore rrestorex
 syn keyword prog8BuiltInFunc rol rol2 ror ror2 sizeof
-syn keyword prog8BuiltInFunc swap memory callfar
+syn keyword prog8BuiltInFunc swap memory callfar clamp
 
 
 " c64/floats.p8

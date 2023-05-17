@@ -31,6 +31,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "msb" -> funcMsb(fcall, resultToStack, resultRegister)
             "lsb" -> funcLsb(fcall, resultToStack, resultRegister)
             "mkword" -> funcMkword(fcall, resultToStack, resultRegister)
+            "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword" -> funcClamp(fcall, resultToStack, resultRegister)
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(fcall, resultToStack, resultRegister)
             "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(fcall, resultToStack, resultRegister)
             "abs__byte", "abs__word", "abs__float" -> funcAbs(fcall, resultToStack, resultRegister, sscope)
@@ -857,6 +858,37 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     } |  sty  cx16.${resultRegister.toString().lowercase()}+1")
                 else -> throw AssemblyError("invalid reg")
             }
+        }
+    }
+
+    private fun funcClamp(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?) {
+        val signed = fcall.type in SignedDatatypes
+        when(fcall.type) {
+            in ByteDatatypes -> {
+                assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
+                assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W1+1", fcall.args[2].type)  // maximum
+                assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A, signed)    // value
+                asmgen.out("  jsr  prog8_lib.func_clamp_${fcall.type.toString().lowercase()}")
+                if(resultToStack) {
+                    asmgen.out("  sta  P8ESTACK_LO,x |  dex")
+                } else {
+                    val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                    assignAsmGen.assignRegisterByte(targetReg, CpuRegister.A, signed)
+                }
+            }
+            in WordDatatypes -> {
+                assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
+                assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W2", fcall.args[2].type)  // maximum
+                assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, signed)    // value
+                asmgen.out("  jsr  prog8_lib.func_clamp_${fcall.type.toString().lowercase()}")
+                if(resultToStack) {
+                    asmgen.out("  sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
+                } else {
+                    val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                    assignAsmGen.assignRegisterpairWord(targetReg, RegisterOrPair.AY)
+                }
+            }
+            else -> throw AssemblyError("invalid dt")
         }
     }
 

@@ -3,6 +3,7 @@ package prog8.vm
 import prog8.code.core.AssemblyError
 import prog8.intermediate.FunctionCallArgs
 import prog8.intermediate.IRDataType
+import kotlin.math.max
 import kotlin.math.min
 
 /*
@@ -82,7 +83,13 @@ enum class Syscall {
     RNDF,
     STRING_CONTAINS,
     BYTEARRAY_CONTAINS,
-    WORDARRAY_CONTAINS;
+    WORDARRAY_CONTAINS,
+    CLAMP_BYTE,
+    CLAMP_UBYTE,
+    CLAMP_WORD,
+    CLAMP_UWORD,
+    CLAMP_FLOAT
+    ;
 
     companion object {
         private val VALUES = values()
@@ -412,6 +419,46 @@ object SysCalls {
                     length--
                 }
                 returnValue(callspec.returns!!, 0u, vm)
+            }
+            Syscall.CLAMP_BYTE -> {
+                val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
+                val value = (valueU as UByte).toByte().toInt()
+                val minimum = (minimumU as UByte).toByte().toInt()
+                val maximum = (maximumU as UByte).toByte().toInt()
+                val result = min(max(value, minimum), maximum)
+                returnValue(callspec.returns!!, result, vm)
+            }
+            Syscall.CLAMP_UBYTE -> {
+                val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
+                val value = (valueU as UByte).toInt()
+                val minimum = (minimumU as UByte).toInt()
+                val maximum = (maximumU as UByte).toInt()
+                val result = min(max(value, minimum), maximum)
+                returnValue(callspec.returns!!, result, vm)
+            }
+            Syscall.CLAMP_WORD -> {
+                val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
+                val value = (valueU as UShort).toShort().toInt()
+                val minimum = (minimumU as UShort).toShort().toInt()
+                val maximum = (maximumU as UShort).toShort().toInt()
+                val result = min(max(value, minimum), maximum)
+                returnValue(callspec.returns!!, result, vm)
+            }
+            Syscall.CLAMP_UWORD -> {
+                val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
+                val value = (valueU as UShort).toInt()
+                val minimum = (minimumU as UShort).toInt()
+                val maximum = (maximumU as UShort).toInt()
+                val result = min(max(value, minimum), maximum)
+                returnValue(callspec.returns!!, result, vm)
+            }
+            Syscall.CLAMP_FLOAT -> {
+                val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
+                val value = (valueU as Float)
+                val minimum = (minimumU as Float)
+                val maximum = (maximumU as Float)
+                val result = min(max(value, minimum), maximum)
+                returnValue(callspec.returns!!, result, vm)
             }
             else -> throw AssemblyError("missing syscall ${call.name}")
         }

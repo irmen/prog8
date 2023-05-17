@@ -714,6 +714,13 @@ data class IRInstruction(
                 }
             }
         }
+        if(format.immediate) {
+            if(opcode==Opcode.LOAD)
+                require(immediate != null || immediateFp != null || labelSymbol!=null) { "missing immediate value or labelsymbol" }
+            else
+                require(immediate != null || immediateFp != null) { "missing immediate value" }
+        }
+
         reg1direction = format.reg1
         reg2direction = format.reg2
         fpReg1direction = format.fpReg1

@@ -123,4 +123,13 @@ sub rndseedf(float seed) {
     }}
 }
 
+
+sub clampf(float value, float minimum, float maximum) -> float {
+    if value<minimum
+        value=minimum
+    if value<maximum
+        return value
+    return maximum
+}
+
 }

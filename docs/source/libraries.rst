@@ -261,6 +261,9 @@ point variables.  This includes ``print_f``, the routine used to print floating 
 ``maxf (x, y)``
     returns the largest of x and y.
 
+``clampf (value, minimum, maximum)``
+    returns the value restricted to the given minimum and maximum.
+
 ``print_f (x)``
     prints the floating point number x as a string.
 

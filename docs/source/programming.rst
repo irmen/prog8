@@ -759,7 +759,11 @@ min (x, y)
     Returns the smallest of x and y. Supported for integer types only, for floats use ``floats.minf()`` instead.
 
 max (x, y)
-    Returns the largest of x and y.  Supported for integer types only, for floats use ``floats.maxf()`` instead.
+    Returns the largest of x and y. Supported for integer types only, for floats use ``floats.maxf()`` instead.
+
+clamp (value, minimum, maximum)
+    Returns the value restricted to the given minimum and maximum.
+    Supported for integer types only, for floats use ``floats.clampf()`` instead.
 
 sgn (x)
     Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).

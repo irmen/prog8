@@ -72,7 +72,24 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         // choose specific builtin function for the given types
         val func = functionCallExpr.target.nameInSource
-        if(func==listOf("min") || func==listOf("max")) {
+        if(func==listOf("clamp")) {
+            val t1 = functionCallExpr.args[0].inferType(program)
+            if(t1.isKnown) {
+                val replaceFunc: String
+                if(t1.isBytes) {
+                    replaceFunc = if(t1.istype(DataType.BYTE)) "clamp__byte" else "clamp__ubyte"
+                } else if(t1.isInteger) {
+                    replaceFunc = if(t1.istype(DataType.WORD)) "clamp__word" else "clamp__uword"
+                } else {
+                    errors.err("clamp builtin not supported for floats, use floats.clamp", functionCallExpr.position)
+                    return noModifications
+                }
+                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                    IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
+                    functionCallExpr))
+            }
+        }
+        else if(func==listOf("min") || func==listOf("max")) {
             val t1 = functionCallExpr.args[0].inferType(program)
             val t2 = functionCallExpr.args[1].inferType(program)
             if(t1.isKnown && t2.isKnown) {

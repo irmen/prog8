@@ -4,7 +4,8 @@ TODO
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
-- DONE: added min() max() builtin functions
+- DONE: added min(), max() builtin functions. For floats, use floats.minf() and floats.maxf().
+- DONE: added clamp(value, minimum, maximum)  to restrict a value x to a minimum and maximum value. For floats, use floats.clampf(f, minv, maxv).
 - DONE: rename sqrt16() to just sqrt(), make it accept multiple numeric types including float. Removed floats.sqrt().
 - DONE: abs() now supports multiple datatypes including float. Removed floats.fabs().
 - DONE: divmod() now supports multiple datatypes.  divmodw() has been removed.
@@ -13,7 +14,9 @@ For 9.0 major changes
 - DONE: for loops now skip the whole loop if from value already outside the loop range (this is what all other programming languages also do)
 - DONE: asmsub params or return values passed in cpu flags (like carry) now must be declared as booleans (previously ubyte was still accepted).
 
-- once 9.0 is stable, upgrade other programs (assem, shell, etc) to it. + add migration guide to the manual.
+TODO: test min/max, floats.minf/maxf  on all compiler targets
+
+
 - [much work:] add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
   this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
   So maybe only allow the bare essentials? (store, get, bitwise operations?)

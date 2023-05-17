@@ -227,4 +227,13 @@ sub maxf(float f1, float f2) -> float {
     return f2
 }
 
+
+sub clampf(float value, float minimum, float maximum) -> float {
+    if value>maximum
+      value=maximum
+    if value>minimum
+      return value
+    return minimum
+}
+
 }
