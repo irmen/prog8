@@ -57,5 +57,7 @@ min(), max() and clamp() are new builtin functions
 If you used symbols named ``min`` or ``max`` or ``clamp``, you have to choose a new name as these are now
 reserved for these new builtin functions.
 Code that uses an if statement and a comparison to determine the greater or lesser of two values,
-can now be optimized by just using one of these new builtin functions.
+can now *sometimes* be optimized by just using one of these new builtin functions. (But sometimes
+just using a simple if statement results in more efficient code. If your goal is fastest code,
+compare both approaches!)
 For floats, use ``floats.minf()``, ``floats.maxf()`` and ``floats.clampf()``.
