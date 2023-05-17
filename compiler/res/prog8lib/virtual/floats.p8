@@ -124,6 +124,20 @@ sub rndseedf(float seed) {
 }
 
 
+sub minf(float f1, float f2) -> float {
+    if f1<f2
+        return f1
+    return f2
+}
+
+
+sub maxf(float f1, float f2) -> float {
+    if f1>f2
+        return f1
+    return f2
+}
+
+
 sub clampf(float value, float minimum, float maximum) -> float {
     if value<minimum
         value=minimum
