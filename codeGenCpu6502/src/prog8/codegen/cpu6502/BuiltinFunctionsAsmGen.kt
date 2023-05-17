@@ -872,7 +872,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(resultToStack) {
                     asmgen.out("  sta  P8ESTACK_LO,x |  dex")
                 } else {
-                    val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                    val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
                     assignAsmGen.assignRegisterByte(targetReg, CpuRegister.A, signed)
                 }
             }
@@ -884,7 +884,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(resultToStack) {
                     asmgen.out("  sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
                 } else {
-                    val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                    val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, signed, fcall.position, fcall.definingISub(), asmgen)
                     assignAsmGen.assignRegisterpairWord(targetReg, RegisterOrPair.AY)
                 }
             }
@@ -905,7 +905,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             if(resultToStack) {
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
             } else {
-                val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.A, targetReg)
             }
         } else if(fcall.type in WordDatatypes) {
@@ -946,7 +946,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             if(resultToStack) {
                 asmgen.out("  sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
             } else {
-                val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.AY, targetReg)
             }
         } else {
@@ -967,7 +967,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             if(resultToStack) {
                 asmgen.out("  sta  P8ESTACK_LO,x |  dex")
             } else {
-                val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.A, targetReg)
             }
         } else if(fcall.type in WordDatatypes) {
@@ -1008,7 +1008,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             if(resultToStack) {
                 asmgen.out("  sta  P8ESTACK_LO,x |  sty  P8ESTACK_HI,x |  dex")
             } else {
-                val targetReg = AsmAssignTarget.fromRegisters(resultRegister!!, signed, fcall.position, fcall.definingISub(), asmgen)
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.AY, targetReg)
             }
         } else {
