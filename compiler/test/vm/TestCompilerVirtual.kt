@@ -253,7 +253,7 @@ main {
 main {
   sub start() {
     %ir {{
-        loadr.b r1,r2
+        incm.b $2000
         return
     }}
   }
@@ -262,7 +262,7 @@ main {
         val result = compileText(target, false, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSrc = virtfile.readText()
-        irSrc.shouldContain("loadr.b r1,r2")
+        irSrc.shouldContain("incm.b $2000")
         irSrc.shouldNotContain("INLINEASM")
         VmRunner().runProgram(irSrc)
     }

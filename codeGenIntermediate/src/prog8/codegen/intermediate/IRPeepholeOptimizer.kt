@@ -36,6 +36,9 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             joinChunks(sub)
             removeEmptyChunks(sub)
             joinChunks(sub)
+
+            // TODO also do register optimization step here?
+
             sub.chunks.withIndex().forEach { (index, chunk1) ->
                 // we don't optimize Inline Asm chunks here.
                 val chunk2 = if(index<sub.chunks.size-1) sub.chunks[index+1] else null

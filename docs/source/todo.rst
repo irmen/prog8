@@ -1,6 +1,12 @@
 TODO
 ====
 
+Fix register renumber issue in vm/sincos, vm/bouncegfx examples
+IS THE RENUMBERING EVEN GOING TO WORK AT ALL?
+Subroutines calling each other will start to overwrite the same registers that they now share?
+
+
+
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
@@ -41,10 +47,6 @@ Compiler:
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
-- ir: mechanism to determine for chunks which registers are getting input values from "outside"
-- ir: mechanism to determine for chunks which registers are passing values out? (i.e. are used again in another chunk)
-- ir: peephole opt: (maybe just integrate this in the variable/register allocator though?) renumber registers in chunks to start with 1 again every time (but keep entry values in mind!)
-- ir: peephole opt: (maybe just integrate this in the variable/register allocator though?) reuse registers in chunks (but keep result registers in mind that pass values out! and don't renumber registers above SyscallRegisterBase!)
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
 - PtAst/IR: more complex common subexpression eliminations

@@ -806,6 +806,37 @@ data class IRInstruction(
             OperandDirection.READ -> readFpRegsCounts[this.fpReg2!!] = readFpRegsCounts.getValue(this.fpReg2)+1
             else -> throw IllegalArgumentException("fpReg2 can only be read")
         }
+
+        if(fcallArgs!=null) {
+            fcallArgs.returns?.let {
+                if(it.dt==IRDataType.FLOAT)
+                    writeFpRegsCounts[it.registerNum] = writeFpRegsCounts.getValue(it.registerNum)+1
+                else {
+                    writeRegsCounts[it.registerNum] = writeRegsCounts.getValue(it.registerNum) + 1
+                    val types = regsTypes[it.registerNum]
+                    if(types==null) {
+                        regsTypes[it.registerNum] = mutableSetOf(it.dt)
+                    } else {
+                        types += it.dt
+                        regsTypes[it.registerNum] = types
+                    }
+                }
+            }
+            fcallArgs.arguments.forEach {
+                if(it.reg.dt==IRDataType.FLOAT)
+                    readFpRegsCounts[it.reg.registerNum] = readFpRegsCounts.getValue(it.reg.registerNum)+1
+                else {
+                    readRegsCounts[it.reg.registerNum] = readRegsCounts.getValue(it.reg.registerNum) + 1
+                    val types = regsTypes[it.reg.registerNum]
+                    if(types==null) {
+                        regsTypes[it.reg.registerNum] = mutableSetOf(it.reg.dt)
+                    } else {
+                        types += it.reg.dt
+                        regsTypes[it.reg.registerNum] = types
+                    }
+                }
+            }
+        }
     }
 
     override fun toString(): String {
