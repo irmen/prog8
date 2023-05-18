@@ -23,7 +23,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
     }
 
     private fun optimizeOnlyJoinChunks() {
-        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
+        irprog.foreachSub { sub ->
             joinChunks(sub)
             removeEmptyChunks(sub)
             joinChunks(sub)
@@ -32,7 +32,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
     }
 
     private fun peepholeOptimize() {
-        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
+        irprog.foreachSub { sub ->
             joinChunks(sub)
             removeEmptyChunks(sub)
             joinChunks(sub)

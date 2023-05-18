@@ -55,6 +55,10 @@ class IRProgram(val name: String,
     val globalInits = IRCodeChunk(null, null)
     val blocks = mutableListOf<IRBlock>()
 
+    fun allSubs(): Sequence<IRSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }
+    fun foreachSub(operation: (sub: IRSubroutine) -> Unit) = allSubs().forEach { operation(it) }
+    fun foreachCodeChunk(operation: (chunk: IRCodeChunkBase) -> Unit) = allSubs().flatMap { it.chunks }.forEach { operation(it) }
+
     fun addGlobalInits(chunk: IRCodeChunk) {
         globalInits += chunk
     }

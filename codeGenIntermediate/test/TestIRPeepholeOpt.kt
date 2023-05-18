@@ -36,7 +36,7 @@ class TestIRPeepholeOpt: FunSpec({
         return makeIRProgram(listOf(chunk))
     }
 
-    fun IRProgram.chunks(): List<IRCodeChunkBase> = this.blocks.flatMap { it.children.filterIsInstance<IRSubroutine>() }.flatMap { it.chunks }
+    fun IRProgram.chunks(): List<IRCodeChunkBase> = this.allSubs().flatMap { it.chunks }.toList()
 
     test("remove nops") {
         val irProg = makeIRProgram(listOf(

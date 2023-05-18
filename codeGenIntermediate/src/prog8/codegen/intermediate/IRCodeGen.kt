@@ -139,7 +139,7 @@ class IRCodeGen(
         // note: we do still export the memory mapped symbols so a code generator can use those
         //       for instance when a piece of inlined assembly references them.
         val replacements = mutableListOf<Triple<IRCodeChunkBase, Int, UInt>>()
-        irProg.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.flatMap { it.chunks }.forEach { chunk ->
+        irProg.foreachCodeChunk { chunk ->
             chunk.instructions.withIndex().forEach {
                 (idx, instr) ->
                     val symbolExpr = instr.labelSymbol

@@ -26,10 +26,8 @@ class IRUnusedCodeRemover(
 
     private fun removeUnusedSubroutines(): Int {
         val allLabeledChunks = mutableMapOf<String, IRCodeChunkBase>()
-        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
-            sub.chunks.forEach { chunk ->
-                chunk.label?.let { allLabeledChunks[it] = chunk }
-            }
+        irprog.foreachCodeChunk { chunk ->
+            chunk.label?.let { allLabeledChunks[it] = chunk }
         }
 
         var numRemoved = removeSimpleUnlinked(allLabeledChunks) + removeUnreachable(allLabeledChunks)
@@ -97,12 +95,10 @@ class IRUnusedCodeRemover(
         }
 
         // check if asmsub is linked or called from another regular subroutine
-        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
-            sub.chunks.forEach { chunk ->
-                chunk.instructions.forEach {
-                    it.labelSymbol?.let { label -> allSubs[label]?.let { cc -> linkedAsmSubs += cc } }
-                    // note: branchTarget can't yet point to another IRAsmSubroutine, so do nothing when it's set
-                }
+        irprog.foreachCodeChunk { chunk ->
+            chunk.instructions.forEach {
+                it.labelSymbol?.let { label -> allSubs[label]?.let { cc -> linkedAsmSubs += cc } }
+                // note: branchTarget can't yet point to another IRAsmSubroutine, so do nothing when it's set
             }
         }
 
@@ -154,19 +150,17 @@ class IRUnusedCodeRemover(
     private fun removeSimpleUnlinked(allLabeledChunks: Map<String, IRCodeChunkBase>): Int {
         val linkedChunks = mutableSetOf<IRCodeChunkBase>()
 
-        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
-            sub.chunks.forEach { chunk ->
-                chunk.next?.let { next -> linkedChunks += next }
-                chunk.instructions.forEach {
-                    if(it.branchTarget==null) {
-                        it.labelSymbol?.let { label -> allLabeledChunks[label]?.let { cc -> linkedChunks += cc } }
-                    } else {
-                        linkedChunks += it.branchTarget!!
-                    }
+        irprog.foreachCodeChunk { chunk ->
+            chunk.next?.let { next -> linkedChunks += next }
+            chunk.instructions.forEach {
+                if(it.branchTarget==null) {
+                    it.labelSymbol?.let { label -> allLabeledChunks[label]?.let { cc -> linkedChunks += cc } }
+                } else {
+                    linkedChunks += it.branchTarget!!
                 }
-                if (chunk.label == "main.start")
-                    linkedChunks += chunk
             }
+            if (chunk.label == "main.start")
+                linkedChunks += chunk
         }
 
         return removeUnlinkedChunks(linkedChunks)
@@ -176,7 +170,7 @@ class IRUnusedCodeRemover(
         linkedChunks: Set<IRCodeChunkBase>
     ): Int {
         var numRemoved = 0
-        irprog.blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }.forEach { sub ->
+        irprog.foreachSub { sub ->
             sub.chunks.withIndex().reversed().forEach { (index, chunk) ->
                 if (chunk !in linkedChunks) {
                     if (chunk === sub.chunks[0]) {
