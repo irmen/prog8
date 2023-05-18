@@ -1,12 +1,6 @@
 TODO
 ====
 
-Fix register renumber issue in vm/sincos, vm/bouncegfx examples
-IS THE RENUMBERING EVEN GOING TO WORK AT ALL?
-Subroutines calling each other will start to overwrite the same registers that they now share?
-
-
-
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
