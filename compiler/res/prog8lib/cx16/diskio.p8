@@ -462,7 +462,18 @@ io_error:
         goto done
     }
 
+
+    ; saves a block of memory to disk, including the default 2 byte prg header.
     sub save(uword filenameptr, uword address, uword size) -> bool {
+        return internal_save_routine(filenameptr, address, size, false)
+    }
+
+    ; like save() but omits the 2 byte prg header.
+    sub save_raw(uword filenameptr, uword address, uword size) -> bool {
+        return internal_save_routine(filenameptr, address, size, true)
+    }
+
+    sub internal_save_routine(uword filenameptr, uword address, uword size, bool headerless) -> bool {
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         cbm.SETLFS(1, drivenumber, 0)
         uword @shared end_address = address + size
@@ -474,11 +485,16 @@ io_error:
             lda  address+1
             sta  P8ZP_SCRATCH_W1+1
             stx  P8ZP_SCRATCH_REG
-            lda  #<P8ZP_SCRATCH_W1
             ldx  end_address
             ldy  end_address+1
+            lda  headerless
+            beq  +
+            lda  #<P8ZP_SCRATCH_W1
+            jsr  cx16.BSAVE
+            bra  ++
++           lda  #<P8ZP_SCRATCH_W1
             jsr  cbm.SAVE
-            php
++           php
             ldx  P8ZP_SCRATCH_REG
             plp
         }}

@@ -943,6 +943,9 @@ Library routines
 
 There are many routines available in the compiler libraries.
 Some are used internally by the compiler as well.
+
+The most important ones can be found in the :doc:`libraries` chapter.
+
 There's too many to list here, just have a look through the source code
 of the library modules to see what's there.
 (They can be found in the compiler/res directory)

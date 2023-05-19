@@ -1,6 +1,9 @@
 TODO
 ====
 
+FIX:  pokew(table + 64 + pos*2, ($000a-pos)*200)  generates wrong code?
+
+
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
@@ -13,6 +16,7 @@ For 9.0 major changes
 - DONE: drivenumber parameter removed from all routines in diskio module. The drive to work on is now simply stored as a diskio.drivenumber variable, which defaults to 8.
 - DONE: for loops now skip the whole loop if from value already outside the loop range (this is what all other programming languages also do)
 - DONE: asmsub params or return values passed in cpu flags (like carry) now must be declared as booleans (previously ubyte was still accepted).
+- DONE: (on cx16) added diskio.save_raw() to save without the 2 byte prg header
 
 - [much work:] add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
   this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....

@@ -151,6 +151,7 @@ Provides several routines that deal with disk drive I/O, such as:
 - send arbitrary CbmDos command to disk drive
 
 Commander X16 additions:
+Headerless load and save routines are available (load_raw, save_raw).
 On the Commander X16 it tries to use that machine's fast Kernal loading routines if possible.
 Routines to directly load data into video ram are also present (vload and vload_raw).
 Also contains a helper function to calculate the file size of a loaded file (although that is truncated
