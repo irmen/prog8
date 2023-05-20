@@ -1,9 +1,6 @@
 TODO
 ====
 
-FIX:  pokew(table + 64 + pos*2, ($000a-pos)*200)  generates wrong code?
-
-
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
