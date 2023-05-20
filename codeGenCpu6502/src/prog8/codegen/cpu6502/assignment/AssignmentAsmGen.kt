@@ -1283,9 +1283,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.left.type)
             assignExpressionToRegister(expr.right, RegisterOrPair.AY, expr.right.type in SignedDatatypes)
         } else {
-            assignExpressionToRegister(expr.right, RegisterOrPair.AY, expr.right.type in SignedDatatypes)
-            asmgen.saveRegisterStack(CpuRegister.A, false)
-            asmgen.saveRegisterStack(CpuRegister.Y, false)
+            asmgen.pushCpuStack(DataType.UWORD, expr.right)
             assignExpressionToVariable(expr.left, "P8ZP_SCRATCH_W1", expr.left.type)
             asmgen.restoreRegisterStack(CpuRegister.Y, false)
             asmgen.restoreRegisterStack(CpuRegister.A, false)
@@ -1297,9 +1295,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", expr.left.type)
             assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type in SignedDatatypes)
         } else {
-            assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type in SignedDatatypes)
-            asmgen.saveRegisterStack(CpuRegister.A, false)
-            asmgen.saveRegisterStack(CpuRegister.Y, false)
+            asmgen.pushCpuStack(DataType.UWORD, expr.left)
             assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_W1", expr.left.type)
             asmgen.restoreRegisterStack(CpuRegister.Y, false)
             asmgen.restoreRegisterStack(CpuRegister.A, false)

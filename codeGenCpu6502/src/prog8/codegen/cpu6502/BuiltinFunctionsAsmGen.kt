@@ -96,8 +96,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcDivmodW(fcall: PtBuiltinFunctionCall) {
-        assignAsmGen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
-        assignAsmGen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY, false)
+        if(fcall.args[1].isSimple()) {
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY, false)
+        } else {
+            asmgen.pushCpuStack(DataType.UWORD, fcall.args[1])
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
+        }
         // math.divmod_uw_asm: -- divide two unsigned words (16 bit each) into 16 bit results
         //    input:  P8ZP_SCRATCH_W1 in ZP: 16 bit number, A/Y: 16 bit divisor
         //    output: P8ZP_SCRATCH_W2 in ZP: 16 bit remainder, A/Y: 16 bit division result
@@ -114,8 +121,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcStringCompare(fcall: PtBuiltinFunctionCall, resultToStack: Boolean) {
-        assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", DataType.UWORD)
-        assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, false)
+        if(fcall.args[0].isSimple()) {
+            assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", DataType.UWORD)
+            assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, false)
+        } else {
+            asmgen.pushCpuStack(DataType.UWORD, fcall.args[0])
+            asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", DataType.UWORD)
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
+        }
         asmgen.out("  jsr  prog8_lib.strcmp_mem")
         if(resultToStack)
             asmgen.out("  sta  P8ESTACK_LO,x |  dex")
@@ -753,8 +767,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
 
         // fall through method:
-        asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
-        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
+        if(fcall.args[1].isSimple()) {
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
+        } else {
+            asmgen.pushCpuStack(DataType.UWORD, fcall.args[1])
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
+        }
         asmgen.out("  jsr  prog8_lib.func_pokew")
     }
 

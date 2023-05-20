@@ -4,25 +4,18 @@
 main {
 
     sub start() {
-        ubyte x8
-        ubyte x4
-        ubyte x3
-        ubyte result = x3 % x8
-        txt.print_ub(result)
-        txt.nl()
-        result = x3/x8
-        txt.print_ub(result)
-        txt.nl()
 
-        uword y8
-        uword y4
-        uword y3
-        uword wresult = y3 % y8
-        txt.print_uw(wresult)
-        txt.nl()
-        wresult = y3 / y8
-        txt.print_uw(wresult)
-        txt.nl()
+        uword table = memory("table", 100, 0)
+
+        ubyte pos
+        for pos in 0 to 7 {
+            pokew(table + 64 + pos*2, ($000a-pos)*200)  ; TODO FIX WRONG CODE
+        }
+
+        for pos in 0 to 7 {
+            txt.print_uw(peekw(table+64+pos*2))
+            txt.nl()
+        }
     }
 }
 
