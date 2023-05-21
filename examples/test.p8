@@ -5,44 +5,12 @@
 main {
 
     sub start() {
-        word ww = -1234
-        uword uww = 1234
-        float fl = 123.34
-        byte bb = -123
-        ubyte ub = 123
+        ubyte[] array = [ $00, $11, $22, $33, $44, $55, $66, $77, $88, $99, $aa, $bb]
 
-        txt.print_w(clamp(ww, -2000, -500))
-        txt.spc()
-        txt.print_w(clamp(ww, -1000, -500))
-        txt.spc()
-        txt.print_w(clamp(ww, -2000, -1500))
-        txt.nl()
-        txt.print_uw(clamp(uww, 500, 2000))
-        txt.spc()
-        txt.print_uw(clamp(uww, 500, 1000))
-        txt.spc()
-        txt.print_uw(clamp(uww, 1500, 2000))
-        txt.nl()
-
-        txt.print_b(clamp(bb, -127, -50))
-        txt.spc()
-        txt.print_b(clamp(bb, -100, -50))
-        txt.spc()
-        txt.print_b(clamp(bb, -127, -125))
-        txt.nl()
-        txt.print_ub(clamp(ub, 50, 200))
-        txt.spc()
-        txt.print_ub(clamp(ub, 50, 100))
-        txt.spc()
-        txt.print_ub(clamp(ub, 150, 200))
-        txt.nl()
-
-        floats.print_f(floats.clampf(fl, 50.0, 200.0))
-        txt.spc()
-        floats.print_f(floats.clampf(fl, 50.0, 100.0))
-        txt.spc()
-        floats.print_f(floats.clampf(fl, 150.0, 200.0))
-        txt.nl()
+        ubyte x = 2
+        ubyte y = 3
+        txt.print_uwhex(mkword(array[9], array[8]), true)
+        txt.print_uwhex(mkword(array[x*y+y], array[y*x+x]), true)
     }
 }
 

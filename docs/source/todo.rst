@@ -15,7 +15,7 @@ For 9.0 major changes
 - DONE: asmsub params or return values passed in cpu flags (like carry) now must be declared as booleans (previously ubyte was still accepted).
 - DONE: (on cx16) added diskio.save_raw() to save without the 2 byte prg header
 
-- [much work:] add special (u)word array type (or modifier such as @fast? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
+- [much work:] add special (u)word array type (or modifier such as @fast or @split? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
   this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
   So maybe only allow the bare essentials? (store, get, ++/--/+/-, bitwise operations?)
 - [much work:] more support for (64tass) SEGMENTS ?

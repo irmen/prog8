@@ -67,7 +67,7 @@ asmsub STOP2() -> ubyte @A  {
 }
 
 asmsub RDTIM16() -> uword @AY {
-    ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
+    ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience. Also avoids ram bank issue for irqs.
     %asm {{
         phx
         sei

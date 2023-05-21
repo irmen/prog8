@@ -229,13 +229,13 @@ internal class BeforeAsmAstChanger(val program: Program,
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
 
-        val containingStatement = getContainingStatement(arrayIndexedExpression)
-        if(getComplexArrayIndexedExpressions(containingStatement).size > 1) {
-            errors.err("it's not possible to use more than one complex array indexing expression in a single statement; break it up via a temporary variable for instance", containingStatement.position)
-            return noModifications
-        }
+        if(options.compTarget.name!=VMTarget.NAME) {    // don't apply this optimization/check for Vm target
+            val containingStatement = getContainingStatement(arrayIndexedExpression)
+            if(getComplexArrayIndexedExpressions(containingStatement).size > 1) {
+                errors.err("it's not possible to use more than one complex array indexing expression in a single statement; break it up via a temporary variable for instance", containingStatement.position)
+                return noModifications
+            }
 
-        if(options.compTarget.name!=VMTarget.NAME) {    // don't apply this optimization for Vm target
             val index = arrayIndexedExpression.indexer.indexExpr
             if (index !is NumericLiteral && index !is IdentifierReference) {
                 // replace complex indexing expression with a temp variable to hold the computed index first
