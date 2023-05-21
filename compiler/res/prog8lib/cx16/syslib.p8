@@ -70,7 +70,9 @@ asmsub RDTIM16() -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
     %asm {{
         phx
+        sei
         jsr  c64.RDTIM
+        cli
         pha
         txa
         tay
@@ -936,9 +938,13 @@ _loop       lda  P8ZP_SCRATCH_W1
             plx
             rts
 
-+           jsr  c64.RDTIM
++           sei
+            jsr  c64.RDTIM
+            cli
             sta  P8ZP_SCRATCH_B1
--           jsr  c64.RDTIM
+-           sei
+            jsr  c64.RDTIM
+            cli
             cmp  P8ZP_SCRATCH_B1
             beq  -
 

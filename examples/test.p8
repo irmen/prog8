@@ -9,7 +9,7 @@ main {
 
         ubyte pos
         for pos in 0 to 7 {
-            pokew(table + 64 + pos*2, ($000a-pos)*200)  ; TODO FIX WRONG CODE
+            pokew(table + 64 + pos*2, ($000a-pos)*200)
         }
 
         for pos in 0 to 7 {
