@@ -162,6 +162,7 @@ internal class StatementReorderer(val program: Program,
                                 null,
                                 false,
                                 it.sharedWithAsm,
+                                it.splitArray,
                                 it.position
                             )
                             IAstModification.ReplaceNode(it, newvar, subroutine)

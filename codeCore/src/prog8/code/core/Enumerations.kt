@@ -11,7 +11,9 @@ enum class DataType {
     ARRAY_UB,           // pass by reference
     ARRAY_B,            // pass by reference
     ARRAY_UW,           // pass by reference
+    ARRAY_UW_SPLIT,     // pass by reference, lo/hi byte split
     ARRAY_W,            // pass by reference
+    ARRAY_W_SPLIT,      // pass by reference, lo/hi byte split
     ARRAY_F,            // pass by reference
     ARRAY_BOOL,         // pass by reference
     UNDEFINED;
@@ -119,12 +121,13 @@ val IntegerDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWO
 val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT, DataType.BOOL)
 val NumericDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
 val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
-val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_F, DataType.ARRAY_BOOL)
+val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_F, DataType.ARRAY_BOOL)
 val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
 val IterableDatatypes = arrayOf(
     DataType.STR,
     DataType.ARRAY_UB, DataType.ARRAY_B,
     DataType.ARRAY_UW, DataType.ARRAY_W,
+    DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT,
     DataType.ARRAY_F, DataType.ARRAY_BOOL
 )
 val PassByValueDatatypes = NumericDatatypes
@@ -135,6 +138,8 @@ val ArrayToElementTypes = mapOf(
     DataType.ARRAY_UB to DataType.UBYTE,
     DataType.ARRAY_W to DataType.WORD,
     DataType.ARRAY_UW to DataType.UWORD,
+    DataType.ARRAY_W_SPLIT to DataType.WORD,
+    DataType.ARRAY_UW_SPLIT to DataType.UWORD,
     DataType.ARRAY_F to DataType.FLOAT,
     DataType.ARRAY_BOOL to DataType.BOOL
 )

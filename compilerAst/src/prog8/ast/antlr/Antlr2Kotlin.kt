@@ -615,7 +615,6 @@ private fun Prog8ANTLRParser.VardeclContext.toAst(type: VarDeclType, value: Expr
         options.ZEROPAGE().isNotEmpty() -> ZeropageWish.PREFER_ZEROPAGE
         else -> ZeropageWish.DONTCARE
     }
-    val shared = options.SHARED().isNotEmpty()
     return VarDecl(
             type, VarDeclOrigin.USERCODE,
             datatype()?.toAst() ?: DataType.UNDEFINED,
@@ -624,7 +623,8 @@ private fun Prog8ANTLRParser.VardeclContext.toAst(type: VarDeclType, value: Expr
             varname.text,
             value,
             ARRAYSIG() != null || arrayindex() != null,
-            shared,
+            options.SHARED().isNotEmpty(),
+            options.SPLIT().isNotEmpty(),
             toPosition()
     )
 }

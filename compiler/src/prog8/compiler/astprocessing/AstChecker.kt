@@ -165,7 +165,8 @@ internal class AstChecker(private val program: Program,
                     }
                     DataType.UWORD -> {
                         if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt != DataType.STR &&
-                                iterableDt != DataType.ARRAY_UB && iterableDt!= DataType.ARRAY_UW)
+                                iterableDt != DataType.ARRAY_UB && iterableDt != DataType.ARRAY_UW &&
+                                iterableDt != DataType.ARRAY_UW_SPLIT)
                             errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
 
                         checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
@@ -176,7 +177,8 @@ internal class AstChecker(private val program: Program,
                     }
                     DataType.WORD -> {
                         if(iterableDt!= DataType.BYTE && iterableDt!= DataType.WORD &&
-                                iterableDt != DataType.ARRAY_B && iterableDt!= DataType.ARRAY_W)
+                                iterableDt != DataType.ARRAY_B && iterableDt!= DataType.ARRAY_W &&
+                                iterableDt != DataType.ARRAY_W_SPLIT)
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }
                     DataType.FLOAT -> {
@@ -629,6 +631,9 @@ internal class AstChecker(private val program: Program,
                         DataType.ARRAY_W, DataType.ARRAY_UW ->
                             if(arraySize > 128)
                                 err("word array length must be 1-128")
+                        DataType.ARRAY_W_SPLIT, DataType.ARRAY_UW_SPLIT ->
+                            if(arraySize > 256)
+                                err("split word array length must be 1-256")
                         DataType.ARRAY_F ->
                             if(arraySize > 51)
                                 err("float array length must be 1-51")
@@ -1442,6 +1447,10 @@ internal class AstChecker(private val program: Program,
                     return err("invalid word array size, must be 1-128")
                 }
                 return err("invalid word array initialization value ${value.type}, expected $targetDt")
+            }
+            DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT -> {
+                return true
+                TODO("check split array type")
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float arraysize

@@ -10,10 +10,13 @@ fun getTypeString(dt : DataType): String = when(dt) {
     DataType.UWORD -> "uword"
     DataType.WORD -> "word"
     DataType.FLOAT -> "float"
+    DataType.BOOL, DataType.ARRAY_BOOL -> throw InternalCompilerException("bool should have been converted to ubyte")
     DataType.ARRAY_UB, DataType.STR -> "ubyte[]"
     DataType.ARRAY_B -> "byte[]"
     DataType.ARRAY_UW -> "uword[]"
+    DataType.ARRAY_UW_SPLIT -> "uword_split[]"
     DataType.ARRAY_W -> "word[]"
+    DataType.ARRAY_W_SPLIT -> "word_split[]"
     DataType.ARRAY_F -> "float[]"
     else -> throw InternalCompilerException("weird dt")
 }
@@ -24,10 +27,13 @@ fun getTypeString(memvar: StMemVar): String = when(memvar.dt) {
     DataType.UWORD -> "uword"
     DataType.WORD -> "word"
     DataType.FLOAT -> "float"
+    DataType.BOOL, DataType.ARRAY_BOOL -> throw InternalCompilerException("bool should have been converted to ubyte")
     DataType.ARRAY_UB, DataType.STR -> "ubyte[${memvar.length}]"
     DataType.ARRAY_B -> "byte[${memvar.length}]"
     DataType.ARRAY_UW -> "uword[${memvar.length}]"
+    DataType.ARRAY_UW_SPLIT -> "uword_split[${memvar.length}]"
     DataType.ARRAY_W -> "word[${memvar.length}]"
+    DataType.ARRAY_W_SPLIT -> "word_split[${memvar.length}]"
     DataType.ARRAY_F -> "float[${memvar.length}]"
     else -> throw InternalCompilerException("weird dt")
 }
@@ -38,10 +44,13 @@ fun getTypeString(variable : StStaticVariable): String = when(variable.dt) {
     DataType.UWORD -> "uword"
     DataType.WORD -> "word"
     DataType.FLOAT -> "float"
+    DataType.BOOL, DataType.ARRAY_BOOL -> throw InternalCompilerException("bool should have been converted to ubyte")
     DataType.ARRAY_UB, DataType.STR -> "ubyte[${variable.length}]"
     DataType.ARRAY_B -> "byte[${variable.length}]"
     DataType.ARRAY_UW -> "uword[${variable.length}]"
+    DataType.ARRAY_UW_SPLIT -> "uword_split[${variable.length}]"
     DataType.ARRAY_W -> "word[${variable.length}]"
+    DataType.ARRAY_W_SPLIT -> "word_split[${variable.length}]"
     DataType.ARRAY_F -> "float[${variable.length}]"
     else -> throw InternalCompilerException("weird dt")
 }

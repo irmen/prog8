@@ -488,6 +488,8 @@ class IRFileReader {
                 "uword" -> DataType.ARRAY_UW
                 "float" -> DataType.ARRAY_F
                 "bool" -> DataType.ARRAY_B
+                "uword_split" -> DataType.ARRAY_UW_SPLIT
+                "word_split" -> DataType.ARRAY_W_SPLIT
                 else -> throw IRParseException("invalid dt $type")
             }
         } else {

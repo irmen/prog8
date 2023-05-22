@@ -197,6 +197,7 @@ class VarDecl(val type: VarDeclType,
               var value: Expression?,
               val isArray: Boolean,
               val sharedWithAsm: Boolean,
+              val splitArray: Boolean,
               override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
@@ -210,6 +211,7 @@ class VarDecl(val type: VarDeclType,
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, param.type, ZeropageWish.DONTCARE, null, param.name, null,
                 isArray = false,
                 sharedWithAsm = false,
+                splitArray = false,
                 position = param.position
             )
         }
@@ -220,12 +222,15 @@ class VarDecl(val type: VarDeclType,
             val declaredType = ArrayToElementTypes.getValue(arrayDt)
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, array,
-                    isArray = true, sharedWithAsm = false, position = array.position)
+                    isArray = true, sharedWithAsm = false, splitArray = false, position = array.position)
         }
     }
 
     val datatypeErrors = mutableListOf<SyntaxError>()       // don't crash at init time, report them in the AstChecker
-    val datatype =
+    val datatype: DataType
+
+    init {
+        val dt =
             if (!isArray) declaredDatatype
             else when (declaredDatatype) {
                 DataType.UBYTE -> DataType.ARRAY_UB
@@ -240,6 +245,18 @@ class VarDecl(val type: VarDeclType,
                     DataType.ARRAY_UB
                 }
             }
+
+        datatype = if(splitArray) {
+            when(dt) {
+                DataType.ARRAY_UW -> DataType.ARRAY_UW_SPLIT
+                DataType.ARRAY_W -> DataType.ARRAY_W_SPLIT
+                else -> {
+                    datatypeErrors.add(SyntaxError("split can only be used on word arrays", position))
+                    DataType.UNDEFINED
+                }
+            }
+        } else dt
+    }
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -267,14 +284,14 @@ class VarDecl(val type: VarDeclType,
 
     override fun copy(): VarDecl {
         val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, value?.copy(),
-            isArray, sharedWithAsm, position)
+            isArray, sharedWithAsm, splitArray, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
 
     fun renamed(newName: String): VarDecl {
         val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize, newName, value,
-            isArray, sharedWithAsm, position)
+            isArray, sharedWithAsm, splitArray, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }

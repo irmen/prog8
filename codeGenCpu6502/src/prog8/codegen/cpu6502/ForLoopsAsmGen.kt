@@ -449,6 +449,14 @@ $loopLabel          sty  $indexVar
                 }
                 asmgen.out(endLabel)
             }
+            DataType.ARRAY_UW_SPLIT -> {
+                asmgen.out("; TODO iterate over split uword array")
+                // TODO("iterate over split uword array")
+            }
+            DataType.ARRAY_W_SPLIT -> {
+                asmgen.out("; TODO iterate over split word array")
+                // TODO("iterate over split word array")
+            }
             DataType.ARRAY_F -> {
                 throw AssemblyError("for loop with floating point variables is not supported")
             }

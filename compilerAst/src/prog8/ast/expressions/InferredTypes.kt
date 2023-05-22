@@ -73,7 +73,9 @@ object InferredTypes {
             DataType.ARRAY_UB to InferredType.known(DataType.ARRAY_UB),
             DataType.ARRAY_B to InferredType.known(DataType.ARRAY_B),
             DataType.ARRAY_UW to InferredType.known(DataType.ARRAY_UW),
+            DataType.ARRAY_UW_SPLIT to InferredType.known(DataType.ARRAY_UW_SPLIT),
             DataType.ARRAY_W to InferredType.known(DataType.ARRAY_W),
+            DataType.ARRAY_W_SPLIT to InferredType.known(DataType.ARRAY_W_SPLIT),
             DataType.ARRAY_F to InferredType.known(DataType.ARRAY_F),
             DataType.ARRAY_BOOL to InferredType.known(DataType.ARRAY_BOOL)
     )

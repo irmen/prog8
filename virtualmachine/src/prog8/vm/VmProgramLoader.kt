@@ -223,6 +223,12 @@ class VmProgramLoader {
                                 memory.setFloat(addr, 0.0f)
                                 addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }
+                            DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT -> {
+                                // lo bytes come after the hi bytes
+                                memory.setUB(addr, 0u)
+                                memory.setUB(addr+variable.length!!, 0u)
+                                addr++
+                            }
                             else -> throw IRParseException("invalid dt")
                         }
                     }
@@ -274,6 +280,12 @@ class VmProgramLoader {
                                 addr+=2
                             }
                         }
+                        DataType.ARRAY_UW_SPLIT -> {
+                            TODO("$it")
+                        }
+                        DataType.ARRAY_W_SPLIT -> {
+                            TODO("$it")
+                        }
                         DataType.ARRAY_F -> {
                             repeat(variable.length!!) {
                                 memory.setFloat(addr, value.toFloat())
@@ -314,6 +326,12 @@ class VmProgramLoader {
                                 memory.setSW(addr, elt.number!!.toInt().toShort())
                                 addr+=2
                             }
+                        }
+                        DataType.ARRAY_UW_SPLIT -> {
+                            TODO("$it")
+                        }
+                        DataType.ARRAY_W_SPLIT -> {
+                            TODO("$it")
                         }
                         DataType.ARRAY_F -> {
                             for(elt in it) {

@@ -627,6 +627,14 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .sint  " + chunk.joinToString())
                 }
             }
+            DataType.ARRAY_UW_SPLIT -> {
+                val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
+                // TODO("gen split uword array $data")
+            }
+            DataType.ARRAY_W_SPLIT -> {
+                val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
+                // TODO("gen split word array $data")
+            }
             DataType.ARRAY_F -> {
                 val array = value ?: zeroFilledArray(orNumberOfZeros!!)
                 val floatFills = array.map {
@@ -686,7 +694,7 @@ internal class ProgramAndVarsGen(
                     val number = it.number!!.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
-            DataType.ARRAY_UW -> array.map {
+            DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> array.map {
                 if(it.number!=null) {
                     "$" + it.number!!.toInt().toString(16).padStart(4, '0')
                 }
@@ -718,11 +726,11 @@ internal class ProgramAndVarsGen(
                     else
                         "-$$hexnum"
                 }
-            DataType.ARRAY_UW -> array.map {
+            DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> array.map {
                 val number = it.number!!.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
-            DataType.ARRAY_W -> array.map {
+            DataType.ARRAY_W, DataType.ARRAY_W_SPLIT -> array.map {
                 val number = it.number!!.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                 if(number>=0)
