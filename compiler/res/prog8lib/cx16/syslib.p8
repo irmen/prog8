@@ -1084,6 +1084,19 @@ _longcopy
         }}
     }
 
+    inline asmsub irqsafe_set_irqd() {
+        %asm {{
+        php
+        sei
+        }}
+    }
+
+    inline asmsub irqsafe_clear_irqd() {
+        %asm {{
+        plp
+        }}
+    }
+
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{

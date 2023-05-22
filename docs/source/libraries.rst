@@ -87,6 +87,16 @@ sys (part of syslib)
 ``clear_irqd ()``
     Clears the CPU status register Interrupt Disable flag.
 
+``irqsafe_set_irqd ()``
+    Sets the CPU status register Interrupt Disable flag, in a way that is safe to be used inside a IRQ handler.
+    Pair with ``irqsafe_clear_irqd()``.
+
+``irqsafe_clear_irqd ()``
+    Clears the CPU status register Interrupt Disable flag, in a way that is safe to be used inside a IRQ handler.
+    Pair with ``irqsafe_set_irqd()``.   Inside an IRQ handler this makes sure it doesn't inadvertently
+    clear the irqd status bit, and it can still be used inside normal code as well (where it *does* clear
+    the irqd status bit if it was cleared before entering).
+
 ``progend ()``
     Returns the last address of the program in memory + 1.
     Can be used to load dynamic data after the program, instead of hardcoding something.

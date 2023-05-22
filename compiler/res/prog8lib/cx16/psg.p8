@@ -22,10 +22,7 @@ psg {
         ;    waveform = one of PULSE,SAWTOOTH,TRIANGLE,NOISE.
         ;    pulsewidth = 0-63.  Specifies the pulse width for waveform=PULSE.
         envelope_states[voice_num] = 255
-        %asm {{
-            php
-            sei
-        }}
+        sys.irqsafe_set_irqd()
         cx16.r0 = $f9c2 + voice_num * 4
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(cx16.r0)
@@ -36,9 +33,7 @@ psg {
         cx16.VERA_DATA0 = waveform | pulsewidth
         envelope_volumes[voice_num] = mkword(volume, 0)
         envelope_maxvolumes[voice_num] = volume
-        %asm {{
-            plp
-        }}
+        sys.irqsafe_clear_irqd()
     }
 
 ;    sub freq_hz(ubyte voice_num, float hertz) {
@@ -53,10 +48,7 @@ psg {
         ;    voice_num = 0-15,  vera_freq = 0-65535  calculate this via the formula given in the Vera's PSG documentation.
         ;    (https://github.com/x16community/x16-docs/blob/master/VERA%20Programmer's%20Reference.md)
         ;    Write freq MSB first and then LSB to reduce the chance on clicks
-        %asm {{
-            php
-            sei
-        }}
+        sys.irqsafe_set_irqd()
         cx16.r0 = $f9c1 + voice_num * 4
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(cx16.r0)
@@ -65,9 +57,7 @@ psg {
         cx16.VERA_DATA0 = msb(vera_freq)
         cx16.VERA_ADDR_L--
         cx16.VERA_DATA0 = lsb(vera_freq)
-        %asm {{
-            plp
-        }}
+        sys.irqsafe_clear_irqd()
     }
 
     sub volume(ubyte voice_num, ubyte vol) {
