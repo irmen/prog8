@@ -70,9 +70,10 @@ asmsub RDTIM16() -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
     %asm {{
         phx
+        php
         sei
         jsr  c64.RDTIM
-        cli
+        plp
         pha
         txa
         tay
@@ -927,6 +928,7 @@ sys {
     asmsub wait(uword jiffies @AY) {
         ; --- wait approximately the given number of jiffies (1/60th seconds) (N or N+1)
         ;     note: the system irq handler has to be active for this to work as it depends on the system jiffy clock
+        ;     note: this routine cannot be used from inside a irq handler
         %asm {{
             phx
             sta  P8ZP_SCRATCH_W1
