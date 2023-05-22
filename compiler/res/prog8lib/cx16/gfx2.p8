@@ -547,7 +547,7 @@ _done
         }
     }
 
-    sub plot(uword @zp x, uword y, ubyte color) {
+    sub plot(uword @zp x, uword @zp y, ubyte @zp color) {
         ubyte[8] @shared bits = [128, 64, 32, 16, 8, 4, 2, 1]
         ubyte[4] @shared mask4c = [%00111111, %11001111, %11110011, %11111100]
         ubyte[4] @shared shift4c = [6,4,2,0]
@@ -747,6 +747,123 @@ _done
                 return cx16.r0L & 3
             }
             else -> return 0
+        }
+    }
+
+    sub fill(word @zp x, word @zp y, ubyte new_color) {
+        ; Non-recursive scanline flood fill.
+        ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
+        ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
+        const ubyte MAXDEPTH = 48
+        word[MAXDEPTH] @shared stack_xl
+        word[MAXDEPTH] @shared stack_xr
+        word[MAXDEPTH] @shared stack_y
+        byte[MAXDEPTH] @shared stack_dy
+        cx16.r12L = 0       ; stack pointer
+        word x1
+        word x2
+        byte dy
+        cx16.r10L = new_color
+        sub push_stack(word sxl, word sxr, word sy, byte sdy) {
+            if cx16.r12L==MAXDEPTH
+                return
+            cx16.r0s = sy+sdy
+            if cx16.r0s>=0 and cx16.r0s<=height-1 {
+;;                stack_xl[cx16.r12L] = sxl
+;;                stack_xr[cx16.r12L] = sxr
+;;                stack_y[cx16.r12L] = sy
+;;                stack_dy[cx16.r12L] = sdy
+;;                cx16.r12L++
+                %asm {{
+                    lda  cx16.r12L
+                    asl  a
+                    tay
+                    lda  sxl
+                    sta  stack_xl,y
+                    lda  sxl+1
+                    sta  stack_xl+1,y
+                    lda  sxr
+                    sta  stack_xr,y
+                    lda  sxr+1
+                    sta  stack_xr+1,y
+                    lda  sy
+                    sta  stack_y,y
+                    lda  sy+1
+                    sta  stack_y+1,y
+                    ldy  cx16.r12L
+                    lda  sdy
+                    sta  stack_dy,y
+                    inc  cx16.r12L
+                }}
+            }
+        }
+        sub pop_stack() {
+;;            cx16.r12L--
+;;            x1 = stack_xl[cx16.r12L]
+;;            x2 = stack_xr[cx16.r12L]
+;;            y = stack_y[cx16.r12L]
+;;            dy = stack_dy[cx16.r12L]
+;;            y += dy
+            %asm {{
+                dec  cx16.r12L
+                lda  cx16.r12L
+                asl  a
+                tay
+                lda  stack_xl,y
+                sta  x1
+                lda  stack_xl+1,y
+                sta  x1+1
+                lda  stack_xr,y
+                sta  x2
+                lda  stack_xr+1,y
+                sta  x2+1
+                lda  stack_y,y
+                sta  y
+                lda  stack_y+1,y
+                sta  y+1
+                ldy  cx16.r12L
+                lda  stack_dy,y
+                sta  dy
+            }}
+            y+=dy
+        }
+        cx16.r11L = pget(x as uword, y as uword)        ; old_color
+        if cx16.r11L == cx16.r10L
+            return
+        if x<0 or x > width-1 or y<0 or y > height-1
+            return
+        push_stack(x, x, y, 1)
+        push_stack(x, x, y + 1, -1)
+        word left = 0
+        while cx16.r12L {
+            pop_stack()
+            x = x1
+            while x >= 0 and pget(x as uword, y as uword) == cx16.r11L {
+                plot(x as uword, y as uword, cx16.r10L)
+                x--
+            }
+            if x>= x1
+                goto skip
+
+            left = x + 1
+            if left < x1
+                push_stack(left, x1 - 1, y, -dy)
+            x = x1 + 1
+
+            do {
+                while x <= width-1 and pget(x as uword, y as uword) == cx16.r11L {
+                    plot(x as uword, y as uword, cx16.r10L)
+                    x++
+                }
+                push_stack(left, x - 1, y, dy)
+                if x > x2 + 1
+                    push_stack(x2 + 1, x - 1, y, -dy)
+skip:
+                x++
+                while x <= x2 and pget(x as uword, y as uword) != cx16.r11L
+                    x++
+                left = x
+            } until x>x2
         }
     }
 

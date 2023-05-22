@@ -381,6 +381,7 @@ Full-screen multicolor bitmap graphics routines, available on the Cx16 machine o
 - clearing screen, switching screen mode, also back to text mode is possible.
 - drawing and reading individual pixels
 - drawing lines, rectangles, filled rectangles, circles, discs
+- flood fill
 - drawing text inside the bitmap
 - in monochrome mode, it's possible to use a stippled drawing pattern to simulate a shade of gray.
 
