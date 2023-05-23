@@ -31,7 +31,9 @@ main {
         sys.wait(60)
         gfx2.fill(100,100,2)
         ;gfx2.monochrome_stipple(false)
-        gfx2.fill(182,140,4)
+        gfx2.fill(182,140,3)
+        gfx2.fill(182,40,1)
+
     }
 
     sub demo1() {
