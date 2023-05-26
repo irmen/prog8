@@ -164,11 +164,17 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOAD -> InsLOAD(ins)
             Opcode.LOADM -> InsLOADM(ins)
             Opcode.LOADX -> InsLOADX(ins)
+            Opcode.LOADXSPLIT -> InsLOADXSPLIT(ins)
+            Opcode.LOADMSPLIT -> InsLOADMSPLIT(ins)
             Opcode.LOADI -> InsLOADI(ins)
             Opcode.LOADIX -> InsLOADIX(ins)
             Opcode.LOADR -> InsLOADR(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
+            Opcode.STOREXSPLIT -> InsSTOREXSPLIT(ins)
+            Opcode.STOREZXSPLIT -> InsSTOREZXSPLIT(ins)
+            Opcode.STOREMSPLIT -> InsSTOREMSPLIT(ins)
+            Opcode.STOREZMSPLIT -> InsSTOREZMSPLIT(ins)
             Opcode.STOREIX -> InsSTOREIX(ins)
             Opcode.STOREI -> InsSTOREI(ins)
             Opcode.STOREZM -> InsSTOREZM(ins)
@@ -410,6 +416,60 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.WORD -> registers.setUW(i.reg1!!, memory.getUW(i.address!! + registers.getUW(i.reg2!!).toInt()))
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!! + registers.getUW(i.reg1!!).toInt()))
         }
+        nextPc()
+    }
+
+    private fun InsLOADXSPLIT(i: IRInstruction) {
+        require(i.type==IRDataType.WORD)
+        val address = i.address!! + registers.getUW(i.reg2!!).toInt()
+        val lsb = memory.getUB(address)
+        val msb = memory.getUB(address+i.immediate!!)
+        registers.setUW(i.reg1!!, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
+        nextPc()
+    }
+
+    private fun InsLOADMSPLIT(i: IRInstruction) {
+        require(i.type==IRDataType.WORD)
+        val address = i.address!!
+        val lsb = memory.getUB(address)
+        val msb = memory.getUB(address+i.immediate!!)
+        registers.setUW(i.reg1!!, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
+        nextPc()
+    }
+
+    private fun InsSTOREXSPLIT(i: IRInstruction) {
+        require(i.type==IRDataType.WORD)
+        val address = i.address!! + registers.getUW(i.reg2!!).toInt()
+        val lsb = registers.getUW(i.reg1!!).toUByte()
+        val msb = (registers.getUW(i.reg1!!).toInt() shr 8).toUByte()
+        memory.setUB(address, lsb)
+        memory.setUB(address+i.immediate!!, msb)
+        nextPc()
+    }
+
+    private fun InsSTOREMSPLIT(i: IRInstruction) {
+        require(i.type==IRDataType.WORD)
+        val address = i.address!!
+        val lsb = registers.getUW(i.reg1!!).toUByte()
+        val msb = (registers.getUW(i.reg1!!).toInt() shr 8).toUByte()
+        memory.setUB(address, lsb)
+        memory.setUB(address+i.immediate!!, msb)
+        nextPc()
+    }
+
+    private fun InsSTOREZXSPLIT(i: IRInstruction) {
+        require(i.type==IRDataType.WORD)
+        val address = i.address!! + registers.getUW(i.reg2!!).toInt()
+        memory.setUB(address, 0u)
+        memory.setUB(address+i.immediate!!, 0u)
+        nextPc()
+    }
+
+    private fun InsSTOREZMSPLIT(i: IRInstruction) {
+        require(i.type==IRDataType.WORD)
+        val address = i.address!!
+        memory.setUB(address, 0u)
+        memory.setUB(address+i.immediate!!, 0u)
         nextPc()
     }
 

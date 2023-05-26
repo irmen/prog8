@@ -275,7 +275,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                         return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
                     }
                 }
-                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_UW_SPLIT -> {
                     val rangeExpr = decl.value as? RangeExpression
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array

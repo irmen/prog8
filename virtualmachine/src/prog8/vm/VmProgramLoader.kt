@@ -3,6 +3,7 @@ package prog8.vm
 import prog8.code.core.ArrayDatatypes
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
+import prog8.code.core.SplitWordArrayTypes
 import prog8.intermediate.*
 
 class VmProgramLoader {
@@ -190,12 +191,6 @@ class VmProgramLoader {
     }
 
     private val functionCallOpcodes = setOf(Opcode.CALL, Opcode.SYSCALL, Opcode.JUMP, Opcode.JUMPA)
-    private fun findCall(it: IRCodeChunk, startIndex: Int): IRInstruction {
-        var idx = startIndex
-        while(it.instructions[idx].opcode !in functionCallOpcodes)
-            idx++
-        return it.instructions[idx]
-    }
 
     private fun varsToMemory(
         program: IRProgram,
@@ -223,7 +218,7 @@ class VmProgramLoader {
                                 memory.setFloat(addr, 0.0f)
                                 addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }
-                            DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT -> {
+                            in SplitWordArrayTypes -> {
                                 // lo bytes come after the hi bytes
                                 memory.setUB(addr, 0u)
                                 memory.setUB(addr+variable.length!!, 0u)
@@ -280,11 +275,13 @@ class VmProgramLoader {
                                 addr+=2
                             }
                         }
-                        DataType.ARRAY_UW_SPLIT -> {
-                            TODO("$it")
-                        }
-                        DataType.ARRAY_W_SPLIT -> {
-                            TODO("$it")
+                        in SplitWordArrayTypes -> {
+                            val number = value.toUInt()
+                            for(elt in it) {
+                                memory.setUB(addr, (number and 255u).toUByte())
+                                memory.setUB(addr+variable.length!!, (number shr 8).toUByte())
+                                addr++
+                            }
                         }
                         DataType.ARRAY_F -> {
                             repeat(variable.length!!) {
@@ -327,11 +324,13 @@ class VmProgramLoader {
                                 addr+=2
                             }
                         }
-                        DataType.ARRAY_UW_SPLIT -> {
-                            TODO("$it")
-                        }
-                        DataType.ARRAY_W_SPLIT -> {
-                            TODO("$it")
+                        in SplitWordArrayTypes -> {
+                            for(elt in it) {
+                                val number = elt.number!!.toInt().toUInt()
+                                memory.setUB(addr, (number and 255u).toUByte())
+                                memory.setUB(addr+variable.length!!, (number shr 8).toUByte())
+                                addr++
+                            }
                         }
                         DataType.ARRAY_F -> {
                             for(elt in it) {

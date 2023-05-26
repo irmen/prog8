@@ -160,6 +160,23 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
 
         var resultRegister = -1
+
+        if(arrayIx.splitWords) {
+            require(vmDt==IRDataType.WORD)
+            val iterable = codeGen.symbolTable.flat.getValue(arrayIx.variable.name) as StStaticVariable
+            val arrayLength = iterable.length!!
+            resultRegister = codeGen.registers.nextFree()
+            if(arrayIx.index is PtNumber) {
+                val memOffset = (arrayIx.index as PtNumber).number.toInt()
+                addInstr(result, IRInstruction(Opcode.LOADMSPLIT, IRDataType.WORD, reg1=resultRegister, immediate = arrayLength, labelSymbol = "$arrayVarSymbol+$memOffset"), null)
+            } else {
+                val tr = translateExpression(arrayIx.index)
+                addToResult(result, tr, tr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.LOADXSPLIT, IRDataType.WORD, reg1=resultRegister, reg2=tr.resultReg, immediate = arrayLength, labelSymbol = arrayVarSymbol), null)
+            }
+            return ExpressionCodeResult(result, vmDt, resultRegister, -1)
+        }
+
         var resultFpRegister = -1
         if(arrayIx.index is PtNumber) {
             val memOffset = ((arrayIx.index as PtNumber).number.toInt() * eltSize).toString()

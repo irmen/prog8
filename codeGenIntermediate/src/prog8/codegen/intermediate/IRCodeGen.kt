@@ -456,46 +456,59 @@ class IRCodeGen(
                 val endLabel = createLabelName()
                 if(iterableVar.dt==DataType.STR) {
                     // iterate over a zero-terminated string
-                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
+                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = 0), null)
                     val chunk = IRCodeChunk(loopLabel, null)
-                    chunk += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpReg, reg2=indexReg, labelSymbol = iterable.name)
-                    chunk += IRInstruction(Opcode.BEQ, IRDataType.BYTE, reg1=tmpReg, immediate = 0, labelSymbol = endLabel)
-                    chunk += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=tmpReg, labelSymbol = loopvarSymbol)
+                    chunk += IRInstruction(
+                        Opcode.LOADX,
+                        IRDataType.BYTE,
+                        reg1 = tmpReg,
+                        reg2 = indexReg,
+                        labelSymbol = iterable.name
+                    )
+                    chunk += IRInstruction(
+                        Opcode.BEQ,
+                        IRDataType.BYTE,
+                        reg1 = tmpReg,
+                        immediate = 0,
+                        labelSymbol = endLabel
+                    )
+                    chunk += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tmpReg, labelSymbol = loopvarSymbol)
                     result += chunk
                     result += translateNode(forLoop.statements)
                     val jumpChunk = IRCodeChunk(null, null)
-                    jumpChunk += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexReg)
+                    jumpChunk += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexReg)
                     jumpChunk += IRInstruction(Opcode.JUMP, labelSymbol = loopLabel)
                     result += jumpChunk
                     result += IRCodeChunk(endLabel, null)
+                } else if(iterable.type in SplitWordArrayTypes) {
+                    // iterate over lsb/msb split word array
+                    val elementDt = ArrayToElementTypes.getValue(iterable.type)
+                    if(elementDt !in WordDatatypes)
+                        throw AssemblyError("weird dt")
+                    val length = iterableVar.length!!
+                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
+                    result += IRCodeChunk(loopLabel, null).also {
+                        it += IRInstruction(Opcode.LOADXSPLIT, irType(elementDt), reg1=tmpReg, reg2=indexReg, immediate = length, labelSymbol=iterable.name)
+                        it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
+                    }
+                    result += translateNode(forLoop.statements)
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexReg)
+                        it += IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = if(length==256) 0 else length, labelSymbol = loopLabel)
+                    }
                 } else {
-                    // iterate over array
+                    // iterate over regular array
                     val elementDt = ArrayToElementTypes.getValue(iterable.type)
                     val elementSize = program.memsizer.memorySize(elementDt)
                     val lengthBytes = iterableVar.length!! * elementSize
-                    if(lengthBytes<256) {
-                        val chunk = IRCodeChunk(null, null)
-                        chunk += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0)
-                        result += chunk
-                        val chunk2 = IRCodeChunk(loopLabel, null)
-                        chunk2 += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
-                        chunk2 += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
-                        result += chunk2
-                        result += translateNode(forLoop.statements)
-                        result += addConstReg(IRDataType.BYTE, indexReg, elementSize)
-                        addInstr(result, IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = lengthBytes, labelSymbol = loopLabel), null)
-                    } else if(lengthBytes==256) {
-                        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
-                        val chunk = IRCodeChunk(loopLabel, null)
-                        chunk += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
-                        chunk += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
-                        result += chunk
-                        result += translateNode(forLoop.statements)
-                        result += addConstReg(IRDataType.BYTE, indexReg, elementSize)
-                        addInstr(result, IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = 0, labelSymbol = loopLabel), null)
-                    } else {
-                        throw AssemblyError("iterator length should never exceed 256")
+                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
+                    result += IRCodeChunk(loopLabel, null).also {
+                        it += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
+                        it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
                     }
+                    result += translateNode(forLoop.statements)
+                    result += addConstReg(IRDataType.BYTE, indexReg, elementSize)
+                    addInstr(result, IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = if(lengthBytes==256) 0 else lengthBytes, labelSymbol = loopLabel), null)
                 }
             }
             else -> throw AssemblyError("weird for iterable")

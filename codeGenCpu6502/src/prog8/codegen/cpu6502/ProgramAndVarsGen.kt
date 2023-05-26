@@ -730,7 +730,7 @@ internal class ProgramAndVarsGen(
                 val number = it.number!!.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
-            DataType.ARRAY_W, DataType.ARRAY_W_SPLIT -> array.map {
+            in SplitWordArrayTypes -> array.map {
                 val number = it.number!!.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                 if(number>=0)

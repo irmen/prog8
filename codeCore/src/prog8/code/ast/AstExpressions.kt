@@ -1,9 +1,6 @@
 package prog8.code.ast
 
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.NumericDatatypes
-import prog8.code.core.Position
+import prog8.code.core.*
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.round
@@ -28,7 +25,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     infix fun isSameAs(other: PtExpression): Boolean {
         return when(this) {
             is PtAddressOf -> other is PtAddressOf && other.type==type && other.identifier isSameAs identifier
-            is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index
+            is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index && other.splitWords==splitWords
             is PtBinaryExpression -> other is PtBinaryExpression && other.left isSameAs left && other.right isSameAs right
             is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
             is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
@@ -51,7 +48,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
                 this.name == target.identifier!!.name
             }
             target.array != null && this is PtArrayIndexer -> {
-                this.variable.name == target.array!!.variable.name && this.index isSameAs target.array!!.index
+                this.variable.name == target.array!!.variable.name && this.index isSameAs target.array!!.index && this.splitWords==target.array!!.splitWords
             }
             else -> false
         }
@@ -117,6 +114,9 @@ class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(el
         get() = children[0] as PtIdentifier
     val index: PtExpression
         get() = children[1] as PtExpression
+
+    val splitWords: Boolean
+        get() = variable.type in SplitWordArrayTypes
 
     init {
         require(elementType in NumericDatatypes)

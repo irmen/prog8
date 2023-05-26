@@ -628,12 +628,12 @@ internal class AstChecker(private val program: Program,
                         DataType.ARRAY_B, DataType.ARRAY_UB ->
                             if(arraySize > 256)
                                 err("byte array length must be 1-256")
+                        in SplitWordArrayTypes ->
+                            if(arraySize > 256)
+                                err("split word array length must be 1-256")
                         DataType.ARRAY_W, DataType.ARRAY_UW ->
                             if(arraySize > 128)
                                 err("word array length must be 1-128")
-                        DataType.ARRAY_W_SPLIT, DataType.ARRAY_UW_SPLIT ->
-                            if(arraySize > 256)
-                                err("split word array length must be 1-256")
                         DataType.ARRAY_F ->
                             if(arraySize > 51)
                                 err("float array length must be 1-51")
@@ -678,6 +678,10 @@ internal class AstChecker(private val program: Program,
                     DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
                         if (length == 0 || length > 256)
                             err("string and byte array length must be 1-256")
+                    }
+                    in SplitWordArrayTypes -> {
+                        if (length == 0 || length > 256)
+                            err("split word array length must be 1-256")
                     }
                     DataType.ARRAY_UW, DataType.ARRAY_W -> {
                         if (length == 0 || length > 128)
@@ -1279,7 +1283,7 @@ internal class AstChecker(private val program: Program,
 
         // check index value 0..255
         val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
-        if(dtxNum isnot DataType.UBYTE && dtxNum isnot DataType.BYTE)
+        if(dtxNum.isKnown && dtxNum isnot DataType.UBYTE && dtxNum isnot DataType.BYTE)
             errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
 
         super.visit(arrayIndexedExpression)
@@ -1429,28 +1433,25 @@ internal class AstChecker(private val program: Program,
                 }
                 return err("invalid byte array initialization value ${value.type}, expected $targetDt")
             }
-            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+            DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_UW_SPLIT-> {
                 // value may be either a single word, or a word arraysize, or a range
                 if(value.type istype targetDt) {
                     if(!checkArrayValues(value, targetDt))
                         return false
                     val arraySpecSize = arrayspec.constIndex()
                     val arraySize = value.value.size
+                    val maxLength = if(targetDt in SplitWordArrayTypes) 256 else 128
                     if(arraySpecSize!=null && arraySpecSize>0) {
-                        if(arraySpecSize>128)
-                            return err("word array length must be 1-128")
+                        if(arraySpecSize>maxLength)
+                            return err("array length must be 1-$maxLength")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
                             return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
-                    return err("invalid word array size, must be 1-128")
+                    return err("invalid array size, must be 1-$maxLength")
                 }
                 return err("invalid word array initialization value ${value.type}, expected $targetDt")
-            }
-            DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT -> {
-                return true
-                TODO("check split array type")
             }
             DataType.ARRAY_F -> {
                 // value may be either a single float, or a float arraysize
@@ -1555,10 +1556,10 @@ internal class AstChecker(private val program: Program,
             DataType.ARRAY_B -> {
                 correct = array.all { it in -128..127 }
             }
-            DataType.ARRAY_UW -> {
+            DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> {
                 correct = array.all { (it in 0..65535) }
             }
-            DataType.ARRAY_W -> {
+            DataType.ARRAY_W, DataType.ARRAY_W_SPLIT -> {
                 correct = array.all { it in -32768..32767 }
             }
             DataType.ARRAY_F -> correct = true

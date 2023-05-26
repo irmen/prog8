@@ -1,5 +1,6 @@
 package prog8.codegen.intermediate
 
+import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
@@ -235,36 +236,60 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             }
 
             val fixedIndex = constIntValue(targetArray.index)
+            val iterable = codeGen.symbolTable.flat.getValue(targetArray.variable.name) as StStaticVariable
+            val arrayLength = iterable.length!!
             if(zero) {
                 if(fixedIndex!=null) {
-                    val offset = fixedIndex*itemsize
-                    val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = "$variable+$offset") }
+                    val chunk = IRCodeChunk(null, null).also {
+                        it += if(targetArray.splitWords)
+                            IRInstruction(Opcode.STOREZMSPLIT, targetDt, immediate = arrayLength, labelSymbol = "$variable+$fixedIndex")
+                        else
+                            IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = "$variable+${fixedIndex*itemsize}")
+                    }
                     result += chunk
                 } else {
                     val (code, indexReg) = loadIndexReg(targetArray, itemsize)
                     result += code
-                    result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol = variable) }
+                    result += IRCodeChunk(null, null).also {
+                        it += if(targetArray.splitWords)
+                            IRInstruction(Opcode.STOREZXSPLIT, targetDt, reg1 = valueRegister, reg2=indexReg, immediate = arrayLength, labelSymbol = variable)
+                        else
+                            IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol = variable)
+                    }
                 }
             } else {
                 if(targetDt== IRDataType.FLOAT) {
                     if(fixedIndex!=null) {
                         val offset = fixedIndex*itemsize
-                        val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = "$variable+$offset") }
+                        val chunk = IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = "$variable+$offset")
+                        }
                         result += chunk
                     } else {
                         val (code, indexReg) = loadIndexReg(targetArray, itemsize)
                         result += code
-                        result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = valueFpRegister, labelSymbol = variable) }
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = valueFpRegister, labelSymbol = variable)
+                        }
                     }
                 } else {
                     if(fixedIndex!=null) {
-                        val offset = fixedIndex*itemsize
-                        val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = "$variable+$offset") }
+                        val chunk = IRCodeChunk(null, null).also {
+                            it += if(targetArray.splitWords)
+                                IRInstruction(Opcode.STOREMSPLIT, targetDt, reg1 = valueRegister, immediate = arrayLength, labelSymbol = "$variable+$fixedIndex")
+                            else
+                                IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = "$variable+${fixedIndex*itemsize}")
+                        }
                         result += chunk
                     } else {
                         val (code, indexReg) = loadIndexReg(targetArray, itemsize)
                         result += code
-                        result += IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREX, targetDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable) }
+                        result += IRCodeChunk(null, null).also {
+                            it += if(targetArray.splitWords)
+                                IRInstruction(Opcode.STOREXSPLIT, targetDt, reg1 = valueRegister, reg2=indexReg, immediate = arrayLength, labelSymbol = variable)
+                            else
+                                IRInstruction(Opcode.STOREX, targetDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable)
+                        }
                     }
                 }
             }
@@ -301,10 +326,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int): Pair<IRCodeChunks, Int> {
-        // returns the code to load the Index into the register, which is also return\ed.
+        // returns the code to load the Index into the register, which is also returned.
 
         val result = mutableListOf<IRCodeChunkBase>()
-        if(itemsize==1) {
+        if(itemsize==1 || array.splitWords) {
             val tr = expressionEval.translateExpression(array.index)
             addToResult(result, tr, tr.resultReg, -1)
             return Pair(result, tr.resultReg)

@@ -377,6 +377,10 @@ class AsmGen6502Internal (
             ?: throw AssemblyError("array indexer should have been replaced with a temp var @ ${expr.index.position}")
 
         val indexName = asmVariableName(indexVar)
+
+        if(expr.splitWords)
+            TODO("split word access ${expr.position}")
+
         if (addOneExtra) {
             // add 1 to the result
             when (elementDt) {

@@ -17,7 +17,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtConditionalBranch -> "if_${node.condition.name.lowercase()}"
             is PtAddressOf -> "&"
             is PtArray -> "array len=${node.children.size} ${type(node.type)}"
-            is PtArrayIndexer -> "<arrayindexer> ${type(node.type)}"
+            is PtArrayIndexer -> "<arrayindexer> ${type(node.type)} ${if(node.splitWords) "[splitwords]" else ""}"
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
             is PtBuiltinFunctionCall -> {
                 val str = if(node.void) "void " else ""

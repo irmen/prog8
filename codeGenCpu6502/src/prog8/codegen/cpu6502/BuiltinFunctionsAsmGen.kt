@@ -432,6 +432,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(what.splitWords)
+                            TODO("splitwords ${what.position}")
                         translateRolRorArrayArgs(what.variable, what, "ror2", 'w')
                         asmgen.out("  jsr  prog8_lib.ror2_array_uw")
                     }
@@ -491,6 +493,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(what.splitWords)
+                            TODO("splitwords ${what.position}")
                         translateRolRorArrayArgs(what.variable, what, "ror", 'w')
                         asmgen.out("  jsr  prog8_lib.ror_array_uw")
                     }
@@ -533,6 +537,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(what.splitWords)
+                            TODO("splitwords ${what.position}")
                         translateRolRorArrayArgs(what.variable, what, "rol2", 'w')
                         asmgen.out("  jsr  prog8_lib.rol2_array_uw")
                     }
@@ -592,6 +598,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(what.splitWords)
+                            TODO("splitwords ${what.position}")
                         translateRolRorArrayArgs(what.variable, what, "rol", 'w')
                         asmgen.out("  jsr  prog8_lib.rol_array_uw")
                     }
@@ -607,6 +615,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun translateRolRorArrayArgs(arrayvar: PtIdentifier, indexer: PtArrayIndexer, operation: String, dt: Char) {
+        if(indexer.splitWords)
+            TODO("split word access ${indexer.position}")
         if(arrayvar.type==DataType.UWORD) {
             if(dt!='b')
                 throw AssemblyError("non-array var indexing requires bytes dt")

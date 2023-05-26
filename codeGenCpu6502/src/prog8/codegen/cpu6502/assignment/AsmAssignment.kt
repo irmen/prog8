@@ -115,7 +115,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 left is PtIdentifier && left.name==scopedName
             }
             TargetStorageKind.ARRAY -> {
-                left is PtArrayIndexer && left isSameAs array!!
+                left is PtArrayIndexer && left isSameAs array!! && left.splitWords==array.splitWords
             }
             TargetStorageKind.MEMORY -> {
                 left isSameAs memory!!
@@ -172,6 +172,8 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.UBYTE, memory = value)
                 }
                 is PtArrayIndexer -> {
+                    if(value.splitWords)
+                        TODO("splitwords ${value.position}")
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, value.type, array = value)
                 }
                 is PtBuiltinFunctionCall -> {

@@ -123,6 +123,7 @@ val NumericDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWO
 val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
 val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_F, DataType.ARRAY_BOOL)
 val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
+val SplitWordArrayTypes = arrayOf(DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT)
 val IterableDatatypes = arrayOf(
     DataType.STR,
     DataType.ARRAY_UB, DataType.ARRAY_B,
