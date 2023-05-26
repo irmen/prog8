@@ -9,14 +9,31 @@
 main {
 
     sub start() {
+        gfx2.screen_mode(4)
+        demofill()
+        sys.wait(2*60)
         gfx2.screen_mode(5)
-
         demo1()
         sys.wait(2*60)
         demo2()
 
         gfx2.screen_mode(0)
         txt.print("done!\n")
+    }
+
+    sub demofill() {
+
+        gfx2.circle(160, 120, 110, 1)
+        gfx2.rect(180, 5, 25, 190, 1)
+        gfx2.line(100, 150, 240, 10, 1)
+        gfx2.line(101, 150, 241, 10, 1)
+        ;gfx2.monochrome_stipple(true)
+        sys.wait(60)
+        gfx2.fill(100,100,2)
+        ;gfx2.monochrome_stipple(false)
+        gfx2.fill(182,140,3)
+        gfx2.fill(182,40,1)
+
     }
 
     sub demo1() {

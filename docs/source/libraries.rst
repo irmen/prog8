@@ -87,6 +87,16 @@ sys (part of syslib)
 ``clear_irqd ()``
     Clears the CPU status register Interrupt Disable flag.
 
+``irqsafe_set_irqd ()``
+    Sets the CPU status register Interrupt Disable flag, in a way that is safe to be used inside a IRQ handler.
+    Pair with ``irqsafe_clear_irqd()``.
+
+``irqsafe_clear_irqd ()``
+    Clears the CPU status register Interrupt Disable flag, in a way that is safe to be used inside a IRQ handler.
+    Pair with ``irqsafe_set_irqd()``.   Inside an IRQ handler this makes sure it doesn't inadvertently
+    clear the irqd status bit, and it can still be used inside normal code as well (where it *does* clear
+    the irqd status bit if it was cleared before entering).
+
 ``progend ()``
     Returns the last address of the program in memory + 1.
     Can be used to load dynamic data after the program, instead of hardcoding something.
@@ -371,6 +381,7 @@ Full-screen multicolor bitmap graphics routines, available on the Cx16 machine o
 - clearing screen, switching screen mode, also back to text mode is possible.
 - drawing and reading individual pixels
 - drawing lines, rectangles, filled rectangles, circles, discs
+- flood fill
 - drawing text inside the bitmap
 - in monochrome mode, it's possible to use a stippled drawing pattern to simulate a shade of gray.
 

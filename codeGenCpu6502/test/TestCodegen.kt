@@ -1,5 +1,6 @@
 package prog8tests.codegencpu6502
 
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTableMaker
@@ -101,6 +102,15 @@ class TestCodegen: FunSpec({
         val result = codegen.generate(program, st, options, errors)!!
         result.name shouldBe "test"
         Files.deleteIfExists(Path("${result.name}.asm"))
+    }
+
+    test("64tass assembler available? - if this fails you need to install 64tass in the path") {
+        val command = mutableListOf("64tass", "--version")
+        shouldNotThrowAny {
+            val proc = ProcessBuilder(command).inheritIO().start()
+            val result = proc.waitFor()
+            result.shouldBe(0)
+        }
     }
 })
 

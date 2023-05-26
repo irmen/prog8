@@ -155,6 +155,9 @@ gfx2 {
     }
 
     sub horizontal_line(uword x, uword y, uword length, ubyte color) {
+        ubyte[9] masked_ends   = [ 0, %10000000, %11000000, %11100000, %11110000, %11111000, %11111100, %11111110, %11111111]
+        ubyte[9] masked_starts = [ 0, %00000001, %00000011, %00000111, %00001111, %00011111, %00111111, %01111111, %11111111]
+
         if length==0
             return
         when active_mode {
@@ -163,12 +166,13 @@ gfx2 {
                 ubyte separate_pixels = (8-lsb(x)) & 7
                 if separate_pixels as uword > length
                     separate_pixels = lsb(length)
-                repeat separate_pixels {
-                    ; TODO optimize this by writing a masked byte in 1 go
-                    plot(x, y, color)
-                    x++
+                if separate_pixels {
+                    position(x,y)
+                    cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
+                    cx16.VERA_DATA0 = cx16.VERA_DATA0 | masked_starts[separate_pixels]
+                    length -= separate_pixels
+                    x += separate_pixels
                 }
-                length -= separate_pixels
                 if length {
                     position(x, y)
                     separate_pixels = lsb(length) & 7
@@ -205,11 +209,9 @@ _loop                   lda  length
                         bra  _loop
 _done
                     }}
-                    repeat separate_pixels {
-                        ; TODO optimize this by writing a masked byte in 1 go
-                        plot(x, y, color)
-                        x++
-                    }
+
+                    cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
+                    cx16.VERA_DATA0 = cx16.VERA_DATA0 | masked_ends[separate_pixels]
                 }
                 cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off again
             }
@@ -366,8 +368,14 @@ _done
                     return
                 position2(x,y,true)
                 set_both_strides(13)    ; 160 increment = 1 line in 640 px 4c mode
-                color &= 3
-                color <<= gfx2.plot.shift4c[lsb(x) & 3]         ; TODO with lookup table
+                ;; color &= 3
+                ;; color <<= gfx2.plot.shift4c[lsb(x) & 3]
+                cx16.r2L = lsb(x) & 3
+                when color & 3 {
+                    1 -> color = gfx2.plot.shiftedleft_4c_1[cx16.r2L]
+                    2 -> color = gfx2.plot.shiftedleft_4c_2[cx16.r2L]
+                    3 -> color = gfx2.plot.shiftedleft_4c_3[cx16.r2L]
+                }
                 ubyte @shared mask = gfx2.plot.mask4c[lsb(x) & 3]
                 repeat lheight {
                     %asm {{
@@ -547,10 +555,13 @@ _done
         }
     }
 
-    sub plot(uword @zp x, uword y, ubyte color) {
+    sub plot(uword @zp x, uword @zp y, ubyte @zp color) {
         ubyte[8] @shared bits = [128, 64, 32, 16, 8, 4, 2, 1]
         ubyte[4] @shared mask4c = [%00111111, %11001111, %11110011, %11111100]
         ubyte[4] @shared shift4c = [6,4,2,0]
+        ubyte[4] shiftedleft_4c_1 = [1<<6, 1<<4, 1<<2, 1<<0]
+        ubyte[4] shiftedleft_4c_2 = [2<<6, 2<<4, 2<<2, 2<<0]
+        ubyte[4] shiftedleft_4c_3 = [3<<6, 3<<4, 3<<2, 3<<0]
 
         when active_mode {
             1 -> {
@@ -643,8 +654,13 @@ _done
                 ; TODO also mostly usable for lores 4c?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
                 cx16.r2L = lsb(x) & 3       ; xbits
-                color &= 3
-                color <<= shift4c[cx16.r2L]     ; TODO with lookup table
+                ; color &= 3
+                ; color <<= shift4c[cx16.r2L]
+                when color & 3 {
+                    1 -> color = shiftedleft_4c_1[cx16.r2L]
+                    2 -> color = shiftedleft_4c_2[cx16.r2L]
+                    3 -> color = shiftedleft_4c_3[cx16.r2L]
+                }
                 %asm {{
                     stz  cx16.VERA_CTRL
                     lda  cx16.r1L
@@ -743,10 +759,127 @@ _done
                     sta  cx16.r0L
                 }}
                 cx16.r1L = lsb(x) & 3
-                cx16.r0L >>= gfx2.plot.shift4c[cx16.r1L]        ; TODO with lookup table
+                cx16.r0L >>= gfx2.plot.shift4c[cx16.r1L]
                 return cx16.r0L & 3
             }
             else -> return 0
+        }
+    }
+
+    sub fill(word @zp x, word @zp y, ubyte new_color) {
+        ; Non-recursive scanline flood fill.
+        ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
+        ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
+        const ubyte MAXDEPTH = 48
+        word[MAXDEPTH] @shared stack_xl
+        word[MAXDEPTH] @shared stack_xr
+        word[MAXDEPTH] @shared stack_y
+        byte[MAXDEPTH] @shared stack_dy
+        cx16.r12L = 0       ; stack pointer
+        word x1
+        word x2
+        byte dy
+        cx16.r10L = new_color
+        sub push_stack(word sxl, word sxr, word sy, byte sdy) {
+            if cx16.r12L==MAXDEPTH
+                return
+            cx16.r0s = sy+sdy
+            if cx16.r0s>=0 and cx16.r0s<=height-1 {
+;;                stack_xl[cx16.r12L] = sxl
+;;                stack_xr[cx16.r12L] = sxr
+;;                stack_y[cx16.r12L] = sy
+;;                stack_dy[cx16.r12L] = sdy
+;;                cx16.r12L++
+                %asm {{
+                    lda  cx16.r12L
+                    asl  a
+                    tay
+                    lda  sxl
+                    sta  stack_xl,y
+                    lda  sxl+1
+                    sta  stack_xl+1,y
+                    lda  sxr
+                    sta  stack_xr,y
+                    lda  sxr+1
+                    sta  stack_xr+1,y
+                    lda  sy
+                    sta  stack_y,y
+                    lda  sy+1
+                    sta  stack_y+1,y
+                    ldy  cx16.r12L
+                    lda  sdy
+                    sta  stack_dy,y
+                    inc  cx16.r12L
+                }}
+            }
+        }
+        sub pop_stack() {
+;;            cx16.r12L--
+;;            x1 = stack_xl[cx16.r12L]
+;;            x2 = stack_xr[cx16.r12L]
+;;            y = stack_y[cx16.r12L]
+;;            dy = stack_dy[cx16.r12L]
+;;            y += dy
+            %asm {{
+                dec  cx16.r12L
+                lda  cx16.r12L
+                asl  a
+                tay
+                lda  stack_xl,y
+                sta  x1
+                lda  stack_xl+1,y
+                sta  x1+1
+                lda  stack_xr,y
+                sta  x2
+                lda  stack_xr+1,y
+                sta  x2+1
+                lda  stack_y,y
+                sta  y
+                lda  stack_y+1,y
+                sta  y+1
+                ldy  cx16.r12L
+                lda  stack_dy,y
+                sta  dy
+            }}
+            y+=dy
+        }
+        cx16.r11L = pget(x as uword, y as uword)        ; old_color
+        if cx16.r11L == cx16.r10L
+            return
+        if x<0 or x > width-1 or y<0 or y > height-1
+            return
+        push_stack(x, x, y, 1)
+        push_stack(x, x, y + 1, -1)
+        word left = 0
+        while cx16.r12L {
+            pop_stack()
+            x = x1
+            while x >= 0 and pget(x as uword, y as uword) == cx16.r11L {
+                plot(x as uword, y as uword, cx16.r10L)
+                x--
+            }
+            if x>= x1
+                goto skip
+
+            left = x + 1
+            if left < x1
+                push_stack(left, x1 - 1, y, -dy)
+            x = x1 + 1
+
+            do {
+                while x <= width-1 and pget(x as uword, y as uword) == cx16.r11L {
+                    plot(x as uword, y as uword, cx16.r10L)
+                    x++
+                }
+                push_stack(left, x - 1, y, dy)
+                if x > x2 + 1
+                    push_stack(x2 + 1, x - 1, y, -dy)
+skip:
+                x++
+                while x <= x2 and pget(x as uword, y as uword) != cx16.r11L
+                    x++
+                left = x
+            } until x>x2
         }
     }
 
