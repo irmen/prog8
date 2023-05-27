@@ -629,11 +629,15 @@ internal class ProgramAndVarsGen(
             }
             DataType.ARRAY_UW_SPLIT -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
-                // TODO("gen split uword array $data")
+                asmgen.out("_array_$varname := ${data.joinToString()}")
+                asmgen.out("${varname}_lsb\t.byte <_array_$varname")
+                asmgen.out("${varname}_msb\t.byte >_array_$varname")
             }
             DataType.ARRAY_W_SPLIT -> {
                 val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
-                // TODO("gen split word array $data")
+                asmgen.out("_array_$varname := ${data.joinToString()}")
+                asmgen.out("${varname}_lsb\t.byte <_array_$varname")
+                asmgen.out("${varname}_msb\t.byte >_array_$varname")
             }
             DataType.ARRAY_F -> {
                 val array = value ?: zeroFilledArray(orNumberOfZeros!!)
@@ -730,7 +734,7 @@ internal class ProgramAndVarsGen(
                 val number = it.number!!.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
-            in SplitWordArrayTypes -> array.map {
+            DataType.ARRAY_W, DataType.ARRAY_W_SPLIT -> array.map {
                 val number = it.number!!.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                 if(number>=0)

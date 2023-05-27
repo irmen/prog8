@@ -1369,20 +1369,20 @@ class IRCodeGen(
     private fun translate(postIncrDecr: PtPostIncrDecr): IRCodeChunks {
         val operationMem: Opcode
         val operationRegister: Opcode
+        val array = postIncrDecr.target.array
         when(postIncrDecr.operator) {
             "++" -> {
-                operationMem = Opcode.INCM
+                operationMem = if(array?.splitWords==true) Opcode.INCMSPLIT else Opcode.INCM
                 operationRegister = Opcode.INC
             }
             "--" -> {
-                operationMem = Opcode.DECM
+                operationMem = if(array?.splitWords==true) Opcode.DECMSPLIT else Opcode.DECM
                 operationRegister = Opcode.DEC
             }
             else -> throw AssemblyError("weird operator")
         }
         val ident = postIncrDecr.target.identifier
         val memory = postIncrDecr.target.memory
-        val array = postIncrDecr.target.array
         val irDt = irType(postIncrDecr.target.type)
         val result = mutableListOf<IRCodeChunkBase>()
         if(ident!=null) {
@@ -1405,18 +1405,35 @@ class IRCodeGen(
             val variable = array.variable.name
             val itemsize = program.memsizer.memorySize(array.type)
             val fixedIndex = constIntValue(array.index)
-            if(fixedIndex!=null) {
-                val offset = fixedIndex*itemsize
-                addInstr(result, IRInstruction(operationMem, irDt, labelSymbol="$variable+$offset"), null)
+            if(array.splitWords) {
+                val iterable = symbolTable.flat.getValue(array.variable.name) as StStaticVariable
+                val arrayLength = iterable.length!!
+                if(fixedIndex!=null) {
+                    addInstr(result, IRInstruction(operationMem, irDt, immediate = arrayLength, labelSymbol="$variable+$fixedIndex"), null)
+                } else {
+                    val indexTr = expressionEval.translateExpression(array.index)
+                    addToResult(result, indexTr, indexTr.resultReg, -1)
+                    val chunk = IRCodeChunk(null, null)
+                    val incReg = registers.nextFree()
+                    chunk += IRInstruction(Opcode.LOADXSPLIT, irDt, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol=variable)
+                    chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
+                    chunk += IRInstruction(Opcode.STOREXSPLIT, irDt, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol=variable)
+                    result += chunk
+                }
             } else {
-                val indexTr = expressionEval.translateExpression(array.index)
-                addToResult(result, indexTr, indexTr.resultReg, -1)
-                val chunk = IRCodeChunk(null, null)
-                val incReg = registers.nextFree()
-                chunk += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
-                chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
-                chunk += IRInstruction(Opcode.STOREX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
-                result += chunk
+                if(fixedIndex!=null) {
+                    val offset = fixedIndex*itemsize
+                    addInstr(result, IRInstruction(operationMem, irDt, labelSymbol="$variable+$offset"), null)
+                } else {
+                    val indexTr = expressionEval.translateExpression(array.index)
+                    addToResult(result, indexTr, indexTr.resultReg, -1)
+                    val chunk = IRCodeChunk(null, null)
+                    val incReg = registers.nextFree()
+                    chunk += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                    chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
+                    chunk += IRInstruction(Opcode.STOREX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                    result += chunk
+                }
             }
         } else
             throw AssemblyError("weird assigntarget")

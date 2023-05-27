@@ -441,7 +441,7 @@ $loopLabel          sty  $indexVar
                     // allocate index var on ZP if possible
                     val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
-                        success = { (address,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                        success = { (address,_,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
                     )
                 } else {
@@ -449,13 +449,44 @@ $loopLabel          sty  $indexVar
                 }
                 asmgen.out(endLabel)
             }
-            DataType.ARRAY_UW_SPLIT -> {
-                asmgen.out("; TODO iterate over split uword array")
-                // TODO("iterate over split uword array")
-            }
-            DataType.ARRAY_W_SPLIT -> {
-                asmgen.out("; TODO iterate over split word array")
-                // TODO("iterate over split word array")
+            DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT -> {
+                numElements!!
+                val indexVar = asmgen.makeLabel("for_index")
+                val loopvarName = asmgen.asmVariableName(stmt.variable)
+                asmgen.out("""
+                    ldy  #0
+$loopLabel          sty  $indexVar
+                    lda  ${iterableName}_lsb,y
+                    sta  $loopvarName
+                    lda  ${iterableName}_msb,y
+                    sta  $loopvarName+1""")
+                asmgen.translate(stmt.statements)
+                if(numElements<=255u) {
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        cpy  #$numElements
+                        beq  $endLabel
+                        bne  $loopLabel""")
+                } else {
+                    // length is 256
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        bne  $loopLabel
+                        beq  $endLabel""")
+                }
+                if(numElements>=16u) {
+                    // allocate index var on ZP if possible
+                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    result.fold(
+                        success = { (address,_,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                        failure = { asmgen.out("$indexVar    .byte  0") }
+                    )
+                } else {
+                    asmgen.out("$indexVar    .byte  0")
+                }
+                asmgen.out(endLabel)
             }
             DataType.ARRAY_F -> {
                 throw AssemblyError("for loop with floating point variables is not supported")

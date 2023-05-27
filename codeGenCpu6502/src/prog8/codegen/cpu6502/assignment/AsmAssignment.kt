@@ -172,8 +172,6 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.UBYTE, memory = value)
                 }
                 is PtArrayIndexer -> {
-                    if(value.splitWords)
-                        TODO("splitwords ${value.position}")
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, value.type, array = value)
                 }
                 is PtBuiltinFunctionCall -> {

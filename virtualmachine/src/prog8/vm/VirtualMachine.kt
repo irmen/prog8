@@ -223,8 +223,10 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.SGES -> InsSGES(ins)
             Opcode.INC -> InsINC(ins)
             Opcode.INCM -> InsINCM(ins)
+            Opcode.INCMSPLIT -> InsINCMSPLIT(ins)
             Opcode.DEC -> InsDEC(ins)
             Opcode.DECM -> InsDECM(ins)
+            Opcode.DECMSPLIT -> InsDECMSPLIT(ins)
             Opcode.NEG -> InsNEG(ins)
             Opcode.NEGM -> InsNEGM(ins)
             Opcode.ADDR -> InsADDR(ins)
@@ -919,6 +921,20 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
+    private fun InsINCMSPLIT(i: IRInstruction) {
+        val address = i.address!!
+        var lsb = memory.getUB(address).toInt()
+        var msb = memory.getUB(address+i.immediate!!).toInt()
+        lsb++
+        if(lsb>255) {
+            lsb = 0
+            msb++
+        }
+        memory.setUB(address, lsb.toUByte())
+        memory.setUB(address+i.immediate!!, msb.toUByte())
+        nextPc()
+    }
+
     private fun InsDEC(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, (registers.getUB(i.reg1!!)-1u).toUByte())
@@ -935,6 +951,21 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.FLOAT -> memory.setFloat(i.address!!, memory.getFloat(i.address!!)-1f)
         }
         nextPc()
+    }
+
+    private fun InsDECMSPLIT(i: IRInstruction) {
+        val address = i.address!!
+        var lsb = memory.getUB(address).toInt()
+        var msb = memory.getUB(address+i.immediate!!).toInt()
+        lsb--
+        if(lsb<0) {
+            lsb = 255
+            msb--
+        }
+        memory.setUB(address, lsb.toUByte())
+        memory.setUB(address+i.immediate!!, msb.toUByte())
+        nextPc()
+
     }
 
     private fun InsNEG(i: IRInstruction) {

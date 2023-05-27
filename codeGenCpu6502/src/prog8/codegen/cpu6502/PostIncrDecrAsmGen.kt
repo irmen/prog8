@@ -65,6 +65,31 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                 val asmArrayvarname = asmgen.asmVariableName(targetArrayIdx.variable)
                 val elementDt = targetArrayIdx.type
                 val constIndex = targetArrayIdx.index.asConstInteger()
+                if(targetArrayIdx.splitWords) {
+                    if(constIndex!=null) {
+                        if(incr)
+                            asmgen.out(" inc  ${asmArrayvarname}_lsb+$constIndex |  bne  + |  inc  ${asmArrayvarname}_msb+$constIndex |+")
+                        else
+                            asmgen.out("""
+        lda  ${asmArrayvarname}_lsb+$constIndex
+        bne  +
+        dec  ${asmArrayvarname}_msb+$constIndex
++       dec  ${asmArrayvarname}_lsb+$constIndex""")
+                    } else {
+                        asmgen.saveRegisterLocal(CpuRegister.X, scope!!)
+                        asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.X)
+                        if(incr)
+                            asmgen.out(" inc  ${asmArrayvarname}_lsb,x |  bne  + |  inc  ${asmArrayvarname}_msb,x |+")
+                        else
+                            asmgen.out("""
+        lda  ${asmArrayvarname}_lsb,x
+        bne  +
+        dec  ${asmArrayvarname}_msb,x
++       dec  ${asmArrayvarname}_lsb,x""")
+                        asmgen.restoreRegisterLocal(CpuRegister.X)
+                    }
+                    return
+                }
                 if(constIndex!=null) {
                     val indexValue = constIndex * program.memsizer.memorySize(elementDt)
                     when(elementDt) {
@@ -74,11 +99,10 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                                 asmgen.out(" inc  $asmArrayvarname+$indexValue |  bne  + |  inc  $asmArrayvarname+$indexValue+1 |+")
                             else
                                 asmgen.out("""
-    lda  $asmArrayvarname+$indexValue
-    bne  +
-    dec  $asmArrayvarname+$indexValue+1
-+       dec  $asmArrayvarname+$indexValue 
-""")
+        lda  $asmArrayvarname+$indexValue
+        bne  +
+        dec  $asmArrayvarname+$indexValue+1
++       dec  $asmArrayvarname+$indexValue""")
                         }
                         DataType.FLOAT -> {
                             asmgen.out("  lda  #<($asmArrayvarname+$indexValue) |  ldy  #>($asmArrayvarname+$indexValue)")
@@ -89,9 +113,8 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                 }
                 else
                 {
-                    asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.A)
                     asmgen.saveRegisterLocal(CpuRegister.X, scope!!)
-                    asmgen.out("  tax")
+                    asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.X)
                     when(elementDt) {
                         in ByteDatatypes -> {
                             asmgen.out(if(incr) "  inc  $asmArrayvarname,x" else "  dec  $asmArrayvarname,x")
@@ -101,20 +124,20 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                                 asmgen.out(" inc  $asmArrayvarname,x |  bne  + |  inc  $asmArrayvarname+1,x |+")
                             else
                                 asmgen.out("""
-    lda  $asmArrayvarname,x
-    bne  +
-    dec  $asmArrayvarname+1,x
+        lda  $asmArrayvarname,x
+        bne  +
+        dec  $asmArrayvarname+1,x
 +       dec  $asmArrayvarname,x 
 """)
                         }
                         DataType.FLOAT -> {
                             asmgen.out("""
-                    ldy  #>$asmArrayvarname
-                    clc
-                    adc  #<$asmArrayvarname
-                    bcc  +
-                    iny
-+                       jsr  floats.inc_var_f""")
+        ldy  #>$asmArrayvarname
+        clc
+        adc  #<$asmArrayvarname
+        bcc  +
+        iny
++       jsr  floats.inc_var_f""")
                         }
                         else -> throw AssemblyError("weird array elt dt")
                     }

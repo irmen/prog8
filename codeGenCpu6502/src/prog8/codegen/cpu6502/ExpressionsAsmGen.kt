@@ -238,7 +238,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
                 asmgen.out(" lda  #<$varname |  ldy  #>$varname|  jsr  floats.push_float")
             }
             in SplitWordArrayTypes -> {
-                TODO("split $varname")
+                throw AssemblyError("can't push address of split-word array ${expr.position}")
             }
             in IterableDatatypes -> {
                 asmgen.out("  lda  #<$varname  |  sta  P8ESTACK_LO,x  |  lda  #>$varname |  sta  P8ESTACK_HI,x |  dex")
@@ -748,7 +748,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         val arrayVarName = asmgen.asmVariableName(arrayExpr.variable)
 
         if(arrayExpr.splitWords)
-            TODO("split word access ${arrayExpr.position}")
+            TODO("split words ${arrayExpr.position}")
 
         if(arrayExpr.variable.type==DataType.UWORD) {
             // indexing a pointer var instead of a real array or string

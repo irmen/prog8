@@ -74,7 +74,12 @@ main {
         txt.nl()
 
         split_uwords[1]++
-        split_words[1]--
+        split_words[1]++
+
+        print_arrays()
+        txt.nl()
+        split_uwords[1] |= 4095
+        split_words[1] |= 127
 
         print_arrays()
         txt.nl()

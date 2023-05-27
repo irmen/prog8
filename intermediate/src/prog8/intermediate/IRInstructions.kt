@@ -121,8 +121,10 @@ exts        reg1                            - reg1 = signed extension of reg1 (b
 ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (ext.w not yet implemented as we don't have longs yet)
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
+incmsplit            arraylen, address      - memory at address += 1 (in lsb/msb split word array)
 dec         reg1                            - reg1 = reg1-1
 decm                           address      - memory at address -= 1
+decmsplit            arraylen, address      - memory at address -= 1 (in lsb/msb split word array)
 neg         reg1                            - reg1 = sign negation of reg1
 negm                           address      - sign negate memory at address
 addr        reg1, reg2                      - reg1 += reg2 
@@ -293,8 +295,10 @@ enum class Opcode {
 
     INC,
     INCM,
+    INCMSPLIT,
     DEC,
     DECM,
+    DECMSPLIT,
     NEG,
     NEGM,
     ADDR,
@@ -571,8 +575,10 @@ val instructionFormats = mutableMapOf(
     Opcode.SGES       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.INC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
     Opcode.INCM       to InstructionFormat.from("BW,<>a       | F,<>a"),
+    Opcode.INCMSPLIT  to InstructionFormat.from("W,<i,<>a"),
     Opcode.DEC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
     Opcode.DECM       to InstructionFormat.from("BW,<>a       | F,<>a"),
+    Opcode.DECMSPLIT  to InstructionFormat.from("W,<i,<>a"),
     Opcode.NEG        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
     Opcode.NEGM       to InstructionFormat.from("BW,<>a       | F,<>a"),
     Opcode.ADDR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),

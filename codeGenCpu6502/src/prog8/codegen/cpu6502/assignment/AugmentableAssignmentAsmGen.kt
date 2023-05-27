@@ -193,6 +193,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             TargetStorageKind.ARRAY -> {
                 val indexNum = target.array!!.index as? PtNumber
                 val indexVar = target.array.index as? PtIdentifier
+                if(target.array.splitWords)
+                    TODO("in-place assign split words ${target.position}")
                 when {
                     indexNum!=null -> {
                         val targetVarName = "${target.asmVarname} + ${indexNum.number.toInt()*program.memsizer.memorySize(target.datatype)}"
