@@ -7,9 +7,9 @@
 main {
 
     ; vertices
-    word[] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
-    word[] ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
-    word[] zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
+    word[] @split xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
+    word[] @split ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
+    word[] @split zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
 
     ; storage for rotated coordinates
     word[len(xcoor)] rotatedx
