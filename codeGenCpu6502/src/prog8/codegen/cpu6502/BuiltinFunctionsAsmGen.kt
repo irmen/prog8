@@ -274,7 +274,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
-        when(fcall.type) {
+        when(fcall.args[0].type) {
             DataType.UBYTE -> {
                 if(resultToStack)
                     asmgen.out("  ldy  #0 |  jsr  prog8_lib.func_sqrt16_stack")
