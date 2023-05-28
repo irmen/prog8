@@ -362,16 +362,15 @@ class AsmGen6502Internal (
     internal fun loadScaledArrayIndexIntoRegister(
         expr: PtArrayIndexer,
         elementDt: DataType,
-        register: CpuRegister,
-        addOneExtra: Boolean = false
+        register: CpuRegister
     ) {
         val reg = register.toString().lowercase()
         val indexnum = expr.index.asConstInteger()
         if (indexnum != null) {
             val indexValue = if(expr.splitWords)
-                indexnum + if (addOneExtra) 1 else 0
+                indexnum
             else
-                indexnum * options.compTarget.memorySize(elementDt) + if (addOneExtra) 1 else 0
+                indexnum * options.compTarget.memorySize(elementDt)
             out("  ld$reg  #$indexValue")
             return
         }
@@ -382,89 +381,40 @@ class AsmGen6502Internal (
         val indexName = asmVariableName(indexVar)
 
         if(expr.splitWords) {
-            if(addOneExtra) {
-                out("  ldy  $indexName |  iny")
-                when (register) {
-                    CpuRegister.A -> out("  tya")
-                    CpuRegister.X -> out("  txy")
-                    CpuRegister.Y -> {}
-                }
-            } else {
-                when (register) {
-                    CpuRegister.A -> out("  lda  $indexName")
-                    CpuRegister.X -> out("  ldx  $indexName")
-                    CpuRegister.Y -> out("  ldy  $indexName")
-                }
+            when (register) {
+                CpuRegister.A -> out("  lda  $indexName")
+                CpuRegister.X -> out("  ldx  $indexName")
+                CpuRegister.Y -> out("  ldy  $indexName")
             }
             return
         }
 
-        if (addOneExtra) {
-            // add 1 to the result
-            when (elementDt) {
-                in ByteDatatypes -> {
-                    out("  ldy  $indexName |  iny")
-                    when (register) {
-                        CpuRegister.A -> out(" tya")
-                        CpuRegister.X -> out(" tyx")
-                        CpuRegister.Y -> {}
-                    }
+        when (elementDt) {
+            in ByteDatatypes -> out("  ld$reg  $indexName")
+            in WordDatatypes -> {
+                out("  lda  $indexName |  asl  a")
+                when (register) {
+                    CpuRegister.A -> {}
+                    CpuRegister.X -> out(" tax")
+                    CpuRegister.Y -> out(" tay")
                 }
-                in WordDatatypes -> {
-                    out("  lda  $indexName |  sec |  rol  a")
-                    when (register) {
-                        CpuRegister.A -> {}
-                        CpuRegister.X -> out(" tax")
-                        CpuRegister.Y -> out(" tay")
-                    }
-                }
-                DataType.FLOAT -> {
-                    require(options.compTarget.memorySize(DataType.FLOAT) == 5) {"invalid float size ${expr.position}"}
-                    out(
-                        """
-                                lda  $indexName
-                                asl  a
-                                asl  a
-                                sec
-                                adc  $indexName"""
-                    )
-                    when (register) {
-                        CpuRegister.A -> {}
-                        CpuRegister.X -> out(" tax")
-                        CpuRegister.Y -> out(" tay")
-                    }
-                }
-                else -> throw AssemblyError("weird dt")
             }
-        } else {
-            when (elementDt) {
-                in ByteDatatypes -> out("  ld$reg  $indexName")
-                in WordDatatypes -> {
-                    out("  lda  $indexName |  asl  a")
-                    when (register) {
-                        CpuRegister.A -> {}
-                        CpuRegister.X -> out(" tax")
-                        CpuRegister.Y -> out(" tay")
-                    }
+            DataType.FLOAT -> {
+                require(options.compTarget.memorySize(DataType.FLOAT) == 5) {"invalid float size ${expr.position}"}
+                out("""
+                    lda  $indexName
+                    asl  a
+                    asl  a
+                    clc
+                    adc  $indexName"""
+                )
+                when (register) {
+                    CpuRegister.A -> {}
+                    CpuRegister.X -> out(" tax")
+                    CpuRegister.Y -> out(" tay")
                 }
-                DataType.FLOAT -> {
-                    require(options.compTarget.memorySize(DataType.FLOAT) == 5) {"invalid float size ${expr.position}"}
-                    out(
-                        """
-                                lda  $indexName
-                                asl  a
-                                asl  a
-                                clc
-                                adc  $indexName"""
-                    )
-                    when (register) {
-                        CpuRegister.A -> {}
-                        CpuRegister.X -> out(" tax")
-                        CpuRegister.Y -> out(" tay")
-                    }
-                }
-                else -> throw AssemblyError("weird dt")
             }
+            else -> throw AssemblyError("weird dt")
         }
     }
 
