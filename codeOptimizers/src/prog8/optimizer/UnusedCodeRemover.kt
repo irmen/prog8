@@ -157,6 +157,12 @@ class UnusedCodeRemover(private val program: Program,
         return noModifications
     }
 
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        if(assignment.target isSameAs assignment.value)
+            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+        return noModifications
+    }
+
     private fun deduplicateAssignments(statements: List<Statement>, scope: IStatementContainer): List<IAstModification> {
         // removes 'duplicate' assignments that assign the same target directly after another, unless it is a function call
         val linesToRemove = mutableListOf<Assignment>()

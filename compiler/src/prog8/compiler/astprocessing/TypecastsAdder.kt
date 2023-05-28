@@ -133,9 +133,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
                     }
                     if(leftDt istype DataType.WORD && rightDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
-                        // cast left to unsigned
-                        val cast = TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED), true, expr.left.position)
-                        return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                        // cast left to unsigned word. Cast right to unsigned word if it is ubyte
+                        val mods = mutableListOf<IAstModification>()
+                        val cast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                        mods += IAstModification.ReplaceNode(expr.left, cast, expr)
+                        if(rightDt istype DataType.UBYTE) {
+                            mods += IAstModification.ReplaceNode(expr.right,
+                                TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position),
+                                expr)
+                        }
+                        return mods
                     }
                     if(rightDt istype DataType.BYTE && leftDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
                         // cast right to unsigned
@@ -143,9 +150,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
                     }
                     if(rightDt istype DataType.WORD && leftDt.oneOf(DataType.UBYTE, DataType.UWORD)) {
-                        // cast right to unsigned
-                        val cast = TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED), true, expr.right.position)
-                        return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
+                        // cast right to unsigned word. Cast left to unsigned word if it is ubyte
+                        val mods = mutableListOf<IAstModification>()
+                        val cast = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
+                        mods += IAstModification.ReplaceNode(expr.right, cast, expr)
+                        if(leftDt istype DataType.UBYTE) {
+                            mods += IAstModification.ReplaceNode(expr.left,
+                                TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position),
+                                expr)
+                        }
+                        return mods
                     }
                 }
 
