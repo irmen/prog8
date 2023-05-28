@@ -1,16 +1,35 @@
-%import floats
 %import textio
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        ubyte[] array = [ $00, $11, $22, $33, $44, $55, $66, $77, $88, $99, $aa, $bb]
+        ubyte ub = 123
+        byte bb = -100
+        uword uw = 12345
+        word ww = -12345
 
-        ubyte x = 2
-        ubyte y = 3
-        txt.print_uwhex(mkword(array[9], array[8]), true)
-        txt.print_uwhex(mkword(array[x*y+y], array[y*x+x]), true)
+        ub |= 63    ; vm/c64 ok (127)
+        bb |= 63    ; vm/c64 ok (-65)
+        uw |= 63    ; vm/c64 ok (12351)
+        ww |= 63    ; vm/c64 ok (-12289)
+
+        txt.print_ub(ub)
+        txt.spc()
+        txt.print_b(bb)
+        txt.spc()
+        txt.print_uw(uw)
+        txt.spc()
+        txt.print_w(ww)
+        txt.nl()
+
+        uw |= 16384  ; vm/c64 ok (28735)
+        ww |= 8192   ; vm/c64 ok (-4097)
+
+        txt.print_uw(uw)
+        txt.spc()
+        txt.print_w(ww)
+        txt.nl()
     }
 }
 

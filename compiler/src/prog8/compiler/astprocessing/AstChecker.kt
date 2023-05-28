@@ -479,7 +479,9 @@ internal class AstChecker(private val program: Program,
                         errors.err("target datatype is unknown", assignment.target.position)
                     // otherwise, another error about missing symbol is already reported.
                 } else {
-                    errors.err("type of value $valueDt doesn't match target $targetDt", assignment.value.position)
+                    // allow bitwise operations on different types as long as the size is the same
+                    if (!((assignment.value as? BinaryExpression)?.operator in BitwiseOperators && targetDt.isBytes && valueDt.isBytes || targetDt.isWords && valueDt.isWords))
+                        errors.err("type of value $valueDt doesn't match target $targetDt", assignment.value.position)
                 }
             }
         }
@@ -1598,8 +1600,11 @@ internal class AstChecker(private val program: Program,
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
             errors.err("cannot assign float to ${targetDatatype.name.lowercase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else {
-            if(targetDatatype!=DataType.UWORD && sourceDatatype !in PassByReferenceDatatypes)
-                errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
+            if(targetDatatype!=DataType.UWORD && sourceDatatype !in PassByReferenceDatatypes) {
+                // allow bitwise operations on different types as long as the size is the same
+                if (!((sourceValue as? BinaryExpression)?.operator in BitwiseOperators && targetDatatype.equalsSize(sourceDatatype)))
+                    errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
+            }
         }
 
         return false
