@@ -97,8 +97,9 @@ psg {
         envelope_attacks[voice_num] = attack
         envelope_sustains[voice_num] = sustain
         envelope_releases[voice_num] = release
-        if maxvolume<envelope_volumes[voice_num]
-            envelope_volumes[voice_num] = maxvolume
+        cx16.r0 = mkword(maxvolume, 0)
+        if cx16.r0<envelope_volumes[voice_num]
+            envelope_volumes[voice_num] = cx16.r0
         envelope_maxvolumes[voice_num] = maxvolume
         envelope_states[voice_num] = 0
     }
