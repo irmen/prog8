@@ -193,11 +193,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             TargetStorageKind.ARRAY -> {
                 val indexNum = target.array!!.index as? PtNumber
                 val indexVar = target.array.index as? PtIdentifier
-                if(target.array.splitWords)
-                    TODO("in-place assign split words ${target.position}")
                 when {
                     indexNum!=null -> {
-                        val targetVarName = "${target.asmVarname} + ${indexNum.number.toInt()*program.memsizer.memorySize(target.datatype)}"
+                        val targetVarName = if(target.array.splitWords)
+                            "${target.asmVarname} + ${indexNum.number.toInt()}"
+                        else
+                            "${target.asmVarname} + ${indexNum.number.toInt()*program.memsizer.memorySize(target.datatype)}"
                         when (target.datatype) {
                             in ByteDatatypes -> {
                                 when(value.kind) {
@@ -284,8 +285,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             in WordDatatypes -> {
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
-                                asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1")
-                                asmgen.out("  iny |  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1+1")
+                                if(target.array.splitWords) {
+                                    asmgen.out("  lda  ${target.array.variable.name}_lsb,y |  sta  P8ZP_SCRATCH_W1")
+                                    asmgen.out("  lda  ${target.array.variable.name}_msb,y |  sta  P8ZP_SCRATCH_W1+1")
+                                } else {
+                                    asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1")
+                                    asmgen.out("  iny |  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1+1")
+                                }
                                 asmgen.saveRegisterLocal(CpuRegister.Y, target.scope!!)
                                 when(value.kind) {
                                     SourceStorageKind.LITERALNUMBER -> inplaceModification_word_litval_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.number!!.number.toInt())
@@ -305,8 +311,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
                                 asmgen.restoreRegisterLocal(CpuRegister.Y)
-                                asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name},y")
-                                asmgen.out("  lda  P8ZP_SCRATCH_W1 |  dey |  sta  ${target.array.variable.name},y")
+                                if(target.array.splitWords) {
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  sta  ${target.array.variable.name}_lsb,y")
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name}_msb,y")
+                                } else {
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name},y")
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  dey |  sta  ${target.array.variable.name},y")
+                                }
                             }
                             DataType.FLOAT -> {
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.FLOAT, CpuRegister.A)

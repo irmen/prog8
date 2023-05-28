@@ -1,18 +1,14 @@
 %import floats
 %import textio
 %zeropage basicsafe
+%option no_sysinit
 
 main {
 
     sub start() {
         uword[] @split split_uwords = [12345, 60000, 4096]
-        ubyte xx=1
-        txt.print_ub(lsb(split_uwords[xx]))
-        txt.spc()
-        txt.print_ub(msb(split_uwords[xx]))
-        txt.spc()
-        split_uwords[1] = mkword($11, xx)        ; TODO fix this in codegen
-        txt.print_uw(split_uwords[1])
+        txt.print_ub(len(split_uwords))
+        txt.nl()
     }
 
     sub start22() {

@@ -9,9 +9,9 @@ main {
     word[] @split zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
 
     ; storage for rotated coordinates
-    word[len(xcoor)] rotatedx
-    word[len(ycoor)] rotatedy
-    word[len(zcoor)] rotatedz
+    word[len(xcoor)] @split rotatedx
+    word[len(ycoor)] @split rotatedy
+    word[len(zcoor)] @split rotatedz
 
     sub start()  {
 

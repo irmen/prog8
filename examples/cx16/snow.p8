@@ -5,10 +5,10 @@ main {
     sub start() {
         gfx2.screen_mode(4)
 
-        uword[128] flakes1_xx
-        uword[128] flakes1_yy
-        uword[128] flakes2_xx
-        uword[128] flakes2_yy
+        uword[128] @split flakes1_xx
+        uword[128] @split flakes1_yy
+        uword[128] @split flakes2_xx
+        uword[128] @split flakes2_yy
 
         ubyte @zp idx
         for idx in 0 to 127 {

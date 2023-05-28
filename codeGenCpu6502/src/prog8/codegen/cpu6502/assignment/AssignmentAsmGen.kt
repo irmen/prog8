@@ -1469,8 +1469,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 //                    return
 //                }
                 TargetStorageKind.ARRAY -> {
-                    if(target.array!!.splitWords)
-                        TODO("assign type casted byte into split words ${target.position}")
                     // byte to word, just assign to registers first, then assign into array
                     assignExpressionToRegister(value, RegisterOrPair.AY, targetDt==DataType.WORD)
                     assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -1868,21 +1866,25 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         in WordDatatypes -> {
                             if(target.array!!.splitWords)
-                                TODO("assign word stack value into split words ${target.position}")
-                            asmgen.out("""
-                                inx
-                                lda  P8ESTACK_LO,x
-                                sta  ${target.asmVarname}+$scaledIdx
-                                lda  P8ESTACK_HI,x
-                                sta  ${target.asmVarname}+$scaledIdx+1
-                            """)
+                                asmgen.out("""
+                                    inx
+                                    lda  P8ESTACK_LO,x
+                                    sta  ${target.asmVarname}_lsb+$scaledIdx
+                                    lda  P8ESTACK_HI,x
+                                    sta  ${target.asmVarname}_msb+$scaledIdx""")
+                            else
+                                asmgen.out("""
+                                    inx
+                                    lda  P8ESTACK_LO,x
+                                    sta  ${target.asmVarname}+$scaledIdx
+                                    lda  P8ESTACK_HI,x
+                                    sta  ${target.asmVarname}+$scaledIdx+1""")
                         }
                         DataType.FLOAT -> {
                             asmgen.out("""
                                 lda  #<(${target.asmVarname}+$scaledIdx)
                                 ldy  #>(${target.asmVarname}+$scaledIdx)
-                                jsr  floats.pop_float
-                            """)
+                                jsr  floats.pop_float""")
                         }
                         else -> throw AssemblyError("weird target variable type ${target.datatype}")
                     }
@@ -2933,9 +2935,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     throw AssemblyError("memory is bytes not words")
                 }
                 TargetStorageKind.ARRAY -> {
-                    if(target.array!!.splitWords)
-                        TODO("assign into split words ${target.position}")
-                    asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
                     if(target.array.splitWords)
                         asmgen.out("""
                             lda  #0
@@ -2992,9 +2992,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 throw AssemblyError("assign word to memory ${target.memory} should have gotten a typecast")
             }
             TargetStorageKind.ARRAY -> {
-                if(target.array!!.splitWords)
-                    TODO("assign into split words ${target.position}")
-                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
                 if(target.array.splitWords)
                     asmgen.out("""
                         lda  #<${word.toHex()}
@@ -3392,8 +3390,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
                 }
                 TargetStorageKind.ARRAY -> {
-                    if(wordtarget.array!!.splitWords)
-                        TODO("assign mem byte into split words ${wordtarget.position}")
                     asmgen.out("  lda  ${address.toHex()} |  ldy  #0")
                     assignRegisterpairWord(wordtarget, RegisterOrPair.AY)
                 }
@@ -3423,8 +3419,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
                 }
                 TargetStorageKind.ARRAY -> {
-                    if(wordtarget.array!!.splitWords)
-                        TODO("assign mem byte into split words ${wordtarget.position}")
                     asmgen.loadByteFromPointerIntoA(identifier)
                     asmgen.out("  ldy  #0")
                     assignRegisterpairWord(wordtarget, RegisterOrPair.AY)

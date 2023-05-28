@@ -1,12 +1,16 @@
 package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
+import prog8.code.ast.printAst
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
-class TestArrayInplaceAssign: FunSpec({
+class TestArrayThings: FunSpec({
     test("assign prefix var to array should compile fine and is not split into inplace array modification") {
         val text = """
             main {
@@ -87,6 +91,49 @@ main {
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    test("split only for word arrays") {
+        val text = """
+main {
+  ubyte[10] @split sb
+  uword[10] @split sw
+  word[10] @split sw2
+  float[10] @split sf
+
+  sub start() {
+  }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors.forEach {
+            it shouldContain "split"
+            it shouldContain "word arrays"
+        }
+    }
+
+    test("split word arrays in asm as lsb/msb") {
+        val text = """
+main {
+  uword[10] @split @shared uw
+  word[10] @split @shared sw
+  uword[10] @shared normal
+
+  sub start() {
+    %asm {{
+        lda  normal
+        lda  uw_lsb
+        lda  uw_msb
+        lda  sw_lsb
+        lda  sw_msb
+    }}
+  }
+}"""
+        val result6502 = compileText(C64Target(), false, text, writeAssembly = true)!!.codegenAst!!
+        val resultVm = compileText(VMTarget(), false, text, writeAssembly = true)!!.codegenAst!!
+        printAst(result6502, true, ::println)
+        printAst(resultVm, true, ::println)
     }
 })
 

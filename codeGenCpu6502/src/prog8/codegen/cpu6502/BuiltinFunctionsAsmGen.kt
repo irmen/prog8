@@ -352,6 +352,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         lda  #$numElements
                         jsr  floats.func_reverse_f""")
                 }
+                in SplitWordArrayTypes -> TODO("split word reverse")
                 else -> throw AssemblyError("weird type")
             }
         }
@@ -398,6 +399,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         jsr  prog8_lib.func_sort_ub""")
                 }
                 DataType.ARRAY_F -> throw AssemblyError("sorting of floating point array is not supported")
+                in SplitWordArrayTypes -> TODO("split word sort")
                 else -> throw AssemblyError("weird type")
             }
         } else
@@ -664,6 +666,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_stack")
                 DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${fcall.name}_w_stack")
                 DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${fcall.name}_f_stack")
+                in SplitWordArrayTypes -> TODO("split word any/all")
                 else -> throw AssemblyError("weird type $dt")
             }
         } else {
@@ -671,6 +674,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A |  ldy  #0")
                 DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${fcall.name}_w_into_A |  ldy  #0")
                 DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${fcall.name}_f_into_A |  ldy  #0")
+                in SplitWordArrayTypes -> TODO("split word any/all")
                 else -> throw AssemblyError("weird type $dt")
             }
             assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, dt in SignedDatatypes)

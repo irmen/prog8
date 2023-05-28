@@ -274,17 +274,22 @@ Variable declarations
 Variables should be declared with their exact type and size so the compiler can allocate storage
 for them. You can give them an initial value as well. That value can be a simple literal value,
 or an expression. If you don't provide an initial value yourself, zero will be used.
-You can add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
+Add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
 when selecting variables to be put into zeropage (but no guarantees). If the ZP is full,
 the variable will be allocated in normal memory elsewhere.
-Use the ``@requirezp`` tag to force the variable in zeropage, but if the ZP is full,
+Add a ``@requirezp`` tag to force the variable in zeropage, but if the ZP is full,
 the compilation will fail.
-You can add a ``@shared`` shared-tag, to tell the compiler that the variable is shared
+Add a ``@shared`` shared-tag, to tell the compiler that the variable is shared
 with some assembly code and that it should not be optimized away if not used elsewhere.
+For (u)word arrays, add ``@split`` to make the array layout in memory as 2 split arrays
+one with the LSBs one with the MSBs of the word values.
+
+
 The syntax is::
 
-	<datatype>  [ @shared ] [ @zp ] [ @requirezp ]  <variable name>   [ = <initial value> ]
+	<datatype>  [ @type-tag ]  <variable name>   [ = <initial value> ]
 
+where type-tag is one of the tags mentioned earlier.
 Various examples::
 
     word        thing   = 0

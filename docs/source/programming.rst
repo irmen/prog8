@@ -290,10 +290,10 @@ Here are some examples of arrays::
 
 .. note::
     Right now, the array should be small enough to be indexable by a single byte index.
-    This means byte arrays should be <= 256 elements, word arrays <= 128 elements, and float
-    arrays <= 51 elements.
+    This means byte arrays should be <= 256 elements, word arrays <= 128 elements (256 if
+    it's a split array - see below), and float arrays <= 51 elements.
 
-You can split an array initializer list over several lines if you want.
+You can write out an array initializer list over several lines if you want to improve readability.
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
@@ -322,6 +322,21 @@ An uword variable can be used in limited scenarios as a 'pointer' to a byte in m
 dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
 a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
 memory at the given index. See also :ref:`pointervars_programming`
+
+**LSB/MSB split word arrays:**
+For (u)word arrays, you can make the compiler layout the array in memory as two separate arrays,
+one with the LSBs and one with the MSBs of the word values. This is more efficient when storing
+and reading words from the array (the index can be used twice).
+Add the ``@split`` tag to the variable declaration to do this.
+In the assembly code, the array will be generated as two byte arrays namely ``name_lsb`` and ``name_msb``.
+Note that the maximum length of a split word array is 256! (regular word arrays are limited to 128 elements).
+
+.. caution::
+    Not all array operations are supported yet on "split word arrays".
+    The compiler may give an unpleasant error or crash when you hit such a case in your code.
+    If this happens simply revert to a regular word array and please report the issue,
+    so that more support can be added in the future where it is needed.
+
 
 Strings
 ^^^^^^^

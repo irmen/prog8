@@ -8,9 +8,9 @@
 main {
 
     ; storage for rotated coordinates
-    word[shipdata.totalNumberOfPoints] rotatedx
-    word[shipdata.totalNumberOfPoints] rotatedy
-    word[shipdata.totalNumberOfPoints] rotatedz
+    word[shipdata.totalNumberOfPoints] @split rotatedx
+    word[shipdata.totalNumberOfPoints] @split rotatedy
+    word[shipdata.totalNumberOfPoints] @split rotatedz
 
     sub start()  {
         uword anglex

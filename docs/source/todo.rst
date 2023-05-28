@@ -16,14 +16,7 @@ For 9.0 major changes
 - DONE: (on cx16) added diskio.save_raw() to save without the 2 byte prg header
 - DONE: added sys.irqsafe_xxx irqd routines
 - DONE: added gfx2.fill() flood fill routine
-
-- [much work:] add special (u)word array type (or modifier such as @fast or @split? ) that puts the array into memory as 2 separate byte-arrays 1 for LSB 1 for MSB -> allows for word arrays of length 256 and faster indexing
-  this is an enormous amout of work, if this type is to be treated equally as existing (u)word , because all expression / lookup / assignment routines need to know about the distinction....
-  So maybe only allow the bare essentials? (store, get, ++/--/+/-, bitwise operations?)
-
-- TODO: fix the remaining 'simple' split words TODO cases (expression assignments)
-- TODO: change more library and examples to use more @split arrays
-- TODO: splitarrays unit tests
+- DONE: added @split storage class for (u)word arrays to store them as split lsb/msb arrays which is more efficient (but doesn't yet support all array operations)
 
 - [much work:] more support for (64tass) SEGMENTS ?
     - (What, how, isn't current BSS support enough?)
