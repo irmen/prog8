@@ -93,6 +93,11 @@ internal class BeforeAsmAstChanger(val program: Program,
                             )
                         }
                     } else {
+                        if(binExpr.left isSameAs assignment.target)
+                            return noModifications
+                        val typeCast = binExpr.left as? TypecastExpression
+                        if(typeCast!=null && typeCast.expression isSameAs assignment.target)
+                            return noModifications
                         val sourceDt = binExpr.left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
                         val (_, left) = binExpr.left.typecastTo(assignment.target.inferType(program).getOrElse { throw AssemblyError(
                             "unknown dt"
