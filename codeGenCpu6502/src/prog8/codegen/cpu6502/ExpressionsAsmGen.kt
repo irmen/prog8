@@ -747,9 +747,6 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
         val elementDt = arrayExpr.type
         val arrayVarName = asmgen.asmVariableName(arrayExpr.variable)
 
-        if(arrayExpr.splitWords)
-            TODO("split words ${arrayExpr.position}")
-
         if(arrayExpr.variable.type==DataType.UWORD) {
             // indexing a pointer var instead of a real array or string
             if(elementDt !in ByteDatatypes)
@@ -766,6 +763,9 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             asmgen.out("  sta  P8ESTACK_LO,x |  dex")
             return
         }
+
+        if(arrayExpr.splitWords)
+            TODO("split words expression ${arrayExpr.position}")
 
         val constIndexNum = arrayExpr.index.asConstInteger()
         if(constIndexNum!=null) {

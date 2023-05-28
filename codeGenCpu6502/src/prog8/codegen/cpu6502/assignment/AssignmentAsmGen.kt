@@ -1896,6 +1896,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out(" inx |  lda  P8ESTACK_LO,x |  sta  ${target.asmVarname},y")
                         }
                         DataType.UWORD, DataType.WORD -> {
+                            if(target.array!!.splitWords)
+                                TODO("assign into split words ${target.position}")
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
                             asmgen.out("""
                                 inx
@@ -2064,16 +2066,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     lda  $sourceName
                     ldy  $sourceName+1
                     sta  ${target.asmVarname}
-                    sty  ${target.asmVarname}+1
-                """)
+                    sty  ${target.asmVarname}+1""")
             }
             TargetStorageKind.MEMORY -> {
                 throw AssemblyError("assign word to memory ${target.memory} should have gotten a typecast")
             }
             TargetStorageKind.ARRAY -> {
                 target.array!!
-                if(target.array.splitWords)
-                    TODO("assign var into split words ${target.position}")
                 if(target.constArrayIndexValue!=null) {
                     val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
                     when(target.datatype) {
@@ -2081,12 +2080,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                         }
                         in WordDatatypes -> {
-                            asmgen.out("""
-                                lda  $sourceName
-                                sta  ${target.asmVarname}+$scaledIdx
-                                lda  $sourceName+1
-                                sta  ${target.asmVarname}+$scaledIdx+1
-                            """)
+                            if(target.array.splitWords)
+                                asmgen.out("""
+                                    lda  $sourceName
+                                    sta  ${target.asmVarname}_lsb+${target.constArrayIndexValue}
+                                    lda  $sourceName+1
+                                    sta  ${target.asmVarname}_msb+${target.constArrayIndexValue}""")
+                            else
+                                asmgen.out("""
+                                    lda  $sourceName
+                                    sta  ${target.asmVarname}+$scaledIdx
+                                    lda  $sourceName+1
+                                    sta  ${target.asmVarname}+$scaledIdx+1""")
                         }
                         DataType.FLOAT -> {
                             asmgen.out("""
@@ -2096,8 +2101,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 sty  P8ZP_SCRATCH_W1+1
                                 lda  #<(${target.asmVarname}+$scaledIdx)
                                 ldy  #>(${target.asmVarname}+$scaledIdx)
-                                jsr  floats.copy_float
-                            """)
+                                jsr  floats.copy_float""")
                         }
                         else -> throw AssemblyError("weird target variable type ${target.datatype}")
                     }
@@ -2111,12 +2115,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         DataType.UWORD, DataType.WORD -> {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                            asmgen.out("""
-                                lda  $sourceName
-                                sta  ${target.asmVarname},y
-                                lda  $sourceName+1
-                                sta  ${target.asmVarname}+1,y
-                            """)
+                            if(target.array.splitWords)
+                                asmgen.out("""
+                                    lda  $sourceName
+                                    sta  ${target.asmVarname}_lsb,y
+                                    lda  $sourceName+1
+                                    sta  ${target.asmVarname}_msb,y""")
+                            else
+                                asmgen.out("""
+                                    lda  $sourceName
+                                    sta  ${target.asmVarname},y
+                                    lda  $sourceName+1
+                                    sta  ${target.asmVarname}+1,y""")
                         }
                         DataType.FLOAT -> {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
@@ -2315,6 +2325,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     return
                 }
+                if(target.array!!.splitWords)
+                    TODO("assign into split words ${target.position}")
                 if (target.constArrayIndexValue!=null) {
                     val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
                     asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
@@ -2448,22 +2460,41 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
             }
             TargetStorageKind.ARRAY -> {
-                if (wordtarget.constArrayIndexValue!=null) {
-                    val scaledIdx = wordtarget.constArrayIndexValue!! * 2u
-                    asmgen.out("  lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx")
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                        asmgen.out("  stz  ${wordtarget.asmVarname}+$scaledIdx+1")
-                    else
-                        asmgen.out("  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
-                }
-                else {
-                    asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array!!, wordtarget.datatype, CpuRegister.Y)
-                    asmgen.out("""
-                        lda  $sourceName
-                        sta  ${wordtarget.asmVarname},y
-                        iny
-                        lda  #0
-                        sta  ${wordtarget.asmVarname},y""")
+                if(wordtarget.array!!.splitWords) {
+                    if (wordtarget.constArrayIndexValue!=null) {
+                        val scaledIdx = wordtarget.constArrayIndexValue!!
+                        asmgen.out("  lda  $sourceName  | sta  ${wordtarget.asmVarname}_lsb+$scaledIdx")
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  ${wordtarget.asmVarname}_msb+$scaledIdx")
+                        else
+                            asmgen.out("  lda  #0  | sta  ${wordtarget.asmVarname}_msb+$scaledIdx")
+                    }
+                    else {
+                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, wordtarget.datatype, CpuRegister.Y)
+                        asmgen.out("""
+                            lda  $sourceName
+                            sta  ${wordtarget.asmVarname}_lsb,y
+                            lda  #0
+                            sta  ${wordtarget.asmVarname}_msb,y""")
+                    }
+                } else {
+                    if (wordtarget.constArrayIndexValue!=null) {
+                        val scaledIdx = wordtarget.constArrayIndexValue!! * 2u
+                        asmgen.out("  lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx")
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  ${wordtarget.asmVarname}+$scaledIdx+1")
+                        else
+                            asmgen.out("  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
+                    }
+                    else {
+                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, wordtarget.datatype, CpuRegister.Y)
+                        asmgen.out("""
+                            lda  $sourceName
+                            sta  ${wordtarget.asmVarname},y
+                            iny
+                            lda  #0
+                            sta  ${wordtarget.asmVarname},y""")
+                    }
                 }
             }
             TargetStorageKind.REGISTER -> {
@@ -2720,49 +2751,93 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.ARRAY -> {
-                if(target.array!!.splitWords)
-                    TODO("assign register pair into split words ${target.position}")
-                if (target.constArrayIndexValue!=null) {
-                    val idx = target.constArrayIndexValue!! * 2u
-                    when (regs) {
-                        RegisterOrPair.AX -> asmgen.out("  sta  ${target.asmVarname}+$idx |  stx  ${target.asmVarname}+$idx+1")
-                        RegisterOrPair.AY -> asmgen.out("  sta  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
-                        RegisterOrPair.XY -> asmgen.out("  stx  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
-                        in Cx16VirtualRegisters -> {
+                if(target.array!!.splitWords) {
+                    // assign to split lsb/msb word array
+                    if (target.constArrayIndexValue!=null) {
+                        val idx = target.constArrayIndexValue!!
+                        when (regs) {
+                            RegisterOrPair.AX -> asmgen.out("  sta  ${target.asmVarname}_lsb+$idx |  stx  ${target.asmVarname}_msb+$idx")
+                            RegisterOrPair.AY -> asmgen.out("  sta  ${target.asmVarname}_lsb+$idx |  sty  ${target.asmVarname}_msb+$idx")
+                            RegisterOrPair.XY -> asmgen.out("  stx  ${target.asmVarname}_lsb+$idx |  sty  ${target.asmVarname}_msb+$idx")
+                            in Cx16VirtualRegisters -> {
+                                val srcReg = asmgen.asmSymbolName(regs)
+                                asmgen.out("""
+                                    lda  $srcReg
+                                    sta  ${target.asmVarname}_lsb+$idx
+                                    lda  $srcReg+1
+                                    sta  ${target.asmVarname}_msb+$idx""")
+                            }
+                            else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
+                        }
+                    }
+                    else {
+                        if (regs !in Cx16VirtualRegisters) {
+                            when (regs) {
+                                RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
+                                RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
+                                RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
+                                else -> throw AssemblyError("expected reg pair")
+                            }
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y, true)
+                            asmgen.out("""
+                                pla
+                                sta  ${target.asmVarname}_lsb,y
+                                pla
+                                sta  ${target.asmVarname}_msb,y""")
+                        } else {
                             val srcReg = asmgen.asmSymbolName(regs)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y, true)
                             asmgen.out("""
                                 lda  $srcReg
-                                sta  ${target.asmVarname}+$idx
+                                sta  ${target.asmVarname}_lsb,y
                                 lda  $srcReg+1
-                                sta  ${target.asmVarname}+$idx+1""")
+                                sta  ${target.asmVarname}_msb,y""")
                         }
-                        else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                     }
-                }
-                else {
-                    if (regs !in Cx16VirtualRegisters) {
+                } else {
+                    // assign to normal word array
+                    if (target.constArrayIndexValue!=null) {
+                        val idx = target.constArrayIndexValue!! * 2u
                         when (regs) {
-                            RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
-                            RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
-                            RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
-                            else -> throw AssemblyError("expected reg pair")
+                            RegisterOrPair.AX -> asmgen.out("  sta  ${target.asmVarname}+$idx |  stx  ${target.asmVarname}+$idx+1")
+                            RegisterOrPair.AY -> asmgen.out("  sta  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
+                            RegisterOrPair.XY -> asmgen.out("  stx  ${target.asmVarname}+$idx |  sty  ${target.asmVarname}+$idx+1")
+                            in Cx16VirtualRegisters -> {
+                                val srcReg = asmgen.asmSymbolName(regs)
+                                asmgen.out("""
+                                    lda  $srcReg
+                                    sta  ${target.asmVarname}+$idx
+                                    lda  $srcReg+1
+                                    sta  ${target.asmVarname}+$idx+1""")
+                            }
+                            else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                         }
-                        asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y, true)
-                        asmgen.out("""
-                            pla
-                            sta  ${target.asmVarname},y
-                            dey
-                            pla
-                            sta  ${target.asmVarname},y""")
-                    } else {
-                        val srcReg = asmgen.asmSymbolName(regs)
-                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y, true)
-                        asmgen.out("""
-                            lda  $srcReg+1
-                            sta  ${target.asmVarname},y
-                            dey
-                            lda  $srcReg
-                            sta  ${target.asmVarname},y""")
+                    }
+                    else {
+                        if (regs !in Cx16VirtualRegisters) {
+                            when (regs) {
+                                RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
+                                RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
+                                RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
+                                else -> throw AssemblyError("expected reg pair")
+                            }
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y, true)
+                            asmgen.out("""
+                                pla
+                                sta  ${target.asmVarname},y
+                                dey
+                                pla
+                                sta  ${target.asmVarname},y""")
+                        } else {
+                            val srcReg = asmgen.asmSymbolName(regs)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y, true)
+                            asmgen.out("""
+                                lda  $srcReg+1
+                                sta  ${target.asmVarname},y
+                                dey
+                                lda  $srcReg
+                                sta  ${target.asmVarname},y""")
+                        }
                     }
                 }
             }
@@ -2856,6 +2931,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     throw AssemblyError("memory is bytes not words")
                 }
                 TargetStorageKind.ARRAY -> {
+                    if(target.array!!.splitWords)
+                        TODO("assign into split words ${target.position}")
                     asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
                     if(target.array.splitWords)
                         asmgen.out("""
@@ -2913,6 +2990,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 throw AssemblyError("assign word to memory ${target.memory} should have gotten a typecast")
             }
             TargetStorageKind.ARRAY -> {
+                if(target.array!!.splitWords)
+                    TODO("assign into split words ${target.position}")
                 asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
                 if(target.array.splitWords)
                     asmgen.out("""
@@ -2983,6 +3062,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         return
                     }
+                    if(target.array!!.splitWords)
+                        TODO("assign into split words ${target.position}")
                     if (target.constArrayIndexValue!=null) {
                         val indexValue = target.constArrayIndexValue!!
                         asmgen.out("  stz  ${target.asmVarname}+$indexValue")
@@ -3039,6 +3120,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     return
                 }
+                if(target.array!!.splitWords)
+                    TODO("assign into split words ${target.position}")
                 if (target.constArrayIndexValue!=null) {
                     val indexValue = target.constArrayIndexValue!!
                     asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname}+$indexValue")

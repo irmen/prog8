@@ -543,6 +543,11 @@ internal class ProgramAndVarsGen(
             DataType.UWORD -> asmgen.out("${variable.name}\t.word  ?")
             DataType.WORD -> asmgen.out("${variable.name}\t.sint  ?")
             DataType.FLOAT -> asmgen.out("${variable.name}\t.fill  ${compTarget.machine.FLOAT_MEM_SIZE}")
+            in SplitWordArrayTypes -> {
+                val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!) / 2
+                asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf")
+                asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf")
+            }
             in ArrayDatatypes -> {
                 val numbytes = compTarget.memorySize(variable.dt, variable.length!!)
                 asmgen.out("${variable.name}\t.fill  $numbytes")

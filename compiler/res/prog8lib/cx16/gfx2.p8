@@ -771,9 +771,9 @@ _done
         ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
         ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
         const ubyte MAXDEPTH = 48
-        word[MAXDEPTH] @shared stack_xl
-        word[MAXDEPTH] @shared stack_xr
-        word[MAXDEPTH] @shared stack_y
+        word[MAXDEPTH] @split @shared stack_xl
+        word[MAXDEPTH] @split @shared stack_xr
+        word[MAXDEPTH] @split @shared stack_y
         byte[MAXDEPTH] @shared stack_dy
         cx16.r12L = 0       ; stack pointer
         word x1
@@ -791,21 +791,19 @@ _done
 ;;                stack_dy[cx16.r12L] = sdy
 ;;                cx16.r12L++
                 %asm {{
-                    lda  cx16.r12L
-                    asl  a
-                    tay
+                    ldy  cx16.r12L
                     lda  sxl
-                    sta  stack_xl,y
+                    sta  stack_xl_lsb,y
                     lda  sxl+1
-                    sta  stack_xl+1,y
+                    sta  stack_xl_msb,y
                     lda  sxr
-                    sta  stack_xr,y
+                    sta  stack_xr_lsb,y
                     lda  sxr+1
-                    sta  stack_xr+1,y
+                    sta  stack_xr_msb,y
                     lda  sy
-                    sta  stack_y,y
+                    sta  stack_y_lsb,y
                     lda  sy+1
-                    sta  stack_y+1,y
+                    sta  stack_y_msb,y
                     ldy  cx16.r12L
                     lda  sdy
                     sta  stack_dy,y
@@ -819,23 +817,20 @@ _done
 ;;            x2 = stack_xr[cx16.r12L]
 ;;            y = stack_y[cx16.r12L]
 ;;            dy = stack_dy[cx16.r12L]
-;;            y += dy
             %asm {{
                 dec  cx16.r12L
-                lda  cx16.r12L
-                asl  a
-                tay
-                lda  stack_xl,y
+                ldy  cx16.r12L
+                lda  stack_xl_lsb,y
                 sta  x1
-                lda  stack_xl+1,y
+                lda  stack_xl_msb,y
                 sta  x1+1
-                lda  stack_xr,y
+                lda  stack_xr_lsb,y
                 sta  x2
-                lda  stack_xr+1,y
+                lda  stack_xr_msb,y
                 sta  x2+1
-                lda  stack_y,y
+                lda  stack_y_lsb,y
                 sta  y
-                lda  stack_y+1,y
+                lda  stack_y_msb,y
                 sta  y+1
                 ldy  cx16.r12L
                 lda  stack_dy,y

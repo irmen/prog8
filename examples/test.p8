@@ -6,6 +6,17 @@ main {
 
     sub start() {
         uword[] @split split_uwords = [12345, 60000, 4096]
+        ubyte xx=1
+        txt.print_ub(lsb(split_uwords[xx]))
+        txt.spc()
+        txt.print_ub(msb(split_uwords[xx]))
+        txt.spc()
+        split_uwords[1] = mkword($11, xx)        ; TODO fix this in codegen
+        txt.print_uw(split_uwords[1])
+    }
+
+    sub start22() {
+        uword[] @split split_uwords = [12345, 60000, 4096]
         word[] @split split_words = [-12345, -2222, 22222]
         uword[256] @split @shared split2
         word[256] @split @shared split3
@@ -78,11 +89,30 @@ main {
 
         print_arrays()
         txt.nl()
-        split_uwords[1] |= 4095
-        split_words[1] |= 127
+;        split_uwords[1] |= 4095    ; TODO fix this in 6502 codegen
+;        split_words[1] |= 127      ; TODO fix this in 6502 codegen
+;
+;        print_arrays()
+;        txt.nl()
+;        txt.nl()
 
-        print_arrays()
+        cx16.r0 = split_uwords[1]
+        cx16.r1s = split_words[1]
+        ww = 6655
+        split_uwords[1] = xx
+        split_words[1] = xx as word
+        txt.print_uw(split_uwords[1])
+        txt.spc()
+        txt.print_w(split_words[1])
         txt.nl()
+        ww=7788
+        split_uwords[xx] = ww
+        split_words[xx] = ww as word
+        txt.print_uw(split_uwords[1])
+        txt.spc()
+        txt.print_w(split_words[1])
+        txt.nl()
+
     }
 }
 
