@@ -15,7 +15,7 @@ jobs:
       - name: build and install recent 64tass
         run: |
           sudo apt-get install -y make build-essential
-          git clone https://github.com/irmen/64tass
+          git clone --depth=1 https://github.com/irmen/64tass
           cd 64tass
           make -j4
           sudo make install
