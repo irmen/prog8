@@ -12,8 +12,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: keyring
-        run: sudo apt-get install debian-keyring debian-archive-keyring
+      - name: get missing public keys
+        run: sudo apt-key adv --keyserver hkp://pool.sks-keyservers.net:80 --recv-keys 648ACFD622F3D138 0E98404D386FA1D9
 
       - name: add debian testing repository and install 64tass
         uses: myci-actions/add-deb-repo@11
