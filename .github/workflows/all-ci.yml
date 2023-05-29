@@ -16,7 +16,7 @@ jobs:
         uses: myci-actions/add-deb-repo@11
         with:
           repo: ftp://ftp.debian.org/debian/ testing main
-          repo-name: debian testing
+          repo-name: testing
           install: 64tass
 
       - name: Set up JDK 11
