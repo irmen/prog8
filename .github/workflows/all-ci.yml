@@ -12,11 +12,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: keyring
+        run: sudo apt-get install debian-keyring debian-archive-keyring
+
       - name: add debian testing repository and install 64tass
         uses: myci-actions/add-deb-repo@11
         with:
           repo: deb http://ftp.debian.org/debian/ testing contrib main
           repo-name: testing
+          keys-asc: https://gagis.hopto.org/repo/cppfw/pubkey.gpg
           install: 64tass
 
       - name: Set up JDK 11
