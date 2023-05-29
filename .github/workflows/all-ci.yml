@@ -15,7 +15,7 @@ jobs:
       - name: add debian testing repository and install 64tass
         uses: myci-actions/add-deb-repo@11
         with:
-          repo: http://ftp.debian.org/debian/ testing main
+          repo: deb http://ftp.debian.org/debian/ testing contrib main
           repo-name: testing
           install: 64tass
 
