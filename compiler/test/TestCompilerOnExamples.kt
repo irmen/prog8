@@ -36,6 +36,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         useNewExprCode = false,
         compilationTarget = target.name,
         evalStackBaseAddress = null,
+        splitWordArrays = false,
         symbolDefs = emptyMap(),
         outputDir = outputDir
     )

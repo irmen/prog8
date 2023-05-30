@@ -40,6 +40,7 @@ class CompilerArguments(val filepath: Path,
                         val useNewExprCode: Boolean,
                         val compilationTarget: String,
                         val evalStackBaseAddress: UInt?,
+                        val splitWordArrays: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -80,6 +81,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 varsHigh = args.varsHigh
                 useNewExprCode = args.useNewExprCode
                 evalStackBaseAddress = args.evalStackBaseAddress
+                splitWordArrays = args.splitWordArrays
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
             }

@@ -21,6 +21,7 @@ class CompilationOptions(val output: OutputType,
                          var experimentalCodegen: Boolean = false,
                          var varsHigh: Boolean = false,
                          var useNewExprCode: Boolean = false,
+                         var splitWordArrays: Boolean = false,
                          var evalStackBaseAddress: UInt? = null,
                          var outputDir: Path = Path(""),
                          var symbolDefs: Map<String, String> = emptyMap()

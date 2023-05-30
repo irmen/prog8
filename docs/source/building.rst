@@ -162,6 +162,11 @@ One or more .p8 module files
 ``-expericodegen``
     Use experimental code generation backend (*incomplete*).
 
+``-splitarrays``
+    Treat all word arrays as tagged with @split so they are all lsb/msb split into memory.
+    This removes the need to add @split yourself but some programs may fail to compile with
+    this option as not all array operations are implemented yet on split arrays.
+
 ``-vm``
     load and run a p8-virt or p8-ir listing in the internal VirtualMachine instead of compiling a prog8 program file..
 

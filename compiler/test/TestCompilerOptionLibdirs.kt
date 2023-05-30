@@ -53,6 +53,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             useNewExprCode = false,
             compilationTarget = Cx16Target.NAME,
             evalStackBaseAddress = null,
+            splitWordArrays = false,
             symbolDefs = emptyMap(),
             sourceDirs,
             outputDir

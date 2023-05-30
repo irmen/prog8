@@ -162,6 +162,19 @@ class AstPreprocessor(val program: Program,
                     nextAssignment.origin = AssignmentOrigin.VARINIT
             }
         }
+
+        if(options.splitWordArrays && (decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW)) {
+            // make all word arrays automatically be tagged as split arrays
+            if(!decl.definingBlock.isInLibrary) {
+                val splitDt = ArrayToElementTypes.getValue(decl.datatype)
+                val newDecl = VarDecl(
+                    decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name,
+                    decl.value, true, decl.sharedWithAsm, true, decl.position
+                )
+                return listOf(IAstModification.ReplaceNode(decl, newDecl, parent))
+            }
+        }
+
         return noModifications
     }
 

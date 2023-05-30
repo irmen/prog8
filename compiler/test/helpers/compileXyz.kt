@@ -37,7 +37,8 @@ internal fun compileFile(
         evalStackBaseAddress = null,
         symbolDefs = emptyMap(),
         outputDir = outputDir,
-        errors = errors ?: ErrorReporterForTests()
+        errors = errors ?: ErrorReporterForTests(),
+        splitWordArrays = false
     )
     return compileProgram(args)
 }

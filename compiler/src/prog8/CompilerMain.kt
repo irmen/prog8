@@ -53,6 +53,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val varsHigh by cli.option(ArgType.Boolean, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program")
     val useNewExprCode by cli.option(ArgType.Boolean, fullName = "newexpr", description = "use new expression code-gen (experimental)")
+    val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -130,6 +131,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     useNewExprCode == true,
                     compilationTarget,
                     evalStackAddr,
+                    splitWordArrays == true,
                     processedSymbols,
                     srcdirs,
                     outputPath
@@ -195,6 +197,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     useNewExprCode == true,
                     compilationTarget,
                     evalStackAddr,
+                    splitWordArrays == true,
                     processedSymbols,
                     srcdirs,
                     outputPath

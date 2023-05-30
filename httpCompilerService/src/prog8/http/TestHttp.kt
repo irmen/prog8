@@ -42,6 +42,7 @@ class RequestParser : Take {
             quietAssembler = false,
             asmListfile = false,
             experimentalCodegen = false,
+            splitWordArrays = false,
             varsHigh = false,
             useNewExprCode = false
         )

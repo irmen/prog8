@@ -5,6 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.SignedDatatypes
+import prog8.code.core.SplitWordArrayTypes
 import prog8.intermediate.*
 
 
@@ -280,6 +281,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> IMSyscall.REVERSE_BYTES
                 DataType.ARRAY_UW, DataType.ARRAY_W -> IMSyscall.REVERSE_WORDS
                 DataType.ARRAY_F -> IMSyscall.REVERSE_FLOATS
+                in SplitWordArrayTypes -> TODO("split word reverse")
                 else -> throw IllegalArgumentException("weird type to reverse")
             }
         val result = mutableListOf<IRCodeChunkBase>()
@@ -302,6 +304,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 DataType.ARRAY_W -> IMSyscall.SORT_WORD
                 DataType.STR -> IMSyscall.SORT_UBYTE
                 DataType.ARRAY_F -> throw IllegalArgumentException("sorting a floating point array is not supported")
+                in SplitWordArrayTypes -> TODO("split word sort")
                 else -> throw IllegalArgumentException("weird type to sort")
             }
         val result = mutableListOf<IRCodeChunkBase>()
