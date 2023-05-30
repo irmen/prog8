@@ -782,22 +782,42 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             return this
         if(targettype in ArrayDatatypes) {
             val elementType = ArrayToElementTypes.getValue(targettype)
-            val castArray = value.map{
-                val num = it as? NumericLiteral
-                if(num==null) {
-                    // an array of UWORDs could possibly also contain AddressOfs, other stuff can't be typecasted
-                    if (elementType != DataType.UWORD || it !is AddressOf)
-                        return null  // can't cast a value of  the array, abort
-                    it
-                } else {
-                    val cast = num.cast(elementType)
+
+            // if all values are numeric literals, just do the cast.
+            // if not:
+            // if all values are numeric literals OR addressof OR identifiers, and the target type is WORD or UWORD,
+            //    do the cast for the numeric literals and leave the rest.
+            // otherwise: return null (cast cannot be done)
+
+            if(value.all { it is NumericLiteral }) {
+                val castArray = value.map {
+                    val cast = (it as NumericLiteral).cast(elementType)
                     if(cast.isValid)
-                        cast.valueOrZero()
+                        cast.valueOrZero() as Expression
                     else
-                        return null // can't cast a value of the array, abort
-                }
-            }.toTypedArray()
-            return ArrayLiteral(InferredTypes.InferredType.known(targettype), castArray, position = position)
+                        return null // abort
+                }.toTypedArray()
+                return ArrayLiteral(InferredTypes.InferredType.known(targettype), castArray, position = position)
+            }
+            else if(elementType in WordDatatypes && value.all { it is NumericLiteral || it is AddressOf || it is IdentifierReference}) {
+                val castArray = value.map {
+                    when(it) {
+                        is AddressOf -> it as Expression
+                        is IdentifierReference -> it as Expression
+                        is NumericLiteral -> {
+                            val numcast = it.cast(elementType)
+                            if(numcast.isValid)
+                                numcast.valueOrZero() as Expression
+                            else
+                                return null     // abort
+                        }
+                        else -> return null     // abort
+                    }
+                }.toTypedArray()
+                return ArrayLiteral(InferredTypes.InferredType.known(targettype), castArray, position = position)
+            }
+            else
+                return null
         }
         return null    // invalid type conversion from $this to $targettype
     }

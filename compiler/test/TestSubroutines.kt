@@ -26,7 +26,7 @@ class TestSubroutines: FunSpec({
 
                 sub start() {
                     func("abc")
-                    uword[] commands = ["abc", func]
+                    uword[] commands = ["abc", 1.234]
                 }
             }"""
         val errors = ErrorReporterForTests()

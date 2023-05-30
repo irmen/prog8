@@ -216,13 +216,13 @@ class VarDecl(val type: VarDeclType,
             )
         }
 
-        fun createAuto(array: ArrayLiteral): VarDecl {
+        fun createAuto(array: ArrayLiteral, splitArray: Boolean): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val declaredType = ArrayToElementTypes.getValue(arrayDt)
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, array,
-                    isArray = true, sharedWithAsm = false, splitArray = false, position = array.position)
+                    isArray = true, sharedWithAsm = false, splitArray = splitArray, position = array.position)
         }
     }
 

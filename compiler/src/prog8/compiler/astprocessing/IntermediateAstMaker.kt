@@ -433,7 +433,12 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
 
     private fun transform(src: AddressOf): PtAddressOf {
         val addr = PtAddressOf(src.position)
-        addr.add(transform(src.identifier))
+        val (name, dt) = src.identifier.targetNameAndType(program)
+        if(dt in SplitWordArrayTypes) {
+            addr.add(PtIdentifier(name+"_lsb", dt, src.identifier.position))
+        } else {
+            addr.add(transform(src.identifier))
+        }
         return addr
     }
 

@@ -4,7 +4,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.code.ast.printAst
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
@@ -130,10 +129,23 @@ main {
     }}
   }
 }"""
-        val result6502 = compileText(C64Target(), false, text, writeAssembly = true)!!.codegenAst!!
-        val resultVm = compileText(VMTarget(), false, text, writeAssembly = true)!!.codegenAst!!
-        printAst(result6502, true, ::println)
-        printAst(resultVm, true, ::println)
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    test("split array assignments") {
+        val text = """
+main {
+    sub start() {
+        str name1 = "name1"
+        str name2 = "name2"
+        uword[] @split names = [name1, name2, "name3"]
+        cx16.r0++
+        names = [1111,2222,3333]
+    } 
+}"""
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 })
 

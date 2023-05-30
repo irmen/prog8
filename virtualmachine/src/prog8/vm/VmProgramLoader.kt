@@ -326,9 +326,16 @@ class VmProgramLoader {
                         }
                         in SplitWordArrayTypes -> {
                             for(elt in it) {
-                                val number = elt.number!!.toInt().toUInt()
+                                val number = if(elt.addressOfSymbol!=null) {
+                                    val name = elt.addressOfSymbol!!
+                                    val symbolAddress = symbolAddresses[name]
+                                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name") // TODO
+                                    symbolAddress.toUInt()
+                                } else {
+                                    elt.number!!.toInt().toUInt()
+                                }
                                 memory.setUB(addr, (number and 255u).toUByte())
-                                memory.setUB(addr+variable.length!!, (number shr 8).toUByte())
+                                memory.setUB(addr + variable.length!!, (number shr 8).toUByte())
                                 addr++
                             }
                         }

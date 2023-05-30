@@ -291,8 +291,10 @@ internal class StatementReorderer(val program: Program,
         } else {
             if (sourceVar.arraysize!!.constIndex() != targetVar.arraysize!!.constIndex())
                 errors.err("element count mismatch", assign.position)
-            if (sourceVar.datatype != targetVar.datatype)
-                errors.err("element type mismatch", assign.position)
+            if (sourceVar.datatype != targetVar.datatype) {
+                if(!targetVar.splitArray || (sourceVar.datatype!=DataType.ARRAY_W && sourceVar.datatype!=DataType.ARRAY_UW))
+                    errors.err("element type mismatch", assign.position)
+            }
         }
 
         if(!errors.noErrors())

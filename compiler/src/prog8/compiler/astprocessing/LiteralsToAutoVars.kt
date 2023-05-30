@@ -7,14 +7,12 @@ import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
+import prog8.ast.statements.Assignment
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
+import prog8.code.core.*
 
 
 internal class LiteralsToAutoVars(private val program: Program,
@@ -60,10 +58,12 @@ internal class LiteralsToAutoVars(private val program: Program,
         } else {
             val arrayDt = array.guessDatatype(program)
             if(arrayDt.isKnown) {
+                val parentAssign = parent as? Assignment
+                val targetDt = parentAssign?.target?.inferType(program) ?: arrayDt
                 // turn the array literal it into an identifier reference
-                val litval2 = array.cast(arrayDt.getOr(DataType.UNDEFINED))
+                val litval2 = array.cast(targetDt.getOr(DataType.UNDEFINED))
                 if(litval2!=null) {
-                    val vardecl2 = VarDecl.createAuto(litval2)
+                    val vardecl2 = VarDecl.createAuto(litval2, targetDt.getOr(DataType.UNDEFINED) in SplitWordArrayTypes)
                     val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                     return listOf(
                         IAstModification.ReplaceNode(array, identifier, parent),
