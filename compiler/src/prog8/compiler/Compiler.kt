@@ -283,10 +283,9 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
     val launcherTypeStr = launcherDirective?.args?.single()?.name?.uppercase()
     val zpoption: String? = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
             as? Directive)?.args?.single()?.name?.uppercase()
-    val allOptions = program.modules.flatMap { it.statements }.filter { it is Directive && it.directive == "%option" }
-        .flatMap { (it as Directive).args }.toSet()
-    val floatsEnabled = allOptions.any { it.name == "enable_floats" }
-    val noSysInit = allOptions.any { it.name == "no_sysinit" }
+    val allOptions = program.modules.flatMap { it.options() }.toSet()
+    val floatsEnabled = "enable_floats" in allOptions
+    val noSysInit = "no_sysinit" in allOptions
     val zpType: ZeropageType =
         if (zpoption == null)
             if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE

@@ -1,4 +1,5 @@
 %import textio
+%option splitarrays
 
 main {
     sub start() {
@@ -6,6 +7,8 @@ main {
         str name2 = "name2"
         uword[] names = [name1, name2, "name3"]
         cx16.r0++
+        ubyte xx = 2
+        names[xx] = "irmen"
         uword ww
         for ww in names {
             txt.print(ww)
@@ -20,9 +23,8 @@ main {
         }
         txt.nl()
         txt.print("end.")
-        %asm {{
-            lda  #$3e
-        }}
+        repeat {
+        }
     }
 }
 

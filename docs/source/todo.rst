@@ -17,17 +17,8 @@ For 9.0 major changes
 - DONE: added sys.irqsafe_xxx irqd routines
 - DONE: added gfx2.fill() flood fill routine
 - DONE: added @split storage class for (u)word arrays to store them as split lsb/msb arrays which is more efficient (but doesn't yet support all array operations)
-- DONE: added -splitarrays command line option to treat all word arrays as tagged with @split
+- DONE: added -splitarrays command line option and '%option splitarrays' to treat all word arrays as tagged with @split
 
-- [much work:] more support for (64tass) SEGMENTS ?
-    - (What, how, isn't current BSS support enough?)
-    - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
-    - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
-    - maybe or may not needed: the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
-      just initialize them yourself in start() if you need a non-zero value .
-    - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
-    - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
-    - (need separate step in codegen and IR to write the "golden" variables)
 
 
 Need help with
@@ -39,7 +30,15 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
-
+- [much work:] more support for (64tass) SEGMENTS ?
+    - (What, how, isn't current BSS support enough?)
+    - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
+    - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
+    - maybe or may not needed: the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
+      just initialize them yourself in start() if you need a non-zero value .
+    - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
+    - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
+    - (need separate step in codegen and IR to write the "golden" variables)
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
