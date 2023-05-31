@@ -1,10 +1,6 @@
 TODO
 ====
 
-- instead of resetting the computer at program exit, reinit screen and print message >PROGRAM EXIT CODE 123;RESET COMPUTER.< + sei + endless loop.
-  change troubleshooting and other references in the docs.
-
-
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables

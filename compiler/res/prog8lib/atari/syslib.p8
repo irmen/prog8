@@ -7,31 +7,6 @@ atari {
         &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
         &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
 
-; ---- kernal routines ----
-; TODO
-
-
-asmsub  init_system()  {
-    ; Initializes the machine to a sane starting state.
-    ; Called automatically by the loader program logic.
-    ; TODO
-    %asm {{
-        sei
-        cld
-        clc
-        ; TODO reset screen mode etc etc
-        clv
-        cli
-        rts
-    }}
-}
-
-asmsub  init_system_phase2()  {
-    %asm {{
-        rts     ; no phase 2 steps on the Atari
-    }}
-}
-
 }
 
 
@@ -40,6 +15,26 @@ sys {
 
     const ubyte target = 8         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 8 = atari800XL
 
+    asmsub  init_system()  {
+        ; Initializes the machine to a sane starting state.
+        ; Called automatically by the loader program logic.
+        ; TODO
+        %asm {{
+            sei
+            cld
+            clc
+            ; TODO reset screen mode etc etc
+            clv
+            cli
+            rts
+        }}
+    }
+
+    asmsub  init_system_phase2()  {
+        %asm {{
+            rts     ; no phase 2 steps on the Atari
+        }}
+    }
 
     asmsub  reset_system()  {
         ; Soft-reset the system back to initial power-on Basic prompt.

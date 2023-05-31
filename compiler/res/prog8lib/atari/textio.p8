@@ -118,7 +118,6 @@ romsub $F2Fd = waitkey()
 asmsub chrout(ubyte char @ A) {
 	%asm {{
 		sta  _tmp_outchar+1
-		pha
 		txa
 		pha
 		tya
@@ -130,7 +129,6 @@ _tmp_outchar
 		tay
 		pla
 		tax
-		pla
 		rts
 	}}
 }

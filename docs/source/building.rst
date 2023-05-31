@@ -255,28 +255,32 @@ Troubleshooting
 Compiler doesn't run, complains about "UnsupportedClassVersionError"
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You need to install and use JDK version 11 or newer to run the prog8 compiler. Check this with "java -version".
+See :ref:`requirements`.
 
-The computer resets unexpectedly (at the end of the program)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you are using the default 'zeropage' compiler option, and your program exits, it is not possible
-to return back to the BASIC prompt. The only reliable course of action is to reboot the system.
-(this is due to the fact that in the default mode, prog8 can overwrite important BASIC and Kernal
-variables in memory).
-To avoid a sudden system reset, use an empty ``repeat`` loop at the end of your program to keep it from exiting.
+The computer just resets (at the end of the program)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In the default compiler configuration, it is not safely possible to return back to the BASIC prompt when
+your program exits. The only reliable thing to do is to reboot the system.
+This is due to the fact that in this mode, prog8 will overwrite important BASIC and Kernal variables in zero page memory.
+To avoid the reset from happening, use an empty ``repeat`` loop at the end of your program to keep it from exiting.
 Alternatively, if you want your program to exit cleanly back to the BASIC prompt,
 you have to use ``%zeropage basicsafe``, see :ref:`directives`.
+The reason this is not the default is that it is very beneficial to have more zeropage space available to the program,
+and programs that have to reaturn cleanly to the BASIC prompt are considered to be the exception.
+
 
 Odd text and screen colors at start
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Prog8 will reset the screen mode and colors to a uniform well-known state. If you don't like the
-default text and screen colors, you can simply change them to whatever you want using the
-appropriate routines in the ``textio`` module.
+default text and screen colors, you can simply change them yourself to whatever you want at the
+start of your program. It depends on the computer system how you do this but there are some
+routines in the textio module to help you with this.
 Alternatively you can choose to disable this re-initialization altogether
 using ``%option no_sysinit``, see :ref:`directives`.
 
 Floats error
 ^^^^^^^^^^^^
-Getting an assembler error about undefined symbols such as ``not defined 'floats'``?
+Are you getting an assembler error about undefined symbols such as ``not defined 'floats'``?
 This happens when your program uses floating point values, and you forgot to import ``floats`` library.
 If you use floating points, the compiler needs routines from that library.
 Fix it by adding an ``%import floats``.
