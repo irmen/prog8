@@ -164,18 +164,23 @@ class AstPreprocessor(val program: Program,
         }
 
         if(options.splitWordArrays && (decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW)) {
-            // make all word arrays automatically be tagged as split arrays
-            if(!decl.definingBlock.isInLibrary) {
-                val splitDt = ArrayToElementTypes.getValue(decl.datatype)
-                val newDecl = VarDecl(
-                    decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name,
-                    decl.value, true, decl.sharedWithAsm, true, decl.position
-                )
-                return listOf(IAstModification.ReplaceNode(decl, newDecl, parent))
-            }
+            if(!decl.definingBlock.isInLibrary)
+                return makeSplitArray(decl)
         }
 
+        if("splitarrays" in decl.definingBlock.options() && (decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW))
+            return makeSplitArray(decl)
+
         return noModifications
+    }
+
+    private fun makeSplitArray(decl: VarDecl): Iterable<IAstModification> {
+        val splitDt = ArrayToElementTypes.getValue(decl.datatype)
+        val newDecl = VarDecl(
+            decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name,
+            decl.value, true, decl.sharedWithAsm, true, decl.position
+        )
+        return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {

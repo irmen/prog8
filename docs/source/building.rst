@@ -86,7 +86,7 @@ The compiler will link everything together into one output program at the end.
 If you start the compiler without arguments, it will print a short usage text.
 For normal use the compiler can be invoked with the command:
 
-    ``$ java -jar prog8compiler-7.3-all.jar sourcefile.p8``
+    ``$ java -jar prog8compiler-8.14-all.jar sourcefile.p8``
 
     (Use the appropriate name and version of the jar file downloaded from one of the Git releases.
     Other ways to invoke the compiler are also available: see the introduction page about how
@@ -252,10 +252,35 @@ that support these symbol and breakpoint lists.
 Troubleshooting
 ---------------
 
+Compiler doesn't run, complains about "UnsupportedClassVersionError"
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+You need to install and use JDK version 11 or newer to run the prog8 compiler. Check this with "java -version".
+
+The computer resets unexpectedly (at the end of the program)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you are using the default 'zeropage' compiler option, and your program exits, it is not possible
+to return back to the BASIC prompt. The only reliable course of action is to reboot the system.
+(this is due to the fact that in the default mode, prog8 can overwrite important BASIC and Kernal
+variables in memory).
+To avoid a sudden system reset, use an empty ``repeat`` loop at the end of your program to keep it from exiting.
+Alternatively, if you want your program to exit cleanly back to the BASIC prompt,
+you have to use ``%zeropage basicsafe``, see :ref:`directives`.
+
+Odd text and screen colors at start
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Prog8 will reset the screen mode and colors to a uniform well-known state. If you don't like the
+default text and screen colors, you can simply change them to whatever you want using the
+appropriate routines in the ``textio`` module.
+Alternatively you can choose to disable this re-initialization altogether
+using ``%option no_sysinit``, see :ref:`directives`.
+
+Floats error
+^^^^^^^^^^^^
 Getting an assembler error about undefined symbols such as ``not defined 'floats'``?
 This happens when your program uses floating point values, and you forgot to import ``floats`` library.
 If you use floating points, the compiler needs routines from that library.
 Fix it by adding an ``%import floats``.
+
 
 
 Examples

@@ -1,6 +1,10 @@
 TODO
 ====
 
+- instead of resetting the computer at program exit, reinit screen and print message >PROGRAM EXIT CODE 123;RESET COMPUTER.< + sei + endless loop.
+  change troubleshooting and other references in the docs.
+
+
 For 9.0 major changes
 ^^^^^^^^^^^^^^^^^^^^^
 - DONE: added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
@@ -17,6 +21,7 @@ For 9.0 major changes
 - DONE: added sys.irqsafe_xxx irqd routines
 - DONE: added gfx2.fill() flood fill routine
 - DONE: added @split storage class for (u)word arrays to store them as split lsb/msb arrays which is more efficient (but doesn't yet support all array operations)
+- DONE: added -splitarrays command line option to treat all word arrays as tagged with @split
 
 - [much work:] more support for (64tass) SEGMENTS ?
     - (What, how, isn't current BSS support enough?)
