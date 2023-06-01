@@ -4,6 +4,27 @@ Upgrading from version 8
 
 How to upgrade older programs written for Prog8 version 8 or earlier to version 9.
 
+List of new stuff in version 9
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Details of several important ones and how to convert version 8 code can be found below this list.
+
+- added 'cbm' block in the syslib module that now contains all CBM compatible kernal routines and variables
+- added min(), max() builtin functions. For floats, use floats.minf() and floats.maxf().
+- added clamp(value, minimum, maximum)  to restrict a value x to a minimum and maximum value. For floats, use floats.clampf(f, minv, maxv).
+- rename sqrt16() to just sqrt(), make it accept multiple numeric types including float. Removed floats.sqrt().
+- abs() now supports multiple datatypes including float. Removed floats.fabs().
+- divmod() now supports multiple datatypes.  divmodw() has been removed.
+- cx16diskio module merged into diskio (which got specialized for commander x16 target). load() and load_raw() with extra ram bank parameter are gone.
+- drivenumber parameter removed from all routines in diskio module. The drive to work on is now simply stored as a diskio.drivenumber variable, which defaults to 8.
+- for loops now skip the whole loop if from value already outside the loop range (this is what all other programming languages also do)
+- asmsub params or return values passed in cpu flags (like carry) now must be declared as booleans (previously ubyte was still accepted).
+- (on cx16) added diskio.save_raw() to save without the 2 byte prg header
+- added sys.irqsafe_xxx irqd routines
+- added gfx2.fill() flood fill routine
+- added @split storage class for (u)word arrays to store them as split lsb/msb arrays which is more efficient (but doesn't yet support all array operations)
+- added -splitarrays command line option and '%option splitarrays' to treat all word arrays as tagged with @split
+
+
 ``cx16diskio`` is now just ``diskio``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
