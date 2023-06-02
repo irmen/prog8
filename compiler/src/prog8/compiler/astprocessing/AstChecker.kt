@@ -697,6 +697,9 @@ internal class AstChecker(private val program: Program,
                     }
                 }
             }
+
+            if(decl.splitArray && decl.type==VarDeclType.MEMORY)
+                err("@split can't be used on memory mapped arrays")
         }
 
         if(decl.datatype==DataType.STR) {

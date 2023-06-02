@@ -36,15 +36,11 @@ load        reg1,         value       - load immediate value into register. If y
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2
-loadxsplit  reg1, reg2, arraylength, arrayaddress   - load reg1 word with value from "split lsb/msb array" indexed by reg2
-loadmsplit  reg1, arraylength, indexedarrayaddress  - load reg1 word with value from "split lsb/msb array" element at indexedarrayaddress
 loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2
 loadr       reg1, reg2                - load reg1 with value in register reg2
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2
-storexsplit reg1, reg2, arraylength, arrayaddress  - store reg1 word in "split lsb/msb array", indexed by value in reg2
-storemsplit reg1, arraylength, indexedarrayaddress - store reg1 word in "split lsb/msb array" element at indexedarrayaddress
 storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
@@ -121,10 +117,8 @@ exts        reg1                            - reg1 = signed extension of reg1 (b
 ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (ext.w not yet implemented as we don't have longs yet)
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
-incmsplit            arraylen, address      - memory at address += 1 (in lsb/msb split word array)
 dec         reg1                            - reg1 = reg1-1
 decm                           address      - memory at address -= 1
-decmsplit            arraylen, address      - memory at address -= 1 (in lsb/msb split word array)
 neg         reg1                            - reg1 = sign negation of reg1
 negm                           address      - sign negate memory at address
 addr        reg1, reg2                      - reg1 += reg2 
@@ -233,21 +227,15 @@ enum class Opcode {
     LOADM,
     LOADI,
     LOADX,
-    LOADXSPLIT,
-    LOADMSPLIT,
     LOADIX,
     LOADR,
     STOREM,
     STOREI,
     STOREX,
-    STOREXSPLIT,
-    STOREMSPLIT,
     STOREIX,
     STOREZM,
     STOREZI,
     STOREZX,
-    STOREZXSPLIT,
-    STOREZMSPLIT,
 
     JUMP,
     JUMPA,
@@ -295,10 +283,8 @@ enum class Opcode {
 
     INC,
     INCM,
-    INCMSPLIT,
     DEC,
     DECM,
-    DECMSPLIT,
     NEG,
     NEGM,
     ADDR,
@@ -516,21 +502,15 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADM      to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
     Opcode.LOADI      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<r1"),
     Opcode.LOADX      to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
-    Opcode.LOADXSPLIT to InstructionFormat.from("W,>r1,<r2,<i,<a"),
-    Opcode.LOADMSPLIT to InstructionFormat.from("W,>r1,<i,<a"),
     Opcode.LOADIX     to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<fr2"),
     Opcode.STOREM     to InstructionFormat.from("BW,<r1,>a     | F,<fr1,>a"),
     Opcode.STOREI     to InstructionFormat.from("BW,<r1,<r2    | F,<fr1,<r1"),
     Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
-    Opcode.STOREXSPLIT  to InstructionFormat.from("W,<r1,<r2,<i,>a"),
-    Opcode.STOREMSPLIT  to InstructionFormat.from("W,<r1,<i,>a"),
     Opcode.STOREIX    to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREZM    to InstructionFormat.from("BW,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
-    Opcode.STOREZMSPLIT to InstructionFormat.from("W,<i,>a"),
-    Opcode.STOREZXSPLIT to InstructionFormat.from("W,<r1,<i,>a"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPA      to InstructionFormat.from("N,<a"),
     Opcode.CALL       to InstructionFormat.from("N,call"),
@@ -575,10 +555,8 @@ val instructionFormats = mutableMapOf(
     Opcode.SGES       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.INC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
     Opcode.INCM       to InstructionFormat.from("BW,<>a       | F,<>a"),
-    Opcode.INCMSPLIT  to InstructionFormat.from("W,<i,<>a"),
     Opcode.DEC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
     Opcode.DECM       to InstructionFormat.from("BW,<>a       | F,<>a"),
-    Opcode.DECMSPLIT  to InstructionFormat.from("W,<i,<>a"),
     Opcode.NEG        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
     Opcode.NEGM       to InstructionFormat.from("BW,<>a       | F,<>a"),
     Opcode.ADDR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),

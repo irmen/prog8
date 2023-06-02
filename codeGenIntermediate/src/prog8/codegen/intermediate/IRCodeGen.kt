@@ -457,23 +457,11 @@ class IRCodeGen(
                 if(iterableVar.dt==DataType.STR) {
                     // iterate over a zero-terminated string
                     addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = 0), null)
-                    val chunk = IRCodeChunk(loopLabel, null)
-                    chunk += IRInstruction(
-                        Opcode.LOADX,
-                        IRDataType.BYTE,
-                        reg1 = tmpReg,
-                        reg2 = indexReg,
-                        labelSymbol = iterable.name
-                    )
-                    chunk += IRInstruction(
-                        Opcode.BEQ,
-                        IRDataType.BYTE,
-                        reg1 = tmpReg,
-                        immediate = 0,
-                        labelSymbol = endLabel
-                    )
-                    chunk += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tmpReg, labelSymbol = loopvarSymbol)
-                    result += chunk
+                    result += IRCodeChunk(loopLabel, null).also {
+                        it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
+                        it += IRInstruction(Opcode.BEQ, IRDataType.BYTE, reg1 = tmpReg, immediate = 0, labelSymbol = endLabel)
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tmpReg, labelSymbol = loopvarSymbol)
+                    }
                     result += translateNode(forLoop.statements)
                     val jumpChunk = IRCodeChunk(null, null)
                     jumpChunk += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexReg)
@@ -488,8 +476,12 @@ class IRCodeGen(
                     val length = iterableVar.length!!
                     addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                     result += IRCodeChunk(loopLabel, null).also {
-                        it += IRInstruction(Opcode.LOADXSPLIT, irType(elementDt), reg1=tmpReg, reg2=indexReg, immediate = length, labelSymbol=iterable.name)
-                        it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
+                        val tmpRegLsb = registers.nextFree()
+                        val tmpRegMsb = registers.nextFree()
+                        it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, immediate = length, labelSymbol=iterable.name+"_lsb")
+                        it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, immediate = length, labelSymbol=iterable.name+"_msb")
+                        it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=tmpRegLsb, reg2=tmpRegMsb)
+                        it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpRegLsb, labelSymbol = loopvarSymbol)
                     }
                     result += translateNode(forLoop.statements)
                     result += IRCodeChunk(null, null).also {
@@ -1367,76 +1359,84 @@ class IRCodeGen(
     }
 
     private fun translate(postIncrDecr: PtPostIncrDecr): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val array = postIncrDecr.target.array
         val operationMem: Opcode
         val operationRegister: Opcode
-        val array = postIncrDecr.target.array
         when(postIncrDecr.operator) {
             "++" -> {
-                operationMem = if(array?.splitWords==true) Opcode.INCMSPLIT else Opcode.INCM
+                operationMem = Opcode.INCM
                 operationRegister = Opcode.INC
             }
             "--" -> {
-                operationMem = if(array?.splitWords==true) Opcode.DECMSPLIT else Opcode.DECM
+                operationMem = Opcode.DECM
                 operationRegister = Opcode.DEC
             }
             else -> throw AssemblyError("weird operator")
         }
-        val ident = postIncrDecr.target.identifier
-        val memory = postIncrDecr.target.memory
-        val irDt = irType(postIncrDecr.target.type)
-        val result = mutableListOf<IRCodeChunkBase>()
-        if(ident!=null) {
-            addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = ident.name), null)
-        } else if(memory!=null) {
-            if(memory.address is PtNumber) {
-                val address = (memory.address as PtNumber).number.toInt()
-                addInstr(result, IRInstruction(operationMem, irDt, address = address), null)
+
+        if(array?.splitWords==true) {
+            val variable = array.variable.name
+            val fixedIndex = constIntValue(array.index)
+            val iterable = symbolTable.flat.getValue(array.variable.name) as StStaticVariable
+            val arrayLength = iterable.length!!
+            if(fixedIndex!=null) {
+                TODO("split incr decr")
+                // addInstr(result, IRInstruction(operationMem, irDt, immediate = arrayLength, labelSymbol="$variable+$fixedIndex"), null)
             } else {
-                val tr = expressionEval.translateExpression(memory.address)
-                addToResult(result, tr, tr.resultReg, -1)
+                val indexTr = expressionEval.translateExpression(array.index)
+                addToResult(result, indexTr, indexTr.resultReg, -1)
                 val chunk = IRCodeChunk(null, null)
                 val incReg = registers.nextFree()
-                chunk += IRInstruction(Opcode.LOADI, irDt, reg1 = incReg, reg2 = tr.resultReg)
-                chunk += IRInstruction(operationRegister, irDt, reg1 = incReg)
-                chunk += IRInstruction(Opcode.STOREI, irDt, reg1 = incReg, reg2 = tr.resultReg)
+                TODO("load split")
+                // chunk += IRInstruction(Opcode.LOADXSPLIT, irDt, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol=variable)
+                // chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
+                TODO("store split")
+                // chunk += IRInstruction(Opcode.STOREXSPLIT, irDt, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol=variable)
                 result += chunk
             }
-        } else if (array!=null) {
-            val variable = array.variable.name
-            val itemsize = program.memsizer.memorySize(array.type)
-            val fixedIndex = constIntValue(array.index)
-            if(array.splitWords) {
-                val iterable = symbolTable.flat.getValue(array.variable.name) as StStaticVariable
-                val arrayLength = iterable.length!!
-                if(fixedIndex!=null) {
-                    addInstr(result, IRInstruction(operationMem, irDt, immediate = arrayLength, labelSymbol="$variable+$fixedIndex"), null)
+        } else {
+            val ident = postIncrDecr.target.identifier
+            val memory = postIncrDecr.target.memory
+            val irDt = irType(postIncrDecr.target.type)
+            if(ident!=null) {
+                addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = ident.name), null)
+            } else if(memory!=null) {
+                if(memory.address is PtNumber) {
+                    val address = (memory.address as PtNumber).number.toInt()
+                    addInstr(result, IRInstruction(operationMem, irDt, address = address), null)
                 } else {
-                    val indexTr = expressionEval.translateExpression(array.index)
-                    addToResult(result, indexTr, indexTr.resultReg, -1)
-                    val chunk = IRCodeChunk(null, null)
-                    val incReg = registers.nextFree()
-                    chunk += IRInstruction(Opcode.LOADXSPLIT, irDt, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol=variable)
-                    chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
-                    chunk += IRInstruction(Opcode.STOREXSPLIT, irDt, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol=variable)
-                    result += chunk
+                    val tr = expressionEval.translateExpression(memory.address)
+                    addToResult(result, tr, tr.resultReg, -1)
+                    result += IRCodeChunk(null, null).also {
+                        val incReg = registers.nextFree()
+                        it += IRInstruction(Opcode.LOADI, irDt, reg1 = incReg, reg2 = tr.resultReg)
+                        it += IRInstruction(operationRegister, irDt, reg1 = incReg)
+                        it += IRInstruction(Opcode.STOREI, irDt, reg1 = incReg, reg2 = tr.resultReg)
+                    }
                 }
-            } else {
+            } else if (array!=null) {
+                val variable = array.variable.name
+                val itemsize = program.memsizer.memorySize(array.type)
+                val fixedIndex = constIntValue(array.index)
                 if(fixedIndex!=null) {
                     val offset = fixedIndex*itemsize
                     addInstr(result, IRInstruction(operationMem, irDt, labelSymbol="$variable+$offset"), null)
                 } else {
                     val indexTr = expressionEval.translateExpression(array.index)
                     addToResult(result, indexTr, indexTr.resultReg, -1)
-                    val chunk = IRCodeChunk(null, null)
-                    val incReg = registers.nextFree()
-                    chunk += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
-                    chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
-                    chunk += IRInstruction(Opcode.STOREX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
-                    result += chunk
+                    if(itemsize>1)
+                        result += multiplyByConst(IRDataType.BYTE, indexTr.resultReg, itemsize)
+                    result += IRCodeChunk(null, null).also {
+                        val incReg = registers.nextFree()
+                        it += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                        it += IRInstruction(operationRegister, irDt, reg1=incReg)
+                        it += IRInstruction(Opcode.STOREX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                    }
                 }
-            }
-        } else
-            throw AssemblyError("weird assigntarget")
+            } else
+                throw AssemblyError("weird assigntarget")
+        }
 
         return result
     }
@@ -1459,10 +1459,10 @@ class IRCodeGen(
         addToResult(result, countTr, countTr.resultReg, -1)
         addInstr(result, IRInstruction(Opcode.BEQ, irDt, reg1=countTr.resultReg, immediate = 0, labelSymbol = skipRepeatLabel), null)
         result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
-        val chunk = IRCodeChunk(null, null)
-        chunk += IRInstruction(Opcode.DEC, irDt, reg1=countTr.resultReg)
-        chunk += IRInstruction(Opcode.BNE, irDt, reg1=countTr.resultReg, immediate = 0, labelSymbol = repeatLabel)
-        result += chunk
+        result += IRCodeChunk(null, null).also {
+            it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)
+            it += IRInstruction(Opcode.BNE, irDt, reg1 = countTr.resultReg, immediate = 0, labelSymbol = repeatLabel)
+        }
         result += IRCodeChunk(skipRepeatLabel, null)
         return result
     }

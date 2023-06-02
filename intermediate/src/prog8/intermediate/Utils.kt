@@ -14,10 +14,9 @@ fun getTypeString(dt : DataType): String = when(dt) {
     DataType.ARRAY_UB, DataType.STR -> "ubyte[]"
     DataType.ARRAY_B -> "byte[]"
     DataType.ARRAY_UW -> "uword[]"
-    DataType.ARRAY_UW_SPLIT -> "uword_split[]"
     DataType.ARRAY_W -> "word[]"
-    DataType.ARRAY_W_SPLIT -> "word_split[]"
     DataType.ARRAY_F -> "float[]"
+    in SplitWordArrayTypes ->  throw InternalCompilerException("split array should have been converted to 2 ubyte arrays")
     else -> throw InternalCompilerException("weird dt")
 }
 
@@ -31,10 +30,9 @@ fun getTypeString(memvar: StMemVar): String = when(memvar.dt) {
     DataType.ARRAY_UB, DataType.STR -> "ubyte[${memvar.length}]"
     DataType.ARRAY_B -> "byte[${memvar.length}]"
     DataType.ARRAY_UW -> "uword[${memvar.length}]"
-    DataType.ARRAY_UW_SPLIT -> "uword_split[${memvar.length}]"
     DataType.ARRAY_W -> "word[${memvar.length}]"
-    DataType.ARRAY_W_SPLIT -> "word_split[${memvar.length}]"
     DataType.ARRAY_F -> "float[${memvar.length}]"
+    in SplitWordArrayTypes -> throw InternalCompilerException("@split can't be used on memory mapped arrays")
     else -> throw InternalCompilerException("weird dt")
 }
 
@@ -48,10 +46,9 @@ fun getTypeString(variable : StStaticVariable): String = when(variable.dt) {
     DataType.ARRAY_UB, DataType.STR -> "ubyte[${variable.length}]"
     DataType.ARRAY_B -> "byte[${variable.length}]"
     DataType.ARRAY_UW -> "uword[${variable.length}]"
-    DataType.ARRAY_UW_SPLIT -> "uword_split[${variable.length}]"
     DataType.ARRAY_W -> "word[${variable.length}]"
-    DataType.ARRAY_W_SPLIT -> "word_split[${variable.length}]"
     DataType.ARRAY_F -> "float[${variable.length}]"
+    in SplitWordArrayTypes ->  throw InternalCompilerException("split array should have been converted to 2 ubyte arrays")
     else -> throw InternalCompilerException("weird dt")
 }
 
@@ -78,6 +75,8 @@ fun parseIRValue(value: String): Float {
         throw IRParseException("attempt to parse a label as numeric value")
     else if(value.startsWith('&'))
         throw IRParseException("address-of should be done with normal LOAD <symbol>")
+    else if(value.startsWith('@'))
+        throw IRParseException("address-of @ should have been handled earlier")
     else
         return value.toFloat()
 }

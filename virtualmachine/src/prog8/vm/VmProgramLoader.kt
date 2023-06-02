@@ -295,7 +295,20 @@ class VmProgramLoader {
                     when(variable.dt) {
                         DataType.STR, DataType.ARRAY_UB -> {
                             for(elt in it) {
-                                memory.setUB(addr, elt.number!!.toInt().toUByte())
+                                if(elt.addressOfSymbol!=null) {
+                                    val name = elt.addressOfSymbol!!
+                                    val symbolAddress = if(name.startsWith('<')) {
+                                        symbolAddresses[name.drop(1)]?.and(255)
+                                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name") // TODO
+                                    } else if(name.startsWith('>')) {
+                                        symbolAddresses[name.drop(1)]?.shr(8)
+                                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name") // TODO
+                                    } else
+                                        throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
+                                    memory.setUB(addr, symbolAddress.toUByte())
+                                } else {
+                                    memory.setUB(addr, elt.number!!.toInt().toUByte())
+                                }
                                 addr++
                             }
                         }
