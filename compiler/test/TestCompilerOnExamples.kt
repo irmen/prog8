@@ -46,6 +46,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
 private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompilationTarget): Pair<String, Path> {
     val searchIn = mutableListOf(examplesDir)
     when (target) {
+        is C64Target -> searchIn.add(0, assumeDirectory(examplesDir, "c64"))
         is Cx16Target -> searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
         is VMTarget -> searchIn.add(0, assumeDirectory(examplesDir, "vm"))
         is C128Target -> searchIn.add(0, assumeDirectory(examplesDir, "c128"))
@@ -69,10 +70,13 @@ class TestCompilerOnExamplesC64: FunSpec({
             "bdmusic",
             "bdmusic-irq",
             "charset",
+            "cube3d",
             "cube3d-sprites",
             "plasma",
+            "rasterbars",
             "sprites",
             "starfield",
+            "tehtriz",
             "turtle-gfx",
             "wizzine",
         ),
@@ -94,13 +98,17 @@ class TestCompilerOnExamplesCx16: FunSpec({
     val onlyCx16 = cartesianProduct(
         listOf(
             "vtui/testvtui",
+            "pcmaudio/play-adpcm",
+            "pcmaudio/stream-wav",
             "amiga",
             "bdmusic",
             "bobs",
+            "bubbleuniverse",
             "circles",
             "cobramk3-gfx",
             "colorbars",
             "cube3d",
+            "cxlogo",
             "datetime",
             "diskspeed",
             "fileseek",
@@ -139,7 +147,6 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "cube3d",
             "cube3d-float",
             "cube3d-gfx",
-            "cxlogo",
             "dirlist",
             "fibonacci",
             "line-circle-gfx",
@@ -149,7 +156,6 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "mandelbrot-gfx",
             "numbergame",
             "primes",
-            "rasterbars",
             "screencodes",
             "sorting",
             "swirl",
