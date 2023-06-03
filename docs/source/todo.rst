@@ -26,6 +26,7 @@ Compiler:
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
 - ir: add more optimizations in IRPeepholeOptimizer
+- ir: the @split arrays are also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
 - PtAst/IR: more complex common subexpression eliminations
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit or my binaryen kotlin library?
@@ -35,7 +36,7 @@ Compiler:
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
-- For c128 target; put floating point variables in bank 1 to make the FP routines work (is this even worth it? very few people will use fp)
+
 
 Libraries:
 

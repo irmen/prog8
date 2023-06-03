@@ -126,7 +126,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private fun writeCodeChunk(chunk: IRCodeChunk) {
         xml.writeStartElement("CODE")
         chunk.label?.let { xml.writeAttribute("LABEL", chunk.label) }
-        xml.writeAttribute("used-registers", chunk.usedRegisters().toString())
+        // xml.writeAttribute("used-registers", chunk.usedRegisters().toString())
         xml.writeCharacters("\n")
         chunk.instructions.forEach { instr ->
             numInstr++

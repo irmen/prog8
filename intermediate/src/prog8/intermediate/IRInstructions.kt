@@ -97,18 +97,18 @@ bgesr       reg1, reg2,       address   - jump to location in program given by l
 ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
 bles        reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (signed)
 ( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
-sz          reg1, reg2                  - set reg1=1.b if reg2==0,  otherwise set reg1=0.b
-snz         reg1, reg2                  - set reg1=1.b if reg2!=0,  otherwise set reg1=0.b
-seq         reg1, reg2                  - set reg1=1.b if reg1 == reg2,  otherwise set reg1=0.b
-sne         reg1, reg2                  - set reg1=1.b if reg1 != reg2,  otherwise set reg1=0.b
-slt         reg1, reg2                  - set reg1=1.b if reg1 < reg2 (unsigned),  otherwise set reg1=0.b
-slts        reg1, reg2                  - set reg1=1.b if reg1 < reg2 (signed),  otherwise set reg1=0.b
-sle         reg1, reg2                  - set reg1=1.b if reg1 <= reg2 (unsigned),  otherwise set reg1=0.b
-sles        reg1, reg2                  - set reg1=1.b if reg1 <= reg2 (signed),  otherwise set reg1=0.b
-sgt         reg1, reg2                  - set reg1=1.b if reg1 > reg2 (unsigned),  otherwise set reg1=0.b
-sgts        reg1, reg2                  - set reg1=1.b if reg1 > reg2 (signed),  otherwise set reg1=0.b
-sge         reg1, reg2                  - set reg1=1.b if reg1 >= reg2 (unsigned),  otherwise set reg1=0.b
-sges        reg1, reg2                  - set reg1=1.b if reg1 >= reg2 (signed),  otherwise set reg1=0.b
+sz          reg1, reg2                  - set reg1=1.b if reg2==0, else 0.b
+snz         reg1, reg2                  - set reg1=1.b if reg2!=0, else 0.b
+seq         reg1, reg2                  - set reg1=1.b if reg1 == reg2, else 0.b
+sne         reg1, reg2                  - set reg1=1.b if reg1 != reg2, else 0.b
+slt         reg1, reg2                  - set reg1=1.b if reg1 < reg2 (unsigned), else 0.b
+slts        reg1, reg2                  - set reg1=1.b if reg1 < reg2 (signed), else 0.b
+sle         reg1, reg2                  - set reg1=1.b if reg1 <= reg2 (unsigned), else 0.b
+sles        reg1, reg2                  - set reg1=1.b if reg1 <= reg2 (signed), else 0.b
+sgt         reg1, reg2                  - set reg1=1.b if reg1 > reg2 (unsigned), else 0.b
+sgts        reg1, reg2                  - set reg1=1.b if reg1 > reg2 (signed), else 0.b
+sge         reg1, reg2                  - set reg1=1.b if reg1 >= reg2 (unsigned), else 0.b
+sges        reg1, reg2                  - set reg1=1.b if reg1 >= reg2 (signed), else 0.b
 
 
 ARITHMETIC
