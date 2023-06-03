@@ -15,12 +15,12 @@ main {
 ;        }
 ;        txt.nl()
         ubyte idx=1
-        names[idx] = 2000
-        txt.print_uw(names[1])
+        names[idx] = $20ff
+        txt.print_uwhex(names[1], true)
         names[idx]++
-        txt.print_uw(names[1])
+        txt.print_uwhex(names[1], true)
         names[idx]--
-        txt.print_uw(names[1])
+        txt.print_uwhex(names[1], true)
 
         names = [1111,2222,3333]
         for ww in names {

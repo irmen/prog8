@@ -1361,44 +1361,87 @@ class IRCodeGen(
     private fun translate(postIncrDecr: PtPostIncrDecr): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val array = postIncrDecr.target.array
-        val operationMem: Opcode
-        val operationRegister: Opcode
-        when(postIncrDecr.operator) {
-            "++" -> {
-                operationMem = Opcode.INCM
-                operationRegister = Opcode.INC
-            }
-            "--" -> {
-                operationMem = Opcode.DECM
-                operationRegister = Opcode.DEC
-            }
-            else -> throw AssemblyError("weird operator")
-        }
-
         if(array?.splitWords==true) {
             val variable = array.variable.name
             val fixedIndex = constIntValue(array.index)
             val iterable = symbolTable.flat.getValue(array.variable.name) as StStaticVariable
-            val arrayLength = iterable.length!!
             if(fixedIndex!=null) {
-                TODO("split incr decr")
-                // addInstr(result, IRInstruction(operationMem, irDt, immediate = arrayLength, labelSymbol="$variable+$fixedIndex"), null)
+                val skipLabel = createLabelName()
+                when(postIncrDecr.operator) {
+                    "++" -> {
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = "${variable}_lsb+$fixedIndex")
+                            it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel)
+                            it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = "${variable}_msb+$fixedIndex")
+                        }
+                        result += IRCodeChunk(skipLabel, null)
+                    }
+                    "--" -> {
+                        val valueReg=registers.nextFree()
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=valueReg, labelSymbol = "${variable}_lsb+$fixedIndex")
+                            it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel)
+                            it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = "${variable}_msb+$fixedIndex")
+                        }
+                        result += IRCodeChunk(skipLabel, null).also {
+                            it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = "${variable}_lsb+$fixedIndex")
+                        }
+                    }
+                    else -> throw AssemblyError("weird operator")
+                }
             } else {
+                val arrayLength = iterable.length!!
                 val indexTr = expressionEval.translateExpression(array.index)
                 addToResult(result, indexTr, indexTr.resultReg, -1)
-                val chunk = IRCodeChunk(null, null)
                 val incReg = registers.nextFree()
-                TODO("load split")
-                // chunk += IRInstruction(Opcode.LOADXSPLIT, irDt, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol=variable)
-                // chunk += IRInstruction(operationRegister, irDt, reg1=incReg)
-                TODO("store split")
-                // chunk += IRInstruction(Opcode.STOREXSPLIT, irDt, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol=variable)
-                result += chunk
+                val skipLabel = createLabelName()
+                when(postIncrDecr.operator) {
+                    "++" -> {
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=incReg)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel)
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                            it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=incReg)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                        }
+                        result += IRCodeChunk(skipLabel, null)
+                    }
+                    "--" -> {
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel)
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                            it += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=incReg)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                        }
+                        result += IRCodeChunk(skipLabel, null).also {
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=incReg)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                        }
+                    }
+                    else -> throw AssemblyError("weird operator")
+                }
             }
         } else {
             val ident = postIncrDecr.target.identifier
             val memory = postIncrDecr.target.memory
             val irDt = irType(postIncrDecr.target.type)
+            val operationMem: Opcode
+            val operationRegister: Opcode
+            when(postIncrDecr.operator) {
+                "++" -> {
+                    operationMem = Opcode.INCM
+                    operationRegister = Opcode.INC
+                }
+                "--" -> {
+                    operationMem = Opcode.DECM
+                    operationRegister = Opcode.DEC
+                }
+                else -> throw AssemblyError("weird operator")
+            }
             if(ident!=null) {
                 addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = ident.name), null)
             } else if(memory!=null) {

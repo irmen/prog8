@@ -1,8 +1,6 @@
 TODO
 ====
 
-- vm: fix the last replacement code for the now removed LOADSPLIT/STORESPLIT opcodes.
-
 ...
 
 

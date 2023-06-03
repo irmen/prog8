@@ -14,7 +14,7 @@ Then you can choose a few ways to get a compiler:
 **Download a precompiled version from github:**
 
 #. download a recent "fat-jar" (called something like "prog8compiler-all.jar") from `the releases on Github <https://github.com/irmen/prog8/releases>`_
-#. run the compiler with "java -jar prog8compiler-all.jar" to see how you can use it.
+#. run the compiler with "java -jar prog8compiler.jar" to see how you can use it (use the correct name and version of the jar file you've downloaded).
 
 **Using the Gradle build system to build it yourself:**
 
@@ -86,11 +86,12 @@ The compiler will link everything together into one output program at the end.
 If you start the compiler without arguments, it will print a short usage text.
 For normal use the compiler can be invoked with the command:
 
-    ``$ java -jar prog8compiler-8.14-all.jar sourcefile.p8``
+    ``$ java -jar prog8compiler.jar -target cx16 sourcefile.p8``
 
     (Use the appropriate name and version of the jar file downloaded from one of the Git releases.
     Other ways to invoke the compiler are also available: see the introduction page about how
-    to build and run the compiler yourself)
+    to build and run the compiler yourself. The -target option is required, in this case we
+    tell it to compile a program for the Commander X16)
 
 
 By default, assembly code is generated and written to ``sourcefile.asm``.
