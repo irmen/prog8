@@ -109,10 +109,9 @@ One or more .p8 module files
     Prints short command line usage information.
 
 ``-target <compilation target>``
-    Sets the target output of the compiler.
+    Sets the target output of the compiler. This option is required.
     ``c64`` = Commodore 64, ``c128`` = Commodore 128, ``cx16`` = Commander X16, ``atari`` = Atari 800 XL,
     ``virtual`` = builtin virtual machine.
-    Default = ``c64``.
 
 ``-srcdirs <pathlist>``
     Specify a list of extra paths (separated with ':'), to search in for imported modules.
@@ -292,11 +291,11 @@ Examples
 
 A couple of example programs can be found in the 'examples' directory of the source tree.
 Make sure you have installed the :ref:`requirements`. Then, for instance,
-to compile and run the rasterbars example program, use this command::
+to compile and run the Commodore 64 rasterbars example program, use this command::
 
-    $ java -jar prog8compiler.jar -emu examples/rasterbars.p8
+    $ java -jar prog8compiler.jar -target c64 -emu examples/rasterbars.p8
 
 or::
 
-    $ ./p8compile.sh -emu examples/rasterbars.p8
+    $ ./p8compile.sh -target c64 -emu examples/rasterbars.p8
 

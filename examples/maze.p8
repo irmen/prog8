@@ -6,7 +6,7 @@
 ; This program shows a depth-first maze generation algorithm (1 possible path from start to finish),
 ; and a depth-first maze solver algorithm, both using a stack to store the path taken.
 
-; Note: this program is compatible with C64 and CX16.
+; Note: this program can be compiled for multiple target systems.
 
 main {
     sub start()  {

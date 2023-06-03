@@ -32,6 +32,7 @@ class ModuleImporter(private val program: Program,
             val programPath = path.resolve(normalizedFilePath)
             if(programPath.exists()) {
                 println("Compiling program ${Path("").absolute().relativize(programPath)}")
+                println("Compiler target: $compilationTargetName")
                 val source = SourceCode.File(programPath)
                 return Ok(importModule(source))
             }

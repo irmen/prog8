@@ -1,7 +1,7 @@
 %import textio
 %zeropage basicsafe
 
-; Note: this program is compatible with C64 and CX16.
+; Note: this program can be compiled for multiple target systems.
 
 main {
 

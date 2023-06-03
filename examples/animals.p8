@@ -2,7 +2,7 @@
 %import string
 
 ; Animal guessing game where the computer gets smarter every time.
-; Note: this program is compatible with C64 and CX16.
+; Note: this program can be compiled for multiple target systems.
 
 main {
     const ubyte database_size = 100

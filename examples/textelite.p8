@@ -9,7 +9,7 @@
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
 ; Original C-version obtained from: http://www.elitehomepage.org/text/index.htm
 
-; Note: this program is compatible with C64 and CX16.
+; Note: this program can be compiled for multiple target systems.
 
 main {
 

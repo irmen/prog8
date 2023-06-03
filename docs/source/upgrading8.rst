@@ -23,6 +23,7 @@ Details of several important ones and how to convert version 8 code can be found
 - added gfx2.fill() flood fill routine
 - added @split storage class for (u)word arrays to store them as split lsb/msb arrays which is more efficient (but doesn't yet support all array operations)
 - added -splitarrays command line option and '%option splitarrays' to treat all word arrays as tagged with @split
+- the -target option is now required, c64 is no longer a default.
 
 
 ``cx16diskio`` is now just ``diskio``

@@ -4,6 +4,8 @@
 %import test_stack
 %option no_sysinit
 
+; Note: this program can be compiled for multiple target systems.
+
 main {
     sub start() {
         diskio.set_drive(8)
