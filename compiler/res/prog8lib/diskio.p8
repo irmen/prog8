@@ -84,8 +84,8 @@ io_error:
         if_cs
             goto io_error
 
-        repeat 6 {
-            void cbm.CHRIN()     ; skip the 6 prologue bytes
+        while cbm.CHRIN()!='"' {
+            ; skip up to entry name
         }
         if cbm.READST()!=0
             goto io_error
@@ -93,8 +93,14 @@ io_error:
         cx16.r0 = &list_filename
         repeat {
             @(cx16.r0) = cbm.CHRIN()
-            if @(cx16.r0)==0
+            if @(cx16.r0)=='"' {
+                @(cx16.r0) = ' '
+                while @(cx16.r0)==' ' and cx16.r0>=&diskio.list_filename {
+                    @(cx16.r0) = 0
+                    cx16.r0--
+                }
                 break
+            }
             cx16.r0++
         }
         okay = true

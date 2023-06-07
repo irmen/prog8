@@ -73,39 +73,42 @@ io_error:
     }
 
     sub diskname() -> uword {
-        ; -- Returns pointer to disk name string or 0 if failure.
-
-        cbm.SETNAM(1, "$")
-        cbm.SETLFS(12, drivenumber, 0)
-        ubyte okay = false
-        void cbm.OPEN()          ; open 12,8,0,"$"
+        ; returns disk label name or 0 if error
+        cbm.SETNAM(3, "$")
+        cbm.SETLFS(12, diskio.drivenumber, 0)
+        ubyte status = 1
+        void cbm.OPEN()          ; open 12,8,0,"$=c"
         if_cs
             goto io_error
         void cbm.CHKIN(12)        ; use #12 as input channel
         if_cs
             goto io_error
 
-        repeat 6 {
-            void cbm.CHRIN()     ; skip the 6 prologue bytes
+        while cbm.CHRIN()!='"' {
+            ; skip up to entry name
         }
-        if cbm.READST()!=0
-            goto io_error
 
-        cx16.r0 = &list_filename
+        cx16.r0 = &diskio.list_filename
         repeat {
             @(cx16.r0) = cbm.CHRIN()
-            if @(cx16.r0)==0
+            if @(cx16.r0)=='"' {
+                @(cx16.r0) = ' '
+                while @(cx16.r0)==' ' and cx16.r0>=&diskio.list_filename {
+                    @(cx16.r0) = 0
+                    cx16.r0--
+                }
                 break
+            }
             cx16.r0++
         }
-        okay = true
+        status = cbm.READST()
 
 io_error:
-        cbm.CLRCHN()        ; restore default i/o devices
+        cbm.CLRCHN()
         cbm.CLOSE(12)
-        if okay
-            return &list_filename
-        return 0
+        if status and status & $40 == 0
+            return 0
+        return diskio.list_filename
     }
 
     ; internal variables for the iterative file lister / loader
@@ -682,6 +685,75 @@ internal_vload:
         list_filename[2] = ':'
         void string.copy(name, &list_filename+3)
         send_command(list_filename)
+    }
+
+    sub curdir() -> uword {
+        ; return current directory name or 0 if error
+        ; special X16 dos command to only return the current path in the entry list (R42+)
+        const ubyte MAX_PATH_LEN=80
+        uword reversebuffer = memory("curdir_buffer", MAX_PATH_LEN, 0)
+        cx16.r12 = reversebuffer + MAX_PATH_LEN-1
+        @(cx16.r12)=0
+        cbm.SETNAM(3, "$=c")
+        cbm.SETLFS(12, diskio.drivenumber, 0)
+        void cbm.OPEN()          ; open 12,8,0,"$=c"
+        if_cs
+            goto io_error
+        void cbm.CHKIN(12)        ; use #12 as input channel
+        if_cs
+            goto io_error
+
+        repeat 6 {
+            void cbm.CHRIN()
+        }
+        while cbm.CHRIN() {
+            ; skip first line (drive label)
+        }
+        while cbm.CHRIN()!='"' {
+            ; skip to first name
+        }
+        ubyte status = cbm.READST()
+        cx16.r10 = &list_filename
+        while status==0 {
+            repeat {
+                @(cx16.r10) = cbm.CHRIN()
+                if @(cx16.r10)==0
+                    break
+                cx16.r10++
+            }
+            while @(cx16.r10)!='"' and cx16.r10>=&list_filename {
+                @(cx16.r10)=0
+                cx16.r10--
+            }
+            @(cx16.r10)=0
+            prepend(list_filename)
+            cx16.r10 = &list_filename
+            while cbm.CHRIN()!='"' and status==0 {
+                status = cbm.READST()
+                ; skipping up to next entry name
+            }
+        }
+
+io_error:
+        cbm.CLRCHN()
+        cbm.CLOSE(12)
+        if status and status & $40 == 0
+            return 0
+        if @(cx16.r12)==0 {
+            cx16.r12--
+            @(cx16.r12)='/'
+        }
+        return cx16.r12
+
+        sub prepend(str dir) {
+            if dir[0]=='/' and dir[1]==0
+                return
+            cx16.r9L = string.length(dir)
+            cx16.r12 -= cx16.r9L
+            sys.memcopy(dir, cx16.r12, cx16.r9L)
+            cx16.r12--
+            @(cx16.r12)='/'
+        }
     }
 
     sub relabel(str name) {
