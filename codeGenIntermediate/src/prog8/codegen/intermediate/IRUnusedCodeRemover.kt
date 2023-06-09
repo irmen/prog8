@@ -16,12 +16,28 @@ class IRUnusedCodeRemover(
         irprog.blocks.reversed().forEach { block ->
             if(block.isEmpty()) {
                 irprog.blocks.remove(block)
-                irprog.st.removeTree(block.label)
+                pruneSymboltable(block.label)
                 numRemoved++
             }
         }
 
         return numRemoved
+    }
+
+    private fun pruneSymboltable(blockLabel: String) {
+        // we could clean up the SymbolTable as well, but ONLY if these symbols aren't referenced somewhere still in an instruction
+        val prefix = "$blockLabel."
+        val blockVars = irprog.st.allVariables().filter { it.name.startsWith(prefix) }
+        blockVars.forEach { stVar ->
+            irprog. allSubs().flatMap { it.chunks }.forEach { chunk ->
+                chunk.instructions.forEach { ins ->
+                    if(ins.labelSymbol == stVar.name) {
+                        return
+                    }
+                }
+            }
+        }
+        irprog.st.removeTree(blockLabel)
     }
 
     private fun removeUnusedSubroutines(): Int {

@@ -178,4 +178,28 @@ main {
 }"""
         compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("string vars in inlined subroutines are ok") {
+        val src="""
+main {
+    sub start() {
+        void block2.curdir()
+        void block2.other()
+    }
+}
+
+block2 {
+    str result="zzzz"
+    sub curdir() -> str {
+        return result
+    }
+
+    sub other() -> str {
+        return "other"
+    }
+}"""
+
+        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+    }
 })

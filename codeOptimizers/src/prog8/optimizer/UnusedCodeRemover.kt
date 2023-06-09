@@ -75,7 +75,9 @@ class UnusedCodeRemover(private val program: Program,
                     if(!block.statements.any { it is Subroutine && it.hasBeenInlined })
                         errors.warn("removing unused block '${block.name}'", block.position)
                 }
-                program.removeInternedStringsFromRemovedBlock(block)
+                if(!block.statements.any { it is Subroutine && it.hasBeenInlined }) {
+                    program.removeInternedStringsFromRemovedBlock(block)
+                }
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
         }
