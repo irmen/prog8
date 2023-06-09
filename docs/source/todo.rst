@@ -1,8 +1,6 @@
 TODO
 ====
 
-- c64 fix diskio.diskname
-
 - fix undefined symbol error for     sub curdir() -> str {  return "todo" }
 - fix placeholder error for
     str result = "todo"  ,   sub curdir() -> str { return result }

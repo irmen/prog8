@@ -292,10 +292,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 }
             }
             DataType.FLOAT -> {
+                asmgen.out("  jsr  floats.func_sqrt_into_FAC1")
                 if(resultToStack)
-                    throw AssemblyError("no support for sqrt float onto stack")
+                    assignAsmGen.assignFAC1float(AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.FLOAT, scope, fcall.position))
                 else {
-                    asmgen.out("  jsr  floats.func_sqrt_into_FAC1")
                     assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, fcall.position, scope, asmgen))
                 }
             }
@@ -688,7 +688,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             when (dt) {
                 DataType.BYTE -> asmgen.out("  jsr  prog8_lib.abs_b_stack")
                 DataType.WORD -> asmgen.out("  jsr  prog8_lib.abs_w_stack")
-                else -> throw AssemblyError("no support for abs onto stack for this dt")
+                else -> {
+                    asmgen.out("  jsr  floats.func_abs_f_into_FAC1")
+                    assignAsmGen.assignFAC1float(AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.FLOAT, scope, fcall.position))
+                }
             }
         } else {
             when (dt) {

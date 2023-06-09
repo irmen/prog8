@@ -165,4 +165,17 @@ main {
         compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
         // no newexpr for IR targets: compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
     }
+
+    test("builtin func in float expression") {
+        val src="""
+%import floats
+main {
+    sub start() {
+        float @shared fl =25.1
+        fl = abs(fl)+0.5
+        fl = sqrt(fl)+0.5
+    }
+}"""
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
 })
