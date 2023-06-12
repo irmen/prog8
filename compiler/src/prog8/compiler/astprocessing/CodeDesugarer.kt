@@ -125,13 +125,21 @@ _after:
 
     override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
         if(repeatLoop.iterations==null) {
+            // replace with a jump at the end, but make sure the jump is inserted *before* any subroutines that may occur inside this block
+            val subroutineMovements = mutableListOf<IAstModification>()
+            val subroutines = repeatLoop.body.statements.filterIsInstance<Subroutine>()
+            subroutines.forEach { sub ->
+                subroutineMovements += IAstModification.Remove(sub, sub.parent as IStatementContainer)
+                subroutineMovements += IAstModification.InsertLast(sub, sub.parent as IStatementContainer)
+            }
+
             val label = program.makeLabel("repeat", repeatLoop.position)
             val jump = program.jumpLabel(label)
             return listOf(
                 IAstModification.InsertFirst(label, repeatLoop.body),
                 IAstModification.InsertLast(jump, repeatLoop.body),
                 IAstModification.ReplaceNode(repeatLoop, repeatLoop.body, parent)
-            )
+            ) + subroutineMovements
         }
         return noModifications
     }
