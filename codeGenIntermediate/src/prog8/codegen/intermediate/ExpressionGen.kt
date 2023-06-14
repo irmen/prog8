@@ -45,9 +45,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             is PtIdentifier -> {
-                val vmDt = irType(expr.type)
                 val code = IRCodeChunk(null, null)
                 if (expr.type in PassByValueDatatypes) {
+                    val vmDt = irType(expr.type)
                     if(vmDt==IRDataType.FLOAT) {
                         val resultFpRegister = codeGen.registers.nextFreeFloat()
                         code += IRInstruction(Opcode.LOADM, vmDt, fpReg1 = resultFpRegister, labelSymbol = expr.name)
@@ -60,6 +60,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                 } else {
                     // for strings and arrays etc., load the *address* of the value instead
+                    val vmDt = if(expr.type==DataType.UNDEFINED) IRDataType.WORD else irType(expr.type)
                     val resultRegister = codeGen.registers.nextFree()
                     code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = expr.name)
                     ExpressionCodeResult(code, vmDt, resultRegister, -1)
