@@ -3397,6 +3397,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  ${address.toHex()}")
                     RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  ${address.toHex()}")
                     RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldy  ${address.toHex()}")
+                    in Cx16VirtualRegisters -> {
+                        asmgen.out("  lda  ${address.toHex()} |  sta  cx16.${wordtarget.register.toString().lowercase()}")
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  cx16.${wordtarget.register.toString().lowercase()}+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  cx16.${wordtarget.register.toString().lowercase()}+1")
+                    }
                     else -> throw AssemblyError("word regs can only be pair")
                 }
                 TargetStorageKind.STACK -> {
@@ -3429,6 +3436,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         RegisterOrPair.AX -> asmgen.out("  ldx  #0")
                         RegisterOrPair.AY -> asmgen.out("  ldy  #0")
                         RegisterOrPair.XY -> asmgen.out("  tax |  ldy  #0")
+                        in Cx16VirtualRegisters -> {
+                            asmgen.out("  sta  cx16.${wordtarget.register.toString().lowercase()}")
+                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                asmgen.out("  stz  cx16.${wordtarget.register.toString().lowercase()}+1")
+                            else
+                                asmgen.out("  lda  #0 |  sta  cx16.${wordtarget.register.toString().lowercase()}+1")
+                        }
                         else -> throw AssemblyError("word regs can only be pair")
                     }
                 }
