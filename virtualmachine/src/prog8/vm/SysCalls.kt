@@ -42,6 +42,18 @@ SYSCALLS:
 30 = gfx_getpixel      ; get byte pixel value at coordinates r0.w/r1.w
 31 = rndseed
 32 = rndfseed
+33 = RND
+34 = RNDW
+35 = RNDF
+36 = STRING_CONTAINS
+37 = BYTEARRAY_CONTAINS
+38 = WORDARRAY_CONTAINS
+39 = CLAMP_BYTE
+40 = CLAMP_UBYTE
+41 = CLAMP_WORD
+42 = CLAMP_UWORD
+43 = CLAMP_FLOAT
+43 = ATAN
 */
 
 enum class Syscall {
@@ -88,7 +100,8 @@ enum class Syscall {
     CLAMP_UBYTE,
     CLAMP_WORD,
     CLAMP_UWORD,
-    CLAMP_FLOAT
+    CLAMP_FLOAT,
+    ATAN
     ;
 
     companion object {
@@ -454,11 +467,24 @@ object SysCalls {
             }
             Syscall.CLAMP_FLOAT -> {
                 val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
-                val value = (valueU as Float)
-                val minimum = (minimumU as Float)
-                val maximum = (maximumU as Float)
+                val value = valueU as Float
+                val minimum = minimumU as Float
+                val maximum = maximumU as Float
                 val result = min(max(value, minimum), maximum)
                 returnValue(callspec.returns!!, result, vm)
+            }
+            Syscall.ATAN -> {
+                val (x1, y1, x2, y2) = getArgValues(callspec.arguments, vm)
+                val x1f = (x1 as UByte).toDouble()
+                val y1f = (y1 as UByte).toDouble()
+                val x2f = (x2 as UByte).toDouble()
+                val y2f = (y2 as UByte).toDouble()
+                val xd = x2f-x1f
+                val yd = y2f-y1f
+                TODO("calculate atan the same way as the 6502 routine does 0-255")
+//                val radians = atan2(yd, xd) + PI     // 0 to 2*PI
+//                val result = floor(2*PI/radians*256.0)
+//                returnValue(callspec.returns!!, result, vm)
             }
             else -> throw AssemblyError("missing syscall ${call.name}")
         }

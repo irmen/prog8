@@ -182,4 +182,58 @@ math {
             return
         }}
     }
+
+
+sub atan_coarse_sgn(byte x1, byte y1, byte x2, byte y2) -> ubyte {
+    ; From a pair of signed coordinates around the origin, calculate discrete direction between 0 and 23 into A.
+    cx16.r0L = 3        ; quadrant
+    cx16.r1sL = x2-x1   ; xdelta
+    if_neg {
+        cx16.r0L--
+        cx16.r1sL = -cx16.r1sL
+    }
+    cx16.r2sL = y2-y1   ; ydelta
+    if_neg {
+        cx16.r0L-=2
+        cx16.r2sL = -cx16.r2sL
+    }
+    return atan_coarse_qd(cx16.r0L, cx16.r1L, cx16.r2L)
+}
+
+sub atan_coarse(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
+    ; From a pair of positive coordinates, calculate discrete direction between 0 and 23 into A.
+    cx16.r0L = 3        ; quadrant
+    if x2>=x1 {
+        cx16.r1L = x2-x1
+    } else {
+        cx16.r1L = x1-x2
+        cx16.r0L--
+    }
+    if y2>=y1 {
+        cx16.r2L = y2-y1
+    } else {
+        cx16.r2L = y1-y2
+        cx16.r0L -= 2
+    }
+    return atan_coarse_qd(cx16.r0L, cx16.r1L, cx16.r2L)
+}
+
+sub atan_coarse_qd(ubyte quadrant, ubyte xdelta, ubyte ydelta) -> ubyte {
+    ; From a pair of X/Y deltas (both >=0), and quadrant 0-3, calculate discrete direction between 0 and 23.
+    return lsb(mkword(atan(0, 0, xdelta, ydelta), 0) / 2730)
+}
+
+sub atan(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
+    ;; Calculate the angle, in a 256-degree circle, between two points into A.
+    ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the carthesian plane!
+    %ir {{
+        loadm.b r65532,math.atan.x1
+        loadm.b r65533,math.atan.y1
+        loadm.b r65534,math.atan.x2
+        loadm.b r65535,math.atan.y2
+        syscall 44 (r65532.b, r65533.b, r65534.b, r65535.b): r0.b
+        returnr.b r0
+    }}
+}
+
 }

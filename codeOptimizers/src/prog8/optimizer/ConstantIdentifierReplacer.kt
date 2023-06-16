@@ -53,7 +53,8 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
         }
 
         if(to==null) {
-            if(!range.to.inferType(program).isInteger)
+            val toType = range.to.inferType(program)
+            if(toType.isKnown && !range.to.inferType(program).isInteger)
                 errors.err("range expression to value must be integer", range.to.position)
         } else if(to-to.toInt()>0) {
             errors.err("range expression to value must be integer", range.to.position)
