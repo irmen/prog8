@@ -372,21 +372,21 @@ but perhaps the provided ones can be of service too.
     Fast 8-bit byte cosine of angle 0..179 (each is a 2 degree step), result is in range -127..127
     Angles 180..255 will yield a garbage result!
 
-``atan(ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
+``atan (ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
     Fast arctan routine that uses more memory because of large lookup tables.
     Calculate the angle, in a 256-degree circle, between two points in the positive quadrant.
 
-``atan_coarse_sgn(byte x1, byte y1, byte x2, byte y2)``
-    Small and fast, but imprecise, arctan routine
-    From a pair of signed coordinates around the origin, calculate discrete direction between 0 and 23.
-
-``atan_coarse(ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
-    Small and fast, but imprecise, arctan routine
+``direction (ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
     From a pair of positive coordinates, calculate discrete direction between 0 and 23.
+    This is a heavily optimized routine (small and fast).
 
-``atan_coarse_qd(ubyte quadrant, ubyte xdelta, ubyte ydelta)``
-    Small and fast, but imprecise, arctan routine
+``direction_sc (byte x1, byte y1, byte x2, byte y2)``
+    From a pair of signed coordinates around the origin, calculate discrete direction between 0 and 23.
+    This is a heavily optimized routine (small and fast).
+
+``direction_qd (ubyte quadrant, ubyte xdelta, ubyte ydelta)``
     If you already know the quadrant and x/y deltas, calculate discrete direction between 0 and 23.
+    This is a heavily optimized routine (small and fast).
 
 
 

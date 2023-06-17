@@ -1,7 +1,6 @@
 TODO
 ====
 
-- vm: fix syscall.ATAN calculation
 - document some library modules better (diskio, etc)
 
 ...

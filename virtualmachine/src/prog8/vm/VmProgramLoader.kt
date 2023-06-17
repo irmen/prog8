@@ -201,7 +201,7 @@ class VmProgramLoader {
         program.st.allVariables().forEach { variable ->
             var addr = allocations.allocations.getValue(variable.name)
 
-            // zero out uninitialized variables.
+            // zero out uninitialized ('bss') variables.
             if(variable.uninitialized) {
                 if(variable.dt in ArrayDatatypes) {
                     repeat(variable.length!!) {

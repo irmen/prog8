@@ -3,8 +3,7 @@ package prog8.vm
 import prog8.code.core.AssemblyError
 import prog8.intermediate.FunctionCallArgs
 import prog8.intermediate.IRDataType
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.*
 
 /*
 SYSCALLS:
@@ -479,12 +478,11 @@ object SysCalls {
                 val y1f = (y1 as UByte).toDouble()
                 val x2f = (x2 as UByte).toDouble()
                 val y2f = (y2 as UByte).toDouble()
-                val xd = x2f-x1f
-                val yd = y2f-y1f
-                TODO("calculate atan the same way as the 6502 routine does 0-255")
-//                val radians = atan2(yd, xd) + PI     // 0 to 2*PI
-//                val result = floor(2*PI/radians*256.0)
-//                returnValue(callspec.returns!!, result, vm)
+                var radians = atan2(y2f-y1f, x2f-x1f)
+                if(radians<0)
+                    radians+=2*PI
+                val result = floor(radians/2.0/PI*256.0)
+                returnValue(callspec.returns!!, result, vm)
             }
             else -> throw AssemblyError("missing syscall ${call.name}")
         }

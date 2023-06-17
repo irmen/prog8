@@ -97,7 +97,7 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
     }
 
 
-sub atan_coarse_sgn(byte x1, byte y1, byte x2, byte y2) -> ubyte {
+sub direction_sc(byte x1, byte y1, byte x2, byte y2) -> ubyte {
     ; From a pair of signed coordinates around the origin, calculate discrete direction between 0 and 23 into A.
     cx16.r0L = 3        ; quadrant
     cx16.r1sL = x2-x1   ; xdelta
@@ -110,10 +110,10 @@ sub atan_coarse_sgn(byte x1, byte y1, byte x2, byte y2) -> ubyte {
         cx16.r0L-=2
         cx16.r2sL = -cx16.r2sL
     }
-    return atan_coarse_qd(cx16.r0L, cx16.r1L, cx16.r2L)
+    return direction_qd(cx16.r0L, cx16.r1L, cx16.r2L)
 }
 
-sub atan_coarse(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
+sub direction(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
     ; From a pair of positive coordinates, calculate discrete direction between 0 and 23 into A.
     cx16.r0L = 3        ; quadrant
     if x2>=x1 {
@@ -128,10 +128,10 @@ sub atan_coarse(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
         cx16.r2L = y1-y2
         cx16.r0L -= 2
     }
-    return atan_coarse_qd(cx16.r0L, cx16.r1L, cx16.r2L)
+    return direction_qd(cx16.r0L, cx16.r1L, cx16.r2L)
 }
 
-asmsub atan_coarse_qd(ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A {
+asmsub direction_qd(ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A {
     ;Arctan  https://github.com/dustmop/arctan24
     ; From a pair of X/Y deltas (both >=0), and quadrant 0-3, calculate discrete direction between 0 and 23 into A.
     ;  .reg:a @in  quadrant Number 0 to 3.
@@ -269,6 +269,7 @@ y2 = cx16.r3L
 octant = cx16.r4L			;; temporary zeropage variable
 
 		lda x1
+		sec
 		sbc x2
 		bcs *+4
 		eor #$ff
@@ -276,6 +277,7 @@ octant = cx16.r4L			;; temporary zeropage variable
 		rol octant
 
 		lda y1
+		sec
 		sbc y2
 		bcs *+4
 		eor #$ff
@@ -283,6 +285,7 @@ octant = cx16.r4L			;; temporary zeropage variable
 		rol octant
 
 		lda log2_tab,x
+		sec
 		sbc log2_tab,y
 		bcc *+4
 		eor #$ff
