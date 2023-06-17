@@ -1003,7 +1003,7 @@ main  {
     }
 
     test("byte when choices silently converted to word for convenience") {
-        var text="""
+        val text="""
 main {
   sub start() {
     uword z = 3
@@ -1016,4 +1016,35 @@ main {
 }"""
         compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
     }
+
+    test("returning smaller dt than returndt is ok") {
+        val text="""
+main {
+    sub start() {
+        void test()
+    }
+    
+    sub test() -> uword {
+        return cx16.r0L
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+    }
+
+    test("returning bigger dt than returndt is not ok") {
+        val text="""
+main {
+    sub start() {
+        void test()
+    }
+    
+    sub test() -> ubyte {
+        return cx16.r0
+    }
+}"""
+        val errors=ErrorReporterForTests()
+        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.single() shouldContain "doesn't match"
+    }
+
 })

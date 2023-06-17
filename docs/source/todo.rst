@@ -1,11 +1,6 @@
 TODO
 ====
 
-- this should give a compiler error because word returnvalue:
-    sub atan_coarse_qd(ubyte quadrant, ubyte xdelta, ubyte ydelta) -> ubyte {
-        return mkword(math.atan(0, 0, xdelta, ydelta), 0) / 2730
-    }
-
 - vm: fix syscall.ATAN calculation
 - document some library modules better (diskio, etc)
 

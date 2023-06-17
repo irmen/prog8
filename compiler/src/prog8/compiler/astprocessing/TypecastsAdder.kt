@@ -380,12 +380,14 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
     override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
         // add a typecast to the return type if it doesn't match the subroutine's signature
+        // but only if no data loss occurs
         val returnValue = returnStmt.value
         if(returnValue!=null) {
             val subroutine = returnStmt.definingSubroutine!!
             if(subroutine.returntypes.size==1) {
                 val subReturnType = subroutine.returntypes.first()
-                if (returnValue.inferType(program) istype subReturnType)
+                val returnDt = returnValue.inferType(program)
+                if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
                     return noModifications
                 if (returnValue is NumericLiteral) {
                     val cast = returnValue.cast(subroutine.returntypes.single())
