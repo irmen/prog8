@@ -140,6 +140,9 @@ Routines to convert strings to numbers or vice versa.
 - numbers to strings, in various formats (binary, hex, decimal)
 - strings in decimal, hex and binary format into numbers (bytes, words)
 
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/conv.p8>`_
+to see what's in there.
+
 
 textio (txt.*)
 --------------
@@ -151,6 +154,9 @@ dealing with text-based input and output (to the screen). Such as
 - filling or clearing the screen and colors
 - scrolling the text on the screen
 - placing individual characters on the screen
+
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/textio.p8>`_
+to see what's in there. (Note: slight variations for different compiler targets)
 
 
 diskio
@@ -171,6 +177,9 @@ Routines to directly load data into video ram are also present (vload and vload_
 Also contains a helper function to calculate the file size of a loaded file (although that is truncated
 to 16 bits, 64Kb)
 Als contains routines for operating on subdirectories (chdir, mkdir, rmdir) and to relabel the disk.
+
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/diskio.p8>`_
+to see what's in there. (Note: slight variations for different compiler targets)
 
 
 string
@@ -313,7 +322,7 @@ point variables.  This includes ``print_f``, the routine used to print floating 
 
 graphics
 --------
-Monochrome bitmap graphics routines, fixed 320*200 resolution:
+Bitmap graphics routines:
 
 - clearing the screen
 - drawing individual pixels
@@ -322,7 +331,10 @@ Monochrome bitmap graphics routines, fixed 320*200 resolution:
 This library is available both on the C64 and the Cx16.
 It uses the ROM based graphics routines on the latter, and it is a very small library because of that.
 That also means though that it is constrained to 320*200 resolution on the Cx16 as well.
-Use the ``gfx2`` library if you want full-screen graphics or non-monochrome drawing (only on Cx16).
+Use the ``gfx2`` library if you want full-screen graphics or non-monochrome drawing (only on Cx16). See below for that one.
+
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/c64/graphics.p8>`_
+to see what's in there. (Note: slight variations for different compiler targets)
 
 
 math
@@ -395,6 +407,11 @@ cx16logo
 Just a fun module that contains the Commander X16 logo in PETSCII graphics
 and allows you to print it anywhere on the screen.
 
+``logo ()``
+    prints the logo at the current cursor position
+``logo_at (column, row)``
+    printss the logo at the given position
+
 
 prog8_lib
 ---------
@@ -414,6 +431,9 @@ Full-screen multicolor bitmap graphics routines, available on the Cx16 machine o
 - drawing text inside the bitmap
 - in monochrome mode, it's possible to use a stippled drawing pattern to simulate a shade of gray.
 
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx2.p8>`_
+to see what's in there.
+
 
 palette  (cx16 only)
 --------------------
@@ -422,6 +442,9 @@ There are also a few better looking Commodore 64 color palettes available here,
 because the Commander X16's default colors for this (the first 16 colors) are too saturated
 and are quite different than how they looked on a VIC-II chip in a C64.
 
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/palette.p8>`_
+to see what's in there.
+
 
 psg  (cx16 only)
 ----------------
@@ -429,5 +452,7 @@ Available for the Cx16 target.
 Contains a simple abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
 It includes an interrupt routine to handle simple Attack/Release envelopes as well.
 See the examples/cx16/bdmusic.p8  program for ideas how to use it.
-Read the source of this library module for details about the API.
+
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/psg.p8>`_
+to see what's in there. (Note: slight variations for different compiler targets)
 

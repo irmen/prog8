@@ -1,8 +1,6 @@
 TODO
 ====
 
-- document some library modules better (diskio, etc)
-
 ...
 
 
