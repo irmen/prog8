@@ -43,9 +43,9 @@ fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilationTarget)
 
 fun Program.optimizeStatements(errors: IErrorReporter,
                                functions: IBuiltinFunctions,
-                               compTarget: ICompilationTarget
+                               options: CompilationOptions
 ): Int {
-    val optimizer = StatementOptimizer(this, errors, functions, compTarget)
+    val optimizer = StatementOptimizer(this, errors, functions, options)
     optimizer.visit(this)
     val optimizationCount = optimizer.applyModifications()
 

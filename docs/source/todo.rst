@@ -1,8 +1,6 @@
 TODO
 ====
 
-- optimize a "dangling else"
-
 ...
 
 

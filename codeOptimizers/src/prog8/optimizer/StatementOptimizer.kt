@@ -13,7 +13,7 @@ import kotlin.math.floor
 class StatementOptimizer(private val program: Program,
                          private val errors: IErrorReporter,
                          private val functions: IBuiltinFunctions,
-                         private val compTarget: ICompilationTarget
+                         private val options: CompilationOptions
 ) : AstWalker() {
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
@@ -39,7 +39,7 @@ class StatementOptimizer(private val program: Program,
                 if(string!=null) {
                     val pos = functionCallStatement.position
                     if (string.value.length == 1) {
-                        val firstCharEncoded = compTarget.encodeString(string.value, string.encoding)[0]
+                        val firstCharEncoded = options.compTarget.encodeString(string.value, string.encoding)[0]
                         val chrout = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
                             mutableListOf(NumericLiteral(DataType.UBYTE, firstCharEncoded.toDouble(), pos)),
@@ -51,7 +51,7 @@ class StatementOptimizer(private val program: Program,
                             IAstModification.Remove(stringDecl, stringDecl.parent as IStatementContainer)
                         )
                     } else if (string.value.length == 2) {
-                        val firstTwoCharsEncoded = compTarget.encodeString(string.value.take(2), string.encoding)
+                        val firstTwoCharsEncoded = options.compTarget.encodeString(string.value.take(2), string.encoding)
                         val chrout1 = FunctionCallStatement(
                             IdentifierReference(listOf("txt", "chrout"), pos),
                             mutableListOf(NumericLiteral(DataType.UBYTE, firstTwoCharsEncoded[0].toDouble(), pos)),
@@ -108,6 +108,16 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
+        // remove obvious dangling elses (else after a return)
+        if(ifElse.elsepart.isNotEmpty() && ifElse.truepart.statements.singleOrNull() is Return) {
+            val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
+            if(options.slowCodegenWarnings)
+                errors.warn("else can be omitted", ifElse.elsepart.position)
+            return listOf(
+                IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope(mutableListOf(), ifElse.elsepart.position), ifElse),
+                IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
+            )
+        }
         return noModifications
     }
 
@@ -141,7 +151,7 @@ class StatementOptimizer(private val program: Program,
                 val size = sv.value.length
                 if(size==1) {
                     // loop over string of length 1 -> just assign the single character
-                    val character = compTarget.encodeString(sv.value, sv.encoding)[0]
+                    val character = options.compTarget.encodeString(sv.value, sv.encoding)[0]
                     val byte = NumericLiteral(DataType.UBYTE, character.toDouble(), iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
                     scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
@@ -326,7 +336,7 @@ class StatementOptimizer(private val program: Program,
                         if (rightCv == 0.0) {
                             return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                         } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
-                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..3.0 && compTarget.name!=VMTarget.NAME) {
+                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..3.0 && options.compTarget.name!=VMTarget.NAME) {
                                 // replace by several INCs if it's not a memory address (inc on a memory mapped register doesn't work very well)
                                 val incs = AnonymousScope(mutableListOf(), assignment.position)
                                 repeat(rightCv.toInt()) {
@@ -340,7 +350,7 @@ class StatementOptimizer(private val program: Program,
                         if (rightCv == 0.0) {
                             return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
                         } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
-                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..3.0 && compTarget.name!=VMTarget.NAME) {
+                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..3.0 && options.compTarget.name!=VMTarget.NAME) {
                                 // replace by several DECs if it's not a memory address (dec on a memory mapped register doesn't work very well)
                                 val decs = AnonymousScope(mutableListOf(), assignment.position)
                                 repeat(rightCv.toInt()) {
