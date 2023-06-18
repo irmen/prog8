@@ -384,7 +384,7 @@ but perhaps the provided ones can be of service too.
     Fast 8-bit byte cosine of angle 0..179 (each is a 2 degree step), result is in range -127..127
     Angles 180..255 will yield a garbage result!
 
-``atan (ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
+``atan2 (ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
     Fast arctan routine that uses more memory because of large lookup tables.
     Calculate the angle, in a 256-degree circle, between two points in the positive quadrant.
 

@@ -254,7 +254,7 @@ _quadrant_region_to_direction:
     }}
 }
 
-asmsub atan(ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A {
+asmsub atan2(ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A {
     ;; Calculate the angle, in a 256-degree circle, between two points into A.
     ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the carthesian plane!
     ;; https://www.codebase64.org/doku.php?id=base:8bit_atan2_8-bit_angle

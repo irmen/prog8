@@ -187,7 +187,7 @@ math {
 sub direction(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
     ; From a pair of positive coordinates, calculate discrete direction between 0 and 23 into A.
     ; This adjusts the atan() result  so that the direction N is centered on the angle=N instead of having it as a boundary
-    ubyte angle = atan(x1, y1, x2, y2) - 256/48
+    ubyte angle = atan2(x1, y1, x2, y2) - 256/48
     return 23-lsb(mkword(angle,0) / 2730)
 }
 
@@ -226,14 +226,14 @@ sub direction_qd(ubyte quadrant, ubyte xdelta, ubyte ydelta) -> ubyte {
     }
 }
 
-sub atan(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
+sub atan2(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
     ;; Calculate the angle, in a 256-degree circle, between two points into A.
     ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the carthesian plane!
     %ir {{
-        loadm.b r65532,math.atan.x1
-        loadm.b r65533,math.atan.y1
-        loadm.b r65534,math.atan.x2
-        loadm.b r65535,math.atan.y2
+        loadm.b r65532,math.atan2.x1
+        loadm.b r65533,math.atan2.y1
+        loadm.b r65534,math.atan2.x2
+        loadm.b r65535,math.atan2.y2
         syscall 44 (r65532.b, r65533.b, r65534.b, r65535.b): r0.b
         returnr.b r0
     }}

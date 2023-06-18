@@ -1,6 +1,12 @@
 %import math
 %import palette
 
+; use the mouse to move the cursor around the screen
+; it uses the fast direction routine to spotlight your mouse position.
+
+; you can use the atan2() routine as well for more precision laser beams,
+; but it will use a lot more memory due to the required lookup tables.
+
 main  {
     sub start() {
         const uword WIDTH=320
