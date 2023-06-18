@@ -121,6 +121,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "rasterbars",
             "sincos",
             "snow",
+            "spotlight",
             "tehtriz",
             "testgfx2",
         ),

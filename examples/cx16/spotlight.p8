@@ -1,0 +1,51 @@
+%import math
+%import palette
+
+main  {
+    sub start() {
+        const uword WIDTH=320
+        const ubyte HEIGHT=240
+
+        uword xx
+        ubyte yy
+        void cx16.screen_mode(128, false)
+        cx16.mouse_config2(1)
+
+        ; prefill
+        for yy in 0 to HEIGHT-1 {
+            cx16.FB_cursor_position(0, yy)
+            for xx in 0 to WIDTH-1 {
+                cx16.FB_set_pixel(math.direction(128, HEIGHT/2, clampx(xx), yy) + 128)
+            }
+        }
+
+
+        ubyte previous_direction
+        ubyte new_direction
+
+        ; dim the screen
+        for new_direction in 128 to 128+23
+            palette.set_color(new_direction, $024)
+
+        ; spotlight
+        repeat {
+            void cx16.mouse_pos()
+            new_direction = math.direction(128, HEIGHT/2, clampx(cx16.r0), cx16.r1L)
+            if new_direction != previous_direction {
+                sys.waitvsync()
+                palette.set_color(new_direction+128, math.rndw())
+                palette.set_color(previous_direction+128, $024)
+                previous_direction = new_direction
+            }
+        }
+    }
+
+    sub clampx(uword screenx) -> ubyte {
+        ;; return clamp(screenx, 32, 255+32)-32 as ubyte
+        if screenx<32
+            return 0
+        else if screenx>255+32
+            return 255
+        return lsb(screenx-32)
+    }
+}
