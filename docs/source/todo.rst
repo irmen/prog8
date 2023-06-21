@@ -1,6 +1,8 @@
 TODO
 ====
 
+- replace all the string.compare calls in rockrunner with equalites
+
 ...
 
 

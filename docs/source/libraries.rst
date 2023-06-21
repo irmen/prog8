@@ -218,6 +218,7 @@ Provides string manipulation routines.
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
     Note that you can also directly compare strings and string values with each other
     using ``==``, ``<`` etcetera (it will use string.compare for you under water automatically).
+    This even works when dealing with uword (pointer) variables when comparing them to a string type.
 
 ``copy (from, to) -> ubyte length``
     Copy a string to another, overwriting that one. Returns the length of the string that was copied.

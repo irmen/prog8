@@ -13,6 +13,7 @@ import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -70,25 +71,42 @@ main {
         compileText(C64Target(), false, text, writeAssembly = false) shouldBe null
     }
 
-    test("simple string comparison still works") {
+    test("string comparisons") {
         val src="""
-        main {
-            sub start() {
-                ubyte @shared value
-                str thing = "????"
-        
-                if thing=="name" {
-                    value++
-                }
-        
-                if thing!="name" {
-                    value++
-                }
-            }
-        }"""
+main {
+
+    sub start() {
+        str name = "name"
+        uword nameptr = &name
+
+        cx16.r0L= name=="foo"
+        cx16.r1L= name!="foo"
+        cx16.r2L= name<"foo"
+        cx16.r3L= name>"foo"
+
+        cx16.r0L= nameptr=="foo"
+        cx16.r1L= nameptr!="foo"
+        cx16.r2L= nameptr<"foo"
+        cx16.r3L= nameptr>"foo"
+
+        void compare(name, "foo")
+        void compare(name, "name")
+        void compare(nameptr, "foo")
+        void compare(nameptr, "name")
+    }
+
+    sub compare(str s1, str s2) -> ubyte {
+        if s1==s2
+            return 42
+        return 0
+    }
+}"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 6
+        stmts.size shouldBe 16
+        val result2 = compileText(VMTarget(), optimize=false, src, writeAssembly=true)!!
+        val stmts2 = result2.compilerAst.entrypoint.statements
+        stmts2.size shouldBe 16
     }
 
     test("string concatenation and repeats") {

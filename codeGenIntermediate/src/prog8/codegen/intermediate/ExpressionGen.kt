@@ -473,7 +473,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1 = resultRegister, reg2 = zeroRegister), null)
             return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
-            if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
+            if(binExpr.left.type==DataType.STR || binExpr.right.type==DataType.STR) {
                 throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
                 val leftTr = translateExpression(binExpr.left)
@@ -515,7 +515,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1 = resultRegister, reg2 = zeroRegister), null)
             return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
-            if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
+            if(binExpr.left.type==DataType.STR || binExpr.right.type==DataType.STR) {
                 throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
                 val leftTr = translateExpression(binExpr.left)
@@ -554,7 +554,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             result += IRCodeChunk(label, null)
             return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
-            if(binExpr.left.type==DataType.STR && binExpr.right.type==DataType.STR) {
+            if(binExpr.left.type==DataType.STR || binExpr.right.type==DataType.STR) {
                 throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
                 return if(constValue(binExpr.right)==0.0) {

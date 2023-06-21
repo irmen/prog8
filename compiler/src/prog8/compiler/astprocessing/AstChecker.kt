@@ -966,6 +966,8 @@ internal class AstChecker(private val program: Program,
                 // expression with one side BOOL other side (U)BYTE is allowed; bool==byte
             } else if((expr.operator == "<<" || expr.operator == ">>") && (leftDt in WordDatatypes && rightDt in ByteDatatypes)) {
                 // exception allowed: shifting a word by a byte
+            } else if((leftDt==DataType.UWORD && rightDt==DataType.STR) || (leftDt==DataType.STR && rightDt==DataType.UWORD)) {
+                // exception allowed: comparing uword (pointer) with string
             } else {
                 errors.err("left and right operands aren't the same type", expr.left.position)
             }

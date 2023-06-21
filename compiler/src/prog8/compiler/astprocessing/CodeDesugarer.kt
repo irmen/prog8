@@ -5,6 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.code.core.ComparisonOperators
 import prog8.code.core.DataType
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
@@ -173,10 +174,32 @@ _after:
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        fun isStringComparison(leftDt: InferredTypes.InferredType, rightDt: InferredTypes.InferredType): Boolean =
+            if(leftDt istype DataType.STR && rightDt istype DataType.STR)
+                true
+            else
+                leftDt istype DataType.UWORD && rightDt istype DataType.STR || leftDt istype DataType.STR && rightDt istype DataType.UWORD
+
         if(expr.operator=="in") {
             val containment = ContainmentCheck(expr.left, expr.right, expr.position)
             return listOf(IAstModification.ReplaceNode(expr, containment, parent))
         }
+
+        if(expr.operator in ComparisonOperators) {
+            val leftDt = expr.left.inferType(program)
+            val rightDt = expr.right.inferType(program)
+
+            if(isStringComparison(leftDt, rightDt)) {
+                // replace string comparison expressions with calls to string.compare()
+                val stringCompare = BuiltinFunctionCall(
+                    IdentifierReference(listOf("prog8_lib_stringcompare"), expr.position),
+                    mutableListOf(expr.left.copy(), expr.right.copy()), expr.position)
+                val zero = NumericLiteral.optimalInteger(0, expr.position)
+                val comparison = BinaryExpression(stringCompare, expr.operator, zero, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, comparison, parent))
+            }
+        }
+
         return noModifications
     }
 }
