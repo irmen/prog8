@@ -222,4 +222,27 @@ main {
         result2 shouldNotBe null
 
     }
+
+    "3 letter names not prefixed too aggressively" {
+        val text = """
+%import math
+main {
+
+    sub start() {
+        ubyte lda = getrandom()
+        lda++
+        cx16.r0 = (math.rnd() % 20) * ${'$'}0010
+        lda = math.rnd() % 5
+        lda++
+    }
+
+    sub getrandom() -> ubyte {
+        return cx16.r0L
+    }
+}"""
+        val result = compileText(C64Target(), false, text, writeAssembly = true)
+        result shouldNotBe null
+        val result2 = compileText(VMTarget(), false, text, writeAssembly = true)
+        result2 shouldNotBe null
+    }
 })

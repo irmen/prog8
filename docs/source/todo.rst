@@ -1,6 +1,7 @@
 TODO
 ====
 
+- hiram bank 1 usage configurable or maybe even just keep whatever bank is active at program start?
 - replace all the string.compare calls in rockrunner with equalites
 
 ...
@@ -28,16 +29,16 @@ Compiler:
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
 - ir: add more optimizations in IRPeepholeOptimizer
-- ir: the @split arrays are also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
+- ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
 - PtAst/IR: more complex common subexpression eliminations
-- generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit or my binaryen kotlin library?
 - can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc shouldn't be deleted from the assembly?
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
+- generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit or my binaryen kotlin library?
 
 
 Libraries:
@@ -46,7 +47,7 @@ Libraries:
 - c128 target: make syslib more complete (missing kernal routines)?
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 - optimize several inner loops in gfx2 even further?
-- add modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)?
+- actually implement modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)
 
 
 Expressions:

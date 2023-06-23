@@ -403,7 +403,7 @@ romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to above to not have the hassle to deal with multiple return values
 
-; Audio (bank 10)
+; Audio (rom bank 10)
 romsub $C04B = psg_init() clobbers(A,X,Y)
 romsub $C063 = ym_init() clobbers(A,X,Y) -> bool @Pc                   ; (re)init YM chip
 romsub $C066 = ym_loaddefpatches() clobbers(A,X,Y) -> bool @Pc         ; load default YM patches

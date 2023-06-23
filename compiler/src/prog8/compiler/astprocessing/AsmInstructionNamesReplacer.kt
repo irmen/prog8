@@ -1,18 +1,26 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 
 class AsmInstructionNamesReplacer(
+    val program: Program,
     val blocks: Set<Block>,
     val subroutines: Set<Subroutine>,
     val variables: Set<VarDecl>,
     val labels: Set<Label>): AstWalker() {
 
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
+        if(identifier.nameInSource.size>1) {
+            val tgt = identifier.targetStatement(program)
+            if(tgt==null || tgt.definingModule.isLibrary)
+                return noModifications
+        }
+
         val newName = identifier.nameInSource.map { ident ->
             if(ident.length==3 && !identifier.definingModule.isLibrary) {
                 val blockTarget = blocks.firstOrNull { it.name==ident }
