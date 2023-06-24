@@ -1,22 +1,30 @@
-%import math
 %import textio
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        ubyte lda = getrandom()
-        lda++
-        cx16.r0 = (math.rnd() % 20) * $0010
-        lda = math.rnd() % 5
-        lda++
-    }
+        cx16.r0 = $1234
+        cx16.r15 = $ea31
 
-    sub getrandom() -> ubyte {
-        %asm {{
-            lda  #42
-            rts
-        }}
+        txt.print_uwhex(cx16.r0, true)
+        txt.print_uwhex(cx16.r15, true)
+        txt.nl()
+
+        cx16.save_virtual_registers()
+        cx16.r0 = $3333
+        cx16.r15 = $4444
+
+        txt.print_uwhex(cx16.r0, true)
+        txt.print_uwhex(cx16.r15, true)
+        txt.nl()
+        cx16.restore_virtual_registers()
+
+        txt.print_uwhex(cx16.r0, true)
+        txt.print_uwhex(cx16.r15, true)
+        txt.nl()
+        repeat {
+        }
     }
 }
 

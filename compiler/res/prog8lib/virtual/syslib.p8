@@ -218,4 +218,43 @@ cx16 {
     &byte r13sH = $ff1d
     &byte r14sH = $ff1f
     &byte r15sH = $ff21
+
+    sub save_virtual_registers() {
+        uword[32] storage
+        storage[0] = r0
+        storage[1] = r1
+        storage[2] = r2
+        storage[3] = r3
+        storage[4] = r4
+        storage[5] = r5
+        storage[6] = r6
+        storage[7] = r7
+        storage[8] = r8
+        storage[9] = r9
+        storage[10] = r10
+        storage[11] = r11
+        storage[12] = r12
+        storage[13] = r13
+        storage[14] = r14
+        storage[15] = r15
+    }
+
+    sub restore_virtual_registers() {
+        r0 = cx16.save_virtual_registers.storage[0]
+        r1 = cx16.save_virtual_registers.storage[1]
+        r2 = cx16.save_virtual_registers.storage[2]
+        r3 = cx16.save_virtual_registers.storage[3]
+        r4 = cx16.save_virtual_registers.storage[4]
+        r5 = cx16.save_virtual_registers.storage[5]
+        r6 = cx16.save_virtual_registers.storage[6]
+        r7 = cx16.save_virtual_registers.storage[7]
+        r8 = cx16.save_virtual_registers.storage[8]
+        r9 = cx16.save_virtual_registers.storage[9]
+        r10 = cx16.save_virtual_registers.storage[10]
+        r11 = cx16.save_virtual_registers.storage[11]
+        r12 = cx16.save_virtual_registers.storage[12]
+        r13 = cx16.save_virtual_registers.storage[13]
+        r14 = cx16.save_virtual_registers.storage[14]
+        r15 = cx16.save_virtual_registers.storage[15]
+    }
 }

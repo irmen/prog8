@@ -166,6 +166,7 @@ will corrupt any Vera operations that were going on in the main program. The rou
     The Commander X16's 16 'virtual registers' R0-R15 are located in zeropage and *are not preserved* in the IRQ handler!
     So you should make sure that the handler routine does NOT use these registers, or do some sort of saving/restoring yourself
     of the ones that you do need in the IRQ handler.
+    There are two utility routines in cx16 that save and restore *all* 16 registers so it's a bit inefficient but safe.
 
     It is also advised to not use floating point calculations inside IRQ handler routines.
     Beside them being very slow, there are intricate requirements such as having the

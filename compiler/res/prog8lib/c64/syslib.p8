@@ -839,4 +839,31 @@ cx16 {
     &byte r13sH = $cf1b
     &byte r14sH = $cf1d
     &byte r15sH = $cf1f
+
+    asmsub save_virtual_registers() clobbers(A,Y) {
+        %asm {{
+            ldy  #31
+    -       lda  cx16.r0,y
+            sta  _cx16_vreg_storage,y
+            dey
+            bpl  -
+            rts
+
+    _cx16_vreg_storage
+            .word 0,0,0,0,0,0,0,0
+            .word 0,0,0,0,0,0,0,0
+        }}
+    }
+
+    asmsub restore_virtual_registers() clobbers(A,Y) {
+        %asm {{
+            ldy  #31
+    -       lda  save_virtual_registers._cx16_vreg_storage,y
+            sta  cx16.r0,y
+            dey
+            bpl  -
+            rts
+        }}
+    }
+
 }

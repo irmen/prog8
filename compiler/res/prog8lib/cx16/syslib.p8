@@ -629,6 +629,33 @@ asmsub vpoke_mask(ubyte bank @A, uword address @R0, ubyte mask @X, ubyte value @
     }}
 }
 
+asmsub save_virtual_registers() clobbers(A,Y) {
+    %asm {{
+        ldy  #31
+-       lda  cx16.r0,y
+        sta  _cx16_vreg_storage,y
+        dey
+        bpl  -
+        rts
+
+_cx16_vreg_storage
+        .word 0,0,0,0,0,0,0,0
+        .word 0,0,0,0,0,0,0,0
+    }}
+}
+
+asmsub restore_virtual_registers() clobbers(A,Y) {
+    %asm {{
+        ldy  #31
+-       lda  save_virtual_registers._cx16_vreg_storage,y
+        sta  cx16.r0,y
+        dey
+        bpl  -
+        rts
+    }}
+}
+
+
 asmsub save_vera_context() clobbers(A) {
     ; -- use this at the start of your IRQ handler if it uses Vera registers, to save the state
     %asm {{

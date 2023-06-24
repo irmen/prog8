@@ -420,6 +420,21 @@ Low-level language support. You should not normally have to bother with this dir
 The compiler needs it for various built-in system routines.
 
 
+cx16
+----
+This is available on *all targets*, it is always imported as part of syslib.
+On the Commander X16 this module contains a whole bunch of things specific to that machine.
+On the other targets, it only contains the definition of the 16 memory mapped virtual registers
+(cx16.r0 - cx16.r15) and the following two utility routines:
+
+``save_virtual_registers()``
+    save the values of all 16 virtual registers r0 - r15 in a buffer. Might be useful in an IRQ handler to avoid clobbering them.
+
+``restore_virtual_registers()``
+    restore the values of all 16 virtual registers r0 - r15 from the buffer. Might be useful in an IRQ handler to avoid clobbering them.
+
+
+
 gfx2  (cx16 only)
 -----------------
 Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
