@@ -195,7 +195,7 @@ Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-fil
     :maxdepth: 2
     :caption: Contents of this manual:
 
-    building.rst
+    compiling.rst
     programming.rst
     syntaxreference.rst
     libraries.rst

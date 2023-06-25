@@ -1,6 +1,6 @@
-==============================
-Writing and building a program
-==============================
+===================
+Compiling a program
+===================
 
 .. _building_compiler:
 
@@ -189,7 +189,7 @@ One or more .p8 module files
 
     c64: $C000 - $CEFF
 
-    cx16: $A000 - $BFFF     (note: assumes that the correct HiRam bank #1 is mapped in at all times!)
+    cx16: $A000 - $BFFF     (note: you must make sure that the correct HiRam bank #1 is mapped in when accessing these variables!)
 
     If you use this option, you can no longer use the part of the above memory area that is
     now alotted to the variables for your own purposes. The output of the 64tass assembler step at the

@@ -1,6 +1,6 @@
-************************
-Compiler library modules
-************************
+===============
+Library modules
+===============
 
 The compiler provides several "built-in" library modules with useful subroutine and variables.
 
