@@ -62,7 +62,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(identifier: IdentifierReference) {
         val stmt = identifier.targetStatement(program)
         if(stmt==null)
-            errors.err("undefined symbol: ${identifier.nameInSource.joinToString(".")}", identifier.position)
+            errors.undefined(identifier.nameInSource, identifier.position)
         else {
             val target = stmt as? VarDecl
             if (target != null && target.origin == VarDeclOrigin.SUBROUTINEPARAM) {
@@ -126,8 +126,11 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(ifElse: IfElse) {
         val dt = ifElse.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL))
-            errors.err("condition value should be an integer type or bool", ifElse.condition.position)
+        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
+            val identifier = ifElse.condition as? IdentifierReference
+            if(identifier==null || identifier.targetStatement(program)!=null)
+                errors.err("condition value should be an integer type or bool", ifElse.condition.position)
+        }
         super.visit(ifElse)
     }
 
@@ -443,15 +446,21 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(untilLoop: UntilLoop) {
         val dt = untilLoop.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL))
-            errors.err("condition value should be an integer type or bool", untilLoop.condition.position)
+        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
+            val identifier = untilLoop.condition as? IdentifierReference
+            if(identifier==null || identifier.targetStatement(program)!=null)
+                errors.err("condition value should be an integer type or bool", untilLoop.condition.position)
+        }
         super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
         val dt = whileLoop.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL))
-            errors.err("condition value should be an integer type or bool", whileLoop.condition.position)
+        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
+            val identifier = whileLoop.condition as? IdentifierReference
+            if(identifier==null || identifier.targetStatement(program)!=null)
+                errors.err("condition value should be an integer type or bool", whileLoop.condition.position)
+        }
         super.visit(whileLoop)
     }
 
@@ -522,7 +531,7 @@ internal class AstChecker(private val program: Program,
             val targetName = targetIdentifier.nameInSource
             when (val targetSymbol = assignment.definingScope.lookup(targetName)) {
                 null -> {
-                    errors.err("undefined symbol: ${targetIdentifier.nameInSource.joinToString(".")}", targetIdentifier.position)
+                    errors.undefined(targetIdentifier.nameInSource, targetIdentifier.position)
                     return
                 }
                 !is VarDecl -> {
@@ -1237,7 +1246,7 @@ internal class AstChecker(private val program: Program,
             val target = postIncrDecr.definingScope.lookup(targetName)
             if(target==null) {
                 val symbol = postIncrDecr.target.identifier!!
-                errors.err("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)
+                errors.undefined(symbol.nameInSource, symbol.position)
             } else {
                 if(target !is VarDecl || target.type== VarDeclType.CONST) {
                     errors.err("can only increment or decrement a variable", postIncrDecr.position)
@@ -1383,7 +1392,7 @@ internal class AstChecker(private val program: Program,
                 else
                     errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", target.position)
             }
-            null -> errors.err("undefined symbol: ${target.nameInSource.joinToString(".")}", target.position)
+            null -> errors.undefined(target.nameInSource, target.position)
             else -> errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", target.position)
         }
         return null

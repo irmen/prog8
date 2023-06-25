@@ -67,8 +67,13 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
         fun checkTypes(call: IFunctionCall, program: Program): Pair<String, Position>? {
             val argITypes = call.args.map { it.inferType(program) }
             val firstUnknownDt = argITypes.indexOfFirst { it.isUnknown }
-            if(firstUnknownDt>=0)
-                return Pair("argument ${firstUnknownDt+1} invalid argument type", call.args[firstUnknownDt].position)
+            if(firstUnknownDt>=0) {
+                val identifier = call.args[0] as? IdentifierReference
+                return if(identifier==null || identifier.targetStatement(program)!=null)
+                    Pair("argument ${firstUnknownDt + 1} invalid argument type", call.args[firstUnknownDt].position)
+                else
+                    null
+            }
             val argtypes = argITypes.map { it.getOr(DataType.UNDEFINED) }
             val target = call.target.targetStatement(program)
             if (target is Subroutine) {

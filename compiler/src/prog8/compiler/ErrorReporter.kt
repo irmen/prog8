@@ -21,6 +21,10 @@ internal class ErrorReporter: IErrorReporter {
         messages.add(CompilerMessage(MessageSeverity.WARNING, msg, position))
     }
 
+    override fun undefined(symbol: List<String>, position: Position) {
+        err("undefined symbol: ${symbol.joinToString(".")}", position)
+    }
+
     override fun report() {
         var numErrors = 0
         var numWarnings = 0

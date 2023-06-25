@@ -21,6 +21,10 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
             warnings.add(text)
     }
 
+    override fun undefined(symbol: List<String>, position: Position) {
+        err("undefined symbol: ${symbol.joinToString(".")}", position)
+    }
+
     override fun noErrors(): Boolean  = errors.isEmpty()
 
     override fun report() {

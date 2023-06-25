@@ -3,7 +3,6 @@ package prog8.optimizer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.UndefinedSymbolError
 import prog8.ast.expressions.*
 import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.ForLoop
@@ -307,7 +306,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
         val rangeTo = iterableRange.to as? NumericLiteral
         if(rangeFrom==null || rangeTo==null) return noModifications
 
-        val loopvar = forLoop.loopVar.targetVarDecl(program) ?: throw UndefinedSymbolError(forLoop.loopVar)
+        val loopvar = forLoop.loopVar.targetVarDecl(program) ?: return noModifications
 
         val stepLiteral = iterableRange.step as? NumericLiteral
         when(loopvar.datatype) {
