@@ -239,7 +239,7 @@ inlineir: '%ir' INLINEASMBLOCK;
 inline: 'inline';
 
 subroutine :
-	'sub' identifier '(' sub_params? ')' sub_return_part?  (statement_block EOL)
+	'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL)
 	;
 
 sub_return_part : '->' datatype  ;
@@ -296,6 +296,6 @@ repeatloop:  'repeat' expression? EOL? (statement | statement_block) ;
 
 unrollloop:  'unroll' integerliteral? EOL? (statement | statement_block) ;
 
-whenstmt: 'when' expression '{' EOL (when_choice | EOL) * '}' EOL? ;
+whenstmt: 'when' expression EOL? '{' EOL (when_choice | EOL) * '}' EOL? ;
 
 when_choice:  (expression_list | 'else' ) '->' (statement | statement_block ) ;
