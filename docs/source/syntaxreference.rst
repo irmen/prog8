@@ -621,8 +621,6 @@ The syntax is::
         	return  X * 3
         }
 
-The open curly brace must immediately follow the subroutine result specification on the same line,
-and can have nothing following it. The close curly brace must be on its own line as well.
 The parameters is a (possibly empty) comma separated list of "<datatype> <parametername>" pairs specifying the input parameters.
 The return type has to be specified if the subroutine returns a value.
 

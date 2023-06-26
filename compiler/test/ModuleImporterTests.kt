@@ -151,7 +151,7 @@ class TestModuleImporter: FunSpec({
                             shouldThrow<ParseError> { act() }.let {
                                 it.position.file shouldBe SourceCode.relative(srcPath).toString()
                                 withClue("line; should be 1-based") { it.position.line shouldBe 2 }
-                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
+                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 4 }
                                 withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }
@@ -171,7 +171,7 @@ class TestModuleImporter: FunSpec({
                         shouldThrow<ParseError> { act() }.let {
                             it.position.file shouldBe SourceCode.relative(imported).toString()
                             withClue("line; should be 1-based") { it.position.line shouldBe 2 }
-                            withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
+                            withClue("startCol; should be 0-based") { it.position.startCol shouldBe 4 }
                             withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                         }
                     }
@@ -231,7 +231,7 @@ class TestModuleImporter: FunSpec({
                                 importer.importImplicitLibraryModule(srcPath.nameWithoutExtension) }.let {
                                 it.position.file shouldBe SourceCode.relative(srcPath).toString()
                                 withClue("line; should be 1-based") { it.position.line shouldBe 2 }
-                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
+                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 4 }
                                 withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }
@@ -253,7 +253,7 @@ class TestModuleImporter: FunSpec({
                                 act() }.let {
                                 it.position.file shouldBe SourceCode.relative(imported).toString()
                                 withClue("line; should be 1-based") { it.position.line shouldBe 2 }
-                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 6 }
+                                withClue("startCol; should be 0-based") { it.position.startCol shouldBe 4 }
                                 withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }

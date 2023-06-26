@@ -1,24 +1,39 @@
-%import textio
-%zeropage basicsafe
-
-main {
-
+main
+{
     sub start()
     {
         ubyte variable=55
         when variable
         {
-            33 -> txt.print("33")
+            33 -> cx16.r0++
+            else -> cx16.r1++
         }
+
+        if variable {
+            cx16.r0++
+        } else {
+            cx16.r1++
+        }
+
+        if variable { cx16.r0++ }
+        else { cx16.r1++ }
 
         if variable
         {
-            txt.print("yes")
+            cx16.r0++
         }
         else
         {
-            txt.print("no")
+            cx16.r1++
         }
+
+        other.othersub()
     }
 }
 
+
+other {
+    sub othersub() {
+        cx16.r0++
+    }
+}

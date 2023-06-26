@@ -1,11 +1,6 @@
 TODO
 ====
 
-- also allow this?
-        if variable { txt.print("yes") }
-        else { txt.print("no") }
-- is it possible to allow the curly brace to be on the next line instead of requiring it to follow on the same line?
-
 ...
 
 

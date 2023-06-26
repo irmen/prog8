@@ -274,7 +274,7 @@ class TestProg8Parser: FunSpec( {
             val path = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
             val e = shouldThrow<ParseError> { parseModule(SourceCode.File(path)) }
-            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 6)
+            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 4)
         }
 
         test("of Module parsed from a string") {

@@ -66,7 +66,7 @@ ARRAYSIG :
 // Note: the parser may see *several* consecutive EOLs - this happens when EOL and comments are interleaved (see #47)
 module: EOL* ((directive | block) (EOL+ (directive | block))*)? EOL* EOF;
 
-block: identifier integerliteral? '{' EOL (block_statement | EOL)* '}';
+block: identifier integerliteral? EOL? '{' EOL? (block_statement | EOL)* '}';
 
 block_statement:
 	directive
@@ -245,7 +245,7 @@ subroutine :
 sub_return_part : '->' datatype  ;
 
 statement_block :
-	'{' EOL
+	'{' EOL?
 		(statement | EOL) *
 	'}'
 	;
@@ -296,6 +296,6 @@ repeatloop:  'repeat' expression? EOL? (statement | statement_block) ;
 
 unrollloop:  'unroll' integerliteral? EOL? (statement | statement_block) ;
 
-whenstmt: 'when' expression EOL? '{' EOL (when_choice | EOL) * '}' EOL? ;
+whenstmt: 'when' expression EOL? '{' EOL? (when_choice | EOL) * '}' EOL? ;
 
 when_choice:  (expression_list | 'else' ) '->' (statement | statement_block ) ;
