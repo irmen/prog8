@@ -43,7 +43,7 @@ class RequestParser : Take {
             asmListfile = false,
             experimentalCodegen = false,
             splitWordArrays = false,
-            varsHigh = false,
+            varsHighBank = null,
             useNewExprCode = false
         )
         val compilationResult = compileProgram(args)

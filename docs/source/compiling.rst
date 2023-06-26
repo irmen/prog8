@@ -180,16 +180,16 @@ One or more .p8 module files
     When not compiling for the Commander X16 target, the location of the 16 virtual registers cx16.r0..r15
     is changed accordingly (to keep them in the same memory space as the evaluation stack).
 
-``-varshigh``
+``-varshigh <rambank>``
     Places the non-zeropage variables in a separate high memory area, instead of inside the program itself.
     This results in an increase of the amount of system ram available for the program
     itself. The amount of ram saved depends on the amount and types of variables in the program,
     but can be several hundreds of bytes or more.
     The new memory location of the variables depends on the compilation target machine:
 
-    c64: $C000 - $CEFF
+    c64: $C000 - $CEFF  (specified rambank number is ignored)
 
-    cx16: $A000 - $BFFF     (note: you must make sure that the correct HiRam bank #1 is mapped in when accessing these variables!)
+    cx16: $A000 - $BFFF  in the given HiRAM bank (note: you must make sure that this HiRAM bank is mapped in when accessing variables! The bank should be 1 or up. Choose 1 if unsure.)
 
     If you use this option, you can no longer use the part of the above memory area that is
     now alotted to the variables for your own purposes. The output of the 64tass assembler step at the

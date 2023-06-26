@@ -51,7 +51,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')").required()
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
-    val varsHigh by cli.option(ArgType.Boolean, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program")
+    val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank (0=keep active), on other systems it is ignored.")
     val useNewExprCode by cli.option(ArgType.Boolean, fullName = "newexpr", description = "use new expression code-gen (experimental)")
     val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
@@ -81,6 +81,11 @@ private fun compileMain(args: Array<String>): Boolean {
 
     if (compilationTarget !in setOf(C64Target.NAME, C128Target.NAME, Cx16Target.NAME, AtariTarget.NAME, VMTarget.NAME)) {
         System.err.println("Invalid compilation target: $compilationTarget")
+        return false
+    }
+
+    if(varsHighBank==0 && compilationTarget==Cx16Target.NAME) {
+        System.err.println("On the Commander X16, HiRAM bank 0 is used by the kernal and can't be used.")
         return false
     }
 
@@ -127,7 +132,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
-                    varsHigh == true,
+                    varsHighBank,
                     useNewExprCode == true,
                     compilationTarget,
                     evalStackAddr,
@@ -180,6 +185,10 @@ private fun compileMain(args: Array<String>): Boolean {
         }
 
     } else {
+        if((startEmulator1==true || startEmulator2==true) && moduleFiles.size>1) {
+            System.err.println("can't start emulator when multiple module files are specified")
+            return false
+        }
         for(filepathRaw in moduleFiles) {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
@@ -193,7 +202,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
-                    varsHigh == true,
+                    varsHighBank,
                     useNewExprCode == true,
                     compilationTarget,
                     evalStackAddr,

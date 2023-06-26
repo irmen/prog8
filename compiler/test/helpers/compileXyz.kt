@@ -31,7 +31,7 @@ internal fun compileFile(
         quietAssembler = true,
         asmListfile = false,
         experimentalCodegen = false,
-        varsHigh = false,
+        varsHighBank = null,
         useNewExprCode = useNewExprCode,
         platform.name,
         evalStackBaseAddress = null,

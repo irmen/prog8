@@ -175,7 +175,8 @@ internal class ProgramAndVarsGen(
 
     private fun footer() {
         asmgen.out("; bss sections")
-        if(options.varsHigh) {
+        asmgen.out("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
+        if(options.varsHighBank!=null) {
             if(options.compTarget.machine.BSSHIGHRAM_START == 0u || options.compTarget.machine.BSSHIGHRAM_END==0u) {
                 throw AssemblyError("current compilation target hasn't got the high ram area properly defined")
             }

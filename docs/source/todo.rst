@@ -1,7 +1,6 @@
 TODO
 ====
 
-- hiram bank 1 usage configurable or maybe even just keep whatever bank is active at program start?
 - is it possible to allow the curly brace to be on the next line instead of requiring it to follow on the same line?
 
 ...

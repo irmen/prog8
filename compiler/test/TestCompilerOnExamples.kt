@@ -32,7 +32,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         quietAssembler = true,
         asmListfile = false,
         experimentalCodegen = false,
-        varsHigh = false,
+        varsHighBank = null,
         useNewExprCode = false,
         compilationTarget = target.name,
         evalStackBaseAddress = null,

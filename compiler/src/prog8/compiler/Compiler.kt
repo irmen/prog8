@@ -36,7 +36,7 @@ class CompilerArguments(val filepath: Path,
                         val quietAssembler: Boolean,
                         val asmListfile: Boolean,
                         val experimentalCodegen: Boolean,
-                        val varsHigh: Boolean,
+                        val varsHighBank: Int?,
                         val useNewExprCode: Boolean,
                         val compilationTarget: String,
                         val evalStackBaseAddress: UInt?,
@@ -78,7 +78,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
-                varsHigh = args.varsHigh
+                varsHighBank = args.varsHighBank
                 useNewExprCode = args.useNewExprCode
                 evalStackBaseAddress = args.evalStackBaseAddress
                 splitWordArrays = args.splitWordArrays

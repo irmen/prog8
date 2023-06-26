@@ -739,12 +739,13 @@ asmsub  init_system()  {
         lda  #$90       ; black
         jsr  cbm.CHROUT
         lda  #1
-        sta  $00        ; select ram bank 1
         jsr  cbm.CHROUT ; swap fg/bg
         lda  #$9e       ; yellow
         jsr  cbm.CHROUT
         lda  #147       ; clear screen
         jsr  cbm.CHROUT
+        lda  #PROG8_VARSHIGH_RAMBANK
+        sta  $00    ; select ram bank
         lda  #0
         tax
         tay
@@ -762,6 +763,8 @@ asmsub  init_system_phase2()  {
         sta  restore_irq._orig_irqvec
         lda  cx16.CINV+1
         sta  restore_irq._orig_irqvec+1
+        lda  #PROG8_VARSHIGH_RAMBANK
+        sta  $00    ; select ram bank
         cli
         rts
     }}
