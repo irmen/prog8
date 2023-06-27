@@ -93,8 +93,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.ARRAY -> inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
-                                    if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
-                                        return
+                                    if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
                                     inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value.expression)
                                 }
                                 else {
@@ -271,8 +270,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
-                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
+                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) {
+                                                asmgen.restoreRegisterLocal(CpuRegister.Y)
                                                 return
+                                            }
                                             inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression)
                                         } else {
                                             inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
@@ -301,8 +302,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     SourceStorageKind.ARRAY -> inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
-                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
+                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) {
+                                                asmgen.restoreRegisterLocal(CpuRegister.Y)
                                                 return
+                                            }
                                             inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression)
                                         } else {
                                             inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!)

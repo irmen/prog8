@@ -1,6 +1,8 @@
 TODO
 ====
 
+- fix double code gen with tryInplaceModifyWithRemovedRedundantCast() ?   word birdX[j] += testbyte
+
 ...
 
 
