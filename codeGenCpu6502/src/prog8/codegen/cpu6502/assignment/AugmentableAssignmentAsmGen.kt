@@ -291,9 +291,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     asmgen.out("  lda  ${target.array.variable.name}_msb,y |  sta  P8ZP_SCRATCH_W1+1")
                                 } else {
                                     asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1")
-                                    asmgen.out("  iny |  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1+1")
+                                    asmgen.out("  lda  ${target.array.variable.name}+1,y |  sta  P8ZP_SCRATCH_W1+1")
                                 }
-                                asmgen.saveRegisterLocal(CpuRegister.Y, target.scope!!)
+                                asmgen.saveRegisterStack(CpuRegister.Y, false)
                                 when(value.kind) {
                                     SourceStorageKind.LITERALNUMBER -> inplaceModification_word_litval_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.number!!.number.toInt())
                                     SourceStorageKind.VARIABLE -> inplaceModification_word_variable_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype)
@@ -313,13 +313,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     }
                                     else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
-                                asmgen.restoreRegisterLocal(CpuRegister.Y)
+                                asmgen.restoreRegisterStack(CpuRegister.Y, false)
                                 if(target.array.splitWords) {
                                     asmgen.out("  lda  P8ZP_SCRATCH_W1 |  sta  ${target.array.variable.name}_lsb,y")
                                     asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name}_msb,y")
                                 } else {
-                                    asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name},y")
-                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  dey |  sta  ${target.array.variable.name},y")
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  sta  ${target.array.variable.name},y")
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name}+1,y")
                                 }
                             }
                             DataType.FLOAT -> {
@@ -601,8 +601,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.out("  clc |  adc  $name |  sta  $name")
             }
             "-" -> {
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", dt)
-                asmgen.out(" lda  $name |  sec |  sbc  P8ZP_SCRATCH_B1 |  sta  $name")
+                val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
+                asmgen.assignExpressionToVariable(value, tmpByte, dt)
+                asmgen.out(" lda  $name |  sec |  sbc  $tmpByte |  sta  $name")
             }
             "*" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
@@ -1079,6 +1080,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "-" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                // TODO fix temp var name
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_B1
                     lda  $name
@@ -1118,6 +1120,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "-" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                // TODO fix temp var name
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_B1
                     lda  $name
@@ -1211,6 +1214,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 if(value in asmgen.optimizedWordMultiplications) {
                     asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                 } else {
+                    // TODO fix temp var name
                     asmgen.out("""
                         lda  $name
                         sta  P8ZP_SCRATCH_W1
@@ -1665,6 +1669,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 sta  $name+1""")
                     }
                     "*" -> {
+                        // TODO fix temp var name
                         if(valueDt==DataType.UBYTE) {
                             asmgen.out("  lda  $otherName |  sta  P8ZP_SCRATCH_W1")
                             if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -2008,6 +2013,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
 
+        // TODO fix temp var names
 
         fun multiplyVarByWordInAY() {
             asmgen.out("""
@@ -2220,8 +2226,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  clc |  adc  $name |  sta  $name |  tya |  adc  $name+1 |  sta  $name+1")
                     }
                     "-" -> {
-                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", valueDt)
-                        asmgen.out(" lda  $name |  sec |  sbc  P8ZP_SCRATCH_W1 |  sta  $name |  lda  $name+1 |  sbc  P8ZP_SCRATCH_W1+1 |  sta  $name+1")
+                        val tmpWord = if(name!="P8ZP_SCRATCH_W1") "P8ZP_SCRATCH_W1" else "P8ZP_SCRATCH_W2"
+                        asmgen.assignExpressionToVariable(value, tmpWord, valueDt)
+                        asmgen.out(" lda  $name |  sec |  sbc  $tmpWord |  sta  $name |  lda  $name+1 |  sbc  $tmpWord+1 |  sta  $name+1")
+                        // TODO wrong signed word subtraction code??? ^^^
                     }
                     "*" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
