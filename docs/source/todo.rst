@@ -1,6 +1,7 @@
 TODO
 ====
 
+- fix array expression assignment bug from Mark in the discord.
 - fix double code gen with tryInplaceModifyWithRemovedRedundantCast() ?   word birdX[j] += testbyte
 
 ...

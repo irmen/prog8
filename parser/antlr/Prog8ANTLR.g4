@@ -16,9 +16,9 @@ grammar Prog8ANTLR;
 package prog8.parser;
 }
 
-LINECOMMENT : ('\r'? '\n' | '\r') [ \t]* COMMENT -> channel(HIDDEN);
+EOL :  ('\r'? '\n' | '\r' | '\n')+ ;
+LINECOMMENT : EOL [ \t]* COMMENT -> channel(HIDDEN);
 COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
-EOL :  ('\r'? '\n' | '\r')+ ;
 
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;

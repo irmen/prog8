@@ -1,13 +1,19 @@
+%import textio
 %zeropage basicsafe
 
 main {
-
     sub start() {
-        word[4] birdX
-        byte testbyte = 0
-        ubyte j = 0
-        repeat {
-            birdX[j] += testbyte
+        byte[] foo = [ 1, 2, ; this comment is ok
+
+; but after this comment there's a syntax error
+
+
+               3 ]
+
+        byte bb
+        for bb in foo {
+            txt.print_b(bb)
+            txt.nl()
         }
     }
 }
