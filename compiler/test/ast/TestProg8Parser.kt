@@ -963,4 +963,25 @@ class TestProg8Parser: FunSpec( {
         var6.sharedWithAsm shouldBe false
         var6.zeropage shouldBe ZeropageWish.DONTCARE
     }
+
+    test("line comment in array literal is ok") {
+        val src="""
+%import textio
+%zeropage basicsafe
+
+main {
+    sub start() {
+        byte[] foo = [ 1, 2, ; this comment is ok
+
+; line comment also ok
+
+               3,
+                4]
+
+        foo[1] ++
+    }
+}"""
+
+        compileText(C64Target(),  false, src, writeAssembly = false) shouldNotBe null
+    }
 })
