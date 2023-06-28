@@ -27,14 +27,15 @@ so that more system ram is available for the program code itself.
 Three-letter symbols prefixing in Assembly
 ------------------------------------------
 
-Symbols consisting of three letters such as "brk" or "tax" will confuse the assembler that
-thinks these are cpu instructions. It will likely fail to assemble the program correctly.
-Because of this, prog8 will prefix every 3-letter symbol with "``p8p_``" automatically during compilation.
-So "tax" will become "p8p_tax" in the resulting assembly code.
+Symbols consisting of three letters such as "brk" or "tax", or variables named "a", "x" or "y" could
+confuse the assembler to think these are cpu instructions or registers.
+It will likely fail to assemble the program correctly.
+Because of this, prog8 will prefix every 1- and 3-letter symbol with "``p8p_``" automatically during compilation.
+So "tax" will become "p8p_tax", "a" will become "p8p_a" in the resulting assembly code.
 
 If you're referencing symbols from the prog8 program in hand-written assembly code, you have to take
-this into account. Either prefix the 3-letter symbols in the assembly with "``p8p_``" as well, or just
-choose a shorter or longer symbol name in the first place.
+this into account. Either prefix the 1- and 3-letter symbols in the assembly with "``p8p_``" as well, or just
+choose a symbol name of a different length in the first place.
 
 
 Software stack for expression evaluation

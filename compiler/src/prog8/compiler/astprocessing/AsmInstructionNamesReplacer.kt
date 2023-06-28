@@ -22,7 +22,7 @@ class AsmInstructionNamesReplacer(
         }
 
         val newName = identifier.nameInSource.map { ident ->
-            if(ident.length==3 && !identifier.definingModule.isLibrary) {
+            if((ident.length==3 || ident.length==1) && !identifier.definingModule.isLibrary) {
                 val blockTarget = blocks.firstOrNull { it.name==ident }
                 val subTarget = subroutines.firstOrNull {it.name==ident }
                 val varTarget = variables.firstOrNull { it.name==ident }
@@ -84,7 +84,7 @@ class AsmInstructionNamesReplacer(
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         val changedParams = mutableListOf<Pair<Int, SubroutineParameter>>()
         subroutine.parameters.withIndex().forEach { (index, param) ->
-            if(param.name.length==3 && param.name.all { it.isLetter() } && !param.definingModule.isLibrary) {
+            if((param.name.length==3 || param.name.length==1) && param.name.all { it.isLetter() } && !param.definingModule.isLibrary) {
                 changedParams.add(index to SubroutineParameter("p8p_${param.name}", param.type, param.position))
             }
         }

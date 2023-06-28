@@ -15,33 +15,33 @@ class  AsmInstructionNamesFinder(val target: ICompilationTarget): IAstVisitor {
     val labels = mutableSetOf<Label>()
     val subroutines = mutableSetOf<Subroutine>()
 
-    private fun isPossibleInstructionName(name: String) = name.length==3 && name.all { it.isLetter() }
+    private fun isPossibleConfusingAsmName(name: String) = (name.length==3 || name.length==1) && name.all { it.isLetter() }
 
     fun foundAny(): Boolean = blocks.isNotEmpty() || variables.isNotEmpty() || subroutines.isNotEmpty() || labels.isNotEmpty()
 
     override fun visit(block: Block) {
-        if(target.name!=VMTarget.NAME && !block.isInLibrary && isPossibleInstructionName(block.name)) {
+        if(target.name!=VMTarget.NAME && !block.isInLibrary && isPossibleConfusingAsmName(block.name)) {
             blocks += block
         }
         super.visit(block)
     }
 
     override fun visit(decl: VarDecl) {
-        if(target.name!=VMTarget.NAME && !decl.definingModule.isLibrary && isPossibleInstructionName(decl.name)) {
+        if(target.name!=VMTarget.NAME && !decl.definingModule.isLibrary && isPossibleConfusingAsmName(decl.name)) {
             variables += decl
         }
         super.visit(decl)
     }
 
     override fun visit(label: Label) {
-        if(target.name!=VMTarget.NAME && !label.definingModule.isLibrary && isPossibleInstructionName(label.name)) {
+        if(target.name!=VMTarget.NAME && !label.definingModule.isLibrary && isPossibleConfusingAsmName(label.name)) {
             labels += label
         }
         super.visit(label)
     }
 
     override fun visit(subroutine: Subroutine) {
-        if(target.name!=VMTarget.NAME && !subroutine.definingModule.isLibrary && isPossibleInstructionName(subroutine.name)) {
+        if(target.name!=VMTarget.NAME && !subroutine.definingModule.isLibrary && isPossibleConfusingAsmName(subroutine.name)) {
             subroutines += subroutine
         }
         super.visit(subroutine)

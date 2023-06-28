@@ -4,6 +4,10 @@ TODO
 - fix array expression assignment bug from Mark in the discord. ("TODO fix temp var name")
 - fix double code gen with tryInplaceModifyWithRemovedRedundantCast() ?   word birdX[j] += testbyte
 
+- prog8->asm symbol name prefixing: prefix ALL symbols with p8_ Also update manual.
+   EXCEPTION: library symbols such as cbm.CHROUT, cx16.r0 etc. should NOT be prefixed.
+   Solution: add %option no_symbol_prefix  to those blocks?
+
 ...
 
 
