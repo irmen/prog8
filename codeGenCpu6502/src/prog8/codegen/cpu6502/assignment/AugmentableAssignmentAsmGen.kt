@@ -1080,12 +1080,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "-" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
-                // TODO fix temp var name
+                val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
                 asmgen.out("""
-                    sta  P8ZP_SCRATCH_B1
+                    sta  $tmpByte
                     lda  $name
                     sec
-                    sbc  P8ZP_SCRATCH_B1
+                    sbc  $tmpByte
                     sta  $name""")
             }
             "|" -> {
@@ -1120,12 +1120,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "-" -> {
                 asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
-                // TODO fix temp var name
+                val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
                 asmgen.out("""
-                    sta  P8ZP_SCRATCH_B1
+                    sta  $tmpByte
                     lda  $name
                     sec
-                    sbc  P8ZP_SCRATCH_B1
+                    sbc  $tmpByte
                     sta  $name
                     bcc  +
                     dec  $name+1
@@ -1214,7 +1214,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 if(value in asmgen.optimizedWordMultiplications) {
                     asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                 } else {
-                    // TODO fix temp var name
                     asmgen.out("""
                         lda  $name
                         sta  P8ZP_SCRATCH_W1
@@ -1669,7 +1668,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 sta  $name+1""")
                     }
                     "*" -> {
-                        // TODO fix temp var name
                         if(valueDt==DataType.UBYTE) {
                             asmgen.out("  lda  $otherName |  sta  P8ZP_SCRATCH_W1")
                             if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -2012,9 +2010,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun inplaceModification_word_value_to_variable(name: String, dt: DataType, operator: String, value: PtExpression) {
         // this should be the last resort for code generation for this,
         // because the value is evaluated onto the eval stack (=slow).
-
-        // TODO fix temp var names
-
         fun multiplyVarByWordInAY() {
             asmgen.out("""
                 sta  P8ZP_SCRATCH_W1
