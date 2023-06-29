@@ -1,9 +1,10 @@
 plugins {
     id 'java'
     id 'application'
-    id "org.jetbrains.kotlin.jvm"
+    id 'org.jetbrains.kotlin.jvm'
     id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id "io.kotest" version "0.3.9"
+    id 'io.kotest' version '0.3.9'
+    id 'com.peterabeles.gversion' version '1.10.2'
 }
 
 java {
@@ -23,8 +24,6 @@ compileTestKotlin {
         jvmTarget = javaVersion
     }
 }
-
-def prog8version = rootProject.file('compiler/res/version.txt').text.trim()
 
 dependencies {
     implementation project(':codeCore')
@@ -82,7 +81,7 @@ application {
 
 shadowJar {
     archiveBaseName = 'prog8compiler'
-    archiveVersion = prog8version
+    archiveVersion = version
     // minimize()
 }
 
@@ -100,4 +99,16 @@ test {
     }
 }
 
+gversion {
+    srcDir       = "src/"           // path is relative to the sub-project by default
+    classPackage = "prog8.buildversion"
+    className    = "BuildVersion"
+    language     = "kotlin"
+}
+
+
 build.finalizedBy installDist, installShadowDist
+
+compileKotlin.dependsOn createVersionFile    // , failDirtyNotSnapshot
+compileJava.dependsOn createVersionFile
+

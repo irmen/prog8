@@ -1,7 +1,6 @@
 TODO
 ====
 
-- fix array expression assignment bug from Mark in the discord. ("TODO fix temp var name")
 - fix double code gen with tryInplaceModifyWithRemovedRedundantCast() ?   word birdX[j] += testbyte
 
 - prog8->asm symbol name prefixing: prefix ALL symbols with p8_ Also update manual.
