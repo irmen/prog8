@@ -177,7 +177,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
-                                    if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
                                     inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression)
                                 } else {
                                     inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression!!)
@@ -259,6 +258,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     indexVar!=null -> {
                         when (target.datatype) {
                             in ByteDatatypes -> {
+                                if(value.kind==SourceStorageKind.EXPRESSION
+                                    && value.expression is PtTypeCast
+                                    && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
+                                    return
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
                                 asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_B1")
                                 asmgen.saveRegisterLocal(CpuRegister.Y, target.scope!!)
@@ -270,10 +273,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
-                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) {
-                                                asmgen.restoreRegisterLocal(CpuRegister.Y)
-                                                return
-                                            }
                                             inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression)
                                         } else {
                                             inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
@@ -285,6 +284,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 asmgen.out("  lda  P8ZP_SCRATCH_B1 |  sta  ${target.array.variable.name},y")
                             }
                             in WordDatatypes -> {
+                                if(value.kind==SourceStorageKind.EXPRESSION
+                                    && value.expression is PtTypeCast
+                                    && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
+                                    return
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
                                 if(target.array.splitWords) {
                                     asmgen.out("  lda  ${target.array.variable.name}_lsb,y |  sta  P8ZP_SCRATCH_W1")
@@ -302,10 +305,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     SourceStorageKind.ARRAY -> inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
-                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) {
-                                                asmgen.restoreRegisterLocal(CpuRegister.Y)
-                                                return
-                                            }
                                             inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression)
                                         } else {
                                             inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!)

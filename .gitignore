@@ -15,6 +15,7 @@ out/
 parser/**/*.interp
 parser/**/*.tokens
 parser/**/*.java
+compiler/src/prog8/buildversion/*
 *.py[cod]
 *.egg
 *.egg-info
@@ -32,3 +33,4 @@ compiler/lib/
 /prog8compiler.jar
 sd*.img
 *.d64
+
