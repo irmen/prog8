@@ -29,18 +29,9 @@ internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationO
     boolRemover.applyModifications()
 
     if(compilerOptions.compTarget.name!=VMTarget.NAME) {
-        val finder = AsmInstructionNamesFinder(compilerOptions.compTarget)
-        finder.visit(this)
-        if(finder.foundAny()) {
-            val replacer = AsmInstructionNamesReplacer(
-                this,
-                finder.blocks,
-                finder.subroutines,
-                finder.variables,
-                finder.labels)
-            replacer.visit(this)
-            replacer.applyModifications()
-        }
+        val replacer = AsmSymbolsPrefixer(this)
+        replacer.visit(this)
+        replacer.applyModifications()
     }
 
     val fixer = BeforeAsmAstChanger(this, compilerOptions, errors)

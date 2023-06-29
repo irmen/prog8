@@ -10,6 +10,8 @@
 
 
 graphics {
+    %option no_symbol_prefixing
+
     const uword WIDTH = 320
     const ubyte HEIGHT = 240
 

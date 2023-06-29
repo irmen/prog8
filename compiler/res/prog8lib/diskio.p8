@@ -5,6 +5,7 @@
 %import syslib
 
 diskio {
+    %option no_symbol_prefixing
 
     ubyte drivenumber = 8
 

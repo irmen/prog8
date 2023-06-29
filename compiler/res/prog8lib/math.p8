@@ -1,6 +1,8 @@
 ; Internal Math library routines - always included by the compiler
 
 math {
+    %option no_symbol_prefixing
+
 	%asminclude "library:math.asm"
 
     asmsub sin8u(ubyte angle @A) clobbers(Y) -> ubyte @A {

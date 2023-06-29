@@ -1,6 +1,6 @@
 floats {
     ; the floating point functions shared across compiler targets
-    %option merge
+    %option merge, no_symbol_prefixing
 
 sub print_f(float value) {
 	; ---- prints the floating point value (without a newline).

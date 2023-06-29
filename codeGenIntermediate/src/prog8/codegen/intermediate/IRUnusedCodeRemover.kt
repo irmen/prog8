@@ -135,7 +135,8 @@ class IRUnusedCodeRemover(
     }
 
     private fun removeUnreachable(allLabeledChunks: MutableMap<String, IRCodeChunkBase>): Int {
-        val entrypointSub = irprog.blocks.single { it.label=="main" }.children.single { it is IRSubroutine && it.label=="main.start" }
+        val entrypointSub = irprog.blocks.single { it.label=="main" || it.label=="p8_main" }
+            .children.single { it is IRSubroutine && (it.label=="main.start" || it.label=="p8_main.p8_start") }
         val reachable = mutableSetOf((entrypointSub as IRSubroutine).chunks.first())
 
         fun grow() {

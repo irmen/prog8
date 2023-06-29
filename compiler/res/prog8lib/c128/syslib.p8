@@ -3,6 +3,7 @@
 
 cbm {
     ; Commodore (CBM) common variables, vectors and kernal routines
+    %option no_symbol_prefixing
 
         &ubyte  TIME_HI         = $a0       ; software jiffy clock, hi byte
         &ubyte  TIME_MID        = $a1       ;  .. mid byte
@@ -140,6 +141,7 @@ asmsub RDTIM16() -> uword @AY {
 
 c64 {
         ; C64 I/O registers (VIC, SID, CIA)
+    %option no_symbol_prefixing
 
         ; the default locations of the 8 sprite pointers (store address of sprite / 64)
         &ubyte  SPRPTR0         = 2040
@@ -294,6 +296,7 @@ c64 {
 
 c128 {
 ; ---- C128 specific registers ----
+    %option no_symbol_prefixing
 
     &ubyte  VM1     = $0A2C         ; shadow for VUC $d018 in text mode
     &ubyte  VM2     = $0A2D         ; shadow for VIC $d018 in bitmap screen mode
@@ -330,6 +333,7 @@ asmsub  disable_basic() clobbers(A) {
 
 sys {
     ; ------- lowlevel system routines --------
+    %option no_symbol_prefixing
 
     const ubyte target = 128         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16.
 
@@ -765,6 +769,7 @@ _longcopy
 }
 
 cx16 {
+    %option no_symbol_prefixing
 
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
     ; they are simulated on the C128 as well but their location in memory is different

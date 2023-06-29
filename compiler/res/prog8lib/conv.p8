@@ -2,6 +2,8 @@
 
 conv {
 
+    %option no_symbol_prefixing
+
 ; ----- number conversions to decimal strings ----
 
     str  @shared string_out = "????????????????"       ; result buffer for the string conversion routines

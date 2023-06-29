@@ -2,9 +2,10 @@
 ; Should you want to restore the default palette, you have to reinitialize the Vera yourself.
 
 palette {
+    %option no_symbol_prefixing
 
     uword vera_palette_ptr
-    ubyte c
+    ubyte cc
 
     sub set_color(ubyte index, uword color) {
         vera_palette_ptr = $fa00+(index as uword * 2)
@@ -79,13 +80,13 @@ palette {
     sub set_grayscale() {
         vera_palette_ptr = $fa00
         repeat 16 {
-            c=0
+            cc=0
             repeat 16 {
-                cx16.vpoke(1, vera_palette_ptr, c)
+                cx16.vpoke(1, vera_palette_ptr, cc)
                 vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, c)
+                cx16.vpoke(1, vera_palette_ptr, cc)
                 vera_palette_ptr++
-                c += $11
+                cc += $11
             }
         }
     }
@@ -150,11 +151,11 @@ palette {
     sub set_c64pepto() {
         vera_palette_ptr = $fa00
         repeat 16 {
-            for c in 0 to 15 {
-                uword cc = C64_colorpalette_pepto[c]
-                cx16.vpoke(1, vera_palette_ptr, lsb(cc))     ; G, B
+            for cc in 0 to 15 {
+                uword ccp = C64_colorpalette_pepto[cc]
+                cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
                 vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, msb(cc))     ; R
+                cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
                 vera_palette_ptr++
             }
         }
@@ -163,11 +164,11 @@ palette {
     sub set_c64light() {
         vera_palette_ptr = $fa00
         repeat 16 {
-            for c in 0 to 15 {
-                uword cc = C64_colorpalette_light[c]
-                cx16.vpoke(1, vera_palette_ptr, lsb(cc))     ; G, B
+            for cc in 0 to 15 {
+                uword ccp = C64_colorpalette_light[cc]
+                cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
                 vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, msb(cc))     ; R
+                cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
                 vera_palette_ptr++
             }
         }
@@ -176,11 +177,11 @@ palette {
     sub set_c64dark() {
         vera_palette_ptr = $fa00
         repeat 16 {
-            for c in 0 to 15 {
-                uword cc = C64_colorpalette_dark[c]
-                cx16.vpoke(1, vera_palette_ptr, lsb(cc))     ; G, B
+            for cc in 0 to 15 {
+                uword ccp = C64_colorpalette_dark[cc]
+                cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
                 vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, msb(cc))     ; R
+                cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
                 vera_palette_ptr++
             }
         }

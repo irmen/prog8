@@ -62,7 +62,7 @@ class TestTypecasts: FunSpec({
         val expr2 = (stmts2[4] as Assignment).value as BinaryExpression
         expr2.operator shouldBe "&"
         expr2.right shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        (expr2.left as IdentifierReference).nameInSource shouldBe listOf("bb")
+        (expr2.left as IdentifierReference).nameInSource shouldBe listOf("p8_bb")
     }
 
     test("bool expressions with functioncalls") {
@@ -107,7 +107,7 @@ main {
         val assignValue1 = (stmts[7] as Assignment).value as IdentifierReference
         val assignValue2 = (stmts[11] as Assignment).value as BinaryExpression
         val assignValue3 = (stmts[12] as Assignment).value as BinaryExpression
-        assignValue1.nameInSource shouldBe listOf("ub1")
+        assignValue1.nameInSource shouldBe listOf("p8_ub1")
         assignValue2.operator shouldBe "^"
         assignValue3.operator shouldBe "&"
         val right2 = assignValue2.right as BinaryExpression

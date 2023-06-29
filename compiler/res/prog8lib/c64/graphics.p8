@@ -5,6 +5,8 @@
 ; assumes bitmap screen memory is $2000-$3fff
 
 graphics {
+    %option no_symbol_prefixing
+
     const uword BITMAP_ADDRESS = $2000
     const uword WIDTH = 320
     const ubyte HEIGHT = 200

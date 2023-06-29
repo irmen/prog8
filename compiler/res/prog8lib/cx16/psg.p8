@@ -1,6 +1,8 @@
 %import syslib
 
 psg {
+    %option no_symbol_prefixing
+
     ; $1F9C0 - $1F9FF 	16 blocks of 4 PSG registers (16 voices)
     ; 00  frequency word LSB
     ; 01  frequency word MSB.    freqword = HERZ / 0.3725290298461914

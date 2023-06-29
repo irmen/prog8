@@ -63,7 +63,9 @@ class PtProgram(
         children.asSequence().filterIsInstance<PtBlock>()
 
     fun entrypoint(): PtSub? =
-        allBlocks().firstOrNull { it.name == "main" }?.children?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="main.start") } as PtSub?
+        allBlocks().firstOrNull { it.name == "main" || it.name=="p8_main" }
+            ?.children
+            ?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="p8_start" || it.name=="main.start" || it.name=="p8_main.p8_start") } as PtSub?
 }
 
 
