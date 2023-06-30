@@ -55,12 +55,10 @@ class Program(val name: String,
 
     val entrypoint: Subroutine
         get() {
-            val mainBlocks = allBlocks.filter { it.name=="main" ||  it.name=="p8_main" }
+            val mainBlocks = allBlocks.filter { it.name=="main" }
             return when (mainBlocks.size) {
                 0 -> throw FatalAstException("no 'main' block")
-                1 -> {
-                    mainBlocks[0].subScope("start") as? Subroutine ?: mainBlocks[0].subScope("p8_start") as Subroutine
-                }
+                1 -> mainBlocks[0].subScope("start") as Subroutine
                 else -> throw FatalAstException("more than one 'main' block")
             }
         }

@@ -24,16 +24,14 @@ internal class AstChecker(private val program: Program,
     override fun visit(program: Program) {
         require(program === this.program)
         // there must be a single 'main' block with a 'start' subroutine for the program entry point.
-        val mainBlocks = program.modules.flatMap { it.statements }.filter { b -> b is Block && (b.name=="main" || b.name=="p8_main") }.map { it as Block }
+        val mainBlocks = program.modules.flatMap { it.statements }.filter { b -> b is Block && b.name=="main" }.map { it as Block }
         if(mainBlocks.size>1)
             errors.err("more than one 'main' block", mainBlocks[0].position)
         if(mainBlocks.isEmpty())
             errors.err("there is no 'main' block", program.modules.firstOrNull()?.position ?: Position.DUMMY)
 
         for(mainBlock in mainBlocks) {
-            var startSub = mainBlock.subScope("start") as? Subroutine
-            if(startSub==null)
-                startSub = mainBlock.subScope("p8_start") as? Subroutine
+            val startSub = mainBlock.subScope("start") as? Subroutine
             if (startSub == null) {
                 errors.err("missing program entrypoint ('start' subroutine in 'main' block)", mainBlock.position)
             } else {

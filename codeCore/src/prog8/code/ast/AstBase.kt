@@ -63,9 +63,9 @@ class PtProgram(
         children.asSequence().filterIsInstance<PtBlock>()
 
     fun entrypoint(): PtSub? =
-        allBlocks().firstOrNull { it.name == "main" || it.name=="p8_main" }
+        allBlocks().firstOrNull { it.name == "main" }
             ?.children
-            ?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="p8_start" || it.name=="main.start" || it.name=="p8_main.p8_start") } as PtSub?
+            ?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="main.start") } as PtSub?
 }
 
 
@@ -73,6 +73,7 @@ class PtBlock(name: String,
               val address: UInt?,
               val library: Boolean,
               val forceOutput: Boolean,
+              val noSymbolPrefixing: Boolean,
               val alignment: BlockAlignment,
               val source: SourceCode,       // taken from the module the block is defined in.
               position: Position

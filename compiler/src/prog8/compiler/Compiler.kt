@@ -406,7 +406,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     val asmgen = if(compilerOptions.experimentalCodegen)
         prog8.codegen.experimental.ExperiCodeGen()
     else if (compilerOptions.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-        prog8.codegen.cpu6502.AsmGen6502()
+        prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true)
     else if (compilerOptions.compTarget.name == VMTarget.NAME)
         VmCodeGen()
     else

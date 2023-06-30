@@ -1,11 +1,10 @@
 TODO
 ====
 
--  AsmSymbolsPrefixer not on compiler Ast but on PtProgram - remove all "p8_main" and "p8_start" checks again
-
-- prog8->asm symbol name prefixing: prefix ALL symbols with p8_ Also update manual.
+- prog8->asm symbol name prefixing: prefix ALL symbols with p8_
    EXCEPTION: library symbols such as cbm.CHROUT, cx16.r0 etc. should NOT be prefixed.
    Solution: add %option no_symbol_prefix  to those blocks?
+- Also update manual
 
 ...
 

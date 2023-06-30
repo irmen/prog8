@@ -28,7 +28,7 @@ internal class StatementReorderer(val program: Program,
         val (blocks, other) = module.statements.partition { it is Block }
         module.statements = other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: UInt.MAX_VALUE }).toMutableList()
 
-        val mainBlock = module.statements.asSequence().filterIsInstance<Block>().firstOrNull { it.name=="main" || it.name=="p8_main"}
+        val mainBlock = module.statements.asSequence().filterIsInstance<Block>().firstOrNull { it.name=="main" }
         if(mainBlock!=null && mainBlock.address==null) {
             module.statements.remove(mainBlock)
             module.statements.add(0, mainBlock)

@@ -121,11 +121,11 @@ main {
 
   sub start() {
     %asm {{
-        lda  normal
-        lda  uw_lsb
-        lda  uw_msb
-        lda  sw_lsb
-        lda  sw_msb
+        lda  p8_normal
+        lda  p8_uw_lsb
+        lda  p8_uw_msb
+        lda  p8_sw_lsb
+        lda  p8_sw_msb
     }}
   }
 }"""

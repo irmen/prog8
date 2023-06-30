@@ -53,8 +53,6 @@ main {
         zz = words[3]
     }
 }"""
-        val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
         val target = VMTarget()
         val result = compileText(target, true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
@@ -165,10 +163,7 @@ skipLABEL:
         bytevar = 42
     }
 }"""
-        val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
-        val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUB(0) shouldBe 42u
@@ -283,11 +278,7 @@ mylabel:
 }
 
 """
-        val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
-
-        val target = VMTarget()
-        val result = compileText(target, false, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val exc = shouldThrow<Exception> {
             VmRunner().runProgram(virtfile.readText())
