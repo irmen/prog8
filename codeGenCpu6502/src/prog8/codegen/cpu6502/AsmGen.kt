@@ -28,9 +28,6 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
     }
 
     private fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTable): SymbolTable {
-
-        printAst(program, true, ::println)
-
         val nodesToPrefix = mutableListOf<Pair<PtNode, Int>>()              // parent + index
         val functionCallsToPrefix = mutableListOf<Pair<PtNode, Int>>()      // parent + index
 
@@ -105,15 +102,16 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
         nodesToPrefix.forEach { (parent, index) ->
             val node = parent.children[index]
             when(node) {
-                is PtIdentifier -> parent.children[index] = node.prefix(parent)
+                is PtIdentifier -> parent.children[index] = node.prefix(parent, st)
                 is PtFunctionCall ->  throw AssemblyError("PtFunctionCall should be processed in their own list, last")
-                is PtJump -> parent.children[index] = node.prefix(parent)
-                is PtVariable -> parent.children[index] = node.prefix(parent)
+                is PtJump -> parent.children[index] = node.prefix(parent, st)
+                is PtVariable -> parent.children[index] = node.prefix(st)
                 else -> throw AssemblyError("weird node to prefix $node")
             }
         }
 
-        functionCallsToPrefix.forEach { (parent, index) ->
+        // reversed so inner calls (such as arguments to a function call) get processed before the actual function call itself
+        functionCallsToPrefix.reversed().forEach { (parent, index) ->
             val node = parent.children[index]
             if(node is PtFunctionCall) {
                 parent.children[index] = node.prefix(parent)
@@ -126,7 +124,7 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
     }
 }
 
-private fun PtVariable.prefix(parent: PtNode): PtVariable {
+private fun PtVariable.prefix(st: SymbolTable): PtVariable {
     name = name.split('.').map {"p8_$it" }.joinToString(".")
     if(value==null)
         return this
@@ -136,13 +134,17 @@ private fun PtVariable.prefix(parent: PtNode): PtVariable {
         val newValue = PtArray(arrayValue.type, arrayValue.position)
         arrayValue.children.forEach { elt ->
             when(elt) {
-                is PtIdentifier -> newValue.add(elt.prefix(arrayValue))
+                is PtIdentifier -> newValue.add(elt.prefix(arrayValue, st))
                 is PtNumber -> newValue.add(elt)
                 is PtAddressOf -> {
-                    val newAddr = PtAddressOf(elt.position)
-                    newAddr.children.add(elt.identifier.prefix(newAddr))
-                    newAddr.parent = arrayValue
-                    newValue.add(newAddr)
+                    if(elt.definingBlock()?.noSymbolPrefixing==true)
+                        newValue.add(elt)
+                    else {
+                        val newAddr = PtAddressOf(elt.position)
+                        newAddr.children.add(elt.identifier.prefix(newAddr, st))
+                        newAddr.parent = arrayValue
+                        newValue.add(newAddr)
+                    }
                 }
                 else -> throw AssemblyError("weird array value element $elt")
             }
@@ -152,9 +154,9 @@ private fun PtVariable.prefix(parent: PtNode): PtVariable {
     else this
 }
 
-private fun PtJump.prefix(parent: PtNode): PtJump {
+private fun PtJump.prefix(parent: PtNode, st: SymbolTable): PtJump {
     val jump = if(identifier!=null) {
-        val prefixedIdent = identifier!!.prefix(this)
+        val prefixedIdent = identifier!!.prefix(this, st)
         PtJump(prefixedIdent, address, generatedLabel, position)
     } else {
         val prefixedLabel = generatedLabel!!.split('.').map {"p8_$it" }.joinToString(".")
@@ -170,11 +172,17 @@ private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {
     call.children.addAll(children)
     call.children.forEach { it.parent = call }
     call.parent = parent
+    if(name.endsWith("concat_string"))
+        println("CONCAT ${this.position}")
     return call
 }
 
-private fun PtIdentifier.prefix(parent: PtNode): PtIdentifier {
-    val newName = name.split('.').map {"p8_$it" }.joinToString(".")
+private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
+    val target = st.lookup(name)
+    if(target?.astNode?.definingBlock()?.noSymbolPrefixing==true)
+        return this
+
+    val newName = name.split('.').map { "p8_$it" }.joinToString(".")
     val node = PtIdentifier(newName, type, position)
     node.parent = parent
     return node

@@ -1,10 +1,7 @@
 TODO
 ====
 
-- prog8->asm symbol name prefixing: prefix ALL symbols with p8_
-   EXCEPTION: library symbols such as cbm.CHROUT, cx16.r0 etc. should NOT be prefixed.
-   Solution: add %option no_symbol_prefix  to those blocks?
-- Also update manual
+- fix type error with returning an array literal from a subroutine returning uword
 
 ...
 

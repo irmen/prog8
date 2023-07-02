@@ -66,7 +66,6 @@ class TestIntermediateAst: FunSpec({
         val fcall = (entry.children[4] as PtAssignment).value as PtFunctionCall
         fcall.void shouldBe false
         fcall.type shouldBe DataType.UBYTE
-        printAst(ast, false, ::println)
     }
 
 })

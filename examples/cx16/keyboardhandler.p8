@@ -66,12 +66,12 @@ main {
 
         %asm {{
             pha
-            sta  keyhdl_scancode
+            sta  p8_keyhdl_scancode
             lda  #1
-            sta  keyhdl_event
+            sta  p8_keyhdl_event
             pla
 
-            lda #0     ; By setting A=0 we will eat this key event. leave A unchanged to pass it through.
+            lda  #0     ; By setting A=0 we will eat this key event. leave A unchanged to pass it through.
             rts
         }}
     }

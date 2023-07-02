@@ -22,7 +22,7 @@ It is possible to relocate the BSS section using a compiler option
 so that more system ram is available for the program code itself.
 
 
-.. _three-letter-prefixing:
+.. _symbol-prefixing:
 
 Symbol prefixing in generated Assembly code
 -------------------------------------------
@@ -32,16 +32,16 @@ This is to avoid naming conflicts with CPU registers, assembly instructions, etc
 So if you're referencing symbols from the prog8 program in inlined assembly code, you have to take
 this into account. Stick a ``p8_`` in front of everything that you want to reference that is coming
 from a prog8 source file.
+All elements in scoped names such as ``main.routine.var1`` are prefixed so this becomes ``p8_main.p8_routine.p8_var1``.
 
 .. attention::
-    Many symbols from library modules are *not* prefixed.
+    Symbols from library modules are *not* prefixed and can be used
+    in assembly code as-is. So you can write::
 
-
-**Exception**
-
-sdfasdf
-
-
+        %asm {{
+            lda  #'a'
+            jsr  cbm.CHROUT
+        }}
 
 
 Software stack for expression evaluation
