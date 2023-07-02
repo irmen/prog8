@@ -54,7 +54,6 @@ private fun compileMain(args: Array<String>): Boolean {
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank (0=keep active), on other systems it is ignored.")
-    val useNewExprCode by cli.option(ArgType.Boolean, fullName = "newexpr", description = "use new expression code-gen (experimental)")
     val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
@@ -135,7 +134,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     varsHighBank,
-                    useNewExprCode == true,
                     compilationTarget,
                     evalStackAddr,
                     splitWordArrays == true,
@@ -205,7 +203,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     varsHighBank,
-                    useNewExprCode == true,
                     compilationTarget,
                     evalStackAddr,
                     splitWordArrays == true,

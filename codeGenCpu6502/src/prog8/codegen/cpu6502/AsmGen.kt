@@ -31,7 +31,8 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
 
         printAst(program, true, ::println)
 
-        val nodesToPrefix = mutableListOf<Pair<PtNode, Int>>()
+        val nodesToPrefix = mutableListOf<Pair<PtNode, Int>>()              // parent + index
+        val functionCallsToPrefix = mutableListOf<Pair<PtNode, Int>>()      // parent + index
 
         fun prefixNamedNode(node: PtNamedNode) {
             node.name = "p8_${node.name}"
@@ -51,7 +52,7 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                     val stNode = st.lookup(node.name)!!
                     if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
-                        nodesToPrefix += node.parent to index
+                        functionCallsToPrefix += node.parent to index
                     }
                 }
                 is PtIdentifier -> {
@@ -105,10 +106,19 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
             val node = parent.children[index]
             when(node) {
                 is PtIdentifier -> parent.children[index] = node.prefix(parent)
-                is PtFunctionCall -> parent.children[index] = node.prefix(parent)
+                is PtFunctionCall ->  throw AssemblyError("PtFunctionCall should be processed in their own list, last")
                 is PtJump -> parent.children[index] = node.prefix(parent)
                 is PtVariable -> parent.children[index] = node.prefix(parent)
                 else -> throw AssemblyError("weird node to prefix $node")
+            }
+        }
+
+        functionCallsToPrefix.forEach { (parent, index) ->
+            val node = parent.children[index]
+            if(node is PtFunctionCall) {
+                parent.children[index] = node.prefix(parent)
+            } else {
+                throw AssemblyError("expected PtFunctionCall")
             }
         }
 
@@ -658,7 +668,6 @@ class AsmGen6502Internal (
     private fun translate(stmt: PtIfElse) {
         val condition = stmt.condition as? PtBinaryExpression
         if(condition!=null) {
-            require(!options.useNewExprCode)
             requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
             if (stmt.elseScope.children.isEmpty()) {
                 val jump = stmt.ifScope.children.singleOrNull()
@@ -1118,18 +1127,10 @@ $repeatLabel""")
     }
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
-        val left: PtExpression
-        val right: PtExpression
-        val operator: String
-
-        if (pointerOffsetExpr is PtBinaryExpression) {
-            require(!options.useNewExprCode)
-            operator = pointerOffsetExpr.operator
-            left = pointerOffsetExpr.left
-            right = pointerOffsetExpr.right
-        }
-        else return null
-
+        if (pointerOffsetExpr !is PtBinaryExpression) return null
+        val operator = pointerOffsetExpr.operator
+        val left = pointerOffsetExpr.left
+        val right = pointerOffsetExpr.right
         if (operator != "+") return null
         val leftDt = left.type
         val rightDt = right.type
@@ -1241,10 +1242,7 @@ $repeatLabel""")
     }
 
     internal fun findSubroutineParameter(name: String, asmgen: AsmGen6502Internal): PtSubroutineParameter? {
-        val stScope = asmgen.symbolTable.lookup(name)
-        require(stScope!=null) {
-            "invalid name lookup $name"
-        }
+        val stScope = asmgen.symbolTable.lookup(name) ?: return null
         val node = stScope.astNode
         if(node is PtSubroutineParameter)
             return node
@@ -2892,7 +2890,6 @@ $repeatLabel""")
                     out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtBinaryExpression -> {
-                require(!options.useNewExprCode)
                 val addrExpr = expr.address as PtBinaryExpression
                 if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                     if(pushResultOnEstack)

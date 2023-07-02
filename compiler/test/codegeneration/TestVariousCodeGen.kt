@@ -85,10 +85,10 @@ main {
         result.codegenAst!!.name shouldBe result.compilerAst.name
         result.codegenAst!!.children.size shouldBeGreaterThan 2
         val start = result.codegenAst!!.entrypoint()!!
-        start.name shouldBe "start"
+        start.name shouldBe "p8_start"
         start.children.size shouldBeGreaterThan 2
         val seed = start.children[0] as PtVariable
-        seed.name shouldBe "seed"
+        seed.name shouldBe "p8_seed"
         seed.value shouldBe null
         seed.type shouldBe DataType.ARRAY_UW
         val assign = start.children[1] as PtAssignment
@@ -161,10 +161,8 @@ main {
         qq = 16000 + c*${'$'}0008
     }
 }"""
-        compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = false) shouldNotBe null
-        compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = false) shouldNotBe null
-        compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
-        // no newexpr for IR targets: compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
+        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, text, writeAssembly = true) shouldNotBe null
     }
 
     test("builtin func in float expression") {

@@ -313,7 +313,9 @@ internal class ProgramAndVarsGen(
 
         asmgen.out("${sub.name}\t$asmStartScope")
 
-        val scope = symboltable.lookupOrElse(sub.scopedName) { throw AssemblyError("lookup") }
+        val scope = symboltable.lookupOrElse(sub.scopedName) {
+            throw AssemblyError("lookup ${sub.scopedName}")
+        }
         require(scope.type==StNodeType.SUBROUTINE)
         val varsInSubroutine = getVars(scope)
 

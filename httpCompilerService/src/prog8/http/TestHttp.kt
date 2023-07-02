@@ -44,7 +44,6 @@ class RequestParser : Take {
             experimentalCodegen = false,
             splitWordArrays = false,
             varsHighBank = null,
-            useNewExprCode = false
         )
         val compilationResult = compileProgram(args)
         return RsJson(Jsonding())

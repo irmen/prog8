@@ -18,7 +18,6 @@ internal fun compileFile(
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
     optFloatExpr: Boolean = true,
-    useNewExprCode: Boolean = false
 ) : CompilationResult? {
     val filepath = fileDir.resolve(fileName)
     assumeReadableFile(filepath)
@@ -32,7 +31,6 @@ internal fun compileFile(
         asmListfile = false,
         experimentalCodegen = false,
         varsHighBank = null,
-        useNewExprCode = useNewExprCode,
         platform.name,
         evalStackBaseAddress = null,
         symbolDefs = emptyMap(),
@@ -55,11 +53,10 @@ internal fun compileText(
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
     optFloatExpr: Boolean = true,
-    useNewExprCode: Boolean = false
 ) : CompilationResult? {
     val filePath = outputDir.resolve("on_the_fly_test_" + sourceText.hashCode().toUInt().toString(16) + ".p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)
     return compileFile(platform, optimize, filePath.parent, filePath.name,
-        errors=errors, writeAssembly=writeAssembly, optFloatExpr = optFloatExpr, useNewExprCode=useNewExprCode)
+        errors=errors, writeAssembly=writeAssembly, optFloatExpr = optFloatExpr)
 }

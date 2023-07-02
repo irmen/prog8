@@ -33,7 +33,6 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         asmListfile = false,
         experimentalCodegen = false,
         varsHighBank = null,
-        useNewExprCode = false,
         compilationTarget = target.name,
         evalStackBaseAddress = null,
         splitWordArrays = false,
