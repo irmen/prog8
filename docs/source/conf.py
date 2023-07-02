@@ -23,10 +23,18 @@ copyright = 'Irmen de Jong'
 author = 'Irmen de Jong'
 
 
+def read_properties(filename):
+    props = {}
+    for line in open("../../gradle.properties").readlines():
+        key, value = line.split('=')
+        props[key] = value
+    return props
+
 # The short X.Y version
-version = open("../../compiler/res/version.txt").readline()
+version = read_properties("gradle.properties")["version"]
 # The full version, including alpha/beta/rc tags
 release = version
+
 
 # -- extensions
 
