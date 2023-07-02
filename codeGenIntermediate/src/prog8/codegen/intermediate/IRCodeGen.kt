@@ -1500,7 +1500,10 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
         val countTr = expressionEval.translateExpression(repeat.count)
         addToResult(result, countTr, countTr.resultReg, -1)
-        addInstr(result, IRInstruction(Opcode.BEQ, irDt, reg1=countTr.resultReg, immediate = 0, labelSymbol = skipRepeatLabel), null)
+        if(constIntValue(repeat.count)==null) {
+            // check if the counter is already zero
+            addInstr(result, IRInstruction(Opcode.BEQ, irDt, reg1=countTr.resultReg, immediate = 0, labelSymbol = skipRepeatLabel), null)
+        }
         result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)

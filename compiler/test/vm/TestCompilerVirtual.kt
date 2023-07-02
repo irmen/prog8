@@ -215,7 +215,7 @@ main {
         var result = compileText(target, true, src, writeAssembly = true)!!
         var virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.stepCount shouldBe 37
+            vm.stepCount shouldBe 36
         }
 
         result = compileText(target, false, src, writeAssembly = true)!!
@@ -362,5 +362,39 @@ main {
     }
 }"""
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    test("repeat counts") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0 = 0
+        repeat 255 {
+            cx16.r0++
+        }
+        repeat 256 {
+            cx16.r0++
+        }
+        repeat 257 {
+            cx16.r0++
+        }
+        repeat 1023 {
+            cx16.r0++
+        }
+        repeat 1024 {
+            cx16.r0++
+        }
+        repeat 1025 {
+            cx16.r0++
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        val start = result.codegenAst!!.entrypoint()!!
+        start.children.size shouldBe 8
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
+            vm.memory.getUW(vm.cx16virtualregsBaseAddress) shouldBe 3840u
+        }
     }
 })

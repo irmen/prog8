@@ -47,7 +47,7 @@ class VirtualMachine(irProgram: IRProgram) {
     var statusNegative = false
     internal var randomGenerator = Random(0xa55a7653)
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
-    private val cx16virtualregsBaseAddress: Int
+    val cx16virtualregsBaseAddress: Int
 
     init {
         program = VmProgramLoader().load(irProgram, memory)
