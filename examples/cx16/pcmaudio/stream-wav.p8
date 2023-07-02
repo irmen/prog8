@@ -189,8 +189,7 @@ interrupt {
             ldx  #4
 -           ldy  #0
 -           lda  (cx16.r0),y
-            sec
-            sbc  #128       ; convert to signed
+            eor  #$80       ; convert to signed 8-bit
             sta  cx16.VERA_AUDIO_DATA
             iny
             bne  -
