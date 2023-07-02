@@ -134,7 +134,7 @@ class Program(val name: String,
                     .first { it.name == internedStringsModuleName }.statements
                     .first { it is Block && it.name == internedStringsModuleName } as Block
                 removals.forEach { scopedname ->
-                    val decl = internedStringsBlock.statements.filterIsInstance<VarDecl>().single { decl -> decl.scopedName == scopedname } as VarDecl
+                    val decl = internedStringsBlock.statements.filterIsInstance<VarDecl>().single { decl -> decl.scopedName == scopedname }
                     val numRefs = program.internedStringsReferenceCounts.getValue(decl) - 1
                     program.internedStringsReferenceCounts[decl] = numRefs
                     if(numRefs==0)

@@ -2,6 +2,12 @@ TODO
 ====
 
 - fix type error with returning an array literal from a subroutine returning uword
+- fix IR loading of romsubs
+    romsub $FFD2 = chrout(ubyte ch @ A)
+    sub start() {
+        ubyte ch = '\n'
+        chrout(ch)
+    }
 
 ...
 
