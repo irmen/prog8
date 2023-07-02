@@ -3,8 +3,9 @@
 
 main {
     sub start() {
+        uword count = 255
         cx16.r0 = 0
-        repeat 255 {
+        repeat count {
             cx16.r0++
         }
         txt.print_uw(255)
@@ -12,38 +13,66 @@ main {
         txt.print_uw(cx16.r0)
         txt.nl()
 
-        repeat 256 {
+        count=256
+        repeat count {
             cx16.r0++
         }
         txt.print_uw(255+256)
         txt.spc()
         txt.print_uw(cx16.r0)
         txt.nl()
-        repeat 257 {
+        count = 257
+        repeat count {
             cx16.r0++
         }
         txt.print_uw(255+256+257)
         txt.spc()
         txt.print_uw(cx16.r0)
         txt.nl()
-        repeat 1023 {
+        count=1023
+        repeat count {
             cx16.r0++
         }
         txt.print_uw(255+256+257+1023)
         txt.spc()
         txt.print_uw(cx16.r0)
         txt.nl()
-        repeat 1024 {
+        count=1024
+        repeat count {
             cx16.r0++
         }
         txt.print_uw(255+256+257+1023+1024)
         txt.spc()
         txt.print_uw(cx16.r0)
         txt.nl()
-        repeat 1025 {
+        count = 1025
+        repeat count {
             cx16.r0++
         }
         txt.print_uw(255+256+257+1023+1024+1025)
+        txt.spc()
+        txt.print_uw(cx16.r0)
+        txt.nl()
+        count = 65534
+        repeat count {
+            cx16.r0++
+        }
+        txt.print_uw(3838)
+        txt.spc()
+        txt.print_uw(cx16.r0)
+        txt.nl()
+        count = 65535
+        repeat count {
+            cx16.r0++
+        }
+        count=0
+        repeat count {
+            cx16.r0++
+        }
+        repeat 0 {
+            cx16.r0++
+        }
+        txt.print_uw(3837)
         txt.spc()
         txt.print_uw(cx16.r0)
         txt.nl()

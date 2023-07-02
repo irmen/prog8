@@ -641,64 +641,47 @@ class AsmGen6502Internal (
     private fun repeatWordCount(count: Int, stmt: PtRepeatLoop) {
         require(count in 257..65535) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
-        if(isTargetCpu(CpuType.CPU65c02)) {
-            val counterVar = createRepeatCounterVar(DataType.UWORD, true, stmt)
-            out("""
-                lda  #<$count
-                ldy  #>$count
-                sta  $counterVar
-                sty  $counterVar+1
+        val counterVar = createRepeatCounterVar(DataType.UWORD, isTargetCpu(CpuType.CPU65c02), stmt)
+        // the iny + double dec is microoptimization of the 16 bit loop
+        out("""
+            ldy  #>$count
+            lda  #<$count
+            beq  +
+            iny
++           sta  $counterVar
+            sty  $counterVar+1
 $repeatLabel""")
-            translate(stmt.statements)
-            out("""
-                lda  $counterVar
-                bne  +
-                dec  $counterVar+1
-+               dec  $counterVar
-                lda  $counterVar
-                ora  $counterVar+1
-                bne  $repeatLabel""")
-        } else {
-            val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)
-            out("""
-                lda  #<$count
-                ldy  #>$count
-                sta  $counterVar
-                sty  $counterVar+1
-$repeatLabel""")
-            translate(stmt.statements)
-            out("""
-                lda  $counterVar
-                bne  +
-                dec  $counterVar+1
-+               dec  $counterVar
-                lda  $counterVar
-                ora  $counterVar+1
-                bne  $repeatLabel""")
-        }
+        translate(stmt.statements)
+        out("""
+            dec  $counterVar
+            bne  $repeatLabel
+            dec  $counterVar+1
+            bne  $repeatLabel""")
     }
 
     private fun repeatWordCountInAY(endLabel: String, stmt: PtRepeatLoop) {
         // note: A/Y must have been loaded with the number of iterations!
-        // no need to explicitly test for 0 iterations as this is done in the countdown logic below
+        // the iny + double dec is microoptimization of the 16 bit loop
         val repeatLabel = makeLabel("repeat")
         val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)
         out("""
-                sta  $counterVar
-                sty  $counterVar+1
-$repeatLabel    lda  $counterVar
-                bne  +
-                lda  $counterVar+1
-                beq  $endLabel
-                lda  $counterVar
-                bne  +
-                dec  $counterVar+1
-+               dec  $counterVar
-""")
+            cmp  #0
+            beq  +
+            iny
++           sta  $counterVar
+            sty  $counterVar+1
+            ora  $counterVar+1
+            beq  $endLabel
+$repeatLabel""")
         translate(stmt.statements)
-        jmp(repeatLabel)
+        out("""
+            dec  $counterVar
+            bne  $repeatLabel
+            dec  $counterVar+1
+            bne  $repeatLabel""")
         out(endLabel)
     }
+
 
     private fun repeatByteCount(count: Int, stmt: PtRepeatLoop) {
         require(count in 2..256) { "invalid repeat count ${stmt.position}" }

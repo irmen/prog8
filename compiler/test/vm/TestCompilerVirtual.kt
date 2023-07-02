@@ -364,7 +364,7 @@ main {
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-    test("repeat counts") {
+    test("repeat counts (const)") {
         val src="""
 main {
     sub start() {
@@ -387,14 +387,77 @@ main {
         repeat 1025 {
             cx16.r0++
         }
+        repeat 65534 {
+            cx16.r0++
+        }
+        repeat 65535 {
+            cx16.r0++
+        }
+        repeat 0 {
+            cx16.r0++
+        }
     }
 }"""
         val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
         val start = result.codegenAst!!.entrypoint()!!
-        start.children.size shouldBe 8
+        start.children.size shouldBe 11
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUW(vm.cx16virtualregsBaseAddress) shouldBe 3840u
+            vm.memory.getUW(vm.cx16virtualregsBaseAddress) shouldBe 3837u
         }
     }
+
+    test("repeat counts (variable)") {
+        val src="""
+main {
+    sub start() {
+        uword count
+        cx16.r0 = 0
+        count=255
+        repeat count {
+            cx16.r0++
+        }
+        count=256
+        repeat count {
+            cx16.r0++
+        }
+        count=257
+        repeat count {
+            cx16.r0++
+        }
+        count=1023
+        repeat count {
+            cx16.r0++
+        }
+        count=1024
+        repeat count {
+            cx16.r0++
+        }
+        count=1025
+        repeat count {
+            cx16.r0++
+        }
+        count=65534
+        repeat count {
+            cx16.r0++
+        }
+        count=65535
+        repeat count {
+            cx16.r0++
+        }
+        count=0
+        repeat count {
+            cx16.r0++
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        val start = result.codegenAst!!.entrypoint()!!
+        start.children.size shouldBe 22
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
+            vm.memory.getUW(vm.cx16virtualregsBaseAddress) shouldBe 3837u
+        }
+    }
+
 })
