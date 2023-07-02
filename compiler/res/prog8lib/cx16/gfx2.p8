@@ -23,6 +23,8 @@
 
 gfx2 {
 
+    %option no_symbol_prefixing
+
     ; read-only control variables:
     ubyte active_mode = 0
     uword width = 0

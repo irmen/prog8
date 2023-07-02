@@ -340,7 +340,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(binExpr: PtBinaryExpression): ExpressionCodeResult {
-        require(!codeGen.options.useNewExprCode)
         val vmDt = irType(binExpr.left.type)
         val signed = binExpr.left.type in SignedDatatypes
         return when(binExpr.operator) {

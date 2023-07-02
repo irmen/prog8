@@ -932,7 +932,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     fun targetSubroutine(program: Program): Subroutine? = targetStatement(program) as? Subroutine
 
     fun targetNameAndType(program: Program): Pair<String, DataType> {
-        val target=targetStatement(program)!! as INamedStatement
+        val target = targetStatement(program) as? INamedStatement  ?: throw FatalAstException("can't find target for $nameInSource")
         val targetname: String = if(target.name in program.builtinFunctions.names)
             "<builtin>.${target.name}"
         else
@@ -985,6 +985,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         val scope=decl.definingModule
         return scope.name==internedStringsModuleName
     }
+
+    fun renamed(newName: List<String>): IdentifierReference = IdentifierReference(newName, position)
 }
 
 class FunctionCallExpression(override var target: IdentifierReference,

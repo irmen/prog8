@@ -905,7 +905,6 @@ class IRCodeGen(
         val goto = ifElse.ifScope.children.firstOrNull() as? PtJump
         when (condition) {
             is PtBinaryExpression -> {
-                require(!options.useNewExprCode)
                 if(condition.operator !in ComparisonOperators)
                     throw AssemblyError("if condition should only be a binary comparison expression")
 
@@ -919,7 +918,6 @@ class IRCodeGen(
             }
             else -> {
                 // if X   --> meaning:  if X!=0
-                require(options.useNewExprCode)
                 val irDt = irType(condition.type)
                 val signed = condition.type in SignedDatatypes
                 return if(goto!=null && ifElse.elseScope.children.isEmpty()) {

@@ -161,21 +161,23 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
     private fun transform(srcBlock: Block): PtBlock {
         var alignment = PtBlock.BlockAlignment.NONE
         var forceOutput = false
+        var noSymbolPrefixing = false
         val directives = srcBlock.statements.filterIsInstance<Directive>()
         for (directive in directives.filter { it.directive == "%option" }) {
             for (arg in directive.args) {
                 when (arg.name) {
                     "align_word" -> alignment = PtBlock.BlockAlignment.WORD
                     "align_page" -> alignment = PtBlock.BlockAlignment.PAGE
+                    "no_symbol_prefixing" -> noSymbolPrefixing = true
                     "force_output" -> forceOutput=true
-                    "merge", "splitarrays" -> { /* ignore this one */ }
+                    "merge", "splitarrays"  -> { /* ignore this one */ }
                     else -> throw FatalAstException("weird directive option: ${arg.name}")
                 }
             }
         }
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
         val src = srcBlock.definingModule.source
-        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, alignment, src, srcBlock.position)
+        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, noSymbolPrefixing, alignment, src, srcBlock.position)
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements)
             block.add(transformStatement(stmt))
@@ -434,11 +436,10 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
     private fun transform(src: AddressOf): PtAddressOf {
         val addr = PtAddressOf(src.position)
         val (name, dt) = src.identifier.targetNameAndType(program)
-        if(dt in SplitWordArrayTypes) {
-            addr.add(PtIdentifier(name+"_lsb", dt, src.identifier.position))
-        } else {
+        if(dt in SplitWordArrayTypes)
+            addr.add(PtIdentifier(name+"_lsb", dt, src.identifier.position))        // NOTE: assumes _lsb is first in memory! (immediately followed by _msb)
+        else
             addr.add(transform(src.identifier))
-        }
         return addr
     }
 

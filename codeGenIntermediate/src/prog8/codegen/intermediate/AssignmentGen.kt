@@ -105,27 +105,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             value.add(origAssign.value)
         } else {
             require(origAssign.operator.endsWith('='))
-            if(codeGen.options.useNewExprCode) {
-                // X += Y  ->   temp = X,  temp += Y,  X = temp
-                val tempvar = codeGen.getReusableTempvar(origAssign.definingSub()!!, origAssign.target.type)
-                val assign = PtAssignment(origAssign.position)
-                val target = PtAssignTarget(origAssign.position)
-                target.add(tempvar)
-                assign.add(target)
-                assign.add(origAssign.target.children.single())
-                val augAssign = PtAugmentedAssign(origAssign.operator, origAssign.position)
-                augAssign.add(target)
-                augAssign.add(origAssign.value)
-                val assignBack = PtAssignment(origAssign.position)
-                assignBack.add(origAssign.target)
-                assignBack.add(tempvar)
-                return translateRegularAssign(assign) + translate(augAssign) + translateRegularAssign(assignBack)
-            } else {
-                value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
-                val left: PtExpression = origAssign.target.children.single() as PtExpression
-                value.add(left)
-                value.add(origAssign.value)
-            }
+            value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
+            val left: PtExpression = origAssign.target.children.single() as PtExpression
+            value.add(left)
+            value.add(origAssign.value)
         }
         val normalAssign = PtAssignment(origAssign.position)
         normalAssign.add(origAssign.target)
@@ -347,19 +330,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return Pair(result, tr.resultReg)
         }
 
-        if(codeGen.options.useNewExprCode) {
-            val tr = expressionEval.translateExpression(array.index)
-            result += tr.chunks
-            addInstr(result, IRInstruction(Opcode.MUL, tr.dt, reg1=tr.resultReg, immediate = itemsize), null)
-            return Pair(result, tr.resultReg)
-        } else {
-            val mult: PtExpression
-            mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
-            mult.children += array.index
-            mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
-            val tr = expressionEval.translateExpression(mult)
-            addToResult(result, tr, tr.resultReg, -1)
-            return Pair(result, tr.resultReg)
-        }
+        val mult: PtExpression
+        mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
+        mult.children += array.index
+        mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
+        val tr = expressionEval.translateExpression(mult)
+        addToResult(result, tr, tr.resultReg, -1)
+        return Pair(result, tr.resultReg)
     }
 }

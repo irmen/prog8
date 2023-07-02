@@ -24,6 +24,8 @@ class Program(val name: String,
         val internedStringsModule =
             Module(mutableListOf(), Position.DUMMY, SourceCode.Generated(internedStringsModuleName))
         val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
+        val directive = Directive("%option", listOf(DirectiveArg(null,"no_symbol_prefixing", null, Position.DUMMY)), Position.DUMMY)
+        block.statements.add(directive)
         internedStringsModule.statements.add(block)
 
         _modules.add(0, internedStringsModule)
@@ -55,7 +57,7 @@ class Program(val name: String,
 
     val entrypoint: Subroutine
         get() {
-            val mainBlocks = allBlocks.filter { it.name == "main" }
+            val mainBlocks = allBlocks.filter { it.name=="main" }
             return when (mainBlocks.size) {
                 0 -> throw FatalAstException("no 'main' block")
                 1 -> mainBlocks[0].subScope("start") as Subroutine
@@ -92,12 +94,11 @@ class Program(val name: String,
             return Pair(listOf(internedStringsModuleName, decl.name), decl)
         }
 
-        val existingDecl = internedStringsBlock.statements.singleOrNull {
-            val declString = (it as VarDecl).value as StringLiteral
+        val existingDecl = internedStringsBlock.statements.filterIsInstance<VarDecl>().singleOrNull {
+            val declString = it.value as StringLiteral
             declString.encoding == string.encoding && declString.value == string.value
         }
         return if (existingDecl != null) {
-            existingDecl as VarDecl
             internedStringsReferenceCounts[existingDecl] = internedStringsReferenceCounts.getValue(existingDecl)+1
             existingDecl.scopedName
         }
@@ -133,7 +134,7 @@ class Program(val name: String,
                     .first { it.name == internedStringsModuleName }.statements
                     .first { it is Block && it.name == internedStringsModuleName } as Block
                 removals.forEach { scopedname ->
-                    val decl = internedStringsBlock.statements.single { decl -> (decl as VarDecl).scopedName == scopedname } as VarDecl
+                    val decl = internedStringsBlock.statements.filterIsInstance<VarDecl>().single { decl -> decl.scopedName == scopedname } as VarDecl
                     val numRefs = program.internedStringsReferenceCounts.getValue(decl) - 1
                     program.internedStringsReferenceCounts[decl] = numRefs
                     if(numRefs==0)

@@ -87,14 +87,14 @@ irq {
     asmsub set_scanline_color(ubyte color_ix @Y) {
         ; uword color = mkword(reds[ix], (greens[ix] << 4) | blues[ix] )
         %asm {{
-            lda  blinds_lines_reds,y
+            lda  p8_blinds_lines_reds,y
             pha
-            lda  blinds_lines_greens,y
+            lda  p8_blinds_lines_greens,y
             asl  a
             asl  a
             asl  a
             asl  a
-            ora  blinds_lines_blues,y
+            ora  p8_blinds_lines_blues,y
             tay
 
             stz  cx16.VERA_CTRL

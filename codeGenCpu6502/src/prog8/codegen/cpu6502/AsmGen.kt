@@ -3,6 +3,7 @@ package prog8.codegen.cpu6502
 import com.github.michaelbull.result.fold
 import prog8.code.StNodeType
 import prog8.code.SymbolTable
+import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
@@ -14,17 +15,179 @@ import kotlin.io.path.writeLines
 internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
-class AsmGen6502: ICodeGeneratorBackend {
+class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,
         symbolTable: SymbolTable,
         options: CompilationOptions,
         errors: IErrorReporter
     ): IAssemblyProgram? {
-        val asmgen = AsmGen6502Internal(program, symbolTable, options, errors)
+        val st = if(prefixSymbols) prefixSymbols(program, options, symbolTable) else symbolTable
+        val asmgen = AsmGen6502Internal(program, st, options, errors)
         return asmgen.compileToAssembly()
     }
+
+    private fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTable): SymbolTable {
+        val nodesToPrefix = mutableListOf<Pair<PtNode, Int>>()              // parent + index
+        val functionCallsToPrefix = mutableListOf<Pair<PtNode, Int>>()      // parent + index
+
+        fun prefixNamedNode(node: PtNamedNode) {
+            node.name = "p8_${node.name}"
+        }
+
+        fun prefixSymbols(node: PtNode) {
+            when(node) {
+                is PtAsmSub -> {
+                    prefixNamedNode(node)
+                    node.parameters.forEach { (_, param) -> prefixNamedNode(param) }
+                }
+                is PtSub -> {
+                    prefixNamedNode(node)
+                    node.parameters.forEach { prefixNamedNode(it) }
+                }
+                is PtFunctionCall -> {
+                    val stNode = st.lookup(node.name)!!
+                    if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
+                        val index = node.parent.children.indexOf(node)
+                        functionCallsToPrefix += node.parent to index
+                    }
+                }
+                is PtIdentifier -> {
+                    var lookupName = node.name
+                    if(node.type in SplitWordArrayTypes && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
+                        lookupName = lookupName.dropLast(4)
+                    }
+                    val stNode = st.lookup(lookupName)!!
+                    if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
+                        val index = node.parent.children.indexOf(node)
+                        nodesToPrefix += node.parent to index
+                    }
+                }
+                is PtJump -> {
+                    if(node.identifier!=null) {
+                        val stNode = st.lookup(node.identifier!!.name)!!
+                        if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
+                            val index = node.parent.children.indexOf(node)
+                            nodesToPrefix += node.parent to index
+                        }
+                    }
+                    else if(node.generatedLabel!=null) {
+                        val stNode = st.lookup(node.generatedLabel!!)!!
+                        if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
+                            val index = node.parent.children.indexOf(node)
+                            nodesToPrefix += node.parent to index
+                        }
+                    }
+                }
+                is PtBlock -> prefixNamedNode(node)
+                is PtConstant -> prefixNamedNode(node)
+                is PtLabel -> prefixNamedNode(node)
+                is PtMemMapped -> prefixNamedNode(node)
+                is PtSubroutineParameter -> prefixNamedNode(node)
+                is PtVariable -> {
+                    val index = node.parent.children.indexOf(node)
+                    nodesToPrefix += node.parent to index
+                }
+                else -> { }
+            }
+            node.children.forEach { prefixSymbols(it) }
+        }
+
+        program.allBlocks().forEach { block ->
+            if (!block.noSymbolPrefixing) {
+                prefixSymbols(block)
+            }
+        }
+
+        nodesToPrefix.forEach { (parent, index) ->
+            val node = parent.children[index]
+            when(node) {
+                is PtIdentifier -> parent.children[index] = node.prefix(parent, st)
+                is PtFunctionCall ->  throw AssemblyError("PtFunctionCall should be processed in their own list, last")
+                is PtJump -> parent.children[index] = node.prefix(parent, st)
+                is PtVariable -> parent.children[index] = node.prefix(st)
+                else -> throw AssemblyError("weird node to prefix $node")
+            }
+        }
+
+        // reversed so inner calls (such as arguments to a function call) get processed before the actual function call itself
+        functionCallsToPrefix.reversed().forEach { (parent, index) ->
+            val node = parent.children[index]
+            if(node is PtFunctionCall) {
+                parent.children[index] = node.prefix(parent)
+            } else {
+                throw AssemblyError("expected PtFunctionCall")
+            }
+        }
+
+        return SymbolTableMaker(program, options).make()
+    }
 }
+
+private fun PtVariable.prefix(st: SymbolTable): PtVariable {
+    name = name.split('.').map {"p8_$it" }.joinToString(".")
+    if(value==null)
+        return this
+
+    val arrayValue = value as? PtArray
+    return if(arrayValue!=null && arrayValue.children.any { it !is PtNumber} ) {
+        val newValue = PtArray(arrayValue.type, arrayValue.position)
+        arrayValue.children.forEach { elt ->
+            when(elt) {
+                is PtIdentifier -> newValue.add(elt.prefix(arrayValue, st))
+                is PtNumber -> newValue.add(elt)
+                is PtAddressOf -> {
+                    if(elt.definingBlock()?.noSymbolPrefixing==true)
+                        newValue.add(elt)
+                    else {
+                        val newAddr = PtAddressOf(elt.position)
+                        newAddr.children.add(elt.identifier.prefix(newAddr, st))
+                        newAddr.parent = arrayValue
+                        newValue.add(newAddr)
+                    }
+                }
+                else -> throw AssemblyError("weird array value element $elt")
+            }
+        }
+        PtVariable(name, type, zeropage, newValue, arraySize, position)
+    }
+    else this
+}
+
+private fun PtJump.prefix(parent: PtNode, st: SymbolTable): PtJump {
+    val jump = if(identifier!=null) {
+        val prefixedIdent = identifier!!.prefix(this, st)
+        PtJump(prefixedIdent, address, generatedLabel, position)
+    } else {
+        val prefixedLabel = generatedLabel!!.split('.').map {"p8_$it" }.joinToString(".")
+        PtJump(null, address, prefixedLabel, position)
+    }
+    jump.parent = parent
+    return jump
+}
+
+private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {
+    val newName = name.split('.').map {"p8_$it" }.joinToString(".")
+    val call = PtFunctionCall(newName, void, type, position)
+    call.children.addAll(children)
+    call.children.forEach { it.parent = call }
+    call.parent = parent
+    if(name.endsWith("concat_string"))
+        println("CONCAT ${this.position}")
+    return call
+}
+
+private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
+    val target = st.lookup(name)
+    if(target?.astNode?.definingBlock()?.noSymbolPrefixing==true)
+        return this
+
+    val newName = name.split('.').map { "p8_$it" }.joinToString(".")
+    val node = PtIdentifier(newName, type, position)
+    node.parent = parent
+    return node
+}
+
 
 class AsmGen6502Internal (
     val program: PtProgram,
@@ -513,7 +676,6 @@ class AsmGen6502Internal (
     private fun translate(stmt: PtIfElse) {
         val condition = stmt.condition as? PtBinaryExpression
         if(condition!=null) {
-            require(!options.useNewExprCode)
             requireComparisonExpression(condition)  // IfStatement: condition must be of form  'x <comparison> <value>'
             if (stmt.elseScope.children.isEmpty()) {
                 val jump = stmt.ifScope.children.singleOrNull()
@@ -973,18 +1135,10 @@ $repeatLabel""")
     }
 
     internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
-        val left: PtExpression
-        val right: PtExpression
-        val operator: String
-
-        if (pointerOffsetExpr is PtBinaryExpression) {
-            require(!options.useNewExprCode)
-            operator = pointerOffsetExpr.operator
-            left = pointerOffsetExpr.left
-            right = pointerOffsetExpr.right
-        }
-        else return null
-
+        if (pointerOffsetExpr !is PtBinaryExpression) return null
+        val operator = pointerOffsetExpr.operator
+        val left = pointerOffsetExpr.left
+        val right = pointerOffsetExpr.right
         if (operator != "+") return null
         val leftDt = left.type
         val rightDt = right.type
@@ -1096,10 +1250,7 @@ $repeatLabel""")
     }
 
     internal fun findSubroutineParameter(name: String, asmgen: AsmGen6502Internal): PtSubroutineParameter? {
-        val stScope = asmgen.symbolTable.lookup(name)
-        require(stScope!=null) {
-            "invalid name lookup $name"
-        }
+        val stScope = asmgen.symbolTable.lookup(name) ?: return null
         val node = stScope.astNode
         if(node is PtSubroutineParameter)
             return node
@@ -2747,7 +2898,6 @@ $repeatLabel""")
                     out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtBinaryExpression -> {
-                require(!options.useNewExprCode)
                 val addrExpr = expr.address as PtBinaryExpression
                 if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                     if(pushResultOnEstack)

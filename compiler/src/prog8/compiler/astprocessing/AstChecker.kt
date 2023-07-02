@@ -812,7 +812,7 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page", "merge", "splitarrays")}.any { !it })
+                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page", "merge", "splitarrays", "no_symbol_prefixing")}.any { !it })
                     err("invalid option directive argument(s)")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)

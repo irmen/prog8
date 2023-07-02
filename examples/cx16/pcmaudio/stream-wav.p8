@@ -148,9 +148,9 @@ interrupt {
     asmsub wait_and_clear_aflow_semaphore() {
         %asm {{
 -           wai
-            lda  aflow_semaphore
+            lda  p8_aflow_semaphore
             bne  -
-            inc  aflow_semaphore
+            inc  p8_aflow_semaphore
             rts
         }}
     }
@@ -182,9 +182,9 @@ interrupt {
         ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
         ; converting unsigned wav 8 bit samples to signed 8 bit on the fly
         %asm {{
-            lda  main.start.buffer
+            lda  p8_main.p8_start.p8_buffer
             sta  cx16.r0L
-            lda  main.start.buffer+1
+            lda  p8_main.p8_start.p8_buffer+1
             sta  cx16.r0H
             ldx  #4
 -           ldy  #0
@@ -212,9 +212,9 @@ interrupt {
     asmsub uncompressed_block_16() {
         ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
         %asm {{
-            lda  main.start.buffer
+            lda  p8_main.p8_start.p8_buffer
             sta  cx16.r0L
-            lda  main.start.buffer+1
+            lda  p8_main.p8_start.p8_buffer+1
             sta  cx16.r0H
             ldx  #4
 -           ldy  #0

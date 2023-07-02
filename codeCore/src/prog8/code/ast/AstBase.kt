@@ -37,16 +37,17 @@ class PtNodeGroup : PtNode(Position.DUMMY)
 sealed class PtNamedNode(var name: String, position: Position): PtNode(position) {
     // Note that as an exception, the 'name' is not read-only
     // but a var. This is to allow for cheap node renames.
-    val scopedName: String by lazy {
-        var namedParent: PtNode = this.parent
-        if(namedParent is PtProgram)
-            name
-        else {
-            while (namedParent !is PtNamedNode)
-                namedParent = namedParent.parent
-            namedParent.scopedName + "." + name
+    val scopedName: String
+        get() {
+            var namedParent: PtNode = this.parent
+            return if(namedParent is PtProgram)
+                name
+            else {
+                while (namedParent !is PtNamedNode)
+                    namedParent = namedParent.parent
+                namedParent.scopedName + "." + name
+            }
         }
-    }
 }
 
 
@@ -63,7 +64,9 @@ class PtProgram(
         children.asSequence().filterIsInstance<PtBlock>()
 
     fun entrypoint(): PtSub? =
-        allBlocks().firstOrNull { it.name == "main" }?.children?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="main.start") } as PtSub?
+        allBlocks().firstOrNull { it.name == "main" || it.name=="p8_main" }
+            ?.children
+            ?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="main.start" || it.name=="p8_start" || it.name=="p8_main.p8_start") } as PtSub?
 }
 
 
@@ -71,6 +74,7 @@ class PtBlock(name: String,
               val address: UInt?,
               val library: Boolean,
               val forceOutput: Boolean,
+              val noSymbolPrefixing: Boolean,
               val alignment: BlockAlignment,
               val source: SourceCode,       // taken from the module the block is defined in.
               position: Position

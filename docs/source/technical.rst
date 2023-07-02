@@ -22,20 +22,26 @@ It is possible to relocate the BSS section using a compiler option
 so that more system ram is available for the program code itself.
 
 
-.. _three-letter-prefixing:
+.. _symbol-prefixing:
 
-Three-letter symbols prefixing in Assembly
-------------------------------------------
+Symbol prefixing in generated Assembly code
+-------------------------------------------
 
-Symbols consisting of three letters such as "brk" or "tax", or variables named "a", "x" or "y" could
-confuse the assembler to think these are cpu instructions or registers.
-It will likely fail to assemble the program correctly.
-Because of this, prog8 will prefix every 1- and 3-letter symbol with "``p8p_``" automatically during compilation.
-So "tax" will become "p8p_tax", "a" will become "p8p_a" in the resulting assembly code.
+*All* symbols in the prog8 program will be prefixed with ``p8_`` in the generated assembly code.
+This is to avoid naming conflicts with CPU registers, assembly instructions, etc.
+So if you're referencing symbols from the prog8 program in inlined assembly code, you have to take
+this into account. Stick a ``p8_`` in front of everything that you want to reference that is coming
+from a prog8 source file.
+All elements in scoped names such as ``main.routine.var1`` are prefixed so this becomes ``p8_main.p8_routine.p8_var1``.
 
-If you're referencing symbols from the prog8 program in hand-written assembly code, you have to take
-this into account. Either prefix the 1- and 3-letter symbols in the assembly with "``p8p_``" as well, or just
-choose a symbol name of a different length in the first place.
+.. attention::
+    Symbols from library modules are *not* prefixed and can be used
+    in assembly code as-is. So you can write::
+
+        %asm {{
+            lda  #'a'
+            jsr  cbm.CHROUT
+        }}
 
 
 Software stack for expression evaluation

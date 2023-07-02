@@ -6,6 +6,8 @@
 ; TODO c128 actually implement the graphics routines. Ideally a way to 'borrow' the code form the C64 version without just copy-pasting that here?
 
 graphics {
+    %option no_symbol_prefixing
+
     const uword WIDTH = 320
     const ubyte HEIGHT = 200
 

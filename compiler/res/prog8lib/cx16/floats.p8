@@ -6,6 +6,8 @@
 floats {
 	; ---- this block contains C-64 compatible floating point related functions ----
 
+    %option no_symbol_prefixing
+
         const float  PI     = 3.141592653589793
         const float  TWOPI  = 6.283185307179586
 

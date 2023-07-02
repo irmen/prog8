@@ -248,8 +248,6 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
     }
 
     private fun translateExpression(expr: PtBinaryExpression) {
-        require(!asmgen.options.useNewExprCode)
-
         // Uses evalstack to evaluate the given expression.  THIS IS SLOW AND SHOULD BE AVOIDED!
         if(translateSomewhatOptimized(expr.left, expr.operator, expr.right))
             return

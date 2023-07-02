@@ -12,6 +12,7 @@ import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtVariable
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -84,10 +85,10 @@ main {
         result.codegenAst!!.name shouldBe result.compilerAst.name
         result.codegenAst!!.children.size shouldBeGreaterThan 2
         val start = result.codegenAst!!.entrypoint()!!
-        start.name shouldBe "start"
+        start.name shouldBe "p8_start"
         start.children.size shouldBeGreaterThan 2
         val seed = start.children[0] as PtVariable
-        seed.name shouldBe "seed"
+        seed.name shouldBe "p8_seed"
         seed.value shouldBe null
         seed.type shouldBe DataType.ARRAY_UW
         val assign = start.children[1] as PtAssignment
@@ -160,10 +161,8 @@ main {
         qq = 16000 + c*${'$'}0008
     }
 }"""
-        compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = false) shouldNotBe null
-        compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = false) shouldNotBe null
-        compileText(C64Target(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
-        // no newexpr for IR targets: compileText(VMTarget(), true, text, writeAssembly = true, useNewExprCode = true) shouldNotBe null
+        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, text, writeAssembly = true) shouldNotBe null
     }
 
     test("builtin func in float expression") {
@@ -201,5 +200,61 @@ block2 {
 
         compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("array with pointers") {
+        val src = """
+main {
+    sub start() {
+        str localstr = "hello"
+        ubyte[] otherarray = [1,2,3]
+        uword[] words = [1111,2222,"three",&localstr,&otherarray]
+        uword @shared zz = &words
+        ubyte result = 2222 in words
+        zz = words[2]
+        zz++
+        zz = words[3]
+    }
+}"""
+        val othertarget = Cx16Target()
+        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("case sensitive symbols") {
+        val src = """
+main {
+    sub start() {
+        ubyte bytevar = 11      ; var at 0
+        ubyte byteVAR = 22      ; var at 1
+        ubyte ByteVar = 33      ; var at 2
+        ubyte @shared total = bytevar+byteVAR+ByteVar   ; var at 3
+        goto skipLABEL
+SkipLabel:
+        return
+skipLABEL:
+        bytevar = 42
+    }
+}"""
+        val target = Cx16Target()
+        compileText(target, true, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("addresses from labels/subroutines") {
+        val src = """
+main {
+    sub start() {
+
+mylabel:
+        ubyte variable
+        uword @shared pointer1 = &main.start
+        uword @shared pointer2 = &start
+        uword @shared pointer3 = &main.start.mylabel
+        uword @shared pointer4 = &mylabel
+        uword[] @shared ptrs = [&variable, &start, &main.start, &mylabel, &main.start.mylabel]
+    }
+}
+
+"""
+        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
     }
 })

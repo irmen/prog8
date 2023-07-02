@@ -131,6 +131,8 @@ Directives
     - ``align_page`` (in a block) will make the assembler align the start address of this block on a page boundary in memory (so, the LSB of the address is 0).
     - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name. Useful in library scenarios.
     - ``splitarrays`` (block or module) makes all word-arrays in this scope lsb/msb split arrays (as if they all have the @split tag). See Arrays.
+    - ``no_symbol_prefixing`` (block) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
+      Only use this if you know what you're doing because it could result in invalid assembly code being generated.
 
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
@@ -210,7 +212,7 @@ Directives
     If you use the correct scoping rules you can access symbols from the prog8 program from inside
     the assembly code. Sometimes you'll have to declare a variable in prog8 with `@shared` if it
     is only used in such assembly code. For symbols just consisting of 3 letters, prog8 will
-    add a special prefix to them, read more about this in :ref:`three-letter-prefixing`.
+    add a special prefix to them, read more about this in :ref:`symbol-prefixing`.
 
 
 Identifiers

@@ -110,6 +110,7 @@ char_loop:
 
 vtui $1000 {
 
+    %option no_symbol_prefixing
     %asmbinary "VTUI1.0.BIN", 2     ; skip the 2 dummy load address bytes
 
     ; NOTE: base address $1000 here must be the same as the block's memory address, for obvious reasons!

@@ -6,6 +6,8 @@
 
 txt {
 
+    %option no_symbol_prefixing
+
 const ubyte DEFAULT_WIDTH = 80
 const ubyte DEFAULT_HEIGHT = 60
 

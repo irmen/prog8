@@ -5,6 +5,8 @@ cbm {
 
     ; Commodore (CBM) common variables, vectors and kernal routines
 
+    %option no_symbol_prefixing
+
 ; STROUT --> use txt.print
 ; CLEARSCR -> use txt.clear_screen
 ; HOMECRSR -> use txt.home or txt.plot
@@ -87,6 +89,8 @@ asmsub RDTIM16() -> uword @AY {
 }
 
 cx16 {
+
+    %option no_symbol_prefixing
 
 ; irq, system and hardware vectors:
     &uword  IERROR      = $0300
@@ -709,6 +713,8 @@ asmsub restore_vera_context() clobbers(A) {
 
 sys {
     ; ------- lowlevel system routines --------
+
+    %option no_symbol_prefixing
 
     const ubyte target = 16         ;  compilation target specifier.  64 = C64,  128 = C128,  16 = CommanderX16.
 
