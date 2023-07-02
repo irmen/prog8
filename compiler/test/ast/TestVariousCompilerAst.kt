@@ -320,5 +320,19 @@ other {
 
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
+
+    test("returning array as uword") {
+        val src =  """
+main {
+    sub start() {
+        cx16.r0 = getarray()
+    }
+
+    sub getarray() -> uword {
+        return [11,22,33]
+    }
+}"""
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
 })
 
