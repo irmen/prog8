@@ -20,7 +20,7 @@ Module
     A module file can *import* other modules, including *library modules*.
 
 Comments
-    Everything after a semicolon ``;`` is a comment and is ignored by the compiler.
+    Everything after a semicolon ``;`` is a comment and is ignored by the compiler. There is no block-comment.
     If the whole line is just a comment, this line will be copied into the resulting assembly source code for reference.
 
 Directive

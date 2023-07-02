@@ -20,7 +20,8 @@ You can use tabs or spaces as you wish.
 Source code comments
 ^^^^^^^^^^^^^^^^^^^^
 
-Everything after a semicolon ``;`` is a comment and is ignored.
+Everything after a semicolon ``;`` is a comment and is ignored. There is no block-comment so just
+comment out each individual line if you want to comment out a bunch of them.
 If the whole line is just a comment, it will be copied into the resulting assembly source code.
 This makes it easier to understand and relate the generated code. Examples::
 
