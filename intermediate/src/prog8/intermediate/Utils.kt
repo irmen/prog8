@@ -131,11 +131,11 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     }
     if(format.sysCall) {
         val call = parseCall(rest)
-        val syscallNum = parseIRValue(call.target).toInt()
+        val syscallNum = call.address ?: parseIRValue(call.target ?: "").toInt()
         return left(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else if (format.funcCall) {
         val call = parseCall(rest)
-        return left(IRInstruction(Opcode.CALL, labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns)))
+        return left(IRInstruction(Opcode.CALL, address = call.address, labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else {
         operands.forEach { oper ->
             if (oper[0] == '&')
@@ -222,7 +222,8 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
 }
 
 private class ParsedCall(
-    val target: String,
+    val target: String?,
+    val address: Int?,
     val args: List<FunctionCallArgs.ArgumentSpec>,
     val returns: FunctionCallArgs.RegSpec?
 )
@@ -266,8 +267,17 @@ private fun parseCall(rest: String): ParsedCall {
     val args = match.groups["arglist"]!!.value
     val arguments = parseArgs(args)
     val returns = match.groups["returns"]?.value
+    var address: Int? = null
+    var actualTarget: String? = target
+
+    if(target.startsWith('$') || target[0].isDigit()) {
+        address = parseIRValue(target).toInt()
+        actualTarget = null
+    }
+
     return ParsedCall(
-        target,
+        actualTarget,
+        address,
         arguments,
         if(returns==null) null else parseRegspec(returns)
     )

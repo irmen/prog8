@@ -138,9 +138,14 @@ class IRProgram(val name: String,
 
                         // link all jump and branching instructions to their target
                         chunk.instructions.forEach {
-                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.labelSymbol!=null)
-                                it.branchTarget = labeledChunks.getValue(it.labelSymbol)
-                            // note: branches with an address value cannot be linked to something...
+                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.labelSymbol!=null) {
+                                if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
+                                    // it's a call to an address (romsub most likely)
+                                    require(it.address!=null)
+                                } else {
+                                    it.branchTarget = labeledChunks.getValue(it.labelSymbol)
+                                }
+                            }
                         }
                     }
                     is IRInlineAsmChunk -> {
@@ -199,8 +204,10 @@ class IRProgram(val name: String,
                                 require(!chunk.isIR) { "inline IR-asm should have been converted into regular code chunk"}
                         }
                         chunk.instructions.forEach {
-                            if(it.labelSymbol!=null && it.opcode in OpcodesThatBranch)
-                                require(it.branchTarget != null) { "branching instruction to label should have branchTarget set" }
+                            if(it.labelSymbol!=null && it.opcode in OpcodesThatBranch) {
+                                if(!it.labelSymbol.startsWith('$') && !it.labelSymbol.first().isDigit())
+                                    require(it.branchTarget != null) { "branching instruction to label should have branchTarget set" }
+                            }
                         }
                     }
                 }

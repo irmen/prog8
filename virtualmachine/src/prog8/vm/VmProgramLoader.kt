@@ -179,7 +179,7 @@ class VmProgramLoader {
                             if(arg.address!=null)
                                 arg
                             else {
-                                val address = variableAddresses.getValue(ins.labelSymbol + "." + arg.name)
+                                val address = ins.address ?: variableAddresses.getValue(ins.labelSymbol + "." + arg.name)
                                 FunctionCallArgs.ArgumentSpec(arg.name, address, arg.reg)
                             }
                         }

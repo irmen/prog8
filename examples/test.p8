@@ -2,10 +2,9 @@
 %zeropage basicsafe
 
 main {
-
     romsub $FFD2 = chrout(ubyte ch @ A)
     sub start() {
-        ubyte ch = '\n'
+        ubyte ch = '2'
         chrout(ch)
     }
 }
