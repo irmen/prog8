@@ -1075,11 +1075,12 @@ skip:
                 cx16.r8 = y
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
+                    cx16.vaddr(charset_bank, chardataptr, 1, true)  ; for reading the chardata from Vera data channel 1
                     repeat 8 {
-                        ; TODO rewrite this inner loop partly in assembly
+                        ; TODO rewrite this inner loop partly in assembly:
                         ;      requires expanding the charbits to 2-bits per pixel (based on color)
                         ;      also it's way more efficient to draw whole horizontal spans instead of per-character
-                        cx16.r9L = cx16.vpeek(charset_bank, chardataptr)  ; get the 8 horizontal character bits
+                        cx16.r9L = cx16.VERA_DATA1  ; get the next 8 horizontal character bits
                         cx16.r7 = x
                         repeat 8 {
                             cx16.r9L <<= 1
@@ -1087,7 +1088,6 @@ skip:
                                 plot(cx16.r7, cx16.r8, cx16.r11L)
                             cx16.r7++
                         }
-                        chardataptr++
                         cx16.r8++
                     }
                     x+=8
