@@ -353,6 +353,7 @@ value is given, the array size in the declaration can be omitted.
 **binary numbers:** you can use a percent prefix to write binary numbers: ``%10010011``
 Note that ``%`` is also the remainder operator so be careful: if you want to take the remainder
 of something with an operand starting with 1 or 0, you'll have to add a space in between.
+Otherwise the parser thinks you've typed an invalid binary number.
 
 **character values:** you can use a single character in quotes like this ``'a'`` for the PETSCII byte value of that character.
 
@@ -483,8 +484,9 @@ Operators
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``%``
     ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
     ``/`` is division (will result in integer division when using on integer operands, and a floating point division when at least one of the operands is a float)
-    ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space, %10 will be parsed as the binary number 2.
-    Remainder is only supported on integer operands (not floats).
+    ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space after the %, it will be parsed as a binary number.
+    So ``25 %10`` will be parsed as the number 25 followed by the binary number 2, which is a syntax error.
+    Note that remainder is only supported on integer operands (not floats).
 
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``
     ``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
