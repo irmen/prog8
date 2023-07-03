@@ -2,8 +2,8 @@
   <highlighting>
     <options>
       <option name="LINE_COMMENT" value=";" />
-      <option name="COMMENT_START" value="{{" />
-      <option name="COMMENT_END" value="}}" />
+      <option name="COMMENT_START" value="/*" />
+      <option name="COMMENT_END" value="*/" />
       <option name="HEX_PREFIX" value="$" />
       <option name="NUM_POSTFIXES" value="" />
       <option name="HAS_BRACES" value="true" />

@@ -19,6 +19,7 @@ package prog8.parser;
 EOL :  ('\r'? '\n' | '\r' | '\n')+ ;
 LINECOMMENT : EOL [ \t]* COMMENT -> channel(HIDDEN);
 COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
+BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | . )*? '*/'  -> skip ;
 
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
@@ -31,11 +32,11 @@ ADDRESS_OF: '&' ;
 INVALID_AND_COMPOSITE: '&&' ;
 
 FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? DEC_INTEGER)? ;	// sign comes later from unary expression
-fragment FNUMBER : FDOTNUMBER |  FNUMDOTNUMBER ;
-fragment FDOTNUMBER : '.' ('0'..'9')+ ;
-fragment FNUMDOTNUMBER : ('0'..'9')+ ('.' ('0'..'9')+ )? ;
+FNUMBER : FDOTNUMBER |  FNUMDOTNUMBER ;
+FDOTNUMBER : '.' ('0'..'9')+ ;
+FNUMDOTNUMBER : ('0'..'9')+ ('.' ('0'..'9')+ )? ;
 
-fragment STRING_ESCAPE_SEQ :  '\\' . | '\\x' . . | '\\u' . . . .;
+STRING_ESCAPE_SEQ :  '\\' . | '\\x' . . | '\\u' . . . .;
 STRING :
 	'"' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f"] )* '"'
 	;

@@ -20,13 +20,19 @@ You can use tabs or spaces as you wish.
 Source code comments
 ^^^^^^^^^^^^^^^^^^^^
 
-Everything after a semicolon ``;`` is a comment and is ignored. There is no block-comment so just
-comment out each individual line if you want to comment out a bunch of them.
+Everything on a line after a semicolon ``;`` is a comment and is ignored.
 If the whole line is just a comment, it will be copied into the resulting assembly source code.
-This makes it easier to understand and relate the generated code. Examples::
+This makes it easier to understand and relate the generated code.
+Everything surrounded with ``/*`` and ``*/``, this can span multiple lines, is a block-comment and is ignored.
+This block comment is experimental for now: it may change or even be removed again in a future compiler version.
+Examples::
 
 	counter = 42    ; set the initial value to 42
 	; next is the code that...
+	/* this
+	is
+	all
+	ignored */
 
 
 .. _directives:
