@@ -37,8 +37,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             removeEmptyChunks(sub)
             joinChunks(sub)
 
-            // TODO also do register optimization step here?
-
             sub.chunks.withIndex().forEach { (index, chunk1) ->
                 // we don't optimize Inline Asm chunks here.
                 val chunk2 = if(index<sub.chunks.size-1) sub.chunks[index+1] else null
@@ -52,13 +50,14 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                                 || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
                                 || removeDoubleSecClc(chunk1, indexedInstructions)
                                 || cleanupPushPop(chunk1, indexedInstructions)
-                        // TODO other optimizations:
-                        //  more complex optimizations such as unused registers
+                        // TODO other optimizations
                     } while (changed)
                 }
             }
             removeEmptyChunks(sub)
         }
+
+        // TODO also do register optimization step here at the end?
 
         irprog.linkChunks()  // re-link
     }

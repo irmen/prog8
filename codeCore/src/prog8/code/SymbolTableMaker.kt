@@ -95,7 +95,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     numElements = node.arraySize?.toInt()
                 }
 //                if(node.type in SplitWordArrayTypes) {
-//                    TODO("split array also add _lsb and _msb to symboltable")
+//                    ... split array also add _lsb and _msb to symboltable?
 //                }
                 StStaticVariable(node.name, node.type, initialNumeric, initialString, initialArray, numElements, node.zeropage, node)
             }

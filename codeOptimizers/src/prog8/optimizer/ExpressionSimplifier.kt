@@ -18,7 +18,7 @@ import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
 
-// TODO add more peephole expression optimizations? Investigate what optimizations binaryen has
+// TODO add more peephole expression optimizations? Investigate what optimizations binaryen has?
 
 class ExpressionSimplifier(private val program: Program,
                            private val errors: IErrorReporter,

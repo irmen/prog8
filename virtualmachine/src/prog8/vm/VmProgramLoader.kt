@@ -163,7 +163,7 @@ class VmProgramLoader {
                     else if(opcode in OpcodesThatBranch)
                         chunk.instructions[line] = chunk.instructions[line].copy(branchTarget = target, address = null)
                     else
-                        throw IRParseException("vm cannot yet load a label address as a value: ${chunk.instructions[line]}")        // TODO
+                        throw IRParseException("vm cannot yet load a label address as a value: ${chunk.instructions[line]}")
                 }
             } else {
                 chunk.instructions[line] = chunk.instructions[line].copy(address = replacement)
@@ -299,10 +299,10 @@ class VmProgramLoader {
                                     val name = elt.addressOfSymbol!!
                                     val symbolAddress = if(name.startsWith('<')) {
                                         symbolAddresses[name.drop(1)]?.and(255)
-                                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name") // TODO
+                                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
                                     } else if(name.startsWith('>')) {
                                         symbolAddresses[name.drop(1)]?.shr(8)
-                                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name") // TODO
+                                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
                                     } else
                                         throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
                                     memory.setUB(addr, symbolAddress.toUByte())
@@ -323,7 +323,7 @@ class VmProgramLoader {
                                 if(elt.addressOfSymbol!=null) {
                                     val name = elt.addressOfSymbol!!
                                     val symbolAddress = symbolAddresses[name]
-                                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name") // TODO
+                                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
                                     memory.setUW(addr, symbolAddress.toUShort())
                                 } else {
                                     memory.setUW(addr, elt.number!!.toInt().toUShort())
@@ -342,7 +342,7 @@ class VmProgramLoader {
                                 val number = if(elt.addressOfSymbol!=null) {
                                     val name = elt.addressOfSymbol!!
                                     val symbolAddress = symbolAddresses[name]
-                                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name") // TODO
+                                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
                                     symbolAddress.toUInt()
                                 } else {
                                     elt.number!!.toInt().toUInt()

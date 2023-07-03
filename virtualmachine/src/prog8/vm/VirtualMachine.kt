@@ -150,8 +150,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 else
                     throw IllegalArgumentException("no branchtarget in $i")
             }
-            is IRInlineAsmChunk -> TODO()
-            is IRInlineBinaryChunk -> TODO()
+            is IRInlineAsmChunk -> TODO("branch to inline asm chunk")
+            is IRInlineBinaryChunk -> throw IllegalArgumentException("can't branch to inline binary chunk")
             else -> {
                 throw IllegalArgumentException("VM can't execute code in a non-codechunk: $target")
             }
