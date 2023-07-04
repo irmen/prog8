@@ -19,11 +19,13 @@ Then you can choose a few ways to get a compiler:
 **Using the Gradle build system to build it yourself:**
 
 The Gradle build system is used to build the compiler.
-The most interesting gradle commands to run are probably:
+The most interesting gradle commands to run are probably the ones listed below.
+(Note: if you have a recent gradle installed on your system already, you can probably replace the ``./gradlew`` wrapper commands with just the regular ``gradle`` command.)
 
     ``./gradlew build``
         Builds the compiler code and runs all available checks and unit-tests.
         Also automatically runs the installDist and installShadowDist tasks.
+        Read below at those tasks for where the resulting compiler jar file gets written.
     ``./gradlew installDist``
         Builds the compiler and installs it with scripts to run it, in the directory
         ``./compiler/build/install/p8compile``
@@ -43,7 +45,7 @@ For normal use, the ``installDist`` task should suffice and after succesful comp
 
 .. hint::
     Development and testing is done on Linux using the IntelliJ IDEA IDE,
-    but the compiler should run on all operating systems that provide a java runtime (version 11 or newer).
+    but the actual prog8 compiler should run on all operating systems that provide a java runtime (version 11 or newer).
     If you do have trouble building or running the compiler on your operating system, please let me know!
 
     To successfully build and debug in IDEA, you have to manually generate the Antlr-parser classes first.

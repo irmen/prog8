@@ -14,6 +14,15 @@ Documentation
 Full documentation (syntax reference, how to use the language and the compiler, etc.) can be found at:
 https://prog8.readthedocs.io/
 
+How to get it/build it
+----------------------
+
+- Download the latest [official release](https://github.com/irmen/prog8/releases) from github.
+- Or, if you want/need a bleeding edge development version, you can:
+  - download a build artifact zipfile from a recent [github action build](https://github.com/irmen/prog8/actions).
+  - you can also compile it yourself from source. [Instructions here](https://prog8.readthedocs.io/en/latest/compiling.html).
+
+
 Software license
 ----------------
 GNU GPL 3.0 (see file LICENSE), with exception for generated code:
