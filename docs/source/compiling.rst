@@ -297,6 +297,19 @@ You can do one of two things to fix the build error:
 - install a JDK with that version,
 - or change the version number to match the JDK version that *is* installed on your system (must be >= 11)
 
+Strange assembler error
+^^^^^^^^^^^^^^^^^^^^^^^
+If the compilation of your program fails in the assembly step, please check that you have
+the required version of the 64tass assembler installed. See :ref:`requirements`.
+
+
+Community
+---------
+Most of the development on Prog8 and the use of it is currently centered around
+the `Commander X16 <https://www.commanderx16.com/>`_ retro computer.
+Their `Discord server <https://discord.gg/nS2PqEC>`_ contains a small channel
+dedicated to Prog8. Other than that, use the issue tracker on github.
+
 
 Examples
 --------
