@@ -257,4 +257,31 @@ mylabel:
 """
         compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("duplicate symbols okay other block and variable") {
+        val src = """
+main {
+    ubyte derp
+    sub start() {
+        derp++
+        foo.bar()
+    }
+}
+
+foo {
+    sub bar() {
+        derp.print()
+    }
+}
+
+derp {
+    sub print() {
+        cx16.r0++
+        cx16.r1++
+    }
+}"""
+
+        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
 })

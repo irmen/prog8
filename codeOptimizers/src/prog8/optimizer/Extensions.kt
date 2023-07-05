@@ -54,8 +54,8 @@ fun Program.optimizeStatements(errors: IErrorReporter,
     return optimizationCount
 }
 
-fun Program.inlineSubroutines(): Int {
-    val inliner = Inliner(this)
+fun Program.inlineSubroutines(options: CompilationOptions): Int {
+    val inliner = Inliner(this, options)
     inliner.visit(this)
     return inliner.applyModifications()
 }

@@ -8,7 +8,9 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.CompilationOptions
 import prog8.code.core.InternalCompilerException
+import prog8.code.target.VMTarget
 
 
 private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.value==null
@@ -16,7 +18,7 @@ private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.va
 
 // inliner potentially enables *ONE LINED* subroutines, wihtout to be inlined.
 
-class Inliner(val program: Program): AstWalker() {
+class Inliner(private val program: Program, private val options: CompilationOptions): AstWalker() {
 
     class DetermineInlineSubs(val program: Program): IAstVisitor {
         private val modifications = mutableListOf<IAstModification>()
@@ -211,7 +213,7 @@ class Inliner(val program: Program): AstWalker() {
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification>  {
         val sub = functionCallStatement.target.targetStatement(program) as? Subroutine
-        return if(sub==null)
+        return if(sub==null || !canInline(sub, functionCallStatement))
             noModifications
         else
             possibleInlineFcallStmt(sub, functionCallStatement, parent)
@@ -219,7 +221,7 @@ class Inliner(val program: Program): AstWalker() {
 
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         val sub = functionCallExpr.target.targetStatement(program) as? Subroutine
-        if(sub!=null && sub.inline && sub.parameters.isEmpty()) {
+        if(sub!=null && sub.inline && sub.parameters.isEmpty() && canInline(sub, functionCallExpr)) {
             require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
                 "invalid inline sub at ${sub.position}"
             }
@@ -246,5 +248,17 @@ class Inliner(val program: Program): AstWalker() {
         return noModifications
     }
 
+    private fun canInline(sub: Subroutine, fcall: IFunctionCall): Boolean {
+        if(!sub.inline)
+            return false
+        if(options.compTarget.name!=VMTarget.NAME) {
+            val stmt = sub.statements.single()
+            if (stmt is IFunctionCall) {
+                val existing = (fcall as Node).definingScope.lookup(stmt.target.nameInSource.take(1))
+                return existing !is VarDecl
+            }
+        }
+        return true
+    }
 }
 
