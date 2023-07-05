@@ -1,6 +1,9 @@
 TODO
 ====
 
+- check for name clash: variable vs block name
+
+
 ...
 
 
