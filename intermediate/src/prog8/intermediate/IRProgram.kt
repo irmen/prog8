@@ -96,9 +96,10 @@ class IRProgram(val name: String,
                 // link globalinits to subsequent chunk
                 val firstBlock = blocks.firstOrNull()
                 if(firstBlock!=null && firstBlock.isNotEmpty()) {
-                    firstBlock.children.forEach { child ->
+                    firstBlock.children.first().let { child ->
                         when(child) {
-                            is IRAsmSubroutine -> throw AssemblyError("cannot link next to asmsub $child")
+                            is IRAsmSubroutine ->
+                                throw AssemblyError("cannot link next to asmsub $child")
                             is IRCodeChunk -> globalInits.next = child
                             is IRInlineAsmChunk -> globalInits.next = child
                             is IRInlineBinaryChunk -> globalInits.next = child

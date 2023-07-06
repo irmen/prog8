@@ -1,7 +1,8 @@
 TODO
 ====
 
-- Fix expericodegen errors (examples/cx16/keyboardhandler, rockrunners etc)
+- Fix wrong unused subroutines in expericodegen with cx16 shell
+- Fix expericodegen errors (chess, assem, musicdemo, rockrunners etc)
 
 ...
 

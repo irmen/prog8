@@ -52,7 +52,7 @@ SYSCALLS:
 41 = CLAMP_WORD
 42 = CLAMP_UWORD
 43 = CLAMP_FLOAT
-43 = ATAN
+44 = ATAN
 */
 
 enum class Syscall {

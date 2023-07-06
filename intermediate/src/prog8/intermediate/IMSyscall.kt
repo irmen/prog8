@@ -26,5 +26,6 @@ enum class IMSyscall(val number: Int) {
     CLAMP_BYTE(0x1012),
     CLAMP_UWORD(0x1013),
     CLAMP_WORD(0x1014),
-    CLAMP_FLOAT(0x1015)
+    CLAMP_FLOAT(0x1015),
+    CALLFAR(0x1016),
 }

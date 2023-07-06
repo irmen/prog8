@@ -29,7 +29,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "rsavex",
             "rrestore",
             "rrestorex" -> ExpressionCodeResult.EMPTY  // vm doesn't have registers to save/restore
-            "callfar" -> throw AssemblyError("callfar() is for cx16 target only")
+            "callfar" -> funcCallfar(call)
             "msb" -> funcMsb(call)
             "lsb" -> funcLsb(call)
             "memory" -> funcMemory(call)
@@ -51,6 +51,18 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_stringcompare" -> funcStringCompare(call)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
+    }
+
+    private fun funcCallfar(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val bankTr = exprGen.translateExpression(call.args[0])
+        val addressTr = exprGen.translateExpression(call.args[1])
+        val argumentwordTr = exprGen.translateExpression(call.args[2])
+        addToResult(result, bankTr, bankTr.resultReg, -1)
+        addToResult(result, addressTr, addressTr.resultReg, -1)
+        addToResult(result, argumentwordTr, argumentwordTr.resultReg, -1)
+        result += codeGen.makeSyscall(IMSyscall.CALLFAR, listOf(IRDataType.BYTE to bankTr.resultReg, IRDataType.WORD to addressTr.resultReg, IRDataType.WORD to argumentwordTr.resultReg), IRDataType.WORD to argumentwordTr.resultReg)
+        return ExpressionCodeResult(result, IRDataType.WORD, argumentwordTr.resultReg, -1)
     }
 
     private fun funcDivmod(call: PtBuiltinFunctionCall, type: IRDataType): ExpressionCodeResult {
