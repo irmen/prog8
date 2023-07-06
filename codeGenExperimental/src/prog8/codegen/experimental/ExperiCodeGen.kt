@@ -26,6 +26,15 @@ class ExperiCodeGen: ICodeGeneratorBackend {
         IRFileWriter(irProgram, null).write()
 
         println("** experimental codegen stub: no assembly generated **")
-        return null
+        return EmptyProgram
     }
+}
+
+private object EmptyProgram : IAssemblyProgram {
+    override val name = "<Empty Program>"
+    override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
+        println("** nothing assembled **")
+        return true
+    }
+
 }

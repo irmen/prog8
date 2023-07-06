@@ -1,8 +1,7 @@
 TODO
 ====
 
-- IR: don't use ext.b to clear the msb of an unsigned word, add a specialized instruction for this zmsb.w?
-- Fix expericodegen errors (on rockrunners etc)
+- Fix expericodegen errors (examples/cx16/diskspeed, rockrunners etc)
 
 ...
 

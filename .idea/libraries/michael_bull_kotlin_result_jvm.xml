@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="michael.bull.kotlin.result.jvm" type="repository">
-    <properties maven-id="com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.17" />
+    <properties maven-id="com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.18" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/com/michael-bull/kotlin-result/kotlin-result-jvm/1.1.17/kotlin-result-jvm-1.1.17.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/michael-bull/kotlin-result/kotlin-result-jvm/1.1.18/kotlin-result-jvm-1.1.18.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.8.10/kotlin-stdlib-jdk8-1.8.10.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.8.10/kotlin-stdlib-1.8.10.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
