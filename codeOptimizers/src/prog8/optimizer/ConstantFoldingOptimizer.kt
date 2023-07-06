@@ -6,12 +6,14 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.ForLoop
+import prog8.ast.statements.RepeatLoop
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclType
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.AssociativeOperators
 import prog8.code.core.DataType
+import kotlin.math.floor
 
 
 class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
@@ -359,6 +361,16 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                         return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
                 }
             }
+        }
+        return noModifications
+    }
+
+    override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
+        val count = (repeatLoop.iterations as? NumericLiteral)?.number
+        if(count!=null && floor(count)!=count) {
+            val integer = NumericLiteral.optimalInteger(count.toInt(), repeatLoop.position)
+            repeatLoop.iterations = integer
+            integer.linkParents(repeatLoop)
         }
         return noModifications
     }

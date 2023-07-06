@@ -12,6 +12,7 @@ import prog8.compiler.builtinFunctionReturnType
 import java.io.CharConversionException
 import java.io.File
 import kotlin.io.path.Path
+import kotlin.math.floor
 
 /**
  * Semantic analysis.
@@ -468,8 +469,10 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(repeatLoop: RepeatLoop) {
         val iterations = repeatLoop.iterations?.constValue(program)
-        if(iterations != null && iterations.number.toInt() > 65535)
-            errors.err("repeat cannot go over 65535 iterations", iterations.position)
+        if (iterations != null) {
+            require(floor(iterations.number)==iterations.number)
+            if (iterations.number.toInt() > 65535) errors.err("repeat cannot go over 65535 iterations", iterations.position)
+        }
 
         val ident = repeatLoop.iterations as? IdentifierReference
         if(ident!=null) {
