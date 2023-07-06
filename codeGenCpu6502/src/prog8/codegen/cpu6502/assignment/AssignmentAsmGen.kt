@@ -745,10 +745,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     in WordDatatypes -> {
                         asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                        asmgen.out("""
-                            jsr  math.multiply_words
-                            lda  math.multiply_words.result
-                            ldy  math.multiply_words.result+1""")
+                        asmgen.out("  jsr  math.multiply_words")
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         return true
                     }
@@ -775,9 +772,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             sty  P8ZP_SCRATCH_W1+1
                             lda  #<$value
                             ldy  #>$value
-                            jsr  math.multiply_words
-                            lda  math.multiply_words.result
-                            ldy  math.multiply_words.result+1""")
+                            jsr  math.multiply_words""")
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         return true
                     }

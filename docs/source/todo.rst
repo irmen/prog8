@@ -1,6 +1,10 @@
 TODO
 ====
 
+- upgrade to Kotlin 1.9.0    enum.values() -> enum.entries
+- IR: don't use ext.b to clear the msb of an unsigned word, add a specialized instruction for this zmsb.w?
+- Fix expericodegen errors (on rockrunners etc)
+
 ...
 
 

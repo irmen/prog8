@@ -167,9 +167,8 @@ mul_word	.proc
 		lda  P8ESTACK_LO+1,x
 		ldy  P8ESTACK_HI+1,x
 		jsr  math.multiply_words
-		lda  math.multiply_words.result
 		sta  P8ESTACK_LO+1,x
-		lda  math.multiply_words.result+1
+		tya
 		sta  P8ESTACK_HI+1,x
 		rts
 		.pend

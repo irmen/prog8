@@ -51,8 +51,7 @@ multiply_bytes_into_word	.proc
 multiply_words	.proc
 	; -- multiply two 16-bit words into a 32-bit result  (signed and unsigned)
 	;      input: A/Y = first 16-bit number, P8ZP_SCRATCH_W1 in ZP = second 16-bit number
-	;      output: multiply_words.result  4-bytes/32-bits product, LSB order (low-to-high)
-	;      clobbers: A
+	;      output: multiply_words.result  4-bytes/32-bits product, LSB order (low-to-high)  low 16 bits also in AY.
 
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
@@ -79,6 +78,8 @@ mult16		lda  #0
 		dex
 		bne  -
 		ldx  P8ZP_SCRATCH_REG
+		lda  result
+		ldy  result+1
 		rts
 
 result		.byte  0,0,0,0

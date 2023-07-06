@@ -1221,10 +1221,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         lda  #<$value
                         ldy  #>$value
                         jsr  math.multiply_words
-                        lda  math.multiply_words.result
                         sta  $name
-                        lda  math.multiply_words.result+1
-                        sta  $name+1""")
+                        sty  $name+1""")
                 }
             }
             "/" -> {
@@ -1682,10 +1680,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 lda  $name
                                 ldy  $name+1
                                 jsr  math.multiply_words
-                                lda  math.multiply_words.result
                                 sta  $name
-                                lda  math.multiply_words.result+1
-                                sta  $name+1""")
+                                sty  $name+1""")
                     }
                     "/" -> {
                         if(dt==DataType.UWORD) {
@@ -1822,11 +1818,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             lda  $name
                             ldy  $name+1
                             jsr  math.multiply_words
-                            lda  math.multiply_words.result
                             sta  $name
-                            lda  math.multiply_words.result+1
-                            sta  $name+1
-                        """)
+                            sty  $name+1""")
                     }
                     "/" -> {
                         if(dt==DataType.WORD) {
@@ -1839,8 +1832,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 ldy  $otherName+1
                                 jsr  math.divmod_w_asm
                                 sta  $name
-                                sty  $name+1
-                            """)
+                                sty  $name+1""")
                         }
                         else {
                             asmgen.out("""
@@ -1852,8 +1844,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 ldy  $otherName+1
                                 jsr  math.divmod_uw_asm
                                 sta  $name
-                                sty  $name+1
-                            """)
+                                sty  $name+1""")
                         }
                     }
                     "%" -> {
@@ -2016,10 +2007,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 lda  $name
                 ldy  $name+1
                 jsr  math.multiply_words
-                lda  math.multiply_words.result
                 sta  $name
-                lda  math.multiply_words.result+1
-                sta  $name+1
+                sty  $name+1
             """)
         }
 
