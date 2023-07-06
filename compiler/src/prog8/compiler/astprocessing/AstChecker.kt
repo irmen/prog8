@@ -743,13 +743,13 @@ internal class AstChecker(private val program: Program,
             "%output" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
-                if(directive.args.size!=1 || directive.args[0].name !in OutputType.values().map {it.name.lowercase()})
+                if(directive.args.size!=1 || directive.args[0].name !in OutputType.entries.map {it.name.lowercase()})
                     err("invalid output directive type")
             }
             "%launcher" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
-                if(directive.args.size!=1 || directive.args[0].name !in CbmPrgLauncherType.values().map{it.name.lowercase()})
+                if(directive.args.size!=1 || directive.args[0].name !in CbmPrgLauncherType.entries.map{it.name.lowercase()})
                     err("invalid launcher directive type")
             }
             "%zeropage" -> {

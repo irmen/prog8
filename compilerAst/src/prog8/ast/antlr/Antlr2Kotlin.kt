@@ -468,7 +468,7 @@ private fun Prog8ANTLRParser.CharliteralContext.toAst(): CharLiteral {
     val enc = this.encoding?.text
     val encoding =
         if(enc!=null)
-            Encoding.values().singleOrNull { it.prefix == enc }
+            Encoding.entries.singleOrNull { it.prefix == enc }
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else
             Encoding.DEFAULT
@@ -485,7 +485,7 @@ private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteral {
     val enc = encoding?.text
     val encoding =
         if(enc!=null)
-            Encoding.values().singleOrNull { it.prefix == enc }
+            Encoding.entries.singleOrNull { it.prefix == enc }
                 ?: throw SyntaxError("invalid encoding", toPosition())
         else
             Encoding.DEFAULT

@@ -85,7 +85,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "abs__float" to FSignature(true, listOf(FParam("value", arrayOf(DataType.FLOAT))), DataType.FLOAT),
     "len"       to FSignature(true, listOf(FParam("values", IterableDatatypes)), DataType.UWORD),
     // normal functions follow:
-    "sizeof"    to FSignature(true, listOf(FParam("object", DataType.values())), DataType.UBYTE),
+    "sizeof"    to FSignature(true, listOf(FParam("object", DataType.entries.toTypedArray())), DataType.UBYTE),
     "sgn"       to FSignature(true, listOf(FParam("value", NumericDatatypesNoBool)), DataType.BYTE),
     "sqrt"        to FSignature(true, listOf(FParam("value", NumericDatatypesNoBool)), null),
     "sqrt__ubyte" to FSignature(true, listOf(FParam("value", arrayOf(DataType.UBYTE))), DataType.UBYTE),

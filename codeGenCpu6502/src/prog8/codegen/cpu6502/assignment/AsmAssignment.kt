@@ -178,10 +178,8 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
                 }
                 is PtFunctionCall -> {
-                    val symbol = asmgen.symbolTable.lookup(value.name)
-                    if(symbol==null)
-                        TODO("${value.name}")
-                    val sub = symbol!!.astNode as IPtSubroutine
+                    val symbol = asmgen.symbolTable.lookup(value.name) ?: throw AssemblyError("lookup error ${value.name}")
+                    val sub = symbol.astNode as IPtSubroutine
                     val returnType = sub.returnsWhatWhere().firstOrNull { rr -> rr.first.registerOrPair != null || rr.first.statusflag!=null }?.second
                             ?: throw AssemblyError("can't translate zero return values in assignment")
 

@@ -123,8 +123,8 @@ class TestInstructions: FunSpec({
     }
 
     test("all instructionformats") {
-        instructionFormats.size shouldBe Opcode.values().size
-        Opcode.values().forEach {
+        instructionFormats.size shouldBe Opcode.entries.size
+        Opcode.entries.forEach {
             val fmt = instructionFormats.getValue(it)
             fmt.values.forEach { format ->
                 require(format.reg2==OperandDirection.UNUSED || format.reg2==OperandDirection.READ) {"reg2 can only be used as input"}
