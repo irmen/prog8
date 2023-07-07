@@ -21,7 +21,7 @@ Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by t
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
-Value types: integers (.b=byte=8 bits, .w=word=16 bits) and float (.f=32 bits). Omitting it defaults to b.
+Value types: integers (.b=byte=8 bits, .w=word=16 bits) and float (.f=32 bits). Omitting it defaults to b if the instruction requires a type.
 Currently ther is NO support for 24 or 32 bits integers.
 There is no distinction between signed and unsigned integers.
 Instead, a different instruction is used if a distinction should be made (for example div and divs).
@@ -53,14 +53,14 @@ CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction at 'location' (label/memory address)
 jumpi       reg1                      - continue running at memory address in reg1 (indirect jump)
-call  label(argument register list) [: resultreg.type]
+call   label(argument register list) [: resultreg.type]
                                       - calls a subroutine with the given arguments and return value (optional).
                                         save current instruction location+1, continue execution at instruction nr of the label.
                                         the argument register list is positional and includes the datatype, ex.: r4.b,r5.w,fp1.f
                                         If the call is to a rom-routine, 'label' will be a hexadecimal address instead such as $ffd2
                                         If the arguments should be passed in CPU registers, they'll have a @REGISTER postfix.
                                         For example: call $ffd2(r5.b@A)
-syscall  number (argument register list) [: resultreg.type]
+syscall   number (argument register list) [: resultreg.type]
                                       - do a systemcall identified by number, result value(s) are pushed on value stack by the syscall code so
                                         will be POPped off into the given resultregister if any.
 return                                - restore last saved instruction location and continue at that instruction. No return value.
@@ -115,8 +115,8 @@ ARITHMETIC
 ----------
 All have type b or w or f. Note: result types are the same as operand types! E.g. byte*byte->byte.
 
-exts        reg1                            - reg1 = signed extension of reg1 (byte to word, or word to long)  (note: ext.w is not yet implemented as we don't have longs yet)
-ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (ext.w not yet implemented as we don't have longs yet)
+exts        reg1                            - reg1 = signed extension of reg1 (byte to word, or word to long)  (note: unlike M68k, exts.b -> word and exts.w -> long. The latter is not yet implemented yet as we don't have longs yet)
+ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (note: unlike M68k, ext.b -> word and ext.w -> long. The latter is not yet implemented yet as we don't have longs yet)
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
@@ -142,8 +142,8 @@ modr        reg1, reg2                      - remainder (modulo) of unsigned div
 mod         reg1,              value        - remainder (modulo) of unsigned division reg1 %= value  note: division by zero yields max signed int $ff/$ffff
 divmodr     reg1, reg2                      - unsigned division reg1/reg2, storing division and remainder on value stack (so need to be POPped off)
 divmod      reg1,              value        - unsigned division reg1/value, storing division and remainder on value stack (so need to be POPped off)
-sqrt        reg1, reg2                      - reg1 is the square root of reg2
-sgn         reg1, reg2                      - reg1 is the sign of reg2 (0, 1 or -1)
+sqrt        reg1, reg2                      - reg1 is the square root of reg2 (reg2 can be .w or .b, result type in reg1 is always .b)  you can also use it with floating point types, fpreg1 and fpreg2 (result is also .f)
+sgn         reg1, reg2                      - reg1 is the sign of reg2 (0.b, 1.b or -1.b)
 cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
 
 NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.

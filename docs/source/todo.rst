@@ -1,11 +1,14 @@
 TODO
 ====
 
+- IR: instructions that do type conversion (such as EXT, SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
+
 ...
 
 
 Need help with
 ^^^^^^^^^^^^^^
+- getting the IR in shape for code generation
 - atari target: more details details about the machine, fixing library routines. I have no clue whatsoever.
 - see the :ref:`portingguide` for details on what information is needed.
 
