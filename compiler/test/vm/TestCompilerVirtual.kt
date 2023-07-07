@@ -451,4 +451,26 @@ main {
         }
     }
 
+    test("asm chunk labels in IR code") {
+        val src="""
+main {
+    sub start() {
+        instructions.match()
+    }
+}
+
+instructions {
+    asmsub  match() {
+        %asm {{
+            rts
+        }}
+    }
+
+    %asm {{
+        nop
+    }}
+}"""
+        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+    }
+
 })
