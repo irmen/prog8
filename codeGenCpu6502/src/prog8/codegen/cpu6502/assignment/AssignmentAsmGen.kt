@@ -763,16 +763,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         return true
                     }
                     in WordDatatypes -> {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type in SignedDatatypes)
-                        if (value in asmgen.optimizedWordMultiplications)
+                        if (value in asmgen.optimizedWordMultiplications) {
+                            assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type in SignedDatatypes)
                             asmgen.out("  jsr  math.mul_word_${value}")
-                        else
-                            asmgen.out("""
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  #<$value
-                            ldy  #>$value
-                            jsr  math.multiply_words""")
+                        }
+                        else {
+                            asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
+                            asmgen.out("  jsr  math.multiply_words")
+                        }
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         return true
                     }
