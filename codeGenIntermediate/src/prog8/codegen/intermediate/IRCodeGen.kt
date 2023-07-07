@@ -168,6 +168,11 @@ class IRCodeGen(
 
         replacements.forEach {
             val old = it.first.instructions[it.second]
+            val formats = instructionFormats.getValue(old.opcode)
+            val format = formats.getOrElse(old.type) { throw IllegalArgumentException("type ${old.type} invalid for ${old.opcode}") }
+            val immediateValue = if(format.immediate) it.third.toInt() else null
+            val addressValue = if(format.immediate) null else it.third.toInt()
+
             it.first.instructions[it.second] = IRInstruction(
                 old.opcode,
                 old.type,
@@ -175,9 +180,9 @@ class IRCodeGen(
                 old.reg2,
                 old.fpReg1,
                 old.fpReg2,
+                immediate = immediateValue,
                 null,
-                null,
-                address = it.third.toInt(),
+                address = addressValue,
                 null,
                 null
             )
@@ -447,60 +452,63 @@ class IRCodeGen(
                     result += translateForInNonConstantRange(forLoop, loopvar)
             }
             is PtIdentifier -> {
-                val iterableVar = symbolTable.lookup(iterable.name) as StStaticVariable
                 require(forLoop.variable.name == loopvar.scopedName)
+                val iterableLength = symbolTable.getLength(iterable.name)
                 val loopvarSymbol = forLoop.variable.name
                 val indexReg = registers.nextFree()
                 val tmpReg = registers.nextFree()
                 val loopLabel = createLabelName()
                 val endLabel = createLabelName()
-                if(iterableVar.dt==DataType.STR) {
-                    // iterate over a zero-terminated string
-                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = 0), null)
-                    result += IRCodeChunk(loopLabel, null).also {
-                        it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
-                        it += IRInstruction(Opcode.BEQ, IRDataType.BYTE, reg1 = tmpReg, immediate = 0, labelSymbol = endLabel)
-                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tmpReg, labelSymbol = loopvarSymbol)
+                when (iterable.type) {
+                    DataType.STR -> {
+                        // iterate over a zero-terminated string
+                        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = 0), null)
+                        result += IRCodeChunk(loopLabel, null).also {
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
+                            it += IRInstruction(Opcode.BEQ, IRDataType.BYTE, reg1 = tmpReg, immediate = 0, labelSymbol = endLabel)
+                            it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tmpReg, labelSymbol = loopvarSymbol)
+                        }
+                        result += translateNode(forLoop.statements)
+                        val jumpChunk = IRCodeChunk(null, null)
+                        jumpChunk += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexReg)
+                        jumpChunk += IRInstruction(Opcode.JUMP, labelSymbol = loopLabel)
+                        result += jumpChunk
+                        result += IRCodeChunk(endLabel, null)
                     }
-                    result += translateNode(forLoop.statements)
-                    val jumpChunk = IRCodeChunk(null, null)
-                    jumpChunk += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexReg)
-                    jumpChunk += IRInstruction(Opcode.JUMP, labelSymbol = loopLabel)
-                    result += jumpChunk
-                    result += IRCodeChunk(endLabel, null)
-                } else if(iterable.type in SplitWordArrayTypes) {
-                    // iterate over lsb/msb split word array
-                    val elementDt = ArrayToElementTypes.getValue(iterable.type)
-                    if(elementDt !in WordDatatypes)
-                        throw AssemblyError("weird dt")
-                    val length = iterableVar.length!!
-                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
-                    result += IRCodeChunk(loopLabel, null).also {
-                        val tmpRegLsb = registers.nextFree()
-                        val tmpRegMsb = registers.nextFree()
-                        it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, immediate = length, labelSymbol=iterable.name+"_lsb")
-                        it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, immediate = length, labelSymbol=iterable.name+"_msb")
-                        it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=tmpRegLsb, reg2=tmpRegMsb)
-                        it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpRegLsb, labelSymbol = loopvarSymbol)
+                    in SplitWordArrayTypes -> {
+                        // iterate over lsb/msb split word array
+                        val elementDt = ArrayToElementTypes.getValue(iterable.type)
+                        if(elementDt !in WordDatatypes)
+                            throw AssemblyError("weird dt")
+                        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
+                        result += IRCodeChunk(loopLabel, null).also {
+                            val tmpRegLsb = registers.nextFree()
+                            val tmpRegMsb = registers.nextFree()
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, immediate = iterableLength, labelSymbol=iterable.name+"_lsb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, immediate = iterableLength, labelSymbol=iterable.name+"_msb")
+                            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=tmpRegLsb, reg2=tmpRegMsb)
+                            it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpRegLsb, labelSymbol = loopvarSymbol)
+                        }
+                        result += translateNode(forLoop.statements)
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexReg)
+                            it += IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = if(iterableLength==256) 0 else iterableLength, labelSymbol = loopLabel)
+                        }
                     }
-                    result += translateNode(forLoop.statements)
-                    result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexReg)
-                        it += IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = if(length==256) 0 else length, labelSymbol = loopLabel)
+                    else -> {
+                        // iterate over regular array
+                        val elementDt = ArrayToElementTypes.getValue(iterable.type)
+                        val elementSize = program.memsizer.memorySize(elementDt)
+                        val lengthBytes = iterableLength!! * elementSize
+                        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
+                        result += IRCodeChunk(loopLabel, null).also {
+                            it += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
+                            it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
+                        }
+                        result += translateNode(forLoop.statements)
+                        result += addConstReg(IRDataType.BYTE, indexReg, elementSize)
+                        addInstr(result, IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = if(lengthBytes==256) 0 else lengthBytes, labelSymbol = loopLabel), null)
                     }
-                } else {
-                    // iterate over regular array
-                    val elementDt = ArrayToElementTypes.getValue(iterable.type)
-                    val elementSize = program.memsizer.memorySize(elementDt)
-                    val lengthBytes = iterableVar.length!! * elementSize
-                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
-                    result += IRCodeChunk(loopLabel, null).also {
-                        it += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
-                        it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
-                    }
-                    result += translateNode(forLoop.statements)
-                    result += addConstReg(IRDataType.BYTE, indexReg, elementSize)
-                    addInstr(result, IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = if(lengthBytes==256) 0 else lengthBytes, labelSymbol = loopLabel), null)
                 }
             }
             else -> throw AssemblyError("weird for iterable")
@@ -1362,7 +1370,6 @@ class IRCodeGen(
         if(array?.splitWords==true) {
             val variable = array.variable.name
             val fixedIndex = constIntValue(array.index)
-            val iterable = symbolTable.flat.getValue(array.variable.name) as StStaticVariable
             if(fixedIndex!=null) {
                 val skipLabel = createLabelName()
                 when(postIncrDecr.operator) {
@@ -1388,7 +1395,7 @@ class IRCodeGen(
                     else -> throw AssemblyError("weird operator")
                 }
             } else {
-                val arrayLength = iterable.length!!
+                val arrayLength = symbolTable.getLength(array.variable.name)
                 val indexTr = expressionEval.translateExpression(array.index)
                 addToResult(result, indexTr, indexTr.resultReg, -1)
                 val incReg = registers.nextFree()
@@ -1611,7 +1618,7 @@ class IRCodeGen(
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
             val flattenedName = it.definingSub()!!.name + "." + it.name
-            val orig = symbolTable.flat.getValue(flattenedName) as StStaticVariable
+            val orig = symbolTable.lookup(flattenedName) as StStaticVariable   // TODO FIX/TEST for memory mapped array or other
             IRSubroutine.IRParam(flattenedName, orig.dt)
         }
 

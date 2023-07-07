@@ -106,7 +106,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(check: PtContainmentCheck): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        val iterable = codeGen.symbolTable.flat.getValue(check.iterable.name) as StStaticVariable
+        val iterable = codeGen.symbolTable.lookup(check.iterable.name) as StStaticVariable   // TODO FIX/TEST for memory mapped array , replace with check.iterable.type???
         when(iterable.dt) {
             DataType.STR -> {
                 val elementTr = translateExpression(check.element)
@@ -164,8 +164,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         if(arrayIx.splitWords) {
             require(vmDt==IRDataType.WORD)
-            val iterable = codeGen.symbolTable.flat.getValue(arrayIx.variable.name) as StStaticVariable
-            val arrayLength = iterable.length!!
+            val arrayLength = codeGen.symbolTable.getLength(arrayIx.variable.name)
             resultRegister = codeGen.registers.nextFree()
             if(arrayIx.index is PtNumber) {
                 val memOffset = (arrayIx.index as PtNumber).number.toInt()

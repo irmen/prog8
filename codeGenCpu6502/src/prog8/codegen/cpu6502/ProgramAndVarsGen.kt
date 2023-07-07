@@ -484,8 +484,8 @@ internal class ProgramAndVarsGen(
         val vars = allocator.zeropageVars.filter { it.value.dt==DataType.STR }
         for (variable in vars) {
             val scopedName = variable.key
-            val svar = symboltable.flat.getValue(scopedName) as StStaticVariable
-            if(svar.onetimeInitializationStringValue!=null)
+            val svar = symboltable.lookup(scopedName) as? StStaticVariable
+            if(svar?.onetimeInitializationStringValue!=null)
                 result.add(ZpStringWithInitial(scopedName, variable.value, svar.onetimeInitializationStringValue!!))
         }
         return result
@@ -496,8 +496,8 @@ internal class ProgramAndVarsGen(
         val vars = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes }
         for (variable in vars) {
             val scopedName = variable.key
-            val svar = symboltable.flat.getValue(scopedName) as StStaticVariable
-            if(svar.onetimeInitializationArrayValue!=null)
+            val svar = symboltable.lookup(scopedName) as? StStaticVariable
+            if(svar?.onetimeInitializationArrayValue!=null)
                 result.add(ZpArrayWithInitial(scopedName, variable.value, svar.onetimeInitializationArrayValue!!))
         }
         return result

@@ -139,6 +139,18 @@ class IRUnusedCodeRemover(
             .children.single { it is IRSubroutine && it.label=="main.start" }
         val reachable = mutableSetOf((entrypointSub as IRSubroutine).chunks.first())
 
+        // all chunks referenced in array initializer values are also 'reachable':
+        irprog.st.allVariables()
+            .filter { !it.uninitialized }
+            .forEach {
+                it.onetimeInitializationArrayValue?.let { array ->
+                    array.forEach {elt ->
+                        if(elt.addressOfSymbol!=null && irprog.st.lookup(elt.addressOfSymbol!!)==null)
+                            reachable.add(irprog.getChunkWithLabel(elt.addressOfSymbol!!))
+                    }
+                }
+            }
+
         fun grow() {
             val new = mutableSetOf<IRCodeChunkBase>()
             reachable.forEach {
@@ -166,6 +178,18 @@ class IRUnusedCodeRemover(
 
     private fun removeSimpleUnlinked(allLabeledChunks: Map<String, IRCodeChunkBase>): Int {
         val linkedChunks = mutableSetOf<IRCodeChunkBase>()
+
+        // all chunks referenced in array initializer values are linked as well!:
+        irprog.st.allVariables()
+            .filter { !it.uninitialized }
+            .forEach {
+                it.onetimeInitializationArrayValue?.let { array ->
+                    array.forEach {elt ->
+                        if(elt.addressOfSymbol!=null && irprog.st.lookup(elt.addressOfSymbol!!)==null)
+                            linkedChunks += irprog.getChunkWithLabel(elt.addressOfSymbol!!)
+                    }
+                }
+            }
 
         irprog.foreachCodeChunk { chunk ->
             chunk.next?.let { next -> linkedChunks += next }

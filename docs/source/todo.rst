@@ -1,8 +1,8 @@
 TODO
 ====
 
-- Fix wrong unused subroutines in expericodegen with cx16 shell
-- Fix expericodegen errors (chess, assem, musicdemo, rockrunners etc)
+- Fix possible ST type error:  // TODO FIX/TEST for memory mapped array
+- Fix expericodegen errors (chess, assem, musicdemo, rockrunners)
 
 ...
 

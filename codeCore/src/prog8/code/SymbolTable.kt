@@ -80,6 +80,16 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
     }
 
     override fun lookup(scopedName: String) = flat[scopedName]
+
+    fun getLength(name: String): Int? {
+        val node = flat[name]
+        return when(node) {
+            is StMemVar -> node.length
+            is StMemorySlab -> node.size.toInt()
+            is StStaticVariable -> node.length
+            else -> null
+        }
+    }
 }
 
 

@@ -58,6 +58,15 @@ class IRProgram(val name: String,
     fun allSubs(): Sequence<IRSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }
     fun foreachSub(operation: (sub: IRSubroutine) -> Unit) = allSubs().forEach { operation(it) }
     fun foreachCodeChunk(operation: (chunk: IRCodeChunkBase) -> Unit) = allSubs().flatMap { it.chunks }.forEach { operation(it) }
+    fun getChunkWithLabel(label: String): IRCodeChunkBase {
+        for(sub in allSubs()) {
+            for(chunk in sub.chunks) {
+                if(chunk.label==label)
+                    return chunk
+            }
+        }
+        throw NoSuchElementException("no chunk with label '$label'")
+    }
 
     fun addGlobalInits(chunk: IRCodeChunk) {
         globalInits += chunk

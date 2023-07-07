@@ -1,6 +1,5 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
@@ -219,8 +218,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             }
 
             val fixedIndex = constIntValue(targetArray.index)
-            val iterable = codeGen.symbolTable.flat.getValue(targetArray.variable.name) as StStaticVariable
-            val arrayLength = iterable.length!!
+            val arrayLength = codeGen.symbolTable.getLength(targetArray.variable.name)
             if(zero) {
                 if(fixedIndex!=null) {
                     val chunk = IRCodeChunk(null, null).also {
