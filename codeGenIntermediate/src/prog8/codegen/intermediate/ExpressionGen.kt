@@ -1,7 +1,6 @@
 package prog8.codegen.intermediate
 
 import prog8.code.StRomSub
-import prog8.code.StStaticVariable
 import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
@@ -106,8 +105,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(check: PtContainmentCheck): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        val iterable = codeGen.symbolTable.lookup(check.iterable.name) as StStaticVariable   // TODO FIX/TEST for memory mapped array , replace with check.iterable.type???
-        when(iterable.dt) {
+        when(check.iterable.type) {
             DataType.STR -> {
                 val elementTr = translateExpression(check.element)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
@@ -122,7 +120,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableTr = translateExpression(check.iterable)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
                 val lengthReg = codeGen.registers.nextFree()
-                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterable.length!!), null)
+                val iterableLength = codeGen.symbolTable.getLength(check.iterable.name)
+                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 result += codeGen.makeSyscall(IMSyscall.BYTEARRAY_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to elementTr.resultReg)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
@@ -132,12 +131,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableTr = translateExpression(check.iterable)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
                 val lengthReg = codeGen.registers.nextFree()
-                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterable.length!!), null)
+                val iterableLength = codeGen.symbolTable.getLength(check.iterable.name)
+                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 result += codeGen.makeSyscall(IMSyscall.WORDARRAY_CONTAINS, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to elementTr.resultReg)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
             DataType.ARRAY_F -> throw AssemblyError("containment check in float-array not supported")
-            else -> throw AssemblyError("weird iterable dt ${iterable.dt} for ${check.iterable.name}")
+            else -> throw AssemblyError("weird iterable dt ${check.iterable.type} for ${check.iterable.name}")
         }
     }
 

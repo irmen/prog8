@@ -194,8 +194,10 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 else
                     noModifications
             }
-            else
+            else if(variable.value is ArrayLiteral) {
                 checkArray((variable.value as ArrayLiteral).value)
+            }
+            else noModifications
         }
 
         fun checkString(stringVal: StringLiteral): Iterable<IAstModification> {
@@ -214,14 +216,14 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 return checkArray(array)
             }
             is IdentifierReference -> {
-                val variable = (containment.iterable as IdentifierReference).targetVarDecl(program)!!
-                when(variable.datatype) {
+                val variable = (containment.iterable as IdentifierReference).targetVarDecl(program)
+                when(variable?.datatype) {
                     DataType.STR -> {
                         val stringVal = (variable.value as StringLiteral)
                         return checkString(stringVal)
                     }
                     in ArrayDatatypes -> {
-                        return checkArray(variable)
+                        return checkArray(variable!!)
                     }
                     else -> {}
                 }
