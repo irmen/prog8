@@ -17,10 +17,10 @@ main {
         txt.print_ub('a' in name)
         txt.print_ub('e' in name)
         txt.nl()
-        txt.print_ub(all(othercells))       ;; TODO fix vm ALL() !
+        txt.print_ub(all(othercells))
         txt.print_ub(any(othercells))
         othercells[3] = 0
-        txt.print_ub(all(othercells))       ;; TODO fix vm ALL() !
+        txt.print_ub(all(othercells))
         txt.print_ub(any(othercells))
         reverse(othercells)
         sort(othercells)

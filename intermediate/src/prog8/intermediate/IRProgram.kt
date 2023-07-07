@@ -95,6 +95,7 @@ class IRProgram(val name: String,
                     }
                 }
             }
+            result.remove(null)
             return result
         }
 
@@ -407,6 +408,7 @@ class IRAsmSubroutine(
     init {
         require('.' in label) { "subroutine name is not scoped: $label" }
         require(!label.startsWith("main.main.")) { "subroutine name invalid main prefix: $label" }
+        require(label==asmChunk.label)
     }
 
     private val registersUsed by lazy { registersUsedInAssembly(asmChunk.isIR, asmChunk.assembly) }

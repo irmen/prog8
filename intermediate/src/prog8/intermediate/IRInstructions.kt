@@ -51,8 +51,8 @@ storezx     reg1,         address     - store zero at memory address, indexed by
 
 CONTROL FLOW
 ------------
-jump                    location      - continue running at instruction number given by location
-jumpa                   address       - continue running at memory address (note: only used to encode a physical cpu jump to fixed address instruction)
+jump                    location      - continue running at instruction at 'location' (label/memory address)
+jumpi       reg1                      - continue running at memory address in reg1 (indirect jump)
 call  label(argument register list) [: resultreg.type]
                                       - calls a subroutine with the given arguments and return value (optional).
                                         save current instruction location+1, continue execution at instruction nr of the label.
@@ -240,7 +240,7 @@ enum class Opcode {
     STOREZX,
 
     JUMP,
-    JUMPA,
+    JUMPI,
     CALL,
     SYSCALL,
     RETURN,
@@ -378,14 +378,14 @@ enum class Opcode {
 
 val OpcodesThatJump = setOf(
     Opcode.JUMP,
-    Opcode.JUMPA,
+    Opcode.JUMPI,
     Opcode.RETURN,
     Opcode.RETURNR
 )
 
 val OpcodesThatBranch = setOf(
     Opcode.JUMP,
-    Opcode.JUMPA,
+    Opcode.JUMPI,
     Opcode.RETURN,
     Opcode.RETURNR,
     Opcode.CALL,
@@ -514,7 +514,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
-    Opcode.JUMPA      to InstructionFormat.from("N,<a"),
+    Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
     Opcode.CALL       to InstructionFormat.from("N,call"),
     Opcode.SYSCALL    to InstructionFormat.from("N,syscall"),
     Opcode.RETURN     to InstructionFormat.from("N"),

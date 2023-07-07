@@ -191,8 +191,6 @@ class VmProgramLoader {
         }
     }
 
-    private val functionCallOpcodes = setOf(Opcode.CALL, Opcode.SYSCALL, Opcode.JUMP, Opcode.JUMPA)
-
     private fun varsToMemory(
         program: IRProgram,
         allocations: VmVariableAllocator,

@@ -147,6 +147,10 @@ class VirtualMachine(irProgram: IRProgram) {
             null -> {
                 if(i.address!=null)
                     throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.address!!.toHex()})")
+                else if(i.labelSymbol!=null)
+                    throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.labelSymbol})")
+                else if(i.reg1!=null)
+                    throw IllegalArgumentException("vm program can't jump to system memory address (${i})")
                 else
                     throw IllegalArgumentException("no branchtarget in $i")
             }
@@ -174,8 +178,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
-            Opcode.JUMP -> InsJUMP(ins)
-            Opcode.JUMPA -> throw IllegalArgumentException("vm program can't jump to system memory address (JUMPA)")
+            Opcode.JUMP, Opcode.JUMPI -> InsJUMP(ins)
             Opcode.CALL -> InsCALL(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()

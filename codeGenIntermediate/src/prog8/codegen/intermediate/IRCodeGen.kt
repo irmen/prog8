@@ -1,9 +1,6 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StMemVar
-import prog8.code.StNode
-import prog8.code.StStaticVariable
-import prog8.code.SymbolTable
+import prog8.code.*
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
@@ -1520,17 +1517,26 @@ class IRCodeGen(
 
     private fun translate(jump: PtJump): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
-        val instr = if(jump.address!=null) {
-            IRInstruction(Opcode.JUMPA, address = jump.address!!.toInt())
+        val chunk = IRCodeChunk(null, null)
+        if(jump.address!=null) {
+            chunk += IRInstruction(Opcode.JUMP, address = jump.address!!.toInt())
         } else {
             if (jump.generatedLabel != null)
-                IRInstruction(Opcode.JUMP, labelSymbol = jump.generatedLabel!!)
-            else if (jump.identifier != null)
-                IRInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.name)
+                chunk += IRInstruction(Opcode.JUMP, labelSymbol = jump.generatedLabel!!)
+            else if (jump.identifier != null) {
+                val symbol = symbolTable.lookup(jump.identifier!!.name)
+                if(symbol?.type==StNodeType.MEMVAR || symbol?.type==StNodeType.STATICVAR) {
+                    val jumpReg = registers.nextFree()
+                    chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = jumpReg, labelSymbol = jump.identifier!!.name)
+                    chunk += IRInstruction(Opcode.JUMPI, reg1 = jumpReg)
+                } else {
+                    chunk += IRInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.name)
+                }
+            }
             else
                 throw AssemblyError("weird jump")
         }
-        addInstr(result, instr, null)
+        result += chunk
         return result
     }
 
