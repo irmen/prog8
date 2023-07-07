@@ -286,7 +286,7 @@ object SysCalls {
                 val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
                 val address = (addressV as UShort).toInt()
                 val length = (lengthV as UByte).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
+                val addresses = IntProgression.fromClosedRange(address, address+length-1, 1)
                 if(addresses.any { vm.memory.getUB(it).toInt()!=0 })
                     returnValue(callspec.returns!!, 1, vm)
                 else
@@ -316,7 +316,7 @@ object SysCalls {
                 val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
                 val address = (addressV as UShort).toInt()
                 val length = (lengthV as UByte).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
+                val addresses = IntProgression.fromClosedRange(address, address+length-1, 1)
                 if(addresses.all { vm.memory.getUB(it).toInt()!=0 })
                     returnValue(callspec.returns!!, 1, vm)
                 else

@@ -1,8 +1,7 @@
 TODO
 ====
 
-- Fix possible ST type error:  // TODO FIX/TEST for memory mapped array
-- Fix expericodegen errors (chess, assem, musicdemo, rockrunners)
+- Fix expericodegen errors (assem, rockrunners)
 
 ...
 

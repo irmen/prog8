@@ -16,6 +16,23 @@ main {
         txt.print_ub(44 in othercells)
         txt.print_ub('a' in name)
         txt.print_ub('e' in name)
+        txt.nl()
+        txt.print_ub(all(othercells))       ;; TODO fix vm ALL() !
+        txt.print_ub(any(othercells))
+        othercells[3] = 0
+        txt.print_ub(all(othercells))       ;; TODO fix vm ALL() !
+        txt.print_ub(any(othercells))
+        reverse(othercells)
+        sort(othercells)
+        txt.nl()
+
+        txt.print_ub(all(cells))
+        txt.print_ub(any(cells))
+        cells[3] = 0
+        txt.print_ub(all(cells))
+        txt.print_ub(any(cells))
+        reverse(cells)
+        sort(cells)
     }
 
     sub command() {

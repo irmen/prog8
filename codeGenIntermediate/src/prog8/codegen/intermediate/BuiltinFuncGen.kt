@@ -1,6 +1,5 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
@@ -119,9 +118,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcAny(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.lookup(arrayName.name) as StStaticVariable   // TODO FIX/TEST for memory mapped array
+        val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
         val syscall =
-            when (array.dt) {
+            when (arrayName.type) {
                 DataType.ARRAY_UB,
                 DataType.ARRAY_B -> IMSyscall.ANY_BYTE
                 DataType.ARRAY_UW,
@@ -133,16 +132,16 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = array.length), null)
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength), null)
         result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }
 
     private fun funcAll(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.lookup(arrayName.name) as StStaticVariable      // TODO FIX/TEST for memory mapped array
+        val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
         val syscall =
-            when(array.dt) {
+            when(arrayName.type) {
                 DataType.ARRAY_UB,
                 DataType.ARRAY_B -> IMSyscall.ALL_BYTE
                 DataType.ARRAY_UW,
@@ -154,7 +153,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = array.length), null)
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength), null)
         result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }
@@ -287,9 +286,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcReverse(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.lookup(arrayName.name) as StStaticVariable   // TODO FIX/TEST for memory mapped array
+        val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
         val syscall =
-            when(array.dt) {
+            when(arrayName.type) {
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> IMSyscall.REVERSE_BYTES
                 DataType.ARRAY_UW, DataType.ARRAY_W -> IMSyscall.REVERSE_WORDS
                 DataType.ARRAY_F -> IMSyscall.REVERSE_FLOATS
@@ -300,16 +299,16 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(array.dt==DataType.STR) array.length!!-1 else array.length), null)
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
         result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), null)
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
     private fun funcSort(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val arrayName = call.args[0] as PtIdentifier
-        val array = codeGen.symbolTable.lookup(arrayName.name) as StStaticVariable   // TODO FIX/TEST for memory mapped array
+        val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
         val syscall =
-            when(array.dt) {
+            when(arrayName.type) {
                 DataType.ARRAY_UB -> IMSyscall.SORT_UBYTE
                 DataType.ARRAY_B -> IMSyscall.SORT_BYTE
                 DataType.ARRAY_UW -> IMSyscall.SORT_UWORD
@@ -323,7 +322,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(array.dt==DataType.STR) array.length!!-1 else array.length), null)
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
         result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), null)
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
