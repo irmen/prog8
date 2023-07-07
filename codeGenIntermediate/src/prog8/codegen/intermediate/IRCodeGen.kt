@@ -1002,10 +1002,10 @@ class IRCodeGen(
         val opcode = when (condition.operator) {
             "==" -> Opcode.BEQ
             "!=" -> Opcode.BNE
-            "<" -> if (signed) Opcode.BLTS else throw AssemblyError("unsigned < 0 shouldn't occur in codegen")
-            ">" -> if (signed) Opcode.BGTS else throw AssemblyError("unsigned > 0 shouldn't occur in codegen")
-            "<=" -> if (signed) Opcode.BLES else throw AssemblyError("unsigned <= 0 shouldn't occur in codegen")
-            ">=" -> if (signed) Opcode.BGES else throw AssemblyError("unsigned >= 0 shouldn't occur in codegen")
+            "<" -> if (signed) Opcode.BLTS else Opcode.BLT
+            ">" -> if (signed) Opcode.BGTS else Opcode.BGT
+            "<=" -> if (signed) Opcode.BLES else Opcode.BLE
+            ">=" -> if (signed) Opcode.BGES else Opcode.BGE
             else -> throw AssemblyError("invalid comparison operator")
         }
         if (goto.address != null)
@@ -1139,10 +1139,10 @@ class IRCodeGen(
             elseBranch = when (condition.operator) {
                 "==" -> Opcode.BNE
                 "!=" -> Opcode.BEQ
-                "<" -> if (signed) Opcode.BGES else throw AssemblyError("unsigned < 0 shouldn't occur in codegen")
-                ">" -> if (signed) Opcode.BLES else throw AssemblyError("unsigned > 0 shouldn't occur in codegen")
-                "<=" -> if (signed) Opcode.BGTS else throw AssemblyError("unsigned <= 0 shouldn't occur in codegen")
-                ">=" -> if (signed) Opcode.BLTS else throw AssemblyError("unsigned >= 0 shouldn't occur in codegen")
+                "<" -> if (signed) Opcode.BGES else Opcode.BGE
+                ">" -> if (signed) Opcode.BLES else Opcode.BLE
+                "<=" -> if (signed) Opcode.BGTS else Opcode.BGT
+                ">=" -> if (signed) Opcode.BLTS else Opcode.BLT
                 else -> throw AssemblyError("weird operator")
             }
         }
