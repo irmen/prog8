@@ -1,7 +1,9 @@
 TODO
 ====
 
-- IR: instructions that do type conversion (such as EXT, SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
+- fix VM print_w
+- fix VM abs(byte) it always returns 0
+- IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
 
 ...
 

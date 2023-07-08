@@ -328,7 +328,7 @@ cx16 {
 romsub $ff4a = close_all(ubyte device @A)  clobbers(A,X,Y)
 romsub $ff59 = lkupla(ubyte la @A)  clobbers(A,X,Y)
 romsub $ff5c = lkupsa(ubyte sa @Y)  clobbers(A,X,Y)
-romsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc)  clobbers(A, X, Y) -> bool @Pc
+romsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc)  clobbers(X, Y) -> ubyte @A, bool @Pc        ; note: X,Y size result is not supported, use SCREEN or get_screen_mode routine for that
 romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)      ; incompatible with C128  dlchr()
 ; not yet supported: romsub $ff65 = pfkey()  clobbers(A,X,Y)
 romsub $ff6e = jsrfar()  ; following word = address to call, byte after that=rom/ram bank it is in
@@ -414,6 +414,23 @@ romsub $C066 = ym_loaddefpatches() clobbers(A,X,Y) -> bool @Pc         ; load de
 romsub $C09F = audio_init() clobbers(A,X,Y) -> bool @Pc                ; (re)initialize PSG and YM audio chips
 ; TODO: add more of the audio routines?
 
+
+asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) -> bool @Pc {
+    ; -- convenience wrapper for screen_mode() to just set a new mode (and return success)
+    %asm {{
+        clc
+        jmp  screen_mode
+    }}
+}
+
+asmsub get_screen_mode() -> byte @A, byte @X, byte @Y {
+    ; -- convenience wrapper for screen_mode() to just get the current mode in A, and size in tiles in X+Y
+    ;    this does need a piece of inlined asm to call it ans store the result values if you call this from prog8 code
+    %asm {{
+        sec
+        jmp  screen_mode
+    }}
+}
 
 asmsub kbdbuf_clear() {
     ; -- convenience helper routine to clear the keyboard buffer
