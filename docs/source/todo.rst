@@ -1,8 +1,6 @@
 TODO
 ====
 
-- fix VM print_w
-- fix VM abs(byte) it always returns 0   also check abs(word)
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
 
 ...

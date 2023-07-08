@@ -106,19 +106,21 @@ sub  str_uwhex  (uword value) {
 
 sub  str_uw0  (uword value) {
     ; ---- convert the uword in A/Y in decimal string form, with left padding 0s (5 positions total)
-    ubyte tenthousands = (value / 10000) as ubyte
-    value -= 10000*tenthousands
-    ubyte thousands = (value / 1000) as ubyte
-    value -= 1000*thousands
-    ubyte hundreds = (value / 100) as ubyte
-    value -= 100 as uword * hundreds
-    ubyte tens = (value / 10) as ubyte
-    value -= 10*tens
+    uword value2 = value/10
+    ubyte digits = value-value2*10 as ubyte
+    uword value3 = value2/10
+    ubyte tens = value2-value3*10 as ubyte
+    uword value4 = value3/10
+    ubyte hundreds = value3-value4*10 as ubyte
+    uword value5 = value4/10
+    ubyte thousands = value4-value5*10 as ubyte
+    uword value6 = value5/10
+    ubyte tenthousands = value5-value6*10 as ubyte
     string_out[0] = tenthousands+'0'
     string_out[1] = thousands+'0'
     string_out[2] = hundreds+'0'
     string_out[3] = tens+'0'
-    string_out[4] = value as ubyte + '0'
+    string_out[4] = digits+'0'
     string_out[5] = 0
 }
 
@@ -139,14 +141,16 @@ sub  str_w  (word value)  {
 }
 
 sub internal_str_uw(uword value, uword out_ptr) {
-    ubyte tenthousands = (value / 10000) as ubyte
-    value -= 10000*tenthousands
-    ubyte thousands = (value / 1000) as ubyte
-    value -= 1000*thousands
-    ubyte hundreds = (value / 100) as ubyte
-    value -= 100 as uword * hundreds
-    ubyte tens = (value / 10) as ubyte
-    value -= 10*tens
+    uword value2 = value/10
+    ubyte digits = value-value2*10 as ubyte
+    uword value3 = value2/10
+    ubyte tens = value2-value3*10 as ubyte
+    uword value4 = value3/10
+    ubyte hundreds = value3-value4*10 as ubyte
+    uword value5 = value4/10
+    ubyte thousands = value4-value5*10 as ubyte
+    uword value6 = value5/10
+    ubyte tenthousands = value5-value6*10 as ubyte
     if tenthousands
         goto output_tenthousands
     if thousands
@@ -169,7 +173,7 @@ output_tens:
     @(out_ptr) = tens+'0'
     out_ptr++
 output_ones:
-    @(out_ptr) = value as ubyte + '0'
+    @(out_ptr) = digits+'0'
     out_ptr++
     @(out_ptr) = 0
 }
