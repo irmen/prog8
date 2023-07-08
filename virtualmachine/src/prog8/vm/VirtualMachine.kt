@@ -881,7 +881,6 @@ class VirtualMachine(irProgram: IRProgram) {
         val value = if(left>=right) -1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         nextPc()
-
     }
 
     private fun InsSGES(i: IRInstruction) {
