@@ -1384,6 +1384,32 @@ internal class AstChecker(private val program: Program,
         super.visit(containment)
     }
 
+    override fun visit(memread: DirectMemoryRead) {
+        if(!memread.addressExpression.inferType(program).istype(DataType.UWORD)) {
+            errors.err("address for memory access isn't uword", memread.position)
+        }
+        val tc = memread.addressExpression as? TypecastExpression
+        if(tc!=null && tc.implicit) {
+            if(!tc.expression.inferType(program).istype(DataType.UWORD)) {
+                errors.err("address for memory access isn't uword", memread.position)
+            }
+        }
+        super.visit(memread)
+    }
+
+    override fun visit(memwrite: DirectMemoryWrite) {
+        if(!memwrite.addressExpression.inferType(program).istype(DataType.UWORD)) {
+            errors.err("address for memory access isn't uword", memwrite.position)
+        }
+        val tc = memwrite.addressExpression as? TypecastExpression
+        if(tc!=null && tc.implicit) {
+            if(!tc.expression.inferType(program).istype(DataType.UWORD)) {
+                errors.err("address for memory access isn't uword", memwrite.position)
+            }
+        }
+        super.visit(memwrite)
+    }
+
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
         when (val targetStatement = target.targetStatement(program)) {
             is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement

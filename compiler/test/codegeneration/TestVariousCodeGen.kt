@@ -143,8 +143,9 @@ main {
 }"""
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = true, errors = errors)
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "undefined symbol: doesnotexist"
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "isn't uword"
+        errors.errors[1] shouldContain "undefined symbol: doesnotexist"
     }
 
     test("shifting by word value is ok") {
