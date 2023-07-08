@@ -424,8 +424,10 @@ asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) -> bool @Pc {
 }
 
 asmsub get_screen_mode() -> byte @A, byte @X, byte @Y {
-    ; -- convenience wrapper for screen_mode() to just get the current mode in A, and size in tiles in X+Y
+    ; -- convenience wrapper for screen_mode() to just get the current mode in A, and size in characters in X+Y
     ;    this does need a piece of inlined asm to call it ans store the result values if you call this from prog8 code
+    ;    Note: you can also just do the SEC yourself and simply call screen_mode() directly,
+    ;          or use the existing SCREEN kernal routine for just getting the size in characters.
     %asm {{
         sec
         jmp  screen_mode
