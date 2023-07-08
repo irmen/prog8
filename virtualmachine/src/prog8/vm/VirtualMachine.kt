@@ -1589,7 +1589,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsEXT(i: IRInstruction) {
         when(i.type!!){
-            IRDataType.BYTE -> registers.setUW(i.reg1!!, registers.getUB(i.reg1!!).toUShort())
+            IRDataType.BYTE -> registers.setUW(i.reg1!!, registers.getUB(i.reg2!!).toUShort())
             IRDataType.WORD -> throw IllegalArgumentException("ext.w not yet supported, requires 32 bits registers")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
@@ -1598,7 +1598,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsEXTS(i: IRInstruction) {
         when(i.type!!){
-            IRDataType.BYTE -> registers.setSW(i.reg1!!, registers.getSB(i.reg1!!).toShort())
+            IRDataType.BYTE -> registers.setSW(i.reg1!!, registers.getSB(i.reg2!!).toShort())
             IRDataType.WORD -> throw IllegalArgumentException("exts.w not yet supported, requires 32 bits registers")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
