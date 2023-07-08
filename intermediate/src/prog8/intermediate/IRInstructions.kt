@@ -115,8 +115,8 @@ ARITHMETIC
 ----------
 All have type b or w or f. Note: result types are the same as operand types! E.g. byte*byte->byte.
 
-exts        reg1                            - reg1 = signed extension of reg1 (byte to word, or word to long)  (note: unlike M68k, exts.b -> word and exts.w -> long. The latter is not yet implemented yet as we don't have longs yet)
-ext         reg1                            - reg1 = unsigned extension of reg1 (which in practice just means clearing the MSB / MSW) (note: unlike M68k, ext.b -> word and ext.w -> long. The latter is not yet implemented yet as we don't have longs yet)
+exts        reg1, reg2                      - reg1 = signed extension of reg2 (byte to word, or word to long)  (note: unlike M68k, exts.b -> word and exts.w -> long. The latter is not yet implemented yet as we don't have longs yet)
+ext         reg1, reg2                      - reg1 = unsigned extension of reg2 (which in practice just means clearing the MSB / MSW) (note: unlike M68k, ext.b -> word and ext.w -> long. The latter is not yet implemented yet as we don't have longs yet)
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
@@ -583,8 +583,8 @@ val instructionFormats = mutableMapOf(
     Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.CMP        to InstructionFormat.from("BW,<r1,<r2"),
-    Opcode.EXT        to InstructionFormat.from("BW,<>r1"),
-    Opcode.EXTS       to InstructionFormat.from("BW,<>r1"),
+    Opcode.EXT        to InstructionFormat.from("BW,>r1,<r2"),
+    Opcode.EXTS       to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.ANDR       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.AND        to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.ANDM       to InstructionFormat.from("BW,<r1,<>a"),

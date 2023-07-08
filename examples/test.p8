@@ -3,28 +3,13 @@
 %option no_sysinit
 
 main {
+    sub set_color(ubyte dummy, uword arg) {
+        arg++
+    }
+
     sub start() {
-        ubyte @shared current = cx16.screen_mode(0, true)
-        ubyte @shared width
-        ubyte @shared height
-        txt.print_ub(current)
-        txt.nl()
-        cx16.set_screen_mode(128)
-        %asm {{
-            phx
-            jsr  cx16.get_screen_mode
-            sta  p8_current
-            stx  p8_width
-            sty  p8_height
-            plx
-        }}
-        txt.print_ub(current)
-        txt.spc()
-        txt.print_ub(width)
-        txt.spc()
-        txt.print_ub(height)
-        txt.nl()
-        txt.nl()
+        ubyte intens
+        set_color(0, (intens >> 1) * $111)
 
         byte intensity = -25
         txt.print_b(intensity)

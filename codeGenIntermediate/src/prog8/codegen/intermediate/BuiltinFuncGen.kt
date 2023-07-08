@@ -172,10 +172,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val compareReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADR, IRDataType.BYTE, reg1=compareReg, reg2=tr.resultReg)
-                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=compareReg, immediate = 0x80)
-                    it += IRInstruction(Opcode.BEQ, IRDataType.BYTE, reg1=compareReg, immediate = 0, labelSymbol = notNegativeLabel)
+                    it += IRInstruction(Opcode.BSTPOS, labelSymbol = notNegativeLabel)
                     it += IRInstruction(Opcode.NEG, IRDataType.BYTE, reg1=tr.resultReg)
-                    it += IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=tr.resultReg)
                 }
                 result += IRCodeChunk(notNegativeLabel, null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
@@ -185,8 +183,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val compareReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1=compareReg, reg2=tr.resultReg)
-                    it += IRInstruction(Opcode.AND, IRDataType.WORD, reg1=compareReg, immediate = 0x8000)
-                    it += IRInstruction(Opcode.BEQ, IRDataType.WORD, reg1=compareReg, immediate = 0, labelSymbol = notNegativeLabel)
+                    it += IRInstruction(Opcode.BSTPOS, labelSymbol = notNegativeLabel)
                     it += IRInstruction(Opcode.NEG, IRDataType.WORD, reg1=tr.resultReg)
                 }
                 result += IRCodeChunk(notNegativeLabel, null)

@@ -274,13 +274,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 when(cast.value.type) {
                     DataType.BYTE -> {
                         // byte -> uword:   sign extend
-                        actualResultReg2 = tr.resultReg
-                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2), null)
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2 = tr.resultReg), null)
                     }
                     DataType.UBYTE -> {
                         // ubyte -> uword:   sign extend
-                        actualResultReg2 = tr.resultReg
-                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2), null)
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2 = tr.resultReg), null)
                     }
                     DataType.WORD -> {
                         actualResultReg2 = tr.resultReg
@@ -296,13 +296,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 when(cast.value.type) {
                     DataType.BYTE -> {
                         // byte -> word:   sign extend
-                        actualResultReg2 = tr.resultReg
-                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2), null)
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
                     DataType.UBYTE -> {
                         // byte -> word:   sign extend
-                        actualResultReg2 = tr.resultReg
-                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2), null)
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
                     DataType.UWORD -> {
                         actualResultReg2 = tr.resultReg

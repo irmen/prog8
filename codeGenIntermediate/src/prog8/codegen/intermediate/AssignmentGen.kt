@@ -167,15 +167,18 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 } else false
                 if (assignment.value is PtMachineRegister) {
                     valueRegister = (assignment.value as PtMachineRegister).register
-                    if(extendByteToWord)
-                        addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=valueRegister), null)
+                    if(extendByteToWord) {
+                        valueRegister = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=valueRegister, reg2=(assignment.value as PtMachineRegister).register), null)
+                    }
                 } else {
                     val tr = expressionEval.translateExpression(assignment.value)
                     valueRegister = tr.resultReg
                     addToResult(result, tr, valueRegister, -1)
                     if(extendByteToWord) {
+                        valueRegister = codeGen.registers.nextFree()
                         val opcode = if(assignment.value.type in SignedDatatypes) Opcode.EXTS else Opcode.EXT
-                        addInstr(result, IRInstruction(opcode, IRDataType.BYTE, reg1 = valueRegister), null)
+                        addInstr(result, IRInstruction(opcode, IRDataType.BYTE, reg1=valueRegister, reg2=tr.resultReg), null)
                     }
                 }
             }
