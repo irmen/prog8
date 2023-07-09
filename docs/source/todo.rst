@@ -1,7 +1,7 @@
 TODO
 ====
 
-- IR/VM: fix the vm/textelite game, it now prints garbage!   (caused by the SGE opcode implementation change to set -1 instead of 1)
+- VM: fix endless loop  n=0 :: for i in 5 downto n  (fine for n=1)  (wrong for bytes and words)
 
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
 

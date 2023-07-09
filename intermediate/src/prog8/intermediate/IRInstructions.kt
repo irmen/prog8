@@ -97,18 +97,19 @@ bgesr       reg1, reg2,       address   - jump to location in program given by l
 ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
 bles        reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (signed)
 ( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
-sz          reg1, reg2                  - set reg1=-1 (all bits one) if reg2==0, else 0
-snz         reg1, reg2                  - set reg1=-1 (all bits one) if reg2!=0, else 0
-seq         reg1, reg2                  - set reg1=-1 (all bits one) if reg1 == reg2, else 0
-sne         reg1, reg2                  - set reg1=-1 (all bits one) if reg1 != reg2, else 0
-slt         reg1, reg2                  - set reg1=-1 (all bits one) if reg1 < reg2 (unsigned), else 0
-slts        reg1, reg2                  - set reg1=-1 (all bits one) if reg1 < reg2 (signed), else 0
-sle         reg1, reg2                  - set reg1=-1 (all bits one) if reg1 <= reg2 (unsigned), else 0
-sles        reg1, reg2                  - set reg1=-1 (all bits one) if reg1 <= reg2 (signed), else 0
-sgt         reg1, reg2                  - set reg1=-1 (all bits one) if reg1 > reg2 (unsigned), else 0
-sgts        reg1, reg2                  - set reg1=-1 (all bits one) if reg1 > reg2 (signed), else 0
-sge         reg1, reg2                  - set reg1=-1 (all bits one) if reg1 >= reg2 (unsigned), else 0
-sges        reg1, reg2                  - set reg1=-1 (all bits one) if reg1 >= reg2 (signed), else 0
+sz          reg1, reg2                  - set reg1=1 if reg2==0, else 0
+snz         reg1, reg2                  - set reg1=1 if reg2!=0, else 0
+seq         reg1, reg2                  - set reg1=1 if reg1 == reg2, else 0
+sne         reg1, reg2                  - set reg1=1 if reg1 != reg2, else 0
+slt         reg1, reg2                  - set reg1=1 if reg1 < reg2 (unsigned), else 0
+slts        reg1, reg2                  - set reg1=1 if reg1 < reg2 (signed), else 0
+sle         reg1, reg2                  - set reg1=1 if reg1 <= reg2 (unsigned), else 0
+sles        reg1, reg2                  - set reg1=1 if reg1 <= reg2 (signed), else 0
+sgt         reg1, reg2                  - set reg1=1 if reg1 > reg2 (unsigned), else 0
+sgts        reg1, reg2                  - set reg1=1 if reg1 > reg2 (signed), else 0
+sge         reg1, reg2                  - set reg1=1 if reg1 >= reg2 (unsigned), else 0
+sges        reg1, reg2                  - set reg1=1 if reg1 >= reg2 (signed), else 0
+(note: on the M68k these instructions will set all bits to 1 (so value=-1 instead of 1), but the boolean logic here requires it to be 0 or 1 in this IR)
 
 
 ARITHMETIC
