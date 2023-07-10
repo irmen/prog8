@@ -4,23 +4,31 @@
 
 main {
     sub start() {
-        byte intensity = -25
-        txt.print_b(intensity)
-        txt.nl()
-        txt.print_b(abs(intensity))
-        intensity = abs(intensity)
-        txt.nl()
-        txt.print_b(intensity)
-        txt.nl()
+        uword  n=0
+        uword i
+        txt.print("ascending:\n")
+        n=10
+        for i in 0 to n step 3 {
+            cx16.r0++
+            txt.print(" i=")
+            txt.print_uw(i)
+            txt.spc()
+            txt.print(" n=")
+            txt.print_uw(n)
+            txt.nl()
+        }
 
-        txt.print_uw0(12345)
-        txt.nl()
-        word intensityw = -12345
-        txt.print_w(intensityw)
-        txt.nl()
-        txt.print_w(abs(intensityw))
-        intensityw = abs(intensityw)
-        txt.nl()
-        txt.print_w(intensityw)
+        txt.print("descending:\n")
+        n=0
+        for i in 10 downto n step -3 {
+            cx16.r0++
+            txt.print(" i=")
+            txt.print_uw(i)
+            txt.spc()
+            txt.print(" n=")
+            txt.print_uw(n)
+            txt.nl()
+        }
     }
 }
+

@@ -1,9 +1,13 @@
 TODO
 ====
 
-- VM: fix endless loop  n=0 :: for i in 5 downto n  (fine for n=1)  (wrong for bytes and words)
+- codegen: fix endless loop uword n=0 :: for uword i in 10 downto n step -3
+
+- investigate if the hiscores issue on the forum is a compiler bug or not.
 
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
+- IR: optimize forloop codegen to use a reg as loop variable instead of a memory variable, just store it in the mem var before entering the loop body
+      check repeat loop as well it shouldn't be using a tempvar just a register to count.
 
 ...
 

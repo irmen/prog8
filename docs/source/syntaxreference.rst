@@ -145,11 +145,15 @@ Directives
 
     Level: not at module scope.
     This directive can only be used inside a block.
-    The assembler will include the file as binary bytes at this point, prog8 will not process this at all.
-    The optional offset and length can be used to select a particular piece of the file.
+    The assembler itself will include the file as binary bytes at this point, prog8 will not process this at all.
+    This means that the filename must be spelled exactly as it appears on your computer's file system.
+    Note that this filename may differ in case compared to when you chose to load the file from disk from within the
+    program code itself (for example on the C64 and X16 there's the PETSCII encoding difference).
     The file is located relative to the current working directory!
+    The optional offset and length can be used to select a particular piece of the file.
     To reference the contents of the included binary data, you can put a label in your prog8 code
     just before the %asmbinary. An example program for this can be found below at the description of %asminclude.
+
 
 .. data:: %asminclude "<filename>"
 
