@@ -1,11 +1,7 @@
 TODO
 ====
 
-- investigate if the hiscores issue on the forum is a compiler bug or not.
-
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
-- IR: optimize forloop codegen to use a reg as loop variable instead of a memory variable, just store it in the mem var before entering the loop body
-      check repeat loop as well it shouldn't be using a tempvar just a register to count.
 
 ...
 

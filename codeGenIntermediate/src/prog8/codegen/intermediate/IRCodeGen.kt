@@ -552,16 +552,16 @@ class IRCodeGen(
 
         addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
-        addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol), null)
         if(step==1 || step==-1) {
-            // if endvalue == index, stop loop, else iterate
+            // if endvalue == loopvar, stop loop, else iterate
+            addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol), null)
             addInstr(result, IRInstruction(Opcode.BEQR, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol = labelAfterFor), null)
             result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
             addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = loopLabel), null)
         } else {
             // ind/dec index, then:
-            // ascending: if endvalue >= index, iterate
-            // descending: if index >= endvalue, iterate
+            // ascending: if endvalue >= loopvar, iterate
+            // descending: if loopvar >= endvalue, iterate
             result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
             addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol = loopvarSymbol), null)
             if(step > 0)
