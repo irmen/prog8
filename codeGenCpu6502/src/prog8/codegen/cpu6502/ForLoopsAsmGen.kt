@@ -249,23 +249,6 @@ $endLabel""")
 $loopLabel""")
                         asmgen.translate(stmt.statements)
 
-                        if(iterableDt==DataType.ARRAY_UW) {
-                            asmgen.out("""
-                lda  $varname
-                sec
-                sbc  #<${stepsize.absoluteValue}
-                sta  $varname
-                lda  $varname+1
-                sbc  #>${stepsize.absoluteValue}
-                sta  $varname+1
-$modifiedLabel  cmp  #0    ; modified                
-                bcc  $endLabel
-                bne  $loopLabel
-                lda  $varname
-$modifiedLabel2 cmp  #0    ; modified 
-                bcs  $loopLabel
-$endLabel""")
-                        } else {
                             asmgen.out("""
                 lda  $varname
                 sec
@@ -283,7 +266,6 @@ $modifiedLabel  sbc  #0    ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
-                        }
                     }
                 }
             }

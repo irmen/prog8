@@ -1,8 +1,6 @@
 TODO
 ====
 
-- codegen: fix endless loop uword n=0 :: for uword i in 10 downto n step -3
-
 - investigate if the hiscores issue on the forum is a compiler bug or not.
 
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
