@@ -1341,8 +1341,14 @@ internal class AstChecker(private val program: Program,
                     constvalue == null -> errors.err("choice value must be a constant", whenChoice.position)
                     constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", whenChoice.position)
                     conditionType isnot constvalue.type -> {
-                        if(conditionType.isKnown)
-                            errors.err("choice value datatype differs from condition value", whenChoice.position)
+                        if(conditionType.isKnown) {
+                            if(conditionType.istype(DataType.BOOL)) {
+                                if(constvalue.number!=0.0 && constvalue.number!=1.0)
+                                    errors.err("choice value datatype differs from condition value", whenChoice.position)
+                            } else {
+                                errors.err("choice value datatype differs from condition value", whenChoice.position)
+                            }
+                        }
                     }
                 }
             }

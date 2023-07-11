@@ -334,5 +334,22 @@ main {
 }"""
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
+
+    test("when on booleans") {
+        val src = """
+main
+{
+    sub start()
+    {
+        bool choiceVariable=true
+        when choiceVariable {
+          false -> cx16.r0++
+          true -> cx16.r1++
+        }
+    }
+}"""
+
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
 })
 
