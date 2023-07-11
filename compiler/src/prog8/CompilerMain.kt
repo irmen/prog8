@@ -50,7 +50,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
     val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
-    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}')").required()
+    val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}') (required)")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank (0=keep active), on other systems it is ignored.")
@@ -80,9 +80,16 @@ private fun compileMain(args: Array<String>): Boolean {
     if(srcdirs.firstOrNull()!=".")
         srcdirs.add(0, ".")
 
-    if (compilationTarget !in setOf(C64Target.NAME, C128Target.NAME, Cx16Target.NAME, AtariTarget.NAME, VMTarget.NAME)) {
-        System.err.println("Invalid compilation target: $compilationTarget")
-        return false
+    if(startVm==null) {
+        if(compilationTarget==null) {
+            System.err.println("No compilation target specified")
+            return false
+        }
+
+        if (compilationTarget !in setOf(C64Target.NAME, C128Target.NAME, Cx16Target.NAME, AtariTarget.NAME, VMTarget.NAME)) {
+            System.err.println("Invalid compilation target: $compilationTarget")
+            return false
+        }
     }
 
     if(varsHighBank==0 && compilationTarget==Cx16Target.NAME) {
@@ -134,7 +141,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     varsHighBank,
-                    compilationTarget,
+                    compilationTarget!!,
                     evalStackAddr,
                     splitWordArrays == true,
                     processedSymbols,
@@ -203,7 +210,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     experimentalCodegen == true,
                     varsHighBank,
-                    compilationTarget,
+                    compilationTarget!!,
                     evalStackAddr,
                     splitWordArrays == true,
                     processedSymbols,
