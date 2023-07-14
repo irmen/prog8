@@ -146,6 +146,7 @@ divmod      reg1,              value        - unsigned division reg1/value, stor
 sqrt        reg1, reg2                      - reg1 is the square root of reg2 (reg2 can be .w or .b, result type in reg1 is always .b)  you can also use it with floating point types, fpreg1 and fpreg2 (result is also .f)
 sgn         reg1, reg2                      - reg1 is the sign of reg2 (0.b, 1.b or -1.b)
 cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
+cmpi        reg1,              value        - set processor status bits C, N, Z according to comparison of reg1 with immediate value. (semantics taken from 6502/68000 CMP instruction)
 
 NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.
 
@@ -312,6 +313,7 @@ enum class Opcode {
     SQRT,
     SGN,
     CMP,
+    CMPI,
     EXT,
     EXTS,
 
@@ -416,6 +418,24 @@ val OpcodesThatBranch = setOf(
     Opcode.BGES,
     Opcode.BLES
 )
+
+val OpcodesThatSetStatusbitsIncludingCarry = setOf(
+    Opcode.CMP,
+    Opcode.CMPI
+)
+val OpcodesThatSetStatusbitsButNotCarry = setOf(
+    Opcode.LOAD,
+    Opcode.LOADM,
+    Opcode.LOADI,
+    Opcode.LOADX,
+    Opcode.LOADIX,
+    Opcode.LOADR,
+    Opcode.INC,
+    Opcode.INCM,
+    Opcode.DEC,
+    Opcode.DECM
+)
+
 
 enum class IRDataType {
     BYTE,
@@ -584,6 +604,7 @@ val instructionFormats = mutableMapOf(
     Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.CMP        to InstructionFormat.from("BW,<r1,<r2"),
+    Opcode.CMPI       to InstructionFormat.from("BW,<r1,<i"),
     Opcode.EXT        to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.EXTS       to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.ANDR       to InstructionFormat.from("BW,<>r1,<r2"),

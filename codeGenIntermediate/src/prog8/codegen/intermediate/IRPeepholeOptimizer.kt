@@ -47,6 +47,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                         val changed = removeNops(chunk1, indexedInstructions)
                                 || removeDoubleLoadsAndStores(chunk1, indexedInstructions)       // TODO not yet implemented
                                 || removeUselessArithmetic(chunk1, indexedInstructions)
+                                || removeNeedlessCompares(chunk1, indexedInstructions)
                                 || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
                                 || removeDoubleSecClc(chunk1, indexedInstructions)
                                 || cleanupPushPop(chunk1, indexedInstructions)
@@ -262,6 +263,28 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
 //                    changed = true
 //                }
 //            }
+        }
+        return changed
+    }
+
+    private fun removeNeedlessCompares(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        // a CMPI with 0, after an instruction like LOAD that already sets the status bits, can be removed.
+        // but only if the instruction after it is not using the Carry bit because that won't be set by a LOAD instruction etc.
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(idx>0 && idx<(indexedInstructions.size-1) && ins.opcode==Opcode.CMPI && ins.immediate==0) {
+                val previous = indexedInstructions[idx-1].value
+                if(previous.opcode in OpcodesThatSetStatusbitsIncludingCarry) {
+                    chunk.instructions.removeAt(idx)
+                    changed = true
+                } else if(previous.opcode in OpcodesThatSetStatusbitsButNotCarry) {
+                    val next = indexedInstructions[idx+1].value
+                    if(next.opcode !in arrayOf(Opcode.BSTCC, Opcode.BSTCS, Opcode.BSTPOS, Opcode.BSTNEG)) {
+                        chunk.instructions.removeAt(idx)
+                        changed = true
+                    }
+                }
+            }
         }
         return changed
     }

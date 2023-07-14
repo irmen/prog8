@@ -245,6 +245,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.DIVMOD -> InsDIVMOD(ins)
             Opcode.SGN -> InsSGN(ins)
             Opcode.CMP -> InsCMP(ins)
+            Opcode.CMPI -> InsCMPI(ins)
             Opcode.SQRT -> InsSQRT(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
@@ -1250,6 +1251,35 @@ class VirtualMachine(irProgram: IRProgram) {
                 val reg1 = registers.getUW(i.reg1!!)
                 val reg2 = registers.getUW(i.reg2!!)
                 comparison = reg1.toInt() - reg2.toInt()
+                statusNegative = (comparison and 0x8000)==0x8000
+            }
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        if(comparison==0){
+            statusZero = true
+            statusCarry = true
+        } else if(comparison>0) {
+            statusZero = false
+            statusCarry = true
+        } else {
+            statusZero = false
+            statusCarry = false
+        }
+        nextPc()
+    }
+
+
+    private fun InsCMPI(i: IRInstruction) {
+        val comparison: Int
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                val reg1 = registers.getUB(i.reg1!!)
+                comparison = reg1.toInt() - (i.immediate!! and 255)
+                statusNegative = (comparison and 0x80)==0x80
+            }
+            IRDataType.WORD -> {
+                val reg1 = registers.getUW(i.reg1!!)
+                comparison = reg1.toInt() - (i.immediate!! and 65535)
                 statusNegative = (comparison and 0x8000)==0x8000
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
