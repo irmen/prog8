@@ -1,7 +1,6 @@
 TODO
 ====
 
-- IR: optimize WHEN codegen? translate(whenStmt: PtWhen)
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
 - IR: reduce the number of branch instructions (gradually), replace with CMP(I) + status branch instruction
 
