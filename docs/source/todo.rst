@@ -1,11 +1,11 @@
 TODO
 ====
 
-- (branch): clean up all X register special handling
+- (branch): clean up all X register special handling in p8 code inline asm
+- (branch): clean up docs about eval stack and X register
 - (branch): fix optimizeCmpSequence in AsmOptimizer
 - (branch): fix inplaceModification TODO in AugmentableAssignmentAsmGen
 - (branch): fix up cx16/keyboardhandler.p8 X register shenanigans
-- (branch): clean up docs about eval stack and X register
 
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
 - IR: reduce the number of branch instructions (gradually), replace with CMP(I) + status branch instruction

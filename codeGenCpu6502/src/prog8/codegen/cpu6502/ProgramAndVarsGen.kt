@@ -371,12 +371,6 @@ internal class ProgramAndVarsGen(
                 else -> throw AssemblyError("weird dt for extravar $dt")
             }
         }
-        if(asmGenInfo.usedRegsaveA)      // will probably never occur
-            asmgen.out("prog8_regsaveA     .byte  ?")
-        if(asmGenInfo.usedRegsaveX)
-            asmgen.out("prog8_regsaveX     .byte  ?")
-        if(asmGenInfo.usedRegsaveY)
-            asmgen.out("prog8_regsaveY     .byte  ?")
         if(asmGenInfo.usedFloatEvalResultVar1)
             asmgen.out("$subroutineFloatEvalResultVar1    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
         if(asmGenInfo.usedFloatEvalResultVar2)

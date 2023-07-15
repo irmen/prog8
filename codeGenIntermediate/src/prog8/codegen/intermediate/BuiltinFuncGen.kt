@@ -24,10 +24,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "popw" -> funcPopw(call)
             "push" -> funcPush(call)
             "pushw" -> funcPushw(call)
-            "rsave",
-            "rsavex",
-            "rrestore",
-            "rrestorex" -> ExpressionCodeResult.EMPTY  // vm doesn't have registers to save/restore
+            "rsave", "rrestore" -> ExpressionCodeResult.EMPTY  // vm doesn't have registers to save/restore
             "callfar" -> funcCallfar(call)
             "msb" -> funcMsb(call)
             "lsb" -> funcLsb(call)

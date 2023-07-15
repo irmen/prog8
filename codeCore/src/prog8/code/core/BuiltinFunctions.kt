@@ -124,9 +124,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "push"      to FSignature(false, listOf(FParam("value", ByteDatatypes)), null),
     "pushw"     to FSignature(false, listOf(FParam("value", WordDatatypes)), null),
     "rsave"     to FSignature(false, emptyList(), null),
-    "rsavex"    to FSignature(false, emptyList(), null),
     "rrestore"  to FSignature(false, emptyList(), null),
-    "rrestorex" to FSignature(false, emptyList(), null),
     "memory"    to FSignature(true, listOf(FParam("name", arrayOf(DataType.STR)), FParam("size", arrayOf(DataType.UWORD)), FParam("alignment", arrayOf(DataType.UWORD))), DataType.UWORD),
     "callfar"   to FSignature(false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), DataType.UWORD),
 )

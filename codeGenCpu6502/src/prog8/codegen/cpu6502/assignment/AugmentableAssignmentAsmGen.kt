@@ -105,17 +105,41 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     DataType.FLOAT -> {
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(target.asmVarname, operator, value.number!!.number, target.scope!!)
-                            SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(target.asmVarname, operator, value.asmVarname, target.scope!!)
-                            SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(target.asmVarname, operator, regName(value), target.scope!!)
+                            SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(
+                                target.asmVarname,
+                                operator,
+                                value.number!!.number
+                            )
+                            SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(
+                                target.asmVarname,
+                                operator,
+                                value.asmVarname
+                            )
+                            SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(
+                                target.asmVarname,
+                                operator,
+                                regName(value)
+                            )
                             SourceStorageKind.MEMORY -> TODO("memread into float")
-                            SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(target.asmVarname, operator, value.array!!, target.scope!!)
+                            SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(
+                                target.asmVarname,
+                                operator,
+                                value.array!!
+                            )
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplaceModification_float_value_to_variable(target.asmVarname, operator, value.expression, target.scope!!)
+                                    inplaceModification_float_value_to_variable(
+                                        target.asmVarname,
+                                        operator,
+                                        value.expression
+                                    )
                                 } else {
-                                    inplaceModification_float_value_to_variable(target.asmVarname, operator, value.expression!!, target.scope!!)
+                                    inplaceModification_float_value_to_variable(
+                                        target.asmVarname,
+                                        operator,
+                                        value.expression!!
+                                    )
                                 }
                             }
                             else -> throw AssemblyError("weird source type ${value.kind}")
@@ -236,17 +260,41 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             DataType.FLOAT -> {
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(targetVarName, operator, value.number!!.number, target.scope!!)
-                                    SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(targetVarName, operator, value.asmVarname, target.scope!!)
-                                    SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(targetVarName, operator, regName(value), target.scope!!)
+                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(
+                                        targetVarName,
+                                        operator,
+                                        value.number!!.number
+                                    )
+                                    SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(
+                                        targetVarName,
+                                        operator,
+                                        value.asmVarname
+                                    )
+                                    SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(
+                                        targetVarName,
+                                        operator,
+                                        regName(value)
+                                    )
                                     SourceStorageKind.MEMORY -> TODO("memread into float array")
-                                    SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(targetVarName, operator, value.array!!, target.scope!!)
+                                    SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(
+                                        targetVarName,
+                                        operator,
+                                        value.array!!
+                                    )
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplaceModification_float_value_to_variable(targetVarName, operator, value.expression, target.scope!!)
+                                            inplaceModification_float_value_to_variable(
+                                                targetVarName,
+                                                operator,
+                                                value.expression
+                                            )
                                         } else {
-                                            inplaceModification_float_value_to_variable(targetVarName, operator, value.expression!!, target.scope!!)
+                                            inplaceModification_float_value_to_variable(
+                                                targetVarName,
+                                                operator,
+                                                value.expression!!
+                                            )
                                         }
                                     }
                                     else -> throw AssemblyError("weird source type ${value.kind}")
@@ -264,7 +312,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     return
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
                                 asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_B1")
-                                asmgen.saveRegisterLocal(CpuRegister.Y, target.scope!!)
+                                asmgen.saveRegisterStack(CpuRegister.Y, false)
                                 when(value.kind) {
                                     SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.number!!.number.toInt())
                                     SourceStorageKind.VARIABLE -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.asmVarname)
@@ -280,7 +328,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     }
                                     else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
-                                asmgen.restoreRegisterLocal(CpuRegister.Y)
+                                asmgen.restoreRegisterStack(CpuRegister.Y, false)
                                 asmgen.out("  lda  P8ZP_SCRATCH_B1 |  sta  ${target.array.variable.name},y")
                             }
                             in WordDatatypes -> {
@@ -336,18 +384,42 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     ldy  #>$tempvar
                                     jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(tempvar, operator, value.number!!.number, target.scope!!)
-                                    SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(tempvar, operator, value.asmVarname, target.scope!!)
-                                    SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(tempvar, operator, regName(value), target.scope!!)
+                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(
+                                        tempvar,
+                                        operator,
+                                        value.number!!.number
+                                    )
+                                    SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(
+                                        tempvar,
+                                        operator,
+                                        value.asmVarname
+                                    )
+                                    SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(
+                                        tempvar,
+                                        operator,
+                                        regName(value)
+                                    )
                                     SourceStorageKind.MEMORY -> TODO("memread into float")
-                                    SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(tempvar, operator, value.array!!, target.scope!!)
+                                    SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(
+                                        tempvar,
+                                        operator,
+                                        value.array!!
+                                    )
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
                                                 return
-                                            inplaceModification_float_value_to_variable(tempvar, operator, value.expression, target.scope!!)
+                                            inplaceModification_float_value_to_variable(
+                                                tempvar,
+                                                operator,
+                                                value.expression
+                                            )
                                         } else {
-                                            inplaceModification_float_value_to_variable(tempvar, operator, value.expression!!, target.scope!!)
+                                            inplaceModification_float_value_to_variable(
+                                                tempvar,
+                                                operator,
+                                                value.expression!!
+                                            )
                                         }
                                     }
                                     else -> throw AssemblyError("weird source type ${value.kind}")
@@ -2283,9 +2355,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: PtExpression, scope: IPtSubroutine) {
+    private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: PtExpression) {
         asmgen.assignExpressionToRegister(value, RegisterOrPair.FAC1)
-        asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "+" -> {
                 asmgen.out("""
@@ -2327,11 +2398,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegisterLocal(CpuRegister.X)
     }
 
-    private fun inplaceModification_float_variable_to_variable(name: String, operator: String, otherName: String, scope: IPtSubroutine) {
-        asmgen.saveRegisterLocal(CpuRegister.X, scope)
+    private fun inplaceModification_float_variable_to_variable(name: String, operator: String, otherName: String) {
         when (operator) {
             "+" -> {
                 asmgen.out("""
@@ -2443,12 +2512,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegisterLocal(CpuRegister.X)
     }
 
-    private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double, scope: IPtSubroutine) {
+    private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double) {
         val constValueName = allocator.getFloatAsmConst(value)
-        asmgen.saveRegisterLocal(CpuRegister.X, scope)
         when (operator) {
             "+" -> {
                 if (value == 0.0)
@@ -2566,6 +2633,5 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             ldy  #>$name
             jsr  floats.MOVMF
         """)
-        asmgen.restoreRegisterLocal(CpuRegister.X)
     }
 }

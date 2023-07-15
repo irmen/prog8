@@ -393,32 +393,6 @@ class AsmGen6502Internal (
         return name2.replace("prog8_lib.P8ZP_SCRATCH_", "P8ZP_SCRATCH_")    // take care of the 'hooks' to the temp vars -> reference zp symbols directly
     }
 
-    internal fun saveRegisterLocal(register: CpuRegister, scope: IPtSubroutine) {
-        if (isTargetCpu(CpuType.CPU65c02)) {
-            // just use the cpu's stack for all registers, shorter code
-            when (register) {
-                CpuRegister.A -> out("  pha")
-                CpuRegister.X -> out("  phx")
-                CpuRegister.Y -> out("  phy")
-            }
-        } else {
-            when (register) {
-                CpuRegister.A -> {
-                    // just use the stack, only for A
-                    out("  pha")
-                }
-                CpuRegister.X -> {
-                    out("  stx  prog8_regsaveX")
-                    subroutineExtra(scope).usedRegsaveX = true
-                }
-                CpuRegister.Y -> {
-                    out("  sty  prog8_regsaveY")
-                    subroutineExtra(scope).usedRegsaveY = true
-                }
-            }
-        }
-    }
-
     internal fun saveRegisterStack(register: CpuRegister, keepA: Boolean) {
         when (register) {
             CpuRegister.A -> out("  pha")
@@ -439,24 +413,6 @@ class AsmGen6502Internal (
                     else
                         out("  tya |  pha")
                 }
-            }
-        }
-    }
-
-    internal fun restoreRegisterLocal(register: CpuRegister) {
-        if (isTargetCpu(CpuType.CPU65c02)) {
-            when (register) {
-                // this just used the stack, for all registers. Shorter code.
-                CpuRegister.A -> out("  pla")
-                CpuRegister.X -> out("  plx")
-                CpuRegister.Y -> out("  ply")
-            }
-
-        } else {
-            when (register) {
-                CpuRegister.A -> out("  pla")   // this just used the stack but only for A
-                CpuRegister.X -> out("  ldx  prog8_regsaveX")
-                CpuRegister.Y -> out("  ldy  prog8_regsaveY")
             }
         }
     }
@@ -585,12 +541,6 @@ class AsmGen6502Internal (
 
     internal fun translateFunctionCall(functionCallExpr: PtFunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr)
-
-    internal fun saveXbeforeCall(functionCall: PtFunctionCall)  =
-            functioncallAsmGen.saveXbeforeCall(functionCall)
-
-    internal fun restoreXafterCall(functionCall: PtFunctionCall) =
-            functioncallAsmGen.restoreXafterCall(functionCall)
 
     internal fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) =
             assignmentAsmGen.translateNormalAssignment(assign, scope)
@@ -3095,9 +3045,6 @@ $repeatLabel""")
  * it's more consistent to only define these attributes on a Subroutine node.
  */
 internal class SubroutineExtraAsmInfo {
-    var usedRegsaveA = false
-    var usedRegsaveX = false
-    var usedRegsaveY = false
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
 

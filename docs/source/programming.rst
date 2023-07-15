@@ -944,15 +944,12 @@ syscall (callnr), syscall1 (callnr, arg), syscall2 (callnr, arg1, arg2), syscall
     specific memory locations. So these builtin function calls are not useful yet except for
     experimentation in new code generation targets.
 
-rsave, rsavex
+rsave
     Saves all registers including status (or only X) on the stack
-    It's not needed to rsave()/rsavex() before an asm subroutine that clobbers the X register
-    (which is used by prog8 as the internal evaluation stack pointer);
-    the compiler will take care of this situation automatically.
     Note: the 16 bit 'virtual' registers of the Commander X16 are *not* saved,
     but you can use ``cx16.save_virtual_registers()`` for that.
 
-rrestore, rrestorex
+rrestore
     Restore all registers including status (or only X) back from the cpu hardware stack
     Note: the 16 bit 'virtual' registers of the Commander X16 are *not* restored,
     but you can use ``cx16.restore_virtual_registers()`` for that.

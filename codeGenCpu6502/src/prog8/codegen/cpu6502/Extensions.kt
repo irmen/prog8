@@ -6,15 +6,6 @@ import prog8.code.ast.PtSub
 import prog8.code.core.*
 
 
-internal fun IPtSubroutine.regXasResult(): Boolean =
-    (this is PtAsmSub) && this.returns.any { it.first.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
-
-internal fun IPtSubroutine.shouldSaveX(): Boolean =
-    this.regXasResult() || (this is PtAsmSub && (CpuRegister.X in this.clobbers || regXasParam()))
-
-internal fun PtAsmSub.regXasParam(): Boolean =
-    parameters.any { it.first.registerOrPair in arrayOf(RegisterOrPair.X, RegisterOrPair.AX, RegisterOrPair.XY) }
-
 internal class KeepAresult(val saveOnEntry: Boolean, val saveOnReturn: Boolean)
 
 internal fun PtAsmSub.shouldKeepA(): KeepAresult {

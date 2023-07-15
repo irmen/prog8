@@ -189,12 +189,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             is PtFunctionCall -> {
                 val symbol = asmgen.symbolTable.lookup(value.name)
                 val sub = symbol!!.astNode as IPtSubroutine
-                asmgen.saveXbeforeCall(value)
                 asmgen.translateFunctionCall(value)
                 val returnValue = sub.returnsWhatWhere().singleOrNull { it.first.registerOrPair!=null } ?: sub.returnsWhatWhere().single { it.first.statusflag!=null }
                 when (returnValue.second) {
                     DataType.STR -> {
-                        asmgen.restoreXafterCall(value)
                         when(assign.target.datatype) {
                             DataType.UWORD -> {
                                 // assign the address of the string result value
@@ -208,7 +206,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     DataType.FLOAT -> {
                         // float result from function sits in FAC1
-                        asmgen.restoreXafterCall(value)
                         assignFAC1float(assign.target)
                     }
                     else -> {
@@ -244,8 +241,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                     throw AssemblyError("should be just one register byte result value")
                             }
                         }
-                        // we've processed the result value in the X register by now, so it's now finally safe to restore it
-                        asmgen.restoreXafterCall(value)
                     }
                 }
             }
@@ -1221,9 +1216,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             DataType.STR -> {
                 // use subroutine
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
-                asmgen.saveRegisterLocal(CpuRegister.A, containment.definingISub()!!)
+                asmgen.saveRegisterStack(CpuRegister.A, true)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position,"P8ZP_SCRATCH_W1"), varname)
-                asmgen.restoreRegisterLocal(CpuRegister.A)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
                 val stringVal = (variable as PtVariable).value as PtString
                 asmgen.out("  ldy  #${stringVal.value.length}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
@@ -1234,9 +1229,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
-                asmgen.saveRegisterLocal(CpuRegister.A, containment.definingISub()!!)
+                asmgen.saveRegisterStack(CpuRegister.A, true)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W1"), varname)
-                asmgen.restoreRegisterLocal(CpuRegister.A)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
@@ -1458,27 +1453,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             when(valueDt) {
                 DataType.UBYTE -> {
                     assignExpressionToRegister(value, RegisterOrPair.Y, false)
-                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingISub()!!)
                     asmgen.out("  jsr  floats.FREADUY")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.BYTE -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, true)
-                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingISub()!!)
                     asmgen.out("  jsr  floats.FREADSA")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.UWORD -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, false)
-                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingISub()!!)
                     asmgen.out("  jsr  floats.GIVUAYFAY")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 DataType.WORD -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, true)
-                    asmgen.saveRegisterLocal(CpuRegister.X, origTypeCastExpression.definingISub()!!)
                     asmgen.out("  jsr  floats.GIVAYFAY")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
                 else -> throw AssemblyError("invalid dt")
             }
@@ -2154,12 +2141,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("  sta  ${wordtarget.asmVarname}+$scaledIdx |  sty  ${wordtarget.asmVarname}+$scaledIdx+1")
                 }
                 else {
-                    asmgen.saveRegisterLocal(CpuRegister.X, wordtarget.scope!!)
                     asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, wordtarget.datatype, CpuRegister.X)
                     asmgen.out("  lda  $sourceName")
                     asmgen.signExtendAYlsb(DataType.BYTE)
                     asmgen.out("  sta  ${wordtarget.asmVarname},x |  inx |  tya |  sta  ${wordtarget.asmVarname},x")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
             }
             TargetStorageKind.REGISTER -> {

@@ -68,9 +68,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 asmgen.popCpuStack(DataType.UWORD, target, fcall.definingISub())
             }
             "rsave" -> funcRsave()
-            "rsavex" -> funcRsaveX()
             "rrestore" -> funcRrestore()
-            "rrestorex" -> funcRrestoreX()
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
             "prog8_lib_stringcompare" -> funcStringCompare(fcall)
@@ -137,13 +135,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 lda  P8ZP_SCRATCH_REG""")
     }
 
-    private fun funcRsaveX() {
-        if (asmgen.isTargetCpu(CpuType.CPU65c02))
-            asmgen.out("  phx")
-        else
-            asmgen.out("  txa |  pha")
-    }
-
     private fun funcRrestore() {
         if (asmgen.isTargetCpu(CpuType.CPU65c02))
             asmgen.out("""
@@ -159,13 +150,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 tax
                 pla
                 plp""")
-    }
-
-    private fun funcRrestoreX() {
-        if (asmgen.isTargetCpu(CpuType.CPU65c02))
-            asmgen.out("  plx")
-        else
-            asmgen.out("  sta  P8ZP_SCRATCH_B1 |  pla |  tax |  lda  P8ZP_SCRATCH_B1")
     }
 
     private fun funcCallFar(fcall: PtBuiltinFunctionCall) {
@@ -445,16 +429,13 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.address)
                             if(ptrAndIndex!=null) {
-                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
-                                asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
-                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
+                                asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.A)
+                                asmgen.saveRegisterStack(CpuRegister.A, true)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
-                                asmgen.restoreRegisterLocal(CpuRegister.X)
+                                asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                                asmgen.restoreRegisterStack(CpuRegister.X, false)
                                 asmgen.out("""
-                                    sta  (+) + 1
-                                    sty  (+) + 2
 +                                   ror  ${'$'}ffff,x           ; modified""")
-                                asmgen.restoreRegisterLocal(CpuRegister.X)
                             } else {
                                 asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
                                 asmgen.out("""
@@ -550,16 +531,13 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.address)
                             if(ptrAndIndex!=null) {
-                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
-                                asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.X)
-                                asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
+                                asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.A)
+                                asmgen.saveRegisterStack(CpuRegister.A, true)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
-                                asmgen.restoreRegisterLocal(CpuRegister.X)
+                                asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                                asmgen.restoreRegisterStack(CpuRegister.X, false)
                                 asmgen.out("""
-                                    sta  (+) + 1
-                                    sty  (+) + 2
 +                                   rol  ${'$'}ffff,x           ; modified""")
-                                asmgen.restoreRegisterLocal(CpuRegister.X)
                             } else {
                                 asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
                                 asmgen.out("""
@@ -677,7 +655,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val varname = asmgen.asmVariableName(addrExpr)
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
-                    asmgen.saveRegisterLocal(CpuRegister.X, fcall.definingISub()!!)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
                     if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
                         asmgen.out("""
@@ -693,7 +670,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             iny
                             sta  ($varname),y""")
                     }
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
                     return
                 }
             }
@@ -703,18 +679,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {
                     // can do ZP,Y indexing
                     val varname = asmgen.asmVariableName(pointer)
-                    val scope = fcall.definingISub()!!
-                    asmgen.saveRegisterLocal(CpuRegister.X, scope)
                     asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
-                    asmgen.saveRegisterLocal(CpuRegister.Y, scope)
+                    asmgen.saveRegisterStack(CpuRegister.Y, false)
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
-                    asmgen.restoreRegisterLocal(CpuRegister.Y)
+                    asmgen.restoreRegisterStack(CpuRegister.Y, true)
                     asmgen.out("""
                             sta  ($varname),y
                             txa
                             iny
                             sta  ($varname),y""")
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
                     return
                 }
             }
