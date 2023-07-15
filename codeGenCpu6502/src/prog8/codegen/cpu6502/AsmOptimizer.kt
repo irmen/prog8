@@ -43,7 +43,14 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
-    mods= optimizeJsrRtsAndOtherCombinations(linesByFour)
+    mods = optimizeJsrRtsAndOtherCombinations(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
+        linesByFour = getLinesBy(lines, 4)
+        numberOfOptimizations++
+    }
+
+    mods = optimizeUselessPushPopStack(linesByFour)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
@@ -514,6 +521,43 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: List<List<IndexedVal
             else if (" bvc" in second || "\tbvc" in second)
                 mods += Modification(lines[1].index, true, null)
         }
+    }
+    return mods
+}
+
+private fun optimizeUselessPushPopStack(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+    val mods = mutableListOf<Modification>()
+
+    fun optimize(register: Char, lines: List<IndexedValue<String>>) {
+        if(lines[0].value.trimStart().startsWith("ph$register")) {
+            if(lines[2].value.trimStart().startsWith("pl$register")) {
+                val second = lines[1].value.trimStart().take(6).lowercase()
+                if(register!in second
+                    && !second.startsWith("jsr")
+                    && !second.startsWith("pl")
+                    && !second.startsWith("ph")) {
+                    mods.add(Modification(lines[0].index, true, null))
+                    mods.add(Modification(lines[2].index, true, null))
+                }
+            }
+            else if (lines[3].value.trimStart().startsWith("pl$register")) {
+                val second = lines[1].value.trimStart().take(6).lowercase()
+                val third = lines[2].value.trimStart().take(6).lowercase()
+                if(register !in second && register !in third
+                    && !second.startsWith("jsr") && !third.startsWith("jsr")
+                    && !second.startsWith("pl") && !third.startsWith("pl")
+                    && !second.startsWith("ph") && !third.startsWith("ph")) {
+                    mods.add(Modification(lines[0].index, true, null))
+                    mods.add(Modification(lines[3].index, true, null))
+                }
+            }
+        }
+    }
+
+    for (lines in linesByFour) {
+        optimize('a', lines)
+        optimize('x', lines)
+        optimize('y', lines)
     }
     return mods
 }

@@ -3,14 +3,15 @@
 
 main
 {
-    ; 00f9
     sub start()
     {
-        bool rasterIrqAfterSubs=false
-        when rasterIrqAfterSubs {
-          false -> txt.print("false\n")
-          true -> txt.print("true\n")
-        }
-        txt.print("done")
+        ubyte a=1
+        ubyte b=2
+        ubyte c=3
+        ubyte d=4
+
+        ubyte xx = (a*b)+(c*d)
+        xx++
+
     }
 }
