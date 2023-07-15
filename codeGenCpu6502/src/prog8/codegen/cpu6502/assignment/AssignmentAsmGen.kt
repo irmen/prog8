@@ -174,10 +174,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             SourceStorageKind.REGISTER -> {
                 asmgen.assignRegister(assign.source.register!!, assign.target)
             }
-            SourceStorageKind.STACK -> {
-                if(assign.target.kind!=TargetStorageKind.STACK || assign.target.datatype != assign.source.datatype)
-                    assignStackValue(assign.target)
-            }
         }
     }
 
@@ -313,10 +309,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             is PtBinaryExpression -> {
                 if(!attemptAssignOptimizedBinexpr(value, assign)) {
-                    // All remaining binary expressions just evaluate via the stack for now.
-                    // (we can't use the assignment helper functions (assignExpressionTo...) to do it via registers here,
-                    // because the code here is the implementation of exactly that...)
-                    fallbackToStackEval(assign)
+                    // TOO BAD: the expression was too complex to translate into assembly.
+                    throw AssemblyError("Expression is too complex to translate into assembly. Split it up into several separate statements, introduce a temporary variable, or otherwise rewrite it. Location: ${assign.position}")
                 }
             }
             else -> throw AssemblyError("weird assignment value type $value")
@@ -1213,15 +1207,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             else -> return false
         }
-    }
-
-    private fun fallbackToStackEval(assign: AsmAssignment) {
-        // this routine is called for assigning a binaryexpression value that has no optimized code path.
-        asmgen.translateExpression(assign.source.expression!!)
-        if (assign.target.datatype in WordDatatypes && assign.source.datatype in ByteDatatypes)
-            asmgen.signExtendStackLsb(assign.source.datatype)
-        if (assign.target.kind != TargetStorageKind.STACK || assign.target.datatype != assign.source.datatype)
-            assignStackValue(assign.target)
     }
 
     private fun containmentCheckIntoA(containment: PtContainmentCheck) {

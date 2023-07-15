@@ -13,7 +13,6 @@ class CompilationOptions(val output: OutputType,
                          val compTarget: ICompilationTarget,
                          // these are set later, based on command line arguments or options in the source code:
                          var loadAddress: UInt,
-                         var slowCodegenWarnings: Boolean = false,
                          var optimize: Boolean = false,
                          var optimizeFloatExpressions: Boolean = false,
                          var asmQuiet: Boolean = false,
@@ -21,7 +20,6 @@ class CompilationOptions(val output: OutputType,
                          var experimentalCodegen: Boolean = false,
                          var varsHighBank: Int? = null,
                          var splitWordArrays: Boolean = false,
-                         var evalStackBaseAddress: UInt? = null,
                          var outputDir: Path = Path(""),
                          var symbolDefs: Map<String, String> = emptyMap()
 ) {

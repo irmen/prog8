@@ -9,8 +9,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 import prog8.code.target.C64Target
-import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
 
 
 class AstPreprocessor(val program: Program,
@@ -24,9 +22,6 @@ class AstPreprocessor(val program: Program,
                 // unfortunately, can't be the same address as CommanderX16.
                 relocateCx16VirtualRegisters(program, 0x0004u)
             }
-        }
-        else if(options.compTarget.name !in setOf(Cx16Target.NAME, VMTarget.NAME)) {
-            relocateCx16VirtualRegisters(program, options.compTarget.machine.ESTACK_HI)
         }
         return noModifications
     }

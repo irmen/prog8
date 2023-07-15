@@ -171,7 +171,6 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         }
         xml.writeCharacters("loadAddress=${irProgram.options.loadAddress.toHex()}\n")
         xml.writeCharacters("optimize=${irProgram.options.optimize}\n")
-        xml.writeCharacters("evalStackBaseAddress=${irProgram.options.evalStackBaseAddress?.toHex() ?: ""}\n")
         xml.writeCharacters("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")
         // other options not yet useful here?
         xml.writeEndElement()

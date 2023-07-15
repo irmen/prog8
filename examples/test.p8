@@ -3,15 +3,16 @@
 
 main
 {
+    ; 00f9
     sub start()
     {
-        ubyte a=1
-        ubyte b=2
-        ubyte c=3
-        ubyte d=4
+        word bb
 
-        ubyte xx = (a*b)+(c*d)
-        xx++
-
+        when bb {
+            0,1,22 -> bb+=10
+            33,44,55 -> bb+=20
+            42345 -> bb+=99
+            else -> bb+=30
+        }
     }
 }

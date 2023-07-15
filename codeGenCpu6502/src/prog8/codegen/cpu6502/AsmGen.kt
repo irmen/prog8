@@ -581,10 +581,6 @@ class AsmGen6502Internal (
         }
     }
 
-    @Deprecated("avoid calling this as it generates slow evalstack based code")
-    internal fun translateExpression(expression: PtExpression) =
-            expressionsAsmGen.translateExpression(expression)
-
     internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? =
             builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultToStack, resultRegister)
 
@@ -625,7 +621,6 @@ class AsmGen6502Internal (
     }
 
     internal fun assignExpressionTo(value: PtExpression, target: AsmAssignTarget) {
-        // don't use translateExpression() to avoid evalstack
         when (target.datatype) {
             in ByteDatatypes -> {
                 assignExpressionToRegister(value, RegisterOrPair.A)

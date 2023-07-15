@@ -31,13 +31,11 @@ class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
                         val optimizeFloatExpressions: Boolean,
                         val writeAssembly: Boolean,
-                        val slowCodegenWarnings: Boolean,
                         val quietAssembler: Boolean,
                         val asmListfile: Boolean,
                         val experimentalCodegen: Boolean,
                         val varsHighBank: Int?,
                         val compilationTarget: String,
-                        val evalStackBaseAddress: UInt?,
                         val splitWordArrays: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
@@ -70,24 +68,18 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             compilationOptions = options
 
             with(compilationOptions) {
-                slowCodegenWarnings = args.slowCodegenWarnings
                 optimize = args.optimize
                 optimizeFloatExpressions = optimizeFloatExpr
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
                 varsHighBank = args.varsHighBank
-                evalStackBaseAddress = args.evalStackBaseAddress
                 splitWordArrays = args.splitWordArrays
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
             }
             program = programresult
             importedFiles = imported
-
-            if(compilationOptions.evalStackBaseAddress!=null) {
-                compTarget.machine.overrideEvalStack(compilationOptions.evalStackBaseAddress!!)
-            }
 
             processAst(program, args.errors, compilationOptions)
             if (compilationOptions.optimize) {

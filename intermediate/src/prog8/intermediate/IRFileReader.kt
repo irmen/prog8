@@ -88,7 +88,6 @@ class IRFileReader {
         val zpReserved = mutableListOf<UIntRange>()
         var loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
         var optimize = true
-        var evalStackBaseAddress: UInt? = null
         var outputDir = Path("")
 
         if(text.isNotBlank()) {
@@ -109,7 +108,6 @@ class IRFileReader {
                     "launcher" -> launcher = CbmPrgLauncherType.valueOf(value)
                     "zeropage" -> zeropage = ZeropageType.valueOf(value)
                     "loadAddress" -> loadAddress = parseIRValue(value).toUInt()
-                    "evalStackBaseAddress" -> evalStackBaseAddress = if(value=="") null else parseIRValue(value).toUInt()
                     "zpReserved" -> {
                         val (zpstart, zpend) = value.split(',')
                         zpReserved.add(UIntRange(zpstart.toUInt(), zpend.toUInt()))
@@ -130,7 +128,6 @@ class IRFileReader {
             false,
             target,
             loadAddress,
-            evalStackBaseAddress = evalStackBaseAddress,
             outputDir = outputDir,
             optimize = optimize
         )

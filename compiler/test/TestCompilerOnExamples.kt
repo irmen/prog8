@@ -28,13 +28,11 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         optimize,
         optimizeFloatExpressions = true,
         writeAssembly = true,
-        slowCodegenWarnings = false,
         quietAssembler = true,
         asmListfile = false,
         experimentalCodegen = false,
         varsHighBank = null,
         compilationTarget = target.name,
-        evalStackBaseAddress = null,
         splitWordArrays = false,
         symbolDefs = emptyMap(),
         outputDir = outputDir

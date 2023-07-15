@@ -15,8 +15,6 @@ class VirtualMachineDefinition: IMachineDefinition {
     override val FLOAT_MEM_SIZE = 4             // 32-bits floating point
     override val PROGRAM_LOAD_ADDRESS = 0u      // not actually used
 
-    override var ESTACK_LO = 0u                 // not actually used
-    override var ESTACK_HI = 0u                 // not actually used
     override val BSSHIGHRAM_START = 0u          // not actually used
     override val BSSHIGHRAM_END = 0u            // not actually used
     override lateinit var zeropage: Zeropage    // not actually used

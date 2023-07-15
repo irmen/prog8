@@ -96,8 +96,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun fallbackAssign(origAssign: PtAugmentedAssign): IRCodeChunks {
-        if (codeGen.options.slowCodegenWarnings)
-            codeGen.errors.warn("indirect code for in-place assignment", origAssign.position)
         val value: PtExpression
         if(origAssign.operator in PrefixOperators) {
             value = PtPrefix(origAssign.operator, origAssign.value.type, origAssign.value.position)

@@ -3,7 +3,6 @@ package prog8
 import kotlinx.cli.*
 import prog8.ast.base.AstException
 import prog8.code.core.CbmPrgLauncherType
-import prog8.code.core.toHex
 import prog8.code.target.*
 import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.compiler.CompilationResult
@@ -39,7 +38,6 @@ private fun compileMain(args: Array<String>): Boolean {
     val cli = ArgParser("prog8compiler", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
     val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
     val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
-    val evalStackAddrString by cli.option(ArgType.String, fullName = "esa", description = "override the eval-stack base address (must be page aligned)")
     val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
@@ -48,7 +46,6 @@ private fun compileMain(args: Array<String>): Boolean {
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val optimizeFloatExpressions by cli.option(ArgType.Boolean, fullName = "optfloatx", description = "optimize float expressions (warning: can increase program size)")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
-    val slowCodegenWarnings by cli.option(ArgType.Boolean, fullName = "slowwarn", description="show debug warnings about slow/problematic assembly code generation")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}') (required)")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
@@ -101,25 +98,6 @@ private fun compileMain(args: Array<String>): Boolean {
         return runVm(moduleFiles.first())
     }
 
-    var evalStackAddr: UInt? = null
-    if(evalStackAddrString!=null) {
-        try {
-            evalStackAddr = if (evalStackAddrString!!.startsWith("0x"))
-                evalStackAddrString!!.substring(2).toUInt(16)
-            else if (evalStackAddrString!!.startsWith("$"))
-                evalStackAddrString!!.substring(1).toUInt(16)
-            else
-                evalStackAddrString!!.toUInt()
-        } catch(nx: NumberFormatException) {
-            System.err.println("invalid address for evalstack: $evalStackAddrString")
-            return false
-        }
-        if(evalStackAddr !in 256u..65536u-512u || (evalStackAddr and 255u != 0u)) {
-            System.err.println("invalid address for evalstack: ${evalStackAddr.toHex()}")
-            return false
-        }
-    }
-
     val processedSymbols = processSymbolDefs(symbolDefs) ?: return false
 
     if(watchMode==true) {
@@ -136,13 +114,11 @@ private fun compileMain(args: Array<String>): Boolean {
                     dontOptimize != true,
                     optimizeFloatExpressions == true,
                     dontWriteAssembly != true,
-                    slowCodegenWarnings == true,
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
                     varsHighBank,
                     compilationTarget!!,
-                    evalStackAddr,
                     splitWordArrays == true,
                     processedSymbols,
                     srcdirs,
@@ -205,13 +181,11 @@ private fun compileMain(args: Array<String>): Boolean {
                     dontOptimize != true,
                     optimizeFloatExpressions == true,
                     dontWriteAssembly != true,
-                    slowCodegenWarnings == true,
                     quietAssembler == true,
                     asmListfile == true,
                     experimentalCodegen == true,
                     varsHighBank,
                     compilationTarget!!,
-                    evalStackAddr,
                     splitWordArrays == true,
                     processedSymbols,
                     srcdirs,

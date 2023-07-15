@@ -111,8 +111,6 @@ class StatementOptimizer(private val program: Program,
         // remove obvious dangling elses (else after a return)
         if(ifElse.elsepart.isNotEmpty() && ifElse.truepart.statements.singleOrNull() is Return) {
             val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
-            if(options.slowCodegenWarnings)
-                errors.warn("else can be omitted", ifElse.elsepart.position)
             return listOf(
                 IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope(mutableListOf(), ifElse.elsepart.position), ifElse),
                 IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
