@@ -3,16 +3,11 @@
 
 main
 {
-    ; 00f9
     sub start()
     {
-        word bb
-
-        when bb {
-            0,1,22 -> bb+=10
-            33,44,55 -> bb+=20
-            42345 -> bb+=99
-            else -> bb+=30
-        }
+        ; uword zc = $ea31
+        word zc = -5583
+        cx16.r1L = (zc>>10) as ubyte
+        txt.print_ub(cx16.r1L)      ; 250
     }
 }
