@@ -238,7 +238,7 @@ _lx     ldx  #0                ; modified
 	}}
 }
 
-asmsub  scroll_right() clobbers(A)  {
+asmsub  scroll_right() clobbers(A,Y)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	%asm {{

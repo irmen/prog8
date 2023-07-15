@@ -508,8 +508,7 @@ asmsub  ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @A, ubyte @X  {
 	; ---- A to decimal string in Y/A/X  (100s in Y, 10s in A, 1s in X)
 	%asm {{
 		ldy  #uword2decimal.ASCII_0_OFFSET
-		bne  uword2decimal.hex_try200
-		rts
+		jmp  uword2decimal.hex_try200
 	}}
 }
 
