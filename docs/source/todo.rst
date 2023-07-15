@@ -1,7 +1,6 @@
 TODO
 ====
 
-- (branch): remove ExpressionsAsmGen.kt altogether
 - (branch): clean up all X register special handling
 - (branch): fix optimizeCmpSequence in AsmOptimizer
 - (branch): fix inplaceModification TODO in AugmentableAssignmentAsmGen
