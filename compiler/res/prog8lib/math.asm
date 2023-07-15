@@ -749,17 +749,39 @@ mul_word_640	.proc
 ; support for bit shifting that is too large to be unrolled:
 
 lsr_byte_A	.proc
-		; -- lsr signed byte in A times the value in Y (assume >0)
+		; -- lsr signed byte in A times the value in Y (>1)
 		cmp  #0
 		bmi  _negative
 -		lsr  a
 		dey
 		bne  -
 		rts
-_negative	lsr  a
-		ora  #$80
+_negative	sec
+		ror  a
 		dey
 		bne  _negative
+		rts
+		.pend
+
+lsr_word_AY     .proc
+		; -- lsr signed word in AY times the value in X (>1)
+		sta  P8ZP_SCRATCH_B1
+		tya
+		bmi  _negative
+-		lsr  a
+		ror  P8ZP_SCRATCH_B1
+		dex
+		bne  -
+		tay
+		lda  P8ZP_SCRATCH_B1
+		rts
+_negative       sec
+		ror  a
+		ror  P8ZP_SCRATCH_B1
+		dex
+		bne  _negative
+		tay
+		lda  P8ZP_SCRATCH_B1
 		rts
 		.pend
 
