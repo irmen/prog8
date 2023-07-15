@@ -63,9 +63,8 @@ main {
             cx16.GRAPH_put_next_char(c)
     }
 
-    asmsub print_number_gfx(ubyte num @ A) clobbers(A,Y) {
+    asmsub print_number_gfx(ubyte num @ A) clobbers(A,X,Y) {
     	%asm {{
-            phx
             jsr  conv.ubyte2decimal
             phx
             pha
@@ -81,9 +80,7 @@ main {
             beq  _ones
             jsr  cx16.GRAPH_put_char
 _ones       pla
-            jsr  cx16.GRAPH_put_char
-            plx
-            rts
+            jmp  cx16.GRAPH_put_char
     	}}
     }
 

@@ -455,13 +455,11 @@ io_error:
             sta  P8ZP_SCRATCH_W1
             lda  address+1
             sta  P8ZP_SCRATCH_W1+1
-            stx  P8ZP_SCRATCH_REG
             lda  #<P8ZP_SCRATCH_W1
             ldx  end_address
             ldy  end_address+1
             jsr  cbm.SAVE
             php
-            ldx  P8ZP_SCRATCH_REG
             plp
         }}
 
@@ -488,7 +486,6 @@ io_error:
             secondary = 0
         cbm.SETLFS(1, drivenumber, secondary)
         %asm {{
-            stx  P8ZP_SCRATCH_REG
             lda  #0
             ldx  address_override
             ldy  address_override+1
@@ -496,7 +493,7 @@ io_error:
             bcs  +
             stx  cx16.r1
             sty  cx16.r1+1
-+           ldx  P8ZP_SCRATCH_REG
++
         }}
 
         cbm.CLRCHN()

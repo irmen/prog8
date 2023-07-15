@@ -7,9 +7,6 @@
 ;
 
 
-math_store_reg	.byte  0		; temporary storage
-
-
 multiply_bytes	.proc
 	; -- multiply 2 bytes A and Y, result as byte in A  (signed or unsigned)
 		sta  P8ZP_SCRATCH_B1         ; num1
@@ -30,7 +27,6 @@ multiply_bytes_into_word	.proc
 	; -- multiply 2 bytes A and Y, result as word in A/Y (unsigned)
 		sta  P8ZP_SCRATCH_B1
 		sty  P8ZP_SCRATCH_REG
-		stx  math_store_reg
 		lda  #0
 		ldx  #8
 		lsr  P8ZP_SCRATCH_B1
@@ -43,7 +39,6 @@ multiply_bytes_into_word	.proc
 		bne  -
 		tay
 		lda  P8ZP_SCRATCH_B1
-		ldx  math_store_reg
 		rts
 		.pend
 
@@ -55,7 +50,6 @@ multiply_words	.proc
 
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
-		stx  P8ZP_SCRATCH_REG
 
 mult16		lda  #0
 		sta  result+2	; clear upper bits of product
@@ -77,7 +71,6 @@ mult16		lda  #0
 		ror  result
 		dex
 		bne  -
-		ldx  P8ZP_SCRATCH_REG
 		lda  result
 		ldy  result+1
 		rts
@@ -124,7 +117,6 @@ divmod_ub_asm	.proc
 	;    division by zero will result in quotient = 255 and remainder = original number
 		sty  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_B1
-		stx  math_store_reg
 
 		lda  #0
 		ldx  #8
@@ -137,7 +129,6 @@ divmod_ub_asm	.proc
 		dex
 		bne  -
 		ldy  P8ZP_SCRATCH_B1
-		ldx  math_store_reg
 		rts
 		.pend
 
@@ -197,7 +188,6 @@ result = dividend ;save memory by reusing divident to store the result
 
 		sta  _divisor
 		sty  _divisor+1
-		stx  P8ZP_SCRATCH_REG
 		lda  #0	        	;preset remainder to 0
 		sta  remainder
 		sta  remainder+1
@@ -224,7 +214,6 @@ result = dividend ;save memory by reusing divident to store the result
 
 		lda  result
 		ldy  result+1
-		ldx  P8ZP_SCRATCH_REG
 		rts
 _divisor	.word 0
 		.pend
@@ -800,7 +789,6 @@ tempsq = P8ZP_SCRATCH_B1        ; temp byte for intermediate result
 
 	sta  numberl
 	sty  numberh
-	stx  P8ZP_SCRATCH_REG
 
         lda     #$00        ; clear a
         sta     squarel     ; clear square low byte
@@ -838,7 +826,6 @@ _nosqadd:
 
 	lda  squarel
 	ldy  squareh
-	ldx  P8ZP_SCRATCH_REG
 	rts
 
 		.pend

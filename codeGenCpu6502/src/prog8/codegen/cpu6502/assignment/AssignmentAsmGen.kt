@@ -1944,11 +1944,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
-                    stx  P8ZP_SCRATCH_REG
                     ldx  #<${target.asmVarname}
                     ldy  #>${target.asmVarname}
                     jsr  floats.MOVMF
-                    ldx  P8ZP_SCRATCH_REG
                 """)
             }
             TargetStorageKind.ARRAY -> {

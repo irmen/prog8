@@ -99,14 +99,11 @@ asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
-	phx
 	sty  $c4        ; facmo     ($64 on c128)
 	sta  $c5        ; facmo+1   ($65 on c128)
 	ldx  #$90
 	sec
-	jsr  FLOATC
-	plx
-	rts
+	jmp  FLOATC
 	}}
 }
 
@@ -144,11 +141,8 @@ asmsub  FREADUY (ubyte value @Y) {
 
 sub rndf() -> float {
     %asm {{
-        phx
         lda  #1
-        jsr  RND_0
-        plx
-        rts
+        jmp  RND_0
     }}
 }
 

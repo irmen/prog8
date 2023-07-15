@@ -488,7 +488,6 @@ io_error:
             sta  P8ZP_SCRATCH_W1
             lda  address+1
             sta  P8ZP_SCRATCH_W1+1
-            stx  P8ZP_SCRATCH_REG
             ldx  end_address
             ldy  end_address+1
             lda  headerless
@@ -499,7 +498,6 @@ io_error:
 +           lda  #<P8ZP_SCRATCH_W1
             jsr  cbm.SAVE
 +           php
-            ldx  P8ZP_SCRATCH_REG
             plp
         }}
 
@@ -547,7 +545,6 @@ io_error:
             secondary |= %00000010  ; activate cx16 kernal headerless load support
         cbm.SETLFS(1, drivenumber, secondary)
         %asm {{
-            stx  P8ZP_SCRATCH_REG
             lda  #0
             ldx  address_override
             ldy  address_override+1
@@ -555,7 +552,7 @@ io_error:
             bcs  +
             stx  cx16.r1
             sty  cx16.r1+1
-+           ldx  P8ZP_SCRATCH_REG
++
         }}
 
         cbm.CLRCHN()
@@ -607,14 +604,13 @@ io_error:
         return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
     }
 
-    asmsub vload(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
+    asmsub vload(str name @R0, ubyte bank @A, uword address @R1) clobbers(X, Y) -> ubyte @A {
         ; -- like the basic command VLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file has to have the usual 2 byte header (which will be skipped)
         %asm {{
             clc
 internal_vload:
-            phx
             pha
             ldx  drivenumber
             bcc +
@@ -642,13 +638,12 @@ internal_vload:
     +       jsr  cbm.CLRCHN
             lda  #1
             jsr  cbm.CLOSE
-            plx
             lda  P8ZP_SCRATCH_B1
             rts
         }}
     }
 
-    asmsub vload_raw(str name @R0, ubyte bank @A, uword address @R1) -> ubyte @A {
+    asmsub vload_raw(str name @R0, ubyte bank @A, uword address @R1) clobbers(X, Y) -> ubyte @A {
         ; -- like the basic command BVLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file is read fully including the first two bytes.

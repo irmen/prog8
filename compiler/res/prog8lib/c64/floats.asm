@@ -5,13 +5,11 @@ FL_ZERO_const	.byte  0,0,0,0,0		; 0.0
 FL_LOG2_const	.byte  $80, $31, $72, $17, $f8	; log(2)
 
 
-floats_store_reg	.byte  0		; temp storage
 floats_temp_var         .byte  0,0,0,0,0        ; temporary storage for a float
 
 ub2float	.proc
 		; -- convert ubyte in SCRATCH_ZPB1 to float at address A/Y
-		;    clobbers A, Y
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers A, X, Y
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  P8ZP_SCRATCH_B1
@@ -19,15 +17,12 @@ ub2float	.proc
 		jsr  GIVAYF
 _fac_to_mem	ldx  P8ZP_SCRATCH_W2
 		ldy  P8ZP_SCRATCH_W2+1
-		jsr  MOVMF
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  MOVMF
 		.pend
 
 b2float		.proc
 		; -- convert byte in SCRATCH_ZPB1 to float at address A/Y
-		;    clobbers A, Y
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers A, X, Y
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		lda  P8ZP_SCRATCH_B1
@@ -37,7 +32,7 @@ b2float		.proc
 
 uw2float	.proc
 		; -- convert uword in SCRATCH_ZPWORD1 to float at address A/Y
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers X
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		lda  P8ZP_SCRATCH_W1
@@ -48,7 +43,7 @@ uw2float	.proc
 
 w2float		.proc
 		; -- convert word in SCRATCH_ZPWORD1 to float at address A/Y
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers X
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  P8ZP_SCRATCH_W1
@@ -60,7 +55,7 @@ w2float		.proc
 
 cast_from_uw	.proc
 		; -- uword in A/Y into float var at (P8ZP_SCRATCH_W2)
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers X
 		jsr  GIVUAYFAY
 		jmp  ub2float._fac_to_mem
 		.pend
@@ -68,7 +63,7 @@ cast_from_uw	.proc
 
 cast_from_w	.proc
 		; -- word in A/Y into float var at (P8ZP_SCRATCH_W2)
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers X
 		jsr  GIVAYFAY
 		jmp  ub2float._fac_to_mem
 		.pend
@@ -76,7 +71,7 @@ cast_from_w	.proc
 
 cast_from_ub	.proc
 		; -- ubyte in Y into float var at (P8ZP_SCRATCH_W2)
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers X
 		jsr  FREADUY
 		jmp  ub2float._fac_to_mem
 		.pend
@@ -84,38 +79,37 @@ cast_from_ub	.proc
 
 cast_from_b	.proc
 		; -- byte in A into float var at (P8ZP_SCRATCH_W2)
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers X
 		jsr  FREADSA
 		jmp  ub2float._fac_to_mem
 		.pend
 
 cast_as_uw_into_ya	.proc               ; also used for float 2 ub
 		; -- cast float at A/Y to uword into Y/A
+		;    clobbers X
 		jsr  MOVFM
 		jmp  cast_FAC1_as_uw_into_ya
 		.pend
 
 cast_as_w_into_ay	.proc               ; also used for float 2 b
 		; -- cast float at A/Y to word into A/Y
+		;    clobbers X
 		jsr  MOVFM
 		jmp  cast_FAC1_as_w_into_ay
 		.pend
 
 cast_FAC1_as_uw_into_ya	.proc               ; also used for float 2 ub
 		; -- cast fac1 to uword into Y/A
-		stx  P8ZP_SCRATCH_REG
-		jsr  GETADR     ; into Y/A
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		;    clobbers X
+		jmp  GETADR     ; into Y/A
 		.pend
 
 cast_FAC1_as_w_into_ay	.proc               ; also used for float 2 b
 		; -- cast fac1 to word into A/Y
-		stx  P8ZP_SCRATCH_REG
+		;    clobbers X
 		jsr  AYINT
 		ldy  floats.AYINT_facmo
 		lda  floats.AYINT_facmo+1
-		ldx  P8ZP_SCRATCH_REG
 		rts
 		.pend
 
@@ -145,25 +139,23 @@ copy_float	.proc
 
 inc_var_f	.proc
 		; -- add 1 to float pointed to by A/Y
+		;    clobbers X
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
-		stx  P8ZP_SCRATCH_REG
 		jsr  MOVFM
 		lda  #<FL_ONE_const
 		ldy  #>FL_ONE_const
 		jsr  FADD
 		ldx  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
-		jsr  MOVMF
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  MOVMF
 		.pend
 
 dec_var_f	.proc
 		; -- subtract 1 from float pointed to by A/Y
+		;    clobbers X
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
-		stx  P8ZP_SCRATCH_REG
 		lda  #<FL_ONE_const
 		ldy  #>FL_ONE_const
 		jsr  MOVFM
@@ -172,9 +164,7 @@ dec_var_f	.proc
 		jsr  FSUB
 		ldx  P8ZP_SCRATCH_W1
 		ldy  P8ZP_SCRATCH_W1+1
-		jsr  MOVMF
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  MOVMF
 		.pend
 
 
@@ -183,10 +173,8 @@ fmath_float2	.byte 0,0,0,0,0	; storage for a mflpt5 value
 
 
 var_fac1_less_f	.proc
-		; -- is the float in FAC1 < the variable AY?
-		stx  P8ZP_SCRATCH_REG
+		; -- is the float in FAC1 < the variable AY? Result in A. Clobbers X.
 		jsr  FCOMP
-		ldx  P8ZP_SCRATCH_REG
 		cmp  #255
 		beq  +
 		lda  #0
@@ -196,10 +184,8 @@ var_fac1_less_f	.proc
 		.pend
 
 var_fac1_lesseq_f	.proc
-		; -- is the float in FAC1 <= the variable AY?
-		stx  P8ZP_SCRATCH_REG
+		; -- is the float in FAC1 <= the variable AY?  Result in A. Clobbers X.
 		jsr  FCOMP
-		ldx  P8ZP_SCRATCH_REG
 		cmp  #0
 		beq  +
 		cmp  #255
@@ -211,10 +197,8 @@ var_fac1_lesseq_f	.proc
 		.pend
 
 var_fac1_greater_f	.proc
-		; -- is the float in FAC1 > the variable AY?
-		stx  P8ZP_SCRATCH_REG
+		; -- is the float in FAC1 > the variable AY?  Result in A. Clobbers X.
 		jsr  FCOMP
-		ldx  P8ZP_SCRATCH_REG
 		cmp  #1
 		beq  +
 		lda  #0
@@ -224,10 +208,9 @@ var_fac1_greater_f	.proc
 		.pend
 
 var_fac1_greatereq_f	.proc
-		; -- is the float in FAC1 >= the variable AY?
-		stx  P8ZP_SCRATCH_REG
-		jsr  FCOMP
 		ldx  P8ZP_SCRATCH_REG
+		; -- is the float in FAC1 >= the variable AY?  Result in A. Clobbers X.
+		jsr  FCOMP
 		cmp  #0
 		beq  +
 		cmp  #1
@@ -239,16 +222,14 @@ var_fac1_greatereq_f	.proc
 		.pend
 
 var_fac1_notequal_f	.proc
-		; -- are the floats numbers in FAC1 and the variable AY *not* identical?
-		stx  P8ZP_SCRATCH_REG
+		; -- are the floats numbers in FAC1 and the variable AY *not* identical?   Result in A. Clobbers X.
 		jsr  FCOMP
-		ldx  P8ZP_SCRATCH_REG
 		and  #1
 		rts
 		.pend
 
 vars_equal_f	.proc
-		; -- are the mflpt5 numbers in P8ZP_SCRATCH_W1 and AY identical?
+		; -- are the mflpt5 numbers in P8ZP_SCRATCH_W1 and AY identical?  Result in A
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  #0
@@ -279,13 +260,11 @@ _false		lda  #0
 
 
 vars_less_f	.proc
-		; -- is float in AY < float in P8ZP_SCRATCH_W2 ?
+		; -- is float in AY < float in P8ZP_SCRATCH_W2 ?   Result in A. Clobbers X.
 		jsr  MOVFM
 		lda  P8ZP_SCRATCH_W2
 		ldy  P8ZP_SCRATCH_W2+1
-		stx  P8ZP_SCRATCH_REG
 		jsr  FCOMP
-		ldx  P8ZP_SCRATCH_REG
 		cmp  #255
 		bne  +
 		lda  #1
@@ -295,13 +274,11 @@ vars_less_f	.proc
 		.pend
 
 vars_lesseq_f	.proc
-		; -- is float in AY <= float in P8ZP_SCRATCH_W2 ?
+		; -- is float in AY <= float in P8ZP_SCRATCH_W2 ?  Result in A. Clobbers X.
 		jsr  MOVFM
 		lda  P8ZP_SCRATCH_W2
 		ldy  P8ZP_SCRATCH_W2+1
-		stx  P8ZP_SCRATCH_REG
 		jsr  FCOMP
-		ldx  P8ZP_SCRATCH_REG
 		cmp  #255
 		bne  +
 -		lda  #1
@@ -313,7 +290,7 @@ vars_lesseq_f	.proc
 		.pend
 
 less_f		.proc
-		; -- is f1 < f2?
+		; -- is f1 < f2?    Result in A. Clobbers X.
 		jsr  compare_floats
 		cmp  #255
 		beq  compare_floats._return_true
@@ -322,7 +299,7 @@ less_f		.proc
 
 
 lesseq_f	.proc
-		; -- is f1 <= f2?
+		; -- is f1 <= f2?  Result in A. Clobbers X.
 		jsr  compare_floats
 		cmp  #255
 		beq  compare_floats._return_true
@@ -332,7 +309,7 @@ lesseq_f	.proc
 		.pend
 
 greater_f	.proc
-		; -- is f1 > f2?
+		; -- is f1 > f2?  Result in A. Clobbers X.
 		jsr  compare_floats
 		cmp  #1
 		beq  compare_floats._return_true
@@ -340,7 +317,7 @@ greater_f	.proc
 		.pend
 
 greatereq_f	.proc
-		; -- is f1 >= f2?
+		; -- is f1 >= f2?  Result in A. Clobbers X.
 		jsr  compare_floats
 		cmp  #1
 		beq  compare_floats._return_true
@@ -351,6 +328,7 @@ greatereq_f	.proc
 
 set_array_float_from_fac1	.proc
 		; -- set the float in FAC1 in the array (index in A, array in P8ZP_SCRATCH_W1)
+		;    clobbers X
 		sta  P8ZP_SCRATCH_B1
 		asl  a
 		asl  a
@@ -361,11 +339,8 @@ set_array_float_from_fac1	.proc
 		adc  P8ZP_SCRATCH_W1
 		bcc  +
 		iny
-+		stx  floats_store_reg
-		tax
-		jsr  MOVMF
-		ldx  floats_store_reg
-		rts
++		tax
+		jmp  MOVMF
 		.pend
 
 

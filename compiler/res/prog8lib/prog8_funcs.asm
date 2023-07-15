@@ -130,8 +130,6 @@ func_sqrt16_into_A	.proc
 		; integer square root from  http://6502org.wikidot.com/software-math-sqrt
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
-		txa
-		pha
 		lda  #0
 		sta  P8ZP_SCRATCH_B1
 		sta  P8ZP_SCRATCH_REG
@@ -154,8 +152,6 @@ func_sqrt16_into_A	.proc
 		rol  P8ZP_SCRATCH_REG
 		dex
 		bne  -
-		pla
-		tax
 		lda  P8ZP_SCRATCH_B1
 		rts
 		.pend

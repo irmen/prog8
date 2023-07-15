@@ -104,34 +104,26 @@ romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of
 romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
-asmsub STOP2() -> ubyte @A  {
+asmsub STOP2() clobbers(X) -> ubyte @A  {
     ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
     %asm {{
-        txa
-        pha
         jsr  cbm.STOP
         beq  +
-        pla
-        tax
         lda  #0
         rts
-+       pla
-        tax
-        lda  #1
++       lda  #1
         rts
     }}
 }
 
-asmsub RDTIM16() -> uword @AY {
+asmsub RDTIM16() clobbers(X) -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
     %asm {{
-        stx  P8ZP_SCRATCH_REG
         jsr  cbm.RDTIM
         pha
         txa
         tay
         pla
-        ldx  P8ZP_SCRATCH_REG
         rts
     }}
 }

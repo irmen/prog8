@@ -1,7 +1,6 @@
 TODO
 ====
 
-- (branch): clean up all X register special handling in p8 code inline asm
 - (branch): clean up docs about eval stack and X register
 - (branch): fix optimizeCmpSequence in AsmOptimizer
 - (branch): fix inplaceModification TODO in AugmentableAssignmentAsmGen

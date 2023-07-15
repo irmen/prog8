@@ -139,17 +139,11 @@ func_all_f_stack	.proc
 		.pend
 
 func_abs_f_into_FAC1    .proc
-        stx  P8ZP_SCRATCH_REG
         jsr  MOVFM
-        jsr  ABS
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  ABS
 	.pend
 
 func_sqrt_into_FAC1     .proc
-        stx  P8ZP_SCRATCH_REG
         jsr  MOVFM
-        jsr  SQR
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  SQR
 	.pend
