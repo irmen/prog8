@@ -44,28 +44,6 @@ All elements in scoped names such as ``main.routine.var1`` are prefixed so this 
         }}
 
 
-Software stack for expression evaluation
-----------------------------------------
-
-Prog8 uses a software stack to evaluate complex expressions that it can't calculate in-place or
-directly into the target variable, register, or memory location.
-
-'software stack' means: seperated and not using the processor's hardware stack.
-
-The software stack is implemented as follows:
-
-- 2*128 bytes = 1 page of memory allocated for this, exact locations vary per machine target.
-  For the C64 this page is at $cf00-$cfff.
-  For the Commander X16 it is at $0700-$07ff (top of the "golden ram" area).
-  This default location can be overridden using the `-esa` command line option.
-- these are the high and low bytes of the values on the stack (it's a 'split 16 bit word stack')
-- for byte values just the lsb page is used, for word values both pages
-- float values (5 bytes) are chopped up into 2 words and 1 byte on this stack.
-- the X register is permanently allocated to be the stack pointer in the software stack.
-- you can use the X register as long as you're not using the software stack.
-  But you *must* make sure it is saved and restored after the code that modifies it,
-  otherwise the evaluation stack gets corrupted.
-
 Subroutine Calling Convention
 -----------------------------
 
@@ -94,8 +72,7 @@ regular subroutines
 ^^^^^^^^^^^^^^^^^^^
 
 - subroutine parameters are just variables scoped to the subroutine.
-- the arguments passed in a call are evaluated (using the eval-stack if needed) and then
-  copied into those variables.
+- the arguments passed in a call are evaluated and then copied into those variables.
   Using variables for this sometimes can seem inefficient but it's required to allow subroutines to work locally
   with their parameters and allow them to modify them as required, without changing the
   variables used in the call's arguments.  If you want to get rid of this overhead you'll

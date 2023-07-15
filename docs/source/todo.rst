@@ -1,7 +1,6 @@
 TODO
 ====
 
-- (branch): clean up docs about eval stack and X register
 - (branch): fix optimizeCmpSequence in AsmOptimizer
 - (branch): fix inplaceModification TODO in AugmentableAssignmentAsmGen
 - (branch): fix up cx16/keyboardhandler.p8 X register shenanigans
@@ -55,16 +54,6 @@ Libraries:
 - optimize several inner loops in gfx2 even further?
 - actually implement modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)
 
-
-Expressions:
-
-- Once the evalstack-free expression codegen is in place, the Eval Stack can be removed from the compiler.
-    Machinedefinition, .p8 and .asm library files, all routines operationg on estack, and everything saving/restoring the X register related to this stack.
-- Or rewrite expression tree evaluation such that it doesn't use an eval stack but flatten the tree into linear code
-  that, for instance, uses a fixed number of predetermined value 'variables'?
-  The VM IL solves this already (by using unlimited registers) but that still lacks a translation to 6502.
-- this removes the need for the BinExprSplitter? (which is problematic and very limited now)
-  and perhaps the assignment splitting in  BeforeAsmAstChanger  too
 
 Optimizations:
 

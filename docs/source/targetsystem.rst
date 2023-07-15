@@ -56,9 +56,7 @@ Both systems have ways to alter the memory map and/or to switch memory banks, bu
 Footnotes for the Commander X16
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 *Golden Ram $0400 - $07FF*
-    *reserved:* $0700 - $07FF (expression evaluation stack)
-
-    *free to use:* $0400 - $06FF
+    *free to use.*
 
 *Zero Page $0000 - $00FF*
     $00 and $01 are hardwired as Rom and Ram banking registers.
@@ -76,10 +74,8 @@ Footnotes for the Commodore 64
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *RAM $C000-$CFFF*
-    *reserved:* $CF00 - $CFFF (expression evaluation stack)
-    *this includes:* $CF00 - $CF20 for the 16 virtual cx16 registers R0-R15
-
-    *free to use:* $C000 - $CEFF
+    *free to use:* $C000 - $CFDF
+    *reserved:* $CFE0 - $CFFF for the 16 virtual cx16 registers R0-R15
 
 *Zero Page $0000 - $00FF*
     Consider the full zero page to be reserved for use by the Kernal and Basic in normal operation.
@@ -127,8 +123,6 @@ Directly Usable Registers
 
 The hardware CPU registers are not directly accessible from regular Prog8 code.
 If you need to mess with them, you'll have to use inline assembly.
-Be extra wary of the ``X`` register because it is used as an evaluation stack pointer and
-changing its value you will destroy the evaluation stack and likely crash the program.
 
 The status register (P) carry flag and interrupt disable flag can be written via a couple of special
 builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``),
