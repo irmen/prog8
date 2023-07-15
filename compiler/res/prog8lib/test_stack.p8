@@ -1,4 +1,4 @@
-; utility debug code to print the X (evalstack) and SP (cpu stack) registers.
+; utility debug code to print the SP (cpu stack pointer) register.
 
 %import textio
 
@@ -7,7 +7,6 @@ test_stack {
 
     asmsub test() {
         %asm {{
-	stx  _saveX
 	lda  #13
 	jsr  txt.chrout
 	lda  #'-'
@@ -16,14 +15,6 @@ test_stack {
 	dey
 	bne  -
 	lda  #13
-	jsr  txt.chrout
-	lda  #'x'
-	jsr  txt.chrout
-	lda  #'='
-	jsr  txt.chrout
-	lda  _saveX
-	jsr  txt.print_ub
-	lda  #' '
 	jsr  txt.chrout
 	lda  #'s'
 	jsr  txt.chrout
@@ -43,9 +34,7 @@ test_stack {
 	bne  -
 	lda  #13
 	jsr  txt.chrout
-	ldx  _saveX
 	rts
-_saveX	.byte 0
         }}
     }
 }

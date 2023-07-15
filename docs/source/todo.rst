@@ -1,12 +1,12 @@
 TODO
 ====
 
-- (branch): remove all evalstack references from p8 code files
 - (branch): remove all evalstack references from asm code files
 - (branch): remove ExpressionsAsmGen.kt altogether
 - (branch): clean up all X register special handling
 - (branch): fix optimizeCmpSequence in AsmOptimizer
 - (branch): fix inplaceModification TODO in AugmentableAssignmentAsmGen
+- (branch): fix up cx16/keyboardhandler.p8 X register shenanigans
 - (branch): clean up docs about eval stack and X register
 
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.

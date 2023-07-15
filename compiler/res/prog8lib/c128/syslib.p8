@@ -446,10 +446,6 @@ _irq_handler_init
 		sta  IRQ_SCRATCH_ZPWORD2
 		lda  P8ZP_SCRATCH_W2+1
 		sta  IRQ_SCRATCH_ZPWORD2+1
-		; Set X to the bottom 32 bytes of the evaluation stack, to HOPEFULLY not clobber it.
-		; This leaves 128-32=96 stack entries for the main program, and 32 stack entries for the IRQ handler.
-		; We assume IRQ handlers don't contain complex expressions taking up more than that.
-		ldx  #32
 		cld
 		rts
 
@@ -774,7 +770,7 @@ cx16 {
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
     ; they are simulated on the C128 as well but their location in memory is different
     ; (because there's no room for them in the zeropage)
-    ; $1300-$1bff is unused RAM on C128. We'll use $1a00-$1bff as the lo/hi evalstack.
+    ; $1300-$1bff is unused RAM on C128.
     &uword r0  = $1be0
     &uword r1  = $1be2
     &uword r2  = $1be4

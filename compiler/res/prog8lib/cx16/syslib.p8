@@ -855,10 +855,6 @@ _irq_handler_init
 		sta  IRQ_SCRATCH_ZPWORD2
 		lda  P8ZP_SCRATCH_W2+1
 		sta  IRQ_SCRATCH_ZPWORD2+1
-		; Set X to the bottom 32 bytes of the evaluation stack, to HOPEFULLY not clobber it.
-		; This leaves 128-32=96 stack entries for the main program, and 32 stack entries for the IRQ handler.
-		; We assume IRQ handlers don't contain complex expressions taking up more than that.
-		ldx  #32
 		cld
 		rts
 
