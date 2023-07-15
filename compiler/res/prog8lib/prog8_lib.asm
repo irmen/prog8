@@ -4,6 +4,26 @@
 
 orig_stackpointer	.byte  0	; stores the Stack pointer register at program start
 
+
+read_byte_from_address_in_AY	.proc
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+
+write_byte_X_to_address_in_AY	.proc
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		txa
+		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+
 reg_less_uw	.proc
 		;  AY < P8ZP_SCRATCH_W2?
 		cpy  P8ZP_SCRATCH_W2+1

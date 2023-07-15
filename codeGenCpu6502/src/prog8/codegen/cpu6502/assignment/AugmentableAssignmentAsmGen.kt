@@ -190,9 +190,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                     else -> {
-                        TODO("use some other evaluation here; there's no evalstack anymore to transfer the address to read/write from")
-                        // TODO: asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.UWORD, memory.definingISub(), target.position))
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
+                        asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UWORD, memory.definingISub(), target.position, register = RegisterOrPair.AY))
+                        asmgen.saveRegisterStack(CpuRegister.A, true)
+                        asmgen.saveRegisterStack(CpuRegister.Y, false)
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY |  sta  P8ZP_SCRATCH_B1")
                         when(value.kind) {
                             SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.asmVarname)
@@ -208,7 +209,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             else -> throw AssemblyError("weird source type ${value.kind}")
                         }
-                        asmgen.out("  lda  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_to_address_on_stack | inx")
+                        asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                        asmgen.restoreRegisterStack(CpuRegister.A, false)
+                        asmgen.out("  ldx  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_X_to_address_in_AY")
                     }
                 }
             }

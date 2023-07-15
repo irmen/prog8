@@ -11,7 +11,7 @@ import prog8tests.helpers.compileText
 
 class TestAstChecks: FunSpec({
 
-    test("conditional expression w/float works even without tempvar to split it") {
+    test("conditional expression w/float works") {
         val text = """
             %import floats
             main {

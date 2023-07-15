@@ -2,7 +2,6 @@ TODO
 ====
 
 - (branch): fix optimizeCmpSequence in AsmOptimizer
-- (branch): fix inplaceModification TODO in AugmentableAssignmentAsmGen
 - (branch): fix up cx16/keyboardhandler.p8 X register shenanigans
 
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
