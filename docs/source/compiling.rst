@@ -151,10 +151,6 @@ One or more .p8 module files
     Note that it is possible to use the watch mode with multiple modules as well, but it will
     recompile everything in that list even if only one of the files got updated.
 
-``-slowwarn``
-    Shows debug warnings about slow or problematic assembly code generation.
-    Ideally, the compiler should use as few stack based evaluations as possible.
-
 ``-quietasm``
     Don't print assembler output results.
 
@@ -175,12 +171,6 @@ One or more .p8 module files
 ``-D SYMBOLNAME=VALUE``
     Add this user-defined symbol directly to the beginning of the generated assembly file.
     Can be repeated to define multiple symbols.
-
-``-esa <address>``
-    Override the base address of the evaluation stack. Has to be page-aligned.
-    You can specify an integer or hexadecimal address.
-    When not compiling for the Commander X16 target, the location of the 16 virtual registers cx16.r0..r15
-    is changed accordingly (to keep them in the same memory space as the evaluation stack).
 
 ``-varshigh <rambank>``
     Places the non-zeropage variables in a separate high memory area, instead of inside the program itself.

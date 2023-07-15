@@ -27,8 +27,6 @@ class AstPreprocessor(val program: Program,
     }
 
     private fun relocateCx16VirtualRegisters(program: Program, baseAddress: UInt) {
-        // reset the address of the virtual registers to be inside the evaluation stack.
-        // (we don't do this on CommanderX16 itself as the registers have a fixed location in Zeropage there)
         val cx16block = program.allBlocks.single { it.name == "cx16" }
         val memVars = cx16block.statements
             .filterIsInstance<VarDecl>()

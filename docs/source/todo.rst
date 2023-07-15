@@ -1,6 +1,14 @@
 TODO
 ====
 
+- (branch): remove all evalstack references from p8 code files
+- (branch): remove all evalstack references from asm code files
+- (branch): remove ExpressionsAsmGen.kt altogether
+- (branch): clean up all X register special handling
+- (branch): fix optimizeCmpSequence in AsmOptimizer
+- (branch): fix inplaceModification TODO in AugmentableAssignmentAsmGen
+- (branch): clean up docs about eval stack and X register
+
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
 - IR: reduce the number of branch instructions (gradually), replace with CMP(I) + status branch instruction
 

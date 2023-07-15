@@ -15,14 +15,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
 
     var linesByFour = getLinesBy(lines, 4)
 
-    var mods = optimizeUselessStackByteWrites(linesByFour)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
-    }
-
-    mods = optimizeIncDec(linesByFour)
+    var mods = optimizeIncDec(linesByFour)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFour = getLinesBy(lines, 4)
@@ -107,31 +100,14 @@ private fun optimizeCmpSequence(linesByFour: List<List<IndexedValue<String>>>): 
     //	 beq  check_prog8_s73choice_33
     // the repeated lda can be removed
     val mods = mutableListOf<Modification>()
-    for(lines in linesByFour) {
-        if(lines[0].value.trim()=="lda  P8ESTACK_LO+1,x" &&
-                lines[1].value.trim().startsWith("cmp ") &&
-                lines[2].value.trim().startsWith("beq ") &&
-                lines[3].value.trim()=="lda  P8ESTACK_LO+1,x") {
-            mods.add(Modification(lines[3].index, true, null)) // remove the second lda
-        }
-    }
-    return mods
-}
-
-private fun optimizeUselessStackByteWrites(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
-    // sta on stack, dex, inx, lda from stack -> eliminate this useless stack byte write
-    // this is a lot harder for word values because the instruction sequence varies.
-    val mods = mutableListOf<Modification>()
-    for(lines in linesByFour) {
-        if(lines[0].value.trim()=="sta  P8ESTACK_LO,x" &&
-                lines[1].value.trim()=="dex" &&
-                lines[2].value.trim()=="inx" &&
-                lines[3].value.trim()=="lda  P8ESTACK_LO,x") {
-            mods.add(Modification(lines[1].index, true, null))
-            mods.add(Modification(lines[2].index, true, null))
-            mods.add(Modification(lines[3].index, true, null))
-        }
-    }
+//    for(lines in linesByFour) {
+//        if(lines[0].value.trim()=="lda  P8ESTACK_LO+1,x" &&
+//                lines[1].value.trim().startsWith("cmp ") &&
+//                lines[2].value.trim().startsWith("beq ") &&
+//                lines[3].value.trim()=="lda  P8ESTACK_LO+1,x") {
+//            mods.add(Modification(lines[3].index, true, null)) // remove the second lda
+//        }
+//    }
     return mods
 }
 

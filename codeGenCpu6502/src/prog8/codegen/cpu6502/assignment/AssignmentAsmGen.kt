@@ -1,6 +1,5 @@
 package prog8.codegen.cpu6502.assignment
 
-import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
@@ -9,7 +8,6 @@ import prog8.codegen.cpu6502.returnsWhatWhere
 
 
 internal class AssignmentAsmGen(private val program: PtProgram,
-                                private val symbolTable: SymbolTable,
                                 private val asmgen: AsmGen6502Internal,
                                 private val allocator: VariableAllocator) {
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
@@ -252,7 +250,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
             is PtBuiltinFunctionCall -> {
-                val returnDt = asmgen.translateBuiltinFunctionCallExpression(value, false, assign.target.register)
+                val returnDt = asmgen.translateBuiltinFunctionCallExpression(value, assign.target.register)
                 if(assign.target.register==null) {
                     // still need to assign the result to the target variable/etc.
                     when(returnDt) {
@@ -1452,16 +1450,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     assignExpressionToRegister(value, target.register!!, targetDt==DataType.WORD)
                     return
                 }
-                TargetStorageKind.STACK -> {
-                    // byte to word, just assign to registers first, then push onto stack
-                    assignExpressionToRegister(value, RegisterOrPair.AY, targetDt==DataType.WORD)
-                    asmgen.out("""
-                        sta  P8ESTACK_LO,x
-                        tya
-                        sta  P8ESTACK_HI,x
-                        dex""")
-                    return
-                }
                 else -> throw AssemblyError("weird target")
             }
         }
@@ -1787,170 +1775,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-
-    private fun assignStackValue(target: AsmAssignTarget) {
-        when(target.kind) {
-            TargetStorageKind.VARIABLE -> {
-                when (target.datatype) {
-                    DataType.UBYTE, DataType.BYTE -> {
-                        asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}")
-                    }
-                    DataType.UWORD, DataType.WORD -> {
-                        asmgen.out("""
-                            inx
-                            lda  P8ESTACK_LO,x
-                            sta  ${target.asmVarname}
-                            lda  P8ESTACK_HI,x
-                            sta  ${target.asmVarname}+1
-                        """)
-                    }
-                    DataType.FLOAT -> {
-                        asmgen.out("""
-                            lda  #<${target.asmVarname}
-                            ldy  #>${target.asmVarname}
-                            jsr  floats.pop_float
-                        """)
-                    }
-                    DataType.STR -> {
-                        asmgen.out("""
-                            lda  #<${target.asmVarname}
-                            ldy  #>${target.asmVarname}
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            inx
-                            lda  P8ESTACK_HI,x
-                            tay
-                            lda  P8ESTACK_LO,x
-                            jsr  prog8_lib.strcpy""")
-                    }
-                    else -> throw AssemblyError("weird target variable type ${target.datatype}")
-                }
-            }
-            TargetStorageKind.MEMORY -> {
-                asmgen.out("  inx |  lda  P8ESTACK_LO,x")
-                storeRegisterAInMemoryAddress(target.memory!!)
-            }
-            TargetStorageKind.ARRAY -> {
-                if(target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
-                    when(target.datatype) {
-                        in ByteDatatypes -> {
-                            asmgen.out(" inx | lda  P8ESTACK_LO,x  | sta  ${target.asmVarname}+$scaledIdx")
-                        }
-                        in WordDatatypes -> {
-                            if(target.array!!.splitWords)
-                                asmgen.out("""
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    sta  ${target.asmVarname}_lsb+$scaledIdx
-                                    lda  P8ESTACK_HI,x
-                                    sta  ${target.asmVarname}_msb+$scaledIdx""")
-                            else
-                                asmgen.out("""
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    sta  ${target.asmVarname}+$scaledIdx
-                                    lda  P8ESTACK_HI,x
-                                    sta  ${target.asmVarname}+$scaledIdx+1""")
-                        }
-                        DataType.FLOAT -> {
-                            asmgen.out("""
-                                lda  #<(${target.asmVarname}+$scaledIdx)
-                                ldy  #>(${target.asmVarname}+$scaledIdx)
-                                jsr  floats.pop_float""")
-                        }
-                        else -> throw AssemblyError("weird target variable type ${target.datatype}")
-                    }
-                }
-                else
-                {
-                    target.array!!
-                    when(target.datatype) {
-                        DataType.UBYTE, DataType.BYTE -> {
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                            asmgen.out(" inx |  lda  P8ESTACK_LO,x |  sta  ${target.asmVarname},y")
-                        }
-                        DataType.UWORD, DataType.WORD -> {
-                            if(target.array.splitWords)
-                                TODO("assign into split words ${target.position}")
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
-                            asmgen.out("""
-                                inx
-                                lda  P8ESTACK_LO,x
-                                sta  ${target.asmVarname},y
-                                lda  P8ESTACK_HI,x
-                                sta  ${target.asmVarname}+1,y
-                            """)
-                        }
-                        DataType.FLOAT -> {
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
-                            asmgen.out("""
-                                ldy  #>${target.asmVarname}
-                                clc
-                                adc  #<${target.asmVarname}
-                                bcc  +
-                                iny
-+                               jsr  floats.pop_float""")
-                        }
-                        else -> throw AssemblyError("weird dt")
-                    }
-                }
-            }
-            TargetStorageKind.REGISTER -> {
-                when (target.datatype) {
-                    DataType.UBYTE, DataType.BYTE -> {
-                        when(target.register!!) {
-                            RegisterOrPair.A -> asmgen.out(" inx |  lda  P8ESTACK_LO,x")
-                            RegisterOrPair.X -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.position}")
-                            RegisterOrPair.Y -> asmgen.out(" inx |  ldy  P8ESTACK_LO,x")
-                            RegisterOrPair.AX -> asmgen.out(" inx |  txy |  ldx  #0 |  lda  P8ESTACK_LO,y")
-                            RegisterOrPair.AY -> asmgen.out(" inx |  ldy  #0 |  lda  P8ESTACK_LO,x")
-                            in Cx16VirtualRegisters -> {
-                                asmgen.out(
-                                    """
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    sta  cx16.${target.register.toString().lowercase()}
-                                    lda  #0
-                                    sta  cx16.${target.register.toString().lowercase()}+1
-                                """)
-                            }
-                            else -> throw AssemblyError("can't assign byte from stack to register pair XY")
-                        }
-                    }
-                    DataType.UWORD, DataType.WORD, in PassByReferenceDatatypes -> {
-                        when(target.register!!) {
-                            RegisterOrPair.AX -> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.position}")
-                            RegisterOrPair.AY-> asmgen.out(" inx |  ldy  P8ESTACK_HI,x |  lda  P8ESTACK_LO,x")
-                            RegisterOrPair.XY-> throw AssemblyError("can't load X from stack here - use intermediary var? ${target.position}")
-                            in Cx16VirtualRegisters -> {
-                                asmgen.out(
-                                    """
-                                    inx
-                                    lda  P8ESTACK_LO,x
-                                    sta  cx16.${target.register.toString().lowercase()}
-                                    lda  P8ESTACK_HI,x
-                                    sta  cx16.${target.register.toString().lowercase()}+1
-                                """)
-                            }
-                            else -> throw AssemblyError("can't assign word to single byte register")
-                        }
-                    }
-                    DataType.FLOAT -> {
-                        when(target.register!!) {
-                            RegisterOrPair.FAC1 -> asmgen.out("  jsr  floats.pop_float_fac1")
-                            RegisterOrPair.FAC2 -> asmgen.out("  jsr  floats.pop_float_fac2")
-                            else -> throw AssemblyError("can only assign float to Fac1 or 2")
-                        }
-                    }
-
-                    else -> throw AssemblyError("weird dt")
-                }
-            }
-            TargetStorageKind.STACK -> {}
-        }
-    }
-
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -1985,14 +1809,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }
             }
-            TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  #<$sourceName
-                    sta  P8ESTACK_LO,x
-                    lda  #>$sourceName
-                    sta  P8ESTACK_HI,x
-                    dex""")
-            }
         }
     }
 
@@ -2020,15 +1836,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> throw AssemblyError("assign string to incompatible variable type")
                 }
-            }
-            TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  #<$sourceName
-                    ldy  #>$sourceName+1
-                    sta  P8ESTACK_LO,x
-                    tya
-                    sta  P8ESTACK_HI,x
-                    dex""")
             }
             else -> throw AssemblyError("string-assign to weird target")
         }
@@ -2138,14 +1945,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("can't load word in a single 8-bit register")
                 }
             }
-            TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  $sourceName
-                    sta  P8ESTACK_LO,x
-                    lda  $sourceName+1
-                    sta  P8ESTACK_HI,x
-                    dex""")
-            }
         }
     }
 
@@ -2185,7 +1984,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if (target.register!! != RegisterOrPair.FAC1)
                     throw AssemblyError("can't assign Fac1 float to another register")
             }
-            TargetStorageKind.STACK -> asmgen.out("  jsr  floats.push_fac1")
         }
     }
 
@@ -2224,7 +2022,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("can only assign float to Fac1 or 2")
                 }
             }
-            TargetStorageKind.STACK -> asmgen.out("  jsr  floats.push_float")
         }
     }
 
@@ -2267,7 +2064,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("can only assign float to Fac1 or 2")
                 }
             }
-            TargetStorageKind.STACK -> asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName |  jsr  floats.push_float")
         }
     }
 
@@ -2331,12 +2127,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> throw AssemblyError("weird register")
                 }
-            }
-            TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  $sourceName
-                    sta  P8ESTACK_LO,x
-                    dex""")
             }
         }
     }
@@ -2410,16 +2200,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("only reg pairs allowed as word target ${wordtarget.register}")
                 }
             }
-            TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  $sourceName
-                    sta  P8ESTACK_LO,x
-                    ora  #$7f
-                    bmi  +                    
-                    lda  #0
-+                   sta  P8ESTACK_HI,x
-                    dex""")
-            }
             else -> throw AssemblyError("target type isn't word")
         }
     }
@@ -2486,13 +2266,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> throw AssemblyError("only reg pairs allowed as word target")
                 }
-            }
-            TargetStorageKind.STACK -> {
-                asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x")
-                if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                    asmgen.out("  stz  P8ESTACK_HI,x |  dex")
-                else
-                    asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
             }
             else -> throw AssemblyError("target type isn't word")
         }
@@ -2689,15 +2462,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                 }
             }
-            TargetStorageKind.STACK -> {
-                if(assignAsWord)
-                    TODO("assign register as word onto Stack not yet supported")
-                when(register) {
-                    CpuRegister.A -> asmgen.out(" sta  P8ESTACK_LO,x |  dex")
-                    CpuRegister.X -> throw AssemblyError("can't use X here")
-                    CpuRegister.Y -> asmgen.out(" tya |  sta  P8ESTACK_LO,x |  dex")
-                }
-            }
         }
     }
 
@@ -2877,22 +2641,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                 }
             }
-            TargetStorageKind.STACK -> {
-                when(regs) {
-                    RegisterOrPair.AY -> asmgen.out("  sta  P8ESTACK_LO,x |  tya |  sta  P8ESTACK_HI,x |  dex")
-                    RegisterOrPair.AX, RegisterOrPair.XY -> throw AssemblyError("can't use X here")
-                    in Cx16VirtualRegisters -> {
-                        val srcReg = asmgen.asmSymbolName(regs)
-                        asmgen.out("""
-                            lda  $srcReg
-                            sta  P8ESTACK_LO,x
-                            lda  $srcReg+1
-                            sta  P8ESTACK_HI,x
-                            dex""")
-                    }
-                    else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
-                }
-            }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't store word into memory byte")
         }
     }
@@ -2933,9 +2681,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         else -> throw AssemblyError("invalid register for word value")
                     }
-                }
-                TargetStorageKind.STACK -> {
-                    asmgen.out("  stz  P8ESTACK_LO,x |  stz  P8ESTACK_HI,x |  dex")
                 }
             }
 
@@ -2996,14 +2741,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("invalid register for word value")
                 }
             }
-            TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  #<${word.toHex()}
-                    sta  P8ESTACK_LO,x
-                    lda  #>${word.toHex()}
-                    sta  P8ESTACK_HI,x
-                    dex""")
-            }
         }
     }
 
@@ -3058,9 +2795,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  stz  cx16.${target.register.toString().lowercase()} |  stz  cx16.${target.register.toString().lowercase()}+1")
                     }
                     else -> throw AssemblyError("weird register")
-                }
-                TargetStorageKind.STACK -> {
-                    asmgen.out("  stz  P8ESTACK_LO,x |  dex")
                 }
             }
 
@@ -3126,12 +2860,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             }+1\n")
                 }
                 else -> throw AssemblyError("weird register")
-            }
-            TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  #${byte.toHex()}
-                    sta  P8ESTACK_LO,x
-                    dex""")
             }
         }
     }
@@ -3201,10 +2929,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         else -> throw AssemblyError("can only assign float to Fac1 or 2")
                     }
                 }
-                TargetStorageKind.STACK -> {
-                    val floatConst = allocator.getFloatAsmConst(float)
-                    asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
-                }
             }
         } else {
             // non-zero value
@@ -3258,10 +2982,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         else -> throw AssemblyError("can only assign float to Fac1 or 2")
                     }
                 }
-                TargetStorageKind.STACK -> {
-                    val floatConst = allocator.getFloatAsmConst(float)
-                    asmgen.out(" lda  #<$floatConst |  ldy  #>$floatConst |  jsr  floats.push_float")
-                }
             }
         }
     }
@@ -3302,12 +3022,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> throw AssemblyError("weird register")
                 }
-                TargetStorageKind.STACK -> {
-                    asmgen.out("""
-                        lda  ${address.toHex()}
-                        sta  P8ESTACK_LO,x
-                        dex""")
-                }
             }
         } else if (identifier != null) {
             when(target.kind) {
@@ -3344,10 +3058,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         else -> throw AssemblyError("weird register")
                     }
                 }
-                TargetStorageKind.STACK -> {
-                    asmgen.loadByteFromPointerIntoA(identifier)
-                    asmgen.out(" sta  P8ESTACK_LO,x |  dex")
-                }
             }
         }
     }
@@ -3378,13 +3088,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  lda  #0 |  sta  cx16.${wordtarget.register.toString().lowercase()}+1")
                     }
                     else -> throw AssemblyError("word regs can only be pair")
-                }
-                TargetStorageKind.STACK -> {
-                    asmgen.out("  lda  ${address.toHex()} |  sta  P8ESTACK_LO,x")
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                        asmgen.out("  stz  P8ESTACK_HI,x |  dex")
-                    else
-                        asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
                 }
                 else -> throw AssemblyError("other types aren't word")
             }
@@ -3418,14 +3121,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         else -> throw AssemblyError("word regs can only be pair")
                     }
-                }
-                TargetStorageKind.STACK -> {
-                    asmgen.loadByteFromPointerIntoA(identifier)
-                    asmgen.out("  sta  P8ESTACK_LO,x")
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                        asmgen.out("  stz  P8ESTACK_HI,x |  dex")
-                    else
-                        asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x |  dex")
                 }
                 else -> throw AssemblyError("other types aren't word")
             }
@@ -3536,7 +3231,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             else -> throw AssemblyError("invalid reg dt for byte invert")
                         }
                     }
-                    TargetStorageKind.STACK -> TODO("no asm gen for byte stack invert")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("~", assign), scope)
                     else -> throw AssemblyError("weird target")
                 }
@@ -3561,7 +3255,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             else -> throw AssemblyError("invalid reg dt for word invert")
                         }
                     }
-                    TargetStorageKind.STACK -> TODO("no asm gen for word stack invert")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("~", assign), scope)
                     else -> throw AssemblyError("weird target")
                 }
@@ -3604,7 +3297,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
-                    TargetStorageKind.STACK -> TODO("no asm gen for byte stack negate")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
                     else -> throw AssemblyError("weird target")
                 }
@@ -3664,7 +3356,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
-                    TargetStorageKind.STACK -> TODO("no asm gen for word stack negate")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
                     else -> throw AssemblyError("weird target")
                 }
@@ -3686,7 +3377,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             sta  ${target.asmVarname}+1
                         """)
                     }
-                    TargetStorageKind.STACK -> TODO("no asm gen for float stack negate")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
                     else -> throw AssemblyError("weird target for in-place float negation")
                 }

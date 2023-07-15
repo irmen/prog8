@@ -24,11 +24,11 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             is PtArrayIndexer -> translateExpression(expression)
             is PtTypeCast -> translateExpression(expression)
             is PtAddressOf -> translateExpression(expression)
-            is PtMemoryByte -> asmgen.translateDirectMemReadExpressionToRegAorStack(expression, true)
+            is PtMemoryByte -> asmgen.translateDirectMemReadExpressionToRegA(expression)
             is PtNumber -> translateExpression(expression)
             is PtIdentifier -> translateExpression(expression)
             is PtFunctionCall -> translateFunctionCallResultOntoStack(expression)
-            is PtBuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, true, null)
+            is PtBuiltinFunctionCall -> asmgen.translateBuiltinFunctionCallExpression(expression, RegisterOrPair.A)
             is PtContainmentCheck -> translateContainmentCheck(expression)
             is PtArray, is PtString -> throw AssemblyError("string/array literal value assignment should have been replaced by a variable")
             is PtRange -> throw AssemblyError("range expression should have been changed into array values")
@@ -154,7 +154,7 @@ internal class ExpressionsAsmGen(private val program: PtProgram,
             DataType.BYTE -> {
                 when(typecast.type) {
                     DataType.UBYTE, DataType.BYTE -> {}
-                    DataType.UWORD, DataType.WORD -> asmgen.signExtendStackLsb(DataType.BYTE)
+                    DataType.UWORD, DataType.WORD -> TODO("asmgen.signExtendStackLsb(DataType.BYTE)")
                     DataType.FLOAT -> asmgen.out(" jsr  floats.stack_b2float")
                     in PassByReferenceDatatypes -> throw AssemblyError("cannot cast to a pass-by-reference datatype")
                     else -> throw AssemblyError("weird type")

@@ -207,8 +207,7 @@ class AsmGen6502Internal (
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
-    private val assignmentAsmGen = AssignmentAsmGen(program, symbolTable, this, allocator)
-    private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
 
     fun compileToAssembly(): IAssemblyProgram? {
@@ -581,8 +580,8 @@ class AsmGen6502Internal (
         }
     }
 
-    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultToStack, resultRegister)
+    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?): DataType? =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultRegister)
 
     internal fun translateFunctionCall(functionCallExpr: PtFunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr)
@@ -1077,20 +1076,6 @@ $repeatLabel""")
                 dey
 +
             """)
-            else -> throw AssemblyError("need byte type")
-        }
-    }
-
-    internal fun signExtendStackLsb(valueDt: DataType) {
-        // sign extend signed byte on stack to signed word on stack
-        when(valueDt) {
-            DataType.UBYTE -> {
-                if(isTargetCpu(CpuType.CPU65c02))
-                    out("  stz  P8ESTACK_HI+1,x")
-                else
-                    out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
-            }
-            DataType.BYTE -> out("  jsr  prog8_lib.sign_extend_stack_byte")
             else -> throw AssemblyError("need byte type")
         }
     }
@@ -1723,7 +1708,7 @@ $repeatLabel""")
                 }
                 else if (left is PtMemoryByte) {
                     return if(rightConstVal.number.toInt()!=0) {
-                        translateDirectMemReadExpressionToRegAorStack(left, false)
+                        translateDirectMemReadExpressionToRegA(left)
                         code("#${rightConstVal.number.toInt()}")
                     }
                     else
@@ -1870,7 +1855,7 @@ $repeatLabel""")
                         out("  beq $jumpIfFalseLabel")
                 }
                 else if (left is PtMemoryByte) {
-                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    translateDirectMemReadExpressionToRegA(left)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number.toInt()}")
                     else
@@ -2031,7 +2016,7 @@ $repeatLabel""")
                         out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is PtMemoryByte) {
-                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    translateDirectMemReadExpressionToRegA(left)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number.toInt()}")
                     else
@@ -2195,7 +2180,7 @@ $repeatLabel""")
                 }
                 else if (left is PtMemoryByte) {
                     if(rightConstVal.number.toInt()!=0) {
-                        translateDirectMemReadExpressionToRegAorStack(left, false)
+                        translateDirectMemReadExpressionToRegA(left)
                         code("#${rightConstVal.number.toInt()}")
                     }
                     return
@@ -2358,7 +2343,7 @@ $repeatLabel""")
                         out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is PtMemoryByte) {
-                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    translateDirectMemReadExpressionToRegA(left)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number.toInt()}")
                     else
@@ -2404,7 +2389,7 @@ $repeatLabel""")
                         out("  beq  $jumpIfFalseLabel")
                 }
                 else if (left is PtMemoryByte) {
-                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    translateDirectMemReadExpressionToRegA(left)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number.toInt()}")
                     else
@@ -2860,22 +2845,14 @@ $repeatLabel""")
 +""")
     }
 
-    internal fun translateDirectMemReadExpressionToRegAorStack(expr: PtMemoryByte, pushResultOnEstack: Boolean) {
+    internal fun translateDirectMemReadExpressionToRegA(expr: PtMemoryByte) {
 
         fun assignViaExprEval() {
             assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
             if (isTargetCpu(CpuType.CPU65c02)) {
-                if (pushResultOnEstack) {
-                    out("  lda  (P8ZP_SCRATCH_W2) |  dex |  sta  P8ESTACK_LO+1,x")
-                } else {
-                    out("  lda  (P8ZP_SCRATCH_W2)")
-                }
+                out("  lda  (P8ZP_SCRATCH_W2)")
             } else {
-                if (pushResultOnEstack) {
-                    out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  dex |  sta  P8ESTACK_LO+1,x")
-                } else {
-                    out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
-                }
+                out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
             }
         }
 
@@ -2883,21 +2860,14 @@ $repeatLabel""")
             is PtNumber -> {
                 val address = (expr.address as PtNumber).number.toInt()
                 out("  lda  ${address.toHex()}")
-                if(pushResultOnEstack)
-                    out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtIdentifier -> {
                 // the identifier is a pointer variable, so read the value from the address in it
                 loadByteFromPointerIntoA(expr.address as PtIdentifier)
-                if(pushResultOnEstack)
-                    out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtBinaryExpression -> {
                 val addrExpr = expr.address as PtBinaryExpression
-                if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
-                    if(pushResultOnEstack)
-                        out("  sta  P8ESTACK_LO,x |  dex")
-                } else {
+                if(!tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                     assignViaExprEval()
                 }
             }

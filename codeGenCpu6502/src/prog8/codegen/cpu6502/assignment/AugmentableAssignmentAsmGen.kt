@@ -166,8 +166,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                     else -> {
-                        // TODO use some other evaluation here; don't use the estack to transfer the address to read/write from
-                        asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.UWORD, memory.definingISub(), target.position))
+                        TODO("use some other evaluation here; there's no evalstack anymore to transfer the address to read/write from")
+                        // TODO: asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.STACK, asmgen, DataType.UWORD, memory.definingISub(), target.position))
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_on_stack |  sta  P8ZP_SCRATCH_B1")
                         when(value.kind) {
                             SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.number!!.number.toInt())
@@ -372,7 +372,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
-            TargetStorageKind.STACK -> throw AssemblyError("no asm gen for stack in-place modification")
         }
     }
 
@@ -592,8 +591,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplaceModification_byte_value_to_variable(name: String, dt: DataType, operator: String, value: PtExpression) {
-        // this should be the last resort for code generation for this,
-        // because the value is evaluated onto the eval stack (=slow).
         when (operator) {
             "+" -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
@@ -1071,14 +1068,14 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun inplaceModification_byte_memread_to_variable(name: String, dt: DataType, operator: String, memread: PtMemoryByte) {
         when (operator) {
             "+" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("""
                     clc
                     adc  $name
                     sta  $name""")
             }
             "-" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
                 asmgen.out("""
                     sta  $tmpByte
@@ -1088,15 +1085,15 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sta  $name""")
             }
             "|" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("  ora  $name  |  sta  $name")
             }
             "&" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("  and  $name  |  sta  $name")
             }
             "^" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("  eor  $name  |  sta  $name")
             }
             else -> {
@@ -1108,7 +1105,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun inplaceModification_word_memread_to_variable(name: String, dt: DataType, operator: String, memread: PtMemoryByte) {
         when (operator) {
             "+" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("""
                     clc
                     adc  $name
@@ -1118,7 +1115,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +""")
             }
             "-" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
                 asmgen.out("""
                     sta  $tmpByte
@@ -1131,11 +1128,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +""")
             }
             "|" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("  ora  $name  |  sta  $name")
             }
             "&" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("  and  $name  |  sta  $name")
                 if(dt in WordDatatypes) {
                     if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -1145,7 +1142,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             "^" -> {
-                asmgen.translateDirectMemReadExpressionToRegAorStack(memread, false)
+                asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("  eor  $name  |  sta  $name")
             }
             else -> {
