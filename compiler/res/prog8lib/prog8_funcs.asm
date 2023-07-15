@@ -1,20 +1,6 @@
 ; ---- builtin functions
 
 
-func_any_b_stack	.proc
-		jsr  func_any_b_into_A
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
-func_all_b_stack	.proc
-		jsr  func_all_b_into_A
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
 func_any_b_into_A	.proc
 		; -- any(array),  array in P8ZP_SCRATCH_W1, num bytes in A
 		sta  _cmp_mod+1		; self-modifying code
@@ -49,14 +35,6 @@ func_any_w_into_A	.proc
 		jmp  func_any_b_into_A
 		.pend
 
-func_any_w_stack	.proc
-		asl  a
-		jsr  func_any_b_into_A
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
 func_all_w_into_A	.proc
 		; -- all(warray),  array in P8ZP_SCRATCH_W1, num bytes in A
 		asl  a			; times 2 because of word
@@ -77,22 +55,6 @@ _cmp_mod	cpy  #255		; modified
 		rts
 		.pend
 
-func_all_w_stack	.proc
-		jsr  func_all_w_into_A
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
-abs_b_stack	.proc
-	; -- push abs(A) on stack (as unsigned word)
-		jsr  abs_b_into_A
-		sta  P8ESTACK_LO,x
-		stz  P8ESTACK_HI,x
-		dex
-		rts
-		.pend
-
 abs_b_into_A	.proc
 	; -- A = abs(A)
 		cmp  #0
@@ -101,16 +63,6 @@ abs_b_into_A	.proc
 +		eor  #$ff
 		clc
 		adc  #1
-		rts
-		.pend
-
-abs_w_stack	.proc
-	; -- push abs(AY) on stack (as word)
-		jsr  abs_w_into_AY
-		sta  P8ESTACK_LO,x
-		tya
-		sta  P8ESTACK_HI,x
-		dex
 		rts
 		.pend
 
@@ -142,25 +94,11 @@ _neg		lda  #-1
 		rts
 		.pend
 
-func_sign_b_stack	.proc
-		jsr  func_sign_b_into_A
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
 func_sign_ub_into_A	.proc
 		cmp  #0
 		bne  _pos
 		rts
 _pos		lda  #1
-		rts
-		.pend
-
-func_sign_ub_stack	.proc
-		jsr  func_sign_ub_into_A
-		sta  P8ESTACK_LO,x
-		dex
 		rts
 		.pend
 
@@ -171,13 +109,6 @@ _pos		lda  #1
 		rts
 _possibly_zero	cmp  #0
 		bne  _pos
-		rts
-		.pend
-
-func_sign_uw_stack	.proc
-		jsr  func_sign_uw_into_A
-		sta  P8ESTACK_LO,x
-		dex
 		rts
 		.pend
 
@@ -194,20 +125,6 @@ _possibly_zero	cmp  #0
 		rts
 		.pend
 
-
-func_sign_w_stack	.proc
-		jsr  func_sign_w_into_A
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
-func_sqrt16_stack	.proc
-		jsr  func_sqrt16_into_A
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
 
 func_sqrt16_into_A	.proc
 		; integer square root from  http://6502org.wikidot.com/software-math-sqrt

@@ -1,13 +1,6 @@
 ; --- floating point builtin functions
 
 
-func_sign_f_stack	.proc
-		jsr  func_sign_f_into_A
-		sta  P8ESTACK_LO,x
-		dex
-		rts
-		.pend
-
 func_sign_f_into_A	.proc
 		jsr  MOVFM
 		jmp  SIGN

@@ -1,7 +1,6 @@
 TODO
 ====
 
-- (branch): remove all evalstack references from asm code files
 - (branch): remove ExpressionsAsmGen.kt altogether
 - (branch): clean up all X register special handling
 - (branch): fix optimizeCmpSequence in AsmOptimizer
