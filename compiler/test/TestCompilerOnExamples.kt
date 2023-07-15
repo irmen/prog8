@@ -26,7 +26,6 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
     val args = CompilerArguments(
         filepath,
         optimize,
-        optimizeFloatExpressions = true,
         writeAssembly = true,
         quietAssembler = true,
         asmListfile = false,

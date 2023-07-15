@@ -43,7 +43,6 @@ class TestCompilerOptionSourcedirs: FunSpec({
         val args = CompilerArguments(
             filepath = filePath,
             optimize = false,
-            optimizeFloatExpressions = false,
             writeAssembly = true,
             quietAssembler = true,
             asmListfile = false,

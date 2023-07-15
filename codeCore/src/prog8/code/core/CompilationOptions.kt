@@ -14,7 +14,6 @@ class CompilationOptions(val output: OutputType,
                          // these are set later, based on command line arguments or options in the source code:
                          var loadAddress: UInt,
                          var optimize: Boolean = false,
-                         var optimizeFloatExpressions: Boolean = false,
                          var asmQuiet: Boolean = false,
                          var asmListfile: Boolean = false,
                          var experimentalCodegen: Boolean = false,

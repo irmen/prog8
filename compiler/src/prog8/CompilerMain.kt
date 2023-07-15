@@ -44,7 +44,6 @@ private fun compileMain(args: Array<String>): Boolean {
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
-    val optimizeFloatExpressions by cli.option(ArgType.Boolean, fullName = "optfloatx", description = "optimize float expressions (warning: can increase program size)")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${VMTarget.NAME}') (required)")
@@ -112,7 +111,6 @@ private fun compileMain(args: Array<String>): Boolean {
                 val compilerArgs = CompilerArguments(
                     filepath,
                     dontOptimize != true,
-                    optimizeFloatExpressions == true,
                     dontWriteAssembly != true,
                     quietAssembler == true,
                     asmListfile == true,
@@ -179,7 +177,6 @@ private fun compileMain(args: Array<String>): Boolean {
                 val compilerArgs = CompilerArguments(
                     filepath,
                     dontOptimize != true,
-                    optimizeFloatExpressions == true,
                     dontWriteAssembly != true,
                     quietAssembler == true,
                     asmListfile == true,

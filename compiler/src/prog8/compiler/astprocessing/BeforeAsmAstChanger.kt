@@ -56,9 +56,6 @@ internal class BeforeAsmAstChanger(val program: Program,
             && !assignment.target.isIOAddress(options.compTarget.machine)) {
             val binExpr = assignment.value as? BinaryExpression
 
-            if(binExpr!=null && binExpr.inferType(program) istype DataType.FLOAT && !options.optimizeFloatExpressions)
-                return noModifications
-
             if (binExpr != null && binExpr.operator !in ComparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {
                     if (binExpr.right.referencesIdentifier(assignment.target.identifier!!.nameInSource)) {

@@ -11,7 +11,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.AugmentAssignmentOperators
 import prog8.code.core.CompilationOptions
-import prog8.code.core.DataType
 import prog8.code.target.VMTarget
 
 
@@ -21,9 +20,6 @@ class BinExprSplitter(private val program: Program, private val options: Compila
 
         if(options.compTarget.name == VMTarget.NAME)
             return noModifications  // don't split expressions when targeting the vm codegen, it handles nested expressions well
-
-        if(assignment.value.inferType(program) istype DataType.FLOAT && !options.optimizeFloatExpressions)
-            return noModifications
 
         val binExpr = assignment.value as? BinaryExpression
         if (binExpr != null) {

@@ -29,7 +29,6 @@ class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAs
 
 class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
-                        val optimizeFloatExpressions: Boolean,
                         val writeAssembly: Boolean,
                         val quietAssembler: Boolean,
                         val asmListfile: Boolean,
@@ -46,8 +45,6 @@ class CompilerArguments(val filepath: Path,
 fun compileProgram(args: CompilerArguments): CompilationResult? {
     lateinit var program: Program
     lateinit var importedFiles: List<Path>
-
-    val optimizeFloatExpr = if(args.optimize) args.optimizeFloatExpressions else false
 
     val compTarget =
         when(args.compilationTarget) {
@@ -69,7 +66,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
             with(compilationOptions) {
                 optimize = args.optimize
-                optimizeFloatExpressions = optimizeFloatExpr
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
