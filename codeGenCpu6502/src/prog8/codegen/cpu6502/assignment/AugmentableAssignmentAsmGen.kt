@@ -81,7 +81,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value.expression!!)
                                 }
                             }
-                            else -> throw AssemblyError("weird source type ${value.kind}")
                         }
                     }
                     in WordDatatypes -> {
@@ -100,7 +99,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value.expression!!)
                                 }
                             }
-                            else -> throw AssemblyError("weird source type ${value.kind}")
                         }
                     }
                     DataType.FLOAT -> {
@@ -142,7 +140,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     )
                                 }
                             }
-                            else -> throw AssemblyError("weird source type ${value.kind}")
                         }
                     }
                     else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
@@ -167,7 +164,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value.expression!!)
                                 }
                             }
-                            else -> throw AssemblyError("weird source type ${value.kind}")
                         }
                     }
                     is PtIdentifier -> {
@@ -186,7 +182,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     inplaceModification_byte_value_to_pointer(pointer, operator, value.expression!!)
                                 }
                             }
-                            else -> throw AssemblyError("weird source type ${value.kind}")
                         }
                     }
                     else -> {
@@ -207,7 +202,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression!!)
                                 }
                             }
-                            else -> throw AssemblyError("weird source type ${value.kind}")
                         }
                         asmgen.restoreRegisterStack(CpuRegister.Y, false)
                         asmgen.restoreRegisterStack(CpuRegister.A, false)
@@ -240,7 +234,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                             inplaceModification_byte_value_to_variable(targetVarName, target.datatype, operator, value.expression!!)
                                         }
                                     }
-                                    else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
                             }
                             in WordDatatypes -> {
@@ -258,7 +251,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                             inplaceModification_word_value_to_variable(targetVarName, target.datatype, operator, value.expression!!)
                                         }
                                     }
-                                    else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
                             }
                             DataType.FLOAT -> {
@@ -300,7 +292,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                             )
                                         }
                                     }
-                                    else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
                             }
                             else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
@@ -329,7 +320,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                             inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
                                         }
                                     }
-                                    else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
                                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
                                 asmgen.out("  lda  P8ZP_SCRATCH_B1 |  sta  ${target.array.variable.name},y")
@@ -361,7 +351,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                             inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!)
                                         }
                                     }
-                                    else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
                                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
                                 if(target.array.splitWords) {
@@ -425,7 +414,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                             )
                                         }
                                     }
-                                    else -> throw AssemblyError("weird source type ${value.kind}")
                                 }
                                 asmgen.out("""
                                     lda  P8ZP_SCRATCH_W1
