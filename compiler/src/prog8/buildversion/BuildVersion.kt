@@ -5,11 +5,11 @@ package prog8.buildversion
  */
 const val MAVEN_GROUP = "prog8"
 const val MAVEN_NAME = "compiler"
-const val VERSION = "9.1-SNAPSHOT"
-const val GIT_REVISION = 3930
-const val GIT_SHA = "b4e94ae4dd1c29a966bb5ea0454ab31f1e9863cb"
-const val GIT_DATE = "2023-07-05T21:15:04Z"
+const val VERSION = "9.2-SNAPSHOT"
+const val GIT_REVISION = 3964
+const val GIT_SHA = "aaa30e4a583fa7c8da61998cf7cbb2a60b52afb0"
+const val GIT_DATE = "2023-07-16T21:16:18Z"
 const val GIT_BRANCH = "master"
-const val BUILD_DATE = "2023-07-05T21:15:07Z"
-const val BUILD_UNIX_TIME = 1688591707834L
+const val BUILD_DATE = "2023-07-16T21:16:23Z"
+const val BUILD_UNIX_TIME = 1689542183583L
 const val DIRTY = 1

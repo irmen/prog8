@@ -45,12 +45,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 val variable = assign.source.asmVarname
                 when (assign.target.datatype) {
                     DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
-                    DataType.WORD -> assignVariableWord(assign.target, variable)
+                    DataType.WORD -> assignVariableWord(assign.target, variable, assign.source.datatype)
                     DataType.UWORD -> {
                         if(assign.source.datatype in PassByReferenceDatatypes)
                             assignAddressOf(assign.target, variable)
                         else
-                            assignVariableWord(assign.target, variable)
+                            assignVariableWord(assign.target, variable, assign.source.datatype)
                     }
                     DataType.FLOAT -> assignVariableFloat(assign.target, variable)
                     DataType.STR -> assignVariableString(assign.target, variable)
@@ -288,20 +288,45 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             is PtPrefix -> {
                 if(assign.target.array==null) {
-                    // First assign the value to the target then apply the operator in place on the target.
-                    // This saves a temporary variable
-                    translateNormalAssignment(
-                        AsmAssignment(
-                            AsmAssignSource.fromAstSource(value.value, program, asmgen),
-                            assign.target, program.memsizer, assign.position
-                        ), scope
-                    )
-                    when (value.operator) {
-                        "+" -> {}
-                        "-" -> inplaceNegate(assign, true, scope)
-                        "~" -> inplaceInvert(assign, scope)
-                        "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
-                        else -> throw AssemblyError("invalid prefix operator")
+                    if(assign.source.datatype==assign.target.datatype) {
+                        // First assign the value to the target then apply the operator in place on the target.
+                        // This saves a temporary variable
+                        translateNormalAssignment(
+                            AsmAssignment(
+                                AsmAssignSource.fromAstSource(value.value, program, asmgen),
+                                assign.target, program.memsizer, assign.position
+                            ), scope
+                        )
+                        when (value.operator) {
+                            "+" -> {}
+                            "-" -> inplaceNegate(assign, true, scope)
+                            "~" -> inplaceInvert(assign, scope)
+                            "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                            else -> throw AssemblyError("invalid prefix operator")
+                        }
+                    } else {
+                        // use a temporary variable
+                        val tempvar = if(value.type in ByteDatatypes) "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_W1"
+                        assignExpressionToVariable(value.value, tempvar, value.type)
+                        when (value.operator) {
+                            "+" -> {}
+                            "-", "~" -> {
+                                val assignTempvar = AsmAssignment(
+                                    AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = tempvar),
+                                    AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar),
+                                    program.memsizer, assign.position)
+                                if(value.operator=="-")
+                                    inplaceNegate(assignTempvar, true, scope)
+                                else
+                                    inplaceInvert(assignTempvar, scope)
+                            }
+                            "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                            else -> throw AssemblyError("invalid prefix operator")
+                        }
+                        if(value.type in ByteDatatypes)
+                            assignVariableByte(assign.target, tempvar)
+                        else
+                            assignVariableWord(assign.target, tempvar, value.type)
                     }
                 } else {
                     assignPrefixedExpressionToArrayElt(assign, scope)
@@ -338,7 +363,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             asmgen.translateNormalAssignment(assignToTempvar, scope)
             when(assign.target.datatype) {
                 in ByteDatatypes -> assignVariableByte(assign.target, tempvar)
-                in WordDatatypes -> assignVariableWord(assign.target, tempvar)
+                in WordDatatypes -> assignVariableWord(assign.target, tempvar, assign.source.datatype)
                 DataType.FLOAT -> assignVariableFloat(assign.target, tempvar)
                 else -> throw AssemblyError("weird dt")
             }
@@ -827,7 +852,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 DataType.UWORD -> {
                     asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
                     asmgen.out("  jsr  math.divmod_uw_asm")
-                    assignVariableWord(assign.target, "P8ZP_SCRATCH_W2")
+                    assignVariableWord(assign.target, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     return true
                 }
                 else -> return false
@@ -2049,19 +2074,29 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun assignVariableWord(target: AsmAssignTarget, sourceName: String) {
+    private fun assignVariableWord(target: AsmAssignTarget, sourceName: String, sourceDt: DataType) {
+        require(sourceDt in WordDatatypes || sourceDt==DataType.UBYTE)
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                asmgen.out("""
-                    lda  $sourceName
-                    ldy  $sourceName+1
-                    sta  ${target.asmVarname}
-                    sty  ${target.asmVarname}+1""")
+                if(sourceDt==DataType.UBYTE) {
+                    asmgen.out("  lda  $sourceName |  sta  ${target.asmVarname}")
+                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        asmgen.out("  stz  ${target.asmVarname}")
+                    else
+                        asmgen.out("  lda  #0 |  sta  ${target.asmVarname}")
+                }
+                else
+                    asmgen.out("""
+                        lda  $sourceName
+                        ldy  $sourceName+1
+                        sta  ${target.asmVarname}
+                        sty  ${target.asmVarname}+1""")
             }
             TargetStorageKind.MEMORY -> {
                 throw AssemblyError("assign word to memory ${target.memory} should have gotten a typecast")
             }
             TargetStorageKind.ARRAY -> {
+                if(sourceDt==DataType.UBYTE) TODO("assign byte to word array")
                 target.array!!
                 if(target.constArrayIndexValue!=null) {
                     val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
@@ -2137,29 +2172,53 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.REGISTER -> {
-                when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  ldx  $sourceName+1 |  lda  $sourceName")
-                    RegisterOrPair.AY -> asmgen.out("  ldy  $sourceName+1 |  lda  $sourceName")
-                    RegisterOrPair.XY -> asmgen.out("  ldy  $sourceName+1 |  ldx  $sourceName")
-                    in Cx16VirtualRegisters -> {
-                        asmgen.out(
-                            """
-                            lda  $sourceName
-                            sta  cx16.${target.register.toString().lowercase()}
-                            lda  $sourceName+1
-                            sta  cx16.${target.register.toString().lowercase()}+1
-                        """)
+                if(sourceDt==DataType.UBYTE) {
+                    when(target.register!!) {
+                        RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName")
+                        RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName")
+                        RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
+                        in Cx16VirtualRegisters -> {
+                            asmgen.out("  lda  $sourceName |  sta  cx16.${target.register.toString().lowercase()}")
+                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                asmgen.out("  stz  cx16.${target.register.toString().lowercase()}+1")
+                            else
+                                asmgen.out("  lda  #0 |  sta  cx16.${target.register.toString().lowercase()}+1")
+                        }
+                        else -> throw AssemblyError("can't load word in a single 8-bit register")
                     }
-                    else -> throw AssemblyError("can't load word in a single 8-bit register")
+                } else {
+                    when(target.register!!) {
+                        RegisterOrPair.AX -> asmgen.out("  ldx  $sourceName+1 |  lda  $sourceName")
+                        RegisterOrPair.AY -> asmgen.out("  ldy  $sourceName+1 |  lda  $sourceName")
+                        RegisterOrPair.XY -> asmgen.out("  ldy  $sourceName+1 |  ldx  $sourceName")
+                        in Cx16VirtualRegisters -> {
+                            asmgen.out(
+                                """
+                                lda  $sourceName
+                                sta  cx16.${target.register.toString().lowercase()}
+                                lda  $sourceName+1
+                                sta  cx16.${target.register.toString().lowercase()}+1
+                            """)
+                        }
+                        else -> throw AssemblyError("can't load word in a single 8-bit register")
+                    }
                 }
             }
             TargetStorageKind.STACK -> {
-                asmgen.out("""
-                    lda  $sourceName
-                    sta  P8ESTACK_LO,x
-                    lda  $sourceName+1
-                    sta  P8ESTACK_HI,x
-                    dex""")
+                if(sourceDt==DataType.UBYTE) {
+                    asmgen.out("  lda  $sourceName |  sta  P8ESTACK_LO,x")
+                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        asmgen.out("  stz  P8ESTACK_HI,x")
+                    else
+                        asmgen.out("  lda  #0 |  sta  P8ESTACK_HI,x")
+                }
+                else
+                    asmgen.out("""
+                        lda  $sourceName
+                        sta  P8ESTACK_LO,x
+                        lda  $sourceName+1
+                        sta  P8ESTACK_HI,x
+                        dex""")
             }
         }
     }
