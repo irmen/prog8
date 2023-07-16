@@ -399,42 +399,35 @@ class IRCodeGen(
     }
 
     private fun translate(whenStmt: PtWhen): IRCodeChunks {
-        if(whenStmt.choices.children.isEmpty())
-            return emptyList()
         val result = mutableListOf<IRCodeChunkBase>()
         val valueDt = irType(whenStmt.value.type)
         val valueTr = expressionEval.translateExpression(whenStmt.value)
         addToResult(result, valueTr, valueTr.resultReg, -1)
-        val choices = whenStmt.choices.children.map {it as PtWhenChoice }
+
+        val choices = mutableListOf<Pair<String, PtWhenChoice>>()
         val endLabel = createLabelName()
-        for (choice in choices) {
+        whenStmt.choices.children.forEach {
+            val choice = it as PtWhenChoice
             if(choice.isElse) {
                 result += translateNode(choice.statements)
+                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
             } else {
-                val skipLabel = createLabelName()
-                val values = choice.values.children.map {it as PtNumber}
-                if(values.size==1) {
-                    val chunk = IRCodeChunk(null, null)
-                    chunk += IRInstruction(Opcode.BNE, valueDt, reg1=valueTr.resultReg, immediate = values[0].number.toInt(), labelSymbol = skipLabel)
-                    result += chunk
-                    result += translateNode(choice.statements)
-                    if(choice.statements.children.last() !is PtReturn)
-                        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
-                } else {
-                    val matchLabel = createLabelName()
-                    val chunk = IRCodeChunk(null, null)
-                    for (value in values) {
-                        chunk += IRInstruction(Opcode.BEQ, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt(), labelSymbol = matchLabel)
-                    }
-                    chunk += IRInstruction(Opcode.JUMP, labelSymbol = skipLabel)
-                    result += chunk
-                    result += labelFirstChunk(translateNode(choice.statements), matchLabel)
-                    if(choice.statements.children.last() !is PtReturn)
-                        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+                val choiceLabel = createLabelName()
+                choices.add(choiceLabel to choice)
+                choice.values.children.map { it as PtNumber }.sortedBy { it.number }.forEach { value ->
+                    addInstr(result, IRInstruction(Opcode.BEQ, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt(), labelSymbol = choiceLabel), null)
                 }
-                result += IRCodeChunk(skipLabel, null)
             }
         }
+        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+
+        choices.forEach { (label, choice) ->
+            result += labelFirstChunk(translateNode(choice.statements), label)
+            val lastStatement = choice.statements.children.last()
+            if(lastStatement !is PtReturn && lastStatement !is PtJump)
+                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+        }
+
         result += IRCodeChunk(endLabel, null)
         return result
     }
