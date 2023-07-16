@@ -22,13 +22,6 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
-    mods = optimizeCmpSequence(linesByFour)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
-    }
-
     mods = optimizeStoreLoadSame(linesByFour, machine, symbolTable)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
@@ -89,27 +82,6 @@ private fun apply(modifications: List<Modification>, lines: MutableList<String>)
 private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
 // all lines (that aren't empty or comments) in sliding windows of certain size
         lines.withIndex().filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }.windowed(windowSize, partialWindows = false)
-
-private fun optimizeCmpSequence(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
-    // when statement (on bytes) generates a sequence of:
-    //	 lda  $ce01,x
-    //	 cmp  #$20
-    //	 beq  check_prog8_s72choice_32
-    //	 lda  $ce01,x
-    //	 cmp  #$21
-    //	 beq  check_prog8_s73choice_33
-    // the repeated lda can be removed
-    val mods = mutableListOf<Modification>()
-//    for(lines in linesByFour) {
-//        if(lines[0].value.trim()=="lda  P8ESTACK_LO+1,x" &&
-//                lines[1].value.trim().startsWith("cmp ") &&
-//                lines[2].value.trim().startsWith("beq ") &&
-//                lines[3].value.trim()=="lda  P8ESTACK_LO+1,x") {
-//            mods.add(Modification(lines[3].index, true, null)) // remove the second lda
-//        }
-//    }
-    return mods
-}
 
 private fun optimizeSameAssignments(
     linesByFourteen: List<List<IndexedValue<String>>>,
