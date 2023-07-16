@@ -5,32 +5,22 @@ main
 {
     sub start()
     {
-        uword zc = 54321
-        ubyte zb = 123
-        ubyte shift = 2
+        uword uw = 54321
+        ubyte ub = 123
+        word sw = -12345
+        byte sb = -123
 
-        txt.print_uw(zc<<shift)
+        txt.print_uw(~ub as uword)  ;132
         txt.nl()
-        txt.print_uw(zc>>shift)
+        txt.print_ub(~uw as ubyte)  ;206
         txt.nl()
-        txt.print_ub(zb<<shift)
+        txt.print_uw(~sb as uword)  ;122
         txt.nl()
-        txt.print_ub(zb>>shift)
+        txt.print_ub(~sw as ubyte)  ;56
         txt.nl()
-
-        word szc = -12345
-        byte szb = -123
-        txt.print_w(szc<<shift)
+        txt.print_w(-sb as word)    ;123
         txt.nl()
-        txt.print_w(szc>>shift)
+        txt.print_b(-sw as byte)    ;57
         txt.nl()
-        txt.print_b(szb<<shift)
-        txt.nl()
-        txt.print_b(szb>>shift)
-        txt.nl()
-
-
-;        cx16.r1L = (zc<<shift) as ubyte
-;        txt.print_ub(cx16.r1L)
     }
 }

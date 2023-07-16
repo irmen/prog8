@@ -285,4 +285,37 @@ derp {
         compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
         compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("prefix expressions with typecasting") {
+        val src="""
+main
+{
+    sub start()
+    {
+        uword uw = 54321
+        ubyte ub = 123
+        word sw = -12345
+        byte sb = -123
+
+        func_uw(~ub as uword) 
+        func_ub(~uw as ubyte) 
+        func_uw(~sb as uword) 
+        func_ub(~sw as ubyte) 
+        func_w(-sb as word)   
+        func_b(-sw as byte)   
+    }
+    
+    sub func_uw(uword arg) {
+    }
+    sub func_w(word arg) {
+    }
+    sub func_ub(ubyte arg) {
+    }
+    sub func_b(byte arg) {
+    }
+}"""
+
+        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
 })

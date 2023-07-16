@@ -1,7 +1,9 @@
 package prog8tests.codegencpu6502
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
@@ -107,9 +109,19 @@ class TestCodegen: FunSpec({
     test("64tass assembler available? - if this fails you need to install 64tass in the path") {
         val command = mutableListOf("64tass", "--version")
         shouldNotThrowAny {
-            val proc = ProcessBuilder(command).inheritIO().start()
+            val proc = ProcessBuilder(command).start()
+            val output = String(proc.inputStream.readBytes())
             val result = proc.waitFor()
             result.shouldBe(0)
+            val (_, version) = output.split('V')
+            val (major, minor, _) = version.split('.')
+            val majorNum = major.toInt()
+            val minorNum = minor.toInt()
+            withClue("64tass version should be 1.58 or newer") {
+                majorNum shouldBeGreaterThanOrEqual 1
+                if (majorNum == 1)
+                    minorNum shouldBeGreaterThanOrEqual 58
+            }
         }
     }
 })
