@@ -512,86 +512,135 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun optimizedBitshiftExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
+        val signed = expr.left.type in SignedDatatypes
         val shifts = expr.right.asConstInteger()
-        if(shifts!=null) {
-            val dt = expr.left.type
+        val dt = expr.left.type
+        if(shifts==null) {
+            // bit shifts with variable shifts
+            when(expr.right.type) {
+                in ByteDatatypes -> {
+                    assignExpressionToRegister(expr.right, RegisterOrPair.A, false)
+                }
+                in WordDatatypes -> {
+                    assignExpressionToRegister(expr.right, RegisterOrPair.AY, false)
+                    asmgen.out("""
+                        cpy  #0
+                        beq  +
+                        lda  #127
++""")
+                }
+                else -> throw AssemblyError("weird shift value type")
+            }
+            asmgen.out("  pha")
             if(dt in ByteDatatypes) {
-                val signed = dt == DataType.BYTE
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
-                if(shifts in 0..7) {
-                    require(dt==DataType.UBYTE)
-                    if (expr.operator == "<<") {
-                        repeat(shifts) {
-                            asmgen.out("  asl  a")
-                        }
-                    } else {
-                        if (signed && shifts > 0) {
-                            asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
-                        } else {
+                asmgen.out("  ply")
+                if(expr.operator==">>")
+                    if(signed)
+                        asmgen.out("  jsr  math.lsr_byte_A")
+                    else
+                        asmgen.out("  jsr  math.lsr_ubyte_A")
+                else
+                    asmgen.out("  jsr  math.asl_byte_A")
+                assignRegisterByte(target, CpuRegister.A, signed)
+                return true
+            } else {
+                assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
+                asmgen.out("  plx")
+                if(expr.operator==">>")
+                    if(signed)
+                        asmgen.out("  jsr  math.lsr_word_AY")
+                    else
+                        asmgen.out("  jsr  math.lsr_uword_AY")
+                else
+                    asmgen.out("  jsr  math.asl_word_AY")
+                assignRegisterpairWord(target, RegisterOrPair.AY)
+                return true
+            }
+        }
+        else {
+            // bit shift with constant value
+            if(dt in ByteDatatypes) {
+                assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
+                when (shifts) {
+                    in 0..7 -> {
+                        require(dt==DataType.UBYTE)
+                        if (expr.operator == "<<") {
                             repeat(shifts) {
-                                asmgen.out("  lsr  a")
+                                asmgen.out("  asl  a")
+                            }
+                        } else {
+                            if (signed && shifts > 0) {
+                                asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
+                            } else {
+                                repeat(shifts) {
+                                    asmgen.out("  lsr  a")
+                                }
                             }
                         }
+                        assignRegisterByte(target, CpuRegister.A, signed)
+                        return true
                     }
-                    assignRegisterByte(target, CpuRegister.A, signed)
-                    return true
-                } else {
-                    if(signed && expr.operator==">>") {
-                        TODO("signed byte >> overshift should have been compiled away?")
-                    } else {
-                        asmgen.out("  lda  #0")
+                    else -> {
+                        if(signed && expr.operator==">>") {
+                            TODO("signed byte >> overshift should have been compiled away?")
+                        } else {
+                            asmgen.out("  lda  #0")
+                        }
+                        assignRegisterByte(target, CpuRegister.A, signed)
+                        return true
                     }
-                    assignRegisterByte(target, CpuRegister.A, signed)
-                    return true
                 }
             } else if(dt in WordDatatypes) {
-                val signed = dt == DataType.WORD
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
-                if(shifts in 0..7) {
-                    if(expr.operator=="<<") {
-                        if(shifts>0) {
-                            asmgen.out("  sty  P8ZP_SCRATCH_B1")
-                            repeat(shifts) {
-                                asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_B1")
-                            }
-                            asmgen.out("  ldy  P8ZP_SCRATCH_B1")
-                        }
-                    } else {
-                        if(signed && shifts>0) {
-                            asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
-                        } else {
+                when (shifts) {
+                    in 0..7 -> {
+                        if(expr.operator=="<<") {
                             if(shifts>0) {
                                 asmgen.out("  sty  P8ZP_SCRATCH_B1")
                                 repeat(shifts) {
-                                    asmgen.out("  lsr  P8ZP_SCRATCH_B1 |  ror  a")
+                                    asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_B1")
                                 }
                                 asmgen.out("  ldy  P8ZP_SCRATCH_B1")
                             }
+                        } else {
+                            if(signed && shifts>0) {
+                                asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
+                            } else {
+                                if(shifts>0) {
+                                    asmgen.out("  sty  P8ZP_SCRATCH_B1")
+                                    repeat(shifts) {
+                                        asmgen.out("  lsr  P8ZP_SCRATCH_B1 |  ror  a")
+                                    }
+                                    asmgen.out("  ldy  P8ZP_SCRATCH_B1")
+                                }
+                            }
                         }
+                        assignRegisterpairWord(target, RegisterOrPair.AY)
+                        return true
                     }
-                    assignRegisterpairWord(target, RegisterOrPair.AY)
-                    return true
-                } else if (shifts in 8..15) {
-                    if(expr.operator == "<<") {
-                        // msb = lsb << (shifts-8),   lsb = 0
-                        repeat(shifts-8) {
-                            asmgen.out("  asl  a")
+                    in 8..15 -> {
+                        if(expr.operator == "<<") {
+                            // msb = lsb << (shifts-8),   lsb = 0
+                            repeat(shifts-8) {
+                                asmgen.out("  asl  a")
+                            }
+                            asmgen.out("  tay |  lda  #0")
+                        } else {
+                            asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
                         }
-                        asmgen.out("  tay |  lda  #0")
-                    } else {
-                        asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
+                        assignRegisterpairWord(target, RegisterOrPair.AY)
+                        return true
                     }
-                    assignRegisterpairWord(target, RegisterOrPair.AY)
-                    return true
-                }
-                else {
-                    if(signed && expr.operator==">>") {
-                        TODO("signed word >> overshift should have been compiled away?")
-                    } else {
-                        asmgen.out("  lda  #0 |  ldy  #0")
+                    else -> {
+                        if(signed && expr.operator==">>") {
+                            TODO("signed word >> overshift should have been compiled away?")
+                        } else {
+                            asmgen.out("  lda  #0 |  ldy  #0")
+                        }
+                        assignRegisterpairWord(target, RegisterOrPair.AY)
+                        return true
                     }
-                    assignRegisterpairWord(target, RegisterOrPair.AY)
-                    return true
                 }
             }
         }

@@ -751,37 +751,64 @@ mul_word_640	.proc
 lsr_byte_A	.proc
 		; -- lsr signed byte in A times the value in Y (>1)
 		cmp  #0
-		bmi  _negative
--		lsr  a
-		dey
-		bne  -
-		rts
-_negative	sec
+		bpl  lsr_ubyte_A
+-       	sec
 		ror  a
 		dey
-		bne  _negative
+		bne  -
 		rts
 		.pend
 
+lsr_ubyte_A	.proc
+		; -- lsr unsigned byte in A times the value in Y (>1)
+-		lsr  a
+		dey
+		bne  -
+		rts
+		.pend
+
+asl_byte_A      .proc
+		; -- asl any byte in A times the value in Y (>1)
+-		asl  a
+		dey
+		bne  -
+		rts
+		.pend
+
+
 lsr_word_AY     .proc
 		; -- lsr signed word in AY times the value in X (>1)
-		sta  P8ZP_SCRATCH_B1
-		tya
-		bmi  _negative
--		lsr  a
-		ror  P8ZP_SCRATCH_B1
-		dex
-		bne  -
-		tay
-		lda  P8ZP_SCRATCH_B1
-		rts
+		cpy  #0
+		bpl  lsr_uword_AY
+		sty  P8ZP_SCRATCH_B1
 _negative       sec
-		ror  a
 		ror  P8ZP_SCRATCH_B1
+		ror  a
 		dex
 		bne  _negative
-		tay
-		lda  P8ZP_SCRATCH_B1
+		ldy  P8ZP_SCRATCH_B1
+		rts
+		.pend
+
+lsr_uword_AY    .proc
+		; -- lsr unsigned word in AY times the value in X (>1)
+		sty  P8ZP_SCRATCH_B1
+-		lsr  P8ZP_SCRATCH_B1
+		ror  a
+		dex
+		bne  -
+		ldy  P8ZP_SCRATCH_B1
+		rts
+		.pend
+
+asl_word_AY     .proc
+		; -- asl any word in AY times the value in X (>1)
+		sty  P8ZP_SCRATCH_B1
+-               asl  a
+		rol  P8ZP_SCRATCH_B1
+		dex
+		bne  -
+		ldy  P8ZP_SCRATCH_B1
 		rts
 		.pend
 

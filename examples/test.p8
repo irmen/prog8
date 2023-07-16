@@ -5,15 +5,32 @@ main
 {
     sub start()
     {
-        byte zc = -55
+        uword zc = 54321
+        ubyte zb = 123
+        ubyte shift = 2
 
-        when zc*3 {
-            123 -> zc++
-            124 -> zc++
-            125 -> zc++
-            121 -> zc++
-            120 -> zc++
-            else -> zc++
-        }
+        txt.print_uw(zc<<shift)
+        txt.nl()
+        txt.print_uw(zc>>shift)
+        txt.nl()
+        txt.print_ub(zb<<shift)
+        txt.nl()
+        txt.print_ub(zb>>shift)
+        txt.nl()
+
+        word szc = -12345
+        byte szb = -123
+        txt.print_w(szc<<shift)
+        txt.nl()
+        txt.print_w(szc>>shift)
+        txt.nl()
+        txt.print_b(szb<<shift)
+        txt.nl()
+        txt.print_b(szb>>shift)
+        txt.nl()
+
+
+;        cx16.r1L = (zc<<shift) as ubyte
+;        txt.print_ub(cx16.r1L)
     }
 }
