@@ -207,7 +207,8 @@ class AsmGen6502Internal (
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this, allocator)
+    private val anyExprGen = AnyExprAsmGen(this)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this, anyExprGen, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
 
     fun compileToAssembly(): IAssemblyProgram? {
@@ -3011,6 +3012,14 @@ $repeatLabel""")
         } else {
             throw AssemblyError("can't push $dt")
         }
+    }
+
+    internal fun pushFAC1() {
+        out("  jsr  floats.pushFAC1")
+    }
+
+    internal fun popFAC1() {
+        out("  jsr  floats.popFAC1")
     }
 
     internal fun needAsaveForExpr(arg: PtExpression): Boolean =

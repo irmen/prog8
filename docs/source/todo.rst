@@ -1,8 +1,9 @@
 TODO
 ====
 
-- (branch): fix float expressions codegen, it relied heavily on the evalstack
+- (branch): fix float expressions codegen, it relied heavily on the evalstack (mandelbrot example zero division error)
 - (branch): improve integer expression codegen even more to support even more cases?
+- (branch): fully remove BinExprSplitter???
 
 - IR: instructions that do type conversion (SZ etc, CONCAT, SGN) should put the result in a DIFFERENT register.
 - IR: reduce the number of branch instructions (gradually), replace with CMP(I) + status branch instruction

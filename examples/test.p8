@@ -1,26 +1,47 @@
 %import textio
+%import floats
 %zeropage basicsafe
 
-main
-{
-    sub start()
-    {
-        uword uw = 54321
-        ubyte ub = 123
-        word sw = -12345
-        byte sb = -123
+main {
+    const uword width = 60
+    const uword height = 50
+    const ubyte max_iter = 16
 
-        txt.print_uw(~ub as uword)  ;132
-        txt.nl()
-        txt.print_ub(~uw as ubyte)  ;206
-        txt.nl()
-        txt.print_uw(~sb as uword)  ;122
-        txt.nl()
-        txt.print_ub(~sw as ubyte)  ;56
-        txt.nl()
-        txt.print_w(-sb as word)    ;123
-        txt.nl()
-        txt.print_b(-sw as byte)    ;57
-        txt.nl()
+    sub start()  {
+        txt.print("calculating mandelbrot fractal...\n\n")
+        cbm.SETTIM(0,0,0)
+
+        ubyte pixelx
+        ubyte pixely
+
+        for pixely in 0 to height-1 {
+            float yy = (pixely as float)/0.40/height - 1.3
+
+            for pixelx in 0 to width-1 {
+                float xx = (pixelx as float)/0.32/width - 2.2
+
+                float xsquared = 0.0
+                float ysquared = 0.0
+                float x = 0.0
+                float y = 0.0
+                ubyte iter = 0
+
+                while iter<max_iter and xsquared+ysquared<4.0 {
+                    y = x*y*2.0 + yy
+                    x = xsquared - ysquared + xx
+                    xsquared = x*x
+                    ysquared = y*y
+                    iter++
+                }
+                txt.color2(1, max_iter-iter)
+                txt.spc()
+            }
+            txt.nl()
+        }
+
+        float duration = (cbm.RDTIM16() as float) / 60
+        txt.print("\nfinished in ")
+        floats.print_f(duration)
+        txt.print(" seconds!\n")
     }
 }

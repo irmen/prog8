@@ -208,7 +208,6 @@ var_fac1_greater_f	.proc
 		.pend
 
 var_fac1_greatereq_f	.proc
-		ldx  P8ZP_SCRATCH_REG
 		; -- is the float in FAC1 >= the variable AY?  Result in A. Clobbers X.
 		jsr  FCOMP
 		cmp  #0
@@ -218,6 +217,14 @@ var_fac1_greatereq_f	.proc
 		lda  #0
 		rts
 +		lda  #1
+		rts
+		.pend
+
+var_fac1_equal_f	.proc
+		; -- are the floats numbers in FAC1 and the variable AY *not* identical?   Result in A. Clobbers X.
+		jsr  FCOMP
+		and  #1
+		eor  #1
 		rts
 		.pend
 
@@ -381,3 +388,61 @@ set_array_float		.proc
 			; -- copies the 5 bytes of the mflt value pointed to by SCRATCH_ZPWORD1,
 			;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
 		.pend
+
+
+pushFAC1    .proc
+	;-- push floating point in FAC onto the cpu stack
+	; save return address
+	pla
+	sta  P8ZP_SCRATCH_W2
+	pla
+	sta  P8ZP_SCRATCH_W2+1
+	ldx  #<floats.floats_temp_var
+	ldy  #>floats.floats_temp_var
+	jsr  floats.MOVMF
+	lda  floats.floats_temp_var
+	pha
+	lda  floats.floats_temp_var+1
+	pha
+	lda  floats.floats_temp_var+2
+	pha
+	lda  floats.floats_temp_var+3
+	pha
+	lda  floats.floats_temp_var+4
+	pha
+	; re-push return address
+	lda  P8ZP_SCRATCH_W2+1
+	pha
+	lda  P8ZP_SCRATCH_W2
+	pha
+	rts
+	.pend
+
+popFAC1 .proc
+	; -- pop floating point value from cpu stack into FAC1
+	; save return address
+	pla
+	sta  P8ZP_SCRATCH_W2
+	pla
+	sta  P8ZP_SCRATCH_W2+1
+	pla
+	sta  floats.floats_temp_var+4
+	pla
+	sta  floats.floats_temp_var+3
+	pla
+	sta  floats.floats_temp_var+2
+	pla
+	sta  floats.floats_temp_var+1
+	pla
+	sta  floats.floats_temp_var
+	lda  #<floats.floats_temp_var
+	ldy  #>floats.floats_temp_var
+	jsr  floats.MOVFM
+	; re-push return address
+	lda  P8ZP_SCRATCH_W2+1
+	pha
+	lda  P8ZP_SCRATCH_W2
+	pha
+	rts
+	.pend
+

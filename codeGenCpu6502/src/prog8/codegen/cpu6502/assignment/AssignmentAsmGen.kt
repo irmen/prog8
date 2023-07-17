@@ -9,6 +9,7 @@ import prog8.codegen.cpu6502.returnsWhatWhere
 
 internal class AssignmentAsmGen(private val program: PtProgram,
                                 private val asmgen: AsmGen6502Internal,
+                                private val anyExprGen: AnyExprAsmGen,
                                 private val allocator: VariableAllocator) {
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
 
@@ -411,7 +412,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
 
         if(expr.type !in IntegerDatatypes)
-            return false
+            return anyExprGen.assignAnyExpressionUsingStack(expr, assign)
 
         if(expr.operator in setOf("&", "|", "^", "and", "or", "xor"))
             return optimizedLogicalOrBitwiseExpr(expr, assign.target)
@@ -428,7 +429,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         if(expr.operator=="%")
             return optimizedRemainderExpr(expr, assign.target)
 
-        return false
+        return anyExprGen.assignAnyExpressionUsingStack(expr, assign)
     }
 
     private fun optimizedRemainderExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
@@ -1579,6 +1580,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
 
         if(targetDt==DataType.FLOAT && (target.register==RegisterOrPair.FAC1 || target.register==RegisterOrPair.FAC2)) {
+            if(target.register==RegisterOrPair.FAC2)
+                asmgen.pushFAC1()
             when(valueDt) {
                 DataType.UBYTE -> {
                     assignExpressionToRegister(value, RegisterOrPair.Y, false)
@@ -1599,7 +1602,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid dt")
             }
             if(target.register==RegisterOrPair.FAC2) {
-                asmgen.out("  jsr floats.MOVEF")
+                asmgen.out("  jsr  floats.MOVEF")
+                asmgen.popFAC1()
             }
             return
         }
@@ -2091,8 +2095,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     internal fun assignFAC2float(target: AsmAssignTarget) {
-        asmgen.out("  jsr  floats.MOVFA")       // fac2 -> fac1
-        assignFAC1float(target)
+        asmgen.out("  jsr  floats.MOVFA")
+        if(target.register != RegisterOrPair.FAC1)
+            assignFAC1float(target)
     }
 
     internal fun assignFAC1float(target: AsmAssignTarget) {
@@ -2121,7 +2126,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> {
-                if (target.register!! != RegisterOrPair.FAC1)
+                if(target.register==RegisterOrPair.FAC2)
+                    asmgen.out("  jsr  floats.MOVAF")
+                else if (target.register!! != RegisterOrPair.FAC1)
                     throw AssemblyError("can't assign Fac1 float to another register")
             }
         }
