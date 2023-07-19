@@ -961,8 +961,8 @@ asmsub  set_rasterline(uword line @AY) {
         %asm {{
             sei
             ldx #$42
-            ldy #1
-            tya
+            ldy #2
+            lda #0
             jsr  cx16.i2c_write_byte
             bra  *
         }}
