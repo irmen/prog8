@@ -65,9 +65,3 @@ fun Program.simplifyExpressions(errors: IErrorReporter, target: ICompilationTarg
     opti.visit(this)
     return opti.applyModifications()
 }
-
-fun Program.splitBinaryExpressions(options: CompilationOptions) : Int {
-    val opti = BinExprSplitter(this, options)
-    opti.visit(this)
-    return opti.applyModifications()
-}

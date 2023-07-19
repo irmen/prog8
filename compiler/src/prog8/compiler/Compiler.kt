@@ -355,12 +355,11 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors, compTarget)
-        val optsDone2 = program.splitBinaryExpressions(compilerOptions)
-        val optsDone3 = program.optimizeStatements(errors, functions, compilerOptions)
-        val optsDone4 = program.inlineSubroutines(compilerOptions)
+        val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
+        val optsDone3 = program.inlineSubroutines(compilerOptions)
         program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.report()
-        if (optsDone1 + optsDone2 + optsDone3 + optsDone4 == 0)
+        if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
     val remover2 = UnusedCodeRemover(program, errors, compTarget)
