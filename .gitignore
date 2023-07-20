@@ -30,6 +30,7 @@ parsetab.py
 compiler/lib/
 
 .gradle
+**/BuildVersion.kt
 /prog8compiler.jar
 sd*.img
 *.d64
