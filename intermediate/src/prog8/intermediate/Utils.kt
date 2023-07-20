@@ -115,6 +115,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     val operands = if(rest.isBlank()) emptyList() else rest.split(",").map{ it.trim() }.toMutableList()
     var reg1: Int? = null
     var reg2: Int? = null
+    var reg3: Int? = null
     var fpReg1: Int? = null
     var fpReg2: Int? = null
     var immediateInt: Int? = null
@@ -143,6 +144,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
             else if (oper[0] in "rR") {
                 if (reg1 == null) reg1 = oper.substring(1).toInt()
                 else if (reg2 == null) reg2 = oper.substring(1).toInt()
+                else if (reg3 == null) reg3 = oper.substring(1).toInt()
                 else throw IRParseException("too many register operands")
             } else if (oper[0] in "fF" && oper[1] in "rR") {
                 if (fpReg1 == null) fpReg1 = oper.substring(2).toInt()
@@ -179,6 +181,8 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         throw IRParseException("needs reg1 for $line")
     if(format.reg2!=OperandDirection.UNUSED && reg2==null)
         throw IRParseException("needs reg2 for $line")
+    if(format.reg3!=OperandDirection.UNUSED && reg3==null)
+        throw IRParseException("needs reg3 for $line")
     if(format.fpReg1!=OperandDirection.UNUSED && fpReg1==null)
         throw IRParseException("needs fpReg1 for $line")
     if(format.fpReg2!=OperandDirection.UNUSED && fpReg2==null)
@@ -189,6 +193,8 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         throw IRParseException("invalid reg1 for $line")
     if(format.reg2==OperandDirection.UNUSED && reg2!=null)
         throw IRParseException("invalid reg2 for $line")
+    if(format.reg3==OperandDirection.UNUSED && reg3!=null)
+        throw IRParseException("invalid reg3 for $line")
     if(format.fpReg1==OperandDirection.UNUSED && fpReg1!=null)
         throw IRParseException("invalid fpReg1 for $line")
     if(format.fpReg2==OperandDirection.UNUSED && fpReg2!=null)
@@ -218,7 +224,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
             throw IRParseException("labelsymbol confused with register?: $labelSymbol")
     }
 
-    return left(IRInstruction(opcode, type, reg1, reg2, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol))
+    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol))
 }
 
 private class ParsedCall(

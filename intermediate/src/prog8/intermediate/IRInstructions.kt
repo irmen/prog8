@@ -99,16 +99,16 @@ bles        reg1, value,      address   - jump to location in program given by l
 ( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
 sz          reg1, reg2                  - set reg1=1 if reg2==0, else 0
 snz         reg1, reg2                  - set reg1=1 if reg2!=0, else 0
-seq         reg1, reg2                  - set reg1=1 if reg1 == reg2, else 0
-sne         reg1, reg2                  - set reg1=1 if reg1 != reg2, else 0
-slt         reg1, reg2                  - set reg1=1 if reg1 < reg2 (unsigned), else 0
-slts        reg1, reg2                  - set reg1=1 if reg1 < reg2 (signed), else 0
-sle         reg1, reg2                  - set reg1=1 if reg1 <= reg2 (unsigned), else 0
-sles        reg1, reg2                  - set reg1=1 if reg1 <= reg2 (signed), else 0
-sgt         reg1, reg2                  - set reg1=1 if reg1 > reg2 (unsigned), else 0
-sgts        reg1, reg2                  - set reg1=1 if reg1 > reg2 (signed), else 0
-sge         reg1, reg2                  - set reg1=1 if reg1 >= reg2 (unsigned), else 0
-sges        reg1, reg2                  - set reg1=1 if reg1 >= reg2 (signed), else 0
+seq         reg1, reg2, reg3            - set reg1=1 if reg2 == reg3, else 0
+sne         reg1, reg2, reg3            - set reg1=1 if reg2 != reg3, else 0
+slt         reg1, reg2, reg3            - set reg1=1 if reg2 < reg3 (unsigned), else 0
+slts        reg1, reg2, reg3            - set reg1=1 if reg2 < reg3 (signed), else 0
+sle         reg1, reg2, reg3            - set reg1=1 if reg2 <= reg3 (unsigned), else 0
+sles        reg1, reg2, reg3            - set reg1=1 if reg2 <= reg3 (signed), else 0
+sgt         reg1, reg2, reg3            - set reg1=1 if reg2 > reg3 (unsigned), else 0
+sgts        reg1, reg2, reg3            - set reg1=1 if reg2 > reg3 (signed), else 0
+sge         reg1, reg2, reg3            - set reg1=1 if reg2 >= reg3 (unsigned), else 0
+sges        reg1, reg2, reg3            - set reg1=1 if reg2 >= reg3 (signed), else 0
 (note: on the M68k these instructions will set all bits to 1 (so value=-1 instead of 1), but the boolean logic here requires it to be 0 or 1 in this IR)
 
 
@@ -220,7 +220,7 @@ sec                                       - set Carry status bit
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
 msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
-concat [b, w] reg1, reg2                  - reg1 = concatenated lsb/lsw of reg1 (as lsb) and lsb/lsw of reg2 (as msb) into word or int (int not yet implemented; requires 32bits regs)
+concat [b, w] reg1, reg2, reg3            - reg1.w = concatenated lsb/lsw of reg2 (as lsb) and lsb/lsw of reg3 (as msb) into word or int (int not yet implemented; requires 32bits regs)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
  */
@@ -454,6 +454,7 @@ enum class OperandDirection {
 data class InstructionFormat(val datatype: IRDataType?,
                              val reg1: OperandDirection,
                              val reg2: OperandDirection,
+                             val reg3: OperandDirection,
                              val fpReg1: OperandDirection,
                              val fpReg2: OperandDirection,
                              val address: OperandDirection,
@@ -466,6 +467,7 @@ data class InstructionFormat(val datatype: IRDataType?,
             for(part in spec.split('|').map{ it.trim() }) {
                 var reg1 = OperandDirection.UNUSED
                 var reg2 = OperandDirection.UNUSED
+                var reg3 = OperandDirection.UNUSED
                 var fpreg1 = OperandDirection.UNUSED
                 var fpreg2 = OperandDirection.UNUSED
                 var address = OperandDirection.UNUSED
@@ -480,6 +482,7 @@ data class InstructionFormat(val datatype: IRDataType?,
                         ">r1" -> reg1 = OperandDirection.WRITE
                         "<>r1" -> reg1 = OperandDirection.READWRITE
                         "<r2" -> reg2 = OperandDirection.READ
+                        "<r3" -> reg3 = OperandDirection.READ
                         "<fr1" -> fpreg1 = OperandDirection.READ
                         ">fr1" -> fpreg1 = OperandDirection.WRITE
                         "<>fr1" -> fpreg1 = OperandDirection.READWRITE
@@ -496,13 +499,13 @@ data class InstructionFormat(val datatype: IRDataType?,
                 }
 
                 if(typespec=="N")
-                    result[null] = InstructionFormat(null, reg1, reg2, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                    result[null] = InstructionFormat(null, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('B' in typespec)
-                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                    result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('W' in typespec)
-                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                    result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('F' in typespec)
-                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                    result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
             }
             return result
         }
@@ -566,16 +569,16 @@ val instructionFormats = mutableMapOf(
     Opcode.BLES       to InstructionFormat.from("BW,<r1,<i,<a"),
     Opcode.SZ         to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.SNZ        to InstructionFormat.from("BW,>r1,<r2"),
-    Opcode.SEQ        to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SNE        to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SLT        to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SLTS       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SGT        to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SGTS       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SLE        to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SLES       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SGE        to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.SGES       to InstructionFormat.from("BW,<>r1,<r2"),
+    Opcode.SEQ        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SNE        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SLT        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SLTS       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SGT        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SGTS       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SLE        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SLES       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SGE        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SGES       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.INC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
     Opcode.INCM       to InstructionFormat.from("BW,<>a       | F,<>a"),
     Opcode.DEC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
@@ -663,7 +666,7 @@ val instructionFormats = mutableMapOf(
     Opcode.MSIG       to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.PUSH       to InstructionFormat.from("BW,<r1       | F,<fr1"),
     Opcode.POP        to InstructionFormat.from("BW,>r1       | F,>fr1"),
-    Opcode.CONCAT     to InstructionFormat.from("BW,<>r1,<r2"),
+    Opcode.CONCAT     to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
     Opcode.BREAKPOINT to InstructionFormat.from("N"),
@@ -683,6 +686,7 @@ data class IRInstruction(
     val type: IRDataType?=null,
     val reg1: Int?=null,        // 0-$ffff
     val reg2: Int?=null,        // 0-$ffff
+    val reg3: Int?=null,        // 0-$ffff
     val fpReg1: Int?=null,      // 0-$ffff
     val fpReg2: Int?=null,      // 0-$ffff
     val immediate: Int?=null,   // 0-$ff or $ffff if word
@@ -696,6 +700,7 @@ data class IRInstruction(
     // This knowledge is useful in IL assembly optimizers to see how registers are used.
     val reg1direction: OperandDirection
     val reg2direction: OperandDirection
+    val reg3direction: OperandDirection
     val fpReg1direction: OperandDirection
     val fpReg2direction: OperandDirection
 
@@ -703,9 +708,12 @@ data class IRInstruction(
         require(labelSymbol?.first()!='_') {"label/symbol should not start with underscore $labelSymbol"}
         require(reg1==null || reg1 in 0..65536) {"reg1 out of bounds"}
         require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
+        require(reg3==null || reg3 in 0..65536) {"reg3 out of bounds"}
         require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
         require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
         if(reg1!=null && reg2!=null) require(reg1!=reg2) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type
+        if(reg1!=null && reg3!=null) require(reg1!=reg3) {"reg1 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
+        if(reg2!=null && reg3!=null) require(reg2!=reg3) {"reg2 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
 
         val formats = instructionFormats.getValue(opcode)
         require (type != null || formats.containsKey(null)) { "missing type" }
@@ -713,10 +721,12 @@ data class IRInstruction(
         val format = formats.getOrElse(type) { throw IllegalArgumentException("type $type invalid for $opcode") }
         if(format.reg1!=OperandDirection.UNUSED) require(reg1!=null) { "missing reg1" }
         if(format.reg2!=OperandDirection.UNUSED) require(reg2!=null) { "missing reg2" }
+        if(format.reg3!=OperandDirection.UNUSED) require(reg3!=null) { "missing reg3" }
         if(format.fpReg1!=OperandDirection.UNUSED) require(fpReg1!=null) { "missing fpReg1" }
         if(format.fpReg2!=OperandDirection.UNUSED) require(fpReg2!=null) { "missing fpReg2" }
         if(format.reg1==OperandDirection.UNUSED) require(reg1==null) { "invalid reg1" }
         if(format.reg2==OperandDirection.UNUSED) require(reg2==null) { "invalid reg2" }
+        if(format.reg3==OperandDirection.UNUSED) require(reg3==null) { "invalid reg3" }
         if(format.fpReg1==OperandDirection.UNUSED) require(fpReg1==null) { "invalid fpReg1" }
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
@@ -747,6 +757,7 @@ data class IRInstruction(
 
         reg1direction = format.reg1
         reg2direction = format.reg2
+        reg3direction = format.reg3
         fpReg1direction = format.fpReg1
         fpReg2direction = format.fpReg2
 
@@ -813,6 +824,19 @@ data class IRInstruction(
                 }
             }
             else -> throw IllegalArgumentException("reg2 can only be read")
+        }
+        when (this.reg3direction) {
+            OperandDirection.UNUSED -> {}
+            OperandDirection.READ -> {
+                writeRegsCounts[this.reg3!!] = writeRegsCounts.getValue(this.reg3)+1
+                if(type!=null) {
+                    var types = regsTypes[this.reg3]
+                    if(types==null) types = mutableSetOf()
+                    types += type
+                    regsTypes[this.reg3] = types
+                }
+            }
+            else -> throw IllegalArgumentException("reg3 can only be read")
         }
         when (this.fpReg1direction) {
             OperandDirection.UNUSED -> {}
@@ -924,6 +948,10 @@ data class IRInstruction(
                 result.add(",")
             }
             reg2?.let {
+                result.add("r$it")
+                result.add(",")
+            }
+            reg3?.let {
                 result.add("r$it")
                 result.add(",")
             }
