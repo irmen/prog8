@@ -567,6 +567,7 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
 asmsub vaddr_autoincr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword autoIncrAmount @R2) clobbers(A,Y) {
         ; -- setup the VERA's data address register 0 or 1
         ;    including setting up optional auto increment amount.
+        ;    Specifiying an unsupported amount results in amount of zero. See the Vera docs about what amounts are possible.
         %asm {{
             jsr  _setup
             lda  cx16.r2H
@@ -629,6 +630,7 @@ _strides_lsb    .byte   0,1,2,4,8,16,32,64,128,255,255,40,80,160,255,255
 asmsub vaddr_autodecr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword autoDecrAmount @R2) clobbers(A,Y) {
         ; -- setup the VERA's data address register 0 or 1
         ;    including setting up optional auto decrement amount.
+        ;    Specifiying an unsupported amount results in amount of zero. See the Vera docs about what amounts are possible.
         %asm {{
             jsr  vaddr_autoincr._setup
             lda  cx16.r2H
