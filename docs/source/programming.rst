@@ -324,7 +324,8 @@ This way you can set the second character on the second row from the top like th
 An uword variable can be used in limited scenarios as a 'pointer' to a byte in memory at a specific,
 dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
 a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
-memory at the given index. See also :ref:`pointervars_programming`
+memory at the given index. In contrast to a real array variable, the index value can be the size of a word.
+See also :ref:`pointervars_programming`
 
 **LSB/MSB split word arrays:**
 For (u)word arrays, you can make the compiler layout the array in memory as two separate arrays,
@@ -445,7 +446,7 @@ without defining a memory mapped location, you can do so by enclosing the addres
 
 This is the official syntax to 'dereference a pointer' as it is often named in other languages.
 You can actually also use the array indexing notation for this. It will be silently converted into
-the direct memory access expression as explained above. Note that this also means that unlike regular arrays,
+the direct memory access expression as explained above. Note that unlike regular arrays,
 the index is not limited to an ubyte value. You can use a full uword to index a pointer variable like this::
 
     pointervar[999] = 0     ; set memory byte to zero at location pointervar + 999.
