@@ -590,7 +590,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
                 when (shifts) {
                     in 0..7 -> {
-                        require(dt==DataType.UBYTE)
                         if (expr.operator == "<<") {
                             repeat(shifts) {
                                 asmgen.out("  asl  a")
@@ -609,7 +608,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         if(signed && expr.operator==">>") {
-                            TODO("signed byte >> overshift should have been compiled away?")
+                            asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
                         } else {
                             asmgen.out("  lda  #0")
                         }
@@ -660,7 +659,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         if(signed && expr.operator==">>") {
-                            TODO("signed word >> overshift should have been compiled away?")
+                            asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
                         } else {
                             asmgen.out("  lda  #0 |  ldy  #0")
                         }
