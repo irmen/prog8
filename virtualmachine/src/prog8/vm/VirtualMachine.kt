@@ -808,14 +808,24 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsSZ(i: IRInstruction) {
-        val (_: Int, right: Int) = getSetOnConditionOperands(i)
+        val right = when(i.type) {
+            IRDataType.BYTE -> registers.getSB(i.reg2!!).toInt()
+            IRDataType.WORD -> registers.getSW(i.reg2!!).toInt()
+            IRDataType.FLOAT -> throw IllegalArgumentException("can't use float here")
+            null -> throw IllegalArgumentException("need type for branch instruction")
+        }
         val value = if(right==0) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         nextPc()
     }
 
     private fun InsSNZ(i: IRInstruction) {
-        val (_: Int, right: Int) = getSetOnConditionOperands(i)
+        val right = when(i.type) {
+            IRDataType.BYTE -> registers.getSB(i.reg2!!).toInt()
+            IRDataType.WORD -> registers.getSW(i.reg2!!).toInt()
+            IRDataType.FLOAT -> throw IllegalArgumentException("can't use float here")
+            null -> throw IllegalArgumentException("need type for branch instruction")
+        }
         val value = if(right!=0) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         nextPc()
@@ -889,7 +899,6 @@ class VirtualMachine(irProgram: IRProgram) {
         val value = if(left>=right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         nextPc()
-
     }
 
     private fun InsINC(i: IRInstruction) {
@@ -2106,8 +2115,8 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsCONCAT(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> {
-                val lsb = registers.getUB(i.reg1!!)
-                val msb = registers.getUB(i.reg2!!)
+                val lsb = registers.getUB(i.reg2!!)
+                val msb = registers.getUB(i.reg3!!)
                 registers.setUW(i.reg1!!, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
             }
             IRDataType.WORD -> throw IllegalArgumentException("concat.w not yet supported, requires 32-bits registers")
@@ -2305,8 +2314,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun getSetOnConditionOperands(ins: IRInstruction): Pair<Int, Int> {
         return when(ins.type) {
-            IRDataType.BYTE -> Pair(registers.getSB(ins.reg1!!).toInt(), registers.getSB(ins.reg2!!).toInt())
-            IRDataType.WORD -> Pair(registers.getSW(ins.reg1!!).toInt(), registers.getSW(ins.reg2!!).toInt())
+            IRDataType.BYTE -> Pair(registers.getSB(ins.reg2!!).toInt(), registers.getSB(ins.reg3!!).toInt())
+            IRDataType.WORD -> Pair(registers.getSW(ins.reg2!!).toInt(), registers.getSW(ins.reg3!!).toInt())
             IRDataType.FLOAT -> {
                 throw IllegalArgumentException("can't use float here")
             }
@@ -2316,8 +2325,8 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun getSetOnConditionOperandsU(ins: IRInstruction): Pair<UInt, UInt> {
         return when(ins.type) {
-            IRDataType.BYTE -> Pair(registers.getUB(ins.reg1!!).toUInt(), registers.getUB(ins.reg2!!).toUInt())
-            IRDataType.WORD -> Pair(registers.getUW(ins.reg1!!).toUInt(), registers.getUW(ins.reg2!!).toUInt())
+            IRDataType.BYTE -> Pair(registers.getUB(ins.reg2!!).toUInt(), registers.getUB(ins.reg3!!).toUInt())
+            IRDataType.WORD -> Pair(registers.getUW(ins.reg2!!).toUInt(), registers.getUW(ins.reg3!!).toUInt())
             IRDataType.FLOAT -> {
                 throw IllegalArgumentException("can't use float here")
             }

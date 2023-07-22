@@ -174,6 +174,7 @@ class IRCodeGen(
                 old.type,
                 old.reg1,
                 old.reg2,
+                old.reg3,
                 old.fpReg1,
                 old.fpReg2,
                 immediate = immediateValue,
@@ -473,10 +474,11 @@ class IRCodeGen(
                         result += IRCodeChunk(loopLabel, null).also {
                             val tmpRegLsb = registers.nextFree()
                             val tmpRegMsb = registers.nextFree()
+                            val concatReg = registers.nextFree()
                             it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, immediate = iterableLength, labelSymbol=iterable.name+"_lsb")
                             it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, immediate = iterableLength, labelSymbol=iterable.name+"_msb")
-                            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=tmpRegLsb, reg2=tmpRegMsb)
-                            it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpRegLsb, labelSymbol = loopvarSymbol)
+                            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=concatReg, reg2=tmpRegLsb, reg3=tmpRegMsb)
+                            it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=concatReg, labelSymbol = loopvarSymbol)
                         }
                         result += translateNode(forLoop.statements)
                         result += IRCodeChunk(null, null).also {

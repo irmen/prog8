@@ -529,6 +529,8 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
 
 asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrOrDecrByOne @Y) clobbers(A) {
         ; -- setup the VERA's data address register 0 or 1
+        ;    with optional auto increment or decrement of 1.
+        ;    Note that the vaddr_autoincr() and vaddr_autodecr() routines allow to set all possible strides, not just 1.
         %asm {{
             and  #1
             pha
@@ -547,6 +549,86 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
 +           sta  cx16.VERA_ADDR_H
             rts
 +           ora  #%00011000
+            sta  cx16.VERA_ADDR_H
+            rts
+        }}
+}
+
+asmsub vaddr_autoincr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword autoIncrAmount @R2) clobbers(A,Y) {
+        ; -- setup the VERA's data address register 0 or 1
+        ;    including setting up optional auto increment amount.
+        ;    Specifiying an unsupported amount results in amount of zero. See the Vera docs about what amounts are possible.
+        %asm {{
+            jsr  _setup
+            lda  cx16.r2H
+            ora  cx16.r2L
+            beq  +
+            jsr  _determine_incr_bits
++           ora  P8ZP_SCRATCH_REG
+            sta  cx16.VERA_ADDR_H
+            rts
+
+_setup      and  #1
+            sta  P8ZP_SCRATCH_REG
+            lda  cx16.r1
+            and  #1
+            sta  cx16.VERA_CTRL
+            lda  cx16.r0
+            sta  cx16.VERA_ADDR_L
+            lda  cx16.r0+1
+            sta  cx16.VERA_ADDR_M
+            rts
+
+_determine_incr_bits
+            lda  cx16.r2H
+            bne  _large
+            lda  cx16.r2L
+            ldy  #13
+-           cmp  _strides_lsb,y
+            beq  +
+            dey
+            bpl  -
++           tya
+            asl  a
+            asl  a
+            asl  a
+            asl  a
+            rts
+_large      ora  cx16.r2L
+            cmp  #1         ; 256
+            bne  +
+            lda  #9<<4
+            rts
++           cmp  #2         ; 512
+            bne  +
+            lda  #10<<4
+            rts
++           cmp  #65        ; 320
+            bne  +
+            lda  #14<<4
+            rts
++           cmp  #130       ; 640
+            bne  +
+            lda  #15<<4
+            rts
++           lda  #0
+            rts
+_strides_lsb    .byte   0,1,2,4,8,16,32,64,128,255,255,40,80,160,255,255
+        }}
+}
+
+asmsub vaddr_autodecr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword autoDecrAmount @R2) clobbers(A,Y) {
+        ; -- setup the VERA's data address register 0 or 1
+        ;    including setting up optional auto decrement amount.
+        ;    Specifiying an unsupported amount results in amount of zero. See the Vera docs about what amounts are possible.
+        %asm {{
+            jsr  vaddr_autoincr._setup
+            lda  cx16.r2H
+            ora  cx16.r2L
+            beq  +
+            jsr  vaddr_autoincr._determine_incr_bits
+            ora  #%00001000         ; autodecrement
++           ora  P8ZP_SCRATCH_REG
             sta  cx16.VERA_ADDR_H
             rts
         }}
@@ -947,8 +1029,8 @@ asmsub  set_rasterline(uword line @AY) {
         %asm {{
             sei
             ldx #$42
-            ldy #1
-            tya
+            ldy #2
+            lda #0
             jsr  cx16.i2c_write_byte
             bra  *
         }}

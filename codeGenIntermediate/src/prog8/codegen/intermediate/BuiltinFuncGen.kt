@@ -327,10 +327,11 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, msbTr, msbTr.resultReg, -1)
         val lsbTr = exprGen.translateExpression(call.args[1])
         addToResult(result, lsbTr, lsbTr.resultReg, -1)
+        val resultReg = codeGen.registers.nextFree()
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = lsbTr.resultReg, reg2 = msbTr.resultReg)
+            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=resultReg, reg2 = lsbTr.resultReg, reg3 = msbTr.resultReg)
         }
-        return ExpressionCodeResult(result, IRDataType.WORD, lsbTr.resultReg, -1)
+        return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
     }
 
     private fun funcClamp(call: PtBuiltinFunctionCall): ExpressionCodeResult {
