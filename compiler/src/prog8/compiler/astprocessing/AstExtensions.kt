@@ -27,7 +27,7 @@ internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationO
     boolRemover.visit(this)
     boolRemover.applyModifications()
 
-    val fixer = BeforeAsmAstChanger(this, compilerOptions, errors)
+    val fixer = BeforeAsmAstChanger(this, compilerOptions)
     fixer.visit(this)
     while (errors.noErrors() && fixer.applyModifications() > 0) {
         fixer.visit(this)
