@@ -32,7 +32,7 @@ internal class AnyExprAsmGen(
                 require(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
                     "both operands must be words"
                 }
-                return assignWordBinExpr(expr, assign)
+                return assignWordBinExpr(expr)
             }
             DataType.FLOAT -> {
                 require(expr.left.type==DataType.FLOAT && expr.right.type==DataType.FLOAT) {
@@ -44,7 +44,7 @@ internal class AnyExprAsmGen(
         }
     }
 
-    private fun assignWordBinExpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+    private fun assignWordBinExpr(expr: PtBinaryExpression): Boolean {
         when(expr.operator) {
             "+" -> {
                 TODO("word + at ${expr.position}")
@@ -253,7 +253,6 @@ internal class AnyExprAsmGen(
             }
             else -> TODO("float expression operator ${expr.operator}")
         }
-        return false
     }
 
     private fun setupFloatComparisonFAC1vsVarAY(expr: PtBinaryExpression) {

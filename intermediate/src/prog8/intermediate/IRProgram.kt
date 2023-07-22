@@ -168,7 +168,6 @@ class IRProgram(val name: String,
                         }
                     }
                     is IRInlineBinaryChunk -> { }
-                    else -> throw AssemblyError("invalid chunk")
                 }
             }
         }

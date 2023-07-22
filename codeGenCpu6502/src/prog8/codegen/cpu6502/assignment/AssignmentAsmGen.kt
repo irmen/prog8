@@ -3376,7 +3376,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("~", assign), scope)
-                    else -> throw AssemblyError("weird target")
                 }
             }
             DataType.UWORD -> {
@@ -3442,7 +3441,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    else -> throw AssemblyError("weird target")
                 }
             }
             DataType.WORD -> {
@@ -3501,7 +3499,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    else -> throw AssemblyError("weird target")
                 }
             }
             DataType.FLOAT -> {

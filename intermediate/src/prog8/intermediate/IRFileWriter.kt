@@ -110,7 +110,6 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                                 is IRInlineAsmChunk -> writeInlineAsm(chunk)
                                 is IRInlineBinaryChunk -> writeInlineBytes(chunk)
                                 is IRCodeChunk -> writeCodeChunk(chunk)
-                                else -> throw InternalCompilerException("invalid chunk")
                             }
                         }
                         xml.writeEndElement()

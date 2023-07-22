@@ -126,7 +126,6 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 else
                     "->"
             }
-            else -> throw InternalCompilerException("unrecognised ast node $node")
         }
     }
 
