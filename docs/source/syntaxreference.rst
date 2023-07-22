@@ -168,6 +168,11 @@ Directives
     assembly into a prog8 block that already defines symbols itself.
     The compiler first looks for the file relative to the same directory as the module containing this statement is in,
     if the file can't be found there it is searched relative to the current directory.
+
+    .. caution::
+        Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
+        Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
+
     Here is a small example program to show how to use labels to reference the included contents from prog8 code::
 
         %import textio
@@ -221,8 +226,11 @@ Directives
 
     If you use the correct scoping rules you can access symbols from the prog8 program from inside
     the assembly code. Sometimes you'll have to declare a variable in prog8 with `@shared` if it
-    is only used in such assembly code. For symbols just consisting of 3 letters, prog8 will
-    add a special prefix to them, read more about this in :ref:`symbol-prefixing`.
+    is only used in such assembly code.
+
+    .. caution::
+        Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
+        Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
 
 
 Identifiers
