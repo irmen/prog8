@@ -881,7 +881,6 @@ skip:
     }
 
     sub position(uword @zp x, uword y) {
-        ubyte bank
         when active_mode {
             1 -> {
                 ; lores monochrome
@@ -892,8 +891,8 @@ skip:
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                bank = lsb(cx16.r1)
-                cx16.vaddr(bank, cx16.r0, 0, 1)
+                cx16.r2L = cx16.r1L
+                cx16.vaddr(cx16.r2L, cx16.r0, 0, 1)
             }
             5 -> {
                 ; highres monochrome
@@ -903,24 +902,16 @@ skip:
             6 -> {
                 ; highres 4c
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                bank = lsb(cx16.r1)
-                cx16.vaddr(bank, cx16.r0, 0, 1)
+                cx16.r2L = cx16.r1L
+                cx16.vaddr(cx16.r2L, cx16.r0, 0, 1)
             }
         }
     }
 
     sub position2(uword @zp x, uword y, bool also_port_1) {
         position(x, y)
-        if also_port_1 {
-            when active_mode {
-                1, 5 -> cx16.vaddr(0, cx16.r0, 1, 1)
-                ; TODO modes 2, 3
-                4, 6 -> {
-                    ubyte bank = lsb(cx16.r1)
-                    cx16.vaddr(bank, cx16.r0, 1, 1)
-                }
-            }
-        }
+        if also_port_1
+            cx16.vaddr_clone(0)
     }
 
     inline asmsub next_pixel(ubyte color @A) {
