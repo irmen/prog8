@@ -289,20 +289,61 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             is PtPrefix -> {
                 if(assign.target.array==null) {
                     if(assign.source.datatype==assign.target.datatype) {
-                        // First assign the value to the target then apply the operator in place on the target.
-                        // This saves a temporary variable
-                        translateNormalAssignment(
-                            AsmAssignment(
-                                AsmAssignSource.fromAstSource(value.value, program, asmgen),
-                                assign.target, program.memsizer, assign.position
-                            ), scope
-                        )
-                        when (value.operator) {
-                            "+" -> {}
-                            "-" -> inplaceNegate(assign, true, scope)
-                            "~" -> inplaceInvert(assign, scope)
-                            "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
-                            else -> throw AssemblyError("invalid prefix operator")
+                        if(assign.source.datatype in IntegerDatatypes) {
+                            val signed = assign.source.datatype in SignedDatatypes
+                            if(assign.source.datatype in ByteDatatypes) {
+                                assignExpressionToRegister(value.value, RegisterOrPair.A, signed)
+                                when(value.operator) {
+                                    "+" -> {}
+                                    "-" -> {
+                                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                            asmgen.out("  eor  #255 |  ina")
+                                        else
+                                            asmgen.out("  eor  #255 |  clc |  adc  #1")
+                                    }
+                                    "~" -> asmgen.out("  eor  #255")
+                                    "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                                    else -> throw AssemblyError("invalid prefix operator")
+                                }
+                                assignRegisterByte(assign.target, CpuRegister.A, signed)
+                            } else {
+                                assignExpressionToRegister(value.value, RegisterOrPair.AY, signed)
+                                when(value.operator) {
+                                    "+" -> {}
+                                    "-" -> {
+                                        asmgen.out("""
+                                            sec
+                                            eor  #255
+                                            adc  #0
+                                            pha
+                                            tya
+                                            eor  #255
+                                            adc  #0
+                                            tay
+                                            pla""")
+                                    }
+                                    "~" -> asmgen.out("  pha |  tya |  eor  #255 |  tay |  pla |  eor  #255")
+                                    "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                                    else -> throw AssemblyError("invalid prefix operator")
+                                }
+                                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                            }
+                        } else {
+                            // First assign the value to the target then apply the operator in place on the target.
+                            // This saves a temporary variable
+                            translateNormalAssignment(
+                                AsmAssignment(
+                                    AsmAssignSource.fromAstSource(value.value, program, asmgen),
+                                    assign.target, program.memsizer, assign.position
+                                ), scope
+                            )
+                            when (value.operator) {
+                                "+" -> {}
+                                "-" -> inplaceNegate(assign, true, scope)
+                                "~" -> inplaceInvert(assign, scope)
+                                "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                                else -> throw AssemblyError("invalid prefix operator")
+                            }
                         }
                     } else {
                         // use a temporary variable
@@ -3657,11 +3698,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             DataType.BYTE -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
-                        asmgen.out("""
-                            lda  #0
-                            sec
-                            sbc  ${target.asmVarname}
-                            sta  ${target.asmVarname}""")
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("""
+                                lda  ${target.asmVarname}
+                                eor  #255
+                                ina
+                                sta  ${target.asmVarname}""")
+                        else
+                            asmgen.out("""
+                                lda  #0
+                                sec
+                                sbc  ${target.asmVarname}
+                                sta  ${target.asmVarname}""")
                     }
                     TargetStorageKind.REGISTER -> {
                         when(target.register!!) {
@@ -3670,7 +3718,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                     asmgen.out("  eor  #255 |  ina")
                                 else
                                     asmgen.out("  eor  #255 |  clc |  adc  #1")
-
                             }
                             RegisterOrPair.X -> asmgen.out("  txa |  eor  #255 |  tax |  inx")
                             RegisterOrPair.Y -> asmgen.out("  tya |  eor  #255 |  tay |  iny")
