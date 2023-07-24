@@ -1,20 +1,20 @@
+%import gfx2
 
-main
-{
-    sub start()
-    {
-        cx16.set_screen_mode(128)
 
-        cx16.vaddr_autoincr(0,320*100+100,1,2)
-        repeat 16 {
-            cx16.VERA_DATA1 = 0
-        }
-        cx16.vaddr_autodecr(0,320*110+100,1,1)
-        repeat 16 {
-            cx16.VERA_DATA1 = 0
+main {
+    sub start() {
+        gfx2.screen_mode(1)         ; 1 and 5 are lo-res and hi-res monochrome
+
+        uword xx
+        gfx2.rect(10, 10, 180, 140, 3)
+        gfx2.rect(12, 12, 180, 140, 3)
+        for xx in 5 to 100 {
+            gfx2.text(xx, xx, 1, sc:"hello world! should be pixel-aligned.")
+            sys.waitvsync()
+            sys.waitvsync()
+            gfx2.text(xx, xx, 0, sc:"hello world! should be pixel-aligned.")
         }
 
-        repeat {
-        }
-    }
+        repeat { }
+	}
 }
