@@ -1112,26 +1112,61 @@ skip:
                 ; hires 4c
                 ; we're going to use a few cx16 registers to make sure every variable is in zeropage in the inner loop.
                 cx16.r11L = color
-                cx16.r8 = y
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     cx16.vaddr(charset_bank, chardataptr, 1, true)  ; for reading the chardata from Vera data channel 1
+                    position(x, y)              ; only calculated once, we update vera address in the loop instead
+                    cx16.VERA_ADDR_H &= $0f     ; no auto increment
                     repeat 8 {
-                        ; TODO rewrite this in assembly, don't call plot for every pixel
-                        ;      requires expanding the charbits to 2-bits per pixel (based on color)
-                        ;      also it's way more efficient to draw whole horizontal spans instead of per-character
-                        cx16.r9L = cx16.VERA_DATA1  ; get the next 8 horizontal character bits
+                        cx16.r10L = cx16.VERA_DATA1  ; get the next 8 horizontal character bits
                         cx16.r7 = x
                         repeat 8 {
-                            cx16.r9L <<= 1
-                            if_cs
-                                plot(cx16.r7, cx16.r8, cx16.r11L)
+                            cx16.r10L <<= 1
+                            if_cs {
+                                cx16.r2L = cx16.r7L & 3       ; xbits
+                                when cx16.r11L & 3 {
+                                    1 -> cx16.r12L = gfx2.plot.shiftedleft_4c_1[cx16.r2L]
+                                    2 -> cx16.r12L = gfx2.plot.shiftedleft_4c_2[cx16.r2L]
+                                    3 -> cx16.r12L = gfx2.plot.shiftedleft_4c_3[cx16.r2L]
+                                    else -> cx16.r12L = 0
+                                }
+                                cx16.VERA_DATA0 = cx16.VERA_DATA0 & gfx2.plot.mask4c[cx16.r2L] | cx16.r12L
+                            }
                             cx16.r7++
+                            if (cx16.r7 & 3) == 0 {
+                                ; increment the pixel address by one
+                                %asm {{
+                                    stz  cx16.VERA_CTRL
+                                    clc
+                                    lda  cx16.VERA_ADDR_L
+                                    adc  #1
+                                    sta  cx16.VERA_ADDR_L
+                                    lda  cx16.VERA_ADDR_M
+                                    adc  #0
+                                    sta  cx16.VERA_ADDR_M
+                                    lda  cx16.VERA_ADDR_H
+                                    adc  #0
+                                    sta  cx16.VERA_ADDR_H
+                                }}
+                            }
                         }
-                        cx16.r8++
+
+                        ; increment pixel address to the next line
+                        %asm {{
+                            stz  cx16.VERA_CTRL
+                            clc
+                            lda  cx16.VERA_ADDR_L
+                            adc  #(640-8)/4
+                            sta  cx16.VERA_ADDR_L
+                            lda  cx16.VERA_ADDR_M
+                            adc  #0
+                            sta  cx16.VERA_ADDR_M
+                            lda  cx16.VERA_ADDR_H
+                            adc  #0
+                            sta  cx16.VERA_ADDR_H
+                        }}
                     }
                     x+=8
-                    cx16.r8-=8
                     sctextptr++
                 }
             }
