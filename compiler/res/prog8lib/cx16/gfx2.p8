@@ -13,8 +13,8 @@
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
 ;   mode 1 = bitmap 320 x 240 monochrome
-;   mode 2 = bitmap 320 x 240 x 4c (TODO not yet implemented)
-;   mode 3 = bitmap 320 x 240 x 16c (TODO not yet implemented)
+;   mode 2 = bitmap 320 x 240 x 4c (not yet implemented: just use 256c, there's enough vram for that)
+;   mode 3 = bitmap 320 x 240 x 16c (not yet implemented: just use 256c, there's enough vram for that)
 ;   mode 4 = bitmap 320 x 240 x 256c  (like SCREEN $80 but using this api instead of kernal)
 ;   mode 5 = bitmap 640 x 480 monochrome
 ;   mode 6 = bitmap 640 x 480 x 4c
@@ -47,7 +47,7 @@ gfx2 {
                 height = 240
                 bpp = 1
             }
-            ; TODO modes 2, 3 not yet implemented
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
@@ -110,7 +110,7 @@ gfx2 {
                 repeat 240/2/8
                     cs_innerloop640()
             }
-            ; TODO mode 2, 3
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 repeat 240/2
@@ -241,8 +241,7 @@ _done
                 }}
             }
             6 -> {
-                ; highres 4c
-                ; TODO also mostly usable for lores 4c?
+                ; highres 4c ....also mostly usable for mode 2, lores 4c?
                 color &= 3
                 ubyte[4] colorbits
                 ubyte ii
@@ -601,7 +600,7 @@ _done
                     }}
                 }
             }
-            ; TODO mode 2,3
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
@@ -653,8 +652,7 @@ _done
                 }
             }
             6 -> {
-                ; highres 4c
-                ; TODO also mostly usable for lores 4c?
+                ; highres 4c   ....also mostly usable for mode 2, lores 4c?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
                 cx16.r2L = lsb(x) & 3       ; xbits
                 ; color &= 3
@@ -708,7 +706,7 @@ _done
 +
                 }}
             }
-            ; TODO mode 2 and 3
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
@@ -888,7 +886,7 @@ skip:
                 cx16.r0 = y*(320/8) + x/8
                 cx16.vaddr(0, cx16.r0, 0, 1)
             }
-            ; TODO modes 2,3
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)

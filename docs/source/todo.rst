@@ -33,7 +33,6 @@ Compiler:
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
 - PtAst/IR: more complex common subexpression eliminations
-- can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc shouldn't be deleted from the assembly?
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
@@ -47,10 +46,9 @@ Libraries:
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
-- actually implement modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)
 
 
-Expressions:
+Expressions:  (see remove_evalstack branch):
 
 - Once the evalstack-free expression codegen is in place, the Eval Stack can be removed from the compiler.
     Machinedefinition, .p8 and .asm library files, all routines operationg on estack, and everything saving/restoring the X register related to this stack.
