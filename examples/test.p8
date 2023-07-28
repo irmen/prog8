@@ -1,47 +1,18 @@
 %import textio
-%import floats
-%zeropage basicsafe
+%zeropage dontuse
 
 main {
-    const uword width = 60
-    const uword height = 50
-    const ubyte max_iter = 16
+    sub start() {
+        uword pointer = $4000
+        ubyte index = $e3
+        @($40e2) = 69
+;        cx16.r0L = pointer[index-1]
 
-    sub start()  {
-        txt.print("calculating mandelbrot fractal...\n\n")
-        cbm.SETTIM(0,0,0)
-
-        ubyte pixelx
-        ubyte pixely
-
-        for pixely in 0 to height-1 {
-            float yy = (pixely as float)/0.40/height - 1.3
-
-            for pixelx in 0 to width-1 {
-                float xx = (pixelx as float)/0.32/width - 2.2
-
-                float xsquared = 0.0
-                float ysquared = 0.0
-                float x = 0.0
-                float y = 0.0
-                ubyte iter = 0
-
-                while iter<max_iter and xsquared+ysquared<4.0 {
-                    y = x*y*2.0 + yy
-                    x = xsquared - ysquared + xx
-                    xsquared = x*x
-                    ysquared = y*y
-                    iter++
-                }
-                txt.color2(1, max_iter-iter)
-                txt.spc()
-            }
-            txt.nl()
-        }
-
-        float duration = (cbm.RDTIM16() as float) / 60
-        txt.print("\nfinished in ")
-        floats.print_f(duration)
-        txt.print(" seconds!\n")
-    }
+        ;cx16.r0L=69
+        ;pointer[16] = cx16.r0L
+        ubyte targetindex=16
+        pointer[targetindex] = pointer[index-1]
+        pointer[16] = pointer[index-1]
+        txt.print_ub(@($4010))      ; expected: 69
+	}
 }

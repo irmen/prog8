@@ -2489,9 +2489,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     TODO("assign register as word into Array not yet supported")
                 if (target.constArrayIndexValue!=null) {
                     when (register) {
-                        CpuRegister.A -> asmgen.out("  sta  ${target.asmVarname}+${target.constArrayIndexValue}")
-                        CpuRegister.X -> asmgen.out("  stx  ${target.asmVarname}+${target.constArrayIndexValue}")
-                        CpuRegister.Y -> asmgen.out("  sty  ${target.asmVarname}+${target.constArrayIndexValue}")
+                        CpuRegister.A -> {}
+                        CpuRegister.X -> asmgen.out(" txa")
+                        CpuRegister.Y -> asmgen.out(" tya")
+                    }
+                    if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
+                        asmgen.out(" ldy  #${target.constArrayIndexValue} |  sta  (${target.asmVarname}),y")
+                    } else {
+                        asmgen.out("""
+                            ldy  ${target.asmVarname}
+                            sty  P8ZP_SCRATCH_W1
+                            ldy  ${target.asmVarname}+1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  #${target.constArrayIndexValue}
+                            sta  (P8ZP_SCRATCH_W1),y""")
                     }
                 }
                 else {
@@ -2501,7 +2512,17 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         CpuRegister.Y -> asmgen.out(" tya")
                     }
                     val indexVar = target.array!!.index as PtIdentifier
-                    asmgen.out(" ldy  ${asmgen.asmVariableName(indexVar)} |  sta  ${target.asmVarname},y")
+                    if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
+                        asmgen.out(" ldy  ${asmgen.asmVariableName(indexVar)} |  sta  (${target.asmVarname}),y")
+                    } else {
+                        asmgen.out("""
+                            ldy  ${target.asmVarname}
+                            sty  P8ZP_SCRATCH_W1
+                            ldy  ${target.asmVarname}+1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  ${asmgen.asmVariableName(indexVar)}
+                            sta  (P8ZP_SCRATCH_W1),y""")
+                    }
                 }
             }
             TargetStorageKind.REGISTER -> {
