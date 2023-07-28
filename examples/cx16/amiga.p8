@@ -175,7 +175,7 @@ widget {
         const ubyte height = 11
         widget.highlightedrect(x+widget.window_close_icon.width, y, width-64, height, true, active)
         gfx2.plot(x+widget.window_close_icon.width, y+height-1, 1) ; correct bottom left corner
-        gfx2.text(x+32, y+1, 1, titlestr)
+        gfx2.text(x+26, y+1, 1, titlestr)
         widget.window_close_icon(x, y, active)
         widget.window_order_icon(x+width-22, y, active)
         widget.window_flipsize_icon(x+width-44, y, active)

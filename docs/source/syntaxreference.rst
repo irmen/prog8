@@ -414,7 +414,8 @@ directly access the memory. Enclose a numeric expression or literal with ``@(...
     @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
     @(vic+$20) = 6    ; a dynamic expression to 'calculate' the address
 
-The array indexing notation on a uword 'pointer variable' is syntactic sugar for such a direct memory access expression::
+The array indexing notation on a uword 'pointer variable' is syntactic sugar for such a direct memory access expression,
+and the index value can be larger than a byte in this case::
 
     pointervar[999] = 0     ; equivalent to @(pointervar+999) = 0
 
@@ -466,7 +467,7 @@ Syntax is familiar with brackets:  ``arrayvar[x]`` ::
 
 Note: you can also use array indexing on a 'pointer variable', which is basically an uword variable
 containing a memory address. Currently this is equivalent to directly referencing the bytes in
-memory at the given index. See :ref:`pointervars`
+memory at the given index (and allows index values of word size). See :ref:`pointervars`
 
 String
 ^^^^^^

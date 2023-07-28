@@ -13,13 +13,14 @@
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
 ;   mode 1 = bitmap 320 x 240 monochrome
-;   mode 2 = bitmap 320 x 240 x 4c (TODO not yet implemented)
-;   mode 3 = bitmap 320 x 240 x 16c (TODO not yet implemented)
+;   mode 2 = bitmap 320 x 240 x 4c (not yet implemented: just use 256c, there's enough vram for that)
+;   mode 3 = bitmap 320 x 240 x 16c (not yet implemented: just use 256c, there's enough vram for that)
 ;   mode 4 = bitmap 320 x 240 x 256c  (like SCREEN $80 but using this api instead of kernal)
 ;   mode 5 = bitmap 640 x 480 monochrome
 ;   mode 6 = bitmap 640 x 480 x 4c
 ;   higher color dephts in highres are not supported due to lack of VRAM
 
+; TODO remove the phx/plx pairs in non-stack compiler version
 
 gfx2 {
 
@@ -46,7 +47,7 @@ gfx2 {
                 height = 240
                 bpp = 1
             }
-            ; TODO modes 2, 3 not yet implemented
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
@@ -109,7 +110,7 @@ gfx2 {
                 repeat 240/2/8
                     cs_innerloop640()
             }
-            ; TODO mode 2, 3
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 repeat 240/2
@@ -239,8 +240,7 @@ _done
                 }}
             }
             6 -> {
-                ; highres 4c
-                ; TODO also mostly usable for lores 4c?
+                ; highres 4c ....also mostly usable for mode 2, lores 4c?
                 color &= 3
                 ubyte[4] colorbits
                 ubyte ii
@@ -594,7 +594,7 @@ _done
                     }}
                 }
             }
-            ; TODO mode 2,3
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
@@ -646,8 +646,7 @@ _done
                 }
             }
             6 -> {
-                ; highres 4c
-                ; TODO also mostly usable for lores 4c?
+                ; highres 4c   ....also mostly usable for mode 2, lores 4c?
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
                 cx16.r2L = lsb(x) & 3       ; xbits
                 ; color &= 3
@@ -701,7 +700,7 @@ _done
 +
                 }}
             }
-            ; TODO mode 2 and 3
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
@@ -875,19 +874,18 @@ skip:
     }
 
     sub position(uword @zp x, uword y) {
-        ubyte bank
         when active_mode {
             1 -> {
                 ; lores monochrome
                 cx16.r0 = y*(320/8) + x/8
                 cx16.vaddr(0, cx16.r0, 0, 1)
             }
-            ; TODO modes 2,3
+            ; TODO modes 2, 3
             4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                bank = lsb(cx16.r1)
-                cx16.vaddr(bank, cx16.r0, 0, 1)
+                cx16.r2L = cx16.r1L
+                cx16.vaddr(cx16.r2L, cx16.r0, 0, 1)
             }
             5 -> {
                 ; highres monochrome
@@ -897,24 +895,16 @@ skip:
             6 -> {
                 ; highres 4c
                 void addr_mul_24_for_highres_4c(y, x)      ; 24 bits result is in r0 and r1L (highest byte)
-                bank = lsb(cx16.r1)
-                cx16.vaddr(bank, cx16.r0, 0, 1)
+                cx16.r2L = cx16.r1L
+                cx16.vaddr(cx16.r2L, cx16.r0, 0, 1)
             }
         }
     }
 
     sub position2(uword @zp x, uword y, bool also_port_1) {
         position(x, y)
-        if also_port_1 {
-            when active_mode {
-                1, 5 -> cx16.vaddr(0, cx16.r0, 1, 1)
-                ; TODO modes 2, 3
-                4, 6 -> {
-                    ubyte bank = lsb(cx16.r1)
-                    cx16.vaddr(bank, cx16.r0, 1, 1)
-                }
-            }
-        }
+        if also_port_1
+            cx16.vaddr_clone(0)
     }
 
     inline asmsub next_pixel(ubyte color @A) {
@@ -986,48 +976,96 @@ skip:
     sub text(uword @zp x, uword y, ubyte color, uword sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
-        ;    NOTE: in monochrome (1bpp) screen modes, x position is currently constrained to multiples of 8 !  TODO allow per-pixel horizontal positioning
-        ; TODO draw whole horizontal spans using vera auto increment if possible, instead of per-character columns
         uword chardataptr
+        ubyte[8] @shared char_bitmap_bytes_left
+        ubyte[8] @shared char_bitmap_bytes_right
+
         when active_mode {
             1, 5 -> {
                 ; monochrome mode, either resolution
-                cx16.r2 = 40
-                if active_mode==5
-                    cx16.r2 = 80
-                while @(sctextptr) {
-                    chardataptr = charset_addr + (@(sctextptr) as uword)*8
-                    cx16.vaddr(charset_bank, chardataptr, 1, 1)
-                    position(x,y)
+                cx16.r3 = sctextptr
+                while @(cx16.r3) {
+                    chardataptr = charset_addr + @(cx16.r3) * $0008
+                    ; copy the character bitmap into RAM
+                    cx16.vaddr_autoincr(charset_bank, chardataptr, 0, 1)
                     %asm {{
-                        lda  cx16.VERA_ADDR_H
-                        and  #%111              ; don't auto-increment, we have to do that manually because of the ora
-                        sta  cx16.VERA_ADDR_H
-                        lda  color
+                        ; pre-shift the bits
+                        phx ; TODO remove in non-stack version
+                        lda  text.x
+                        and  #7
                         sta  P8ZP_SCRATCH_B1
-                        ldy  #8
--                       lda  P8ZP_SCRATCH_B1
-                        bne  +                  ; white color, plot normally
-                        lda  cx16.VERA_DATA1
-                        eor  #255               ; black color, keep only the other pixels
-                        and  cx16.VERA_DATA0
-                        bra  ++
-+                       lda  cx16.VERA_DATA0
-                        ora  cx16.VERA_DATA1
-+                       sta  cx16.VERA_DATA0
-                        lda  cx16.VERA_ADDR_L
-                        clc
-                        adc  cx16.r2
-                        sta  cx16.VERA_ADDR_L
-                        bcc  +
-                        inc  cx16.VERA_ADDR_M
-+                       inc  x
-                        bne  +
-                        inc  x+1
-+                       dey
+                        ldy  #0
+-                       lda  cx16.VERA_DATA0
+                        stz  P8ZP_SCRATCH_REG
+                        ldx  P8ZP_SCRATCH_B1
+                        cpx  #0
+                        beq  +
+-                       lsr  a
+                        ror  P8ZP_SCRATCH_REG
+                        dex
                         bne  -
++                       sta  char_bitmap_bytes_left,y
+                        lda  P8ZP_SCRATCH_REG
+                        sta  char_bitmap_bytes_right,y
+                        iny
+                        cpy  #8
+                        bne  --
+                        plx     ; TODO remove in non-stack version
                     }}
-                    sctextptr++
+                    ; left part of shifted char
+                    position2(x, y, true)
+                    set_autoincrs_mode1_or_5()
+                    if color {
+                        %asm {{
+                            ldy  #0
+-                           lda  char_bitmap_bytes_left,y
+                            ora  cx16.VERA_DATA1
+                            sta  cx16.VERA_DATA0
+                            iny
+                            cpy  #8
+                            bne  -
+                        }}
+                    } else {
+                        %asm {{
+                            ldy  #0
+-                           lda  char_bitmap_bytes_left,y
+                            eor  #255
+                            and  cx16.VERA_DATA1
+                            sta  cx16.VERA_DATA0
+                            iny
+                            cpy  #8
+                            bne  -
+                        }}
+                    }
+                    ; right part of shifted char
+                    if lsb(x) & 7 {
+                        position2(x+8, y, true)
+                        set_autoincrs_mode1_or_5()
+                        if color {
+                            %asm {{
+                                ldy  #0
+    -                           lda  char_bitmap_bytes_right,y
+                                ora  cx16.VERA_DATA1
+                                sta  cx16.VERA_DATA0
+                                iny
+                                cpy  #8
+                                bne  -
+                            }}
+                        } else {
+                            %asm {{
+                                ldy  #0
+    -                           lda  char_bitmap_bytes_right,y
+                                eor  #255
+                                and  cx16.VERA_DATA1
+                                sta  cx16.VERA_DATA0
+                                iny
+                                cpy  #8
+                                bne  -
+                            }}
+                        }
+                    }
+                    cx16.r3++
+                    x += 8
                 }
             }
             4 -> {
@@ -1061,28 +1099,78 @@ skip:
                 ; hires 4c
                 ; we're going to use a few cx16 registers to make sure every variable is in zeropage in the inner loop.
                 cx16.r11L = color
-                cx16.r8 = y
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     cx16.vaddr(charset_bank, chardataptr, 1, true)  ; for reading the chardata from Vera data channel 1
+                    position(x, y)              ; only calculated once, we update vera address in the loop instead
+                    cx16.VERA_ADDR_H &= $0f     ; no auto increment
                     repeat 8 {
-                        ; TODO rewrite this inner loop partly in assembly:
-                        ;      requires expanding the charbits to 2-bits per pixel (based on color)
-                        ;      also it's way more efficient to draw whole horizontal spans instead of per-character
-                        cx16.r9L = cx16.VERA_DATA1  ; get the next 8 horizontal character bits
+                        cx16.r10L = cx16.VERA_DATA1  ; get the next 8 horizontal character bits
                         cx16.r7 = x
                         repeat 8 {
-                            cx16.r9L <<= 1
-                            if_cs
-                                plot(cx16.r7, cx16.r8, cx16.r11L)
+                            cx16.r10L <<= 1
+                            if_cs {
+                                cx16.r2L = cx16.r7L & 3       ; xbits
+                                when cx16.r11L & 3 {
+                                    1 -> cx16.r12L = gfx2.plot.shiftedleft_4c_1[cx16.r2L]
+                                    2 -> cx16.r12L = gfx2.plot.shiftedleft_4c_2[cx16.r2L]
+                                    3 -> cx16.r12L = gfx2.plot.shiftedleft_4c_3[cx16.r2L]
+                                    else -> cx16.r12L = 0
+                                }
+                                cx16.VERA_DATA0 = cx16.VERA_DATA0 & gfx2.plot.mask4c[cx16.r2L] | cx16.r12L
+                            }
                             cx16.r7++
+                            if (cx16.r7 & 3) == 0 {
+                                ; increment the pixel address by one
+                                %asm {{
+                                    stz  cx16.VERA_CTRL
+                                    clc
+                                    lda  cx16.VERA_ADDR_L
+                                    adc  #1
+                                    sta  cx16.VERA_ADDR_L
+                                    lda  cx16.VERA_ADDR_M
+                                    adc  #0
+                                    sta  cx16.VERA_ADDR_M
+                                    lda  cx16.VERA_ADDR_H
+                                    adc  #0
+                                    sta  cx16.VERA_ADDR_H
+                                }}
+                            }
                         }
-                        cx16.r8++
+
+                        ; increment pixel address to the next line
+                        %asm {{
+                            stz  cx16.VERA_CTRL
+                            clc
+                            lda  cx16.VERA_ADDR_L
+                            adc  #(640-8)/4
+                            sta  cx16.VERA_ADDR_L
+                            lda  cx16.VERA_ADDR_M
+                            adc  #0
+                            sta  cx16.VERA_ADDR_M
+                            lda  cx16.VERA_ADDR_H
+                            adc  #0
+                            sta  cx16.VERA_ADDR_H
+                        }}
                     }
                     x+=8
-                    cx16.r8-=8
                     sctextptr++
                 }
+            }
+        }
+
+        sub set_autoincrs_mode1_or_5() {
+            ; set autoincrements to go to next pixel row (40 or 80 increment)
+            if active_mode==1 {
+                cx16.VERA_CTRL = 0
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (11<<4)
+                cx16.VERA_CTRL = 1
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (11<<4)
+            } else {
+                cx16.VERA_CTRL = 0
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (12<<4)
+                cx16.VERA_CTRL = 1
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (12<<4)
             }
         }
     }

@@ -1,7 +1,8 @@
 TODO
 ====
 
-- IR: reduce the number of branch instructions (gradually), replace with CMP(I) + status branch instruction
+- IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
+- IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!
 
 ...
 
@@ -32,7 +33,6 @@ Compiler:
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
 - PtAst/IR: more complex common subexpression eliminations
-- can we get rid of pieces of asmgen.AssignmentAsmGen by just reusing the AugmentableAssignment ? generated code should not suffer
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc shouldn't be deleted from the assembly?
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
@@ -46,8 +46,6 @@ Libraries:
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
-- optimize several inner loops in gfx2 even further?
-- actually implement modes 3 and perhaps even 2 to gfx2 (lores 16 color and 4 color)
 
 
 Optimizations:
@@ -64,15 +62,8 @@ STRUCTS again?
 What if we were to re-introduce Structs in prog8? Some thoughts:
 
 - can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs
-- is just some syntactic sugar for a scoped set of variables -> ast transform to do exactly this before codegen. Codegen doesn't know about struct.
-- no arrays of struct -- because too slow on 6502 to access those, rather use struct of arrays instead.
-  can we make this a compiler/codegen only issue? i.e. syntax is just as if it was an array of structs?
-  or make it explicit in the syntax so that it is clear what the memory layout of it is.
-- ability to assign struct variable to another?   this is slow but can be quite handy sometimes.
-  however how to handle this in a function that gets the struct passed as reference? Don't allow it there? (there's no pointer dereferencing concept in prog8)
-- ability to be passed as argument to a function (by reference)?
-  however there is no typed pointer in prog8 at the moment so this can't be implemented in a meaningful way yet,
-  because there is no way to reference it as the struct type again. (current ast gets the by-reference parameter
-  type replaced by uword)
-  So-- maybe don't replace the parameter type in the ast?  Should fix that for str and array types as well then
-
+- only as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
+- arrays of struct is just an array of uword pointers. Can even be @split?
+- need to introduce typed pointer datatype in prog8
+- str is then syntactic sugar for pointer to character/byte?
+- arrays are then syntactic sugar for pointer to byte/word/float?
