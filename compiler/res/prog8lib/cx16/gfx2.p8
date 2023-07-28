@@ -20,8 +20,6 @@
 ;   mode 6 = bitmap 640 x 480 x 4c
 ;   higher color dephts in highres are not supported due to lack of VRAM
 
-; TODO remove the phx/plx pairs in non-stack compiler version
-
 gfx2 {
 
     %option no_symbol_prefixing
@@ -990,7 +988,6 @@ skip:
                     cx16.vaddr_autoincr(charset_bank, chardataptr, 0, 1)
                     %asm {{
                         ; pre-shift the bits
-                        phx ; TODO remove in non-stack version
                         lda  text.x
                         and  #7
                         sta  P8ZP_SCRATCH_B1
@@ -1010,7 +1007,6 @@ skip:
                         iny
                         cpy  #8
                         bne  --
-                        plx     ; TODO remove in non-stack version
                     }}
                     ; left part of shifted char
                     position2(x, y, true)
