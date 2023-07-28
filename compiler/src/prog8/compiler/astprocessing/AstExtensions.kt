@@ -108,9 +108,6 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
     checker2.visit(this)
 
     if(errors.noErrors()) {
-        val transforms = AstOnetimeTransforms(this, options)
-        transforms.visit(this)
-        transforms.applyModifications()
         val lit2decl = LiteralsToAutoVars(this, options.compTarget, errors)
         lit2decl.visit(this)
         if(errors.noErrors())

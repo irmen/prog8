@@ -1,6 +1,7 @@
 TODO
 ====
 
+- bugfixes: assem crashing, imageviewer not loading past boat image, rockrunner music borked.
 - stackless: describe the changes in the manual.
 
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction

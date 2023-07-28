@@ -2487,41 +2487,66 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             TargetStorageKind.ARRAY -> {
                 if(assignAsWord)
                     TODO("assign register as word into Array not yet supported")
-                if (target.constArrayIndexValue!=null) {
-                    when (register) {
-                        CpuRegister.A -> {}
-                        CpuRegister.X -> asmgen.out(" txa")
-                        CpuRegister.Y -> asmgen.out(" tya")
+                if(target.array!!.splitWords)
+                    TODO("assign register into split words ${target.position}")
+                if(target.origAstTarget?.array?.variable?.type==DataType.UWORD) {
+                    // assigning an indexed pointer var
+                    if (target.constArrayIndexValue!=null) {
+                        when (register) {
+                            CpuRegister.A -> {}
+                            CpuRegister.X -> asmgen.out(" txa")
+                            CpuRegister.Y -> asmgen.out(" tya")
+                        }
+                        if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
+                            asmgen.out("  ldy  #${target.constArrayIndexValue} |  sta  (${target.asmVarname}),y")
+                        } else {
+                            asmgen.out("""
+                                ldy  ${target.asmVarname}
+                                sty  P8ZP_SCRATCH_W1
+                                ldy  ${target.asmVarname}+1
+                                sty  P8ZP_SCRATCH_W1+1
+                                ldy  #${target.constArrayIndexValue}
+                                sta  (P8ZP_SCRATCH_W1),y""")
+                        }
                     }
-                    if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
-                        asmgen.out(" ldy  #${target.constArrayIndexValue} |  sta  (${target.asmVarname}),y")
-                    } else {
-                        asmgen.out("""
-                            ldy  ${target.asmVarname}
-                            sty  P8ZP_SCRATCH_W1
-                            ldy  ${target.asmVarname}+1
-                            sty  P8ZP_SCRATCH_W1+1
-                            ldy  #${target.constArrayIndexValue}
-                            sta  (P8ZP_SCRATCH_W1),y""")
+                    else {
+                        when (register) {
+                            CpuRegister.A -> {}
+                            CpuRegister.X -> asmgen.out(" txa")
+                            CpuRegister.Y -> asmgen.out(" tya")
+                        }
+                        val indexVar = target.array!!.index as PtIdentifier
+                        if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
+                            asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  (${target.asmVarname}),y")
+                        } else {
+                            asmgen.out("""
+                                ldy  ${target.asmVarname}
+                                sty  P8ZP_SCRATCH_W1
+                                ldy  ${target.asmVarname}+1
+                                sty  P8ZP_SCRATCH_W1+1
+                                ldy  ${asmgen.asmVariableName(indexVar)}
+                                sta  (P8ZP_SCRATCH_W1),y""")
+                        }
                     }
-                }
-                else {
-                    when (register) {
-                        CpuRegister.A -> {}
-                        CpuRegister.X -> asmgen.out(" txa")
-                        CpuRegister.Y -> asmgen.out(" tya")
+                    return
+                } else {
+                    // assign regular array indexing
+                    if (target.constArrayIndexValue!=null) {
+                        when (register) {
+                            CpuRegister.A -> {}
+                            CpuRegister.X -> asmgen.out(" txa")
+                            CpuRegister.Y -> asmgen.out(" tya")
+                        }
+                        asmgen.out("  sta  ${target.asmVarname}+${target.constArrayIndexValue}")
                     }
-                    val indexVar = target.array!!.index as PtIdentifier
-                    if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
-                        asmgen.out(" ldy  ${asmgen.asmVariableName(indexVar)} |  sta  (${target.asmVarname}),y")
-                    } else {
-                        asmgen.out("""
-                            ldy  ${target.asmVarname}
-                            sty  P8ZP_SCRATCH_W1
-                            ldy  ${target.asmVarname}+1
-                            sty  P8ZP_SCRATCH_W1+1
-                            ldy  ${asmgen.asmVariableName(indexVar)}
-                            sta  (P8ZP_SCRATCH_W1),y""")
+                    else {
+                        when (register) {
+                            CpuRegister.A -> {}
+                            CpuRegister.X -> asmgen.out(" txa")
+                            CpuRegister.Y -> asmgen.out(" tya")
+                        }
+                        val indexVar = target.array!!.index as PtIdentifier
+                        asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  ${target.asmVarname},y")
                     }
                 }
             }
