@@ -410,10 +410,17 @@ class IRCodeGen(
                 result += translateNode(choice.statements)
                 addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
             } else {
-                val choiceLabel = createLabelName()
-                choices.add(choiceLabel to choice)
-                choice.values.children.map { it as PtNumber }.sortedBy { it.number }.forEach { value ->
-                    addInstr(result, IRInstruction(Opcode.BEQ, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt(), labelSymbol = choiceLabel), null)
+                if(choice.statements.children.isEmpty()) {
+                    // no statements for this choice value, jump to the end immediately
+                    choice.values.children.map { it as PtNumber }.sortedBy { it.number }.forEach { value ->
+                        addInstr(result, IRInstruction(Opcode.BEQ, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt(), labelSymbol = endLabel), null)
+                    }
+                } else {
+                    val choiceLabel = createLabelName()
+                    choices.add(choiceLabel to choice)
+                    choice.values.children.map { it as PtNumber }.sortedBy { it.number }.forEach { value ->
+                        addInstr(result, IRInstruction(Opcode.BEQ, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt(), labelSymbol = choiceLabel), null)
+                    }
                 }
             }
         }
