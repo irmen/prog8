@@ -2058,8 +2058,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplaceModification_word_value_to_variable(name: String, dt: DataType, operator: String, value: PtExpression) {
-        // this should be the last resort for code generation for this,
-        // because the value is evaluated onto the eval stack (=slow).
         fun multiplyVarByWordInAY() {
             asmgen.out("""
                 sta  P8ZP_SCRATCH_W1

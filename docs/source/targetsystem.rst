@@ -63,11 +63,11 @@ Footnotes for the Commander X16
 
     $02 - $21 are the 16 virtual cx16 registers R0-R15.
 
-    $22 - $7F are free to use, and Prog8 utilizes this to put variables in automatically.
+    $22 - $7F are used by Prog8 to put variables in.
 
     The top half of the ZP ($80-$FF) is reserved for use by the Kernal and Basic in normal operation.
     Zero page use by Prog8 can be manipulated with the ``%zeropage`` directive, various options
-    may free up more locations for use by Prog8.
+    may free up more locations for use by Prog8 or to reserve them for other things.
 
 
 Footnotes for the Commodore 64
@@ -80,7 +80,7 @@ Footnotes for the Commodore 64
 *Zero Page $0000 - $00FF*
     Consider the full zero page to be reserved for use by the Kernal and Basic in normal operation.
     Zero page use by Prog8 can be manipulated with the ``%zeropage`` directive, various options
-    may free up more locations for use by Prog8.
+    may free up more locations for use by Prog8 or to reserve them for other things.
 
 
 Zero page usage by the Prog8 compiler
