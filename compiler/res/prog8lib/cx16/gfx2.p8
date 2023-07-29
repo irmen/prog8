@@ -427,17 +427,17 @@ _done
         }
 
         word @zp d = 0
-        cx16.r13 = true      ; 'positive_ix'
+        cx16.r1L = true      ; 'positive_ix'
         if dx < 0 {
             dx = -dx
-            cx16.r13 = false
+            cx16.r1L = false
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
         cx16.r14 = x1       ; internal plot X
 
         if dx >= dy {
-            if cx16.r13 {
+            if cx16.r1L {
                 repeat {
                     plot(cx16.r14, y1, color)
                     if cx16.r14==x2
@@ -464,7 +464,7 @@ _done
             }
         }
         else {
-            if cx16.r13 {
+            if cx16.r1L {
                 repeat {
                     plot(cx16.r14, y1, color)
                     if y1 == y2
