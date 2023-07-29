@@ -262,15 +262,5 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
         return noModifications
     }
-
-    override fun after(whenStmt: When, parent: Node): Iterable<IAstModification> {
-        val removals = mutableListOf<Int>()
-        whenStmt.choices.withIndex().forEach { (index, choice) ->
-            if(choice.statements.isEmpty())
-                removals.add(index)
-        }
-        removals.reversed().forEach { whenStmt.choices.removeAt(it) }
-        return noModifications
-    }
 }
 
