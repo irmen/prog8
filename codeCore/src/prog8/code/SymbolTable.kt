@@ -213,8 +213,7 @@ class StStaticVariable(name: String,
 
 
 class StConstant(name: String, val dt: DataType, val value: Double, astNode: PtNode) :
-    StNode(name, StNodeType.CONSTANT, astNode) {
-}
+    StNode(name, StNodeType.CONSTANT, astNode)
 
 
 class StMemVar(name: String,
@@ -236,12 +235,11 @@ class StMemorySlab(
     val align: UInt,
     astNode: PtNode
 ):
-    StNode(name, StNodeType.MEMORYSLAB, astNode) {
-}
+    StNode(name, StNodeType.MEMORYSLAB, astNode)
+
 
 class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, astNode: PtNode) :
-        StNode(name, StNodeType.SUBROUTINE, astNode) {
-}
+        StNode(name, StNodeType.SUBROUTINE, astNode)
 
 
 class StRomSub(name: String,

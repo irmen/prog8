@@ -1,14 +1,8 @@
 package prog8.codegen.cpu6502
 
-import com.github.michaelbull.result.Ok
-import com.github.michaelbull.result.Result
-import com.github.michaelbull.result.mapError
 import prog8.code.core.*
 import prog8.code.target.C64Target
-import java.io.File
 import java.nio.file.Path
-import kotlin.io.path.Path
-import kotlin.io.path.isRegularFile
 
 
 internal class AssemblyProgram(
@@ -128,20 +122,5 @@ internal class AssemblyProgram(
         breakpoints.add(1, "; $num breakpoints have been defined")
         breakpoints.add(2, "del")
         viceMonListFile.toFile().appendText(breakpoints.joinToString("\n") + "\n")
-    }
-}
-
-
-internal fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
-    return if (filename.startsWith(SourceCode.libraryFilePrefix)) {
-        return com.github.michaelbull.result.runCatching {
-            SourceCode.Resource("/prog8lib/${filename.substring(SourceCode.libraryFilePrefix.length)}").text
-        }.mapError { NoSuchFileException(File(filename)) }
-    } else {
-        val sib = Path(source.origin).resolveSibling(filename)
-        if (sib.isRegularFile())
-            Ok(SourceCode.File(sib).text)
-        else
-            Ok(SourceCode.File(Path(filename)).text)
     }
 }

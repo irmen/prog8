@@ -1,6 +1,6 @@
 package prog8.code.core
 
-import prog8.code.core.SourceCode.Companion.libraryFilePrefix
+import prog8.code.core.SourceCode.Companion.LIBRARYFILEPREFIX
 import java.nio.file.InvalidPathException
 import kotlin.io.path.Path
 import kotlin.io.path.absolute
@@ -10,7 +10,7 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
     fun toClickableStr(): String {
         if(this===DUMMY)
             return ""
-        if(file.startsWith(libraryFilePrefix))
+        if(file.startsWith(LIBRARYFILEPREFIX))
             return "$file:$line:$startCol:"
         return try {
             val path = Path(file).absolute().normalize().toString()

@@ -378,7 +378,7 @@ class TestProg8Parser: FunSpec( {
             """.trimIndent()
             val module = parseModule(SourceCode.Text(srcText))
             assertSomethingForAllNodes(module) {
-                it.position.file shouldStartWith SourceCode.stringSourcePrefix
+                it.position.file shouldStartWith SourceCode.STRINGSOURCEPREFIX
             }
         }
 
@@ -387,7 +387,7 @@ class TestProg8Parser: FunSpec( {
             val resource = SourceCode.Resource("prog8lib/math.p8")
             val module = parseModule(resource)
             assertSomethingForAllNodes(module) {
-                it.position.file shouldStartWith SourceCode.libraryFilePrefix
+                it.position.file shouldStartWith SourceCode.LIBRARYFILEPREFIX
             }
         }
     }

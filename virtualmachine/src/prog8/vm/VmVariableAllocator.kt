@@ -3,7 +3,7 @@ package prog8.vm
 import prog8.code.core.*
 import prog8.intermediate.IRSymbolTable
 
-internal class VmVariableAllocator(val st: IRSymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
+internal class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
 
     internal val allocations = mutableMapOf<String, Int>()
     private var freeMemoryStart: Int

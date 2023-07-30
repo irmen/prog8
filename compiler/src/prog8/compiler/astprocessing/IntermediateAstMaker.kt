@@ -19,7 +19,7 @@ import kotlin.io.path.isRegularFile
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class IntermediateAstMaker(private val program: Program, private val options: CompilationOptions) {
+class IntermediateAstMaker(private val program: Program) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(
             program.name,
@@ -529,9 +529,9 @@ class IntermediateAstMaker(private val program: Program, private val options: Co
 
 
     private fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
-        return if (filename.startsWith(SourceCode.libraryFilePrefix)) {
+        return if (filename.startsWith(SourceCode.LIBRARYFILEPREFIX)) {
             return com.github.michaelbull.result.runCatching {
-                SourceCode.Resource("/prog8lib/${filename.substring(SourceCode.libraryFilePrefix.length)}").text
+                SourceCode.Resource("/prog8lib/${filename.substring(SourceCode.LIBRARYFILEPREFIX.length)}").text
             }.mapError { NoSuchFileException(File(filename)) }
         } else {
             val sib = Path(source.origin).resolveSibling(filename)

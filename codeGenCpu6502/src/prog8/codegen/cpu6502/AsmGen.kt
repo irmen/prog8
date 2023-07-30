@@ -203,7 +203,7 @@ class AsmGen6502Internal (
     private val allocator = VariableAllocator(symbolTable, options, errors)
     private val assemblyLines = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
-    private val forloopsAsmGen = ForLoopsAsmGen(program, this, zeropage)
+    private val forloopsAsmGen = ForLoopsAsmGen(this, zeropage)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
@@ -852,7 +852,7 @@ $repeatLabel""")
             DataType.UBYTE, DataType.UWORD -> {
                 val result = zeropage.allocate(counterVar, dt, null, stmt.position, errors)
                 result.fold(
-                    success = { (address, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
+                    success = { (address, _, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
                     failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally
                 )
                 return counterVar

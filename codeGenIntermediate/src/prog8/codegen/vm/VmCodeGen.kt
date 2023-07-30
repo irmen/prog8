@@ -16,7 +16,7 @@ class VmCodeGen: ICodeGeneratorBackend {
         symbolTable: SymbolTable,
         options: CompilationOptions,
         errors: IErrorReporter
-    ): IAssemblyProgram? {
+    ): IAssemblyProgram {
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
         return VmAssemblyProgram(irProgram.name, irProgram)

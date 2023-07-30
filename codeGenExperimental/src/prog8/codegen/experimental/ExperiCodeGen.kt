@@ -15,7 +15,7 @@ class ExperiCodeGen: ICodeGeneratorBackend {
         symbolTable: SymbolTable,
         options: CompilationOptions,
         errors: IErrorReporter
-    ): IAssemblyProgram? {
+    ): IAssemblyProgram {
 
         // you could write a code generator directly on the PtProgram AST,
         // but you can also use the Intermediate Representation to build a codegen on:

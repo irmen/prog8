@@ -5,9 +5,10 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import kotlin.math.absoluteValue
 
-internal class ForLoopsAsmGen(private val program: PtProgram,
-                              private val asmgen: AsmGen6502Internal,
-                              private val zeropage: Zeropage) {
+internal class ForLoopsAsmGen(
+    private val asmgen: AsmGen6502Internal,
+    private val zeropage: Zeropage
+) {
 
     internal fun translate(stmt: PtForLoop) {
         val iterableDt = stmt.iterable.type
@@ -382,7 +383,7 @@ $loopLabel          sty  $indexVar
                     // allocate index var on ZP if possible
                     val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
-                        success = { (address,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                        success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
                     )
                 } else {

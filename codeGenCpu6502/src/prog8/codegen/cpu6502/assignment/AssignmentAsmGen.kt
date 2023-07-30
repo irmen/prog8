@@ -2497,7 +2497,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             CpuRegister.X -> asmgen.out(" txa")
                             CpuRegister.Y -> asmgen.out(" tya")
                         }
-                        if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
+                        if(asmgen.isZpVar(target.origAstTarget.array!!.variable)) {
                             asmgen.out("  ldy  #${target.constArrayIndexValue} |  sta  (${target.asmVarname}),y")
                         } else {
                             asmgen.out("""
@@ -2515,8 +2515,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             CpuRegister.X -> asmgen.out(" txa")
                             CpuRegister.Y -> asmgen.out(" tya")
                         }
-                        val indexVar = target.array!!.index as PtIdentifier
-                        if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
+                        val indexVar = target.array.index as PtIdentifier
+                        if(asmgen.isZpVar(target.origAstTarget.array!!.variable)) {
                             asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  (${target.asmVarname}),y")
                         } else {
                             asmgen.out("""
@@ -2545,7 +2545,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             CpuRegister.X -> asmgen.out(" txa")
                             CpuRegister.Y -> asmgen.out(" tya")
                         }
-                        val indexVar = target.array!!.index as PtIdentifier
+                        val indexVar = target.array.index as PtIdentifier
                         asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  ${target.asmVarname},y")
                     }
                 }

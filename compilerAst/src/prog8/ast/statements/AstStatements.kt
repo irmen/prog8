@@ -136,7 +136,6 @@ data class Label(override val name: String, override val position: Position) : S
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString()= "Label(name=$name, pos=$position)"
-    fun renamed(newName: String): Label = Label(newName, position)
 }
 
 class Return(var value: Expression?, override val position: Position) : Statement() {
@@ -286,13 +285,6 @@ class VarDecl(val type: VarDeclType,
 
     override fun copy(): VarDecl {
         val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, value?.copy(),
-            isArray, sharedWithAsm, splitArray, position)
-        copy.allowInitializeWithZero = this.allowInitializeWithZero
-        return copy
-    }
-
-    fun renamed(newName: String): VarDecl {
-        val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize, newName, value,
             isArray, sharedWithAsm, splitArray, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
@@ -882,25 +874,6 @@ class ForLoop(var loopVar: IdentifierReference,
                 body.referencesIdentifier(nameInSource)
 
     fun loopVarDt(program: Program) = loopVar.inferType(program)
-
-    fun constIterationCount(program: Program): Int? {
-        return when (val iter = iterable) {
-            is IdentifierReference -> {
-                val target = iter.targetVarDecl(program)!!
-                if (target.isArray)
-                    target.arraysize!!.constIndex()
-                else if (target.value is StringLiteral)
-                    (target.value as StringLiteral).value.length
-                else if (target.value is ArrayLiteral)
-                    (target.value as ArrayLiteral).value.size
-                else null
-            }
-            is ArrayLiteral -> iter.value.size
-            is RangeExpression -> iter.size()
-            is StringLiteral -> iter.value.length
-            else -> null
-        }
-    }
 
 }
 

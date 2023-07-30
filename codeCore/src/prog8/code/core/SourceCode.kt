@@ -54,12 +54,12 @@ sealed class SourceCode {
         /**
          * filename prefix to designate library files that will be retreived from internal resources rather than disk
          */
-        const val libraryFilePrefix = "library:"
-        const val stringSourcePrefix = "string:"
+        const val LIBRARYFILEPREFIX = "library:"
+        const val STRINGSOURCEPREFIX = "string:"
         val curdir: Path = Path(".").toAbsolutePath()
         fun relative(path: Path): Path = curdir.relativize(path.toAbsolutePath())
         fun isRegularFilesystemPath(pathString: String) =
-            !(pathString.startsWith(libraryFilePrefix) || pathString.startsWith(stringSourcePrefix))
+            !(pathString.startsWith(LIBRARYFILEPREFIX) || pathString.startsWith(STRINGSOURCEPREFIX))
     }
 
     /**
@@ -69,7 +69,7 @@ sealed class SourceCode {
     class Text(override val text: String): SourceCode() {
         override val isFromResources = false
         override val isFromFilesystem = false
-        override val origin = "$stringSourcePrefix${System.identityHashCode(text).toString(16)}"
+        override val origin = "$STRINGSOURCEPREFIX${System.identityHashCode(text).toString(16)}"
         override val name = "<unnamed-text>"
     }
 
@@ -110,7 +110,7 @@ sealed class SourceCode {
 
         override val isFromResources = true
         override val isFromFilesystem = false
-        override val origin = "$libraryFilePrefix$normalized"
+        override val origin = "$LIBRARYFILEPREFIX$normalized"
         override val text: String
         override val name: String
 

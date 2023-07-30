@@ -985,8 +985,6 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         val scope=decl.definingModule
         return scope.name==internedStringsModuleName
     }
-
-    fun renamed(newName: List<String>): IdentifierReference = IdentifierReference(newName, position)
 }
 
 class FunctionCallExpression(override var target: IdentifierReference,

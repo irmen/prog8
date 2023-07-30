@@ -117,7 +117,7 @@ class ModuleImporter(private val program: Program,
                     importedModule.statements.remove(block)
                 } else {
                     val merges = block.statements.filter { it is Directive && it.directive=="%option" && it.args.any { a->a.name=="merge" } }
-                    block.statements.removeAll(merges)
+                    block.statements.removeAll(merges.toSet())
                 }
             }
         }
@@ -129,7 +129,7 @@ class ModuleImporter(private val program: Program,
         // Most global directives don't apply for imported modules, so remove them
         val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%address")
         var directives = importedModule.statements.filterIsInstance<Directive>()
-        importedModule.statements.removeAll(directives)
+        importedModule.statements.removeAll(directives.toSet())
         directives = directives.filter{ it.directive !in moduleLevelDirectives }
         importedModule.statements.addAll(0, directives)
     }

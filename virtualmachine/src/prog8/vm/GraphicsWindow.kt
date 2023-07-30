@@ -76,7 +76,7 @@ class GraphicsWindow(val pixelWidth: Int, val pixelHeight: Int, val pixelScaling
 }
 
 
-internal class BitmapScreenPanel(private val drawImage: BufferedImage, val pixelScaling: Int) : JPanel() {
+internal class BitmapScreenPanel(private val drawImage: BufferedImage, pixelScaling: Int) : JPanel() {
     init {
         val size = Dimension(drawImage.width * pixelScaling, drawImage.height * pixelScaling)
         minimumSize = size

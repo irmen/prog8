@@ -7,9 +7,9 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 
-internal class StatementReorderer(val program: Program,
-                                  val errors: IErrorReporter,
-                                  private val options: CompilationOptions
+internal class StatementReorderer(
+    val program: Program,
+    val errors: IErrorReporter
 ) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
     // - 'main' block must be the very first statement UNLESS it has an address set.
@@ -109,7 +109,7 @@ internal class StatementReorderer(val program: Program,
 
     private fun directivesToTheTop(statements: MutableList<Statement>) {
         val directives = statements.filterIsInstance<Directive>().filter {it.directive in directivesToMove}
-        statements.removeAll(directives)
+        statements.removeAll(directives.toSet())
         statements.addAll(0, directives)
     }
 

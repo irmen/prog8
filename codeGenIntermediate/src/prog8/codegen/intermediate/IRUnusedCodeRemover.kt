@@ -1,7 +1,7 @@
 package prog8.codegen.intermediate
 
 import prog8.code.core.IErrorReporter
-import prog8.code.core.SourceCode.Companion.libraryFilePrefix
+import prog8.code.core.SourceCode.Companion.LIBRARYFILEPREFIX
 import prog8.intermediate.*
 
 
@@ -50,7 +50,7 @@ class IRUnusedCodeRemover(
         irprog.blocks.forEach { block ->
             block.children.filterIsInstance<IRSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
-                    if(!sub.position.file.startsWith(libraryFilePrefix)) {
+                    if(!sub.position.file.startsWith(LIBRARYFILEPREFIX)) {
                         errors.warn("unused subroutine ${sub.label}", sub.position)
                     }
                     block.children.remove(sub)
@@ -71,7 +71,7 @@ class IRUnusedCodeRemover(
         irprog.blocks.forEach { block ->
             block.children.filterIsInstance<IRAsmSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
-                    if(!sub.position.file.startsWith(libraryFilePrefix)) {
+                    if(!sub.position.file.startsWith(LIBRARYFILEPREFIX)) {
                         errors.warn("unused asmsubroutine ${sub.label}", sub.position)
                     }
                     block.children.remove(sub)

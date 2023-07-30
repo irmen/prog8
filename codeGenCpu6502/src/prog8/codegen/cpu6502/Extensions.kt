@@ -6,17 +6,6 @@ import prog8.code.ast.PtSub
 import prog8.code.core.*
 
 
-internal class KeepAresult(val saveOnEntry: Boolean, val saveOnReturn: Boolean)
-
-internal fun PtAsmSub.shouldKeepA(): KeepAresult {
-    // determine if A's value should be kept when preparing for calling the subroutine, and when returning from it
-
-    // it seems that we never have to save A when calling? will be loaded correctly after setup.
-    // but on return it depends on wether the routine returns something in A.
-    val saveAonReturn = returns.any { it.first.registerOrPair==RegisterOrPair.A || it.first.registerOrPair==RegisterOrPair.AY || it.first.registerOrPair==RegisterOrPair.AX }
-    return KeepAresult(false, saveAonReturn)
-}
-
 internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
     when(this) {
         is PtAsmSub -> {

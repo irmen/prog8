@@ -1652,24 +1652,6 @@ class IRCodeGen(
 
     internal fun isOne(expression: PtExpression): Boolean = expression is PtNumber && expression.number==1.0
 
-    fun getReusableTempvar(scope: PtNamedNode, type: DataType): PtIdentifier {
-        val uniqueId = Pair(scope, type).hashCode().toUInt()
-        val tempvarname = "${scope.scopedName}.tempvar_${uniqueId}"
-        val tempvar = PtIdentifier(tempvarname, type, Position.DUMMY)
-        val staticVar = StStaticVariable(
-            tempvarname,
-            type,
-            null,
-            null,
-            null,
-            null,
-            ZeropageWish.DONTCARE,
-            tempvar
-        )
-        irSymbolTable.add(staticVar)
-        return tempvar
-    }
-
     fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
         return IRCodeChunk(label, null).also {
             val args = params.map { (dt, reg)->
