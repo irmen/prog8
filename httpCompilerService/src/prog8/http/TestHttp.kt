@@ -33,11 +33,8 @@ class RequestParser : Take {
         val args = CompilerArguments(
             Path(a),
             optimize = true,
-            optimizeFloatExpressions = false,
             writeAssembly = true,
-            slowCodegenWarnings = true,
             compilationTarget = "c64",
-            evalStackBaseAddress = null,
             symbolDefs = emptyMap(),
             quietAssembler = false,
             asmListfile = false,

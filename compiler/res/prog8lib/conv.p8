@@ -8,25 +8,22 @@ conv {
 
     str  @shared string_out = "????????????????"       ; result buffer for the string conversion routines
 
-asmsub  str_ub0  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  str_ub0  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)
 	%asm {{
-            stx  P8ZP_SCRATCH_REG
             jsr  conv.ubyte2decimal
             sty  string_out
             sta  string_out+1
             stx  string_out+2
             lda  #0
             sta  string_out+3
-            ldx  P8ZP_SCRATCH_REG
             rts
 	}}
 }
 
-asmsub  str_ub  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  str_ub  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- convert the ubyte in A in decimal string form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		ldy  #0
 		sty  P8ZP_SCRATCH_B1
 		jsr  conv.ubyte2decimal
@@ -52,15 +49,13 @@ _output_byte_digits
                 iny
                 lda  #0
                 sta  string_out,y
-                ldx  P8ZP_SCRATCH_REG
                 rts
 	}}
 }
 
-asmsub  str_b  (byte value @ A) clobbers(A,Y)  {
+asmsub  str_b  (byte value @ A) clobbers(A,X,Y)  {
 	; ---- convert the byte in A in decimal string form, without left padding 0s
 	%asm {{
-            stx  P8ZP_SCRATCH_REG
             ldy  #0
             sty  P8ZP_SCRATCH_B1
             cmp  #0
@@ -75,7 +70,7 @@ asmsub  str_b  (byte value @ A) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  str_ubhex  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  str_ubhex  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- convert the ubyte in A in hex string form
 	%asm {{
             jsr  conv.ubyte2hex
@@ -87,7 +82,7 @@ asmsub  str_ubhex  (ubyte value @ A) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  str_ubbin  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  str_ubbin  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- convert the ubyte in A in binary string form
 	%asm {{
 	    sta  P8ZP_SCRATCH_B1
@@ -106,7 +101,7 @@ _digit      sta  string_out,y
 	}}
 }
 
-asmsub  str_uwbin  (uword value @ AY) clobbers(A,Y)  {
+asmsub  str_uwbin  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- convert the uword in A/Y in binary string form
 	%asm {{
 	    sta  P8ZP_SCRATCH_REG
@@ -145,10 +140,9 @@ asmsub  str_uwhex  (uword value @ AY) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  str_uw0  (uword value @ AY) clobbers(A,Y)  {
+asmsub  str_uw0  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- convert the uword in A/Y in decimal string form, with left padding 0s (5 positions total)
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG
 	    jsr  conv.uword2decimal
 	    ldy  #0
 -           lda  conv.uword2decimal.decTenThousands,y
@@ -156,15 +150,13 @@ asmsub  str_uw0  (uword value @ AY) clobbers(A,Y)  {
             beq  +
             iny
             bne  -
-+           ldx  P8ZP_SCRATCH_REG
-	    rts
++	    rts
 	}}
 }
 
-asmsub  str_uw  (uword value @ AY) clobbers(A,Y)  {
+asmsub  str_uw  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- convert the uword in A/Y in decimal string form, without left padding 0s
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG
 	    jsr  conv.uword2decimal
 	    ldx  #0
 _output_digits
@@ -182,7 +174,6 @@ _gotdigit   sta  string_out,x
             bne  _gotdigit
 _end        lda  #0
             sta  string_out,x
-            ldx  P8ZP_SCRATCH_REG
             rts
 
 _allzero    lda  #'0'
@@ -192,12 +183,11 @@ _allzero    lda  #'0'
 	}}
 }
 
-asmsub  str_w  (word value @ AY) clobbers(A,Y)  {
+asmsub  str_w  (word value @ AY) clobbers(A,X,Y)  {
 	; ---- convert the (signed) word in A/Y in decimal string form, without left padding 0's
 	%asm {{
 	    cpy  #0
 	    bpl  str_uw
-	    stx  P8ZP_SCRATCH_REG
 	    pha
 	    lda  #'-'
 	    sta  string_out
@@ -700,10 +690,9 @@ asmsub  byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X  {
 	}}
 }
 
-asmsub  ubyte2hex  (ubyte value @A) -> ubyte @A, ubyte @Y  {
+asmsub  ubyte2hex  (ubyte value @A) clobbers(X) -> ubyte @A, ubyte @Y  {
 	; ---- A to hex petscii string in AY (first hex char in A, second hex char in Y)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		pha
 		and  #$0f
 		tax
@@ -715,7 +704,6 @@ asmsub  ubyte2hex  (ubyte value @A) -> ubyte @A, ubyte @Y  {
 		lsr  a
 		tax
 		lda  _hex_digits,x
-		ldx  P8ZP_SCRATCH_REG
 		rts
 
 _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as well

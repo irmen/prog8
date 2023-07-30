@@ -282,7 +282,6 @@ _done       rts
 
 str = P8ZP_SCRATCH_W1
 
-	stx  P8ZP_SCRATCH_REG
 	sta  str
 	sty  str+1
 	lda  cx16.r0
@@ -294,7 +293,6 @@ str = P8ZP_SCRATCH_W1
 	jsr  _match
 	lda  #0
 	rol  a
-	ldx  P8ZP_SCRATCH_REG
 	rts
 
 

@@ -44,28 +44,6 @@ All elements in scoped names such as ``main.routine.var1`` are prefixed so this 
         }}
 
 
-Software stack for expression evaluation
-----------------------------------------
-
-Prog8 uses a software stack to evaluate complex expressions that it can't calculate in-place or
-directly into the target variable, register, or memory location.
-
-'software stack' means: seperated and not using the processor's hardware stack.
-
-The software stack is implemented as follows:
-
-- 2*128 bytes = 1 page of memory allocated for this, exact locations vary per machine target.
-  For the C64 this page is at $cf00-$cfff.
-  For the Commander X16 it is at $0700-$07ff (top of the "golden ram" area).
-  This default location can be overridden using the `-esa` command line option.
-- these are the high and low bytes of the values on the stack (it's a 'split 16 bit word stack')
-- for byte values just the lsb page is used, for word values both pages
-- float values (5 bytes) are chopped up into 2 words and 1 byte on this stack.
-- the X register is permanently allocated to be the stack pointer in the software stack.
-- you can use the X register as long as you're not using the software stack.
-  But you *must* make sure it is saved and restored after the code that modifies it,
-  otherwise the evaluation stack gets corrupted.
-
 Subroutine Calling Convention
 -----------------------------
 
@@ -94,8 +72,7 @@ regular subroutines
 ^^^^^^^^^^^^^^^^^^^
 
 - subroutine parameters are just variables scoped to the subroutine.
-- the arguments passed in a call are evaluated (using the eval-stack if needed) and then
-  copied into those variables.
+- the arguments passed in a call are evaluated and then copied into those variables.
   Using variables for this sometimes can seem inefficient but it's required to allow subroutines to work locally
   with their parameters and allow them to modify them as required, without changing the
   variables used in the call's arguments.  If you want to get rid of this overhead you'll
@@ -116,40 +93,6 @@ Some builtin functions have a fully custom implementation.
 The compiler will warn about routines that are called and that return a value, if you're not
 doing something with that returnvalue. This can be on purpose if you're simply not interested in it.
 Use the ``void`` keyword in front of the subroutine call to get rid of the warning in that case.
-
-
-The 6502 CPU's X-register: off-limits
--------------------------------------
-
-Prog8 uses the cpu's X-register as a pointer in its internal expression evaluation stack.
-When only writing code in Prog8, this is taken care of behind the scenes for you by the compiler.
-However when you are including or linking with assembly routines or Kernal/ROM calls that *do*
-use the X register (either clobbering it internally, or using it as a parameter, or return value register),
-those calls will destroy Prog8's stack pointer and this will result in invalid calculations.
-
-You should avoid using the X register in your assembly code, or take preparations.
-If you make sure that the value of the X register is preserved before calling a routine
-that uses it, and restored when the routine is done, you'll be ok.
-
-Routines that return a value in the X register can be called from Prog8 but the return value is
-inaccessible unless you write a short piece of inline assembly code to deal with it yourself, such as::
-
-    ubyte returnvalue
-
-    %asm {{
-        stx  P8ZP_SCRATCH_REG       ; use 'phx/plx' if using 65c02 cpu
-        ldx  #10
-        jsr  routine_using_x
-        stx  returnvalue
-        ldx  P8ZP_SCRATCH_REG
-    }}
-    ; now use 'returnvalue' variable
-
-Prog8 also provides some help to deal with this:
-
-- you should use a ``clobbers(X)`` specification for asmsub routines that modify the X register; the compiler will preserve it for you automatically when such a routine is called
-- the ``rsavex()`` and ``rrestorex()`` builtin functions can preserve and restore the X register
-- the ``rsave()`` and ``rrestore()`` builtin functions can preserve and restore *all* registers (but this is very slow and overkill if you only need to save X)
 
 
 Compiler Internals

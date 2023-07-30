@@ -13,10 +13,6 @@ class AtariMachineDefinition: IMachineDefinition {
     override val FLOAT_MEM_SIZE = 6
     override val PROGRAM_LOAD_ADDRESS = 0x2000u
 
-    // the 2*128 byte evaluation stack (1 page, on which bytes, words, and even floats are stored during calculations)
-    override var ESTACK_LO = 0x1b00u     //  $1b00-$1b7f inclusive      // TODO
-    override var ESTACK_HI = 0x1b80u     //  $1b80-$1bff inclusive      // TODO
-
     override val BSSHIGHRAM_START = 0u    // TODO
     override val BSSHIGHRAM_END = 0u      // TODO
 

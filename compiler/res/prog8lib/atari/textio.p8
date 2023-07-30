@@ -153,10 +153,9 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ub0  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		jsr  conv.ubyte2decimal
 		pha
 		tya
@@ -164,16 +163,13 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		pla
 		jsr  chrout
 		txa
-		jsr  chrout
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  chrout
 	}}
 }
 
-asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ub  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		jsr  conv.ubyte2decimal
 _print_byte_digits
 		pha
@@ -189,16 +185,13 @@ _print_byte_digits
         beq  _ones
         jsr  chrout
 _ones   txa
-		jsr  chrout
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  chrout
 	}}
 }
 
-asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
+asmsub  print_b  (byte value @ A) clobbers(A,X,Y)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		pha
 		cmp  #0
 		bpl  +
@@ -210,10 +203,9 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		bcc  +
 		pha
 		lda  #'$'
@@ -222,16 +214,13 @@ asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
 +		jsr  conv.ubyte2hex
 		jsr  chrout
 		tya
-		jsr  chrout
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  chrout
 	}}
 }
 
-asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
@@ -244,12 +233,11 @@ asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
 +		jsr  chrout
 		dey
 		bne  -
-		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
 }
 
-asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		pha
@@ -261,7 +249,7 @@ asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
@@ -274,10 +262,9 @@ asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
+asmsub  print_uw0  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG
 		jsr  conv.uword2decimal
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
@@ -285,17 +272,14 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		jsr  chrout
 		iny
 		bne  -
-+		ldx  P8ZP_SCRATCH_REG
-		rts
++		rts
 	}}
 }
 
-asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
+asmsub  print_uw  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG
 		jsr  conv.uword2decimal
-		ldx  P8ZP_SCRATCH_REG
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
 		beq  _allzero
@@ -316,7 +300,7 @@ _allzero
 	}}
 }
 
-asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
+asmsub  print_w  (word value @ AY) clobbers(A,X,Y)  {
 	; ---- print the (signed) word in A/Y in decimal form, without left padding 0's
 	%asm {{
 		cpy  #0
@@ -388,7 +372,7 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
         }}
 }
 
-asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
+asmsub  plot  (ubyte col @ Y, ubyte row @ A) {
 	; ---- set cursor at specific position
 	; TODO
 	%asm  {{

@@ -9,14 +9,10 @@ import prog8.ast.getTempVar
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 
-internal class BeforeAsmAstChanger(val program: Program,
-                                   private val options: CompilationOptions,
-                                   private val errors: IErrorReporter
-) : AstWalker() {
+internal class BeforeAsmAstChanger(val program: Program, private val options: CompilationOptions) : AstWalker() {
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         throw InternalCompilerException("break should have been replaced by goto $breakStmt")
@@ -55,9 +51,6 @@ internal class BeforeAsmAstChanger(val program: Program,
             && assignment.target.identifier != null
             && !assignment.target.isIOAddress(options.compTarget.machine)) {
             val binExpr = assignment.value as? BinaryExpression
-
-            if(binExpr!=null && binExpr.inferType(program) istype DataType.FLOAT && !options.optimizeFloatExpressions)
-                return noModifications
 
             if (binExpr != null && binExpr.operator !in ComparisonOperators) {
                 if (binExpr.left !is BinaryExpression) {
@@ -222,12 +215,6 @@ internal class BeforeAsmAstChanger(val program: Program,
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
 
         if(options.compTarget.name!=VMTarget.NAME) {    // don't apply this optimization/check for Vm target
-            val containingStatement = getContainingStatement(arrayIndexedExpression)
-            if(getComplexArrayIndexedExpressions(containingStatement).size > 1) {
-                errors.err("it's not possible to use more than one complex array indexing expression in a single statement; break it up via a temporary variable for instance", containingStatement.position)
-                return noModifications
-            }
-
             val index = arrayIndexedExpression.indexer.indexExpr
             if (index !is NumericLiteral && index !is IdentifierReference) {
                 // replace complex indexing expression with a temp variable to hold the computed index first
@@ -236,42 +223,6 @@ internal class BeforeAsmAstChanger(val program: Program,
         }
 
         return noModifications
-    }
-
-    private fun getComplexArrayIndexedExpressions(stmt: Statement): List<ArrayIndexedExpression> {
-
-        class Searcher : IAstVisitor {
-            val complexArrayIndexedExpressions = mutableListOf<ArrayIndexedExpression>()
-            override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-                val ix = arrayIndexedExpression.indexer.indexExpr
-                if(ix !is NumericLiteral && ix !is IdentifierReference)
-                    complexArrayIndexedExpressions.add(arrayIndexedExpression)
-            }
-
-            override fun visit(branch: ConditionalBranch) {}
-
-            override fun visit(forLoop: ForLoop) {}
-
-            override fun visit(ifElse: IfElse) {
-                ifElse.condition.accept(this)
-            }
-
-            override fun visit(untilLoop: UntilLoop) {
-                untilLoop.condition.accept(this)
-            }
-        }
-
-        val searcher = Searcher()
-        stmt.accept(searcher)
-        return searcher.complexArrayIndexedExpressions
-    }
-
-    private fun getContainingStatement(expression: Expression): Statement {
-        var node: Node = expression
-        while(node !is Statement)
-            node = node.parent
-
-        return node
     }
 
     private fun getAutoIndexerVarFor(expr: ArrayIndexedExpression): MutableList<IAstModification> {

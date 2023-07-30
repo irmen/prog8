@@ -185,7 +185,6 @@ graphics {
                 lda  length
                 and  #7
                 sta  separate_pixels
-                stx  P8ZP_SCRATCH_REG
                 lsr  length+1
                 ror  length
                 lsr  length+1
@@ -210,8 +209,7 @@ _modified       stx  $ffff      ; modified
                 inc  _modified+2
 +               dey
                 bne  _modified
-_zero           ldx  P8ZP_SCRATCH_REG
-
+_zero
                 ldy  separate_pixels
                 beq  hline_zero2
                 lda  _modified+1

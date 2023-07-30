@@ -29,15 +29,12 @@ class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAs
 
 class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
-                        val optimizeFloatExpressions: Boolean,
                         val writeAssembly: Boolean,
-                        val slowCodegenWarnings: Boolean,
                         val quietAssembler: Boolean,
                         val asmListfile: Boolean,
                         val experimentalCodegen: Boolean,
                         val varsHighBank: Int?,
                         val compilationTarget: String,
-                        val evalStackBaseAddress: UInt?,
                         val splitWordArrays: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
@@ -48,8 +45,6 @@ class CompilerArguments(val filepath: Path,
 fun compileProgram(args: CompilerArguments): CompilationResult? {
     lateinit var program: Program
     lateinit var importedFiles: List<Path>
-
-    val optimizeFloatExpr = if(args.optimize) args.optimizeFloatExpressions else false
 
     val compTarget =
         when(args.compilationTarget) {
@@ -70,24 +65,17 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             compilationOptions = options
 
             with(compilationOptions) {
-                slowCodegenWarnings = args.slowCodegenWarnings
                 optimize = args.optimize
-                optimizeFloatExpressions = optimizeFloatExpr
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
                 experimentalCodegen = args.experimentalCodegen
                 varsHighBank = args.varsHighBank
-                evalStackBaseAddress = args.evalStackBaseAddress
                 splitWordArrays = args.splitWordArrays
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
             }
             program = programresult
             importedFiles = imported
-
-            if(compilationOptions.evalStackBaseAddress!=null) {
-                compTarget.machine.overrideEvalStack(compilationOptions.evalStackBaseAddress!!)
-            }
 
             processAst(program, args.errors, compilationOptions)
             if (compilationOptions.optimize) {
@@ -367,12 +355,11 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors, compTarget)
-        val optsDone2 = program.splitBinaryExpressions(compilerOptions)
-        val optsDone3 = program.optimizeStatements(errors, functions, compilerOptions)
-        val optsDone4 = program.inlineSubroutines(compilerOptions)
+        val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
+        val optsDone3 = program.inlineSubroutines(compilerOptions)
         program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
         errors.report()
-        if (optsDone1 + optsDone2 + optsDone3 + optsDone4 == 0)
+        if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
     val remover2 = UnusedCodeRemover(program, errors, compTarget)

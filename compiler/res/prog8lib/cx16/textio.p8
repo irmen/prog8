@@ -42,11 +42,10 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
     }}
 }
 
-asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
+asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A, X)  {
 	; ---- fill the character screen with the given fill character and character color.
 	%asm {{
         sty  _ly+1
-        phx
         pha
         jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
@@ -75,8 +74,7 @@ _ly     ldy  #1                     ; modified
         stz  cx16.VERA_ADDR_L
         inc  cx16.VERA_ADDR_M       ; next line
         bra  _lx
-+       plx
-        rts
++       rts
 
 set_vera_textmatrix_addresses:
         stz  cx16.VERA_CTRL
@@ -90,11 +88,10 @@ set_vera_textmatrix_addresses:
         }}
 }
 
-asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
+asmsub  clear_screenchars (ubyte char @ A) clobbers(X, Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
 	%asm {{
-        phx
         pha
         jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
@@ -116,16 +113,14 @@ _lx     ldx  #0                     ; modified
         stz  cx16.VERA_ADDR_L
         inc  cx16.VERA_ADDR_M       ; next line
         bra  _lx
-+       plx
-        rts
++       rts
         }}
 }
 
-asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
+asmsub  clear_screencolors (ubyte color @ A) clobbers(X, Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
 	%asm {{
-        phx
         sta  _la+1
         jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
@@ -150,8 +145,7 @@ _la     lda  #0                     ; modified
         sta  cx16.VERA_ADDR_L
         inc  cx16.VERA_ADDR_M       ; next line
         bra  _lx
-+       plx
-        rts
++       rts
         }}
 }
 
@@ -192,11 +186,10 @@ sub iso_off() {
 }
 
 
-asmsub  scroll_left() clobbers(A, Y)  {
+asmsub  scroll_left() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	%asm {{
-	    phx
 	    jsr  cbm.SCREEN
 	    dex
 	    stx  _lx+1
@@ -233,16 +226,14 @@ _lx     ldx  #0                ; modified
 
         lda  #0
         sta  cx16.VERA_CTRL
-	    plx
 	    rts
 	}}
 }
 
-asmsub  scroll_right() clobbers(A,Y)  {
+asmsub  scroll_right() clobbers(A,X,Y)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	%asm {{
-	    phx
 	    jsr  cbm.SCREEN
 	    dex
 	    stx  _lx+1
@@ -287,16 +278,14 @@ _lx     ldx  #0                 ; modified
 
         lda  #0
         sta  cx16.VERA_CTRL
-	    plx
 	    rts
 	}}
 }
 
-asmsub  scroll_up() clobbers(A, Y)  {
+asmsub  scroll_up() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	%asm {{
-	    phx
 	    jsr  cbm.SCREEN
 	    stx  _nextline+1
 	    dey
@@ -337,16 +326,14 @@ _nextline
 
 +       lda  #0
         sta  cx16.VERA_CTRL
-	    plx
 	    rts
 	}}
 }
 
-asmsub  scroll_down() clobbers(A, Y)  {
+asmsub  scroll_down() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	%asm {{
-	    phx
 	    jsr  cbm.SCREEN
 	    stx  _nextline+1
 	    dey
@@ -393,7 +380,6 @@ _nextline
 
 +       lda  #0
         sta  cx16.VERA_CTRL
-	    plx
 	    rts
 	}}
 }
@@ -418,10 +404,9 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ub0  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
-		phx
 		jsr  conv.ubyte2decimal
 		pha
 		tya
@@ -429,16 +414,13 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		pla
 		jsr  cbm.CHROUT
 		txa
-		jsr  cbm.CHROUT
-		plx
-		rts
+		jmp  cbm.CHROUT
 	}}
 }
 
-asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ub  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
-		phx
 		jsr  conv.ubyte2decimal
 _print_byte_digits
 		pha
@@ -454,16 +436,13 @@ _print_byte_digits
         beq  _ones
         jsr  cbm.CHROUT
 _ones   txa
-		jsr  cbm.CHROUT
-		plx
-		rts
+		jmp  cbm.CHROUT
 	}}
 }
 
-asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
+asmsub  print_b  (byte value @ A) clobbers(A,X,Y)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
-		phx
 		pha
 		cmp  #0
 		bpl  +
@@ -475,10 +454,9 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
-		phx
 		bcc  +
 		pha
 		lda  #'$'
@@ -487,16 +465,13 @@ asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
 +		jsr  conv.ubyte2hex
 		jsr  cbm.CHROUT
 		tya
-		jsr  cbm.CHROUT
-		plx
-		rts
+		jmp  cbm.CHROUT
 	}}
 }
 
-asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
-		phx
 		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
@@ -509,12 +484,11 @@ asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
 +		jsr  cbm.CHROUT
 		dey
 		bne  -
-		plx
 		rts
 	}}
 }
 
-asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		pha
@@ -526,7 +500,7 @@ asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
@@ -539,10 +513,9 @@ asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
+asmsub  print_uw0  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
-	    phx
 		jsr  conv.uword2decimal
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
@@ -550,17 +523,14 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		jsr  cbm.CHROUT
 		iny
 		bne  -
-+		plx
-		rts
++		rts
 	}}
 }
 
-asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
+asmsub  print_uw  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
-	    phx
 		jsr  conv.uword2decimal
-		plx
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
 		beq  _allzero
@@ -581,7 +551,7 @@ _allzero
 	}}
 }
 
-asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
+asmsub  print_w  (word value @ AY) clobbers(A,X,Y)  {
 	; ---- print the (signed) word in A/Y in decimal form, without left padding 0's
 	%asm {{
 		cpy  #0
@@ -704,12 +674,11 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	}}
 }
 
-sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
+sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor) {
 	; ---- set char+color at the given position on the screen
 	;      note: color handling is the same as on the C64: it only sets the foreground color and leaves the background color as is.
 	;            Use setcc2 if you want Cx-16 specific feature of setting both Bg+Fg colors (is faster as well).
 	%asm {{
-            phx
             lda  column
             asl  a
             tax
@@ -732,7 +701,6 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
             and  #$f0
             ora  P8ZP_SCRATCH_B1
             sta  cx16.VERA_DATA0
-            plx
             rts
     }}
 }
@@ -742,7 +710,6 @@ sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
 	;      note: on the CommanderX16 this allows you to set both Fg and Bg colors;
 	;            use the high nybble in A to set the Bg color! Is a bit faster than setcc() too.
 	%asm {{
-            phx
             lda  column
             asl  a
             tax
@@ -760,20 +727,14 @@ sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
             inc  cx16.VERA_ADDR_L
             lda  colors
             sta  cx16.VERA_DATA0
-            plx
             rts
     }}
 }
 
-asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
-	; ---- safe wrapper around PLOT kernal routine, to save the X register.
+asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 	%asm  {{
-		phx
-		tax
 		clc
-		jsr  cbm.PLOT
-		plx
-		rts
+		jmp  cbm.PLOT
 	}}
 }
 

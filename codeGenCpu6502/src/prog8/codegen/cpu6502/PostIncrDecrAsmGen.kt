@@ -13,7 +13,6 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
         val targetIdent = stmt.target.identifier
         val targetMemory = stmt.target.memory
         val targetArrayIdx = stmt.target.array
-        val scope = stmt.definingISub()
         when {
             targetIdent!=null -> {
                 val what = asmgen.asmVariableName(targetIdent)
@@ -76,7 +75,6 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
         dec  ${asmArrayvarname}_msb+$constIndex
 +       dec  ${asmArrayvarname}_lsb+$constIndex""")
                     } else {
-                        asmgen.saveRegisterLocal(CpuRegister.X, scope!!)
                         asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.X)
                         if(incr)
                             asmgen.out(" inc  ${asmArrayvarname}_lsb,x |  bne  + |  inc  ${asmArrayvarname}_msb,x |+")
@@ -86,7 +84,6 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
         bne  +
         dec  ${asmArrayvarname}_msb,x
 +       dec  ${asmArrayvarname}_lsb,x""")
-                        asmgen.restoreRegisterLocal(CpuRegister.X)
                     }
                     return
                 }
@@ -113,7 +110,6 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                 }
                 else
                 {
-                    asmgen.saveRegisterLocal(CpuRegister.X, scope!!)
                     asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.X)
                     when(elementDt) {
                         in ByteDatatypes -> {
@@ -141,7 +137,6 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                         }
                         else -> throw AssemblyError("weird array elt dt")
                     }
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
                 }
             }
         }

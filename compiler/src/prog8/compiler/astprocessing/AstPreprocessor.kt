@@ -9,8 +9,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 import prog8.code.target.C64Target
-import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
 
 
 class AstPreprocessor(val program: Program,
@@ -25,15 +23,10 @@ class AstPreprocessor(val program: Program,
                 relocateCx16VirtualRegisters(program, 0x0004u)
             }
         }
-        else if(options.compTarget.name !in setOf(Cx16Target.NAME, VMTarget.NAME)) {
-            relocateCx16VirtualRegisters(program, options.compTarget.machine.ESTACK_HI)
-        }
         return noModifications
     }
 
     private fun relocateCx16VirtualRegisters(program: Program, baseAddress: UInt) {
-        // reset the address of the virtual registers to be inside the evaluation stack.
-        // (we don't do this on CommanderX16 itself as the registers have a fixed location in Zeropage there)
         val cx16block = program.allBlocks.single { it.name == "cx16" }
         val memVars = cx16block.statements
             .filterIsInstance<VarDecl>()

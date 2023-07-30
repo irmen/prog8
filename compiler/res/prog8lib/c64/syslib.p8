@@ -104,34 +104,26 @@ romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of
 romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
-asmsub STOP2() -> ubyte @A  {
+asmsub STOP2() clobbers(X) -> ubyte @A  {
     ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
     %asm {{
-        txa
-        pha
         jsr  cbm.STOP
         beq  +
-        pla
-        tax
         lda  #0
         rts
-+       pla
-        tax
-        lda  #1
++       lda  #1
         rts
     }}
 }
 
-asmsub RDTIM16() -> uword @AY {
+asmsub RDTIM16() clobbers(X) -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
     %asm {{
-        stx  P8ZP_SCRATCH_REG
         jsr  cbm.RDTIM
         pha
         txa
         tay
         pla
-        ldx  P8ZP_SCRATCH_REG
         rts
     }}
 }
@@ -413,10 +405,6 @@ _irq_handler_init
 		sta  IRQ_SCRATCH_ZPWORD2
 		lda  P8ZP_SCRATCH_W2+1
 		sta  IRQ_SCRATCH_ZPWORD2+1
-		; Set X to the bottom 32 bytes of the evaluation stack, to HOPEFULLY not clobber it.
-		; This leaves 128-32=96 stack entries for the main program, and 32 stack entries for the IRQ handler.
-		; We assume IRQ handlers don't contain complex expressions taking up more than that.
-		ldx  #32
 		cld
 		rts
 
@@ -742,111 +730,110 @@ cx16 {
 
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
     ; they are simulated on the C64 as well but their location in memory is different
-    ; (because there's no room for them in the zeropage)
-    ; they are allocated at the bottom of the eval-stack (should be ample space unless
-    ; you're doing insane nesting of expressions...)
-    ; NOTE: the memory location of these registers can change based on the "-esa" compiler option
-    &uword r0  = $cf00
-    &uword r1  = $cf02
-    &uword r2  = $cf04
-    &uword r3  = $cf06
-    &uword r4  = $cf08
-    &uword r5  = $cf0a
-    &uword r6  = $cf0c
-    &uword r7  = $cf0e
-    &uword r8  = $cf10
-    &uword r9  = $cf12
-    &uword r10 = $cf14
-    &uword r11 = $cf16
-    &uword r12 = $cf18
-    &uword r13 = $cf1a
-    &uword r14 = $cf1c
-    &uword r15 = $cf1e
+    ; (because there's no room for them in the zeropage in the default configuration)
+    ; Note that when using ZP options that free up more of the zeropage (such as %zeropage kernalsafe)
+    ; there might be enough space to put them there after all, and the compiler will change these addresses!
+    &uword r0  = $cfe0
+    &uword r1  = $cfe2
+    &uword r2  = $cfe4
+    &uword r3  = $cfe6
+    &uword r4  = $cfe8
+    &uword r5  = $cfea
+    &uword r6  = $cfec
+    &uword r7  = $cfee
+    &uword r8  = $cff0
+    &uword r9  = $cff2
+    &uword r10 = $cff4
+    &uword r11 = $cff6
+    &uword r12 = $cff8
+    &uword r13 = $cffa
+    &uword r14 = $cffc
+    &uword r15 = $cffe
 
-    &word r0s  = $cf00
-    &word r1s  = $cf02
-    &word r2s  = $cf04
-    &word r3s  = $cf06
-    &word r4s  = $cf08
-    &word r5s  = $cf0a
-    &word r6s  = $cf0c
-    &word r7s  = $cf0e
-    &word r8s  = $cf10
-    &word r9s  = $cf12
-    &word r10s = $cf14
-    &word r11s = $cf16
-    &word r12s = $cf18
-    &word r13s = $cf1a
-    &word r14s = $cf1c
-    &word r15s = $cf1e
+    &word r0s  = $cfe0
+    &word r1s  = $cfe2
+    &word r2s  = $cfe4
+    &word r3s  = $cfe6
+    &word r4s  = $cfe8
+    &word r5s  = $cfea
+    &word r6s  = $cfec
+    &word r7s  = $cfee
+    &word r8s  = $cff0
+    &word r9s  = $cff2
+    &word r10s = $cff4
+    &word r11s = $cff6
+    &word r12s = $cff8
+    &word r13s = $cffa
+    &word r14s = $cffc
+    &word r15s = $cffe
 
-    &ubyte r0L  = $cf00
-    &ubyte r1L  = $cf02
-    &ubyte r2L  = $cf04
-    &ubyte r3L  = $cf06
-    &ubyte r4L  = $cf08
-    &ubyte r5L  = $cf0a
-    &ubyte r6L  = $cf0c
-    &ubyte r7L  = $cf0e
-    &ubyte r8L  = $cf10
-    &ubyte r9L  = $cf12
-    &ubyte r10L = $cf14
-    &ubyte r11L = $cf16
-    &ubyte r12L = $cf18
-    &ubyte r13L = $cf1a
-    &ubyte r14L = $cf1c
-    &ubyte r15L = $cf1e
+    &ubyte r0L  = $cfe0
+    &ubyte r1L  = $cfe2
+    &ubyte r2L  = $cfe4
+    &ubyte r3L  = $cfe6
+    &ubyte r4L  = $cfe8
+    &ubyte r5L  = $cfea
+    &ubyte r6L  = $cfec
+    &ubyte r7L  = $cfee
+    &ubyte r8L  = $cff0
+    &ubyte r9L  = $cff2
+    &ubyte r10L = $cff4
+    &ubyte r11L = $cff6
+    &ubyte r12L = $cff8
+    &ubyte r13L = $cffa
+    &ubyte r14L = $cffc
+    &ubyte r15L = $cffe
 
-    &ubyte r0H  = $cf01
-    &ubyte r1H  = $cf03
-    &ubyte r2H  = $cf05
-    &ubyte r3H  = $cf07
-    &ubyte r4H  = $cf09
-    &ubyte r5H  = $cf0b
-    &ubyte r6H  = $cf0d
-    &ubyte r7H  = $cf0f
-    &ubyte r8H  = $cf11
-    &ubyte r9H  = $cf13
-    &ubyte r10H = $cf15
-    &ubyte r11H = $cf17
-    &ubyte r12H = $cf19
-    &ubyte r13H = $cf1b
-    &ubyte r14H = $cf1d
-    &ubyte r15H = $cf1f
+    &ubyte r0H  = $cfe1
+    &ubyte r1H  = $cfe3
+    &ubyte r2H  = $cfe5
+    &ubyte r3H  = $cfe7
+    &ubyte r4H  = $cfe9
+    &ubyte r5H  = $cfeb
+    &ubyte r6H  = $cfed
+    &ubyte r7H  = $cfef
+    &ubyte r8H  = $cff1
+    &ubyte r9H  = $cff3
+    &ubyte r10H = $cff5
+    &ubyte r11H = $cff7
+    &ubyte r12H = $cff9
+    &ubyte r13H = $cffb
+    &ubyte r14H = $cffd
+    &ubyte r15H = $cfff
 
-    &byte r0sL  = $cf00
-    &byte r1sL  = $cf02
-    &byte r2sL  = $cf04
-    &byte r3sL  = $cf06
-    &byte r4sL  = $cf08
-    &byte r5sL  = $cf0a
-    &byte r6sL  = $cf0c
-    &byte r7sL  = $cf0e
-    &byte r8sL  = $cf10
-    &byte r9sL  = $cf12
-    &byte r10sL = $cf14
-    &byte r11sL = $cf16
-    &byte r12sL = $cf18
-    &byte r13sL = $cf1a
-    &byte r14sL = $cf1c
-    &byte r15sL = $cf1e
+    &byte r0sL  = $cfe0
+    &byte r1sL  = $cfe2
+    &byte r2sL  = $cfe4
+    &byte r3sL  = $cfe6
+    &byte r4sL  = $cfe8
+    &byte r5sL  = $cfea
+    &byte r6sL  = $cfec
+    &byte r7sL  = $cfee
+    &byte r8sL  = $cff0
+    &byte r9sL  = $cff2
+    &byte r10sL = $cff4
+    &byte r11sL = $cff6
+    &byte r12sL = $cff8
+    &byte r13sL = $cffa
+    &byte r14sL = $cffc
+    &byte r15sL = $cffe
 
-    &byte r0sH  = $cf01
-    &byte r1sH  = $cf03
-    &byte r2sH  = $cf05
-    &byte r3sH  = $cf07
-    &byte r4sH  = $cf09
-    &byte r5sH  = $cf0b
-    &byte r6sH  = $cf0d
-    &byte r7sH  = $cf0f
-    &byte r8sH  = $cf11
-    &byte r9sH  = $cf13
-    &byte r10sH = $cf15
-    &byte r11sH = $cf17
-    &byte r12sH = $cf19
-    &byte r13sH = $cf1b
-    &byte r14sH = $cf1d
-    &byte r15sH = $cf1f
+    &byte r0sH  = $cfe1
+    &byte r1sH  = $cfe3
+    &byte r2sH  = $cfe5
+    &byte r3sH  = $cfe7
+    &byte r4sH  = $cfe9
+    &byte r5sH  = $cfeb
+    &byte r6sH  = $cfed
+    &byte r7sH  = $cfef
+    &byte r8sH  = $cff1
+    &byte r9sH  = $cff3
+    &byte r10sH = $cff5
+    &byte r11sH = $cff7
+    &byte r12sH = $cff9
+    &byte r13sH = $cffb
+    &byte r14sH = $cffd
+    &byte r15sH = $cfff
 
     asmsub save_virtual_registers() clobbers(A,Y) {
         %asm {{

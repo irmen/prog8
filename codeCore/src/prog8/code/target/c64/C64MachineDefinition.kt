@@ -16,12 +16,8 @@ class C64MachineDefinition: IMachineDefinition {
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
 
-    // the 2*128 byte evaluation stack (1 page, on which bytes, words, and even floats are stored during calculations)
-    override var ESTACK_LO = 0xcf00u     //  $cf00-$cf7f inclusive
-    override var ESTACK_HI = 0xcf80u     //  $cf80-$cfff inclusive
-
     override val BSSHIGHRAM_START = 0xc000u
-    override val BSSHIGHRAM_END = ESTACK_LO
+    override val BSSHIGHRAM_END = 0xd000u
 
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam
@@ -62,7 +58,7 @@ class C64MachineDefinition: IMachineDefinition {
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = C64Zeropage(compilerOptions)
-        golden = GoldenRam(compilerOptions, 0xc000u until ESTACK_LO)
+        golden = GoldenRam(compilerOptions, 0xc000u until 0xd000u)
     }
 
 }

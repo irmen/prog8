@@ -11,40 +11,8 @@ import prog8.codegen.cpu6502.assignment.TargetStorageKind
 internal class FunctionCallAsmGen(private val program: PtProgram, private val asmgen: AsmGen6502Internal) {
 
     internal fun translateFunctionCallStatement(stmt: PtFunctionCall) {
-        saveXbeforeCall(stmt)
         translateFunctionCall(stmt)
-        restoreXafterCall(stmt)
         // just ignore any result values from the function call.
-    }
-
-    internal fun saveXbeforeCall(stmt: PtFunctionCall) {
-        val symbol = asmgen.symbolTable.lookup(stmt.name)
-        val sub = symbol!!.astNode as IPtSubroutine
-        if(sub.shouldSaveX()) {
-            if(sub is PtAsmSub) {
-                val regSaveOnStack = sub.address == null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-                if (regSaveOnStack)
-                    asmgen.saveRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnEntry)
-                else
-                    asmgen.saveRegisterLocal(CpuRegister.X, stmt.definingISub()!!)
-            } else
-                asmgen.saveRegisterLocal(CpuRegister.X, stmt.definingISub()!!)
-        }
-    }
-
-    internal fun restoreXafterCall(stmt: PtFunctionCall) {
-        val symbol = asmgen.symbolTable.lookup(stmt.name)
-        val sub = symbol!!.astNode as IPtSubroutine
-        if(sub.shouldSaveX()) {
-            if(sub is PtAsmSub) {
-                val regSaveOnStack = sub.address == null       // rom-routines don't require registers to be saved on stack, normal subroutines do because they can contain nested calls
-                if (regSaveOnStack)
-                    asmgen.restoreRegisterStack(CpuRegister.X, sub.shouldKeepA().saveOnReturn)
-                else
-                    asmgen.restoreRegisterLocal(CpuRegister.X)
-            } else
-                asmgen.restoreRegisterLocal(CpuRegister.X)
-        }
     }
 
     internal fun optimizeIntArgsViaRegisters(sub: PtSub) =

@@ -20,8 +20,6 @@
 ;   mode 6 = bitmap 640 x 480 x 4c
 ;   higher color dephts in highres are not supported due to lack of VRAM
 
-; TODO remove the phx/plx pairs in non-stack compiler version
-
 gfx2 {
 
     %option no_symbol_prefixing
@@ -223,7 +221,6 @@ _done
                 position(x, y)
                 %asm {{
                     lda  color
-                    phx
                     ldx  length+1
                     beq  +
                     ldy  #0
@@ -237,7 +234,7 @@ _done
 -                   sta  cx16.VERA_DATA0
                     dey
                     bne  -
-+                   plx
++
                 }}
             }
             6 -> {
@@ -262,7 +259,6 @@ _done
                     sta  cx16.VERA_ADDR_L
                     lda  cx16.r0+1
                     sta  cx16.VERA_ADDR_M
-                    phx
                     ldx  x
                 }}
 
@@ -285,10 +281,6 @@ _done
 +                       inx                     ; next pixel
                     }}
                 }
-
-                %asm {{
-                    plx
-                }}
             }
         }
     }
@@ -923,13 +915,12 @@ skip:
         }}
     }
 
-    asmsub next_pixels(uword pixels @AY, uword amount @R0) clobbers(A, Y)  {
+    asmsub next_pixels(uword pixels @AY, uword amount @R0) clobbers(A, X, Y)  {
         ; -- sets the next bunch of pixels from a prepared array of bytes.
         ;    for 8 bpp screens this will plot 1 pixel per byte.
         ;    for 1 bpp screens it will plot 8 pixels at once (colors are the bit patterns per byte).
         ;    for 2 bpp screens it will plot 4 pixels at once (colors are the bit patterns per byte).
         %asm {{
-            phx
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
             ldx  cx16.r0+1
@@ -951,14 +942,13 @@ skip:
             iny
             dex
             bne  -
-+           plx
++           rts
         }}
     }
 
-    asmsub set_8_pixels_from_bits(ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) {
+    asmsub set_8_pixels_from_bits(ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) clobbers(X) {
         ; this is only useful in 256 color mode where one pixel equals one byte value.
         %asm {{
-            phx
             ldx  #8
 -           asl  cx16.r0
             bcc  +
@@ -967,7 +957,6 @@ skip:
 +           sty  cx16.VERA_DATA0
 +           dex
             bne  -
-            plx
             rts
         }}
     }
@@ -999,7 +988,6 @@ skip:
                     cx16.vaddr_autoincr(charset_bank, chardataptr, 0, 1)
                     %asm {{
                         ; pre-shift the bits
-                        phx ; TODO remove in non-stack version
                         lda  text.x
                         and  #7
                         sta  P8ZP_SCRATCH_B1
@@ -1019,7 +1007,6 @@ skip:
                         iny
                         cpy  #8
                         bne  --
-                        plx     ; TODO remove in non-stack version
                     }}
                     ; left part of shifted char
                     position2(x, y, true)
@@ -1086,7 +1073,6 @@ skip:
                         position(x,y)
                         y++
                         %asm {{
-                            phx ; TODO remove in non-stack version
                             ldx  color
                             lda  cx16.VERA_DATA1
                             sta  P8ZP_SCRATCH_B1
@@ -1098,7 +1084,6 @@ skip:
 +                           lda  cx16.VERA_DATA0    ; don't write a pixel, but do advance to the next address
 +                           dey
                             bne  -
-                            plx ; TODO remove in non-stack version
                         }}
                     }
                     x+=8

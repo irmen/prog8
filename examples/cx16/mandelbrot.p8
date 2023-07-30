@@ -9,6 +9,7 @@ main {
 
     sub start()  {
         txt.print("calculating mandelbrot fractal...\n\n")
+        cbm.SETTIM(0,0,0)
 
         ubyte pixelx
         ubyte pixely
@@ -37,5 +38,10 @@ main {
             }
             txt.nl()
         }
+
+        float duration = (cbm.RDTIM16() as float) / 60
+        txt.print("\nfinished in ")
+        floats.print_f(duration)
+        txt.print(" seconds!\n")
     }
 }

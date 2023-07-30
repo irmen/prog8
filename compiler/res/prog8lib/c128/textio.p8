@@ -97,13 +97,12 @@ sub uppercase() {
     c128.VM1 &= ~2
 }
 
-asmsub  scroll_left  (bool alsocolors @ Pc) clobbers(A, Y)  {
+asmsub  scroll_left  (bool alsocolors @ Pc) clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		bcc _scroll_screen
 
 +               ; scroll the screen and the color memory
@@ -133,17 +132,15 @@ _scroll_screen  ; scroll only the screen memory
 		dey
 		bpl  -
 
-		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
 }
 
-asmsub  scroll_right  (bool alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_right  (bool alsocolors @ Pc) clobbers(A,X)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		bcc  _scroll_screen
 
 +               ; scroll the screen and the color memory
@@ -169,17 +166,15 @@ _scroll_screen  ; scroll only the screen memory
 		dex
 		bpl  -
 
-		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
 }
 
-asmsub  scroll_up  (bool alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_up  (bool alsocolors @ Pc) clobbers(A,X)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		bcc  _scroll_screen
 
 +               ; scroll the screen and the color memory
@@ -205,17 +200,15 @@ _scroll_screen  ; scroll only the screen memory
 		dex
 		bpl  -
 
-		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
 }
 
-asmsub  scroll_down  (bool alsocolors @ Pc) clobbers(A)  {
+asmsub  scroll_down  (bool alsocolors @ Pc) clobbers(A,X)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		bcc  _scroll_screen
 
 +               ; scroll the screen and the color memory
@@ -241,7 +234,6 @@ _scroll_screen  ; scroll only the screen memory
 		dex
 		bpl  -
 
-		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
 }
@@ -266,10 +258,9 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ub0  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		jsr  conv.ubyte2decimal
 		pha
 		tya
@@ -277,16 +268,13 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,Y)  {
 		pla
 		jsr  cbm.CHROUT
 		txa
-		jsr  cbm.CHROUT
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  cbm.CHROUT
 	}}
 }
 
-asmsub  print_ub  (ubyte value @ A) clobbers(A,Y)  {
+asmsub  print_ub  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		jsr  conv.ubyte2decimal
 _print_byte_digits
 		pha
@@ -302,16 +290,13 @@ _print_byte_digits
         beq  _ones
         jsr  cbm.CHROUT
 _ones   txa
-		jsr  cbm.CHROUT
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  cbm.CHROUT
 	}}
 }
 
-asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
+asmsub  print_b  (byte value @ A) clobbers(A,X,Y)  {
 	; ---- print the byte in A in decimal form, without left padding 0s
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		pha
 		cmp  #0
 		bpl  +
@@ -323,10 +308,9 @@ asmsub  print_b  (byte value @ A) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in hex form (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		bcc  +
 		pha
 		lda  #'$'
@@ -335,16 +319,13 @@ asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
 +		jsr  conv.ubyte2hex
 		jsr  cbm.CHROUT
 		tya
-		jsr  cbm.CHROUT
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  cbm.CHROUT
 	}}
 }
 
-asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
-		stx  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_B1
 		bcc  +
 		lda  #'%'
@@ -357,12 +338,11 @@ asmsub  print_ubbin  (ubyte value @ A, bool prefix @ Pc) clobbers(A,Y)  {
 +		jsr  cbm.CHROUT
 		dey
 		bne  -
-		ldx  P8ZP_SCRATCH_REG
 		rts
 	}}
 }
 
-asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in binary form (if Carry is set, a radix prefix '%' is printed as well)
 	%asm {{
 		pha
@@ -374,7 +354,7 @@ asmsub  print_uwbin  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
+asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in hexadecimal form (4 digits)
 	;      (if Carry is set, a radix prefix '$' is printed as well)
 	%asm {{
@@ -387,10 +367,9 @@ asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,Y)  {
 	}}
 }
 
-asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
+asmsub  print_uw0  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG
 		jsr  conv.uword2decimal
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
@@ -398,17 +377,14 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,Y)  {
 		jsr  cbm.CHROUT
 		iny
 		bne  -
-+		ldx  P8ZP_SCRATCH_REG
-		rts
++		rts
 	}}
 }
 
-asmsub  print_uw  (uword value @ AY) clobbers(A,Y)  {
+asmsub  print_uw  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
-	    stx  P8ZP_SCRATCH_REG
 		jsr  conv.uword2decimal
-		ldx  P8ZP_SCRATCH_REG
 		ldy  #0
 -		lda  conv.uword2decimal.decTenThousands,y
 		beq  _allzero
@@ -429,7 +405,7 @@ _allzero
 	}}
 }
 
-asmsub  print_w  (word value @ AY) clobbers(A,Y)  {
+asmsub  print_w  (word value @ AY) clobbers(A,X,Y)  {
 	; ---- print the (signed) word in A/Y in decimal form, without left padding 0's
 	%asm {{
 		cpy  #0
@@ -583,15 +559,10 @@ _colormod	sta  $ffff		; modified
 	}}
 }
 
-asmsub  plot  (ubyte col @ Y, ubyte row @ A) clobbers(A) {
-	; ---- safe wrapper around PLOT kernal routine, to save the X register.
+asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 	%asm  {{
-		stx  P8ZP_SCRATCH_REG
-		tax
 		clc
-		jsr  cbm.PLOT
-		ldx  P8ZP_SCRATCH_REG
-		rts
+		jmp  cbm.PLOT
 	}}
 }
 

@@ -5,7 +5,6 @@ floats {
 sub print_f(float value) {
 	; ---- prints the floating point value (without a newline).
 	%asm {{
-		stx  floats_store_reg
 		lda  #<value
 		ldy  #>value
 		jsr  MOVFM		; load float into fac1
@@ -18,8 +17,7 @@ sub print_f(float value) {
 		jsr  cbm.CHROUT
 		iny
 		bne  -
-+		ldx  floats_store_reg
-		rts
++		rts
 	}}
 }
 
@@ -44,10 +42,7 @@ sub sin(float angle) -> float {
         lda  #<angle
         ldy  #>angle
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
-        jsr  SIN
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  SIN
     }}
 }
 
@@ -56,9 +51,7 @@ sub cos(float angle) -> float {
         lda  #<angle
         ldy  #>angle
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
-        jsr  COS
-        ldx  P8ZP_SCRATCH_REG
+        jmp  COS
         rts
     }}
 }
@@ -68,10 +61,7 @@ sub tan(float value) -> float {
         lda  #<value
         ldy  #>value
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
-        jsr  TAN
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  TAN
     }}
 }
 
@@ -80,10 +70,7 @@ sub atan(float value) -> float {
         lda  #<value
         ldy  #>value
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
-        jsr  ATN
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  ATN
     }}
 }
 
@@ -92,10 +79,7 @@ sub ln(float value) -> float {
         lda  #<value
         ldy  #>value
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
-        jsr  LOG
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  LOG
     }}
 }
 
@@ -104,15 +88,12 @@ sub log2(float value) -> float {
         lda  #<value
         ldy  #>value
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
         jsr  LOG
         jsr  MOVEF
         lda  #<FL_LOG2_const
         ldy  #>FL_LOG2_const
         jsr  MOVFM
-        jsr  FDIVT
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  FDIVT
     }}
 }
 
@@ -122,12 +103,9 @@ sub rad(float angle) -> float {
         lda  #<angle
         ldy  #>angle
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
         lda  #<_pi_div_180
         ldy  #>_pi_div_180
-        jsr  FMULT
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  FMULT
 _pi_div_180	.byte 123, 14, 250, 53, 18		; pi / 180
     }}
 }
@@ -138,11 +116,9 @@ sub deg(float angle) -> float {
         lda  #<angle
         ldy  #>angle
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
         lda  #<_one_over_pi_div_180
         ldy  #>_one_over_pi_div_180
-        jsr  FMULT
-        ldx  P8ZP_SCRATCH_REG
+        jmp  FMULT
         rts
 _one_over_pi_div_180	.byte 134, 101, 46, 224, 211		; 1 / (pi * 180)
     }}
@@ -153,11 +129,8 @@ sub round(float value) -> float {
         lda  #<value
         ldy  #>value
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
         jsr  FADDH
-        jsr  INT
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  INT
     }}
 }
 
@@ -166,10 +139,7 @@ sub floor(float value) -> float {
         lda  #<value
         ldy  #>value
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
-        jsr  INT
-        ldx  P8ZP_SCRATCH_REG
-        rts
+        jmp  INT
     }}
 }
 
@@ -179,7 +149,6 @@ sub ceil(float value) -> float {
         lda  #<value
         ldy  #>value
         jsr  MOVFM
-        stx  P8ZP_SCRATCH_REG
         ldx  #<fmath_float1
         ldy  #>fmath_float1
         jsr  MOVMF
@@ -192,8 +161,7 @@ sub ceil(float value) -> float {
         lda  #<FL_ONE_const
         ldy  #>FL_ONE_const
         jsr  FADD
-+       ldx  P8ZP_SCRATCH_REG
-        rts
++       rts
     }}
 }
 
@@ -202,14 +170,11 @@ sub rndseedf(float seed) {
         seed = -seed    ; make sure fp seed is always negative
 
     %asm {{
-        stx  floats_store_reg
         lda  #<seed
         ldy  #>seed
         jsr  MOVFM		; load float into fac1
         lda  #-1
-        jsr  floats.RND
-        ldx  floats_store_reg
-        rts
+        jmp  floats.RND
     }}
 }
 

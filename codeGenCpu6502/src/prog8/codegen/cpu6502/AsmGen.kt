@@ -207,8 +207,8 @@ class AsmGen6502Internal (
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
-    private val assignmentAsmGen = AssignmentAsmGen(program, symbolTable, this, allocator)
-    private val expressionsAsmGen = ExpressionsAsmGen(program, this, allocator)
+    private val anyExprGen = AnyExprAsmGen(this)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this, anyExprGen, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
 
     fun compileToAssembly(): IAssemblyProgram? {
@@ -394,32 +394,6 @@ class AsmGen6502Internal (
         return name2.replace("prog8_lib.P8ZP_SCRATCH_", "P8ZP_SCRATCH_")    // take care of the 'hooks' to the temp vars -> reference zp symbols directly
     }
 
-    internal fun saveRegisterLocal(register: CpuRegister, scope: IPtSubroutine) {
-        if (isTargetCpu(CpuType.CPU65c02)) {
-            // just use the cpu's stack for all registers, shorter code
-            when (register) {
-                CpuRegister.A -> out("  pha")
-                CpuRegister.X -> out("  phx")
-                CpuRegister.Y -> out("  phy")
-            }
-        } else {
-            when (register) {
-                CpuRegister.A -> {
-                    // just use the stack, only for A
-                    out("  pha")
-                }
-                CpuRegister.X -> {
-                    out("  stx  prog8_regsaveX")
-                    subroutineExtra(scope).usedRegsaveX = true
-                }
-                CpuRegister.Y -> {
-                    out("  sty  prog8_regsaveY")
-                    subroutineExtra(scope).usedRegsaveY = true
-                }
-            }
-        }
-    }
-
     internal fun saveRegisterStack(register: CpuRegister, keepA: Boolean) {
         when (register) {
             CpuRegister.A -> out("  pha")
@@ -440,24 +414,6 @@ class AsmGen6502Internal (
                     else
                         out("  tya |  pha")
                 }
-            }
-        }
-    }
-
-    internal fun restoreRegisterLocal(register: CpuRegister) {
-        if (isTargetCpu(CpuType.CPU65c02)) {
-            when (register) {
-                // this just used the stack, for all registers. Shorter code.
-                CpuRegister.A -> out("  pla")
-                CpuRegister.X -> out("  plx")
-                CpuRegister.Y -> out("  ply")
-            }
-
-        } else {
-            when (register) {
-                CpuRegister.A -> out("  pla")   // this just used the stack but only for A
-                CpuRegister.X -> out("  ldx  prog8_regsaveX")
-                CpuRegister.Y -> out("  ldy  prog8_regsaveY")
             }
         }
     }
@@ -581,21 +537,11 @@ class AsmGen6502Internal (
         }
     }
 
-    @Deprecated("avoid calling this as it generates slow evalstack based code")
-    internal fun translateExpression(expression: PtExpression) =
-            expressionsAsmGen.translateExpression(expression)
-
-    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultToStack: Boolean, resultRegister: RegisterOrPair?): DataType? =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultToStack, resultRegister)
+    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?): DataType? =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultRegister)
 
     internal fun translateFunctionCall(functionCallExpr: PtFunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr)
-
-    internal fun saveXbeforeCall(functionCall: PtFunctionCall)  =
-            functioncallAsmGen.saveXbeforeCall(functionCall)
-
-    internal fun restoreXafterCall(functionCall: PtFunctionCall) =
-            functioncallAsmGen.restoreXafterCall(functionCall)
 
     internal fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) =
             assignmentAsmGen.translateNormalAssignment(assign, scope)
@@ -625,7 +571,6 @@ class AsmGen6502Internal (
     }
 
     internal fun assignExpressionTo(value: PtExpression, target: AsmAssignTarget) {
-        // don't use translateExpression() to avoid evalstack
         when (target.datatype) {
             in ByteDatatypes -> {
                 assignExpressionToRegister(value, RegisterOrPair.A)
@@ -1082,20 +1027,6 @@ $repeatLabel""")
                 dey
 +
             """)
-            else -> throw AssemblyError("need byte type")
-        }
-    }
-
-    internal fun signExtendStackLsb(valueDt: DataType) {
-        // sign extend signed byte on stack to signed word on stack
-        when(valueDt) {
-            DataType.UBYTE -> {
-                if(isTargetCpu(CpuType.CPU65c02))
-                    out("  stz  P8ESTACK_HI+1,x")
-                else
-                    out("  lda  #0 |  sta  P8ESTACK_HI+1,x")
-            }
-            DataType.BYTE -> out("  jsr  prog8_lib.sign_extend_stack_byte")
             else -> throw AssemblyError("need byte type")
         }
     }
@@ -1728,7 +1659,7 @@ $repeatLabel""")
                 }
                 else if (left is PtMemoryByte) {
                     return if(rightConstVal.number.toInt()!=0) {
-                        translateDirectMemReadExpressionToRegAorStack(left, false)
+                        translateDirectMemReadExpressionToRegA(left)
                         code("#${rightConstVal.number.toInt()}")
                     }
                     else
@@ -1875,7 +1806,7 @@ $repeatLabel""")
                         out("  beq $jumpIfFalseLabel")
                 }
                 else if (left is PtMemoryByte) {
-                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    translateDirectMemReadExpressionToRegA(left)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number.toInt()}")
                     else
@@ -2036,7 +1967,7 @@ $repeatLabel""")
                         out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is PtMemoryByte) {
-                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    translateDirectMemReadExpressionToRegA(left)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number.toInt()}")
                     else
@@ -2200,7 +2131,7 @@ $repeatLabel""")
                 }
                 else if (left is PtMemoryByte) {
                     if(rightConstVal.number.toInt()!=0) {
-                        translateDirectMemReadExpressionToRegAorStack(left, false)
+                        translateDirectMemReadExpressionToRegA(left)
                         code("#${rightConstVal.number.toInt()}")
                     }
                     return
@@ -2363,7 +2294,7 @@ $repeatLabel""")
                         out("  bne  $jumpIfFalseLabel")
                 }
                 else if (left is PtMemoryByte) {
-                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    translateDirectMemReadExpressionToRegA(left)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number.toInt()}")
                     else
@@ -2409,7 +2340,7 @@ $repeatLabel""")
                         out("  beq  $jumpIfFalseLabel")
                 }
                 else if (left is PtMemoryByte) {
-                    translateDirectMemReadExpressionToRegAorStack(left, false)
+                    translateDirectMemReadExpressionToRegA(left)
                     return if(rightConstVal.number.toInt()!=0)
                         code("#${rightConstVal.number.toInt()}")
                     else
@@ -2865,22 +2796,14 @@ $repeatLabel""")
 +""")
     }
 
-    internal fun translateDirectMemReadExpressionToRegAorStack(expr: PtMemoryByte, pushResultOnEstack: Boolean) {
+    internal fun translateDirectMemReadExpressionToRegA(expr: PtMemoryByte) {
 
         fun assignViaExprEval() {
             assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
             if (isTargetCpu(CpuType.CPU65c02)) {
-                if (pushResultOnEstack) {
-                    out("  lda  (P8ZP_SCRATCH_W2) |  dex |  sta  P8ESTACK_LO+1,x")
-                } else {
-                    out("  lda  (P8ZP_SCRATCH_W2)")
-                }
+                out("  lda  (P8ZP_SCRATCH_W2)")
             } else {
-                if (pushResultOnEstack) {
-                    out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y |  dex |  sta  P8ESTACK_LO+1,x")
-                } else {
-                    out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
-                }
+                out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
             }
         }
 
@@ -2888,21 +2811,14 @@ $repeatLabel""")
             is PtNumber -> {
                 val address = (expr.address as PtNumber).number.toInt()
                 out("  lda  ${address.toHex()}")
-                if(pushResultOnEstack)
-                    out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtIdentifier -> {
                 // the identifier is a pointer variable, so read the value from the address in it
                 loadByteFromPointerIntoA(expr.address as PtIdentifier)
-                if(pushResultOnEstack)
-                    out("  sta  P8ESTACK_LO,x |  dex")
             }
             is PtBinaryExpression -> {
                 val addrExpr = expr.address as PtBinaryExpression
-                if(tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
-                    if(pushResultOnEstack)
-                        out("  sta  P8ESTACK_LO,x |  dex")
-                } else {
+                if(!tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
                     assignViaExprEval()
                 }
             }
@@ -3098,6 +3014,14 @@ $repeatLabel""")
         }
     }
 
+    internal fun pushFAC1() {
+        out("  jsr  floats.pushFAC1")
+    }
+
+    internal fun popFAC1() {
+        out("  jsr  floats.popFAC1")
+    }
+
     internal fun needAsaveForExpr(arg: PtExpression): Boolean =
         arg !is PtNumber && arg !is PtIdentifier && (arg !is PtMemoryByte || !arg.isSimple())
 
@@ -3130,9 +3054,6 @@ $repeatLabel""")
  * it's more consistent to only define these attributes on a Subroutine node.
  */
 internal class SubroutineExtraAsmInfo {
-    var usedRegsaveA = false
-    var usedRegsaveX = false
-    var usedRegsaveY = false
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
 

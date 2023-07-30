@@ -173,7 +173,7 @@ class VmProgramLoader {
 
         subroutines.forEach {
             it.value.chunks.forEach { chunk ->
-                chunk.instructions.withIndex().forEach { (index, ins) ->
+                chunk.instructions.withIndex().forEach { (_, ins) ->
                     if(ins.opcode==Opcode.CALL) {
                         val fcallspec = ins.fcallArgs!!
                         val argsWithAddresses = fcallspec.arguments.map { arg ->

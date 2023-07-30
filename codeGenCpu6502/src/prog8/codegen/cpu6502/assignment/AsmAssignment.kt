@@ -10,8 +10,7 @@ internal enum class TargetStorageKind {
     VARIABLE,
     ARRAY,
     MEMORY,
-    REGISTER,
-    STACK
+    REGISTER
 }
 
 internal enum class SourceStorageKind {
@@ -20,7 +19,6 @@ internal enum class SourceStorageKind {
     ARRAY,
     MEMORY,
     REGISTER,
-    STACK,              // value is already present on stack
     EXPRESSION,         // expression in ast-form, still to be evaluated
 }
 
@@ -120,7 +118,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             TargetStorageKind.MEMORY -> {
                 left isSameAs memory!!
             }
-            TargetStorageKind.REGISTER, TargetStorageKind.STACK -> {
+            TargetStorageKind.REGISTER -> {
                 false
             }
         }

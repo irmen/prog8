@@ -104,34 +104,26 @@ romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base addr
 
 ; ---- utilities -----
 
-asmsub STOP2() -> ubyte @A  {
+asmsub STOP2() clobbers(X) -> ubyte @A  {
     ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
     %asm {{
-        txa
-        pha
         jsr  cbm.STOP
         beq  +
-        pla
-        tax
         lda  #0
         rts
-+       pla
-        tax
-        lda  #1
++       lda  #1
         rts
     }}
 }
 
-asmsub RDTIM16() -> uword @AY {
+asmsub RDTIM16() clobbers(X) -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
     %asm {{
-        stx  P8ZP_SCRATCH_REG
         jsr  cbm.RDTIM
         pha
         txa
         tay
         pla
-        ldx  P8ZP_SCRATCH_REG
         rts
     }}
 }
@@ -446,10 +438,6 @@ _irq_handler_init
 		sta  IRQ_SCRATCH_ZPWORD2
 		lda  P8ZP_SCRATCH_W2+1
 		sta  IRQ_SCRATCH_ZPWORD2+1
-		; Set X to the bottom 32 bytes of the evaluation stack, to HOPEFULLY not clobber it.
-		; This leaves 128-32=96 stack entries for the main program, and 32 stack entries for the IRQ handler.
-		; We assume IRQ handlers don't contain complex expressions taking up more than that.
-		ldx  #32
 		cld
 		rts
 
@@ -774,111 +762,108 @@ cx16 {
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
     ; they are simulated on the C128 as well but their location in memory is different
     ; (because there's no room for them in the zeropage)
-    ; $1300-$1bff is unused RAM on C128. We'll use $1a00-$1bff as the lo/hi evalstack.
-    ; the virtual registers are allocated at the bottom of the eval-stack (should be ample space unless
-    ; you're doing insane nesting of expressions...)
-    ; NOTE: the memory location of these registers can change based on the "-esa" compiler option
-    &uword r0  = $1b00
-    &uword r1  = $1b02
-    &uword r2  = $1b04
-    &uword r3  = $1b06
-    &uword r4  = $1b08
-    &uword r5  = $1b0a
-    &uword r6  = $1b0c
-    &uword r7  = $1b0e
-    &uword r8  = $1b10
-    &uword r9  = $1b12
-    &uword r10 = $1b14
-    &uword r11 = $1b16
-    &uword r12 = $1b18
-    &uword r13 = $1b1a
-    &uword r14 = $1b1c
-    &uword r15 = $1b1e
+    ; $1300-$1bff is unused RAM on C128.
+    &uword r0  = $1be0
+    &uword r1  = $1be2
+    &uword r2  = $1be4
+    &uword r3  = $1be6
+    &uword r4  = $1be8
+    &uword r5  = $1bea
+    &uword r6  = $1bec
+    &uword r7  = $1bee
+    &uword r8  = $1bf0
+    &uword r9  = $1bf2
+    &uword r10 = $1bf4
+    &uword r11 = $1bf6
+    &uword r12 = $1bf8
+    &uword r13 = $1bfa
+    &uword r14 = $1bfc
+    &uword r15 = $1bfe
 
-    &word r0s  = $1b00
-    &word r1s  = $1b02
-    &word r2s  = $1b04
-    &word r3s  = $1b06
-    &word r4s  = $1b08
-    &word r5s  = $1b0a
-    &word r6s  = $1b0c
-    &word r7s  = $1b0e
-    &word r8s  = $1b10
-    &word r9s  = $1b12
-    &word r10s = $1b14
-    &word r11s = $1b16
-    &word r12s = $1b18
-    &word r13s = $1b1a
-    &word r14s = $1b1c
-    &word r15s = $1b1e
+    &word r0s  = $1be0
+    &word r1s  = $1be2
+    &word r2s  = $1be4
+    &word r3s  = $1be6
+    &word r4s  = $1be8
+    &word r5s  = $1bea
+    &word r6s  = $1bec
+    &word r7s  = $1bee
+    &word r8s  = $1bf0
+    &word r9s  = $1bf2
+    &word r10s = $1bf4
+    &word r11s = $1bf6
+    &word r12s = $1bf8
+    &word r13s = $1bfa
+    &word r14s = $1bfc
+    &word r15s = $1bfe
 
-    &ubyte r0L  = $1b00
-    &ubyte r1L  = $1b02
-    &ubyte r2L  = $1b04
-    &ubyte r3L  = $1b06
-    &ubyte r4L  = $1b08
-    &ubyte r5L  = $1b0a
-    &ubyte r6L  = $1b0c
-    &ubyte r7L  = $1b0e
-    &ubyte r8L  = $1b10
-    &ubyte r9L  = $1b12
-    &ubyte r10L = $1b14
-    &ubyte r11L = $1b16
-    &ubyte r12L = $1b18
-    &ubyte r13L = $1b1a
-    &ubyte r14L = $1b1c
-    &ubyte r15L = $1b1e
+    &ubyte r0L  = $1be0
+    &ubyte r1L  = $1be2
+    &ubyte r2L  = $1be4
+    &ubyte r3L  = $1be6
+    &ubyte r4L  = $1be8
+    &ubyte r5L  = $1bea
+    &ubyte r6L  = $1bec
+    &ubyte r7L  = $1bee
+    &ubyte r8L  = $1bf0
+    &ubyte r9L  = $1bf2
+    &ubyte r10L = $1bf4
+    &ubyte r11L = $1bf6
+    &ubyte r12L = $1bf8
+    &ubyte r13L = $1bfa
+    &ubyte r14L = $1bfc
+    &ubyte r15L = $1bfe
 
-    &ubyte r0H  = $1b01
-    &ubyte r1H  = $1b03
-    &ubyte r2H  = $1b05
-    &ubyte r3H  = $1b07
-    &ubyte r4H  = $1b09
-    &ubyte r5H  = $1b0b
-    &ubyte r6H  = $1b0d
-    &ubyte r7H  = $1b0f
-    &ubyte r8H  = $1b11
-    &ubyte r9H  = $1b13
-    &ubyte r10H = $1b15
-    &ubyte r11H = $1b17
-    &ubyte r12H = $1b19
-    &ubyte r13H = $1b1b
-    &ubyte r14H = $1b1d
-    &ubyte r15H = $1b1f
+    &ubyte r0H  = $1be1
+    &ubyte r1H  = $1be3
+    &ubyte r2H  = $1be5
+    &ubyte r3H  = $1be7
+    &ubyte r4H  = $1be9
+    &ubyte r5H  = $1beb
+    &ubyte r6H  = $1bed
+    &ubyte r7H  = $1bef
+    &ubyte r8H  = $1bf1
+    &ubyte r9H  = $1bf3
+    &ubyte r10H = $1bf5
+    &ubyte r11H = $1bf7
+    &ubyte r12H = $1bf9
+    &ubyte r13H = $1bfb
+    &ubyte r14H = $1bfd
+    &ubyte r15H = $1bff
 
-    &byte r0sL  = $1b00
-    &byte r1sL  = $1b02
-    &byte r2sL  = $1b04
-    &byte r3sL  = $1b06
-    &byte r4sL  = $1b08
-    &byte r5sL  = $1b0a
-    &byte r6sL  = $1b0c
-    &byte r7sL  = $1b0e
-    &byte r8sL  = $1b10
-    &byte r9sL  = $1b12
-    &byte r10sL = $1b14
-    &byte r11sL = $1b16
-    &byte r12sL = $1b18
-    &byte r13sL = $1b1a
-    &byte r14sL = $1b1c
-    &byte r15sL = $1b1e
+    &byte r0sL  = $1be0
+    &byte r1sL  = $1be2
+    &byte r2sL  = $1be4
+    &byte r3sL  = $1be6
+    &byte r4sL  = $1be8
+    &byte r5sL  = $1bea
+    &byte r6sL  = $1bec
+    &byte r7sL  = $1bee
+    &byte r8sL  = $1bf0
+    &byte r9sL  = $1bf2
+    &byte r10sL = $1bf4
+    &byte r11sL = $1bf6
+    &byte r12sL = $1bf8
+    &byte r13sL = $1bfa
+    &byte r14sL = $1bfc
+    &byte r15sL = $1bfe
 
-    &byte r0sH  = $1b01
-    &byte r1sH  = $1b03
-    &byte r2sH  = $1b05
-    &byte r3sH  = $1b07
-    &byte r4sH  = $1b09
-    &byte r5sH  = $1b0b
-    &byte r6sH  = $1b0d
-    &byte r7sH  = $1b0f
-    &byte r8sH  = $1b11
-    &byte r9sH  = $1b13
-    &byte r10sH = $1b15
-    &byte r11sH = $1b17
-    &byte r12sH = $1b19
-    &byte r13sH = $1b1b
-    &byte r14sH = $1b1d
-    &byte r15sH = $1b1f
+    &byte r0sH  = $1be1
+    &byte r1sH  = $1be3
+    &byte r2sH  = $1be5
+    &byte r3sH  = $1be7
+    &byte r4sH  = $1be9
+    &byte r5sH  = $1beb
+    &byte r6sH  = $1bed
+    &byte r7sH  = $1bef
+    &byte r8sH  = $1bf1
+    &byte r9sH  = $1bf3
+    &byte r10sH = $1bf5
+    &byte r11sH = $1bf7
+    &byte r12sH = $1bf9
+    &byte r13sH = $1bfb
+    &byte r14sH = $1bfd
+    &byte r15sH = $1bff
 
     asmsub save_virtual_registers() clobbers(A,Y) {
         %asm {{

@@ -7,9 +7,6 @@
 ;
 
 
-math_store_reg	.byte  0		; temporary storage
-
-
 multiply_bytes	.proc
 	; -- multiply 2 bytes A and Y, result as byte in A  (signed or unsigned)
 		sta  P8ZP_SCRATCH_B1         ; num1
@@ -30,7 +27,6 @@ multiply_bytes_into_word	.proc
 	; -- multiply 2 bytes A and Y, result as word in A/Y (unsigned)
 		sta  P8ZP_SCRATCH_B1
 		sty  P8ZP_SCRATCH_REG
-		stx  math_store_reg
 		lda  #0
 		ldx  #8
 		lsr  P8ZP_SCRATCH_B1
@@ -43,7 +39,6 @@ multiply_bytes_into_word	.proc
 		bne  -
 		tay
 		lda  P8ZP_SCRATCH_B1
-		ldx  math_store_reg
 		rts
 		.pend
 
@@ -55,7 +50,6 @@ multiply_words	.proc
 
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
-		stx  P8ZP_SCRATCH_REG
 
 mult16		lda  #0
 		sta  result+2	; clear upper bits of product
@@ -77,7 +71,6 @@ mult16		lda  #0
 		ror  result
 		dex
 		bne  -
-		ldx  P8ZP_SCRATCH_REG
 		lda  result
 		ldy  result+1
 		rts
@@ -124,7 +117,6 @@ divmod_ub_asm	.proc
 	;    division by zero will result in quotient = 255 and remainder = original number
 		sty  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_B1
-		stx  math_store_reg
 
 		lda  #0
 		ldx  #8
@@ -137,7 +129,6 @@ divmod_ub_asm	.proc
 		dex
 		bne  -
 		ldy  P8ZP_SCRATCH_B1
-		ldx  math_store_reg
 		rts
 		.pend
 
@@ -197,7 +188,6 @@ result = dividend ;save memory by reusing divident to store the result
 
 		sta  _divisor
 		sty  _divisor+1
-		stx  P8ZP_SCRATCH_REG
 		lda  #0	        	;preset remainder to 0
 		sta  remainder
 		sta  remainder+1
@@ -224,7 +214,6 @@ result = dividend ;save memory by reusing divident to store the result
 
 		lda  result
 		ldy  result+1
-		ldx  P8ZP_SCRATCH_REG
 		rts
 _divisor	.word 0
 		.pend
@@ -255,501 +244,6 @@ b1=*+1
 		.pend
 
 randbyte = randword    ; -- 8 bit pseudo random number generator into A (by just reusing randword)
-
-
-; ----------- optimized multiplications (stack) : ---------
-stack_mul_byte_3	.proc
-		; X + X*2
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_3	.proc
-		; W*2 + W
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		adc  P8ESTACK_HI+1,x
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-
-stack_mul_byte_5	.proc
-		; X*4 + X
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_5	.proc
-		; W*4 + W
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		adc  P8ESTACK_HI+1,x
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-
-stack_mul_byte_6	.proc
-		; (X*2 + X)*2
-		lda  P8ESTACK_LO+1,x
-		asl  a
-                clc
-		adc  P8ESTACK_LO+1,x
-		asl  a
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_6	.proc
-		; (W*2 + W)*2
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		adc  P8ESTACK_HI+1,x
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_7	.proc
-		; X*8 - X
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		asl  a
-		sec
-		sbc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_7	.proc
-		; W*8 - W
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		sec
-		sbc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		sbc  P8ESTACK_HI+1,x
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_9	.proc
-		; X*8 + X
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_9	.proc
-		; W*8 + W
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		adc  P8ESTACK_HI+1,x
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_10	.proc
-		; (X*4 + X)*2
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		asl  a
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_10	.proc
-		; (W*4 + W)*2
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		adc  P8ESTACK_HI+1,x
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_11	.proc
-		; (X*2 + X)*4 - X
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		sec
-		sbc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-; mul_word_11 is skipped (too much code)
-
-stack_mul_byte_12	.proc
-		; (X*2 + X)*4
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_12	.proc
-		; (W*2 + W)*4
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		adc  P8ESTACK_HI+1,x
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_13	.proc
-		; (X*2 + X)*4 + X
-		lda  P8ESTACK_LO+1,x
-		asl  a
-                clc
-		adc  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-                clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-; mul_word_13 is skipped (too much code)
-
-stack_mul_byte_14	.proc
-		; (X*8 - X)*2
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		asl  a
-                sec
-		sbc  P8ESTACK_LO+1,x
-                asl  a
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-; mul_word_14 is skipped (too much code)
-
-stack_mul_byte_15	.proc
-		; X*16 - X
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		asl  a
-		asl  a
-		sec
-		sbc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_15	.proc
-		; W*16 - W
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		sec
-		sbc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		sbc  P8ESTACK_HI+1,x
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_20	.proc
-		; (X*4 + X)*4
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_20	.proc
-		; (W*4 + W)*4
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		adc  P8ESTACK_HI+1,x
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_25	.proc
-		; (X*2 + X)*8 + X
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		asl  a
-		asl  a
-		asl  a
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_25	.proc
-		; W = (W*2 + W) *8 + W
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W1+1
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_W1+1
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ZP_SCRATCH_W1+1
-		adc  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W1+1
-		lda  P8ZP_SCRATCH_W1
-		asl  a
-		rol  P8ZP_SCRATCH_W1+1
-		asl  a
-		rol  P8ZP_SCRATCH_W1+1
-		asl  a
-		rol  P8ZP_SCRATCH_W1+1
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_W1+1
-		adc  P8ESTACK_HI+1,x
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_40	.proc
-		lda  P8ESTACK_LO+1,x
-		and  #7
-		tay
-		lda  mul_byte_40._forties,y
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_40	.proc
-		; (W*4 + W)*8
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_REG
-		lda  P8ESTACK_LO+1,x
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		asl  a
-		rol  P8ZP_SCRATCH_REG
-		clc
-		adc  P8ESTACK_LO+1,x
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_REG
-		adc  P8ESTACK_HI+1,x
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		asl  P8ESTACK_LO+1,x
-                rol  a
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_50	.proc
-		lda  P8ESTACK_LO+1,x
-		and  #7
-		tay
-		lda  mul_byte_50._fifties, y
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_50	.proc
-		; W = W * 25 * 2
-		jsr  stack_mul_word_25
-		asl  P8ESTACK_LO+1,x
-		rol  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_80	.proc
-		lda  P8ESTACK_LO+1,x
-		and  #3
-		tay
-		lda  mul_byte_80._eighties, y
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_80	.proc
-		; W = W * 40 * 2
-		jsr  stack_mul_word_40
-		asl  P8ESTACK_LO+1,x
-		rol  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_byte_100	.proc
-		lda  P8ESTACK_LO+1,x
-		and  #3
-		tay
-		lda  mul_byte_100._hundreds, y
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-stack_mul_word_100	.proc
-		; W = W * 25 * 4
-		jsr  stack_mul_word_25
-		asl  P8ESTACK_LO+1,x
-		rol  P8ESTACK_HI+1,x
-		asl  P8ESTACK_LO+1,x
-		rol  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_word_320	.proc
-		; stackW = stackLo * 256 + stackLo * 64	 (stackHi doesn't matter)
-		ldy  P8ESTACK_LO+1,x
-		lda  #0
-		sta  P8ESTACK_HI+1,x
-		tya
-		asl  a
-		rol  P8ESTACK_HI+1,x
-		asl  a
-		rol  P8ESTACK_HI+1,x
-		asl  a
-		rol  P8ESTACK_HI+1,x
-		asl  a
-		rol  P8ESTACK_HI+1,x
-		asl  a
-		rol  P8ESTACK_HI+1,x
-		asl  a
-		rol  P8ESTACK_HI+1,x
-		sta  P8ESTACK_LO+1,x
-		tya
-		clc
-		adc  P8ESTACK_HI+1,x
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-stack_mul_word_640	.proc
-		; stackW = (stackLo * 2 * 320)    (stackHi doesn't matter)
-		asl  P8ESTACK_LO+1,x
-		jmp  stack_mul_word_320
-		.pend
 
 
 ; ----------- optimized multiplications (in-place A (byte) and ?? (word)) : ---------
@@ -1252,250 +746,69 @@ mul_word_640	.proc
 ; ----------- end optimized multiplications -----------
 
 
-; bit shifts.
-; anything below 3 is done inline. anything above 7 is done via other optimizations.
-
-shift_left_w_7	.proc
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_LO+1,x
-
-		asl  a
-		rol  P8ZP_SCRATCH_B1
-_shift6		asl  a
-		rol  P8ZP_SCRATCH_B1
-_shift5		asl  a
-		rol  P8ZP_SCRATCH_B1
-_shift4		asl  a
-		rol  P8ZP_SCRATCH_B1
-_shift3		asl  a
-		rol  P8ZP_SCRATCH_B1
-		asl  a
-		rol  P8ZP_SCRATCH_B1
-		asl  a
-		rol  P8ZP_SCRATCH_B1
-
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_B1
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-shift_left_w_6	.proc
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_LO+1,x
-		jmp  shift_left_w_7._shift6
-		.pend
-
-shift_left_w_5	.proc
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_LO+1,x
-		jmp  shift_left_w_7._shift5
-		.pend
-
-shift_left_w_4	.proc
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_LO+1,x
-		jmp  shift_left_w_7._shift4
-		.pend
-
-shift_left_w_3	.proc
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_LO+1,x
-		jmp  shift_left_w_7._shift3
-		.pend
-
-
-shift_left_w	.proc
-		; -- variable number of shifts left
-		inx
-		ldy  P8ESTACK_LO,x
-		bne  _shift
-		rts
-_shift		asl  P8ESTACK_LO+1,x
-		rol  P8ESTACK_HI+1,x
-		dey
-		bne  _shift
-		rts
-		.pend
-
-shift_right_uw	.proc
-		; -- uword variable number of shifts right
-		inx
-		ldy  P8ESTACK_LO,x
-		bne  _shift
-		rts
-_shift		lsr  P8ESTACK_HI+1,x
-		ror  P8ESTACK_LO+1,x
-		dey
-		bne  _shift
-		rts
-		.pend
-
-shift_right_uw_7	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_HI+1,x
-
-		lsr  a
-		ror  P8ZP_SCRATCH_B1
-_shift6		lsr  a
-		ror  P8ZP_SCRATCH_B1
-_shift5		lsr  a
-		ror  P8ZP_SCRATCH_B1
-_shift4		lsr  a
-		ror  P8ZP_SCRATCH_B1
-_shift3		lsr  a
-		ror  P8ZP_SCRATCH_B1
-		lsr  a
-		ror  P8ZP_SCRATCH_B1
-		lsr  a
-		ror  P8ZP_SCRATCH_B1
-
-		sta  P8ESTACK_HI+1,x
-		lda  P8ZP_SCRATCH_B1
-		sta  P8ESTACK_LO+1,x
-		rts
-		.pend
-
-shift_right_uw_6	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_HI+1,x
-		jmp  shift_right_uw_7._shift6
-		.pend
-
-shift_right_uw_5	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_HI+1,x
-		jmp  shift_right_uw_7._shift5
-		.pend
-
-shift_right_uw_4	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_HI+1,x
-		jmp  shift_right_uw_7._shift4
-		.pend
-
-shift_right_uw_3	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_B1
-		lda  P8ESTACK_HI+1,x
-		jmp  shift_right_uw_7._shift3
-		.pend
-
-
-shift_right_w_7		.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W1+1
-
-		asl  a
-		ror  P8ZP_SCRATCH_W1+1
-		ror  P8ZP_SCRATCH_W1
-
-		lda  P8ZP_SCRATCH_W1+1
-_shift6		asl  a
-		ror  P8ZP_SCRATCH_W1+1
-		ror  P8ZP_SCRATCH_W1
-		lda  P8ZP_SCRATCH_W1+1
-_shift5		asl  a
-		ror  P8ZP_SCRATCH_W1+1
-		ror  P8ZP_SCRATCH_W1
-		lda  P8ZP_SCRATCH_W1+1
-_shift4		asl  a
-		ror  P8ZP_SCRATCH_W1+1
-		ror  P8ZP_SCRATCH_W1
-		lda  P8ZP_SCRATCH_W1+1
-_shift3		asl  a
-		ror  P8ZP_SCRATCH_W1+1
-		ror  P8ZP_SCRATCH_W1
-		lda  P8ZP_SCRATCH_W1+1
-		asl  a
-		ror  P8ZP_SCRATCH_W1+1
-		ror  P8ZP_SCRATCH_W1
-		lda  P8ZP_SCRATCH_W1+1
-		asl  a
-		ror  P8ZP_SCRATCH_W1+1
-		ror  P8ZP_SCRATCH_W1
-
-		lda  P8ZP_SCRATCH_W1
-		sta  P8ESTACK_LO+1,x
-		lda  P8ZP_SCRATCH_W1+1
-		sta  P8ESTACK_HI+1,x
-		rts
-		.pend
-
-shift_right_w_6	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W1+1
-		jmp  shift_right_w_7._shift6
-		.pend
-
-shift_right_w_5	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W1+1
-		jmp  shift_right_w_7._shift5
-		.pend
-
-shift_right_w_4	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W1+1
-		jmp  shift_right_w_7._shift4
-		.pend
-
-shift_right_w_3	.proc
-		lda  P8ESTACK_LO+1,x
-		sta  P8ZP_SCRATCH_W1
-		lda  P8ESTACK_HI+1,x
-		sta  P8ZP_SCRATCH_W1+1
-		jmp  shift_right_w_7._shift3
-		.pend
-
-
-shift_right_w	.proc
-		; -- signed word variable number of shifts right
-		inx
-		ldy  P8ESTACK_LO,x
-		bne  _shift
-		rts
-_shift		lda  P8ESTACK_HI+1,x
-		asl  a
-		ror  P8ESTACK_HI+1,x
-		ror  P8ESTACK_LO+1,x
-		dey
-		bne  _shift
-		rts
-		.pend
-
-
 ; support for bit shifting that is too large to be unrolled:
 
 lsr_byte_A	.proc
-		; -- lsr signed byte in A times the value in Y (assume >0)
+		; -- lsr signed byte in A times the value in Y (>1)
 		cmp  #0
-		bmi  _negative
+		bpl  lsr_ubyte_A
+-       	sec
+		ror  a
+		dey
+		bne  -
+		rts
+		.pend
+
+lsr_ubyte_A	.proc
+		; -- lsr unsigned byte in A times the value in Y (>1)
 -		lsr  a
 		dey
 		bne  -
 		rts
-_negative	lsr  a
-		ora  #$80
+		.pend
+
+asl_byte_A      .proc
+		; -- asl any byte in A times the value in Y (>1)
+-		asl  a
 		dey
+		bne  -
+		rts
+		.pend
+
+
+lsr_word_AY     .proc
+		; -- lsr signed word in AY times the value in X (>1)
+		cpy  #0
+		bpl  lsr_uword_AY
+		sty  P8ZP_SCRATCH_B1
+_negative       sec
+		ror  P8ZP_SCRATCH_B1
+		ror  a
+		dex
 		bne  _negative
+		ldy  P8ZP_SCRATCH_B1
+		rts
+		.pend
+
+lsr_uword_AY    .proc
+		; -- lsr unsigned word in AY times the value in X (>1)
+		sty  P8ZP_SCRATCH_B1
+-		lsr  P8ZP_SCRATCH_B1
+		ror  a
+		dex
+		bne  -
+		ldy  P8ZP_SCRATCH_B1
+		rts
+		.pend
+
+asl_word_AY     .proc
+		; -- asl any word in AY times the value in X (>1)
+		sty  P8ZP_SCRATCH_B1
+-               asl  a
+		rol  P8ZP_SCRATCH_B1
+		dex
+		bne  -
+		ldy  P8ZP_SCRATCH_B1
 		rts
 		.pend
 
@@ -1525,7 +838,6 @@ tempsq = P8ZP_SCRATCH_B1        ; temp byte for intermediate result
 
 	sta  numberl
 	sty  numberh
-	stx  P8ZP_SCRATCH_REG
 
         lda     #$00        ; clear a
         sta     squarel     ; clear square low byte
@@ -1563,7 +875,6 @@ _nosqadd:
 
 	lda  squarel
 	ldy  squareh
-	ldx  P8ZP_SCRATCH_REG
 	rts
 
 		.pend

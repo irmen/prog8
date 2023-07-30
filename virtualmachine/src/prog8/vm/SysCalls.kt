@@ -1,6 +1,5 @@
 package prog8.vm
 
-import prog8.code.core.AssemblyError
 import prog8.intermediate.FunctionCallArgs
 import prog8.intermediate.IRDataType
 import kotlin.math.*
@@ -484,7 +483,6 @@ object SysCalls {
                 val result = floor(radians/2.0/PI*256.0)
                 returnValue(callspec.returns!!, result, vm)
             }
-            else -> throw AssemblyError("missing syscall ${call.name}")
         }
     }
 }

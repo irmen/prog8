@@ -40,7 +40,6 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
                 ZeropageType.DONTUSE -> {
                     free.clear() // don't use zeropage at all
                 }
-                else -> throw InternalCompilerException("for this machine target, zero page type 'floatsafe' is not available. ${options.zeropage}")
             }
 
             val distinctFree = free.distinct()

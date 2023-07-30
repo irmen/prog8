@@ -29,9 +29,6 @@ class IRCodeGen(
         irSymbolTable = IRSymbolTable(symbolTable)
         val irProg = IRProgram(program.name, irSymbolTable, options, program.encoding)
 
-        if(options.evalStackBaseAddress!=null)
-            throw AssemblyError("IR doesn't use eval-stack")
-
         // collect global variables initializers
         program.allBlocks().forEach {
             val result = mutableListOf<IRCodeChunkBase>()

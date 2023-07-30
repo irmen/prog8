@@ -48,7 +48,6 @@ output=PRG
 launcher=BASIC
 zeropage=KERNALSAFE
 loadAddress=$0000
-evalStackBaseAddress=
 </OPTIONS>
 
 <ASMSYMBOLS>

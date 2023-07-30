@@ -53,25 +53,21 @@ romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base addr
 
 ; ---- utility
 
-asmsub STOP2() -> ubyte @A  {
+asmsub STOP2() clobbers(X) -> ubyte @A  {
     ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
     %asm {{
-        phx
         jsr  cbm.STOP
         beq  +
-        plx
         lda  #0
         rts
-+       plx
-        lda  #1
++       lda  #1
         rts
     }}
 }
 
-asmsub RDTIM16() -> uword @AY {
+asmsub RDTIM16() clobbers(X) -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience. Also avoids ram bank issue for irqs.
     %asm {{
-        phx
         php
         sei
         jsr  cbm.RDTIM
@@ -81,7 +77,6 @@ asmsub RDTIM16() -> uword @AY {
         txa
         tay
         pla
-        plx
         rts
     }}
 }
@@ -454,15 +449,12 @@ asmsub mouse_config2(ubyte shape @A) clobbers (A, X, Y) {
     }}
 }
 
-asmsub mouse_pos() -> ubyte @A {
+asmsub mouse_pos() clobbers(X) -> ubyte @A {
     ; -- short wrapper around mouse_get() kernal routine:
     ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status.
     %asm {{
-        phx
         ldx  #cx16.r0
-        jsr  cx16.mouse_get
-        plx
-        rts
+        jmp  cx16.mouse_get
     }}
 }
 
@@ -500,7 +492,7 @@ inline asmsub getrambank() -> ubyte @A {
     }}
 }
 
-asmsub numbanks() -> uword @AY {
+asmsub numbanks() clobbers(X) -> uword @AY {
     ; -- Returns the number of available RAM banks according to the kernal (each bank is 8 Kb).
     ;    Note that the number of such banks can be 256 so a word is returned.
     ;    But just looking at the A register (the LSB of the result word) could suffice if you know that A=0 means 256 banks:
@@ -508,15 +500,13 @@ asmsub numbanks() -> uword @AY {
     ;    Kernal's MEMTOP routine reports 0 in this case but that doesn't mean 'zero banks', instead it means 256 banks,
     ;    as there is no X16 without at least 1 page of banked RAM. So this routine returns 256 instead of 0.
     %asm {{
-        phx
         sec
         jsr  cbm.MEMTOP
         ldy  #0
         cmp  #0
         bne  +
         iny
-+       plx
-        rts
++       rts
     }}
 }
 
@@ -956,10 +946,6 @@ _irq_handler_init
 		sta  IRQ_SCRATCH_ZPWORD2
 		lda  P8ZP_SCRATCH_W2+1
 		sta  IRQ_SCRATCH_ZPWORD2+1
-		; Set X to the bottom 32 bytes of the evaluation stack, to HOPEFULLY not clobber it.
-		; This leaves 128-32=96 stack entries for the main program, and 32 stack entries for the IRQ handler.
-		; We assume IRQ handlers don't contain complex expressions taking up more than that.
-		ldx  #32
 		cld
 		rts
 
@@ -1079,19 +1065,17 @@ asmsub  set_rasterline(uword line @AY) {
         void cx16.i2c_write_byte($42, $05, activity)
     }
 
-    asmsub wait(uword jiffies @AY) {
+    asmsub wait(uword jiffies @AY) clobbers(X) {
         ; --- wait approximately the given number of jiffies (1/60th seconds) (N or N+1)
         ;     note: the system irq handler has to be active for this to work as it depends on the system jiffy clock
         ;     note: this routine cannot be used from inside a irq handler
         %asm {{
-            phx
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
 
 _loop       lda  P8ZP_SCRATCH_W1
             ora  P8ZP_SCRATCH_W1+1
             bne  +
-            plx
             rts
 
 +           sei
