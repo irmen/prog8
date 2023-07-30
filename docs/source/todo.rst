@@ -1,8 +1,6 @@
 TODO
 ====
 
-- compiling Rockrunner with -noopt crashes the program soon after startup
-
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!
 
