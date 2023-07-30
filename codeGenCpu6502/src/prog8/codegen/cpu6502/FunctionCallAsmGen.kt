@@ -31,8 +31,8 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
 
         if(sub is PtAsmSub) {
             argumentsViaRegisters(sub, call)
-            if (sub.inline && asmgen.options.optimize) {
-                // inline the subroutine.
+            if (sub.inline) {
+                // inline the subroutine. (regardless of optimization settings!)
                 // we do this by copying the subroutine's statements at the call site.
                 // NOTE: *if* there is a return statement, it will be the only one, and the very last statement of the subroutine
                 // (this condition has been enforced by an ast check earlier)

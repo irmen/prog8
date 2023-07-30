@@ -269,9 +269,7 @@ internal class ProgramAndVarsGen(
 
     internal fun translateAsmSubroutine(sub: PtAsmSub) {
         if(sub.inline) {
-            if(options.optimize) {
-                return
-            }
+            return      // subroutine gets inlined at call site.
         }
 
         asmgen.out("")

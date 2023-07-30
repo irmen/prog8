@@ -143,7 +143,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             }
         }
 
-        if (!subroutine.inline || !options.optimize) {
+        if (!subroutine.inline) {
             if (subroutine.isAsmSubroutine && subroutine.asmAddress==null && !subroutine.hasRtsInAsm()) {
                 // make sure the NOT INLINED asm subroutine actually has a rts at the end
                 // (non-asm routines get a Return statement as needed, above)
