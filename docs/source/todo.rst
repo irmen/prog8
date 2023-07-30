@@ -1,10 +1,12 @@
 TODO
 ====
 
+- [on branch: shadowing-fixes] add shadowing warning to asm and fix shadowing errors
+- prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm
+
 - allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
 - allow 'chained' array indexing for assign targets:  ptrarray[0][0] = 42   this is just evaluating the lhs as a uword pointer expression
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
-- [on branch: shadowing-fixes] add shadowing warning to asm and fix shadowing errors
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!
 

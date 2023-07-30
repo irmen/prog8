@@ -31,6 +31,11 @@ internal class AssemblyProgram(
                     "--dump-labels", "--vice-labels", "--labels=$viceMonListFile", "--no-monitor"
                 )
 
+                if(options.warnSymbolShadowing)
+                    command.add("-Wshadow")
+                else
+                    command.add("-Wno-shadow")
+
                 if(options.asmQuiet)
                     command.add("--quiet")
 
@@ -59,9 +64,14 @@ internal class AssemblyProgram(
 
                 // TODO are these options okay for atari?
                 val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
+                    "-Wall", // "-Werror", "-Wno-strict-bool"
                     "--no-monitor"
                 )
+
+                if(options.warnSymbolShadowing)
+                    command.add("-Wshadow")
+                else
+                    command.add("-Wno-shadow")
 
                 if(options.asmQuiet)
                     command.add("--quiet")

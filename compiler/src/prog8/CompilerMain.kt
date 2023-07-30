@@ -45,6 +45,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform any optimizations")
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
+    val warnSymbolShadowing by cli.option(ArgType.Boolean, fullName = "warnshadow", description="show assembler warnings about symbol shadowing")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val includeSourcelines by cli.option(ArgType.Boolean, fullName = "sourcelines", description = "include original Prog8 source lines in generated asm code")
     val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
@@ -113,6 +114,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     filepath,
                     dontOptimize != true,
                     dontWriteAssembly != true,
+                    warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
                     includeSourcelines == true,
@@ -180,6 +182,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     filepath,
                     dontOptimize != true,
                     dontWriteAssembly != true,
+                    warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
                     includeSourcelines == true,

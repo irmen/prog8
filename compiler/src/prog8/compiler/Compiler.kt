@@ -30,6 +30,7 @@ class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAs
 class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
                         val writeAssembly: Boolean,
+                        val warnSymbolShadowing: Boolean,
                         val quietAssembler: Boolean,
                         val asmListfile: Boolean,
                         val includeSourcelines: Boolean,
@@ -67,6 +68,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             compilationOptions = options
 
             with(compilationOptions) {
+                warnSymbolShadowing = args.warnSymbolShadowing
                 optimize = args.optimize
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile

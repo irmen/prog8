@@ -34,6 +34,7 @@ class RequestParser : Take {
             Path(a),
             optimize = true,
             writeAssembly = true,
+            warnSymbolShadowing = false,
             compilationTarget = "c64",
             symbolDefs = emptyMap(),
             quietAssembler = false,

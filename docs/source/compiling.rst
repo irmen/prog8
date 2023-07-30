@@ -151,6 +151,15 @@ One or more .p8 module files
     Note that it is possible to use the watch mode with multiple modules as well, but it will
     recompile everything in that list even if only one of the files got updated.
 
+``-warnshadow``
+    Tells the assembler to issue warning messages about symbol shadowing.
+    These *can* be problematic, but usually aren't because prog8 has different scoping rules
+    than the assembler has.
+    You may want to watch out for shadowing of builtin names though. Especially 'a', 'x' and 'y'
+    as those are the cpu register names and if you shadow those, the assembler might
+    interpret certain instructions differently and produce unexpected opcodes (like LDA X getting
+    turned into TXA, or not, depending on the symbol 'x' being defined in your own assembly code or not)
+
 ``-quietasm``
     Don't print assembler output results.
 
