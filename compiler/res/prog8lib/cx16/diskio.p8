@@ -290,6 +290,7 @@ close_end:
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
+        ;    NOTE: cannot be used to load into VRAM.  Use vload() or call cx16.macptr() yourself with the vera data register as address.
         if not iteration_in_progress or not num_bytes
             return 0
 
@@ -347,6 +348,7 @@ m_in_buffer     sta  $ffff
     ; optimized for Commander X16 to use MACPTR block read kernal call
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
+        ;    NOTE: cannot be used to load into VRAM.  Use vload() or call cx16.macptr() yourself with the vera data register as address.
         if not iteration_in_progress
             return 0
 
