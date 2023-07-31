@@ -1,16 +1,20 @@
 %import textio
-%zeropage basicsafe
 
 main {
-    sub start() {
-        ubyte var = 0
+  ubyte[2] data = [100, 100]
+  uword dRef = &data
 
-        when var {
-            1 -> txt.print("one")
-            2 -> txt.print("two")
-            0 -> {
-            }
-            else -> txt.print("other")
-        }
-	}
+  sub start() {
+    dRef[0]--
+    dRef[1]++
+
+    cx16.r0L = 0
+    cx16.r1L = 1
+    dRef[cx16.r0L]--
+    dRef[cx16.r1L]++
+
+    txt.print_ub(data[0])
+    txt.spc()
+    txt.print_ub(data[1])
+  }
 }

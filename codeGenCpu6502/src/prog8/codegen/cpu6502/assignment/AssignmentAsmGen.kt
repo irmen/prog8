@@ -61,8 +61,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 val elementDt = assign.source.datatype
                 val arrayVarName = asmgen.asmVariableName(value.variable)
 
-                if(value.variable.type==DataType.UWORD) {
-                    // indexing a pointer var instead of a real array or string
+                if(value.usesPointerVariable) {
                     if(elementDt !in ByteDatatypes)
                         throw AssemblyError("non-array var indexing requires bytes dt")
                     if(value.type != DataType.UBYTE)
@@ -2267,14 +2266,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                if(target.origAstTarget?.array?.variable?.type==DataType.UWORD) {
-                    // assigning an indexed pointer var
+                if(assignsIndexedPointerVar(target)) {
                     if (target.constArrayIndexValue==0u) {
                         asmgen.out("  lda  $sourceName")
-                        asmgen.storeAIntoPointerVar(target.origAstTarget.array!!.variable)
+                        asmgen.storeAIntoPointerVar(target.origAstTarget!!.array!!.variable)
                     } else {
                         asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
-                        if (asmgen.isZpVar(target.origAstTarget.array!!.variable)) {
+                        if (asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
                             asmgen.out("  lda  $sourceName |  sta  (${target.asmVarname}),y")
                         } else {
                             asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
@@ -2489,8 +2487,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     TODO("assign register as word into Array not yet supported")
                 if(target.array!!.splitWords)
                     TODO("assign register into split words ${target.position}")
-                if(target.origAstTarget?.array?.variable?.type==DataType.UWORD) {
-                    // assigning an indexed pointer var
+                if(assignsIndexedPointerVar(target)) {
                     if (target.constArrayIndexValue!=null) {
                         when (register) {
                             CpuRegister.A -> {}
@@ -2515,7 +2512,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             CpuRegister.X -> asmgen.out(" txa")
                             CpuRegister.Y -> asmgen.out(" tya")
                         }
-                        val indexVar = target.array!!.index as PtIdentifier
+                        val indexVar = target.array.index as PtIdentifier
                         if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
                             asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  (${target.asmVarname}),y")
                         } else {
@@ -2545,7 +2542,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             CpuRegister.X -> asmgen.out(" txa")
                             CpuRegister.Y -> asmgen.out(" tya")
                         }
-                        val indexVar = target.array!!.index as PtIdentifier
+                        val indexVar = target.array.index as PtIdentifier
                         asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  ${target.asmVarname},y")
                     }
                 }
@@ -2987,14 +2984,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     storeRegisterAInMemoryAddress(target.memory!!)
                 }
                 TargetStorageKind.ARRAY -> {
-                    if(target.origAstTarget?.array?.variable?.type==DataType.UWORD) {
-                        // assigning an indexed pointer var
+                    if(assignsIndexedPointerVar(target)) {
                         if (target.constArrayIndexValue==0u) {
                             asmgen.out("  lda  #0")
-                            asmgen.storeAIntoPointerVar(target.origAstTarget.array!!.variable)
+                            asmgen.storeAIntoPointerVar(target.origAstTarget!!.array!!.variable)
                         } else {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
-                            if (asmgen.isZpVar(target.origAstTarget.array!!.variable)) {
+                            if (asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
                                 asmgen.out("  lda  #0 |  sta  (${target.asmVarname}),y")
                             } else {
                                 asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
@@ -3042,14 +3038,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                if(target.origAstTarget?.array?.variable?.type==DataType.UWORD) {
-                    // assigning an indexed pointer var
+                if(assignsIndexedPointerVar(target)) {
                     if (target.constArrayIndexValue==0u) {
                         asmgen.out("  lda  #${byte.toHex()}")
-                        asmgen.storeAIntoPointerVar(target.origAstTarget.array!!.variable)
+                        asmgen.storeAIntoPointerVar(target.origAstTarget!!.array!!.variable)
                     } else {
                         asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
-                        if (asmgen.isZpVar(target.origAstTarget.array!!.variable)) {
+                        if (asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
                             asmgen.out("  lda  #${byte.toHex()} |  sta  (${target.asmVarname}),y")
                         } else {
                             asmgen.out("  lda  ${target.asmVarname} |  sta  P8ZP_SCRATCH_W2 |  lda  ${target.asmVarname}+1 |  sta  P8ZP_SCRATCH_W2+1")
@@ -3094,6 +3089,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
     }
+
+    private fun assignsIndexedPointerVar(target: AsmAssignTarget): Boolean =
+        target.origAstTarget?.array?.variable?.type==DataType.UWORD
 
     internal fun assignConstantFloat(target: AsmAssignTarget, float: Double) {
         if (float == 0.0) {

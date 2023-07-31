@@ -147,8 +147,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val arrayVarSymbol = arrayIx.variable.name
 
-        if(arrayIx.variable.type==DataType.UWORD) {
-            // indexing a pointer var instead of a real array or string
+        if(arrayIx.usesPointerVariable) {
             if(eltSize!=1)
                 throw AssemblyError("non-array var indexing requires bytes dt")
             if(arrayIx.index.type!=DataType.UBYTE)

@@ -198,8 +198,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val variable = targetArray.variable.name
             val itemsize = codeGen.program.memsizer.memorySize(targetArray.type)
 
-            if(targetArray.variable.type==DataType.UWORD) {
-                // indexing a pointer var instead of a real array or string
+            if(targetArray.usesPointerVariable) {
                 if(itemsize!=1)
                     throw AssemblyError("non-array var indexing requires bytes dt")
                 if(targetArray.index.type!=DataType.UBYTE)
