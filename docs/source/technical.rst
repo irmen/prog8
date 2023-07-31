@@ -118,3 +118,12 @@ Some notes and references into the compiler's source code modules:
    Currently they get handed the program Ast, Symboltable and several other things.
    If the code generator wants it can use the ``IRCodeGen`` class from the ``codeGenIntermediate`` module
    to convert the Ast into IR first. The VM target uses this, but the 6502 codegen doesn't right now.
+
+
+Upgrading from version 8
+------------------------
+Version 9 introduced several large, incompatible changes. If you still have programs
+written for Prog8 version 8 or earlier, it is likely that you'll have to modify them
+to be able to compile with version 9 or newer.
+
+Information about this can be found in `older Prog8 documentation <https://github.com/irmen/prog8/blob/v9.2.1/docs/source/upgrading8.rst>`_ .

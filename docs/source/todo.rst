@@ -17,6 +17,7 @@ Need help with
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
+
 - [much work:] more support for (64tass) SEGMENTS ?
     - (What, how, isn't current BSS support enough?)
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
@@ -26,6 +27,7 @@ Compiler:
     - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
+
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
