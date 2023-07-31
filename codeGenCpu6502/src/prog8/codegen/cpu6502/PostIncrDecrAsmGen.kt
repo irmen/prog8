@@ -90,7 +90,24 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                 if(constIndex!=null) {
                     val indexValue = constIndex * program.memsizer.memorySize(elementDt)
                     when(elementDt) {
-                        in ByteDatatypes -> asmgen.out(if (incr) "  inc  $asmArrayvarname+$indexValue" else "  dec  $asmArrayvarname+$indexValue")
+                        in ByteDatatypes -> {
+                            if(targetArrayIdx.usesPointerVariable) {
+                                asmgen.out("""
+                                    lda  $asmArrayvarname
+                                    clc
+                                    adc  #$indexValue
+                                    sta  (+) +1
+                                    lda  $asmArrayvarname+1
+                                    adc  #0
+                                    sta  (+) +2""")
+                                if(incr)
+                                    asmgen.out("+\tinc  ${'$'}ffff\t; modified")
+                                else
+                                    asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                            } else {
+                                asmgen.out(if (incr) "  inc  $asmArrayvarname+$indexValue" else "  dec  $asmArrayvarname+$indexValue")
+                            }
+                        }
                         in WordDatatypes -> {
                             if(incr)
                                 asmgen.out(" inc  $asmArrayvarname+$indexValue |  bne  + |  inc  $asmArrayvarname+$indexValue+1 |+")
@@ -113,7 +130,22 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                     asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.X)
                     when(elementDt) {
                         in ByteDatatypes -> {
-                            asmgen.out(if(incr) "  inc  $asmArrayvarname,x" else "  dec  $asmArrayvarname,x")
+                            if(targetArrayIdx.usesPointerVariable) {
+                                asmgen.out("""
+                                    clc
+                                    txa
+                                    adc  $asmArrayvarname
+                                    sta  (+) +1
+                                    lda  $asmArrayvarname+1
+                                    adc  #0
+                                    sta  (+) +2""")
+                                if(incr)
+                                    asmgen.out("+\tinc  ${'$'}ffff\t; modified")
+                                else
+                                    asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                            } else {
+                                asmgen.out(if (incr) "  inc  $asmArrayvarname,x" else "  dec  $asmArrayvarname,x")
+                            }
                         }
                         in WordDatatypes -> {
                             if(incr)
@@ -123,8 +155,7 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
         lda  $asmArrayvarname,x
         bne  +
         dec  $asmArrayvarname+1,x
-+       dec  $asmArrayvarname,x 
-""")
++       dec  $asmArrayvarname,x""")
                         }
                         DataType.FLOAT -> {
                             asmgen.out("""
