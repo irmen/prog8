@@ -118,6 +118,9 @@ class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(el
     val splitWords: Boolean
         get() = variable.type in SplitWordArrayTypes
 
+    val usesPointerVariable: Boolean
+        get() = variable.type==DataType.UWORD
+
     init {
         require(elementType in NumericDatatypes)
     }

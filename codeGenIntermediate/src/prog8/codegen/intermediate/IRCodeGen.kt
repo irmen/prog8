@@ -1469,7 +1469,19 @@ class IRCodeGen(
                 val fixedIndex = constIntValue(array.index)
                 if(fixedIndex!=null) {
                     val offset = fixedIndex*itemsize
-                    addInstr(result, IRInstruction(operationMem, irDt, labelSymbol="$variable+$offset"), null)
+                    val indexReg = registers.nextFree()
+                    val dataReg = registers.nextFree()
+                    if(array.usesPointerVariable) {
+                        // we don't have an indirect dec/inc so do it via an intermediate register
+                        result += IRCodeChunk(null,null).also {
+                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = offset)
+                            it += IRInstruction(Opcode.LOADIX, irDt, reg1 = dataReg, reg2 = indexReg, labelSymbol = variable)
+                            it += IRInstruction(operationRegister, irDt, reg1=dataReg)
+                            it += IRInstruction(Opcode.STOREIX, irDt, reg1 = dataReg, reg2 = indexReg, labelSymbol = variable)
+                        }
+                    } else {
+                        addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = "$variable+$offset"), null)
+                    }
                 } else {
                     val indexTr = expressionEval.translateExpression(array.index)
                     addToResult(result, indexTr, indexTr.resultReg, -1)
@@ -1477,9 +1489,15 @@ class IRCodeGen(
                         result += multiplyByConst(IRDataType.BYTE, indexTr.resultReg, itemsize)
                     result += IRCodeChunk(null, null).also {
                         val incReg = registers.nextFree()
-                        it += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
-                        it += IRInstruction(operationRegister, irDt, reg1=incReg)
-                        it += IRInstruction(Opcode.STOREX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                        if(array.usesPointerVariable) {
+                            it += IRInstruction(Opcode.LOADIX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                            it += IRInstruction(operationRegister, irDt, reg1=incReg)
+                            it += IRInstruction(Opcode.STOREIX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                        } else {
+                            it += IRInstruction(Opcode.LOADX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                            it += IRInstruction(operationRegister, irDt, reg1=incReg)
+                            it += IRInstruction(Opcode.STOREX, irDt, reg1=incReg, reg2=indexTr.resultReg, labelSymbol=variable)
+                        }
                     }
                 }
             } else
