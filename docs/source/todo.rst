@@ -1,6 +1,9 @@
 TODO
 ====
 
+- add a mechanism to put the original p8 source lines into the generated assembly as comments (not only the line numbers).
+- add a mechanism to pass the original p8 source lines into the p8ir file as comments. Remove the position xml tags.
+
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!
 

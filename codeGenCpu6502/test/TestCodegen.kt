@@ -106,7 +106,7 @@ class TestCodegen: FunSpec({
         Files.deleteIfExists(Path("${result.name}.asm"))
     }
 
-    test("64tass assembler available? - if this fails you need to install 64tass in the path") {
+    test("64tass assembler available? - if this fails you need to install 64tass version 1.58 or newer in the path") {
         val command = mutableListOf("64tass", "--version")
         shouldNotThrowAny {
             val proc = ProcessBuilder(command).start()
