@@ -160,6 +160,11 @@ One or more .p8 module files
 ``-expericodegen``
     Use experimental code generation backend (*incomplete*).
 
+``-sourcelines``
+    Also include the original prog8 source code lines as comments in the generated assembly code file,
+    mixed in between the actual generated assembly code.
+    This can be useful for debugging purposes to see what assembly was generated for what prog8 source code.
+
 ``-splitarrays``
     Treat all word arrays as tagged with @split so they are all lsb/msb split into memory.
     This removes the need to add @split yourself but some programs may fail to compile with

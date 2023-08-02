@@ -13,7 +13,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(assignment.target.children.single() is PtMachineRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 
-        return translateRegularAssign(assignment)
+        val chunks = translateRegularAssign(assignment)
+        chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
+        return chunks
     }
 
     internal fun translate(augAssign: PtAugmentedAssign): IRCodeChunks {
@@ -24,7 +26,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val memory = augAssign.target.memory
         val array = augAssign.target.array
 
-        return if(ident!=null) {
+        val chunks = if(ident!=null) {
             assignVarAugmented(ident.name, augAssign)
         } else if(memory != null) {
             if(memory.address is PtNumber)
@@ -39,6 +41,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         } else {
             fallbackAssign(augAssign)
         }
+        chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(augAssign.position)
+        return chunks
     }
 
     private fun assignMemoryAugmented(

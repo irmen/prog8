@@ -1,8 +1,6 @@
 TODO
 ====
 
-- add command line option to enable/disable the inclusion of p8 source lines into the generated assembly / p8ir  see outputSourceLine()
-- add a mechanism to pass the original p8 source lines into the p8ir file as comments. Remove the position xml tags.
 - try to reduce the number of uses of temp variables for example in array[idx] -= amount   /
 - investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 .... / - investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 

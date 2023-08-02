@@ -447,6 +447,17 @@ class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label
     operator fun plusAssign(chunk: IRCodeChunkBase) {
         instructions.addAll(chunk.instructions)
     }
+
+    fun appendSrcPosition(position: Position) {
+        if(sourceLinesPositions.lastOrNull()!=position)
+            sourceLinesPositions.add(position)
+    }
+
+    fun appendSrcPositions(positions: Collection<Position>) {
+        positions.forEach { appendSrcPosition(it) }
+    }
+
+    val sourceLinesPositions = mutableListOf<Position>()
 }
 
 class IRInlineAsmChunk(label: String?,

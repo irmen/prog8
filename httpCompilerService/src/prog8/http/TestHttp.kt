@@ -37,6 +37,7 @@ class RequestParser : Take {
             compilationTarget = "c64",
             symbolDefs = emptyMap(),
             quietAssembler = false,
+            includeSourcelines = false,
             asmListfile = false,
             experimentalCodegen = false,
             splitWordArrays = false,

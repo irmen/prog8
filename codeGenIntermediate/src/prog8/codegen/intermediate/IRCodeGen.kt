@@ -289,6 +289,8 @@ class IRCodeGen(
             }
         }
 
+        chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(node.position)
+
         return chunks
     }
 

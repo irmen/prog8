@@ -105,7 +105,10 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
 
         relabelChunks.forEach { (index, label) ->
             val chunk = IRCodeChunk(label, null)
-            chunk.instructions += sub.chunks[index].instructions
+            val subChunk = sub.chunks[index]
+            chunk.instructions += subChunk.instructions
+            if(subChunk is IRCodeChunk)
+                chunk.appendSrcPositions(subChunk.sourceLinesPositions)
             sub.chunks[index] = chunk
         }
         removeChunks.reversed().forEach { index -> sub.chunks.removeAt(index) }
@@ -140,6 +143,8 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                     if(mayJoinCodeChunks(lastChunk, candidate)) {
                         lastChunk.instructions += candidate.instructions
                         lastChunk.next = candidate.next
+                        if(lastChunk is IRCodeChunk)
+                            lastChunk.appendSrcPositions(candidate.sourceLinesPositions)
                     }
                     else
                         chunks += candidate

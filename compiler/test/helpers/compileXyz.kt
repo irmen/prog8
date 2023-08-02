@@ -26,6 +26,7 @@ internal fun compileFile(
         writeAssembly = writeAssembly,
         quietAssembler = true,
         asmListfile = false,
+        includeSourcelines = false,
         experimentalCodegen = false,
         varsHighBank = null,
         platform.name,

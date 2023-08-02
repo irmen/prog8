@@ -3,6 +3,7 @@ package prog8.intermediate
 import prog8.code.core.*
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
+import javax.xml.stream.XMLStreamWriter
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
@@ -126,6 +127,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeStartElement("CODE")
         chunk.label?.let { xml.writeAttribute("LABEL", chunk.label) }
         // xml.writeAttribute("used-registers", chunk.usedRegisters().toString())
+        writeSourcelines(xml, chunk)
         xml.writeCharacters("\n")
         chunk.instructions.forEach { instr ->
             numInstr++
@@ -134,6 +136,23 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         }
         xml.writeEndElement()
         xml.writeCharacters("\n")
+    }
+
+    private fun writeSourcelines(xml: XMLStreamWriter, code: IRCodeChunk) {
+        if(irProgram.options.includeSourcelines) {
+            if(code.sourceLinesPositions.any {it !== Position.DUMMY}) {
+                xml.writeStartElement("P8SRC")
+                var sourceTxt = StringBuilder("\n")
+                code.sourceLinesPositions.forEach { pos ->
+                    val line = SourceLineCache.retrieveLine(pos)
+                    if(line!=null) {
+                        sourceTxt.append("$pos  $line\n")
+                    }
+                }
+                xml.writeCData(sourceTxt.toString())
+                xml.writeEndElement()
+            }
+        }
     }
 
     private fun writeInlineBytes(chunk: IRInlineBinaryChunk) {

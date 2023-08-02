@@ -294,6 +294,11 @@ class IRFileReader {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="CODE") { "missing CODE" }
+        val next = reader.peek()
+        if(next.isStartElement && next.asStartElement().name.localPart=="P8SRC") {
+            reader.nextEvent()  // skip the P8SRC node
+            while(!reader.nextEvent().isEndElement) { /* skip until end of P8SRC node */ }
+        }
         val label = start.attributes.asSequence().singleOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
         val text = readText(reader).trim()
         val chunk = IRCodeChunk(label, null)

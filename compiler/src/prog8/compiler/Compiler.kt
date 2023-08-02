@@ -32,6 +32,7 @@ class CompilerArguments(val filepath: Path,
                         val writeAssembly: Boolean,
                         val quietAssembler: Boolean,
                         val asmListfile: Boolean,
+                        val includeSourcelines: Boolean,
                         val experimentalCodegen: Boolean,
                         val varsHighBank: Int?,
                         val compilationTarget: String,
@@ -68,6 +69,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 optimize = args.optimize
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
+                includeSourcelines = args.includeSourcelines
                 experimentalCodegen = args.experimentalCodegen
                 varsHighBank = args.varsHighBank
                 splitWordArrays = args.splitWordArrays

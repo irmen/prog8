@@ -29,6 +29,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         writeAssembly = true,
         quietAssembler = true,
         asmListfile = false,
+        includeSourcelines = false,
         experimentalCodegen = false,
         varsHighBank = null,
         compilationTarget = target.name,

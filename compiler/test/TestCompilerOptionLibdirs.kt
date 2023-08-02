@@ -46,6 +46,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             writeAssembly = true,
             quietAssembler = true,
             asmListfile = false,
+            includeSourcelines = false,
             experimentalCodegen = false,
             varsHighBank = null,
             compilationTarget = Cx16Target.NAME,
