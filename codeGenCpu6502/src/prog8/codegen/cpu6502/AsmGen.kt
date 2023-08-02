@@ -238,9 +238,13 @@ class AsmGen6502Internal (
 
     internal fun isTargetCpu(cpu: CpuType) = options.compTarget.machine.cpu == cpu
 
+    private var lastSourceLineNumber: Int = -1
+
     internal fun outputSourceLine(node: PtNode) {
-        if(!options.includeSourcelines || node.position===Position.DUMMY)
+        if(!options.includeSourcelines || node.position===Position.DUMMY || node.position.line==lastSourceLineNumber)
             return
+
+        lastSourceLineNumber = node.position.line
         val srcComment = "\t; source: ${node.position.file}:${node.position.line}"
         val line = SourceLineCache.retrieveLine(node.position)
         if(line==null)
