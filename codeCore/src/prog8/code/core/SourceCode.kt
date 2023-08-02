@@ -60,6 +60,8 @@ sealed class SourceCode {
         fun relative(path: Path): Path = curdir.relativize(path.toAbsolutePath())
         fun isRegularFilesystemPath(pathString: String) =
             !(pathString.startsWith(LIBRARYFILEPREFIX) || pathString.startsWith(STRINGSOURCEPREFIX))
+
+        fun isLibraryResource(path: String) = path.startsWith(LIBRARYFILEPREFIX)
     }
 
     /**
@@ -137,5 +139,35 @@ sealed class SourceCode {
         override val isFromFilesystem: Boolean = false
         override val origin: String = name
         override val text: String = "<generated code node, no text representation>"
+    }
+}
+
+
+object SourceLineCache {
+    private val cache = mutableMapOf<String, List<String>>()
+
+    private fun getCachedFile(file: String): List<String> {
+        val existing = cache[file]
+        if(existing!=null)
+            return existing
+        if (SourceCode.isRegularFilesystemPath(file)) {
+            val source = SourceCode.File(Path(file))
+            cache[file] = source.text.split('\n', '\r').map { it.trim() }
+            return cache.getValue(file)
+        } else if(file.startsWith(SourceCode.LIBRARYFILEPREFIX)) {
+            val source = SourceCode.Resource(file.drop(SourceCode.LIBRARYFILEPREFIX.length))
+            cache[file] = source.text.split('\n', '\r').map { it.trim()}
+            return cache.getValue(file)
+        }
+        return emptyList()
+    }
+
+    fun retrieveLine(position: Position): String? {
+        if (position.line>0) {
+            val lines = getCachedFile(position.file)
+            if(lines.isNotEmpty())
+                return lines[position.line-1]
+        }
+        return null
     }
 }

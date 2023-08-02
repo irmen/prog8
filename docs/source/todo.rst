@@ -1,8 +1,10 @@
 TODO
 ====
 
-- add a mechanism to put the original p8 source lines into the generated assembly as comments (not only the line numbers).
+- add command line option to enable/disable the inclusion of p8 source lines into the generated assembly / p8ir  see outputSourceLine()
 - add a mechanism to pass the original p8 source lines into the p8ir file as comments. Remove the position xml tags.
+- try to reduce the number of uses of temp variables for example in array[idx] -= amount   /
+- investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 .... / - investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!

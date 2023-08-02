@@ -172,8 +172,6 @@ private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {
     call.children.addAll(children)
     call.children.forEach { it.parent = call }
     call.parent = parent
-    if(name.endsWith("concat_string"))
-        println("CONCAT ${this.position}")
     return call
 }
 
@@ -241,7 +239,14 @@ class AsmGen6502Internal (
     internal fun isTargetCpu(cpu: CpuType) = options.compTarget.machine.cpu == cpu
 
     internal fun outputSourceLine(node: PtNode) {
-        out(" ;\tsrc line: ${node.position.file}:${node.position.line}")
+        if(node.position===Position.DUMMY)
+            return
+        val srcComment = "\t; source: ${node.position.file}:${node.position.line}"
+        val line = SourceLineCache.retrieveLine(node.position)
+        if(line==null)
+            out(srcComment, false)
+        else
+            out("$srcComment   $line", false)
     }
 
     internal fun out(str: String, splitlines: Boolean = true) {
