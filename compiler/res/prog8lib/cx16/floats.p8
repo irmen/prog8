@@ -44,7 +44,7 @@ romsub $fe21 = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2
 romsub $fe24 = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1
 romsub $fe27 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  mind the order of the operands
 romsub $fe2a = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
-romsub $fe2d = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to round instead of trunc
+romsub $fe2d = INT() clobbers(A,X,Y)                        ; INT() truncates, use ROUND or FADDH first to round instead of trunc
 romsub $fe30 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
 romsub $fe33 = NEGOP() clobbers(A)                          ; switch the sign of fac1 (fac1 = -fac1)
 romsub $fe36 = FPWR(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = fac2 ** float in A/Y

@@ -68,58 +68,58 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 when (target.datatype) {
                     in ByteDatatypes -> {
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_variable(target.asmVarname, target.datatype, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplaceModification_byte_variable_to_variable(target.asmVarname, target.datatype, operator, value.asmVarname)
-                            SourceStorageKind.REGISTER -> inplaceModification_byte_variable_to_variable(target.asmVarname, target.datatype, operator, regName(value))
-                            SourceStorageKind.MEMORY -> inplaceModification_byte_memread_to_variable(target.asmVarname, target.datatype, operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value.array!!)
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt())
+                            SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(target.asmVarname, target.datatype, operator, value.asmVarname)
+                            SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(target.asmVarname, target.datatype, operator, regName(value))
+                            SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(target.asmVarname, target.datatype, operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(target.asmVarname, target.datatype, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value.expression)
+                                    inplacemodificationByteVariableWithValue(target.asmVarname, target.datatype, operator, value.expression)
                                 } else  {
-                                    inplaceModification_byte_value_to_variable(target.asmVarname, target.datatype, operator, value.expression!!)
+                                    inplacemodificationByteVariableWithValue(target.asmVarname, target.datatype, operator, value.expression!!)
                                 }
                             }
                         }
                     }
                     in WordDatatypes -> {
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplaceModification_word_litval_to_variable(target.asmVarname, target.datatype, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplaceModification_word_variable_to_variable(target.asmVarname, target.datatype, operator, value.asmVarname, value.datatype)
-                            SourceStorageKind.REGISTER -> inplaceModification_word_variable_to_variable(target.asmVarname, target.datatype, operator, regName(value), value.datatype)
-                            SourceStorageKind.MEMORY -> inplaceModification_word_memread_to_variable(target.asmVarname, target.datatype, operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value.array!!)
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt())
+                            SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, value.asmVarname, value.datatype)
+                            SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, regName(value), value.datatype)
+                            SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread(target.asmVarname, target.datatype, operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value.expression)
+                                    inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.expression)
                                 }
                                 else {
-                                    inplaceModification_word_value_to_variable(target.asmVarname, target.datatype, operator, value.expression!!)
+                                    inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.expression!!)
                                 }
                             }
                         }
                     }
                     DataType.FLOAT -> {
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(
                                 target.asmVarname,
                                 operator,
                                 value.number!!.number
                             )
-                            SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(
+                            SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(
                                 target.asmVarname,
                                 operator,
                                 value.asmVarname
                             )
-                            SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(
+                            SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(
                                 target.asmVarname,
                                 operator,
                                 regName(value)
                             )
                             SourceStorageKind.MEMORY -> TODO("memread into float")
-                            SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(
+                            SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(
                                 target.asmVarname,
                                 operator,
                                 value.array!!
@@ -127,13 +127,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplaceModification_float_value_to_variable(
+                                    inplacemodificationFloatWithValue(
                                         target.asmVarname,
                                         operator,
                                         value.expression
                                     )
                                 } else {
-                                    inplaceModification_float_value_to_variable(
+                                    inplacemodificationFloatWithValue(
                                         target.asmVarname,
                                         operator,
                                         value.expression!!
@@ -151,17 +151,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     is PtNumber -> {
                         val addr = (memory.address as PtNumber).number.toInt()
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_variable(addr.toHex(), DataType.UBYTE, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplaceModification_byte_variable_to_variable(addr.toHex(), DataType.UBYTE, operator, value.asmVarname)
-                            SourceStorageKind.REGISTER -> inplaceModification_byte_variable_to_variable(addr.toHex(), DataType.UBYTE, operator, regName(value))
-                            SourceStorageKind.MEMORY -> inplaceModification_byte_memread_to_variable(addr.toHex(), DataType.UBYTE, operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value.array!!)
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.UBYTE, operator, value.number!!.number.toInt())
+                            SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(addr.toHex(), DataType.UBYTE, operator, value.asmVarname)
+                            SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(addr.toHex(), DataType.UBYTE, operator, regName(value))
+                            SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataType.UBYTE, operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataType.UBYTE, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value.expression)
+                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataType.UBYTE, operator, value.expression)
                                 } else {
-                                    inplaceModification_byte_value_to_variable(addr.toHex(), DataType.UBYTE, operator, value.expression!!)
+                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataType.UBYTE, operator, value.expression!!)
                                 }
                             }
                         }
@@ -169,17 +169,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     is PtIdentifier -> {
                         val pointer = memory.address as PtIdentifier
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_pointer(pointer, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplaceModification_byte_variable_to_pointer(pointer, operator, value.asmVarname)
-                            SourceStorageKind.REGISTER -> inplaceModification_byte_variable_to_pointer(pointer, operator, regName(value))
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationBytePointerWithLiteralval(pointer, operator, value.number!!.number.toInt())
+                            SourceStorageKind.VARIABLE -> inplacemodificationBytePointerWithVariable(pointer, operator, value.asmVarname)
+                            SourceStorageKind.REGISTER -> inplacemodificationBytePointerWithVariable(pointer, operator, regName(value))
                             SourceStorageKind.MEMORY -> TODO("memread into pointer")
-                            SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_pointer(pointer, operator, value.array!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationBytePointerWithValue(pointer, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplaceModification_byte_value_to_pointer(pointer, operator, value.expression)
+                                    inplacemodificationBytePointerWithValue(pointer, operator, value.expression)
                                 } else {
-                                    inplaceModification_byte_value_to_pointer(pointer, operator, value.expression!!)
+                                    inplacemodificationBytePointerWithValue(pointer, operator, value.expression!!)
                                 }
                             }
                         }
@@ -189,18 +189,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.saveRegisterStack(CpuRegister.A, true)
                         asmgen.saveRegisterStack(CpuRegister.Y, false)
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY |  sta  P8ZP_SCRATCH_B1")
+                        // TODO optimize the stuff below to not use temp variables??
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.asmVarname)
-                            SourceStorageKind.REGISTER -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, regName(value))
-                            SourceStorageKind.MEMORY -> inplaceModification_byte_memread_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.array!!)
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.number!!.number.toInt())
+                            SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.asmVarname)
+                            SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, regName(value))
+                            SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
-                                if(value.expression is PtTypeCast) {
-                                    inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression)
-                                } else {
-                                    inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression!!)
-                                }
+                                if(value.expression is PtTypeCast)
+                                    inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression)
+                                else
+                                    inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression!!)
                             }
                         }
                         asmgen.restoreRegisterStack(CpuRegister.Y, false)
@@ -221,57 +221,57 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         when (target.datatype) {
                             in ByteDatatypes -> {
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_variable(targetVarName, target.datatype, operator, value.number!!.number.toInt())
-                                    SourceStorageKind.VARIABLE -> inplaceModification_byte_variable_to_variable(targetVarName, target.datatype, operator, value.asmVarname)
-                                    SourceStorageKind.REGISTER -> inplaceModification_byte_variable_to_variable(targetVarName, target.datatype, operator, regName(value))
-                                    SourceStorageKind.MEMORY -> inplaceModification_byte_memread_to_variable(targetVarName, target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_variable(targetVarName, target.datatype, operator, value.array!!)
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt())
+                                    SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, value.asmVarname)
+                                    SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, regName(value))
+                                    SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.memory!!)
+                                    SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplaceModification_byte_value_to_variable(targetVarName, target.datatype, operator, value.expression)
+                                            inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.expression)
                                         } else {
-                                            inplaceModification_byte_value_to_variable(targetVarName, target.datatype, operator, value.expression!!)
+                                            inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.expression!!)
                                         }
                                     }
                                 }
                             }
                             in WordDatatypes -> {
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_word_litval_to_variable(targetVarName, target.datatype, operator, value.number!!.number.toInt())
-                                    SourceStorageKind.VARIABLE -> inplaceModification_word_variable_to_variable(targetVarName, target.datatype, operator, value.asmVarname, value.datatype)
-                                    SourceStorageKind.REGISTER -> inplaceModification_word_variable_to_variable(targetVarName, target.datatype, operator, regName(value), value.datatype)
-                                    SourceStorageKind.MEMORY -> inplaceModification_word_memread_to_variable(targetVarName, target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplaceModification_word_value_to_variable(targetVarName, target.datatype, operator, value.array!!)
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt())
+                                    SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, value.asmVarname, value.datatype)
+                                    SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, regName(value), value.datatype)
+                                    SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread(targetVarName, target.datatype, operator, value.memory!!)
+                                    SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplaceModification_word_value_to_variable(targetVarName, target.datatype, operator, value.expression)
+                                            inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression)
                                         } else {
-                                            inplaceModification_word_value_to_variable(targetVarName, target.datatype, operator, value.expression!!)
+                                            inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression!!)
                                         }
                                     }
                                 }
                             }
                             DataType.FLOAT -> {
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(
                                         targetVarName,
                                         operator,
                                         value.number!!.number
                                     )
-                                    SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(
+                                    SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(
                                         targetVarName,
                                         operator,
                                         value.asmVarname
                                     )
-                                    SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(
+                                    SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(
                                         targetVarName,
                                         operator,
                                         regName(value)
                                     )
                                     SourceStorageKind.MEMORY -> TODO("memread into float array")
-                                    SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(
+                                    SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(
                                         targetVarName,
                                         operator,
                                         value.array!!
@@ -279,13 +279,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplaceModification_float_value_to_variable(
+                                            inplacemodificationFloatWithValue(
                                                 targetVarName,
                                                 operator,
                                                 value.expression
                                             )
                                         } else {
-                                            inplaceModification_float_value_to_variable(
+                                            inplacemodificationFloatWithValue(
                                                 targetVarName,
                                                 operator,
                                                 value.expression!!
@@ -307,18 +307,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
                                 asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_B1")
                                 asmgen.saveRegisterStack(CpuRegister.Y, false)
+                                // TODO optimize the stuff below to not use temp variables??
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_byte_litval_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.number!!.number.toInt())
-                                    SourceStorageKind.VARIABLE -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.asmVarname)
-                                    SourceStorageKind.REGISTER -> inplaceModification_byte_variable_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, regName(value))
-                                    SourceStorageKind.MEMORY -> inplaceModification_byte_memread_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.array!!)
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval("P8ZP_SCRATCH_B1", target.datatype, operator, value.number!!.number.toInt())
+                                    SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable("P8ZP_SCRATCH_B1", target.datatype, operator, value.asmVarname)
+                                    SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable("P8ZP_SCRATCH_B1", target.datatype, operator, regName(value))
+                                    SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.memory!!)
+                                    SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
-                                        if(value.expression is PtTypeCast) {
-                                            inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression)
-                                        } else {
-                                            inplaceModification_byte_value_to_variable("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
-                                        }
+                                        if(value.expression is PtTypeCast)
+                                            inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression)
+                                        else
+                                            inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
                                     }
                                 }
                                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
@@ -338,18 +338,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     asmgen.out("  lda  ${target.array.variable.name}+1,y |  sta  P8ZP_SCRATCH_W1+1")
                                 }
                                 asmgen.saveRegisterStack(CpuRegister.Y, false)
+                                // TODO optimize the stuff below to not use temp variables??
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_word_litval_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.number!!.number.toInt())
-                                    SourceStorageKind.VARIABLE -> inplaceModification_word_variable_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype)
-                                    SourceStorageKind.REGISTER -> inplaceModification_word_variable_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype)
-                                    SourceStorageKind.MEMORY -> inplaceModification_word_memread_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!)
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, value.number!!.number.toInt())
+                                    SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype)
+                                    SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype)
+                                    SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread("P8ZP_SCRATCH_W1", target.datatype, operator, value.memory!!)
+                                    SourceStorageKind.ARRAY -> inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
-                                        if(value.expression is PtTypeCast) {
-                                            inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression)
-                                        } else {
-                                            inplaceModification_word_value_to_variable("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!)
-                                        }
+                                        if(value.expression is PtTypeCast)
+                                            inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression)
+                                        else
+                                            inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!)
                                     }
                                 }
                                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
@@ -376,23 +376,23 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     ldy  #>$tempvar
                                     jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplaceModification_float_litval_to_variable(
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(
                                         tempvar,
                                         operator,
                                         value.number!!.number
                                     )
-                                    SourceStorageKind.VARIABLE -> inplaceModification_float_variable_to_variable(
+                                    SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(
                                         tempvar,
                                         operator,
                                         value.asmVarname
                                     )
-                                    SourceStorageKind.REGISTER -> inplaceModification_float_variable_to_variable(
+                                    SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(
                                         tempvar,
                                         operator,
                                         regName(value)
                                     )
                                     SourceStorageKind.MEMORY -> TODO("memread into float")
-                                    SourceStorageKind.ARRAY -> inplaceModification_float_value_to_variable(
+                                    SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(
                                         tempvar,
                                         operator,
                                         value.array!!
@@ -401,13 +401,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
                                                 return
-                                            inplaceModification_float_value_to_variable(
+                                            inplacemodificationFloatWithValue(
                                                 tempvar,
                                                 operator,
                                                 value.expression
                                             )
                                         } else {
-                                            inplaceModification_float_value_to_variable(
+                                            inplacemodificationFloatWithValue(
                                                 tempvar,
                                                 operator,
                                                 value.expression!!
@@ -452,62 +452,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun inplaceModification_byte_value_to_pointer(pointervar: PtIdentifier, operator: String, value: PtExpression) {
+    private fun inplacemodificationBytePointerWithValue(pointervar: PtIdentifier, operator: String, value: PtExpression) {
         asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE)
-        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-        when (operator) {
-            "+" -> asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
-            "-" -> asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
-            "*" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.multiply_bytes")
-            "/" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.divmod_ub_asm |  tya")
-            "%" -> asmgen.out("  ldy  P8ZP_SCRATCH_B1 |  jsr  math.divmod_ub_asm")
-            "<<" -> {
-                asmgen.out("""
-                    ldy  P8ZP_SCRATCH_B1
-                    beq  +
--                   asl  a
-                    dey
-                    bne  -
-+""")
-            }
-            ">>" -> {
-                asmgen.out("""
-                    ldy  P8ZP_SCRATCH_B1
-                    beq  +
--                   lsr  a
-                    dey
-                    bne  -
-+""")
-            }
-            "&" -> asmgen.out(" and  P8ZP_SCRATCH_B1")
-            "|" -> asmgen.out(" ora  P8ZP_SCRATCH_B1")
-            "^" -> asmgen.out(" eor  P8ZP_SCRATCH_B1")
-            "==" -> {
-                asmgen.out("""
-                    cmp  P8ZP_SCRATCH_B1
-                    beq  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+""")
-            }
-            "!=" -> {
-                asmgen.out("""
-                    cmp  P8ZP_SCRATCH_B1
-                    bne  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+""")
-            }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer:
-            "<", "<=", ">", ">=" -> TODO("byte-value-to-pointer comparisons")
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-        asmgen.storeAIntoZpPointerVar(sourceName)
+        inplacemodificationBytePointerWithVariable(pointervar, operator, "P8ZP_SCRATCH_B1")
     }
 
-    private fun inplaceModification_byte_variable_to_pointer(pointervar: PtIdentifier, operator: String, otherName: String) {
+    private fun inplacemodificationBytePointerWithVariable(pointervar: PtIdentifier, operator: String, otherName: String) {
         val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
 
         when (operator) {
@@ -562,7 +512,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         asmgen.storeAIntoZpPointerVar(sourceName)
     }
 
-    private fun inplaceModification_byte_litval_to_pointer(pointervar: PtIdentifier, operator: String, value: Int) {
+    private fun inplacemodificationBytePointerWithLiteralval(pointervar: PtIdentifier, operator: String, value: Int) {
+        // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         when (operator) {
             "+" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -653,297 +604,184 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplaceModification_byte_value_to_variable(name: String, dt: DataType, operator: String, value: PtExpression) {
-        when (operator) {
-            "+" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("  clc |  adc  $name |  sta  $name")
-            }
-            "-" -> {
-                val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
-                asmgen.assignExpressionToVariable(value, tmpByte, dt)
-                asmgen.out(" lda  $name |  sec |  sbc  $tmpByte |  sta  $name")
-            }
-            "*" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("  ldy  $name |  jsr  math.multiply_bytes |  sta  $name")
-            }
-            "/" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.Y)
-                if(dt==DataType.UBYTE)
-                    asmgen.out("  lda  $name |  jsr  math.divmod_ub_asm |  sty  $name")
-                else
-                    asmgen.out("  lda  $name |  jsr  math.divmod_b_asm |  sty  $name")
-            }
-            "%" -> {
-                if(dt==DataType.BYTE)
-                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.Y)
-                asmgen.out("  lda  $name |  jsr  math.divmod_ub_asm |  sta  $name")
-            }
-            "<<" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.Y)
-                asmgen.out("""
-                    beq  +
--                   asl  $name
-                    dey
-                    bne  -
-+""")
-            }
-            ">>" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.Y)
-                if(dt==DataType.UBYTE) {
-                    asmgen.out("""
-                        beq  +
--                       lsr  $name
-                        dey
-                        bne  -
-+""")
-                } else {
-                    asmgen.out("""
-                        beq  +
--                       lda  $name
-                        asl  a
-                        ror  $name
-                        dey
-                        bne  -
-+""")
-                }
-            }
-            "&" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("  and  $name |  sta  $name")
-            }
-            "|" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("  ora  $name |  sta  $name")
-            }
-            "^" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("  eor  $name |  sta  $name")
-            }
-            "==" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("""
-                    cmp  $name
-                    beq  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+                   sta  $name""")
-            }
-            "!=" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                asmgen.out("""
-                    cmp  $name
-                    beq  +
-                    lda  #1
-                    bne  ++
-+                   lda  #0
-+                   sta  $name""")
-            }
-            "<" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                if(dt==DataType.UBYTE)
-                    TODO("ubyte <")
-                else
-                    TODO("byte <")
-            }
-            "<=" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                if(dt==DataType.UBYTE)
-                    TODO("ubyte <=")
-                else
-                    TODO("byte <=")
-            }
-            ">" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                if(dt==DataType.UBYTE)
-                    TODO("ubyte >")
-                else
-                    TODO("byte >")
-            }
-            ">=" -> {
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                if(dt==DataType.UBYTE)
-                    TODO("ubyte >=")
-                else
-                    TODO("byte >=")
-            }
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
+    private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
+        // TODO optimize the stuff below to not use temp variables??
+        val tmpVar = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
+        asmgen.assignExpressionToVariable(value, tmpVar, value.type)
+        asmgen.out("  lda  $name")
+        inplacemodificationRegisterAwithVariable(operator, tmpVar, dt in SignedDatatypes)
+        asmgen.out("  sta  $name")
     }
 
-    private fun inplaceModification_byte_variable_to_variable(name: String, dt: DataType, operator: String, otherName: String) {
+    private fun inplacemodificationByteVariableWithVariable(name: String, dt: DataType, operator: String, otherName: String) {
+        asmgen.out("  lda  $name")
+        inplacemodificationRegisterAwithVariable(operator, otherName, dt in SignedDatatypes)
+        asmgen.out("  sta  $name")
+    }
+
+    // TODO: optimization: use this directly in more places, rather than using a temporary variable
+    private fun inplacemodificationRegisterAwithVariable(operator: String, variable: String, signed: Boolean) {
         when (operator) {
-            "+" -> asmgen.out(" lda  $name |  clc |  adc  $otherName |  sta  $name")
-            "-" -> asmgen.out(" lda  $name |  sec |  sbc  $otherName |  sta  $name")
-            "*" -> asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.multiply_bytes |  sta  $name")
+            "+" -> asmgen.out("  clc |  adc  $variable")
+            "-" -> asmgen.out("  sec |  sbc  $variable")
+            "*" -> asmgen.out("  ldy  $variable  |  jsr  math.multiply_bytes")
             "/" -> {
-                if(dt==DataType.BYTE) {
-                    asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.divmod_b_asm |  sty  $name")
-                }
-                else {
-                    asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.divmod_ub_asm |  sty  $name")
-                }
+                if(signed)
+                    asmgen.out(" ldy  $variable  |  jsr  math.divmod_b_asm |  tya")
+                else
+                    asmgen.out(" ldy  $variable  |  jsr  math.divmod_ub_asm |  tya")
             }
             "%" -> {
-                if(dt==DataType.BYTE)
+                if(signed)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-                asmgen.out(" lda  $name |  ldy  $otherName  |  jsr  math.divmod_ub_asm |  sta  $name")
+                asmgen.out("  ldy  $variable  |  jsr  math.divmod_ub_asm")
             }
             "<<" -> {
                 asmgen.out("""
-                    ldy  $otherName
+                    ldy  $variable
                     beq  +
--                   asl  $name
+-                   asl  a
                     dey
                     bne  -
 +""")
             }
             ">>" -> {
-                if(dt==DataType.UBYTE) {
+                if(!signed) {
                     asmgen.out("""
-                        ldy  $otherName
+                        ldy  $variable
                         beq  +
--                       lsr  $name
+-                       lsr  a
                         dey
                         bne  -
 +""")
                 } else {
                     asmgen.out("""
-                        ldy  $otherName
+                        ldy  $variable
                         beq  +
--                       lda  $name
-                        asl  a
-                        ror  $name
+                        sta  P8ZP_SCRATCH_B1
+-                       asl  a
+                        ror  P8ZP_SCRATCH_B1
+                        lda  P8ZP_SCRATCH_B1
                         dey
                         bne  -
 +""")
                 }
             }
-            "&" -> asmgen.out(" lda  $name |  and  $otherName |  sta  $name")
-            "|" -> asmgen.out(" lda  $name |  ora  $otherName |  sta  $name")
-            "^" -> asmgen.out(" lda  $name |  eor  $otherName |  sta  $name")
+            "&" -> asmgen.out("  and  $variable")
+            "|" -> asmgen.out("  ora  $variable")
+            "^" -> asmgen.out("  eor  $variable")
             "==" -> {
                 asmgen.out("""
-                    lda  $otherName
-                    cmp  $name
+                    cmp  $variable
                     beq  +
                     lda  #0
                     beq  ++
 +                   lda  #1
-+                   sta  $name""")
++""")
             }
             "!=" -> {
                 asmgen.out("""
-                    lda  $otherName
-                    cmp  $name
+                    cmp  $variable
                     beq  +
                     lda  #1
                     bne  ++
 +                   lda  #0
-+                   sta  $name""")
++""")
             }
             "<" -> {
-                if(dt==DataType.UBYTE) {
+                if(!signed) {
                     asmgen.out("""
+                        tay
                         lda  #0
-                        ldy  $name
-                        cpy  $otherName
+                        cpy  $variable
                         rol  a
-                        eor  #1
-                        sta  $name""")
+                        eor  #1""")
                 }
                 else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
-                        lda  $name
                         sec
-                        sbc  $otherName
+                        sbc  $variable
                         bvc  +
                         eor  #$80
 +                       bmi  +
                         lda  #0
                         beq  ++
 +                       lda  #1
-+                       sta  $name""")
++""")
                 }
             }
             "<=" -> {
-                if(dt==DataType.UBYTE) {
+                if(!signed) {
                     asmgen.out("""
+                        tay
                         lda  #0
-                        ldy  $otherName
-                        cpy  $name
-                        rol  a
-                        sta  $name""")
+                        ldy  $variable
+                        rol  a""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
-                        lda  $name
                         clc
-                        sbc  $otherName
+                        sbc  $variable
                         bvc  +
                         eor  #$80
 +                       bmi  +
                         lda  #0
                         beq  ++
 +                       lda  #1
-+                       sta  $name""")
++""")
                 }
             }
             ">" -> {
-                if(dt==DataType.UBYTE) {
+                if(!signed) {
                     asmgen.out("""
+                        tay
                         lda  #0
-                        ldy  $name
-                        cpy  $otherName
+                        cpy  $variable
                         beq  +
                         rol  a
-+                       sta  $name""")
++""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
-                        lda  $name
                         clc
-                        sbc  $otherName
+                        sbc  $variable
                         bvc  +
                         eor  #$80
 +                		bpl  +
                         lda  #0
                         beq  ++
 +                       lda  #1
-+                       sta  $name""")
++""")
                 }
             }
             ">=" -> {
-                if(dt==DataType.UBYTE) {
+                if(!signed) {
                     asmgen.out("""
+                        tay
                         lda  #0
-                        ldy  $name
-                        cpy  $otherName
-                        rol  a
-                        sta  $name""")
+                        cpy  $variable
+                        rol  a""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
-                        lda  $name
                         sec
-                        sbc  $otherName
+                        sbc  $variable
                         bvc  +
                         eor  #$80
 +                		bpl  +
                         lda  #0
                         beq  ++
 +                       lda  #1
-+                       sta  $name""")
-                }            }
++""")
+                }
+            }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
 
-    private fun inplaceModification_byte_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
+    private fun inplacemodificationByteVariableWithLiteralval(name: String, dt: DataType, operator: String, value: Int) {
+        // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         when (operator) {
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
@@ -1128,44 +966,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplaceModification_byte_memread_to_variable(name: String, dt: DataType, operator: String, memread: PtMemoryByte) {
-        when (operator) {
-            "+" -> {
-                asmgen.translateDirectMemReadExpressionToRegA(memread)
-                asmgen.out("""
-                    clc
-                    adc  $name
-                    sta  $name""")
-            }
-            "-" -> {
-                asmgen.translateDirectMemReadExpressionToRegA(memread)
-                val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
-                asmgen.out("""
-                    sta  $tmpByte
-                    lda  $name
-                    sec
-                    sbc  $tmpByte
-                    sta  $name""")
-            }
-            "|" -> {
-                asmgen.translateDirectMemReadExpressionToRegA(memread)
-                asmgen.out("  ora  $name  |  sta  $name")
-            }
-            "&" -> {
-                asmgen.translateDirectMemReadExpressionToRegA(memread)
-                asmgen.out("  and  $name  |  sta  $name")
-            }
-            "^" -> {
-                asmgen.translateDirectMemReadExpressionToRegA(memread)
-                asmgen.out("  eor  $name  |  sta  $name")
-            }
-            else -> {
-                inplaceModification_byte_value_to_variable(name, dt, operator, memread)
-            }
-        }
-    }
-
-    private fun inplaceModification_word_memread_to_variable(name: String, dt: DataType, operator: String, memread: PtMemoryByte) {
+    private fun inplacemodificationWordWithMemread(name: String, dt: DataType, operator: String, memread: PtMemoryByte) {
         when (operator) {
             "+" -> {
                 asmgen.translateDirectMemReadExpressionToRegA(memread)
@@ -1209,12 +1010,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.out("  eor  $name  |  sta  $name")
             }
             else -> {
-                inplaceModification_word_value_to_variable(name, dt, operator, memread)
+                inplacemodificationWordWithValue(name, dt, operator, memread)
             }
         }
     }
 
-    private fun inplaceModification_word_litval_to_variable(name: String, dt: DataType, operator: String, value: Int) {
+    private fun inplacemodificationWordWithLiteralval(name: String, dt: DataType, operator: String, value: Int) {
+        // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         when (operator) {
             "+" -> {
                 when {
@@ -1672,7 +1474,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplaceModification_word_variable_to_variable(name: String, dt: DataType, operator: String, otherName: String, valueDt: DataType) {
+    private fun inplacemodificationWordWithVariable(name: String, dt: DataType, operator: String, otherName: String, valueDt: DataType) {
         when (valueDt) {
             in ByteDatatypes -> {
                 // the other variable is a BYTE type so optimize for that
@@ -2057,7 +1859,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplaceModification_word_value_to_variable(name: String, dt: DataType, operator: String, value: PtExpression) {
+    private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
         fun multiplyVarByWordInAY() {
             asmgen.out("""
                 sta  P8ZP_SCRATCH_W1
@@ -2270,7 +2072,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         val tmpWord = if(name!="P8ZP_SCRATCH_W1") "P8ZP_SCRATCH_W1" else "P8ZP_SCRATCH_W2"
                         asmgen.assignExpressionToVariable(value, tmpWord, valueDt)
                         asmgen.out(" lda  $name |  sec |  sbc  $tmpWord |  sta  $name |  lda  $name+1 |  sbc  $tmpWord+1 |  sta  $name+1")
-                        // TODO wrong signed word subtraction code??? ^^^
                     }
                     "*" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
@@ -2344,7 +2145,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplaceModification_float_value_to_variable(name: String, operator: String, value: PtExpression) {
+    private fun inplacemodificationFloatWithValue(name: String, operator: String, value: PtExpression) {
         asmgen.assignExpressionToRegister(value, RegisterOrPair.FAC1)
         when (operator) {
             "+" -> {
@@ -2389,7 +2190,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         """)
     }
 
-    private fun inplaceModification_float_variable_to_variable(name: String, operator: String, otherName: String) {
+    private fun inplacemodificationFloatWithVariable(name: String, operator: String, otherName: String) {
         when (operator) {
             "+" -> {
                 asmgen.out("""
@@ -2503,7 +2304,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         """)
     }
 
-    private fun inplaceModification_float_litval_to_variable(name: String, operator: String, value: Double) {
+    private fun inplacemodificationFloatWithLiteralval(name: String, operator: String, value: Double) {
+        // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         val constValueName = allocator.getFloatAsmConst(value)
         when (operator) {
             "+" -> {

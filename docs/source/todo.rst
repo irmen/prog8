@@ -1,7 +1,7 @@
 TODO
 ====
 
-- try to reduce the number of uses of temp variables for example in array[idx] -= amount   /
+- try to reduce the number of uses of temp variables for example in array[idx] -= amount   see AugmentableAssignmentAsmGen
 - investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 .... / - investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
