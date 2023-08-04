@@ -164,24 +164,42 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UWORD, memory.definingISub(), target.position, register = RegisterOrPair.AY))
                         asmgen.saveRegisterStack(CpuRegister.A, true)
                         asmgen.saveRegisterStack(CpuRegister.Y, false)
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY |  sta  P8ZP_SCRATCH_B1")
-                        // TODO optimize the stuff below to not use temp variables??
+                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY_into_A")
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.asmVarname)
-                            SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, regName(value))
-                            SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.array!!)
+                            SourceStorageKind.LITERALNUMBER -> {
+                                inplacemodificationRegisterAwithVariable(operator, "#${value.number!!.number.toInt()}", false)
+                                asmgen.out("  tax")
+                            }
+                            SourceStorageKind.VARIABLE -> {
+                                inplacemodificationRegisterAwithVariable(operator, value.asmVarname, false)
+                                asmgen.out("  tax")
+                            }
+                            SourceStorageKind.REGISTER -> {
+                                inplacemodificationRegisterAwithVariable(operator, regName(value), false)
+                                asmgen.out("  tax")
+                            }
+                            SourceStorageKind.MEMORY -> {
+                                asmgen.out("  sta  P8ZP_SCRATCH_B1")
+                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.memory!!)
+                                asmgen.out("  ldx  P8ZP_SCRATCH_B1")
+                            }
+                            SourceStorageKind.ARRAY -> {
+                                asmgen.out("  sta  P8ZP_SCRATCH_B1")
+                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.array!!)
+                                asmgen.out("  ldx  P8ZP_SCRATCH_B1")
+                            }
                             SourceStorageKind.EXPRESSION -> {
+                                asmgen.out("  sta  P8ZP_SCRATCH_B1")
                                 if(value.expression is PtTypeCast)
                                     inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression)
                                 else
                                     inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression!!)
+                                asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                         }
                         asmgen.restoreRegisterStack(CpuRegister.Y, false)
                         asmgen.restoreRegisterStack(CpuRegister.A, false)
-                        asmgen.out("  ldx  P8ZP_SCRATCH_B1 |  jsr  prog8_lib.write_byte_X_to_address_in_AY")
+                        asmgen.out("  jsr  prog8_lib.write_byte_X_to_address_in_AY")
                     }
                 }
             }
@@ -310,11 +328,19 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     asmgen.out("  lda  ${target.array.variable.name}+1,y |  sta  P8ZP_SCRATCH_W1+1")
                                 }
                                 asmgen.saveRegisterStack(CpuRegister.Y, false)
-                                // TODO optimize the stuff below to not use temp variables??
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, value.number!!.number.toInt())
-                                    SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype)
-                                    SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype)
+                                    SourceStorageKind.LITERALNUMBER -> {
+                                        // TODO optimize the stuff below to not use temp variables??
+                                        inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, value.number!!.number.toInt())
+                                    }
+                                    SourceStorageKind.VARIABLE -> {
+                                        // TODO optimize the stuff below to not use temp variables??
+                                        inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype)
+                                    }
+                                    SourceStorageKind.REGISTER -> {
+                                        // TODO optimize the stuff below to not use temp variables??
+                                        inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype)
+                                    }
                                     SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread("P8ZP_SCRATCH_W1", target.datatype, operator, value.memory!!)
                                     SourceStorageKind.ARRAY -> inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
@@ -567,7 +593,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         asmgen.out("  sta  $name")
     }
 
-    // TODO: optimization: use this directly in more places, rather than using a temporary variable
     private fun inplacemodificationRegisterAwithVariable(operator: String, variable: String, signed: Boolean) {
         when (operator) {
             "+" -> asmgen.out("  clc |  adc  $variable")
