@@ -103,41 +103,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     DataType.FLOAT -> {
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(
-                                target.asmVarname,
-                                operator,
-                                value.number!!.number
-                            )
-                            SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(
-                                target.asmVarname,
-                                operator,
-                                value.asmVarname
-                            )
-                            SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(
-                                target.asmVarname,
-                                operator,
-                                regName(value)
-                            )
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(target.asmVarname, operator, value.number!!.number)
+                            SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(target.asmVarname, operator, value.asmVarname)
+                            SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(target.asmVarname, operator, regName(value))
                             SourceStorageKind.MEMORY -> TODO("memread into float")
-                            SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(
-                                target.asmVarname,
-                                operator,
-                                value.array!!
-                            )
+                            SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(target.asmVarname, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplacemodificationFloatWithValue(
-                                        target.asmVarname,
-                                        operator,
-                                        value.expression
-                                    )
+                                    inplacemodificationFloatWithValue(target.asmVarname, operator, value.expression)
                                 } else {
-                                    inplacemodificationFloatWithValue(
-                                        target.asmVarname,
-                                        operator,
-                                        value.expression!!
-                                    )
+                                    inplacemodificationFloatWithValue(target.asmVarname, operator, value.expression!!)
                                 }
                             }
                         }
@@ -255,41 +231,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             DataType.FLOAT -> {
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(
-                                        targetVarName,
-                                        operator,
-                                        value.number!!.number
-                                    )
-                                    SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(
-                                        targetVarName,
-                                        operator,
-                                        value.asmVarname
-                                    )
-                                    SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(
-                                        targetVarName,
-                                        operator,
-                                        regName(value)
-                                    )
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.number!!.number)
+                                    SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(targetVarName, operator, value.asmVarname)
+                                    SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(targetVarName, operator, regName(value))
                                     SourceStorageKind.MEMORY -> TODO("memread into float array")
-                                    SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(
-                                        targetVarName,
-                                        operator,
-                                        value.array!!
-                                    )
+                                    SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(targetVarName, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplacemodificationFloatWithValue(
-                                                targetVarName,
-                                                operator,
-                                                value.expression
-                                            )
+                                            inplacemodificationFloatWithValue(targetVarName, operator, value.expression)
                                         } else {
-                                            inplacemodificationFloatWithValue(
-                                                targetVarName,
-                                                operator,
-                                                value.expression!!
-                                            )
+                                            inplacemodificationFloatWithValue(targetVarName, operator, value.expression!!)
                                         }
                                     }
                                 }
@@ -305,24 +257,44 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
                                     return
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
-                                asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_B1")
                                 asmgen.saveRegisterStack(CpuRegister.Y, false)
-                                // TODO optimize the stuff below to not use temp variables??
+                                asmgen.out("  lda  ${target.array.variable.name},y")
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval("P8ZP_SCRATCH_B1", target.datatype, operator, value.number!!.number.toInt())
-                                    SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable("P8ZP_SCRATCH_B1", target.datatype, operator, value.asmVarname)
-                                    SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable("P8ZP_SCRATCH_B1", target.datatype, operator, regName(value))
-                                    SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.array!!)
+                                    SourceStorageKind.LITERALNUMBER -> {
+                                        inplacemodificationRegisterAwithVariable(operator, "#${value.number!!.number.toInt()}", target.datatype in SignedDatatypes)
+                                        asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                                    }
+                                    SourceStorageKind.VARIABLE -> {
+                                        inplacemodificationRegisterAwithVariable(operator, value.asmVarname, target.datatype in SignedDatatypes)
+                                        asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                                    }
+                                    SourceStorageKind.REGISTER -> {
+                                        inplacemodificationRegisterAwithVariable(operator, regName(value), target.datatype in SignedDatatypes)
+                                        asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                                    }
+                                    SourceStorageKind.MEMORY -> {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_B1")
+                                        inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.memory!!)
+                                        asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_B1")
+                                    }
+                                    SourceStorageKind.ARRAY -> {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_B1")
+                                        inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.array!!)
+                                        asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_B1")
+                                    }
                                     SourceStorageKind.EXPRESSION -> {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_B1")
                                         if(value.expression is PtTypeCast)
                                             inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression)
                                         else
                                             inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
+                                        asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_B1")
                                     }
                                 }
-                                asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                                asmgen.out("  lda  P8ZP_SCRATCH_B1 |  sta  ${target.array.variable.name},y")
+                                asmgen.out("  sta  ${target.array.variable.name},y")
                             }
                             in WordDatatypes -> {
                                 if(value.kind==SourceStorageKind.EXPRESSION
@@ -376,42 +348,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     ldy  #>$tempvar
                                     jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(
-                                        tempvar,
-                                        operator,
-                                        value.number!!.number
-                                    )
-                                    SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(
-                                        tempvar,
-                                        operator,
-                                        value.asmVarname
-                                    )
-                                    SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(
-                                        tempvar,
-                                        operator,
-                                        regName(value)
-                                    )
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(tempvar, operator, value.number!!.number)
+                                    SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(tempvar, operator, value.asmVarname)
+                                    SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(tempvar, operator, regName(value))
                                     SourceStorageKind.MEMORY -> TODO("memread into float")
-                                    SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(
-                                        tempvar,
-                                        operator,
-                                        value.array!!
-                                    )
+                                    SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(tempvar, operator, value.array!!)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
                                                 return
-                                            inplacemodificationFloatWithValue(
-                                                tempvar,
-                                                operator,
-                                                value.expression
-                                            )
+                                            inplacemodificationFloatWithValue(tempvar, operator, value.expression)
                                         } else {
-                                            inplacemodificationFloatWithValue(
-                                                tempvar,
-                                                operator,
-                                                value.expression!!
-                                            )
+                                            inplacemodificationFloatWithValue(tempvar, operator, value.expression!!)
                                         }
                                     }
                                 }

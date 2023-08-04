@@ -7,6 +7,7 @@ main {
         ubyte idx = 20
         idx += 10
         ubyte amount = 20
+        array[idx] -= 10
         array[idx] -= amount
     }
 }
