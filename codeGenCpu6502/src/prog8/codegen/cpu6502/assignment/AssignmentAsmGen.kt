@@ -996,6 +996,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun assignOptimizedComparisonBytes(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         val signed = expr.left.type == DataType.BYTE || expr.right.type ==  DataType.BYTE
 
+        // TODO no need to use a temporary variable if the right expression is a literal number or a variable name (or register name)
+
         when(expr.operator) {
             "==" -> {
                 asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")

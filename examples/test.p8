@@ -3,16 +3,16 @@
 
 main {
     sub start() {
-        uword[4] array = [1,2,3,4]
-        ubyte index = 2
+        ubyte a = 1
 
-        cx16.r0 = 99
-        array[index] += 12345
-        array[index] += cx16.r0
-        array[index] += index
-        txt.print_uw(array[index])      ; prints 12449
+        if a>4 or a<2 {
+            a++
+        }
 
-        ; code size = $0249
+        if a>=2 and a<4 {
+            a++
+        }
 
+        txt.print_ub(a)  ; 3
     }
 }

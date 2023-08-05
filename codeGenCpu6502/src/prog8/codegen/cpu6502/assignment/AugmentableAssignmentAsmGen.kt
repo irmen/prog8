@@ -320,44 +320,69 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
                                     return
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
-                                if(target.array.splitWords) {
-                                    asmgen.out("  lda  ${target.array.variable.name}_lsb,y |  sta  P8ZP_SCRATCH_W1")
-                                    asmgen.out("  lda  ${target.array.variable.name}_msb,y |  sta  P8ZP_SCRATCH_W1+1")
-                                } else {
-                                    asmgen.out("  lda  ${target.array.variable.name},y |  sta  P8ZP_SCRATCH_W1")
-                                    asmgen.out("  lda  ${target.array.variable.name}+1,y |  sta  P8ZP_SCRATCH_W1+1")
-                                }
                                 asmgen.saveRegisterStack(CpuRegister.Y, false)
+                                if(target.array.splitWords) {
+                                    asmgen.out("  lda  ${target.array.variable.name}_lsb,y")
+                                    asmgen.out("  ldx  ${target.array.variable.name}_msb,y")
+                                } else {
+                                    asmgen.out("  lda  ${target.array.variable.name},y")
+                                    asmgen.out("  ldx  ${target.array.variable.name}+1,y")
+                                }
                                 when(value.kind) {
                                     SourceStorageKind.LITERALNUMBER -> {
-                                        // TODO optimize the stuff below to not use temp variables??
-                                        inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, value.number!!.number.toInt())
+                                        val number = value.number!!.number.toInt()
+                                        if(!inplacemodificationRegisterAXwithLiteralval(operator, number)) {
+                                            asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                            inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, number)
+                                            asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                        }
                                     }
                                     SourceStorageKind.VARIABLE -> {
-                                        // TODO optimize the stuff below to not use temp variables??
-                                        inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype)
+                                        if(!inplacemodificationRegisterAXwithVariable(
+                                                operator,
+                                                value.asmVarname,
+                                                value.datatype
+                                            )) {
+                                            asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                            inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype)
+                                            asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                        }
                                     }
                                     SourceStorageKind.REGISTER -> {
-                                        // TODO optimize the stuff below to not use temp variables??
-                                        inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype)
+                                        if(!inplacemodificationRegisterAXwithVariable(
+                                                operator,
+                                                regName(value),
+                                                value.datatype
+                                            )) {
+                                            asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                            inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype)
+                                            asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                        }
                                     }
-                                    SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread("P8ZP_SCRATCH_W1", target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!)
+                                    SourceStorageKind.MEMORY -> {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                        inplacemodificationWordWithMemread("P8ZP_SCRATCH_W1", target.datatype, operator, value.memory!!)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                    }
+                                    SourceStorageKind.ARRAY -> {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                        inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                    }
                                     SourceStorageKind.EXPRESSION -> {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
                                         if(value.expression is PtTypeCast)
                                             inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression)
                                         else
                                             inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
                                     }
                                 }
-                                asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                                if(target.array.splitWords) {
-                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  sta  ${target.array.variable.name}_lsb,y")
-                                    asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name}_msb,y")
-                                } else {
-                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  sta  ${target.array.variable.name},y")
-                                    asmgen.out("  lda  P8ZP_SCRATCH_W1+1 |  sta  ${target.array.variable.name}+1,y")
-                                }
+                                asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                                if(target.array.splitWords)
+                                    asmgen.out("  sta  ${target.array.variable.name}_lsb,y |  txa |  sta  ${target.array.variable.name}_msb,y")
+                                else
+                                    asmgen.out("  sta  ${target.array.variable.name},y |  txa |  sta  ${target.array.variable.name}+1,y")
                             }
                             DataType.FLOAT -> {
                                 asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.FLOAT, CpuRegister.A)
@@ -409,6 +434,110 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
+        }
+    }
+
+    private fun inplacemodificationRegisterAXwithVariable(operator: String, variable: String, varDt: DataType): Boolean {
+        // note: we only optimize addition and subtraction, and these are the same for unsigned or signed.
+        when(operator) {
+            "+" -> {
+                return if(varDt in WordDatatypes) {
+                    asmgen.out("""
+                        clc
+                        adc  $variable
+                        pha
+                        txa
+                        adc  $variable+1
+                        tax
+                        pla""")
+                    true
+                } else {
+                    asmgen.out("""
+                        ldy  $variable
+                        bpl  +
+                        dex     ; sign extend
++                       clc
+                        adc  $variable
+                        bcc  +
+                        inx
++""")
+                    true
+                }
+            }
+            "-" -> {
+                return if(varDt in WordDatatypes) {
+                    asmgen.out("""
+                        sec
+                        sbc  $variable
+                        pha
+                        txa
+                        sbc  $variable+1
+                        tax
+                        pla""")
+                    true
+                } else {
+                    asmgen.out("""
+                        ldy  $variable
+                        bpl  +
+                        inx     ; sign extend
++                       sec
+                        sbc  $variable
+                        bcs  +
+                        dex
++""")
+                    true
+                }
+            }
+            else -> return false        // TODO optimize more operators, such as the bitwise logical ones? Might need to know if signed
+        }
+    }
+
+    private fun inplacemodificationRegisterAXwithLiteralval(operator: String, number: Int): Boolean {
+        // note: we only optimize addition and subtraction, and these are the same for unsigned or signed.
+        when(operator) {
+            "+" -> {
+                return if(number in -128..255) {
+                    asmgen.out("""
+                        clc
+                        adc  #$number
+                        bcc  +
+                        inx
++""")
+                    true
+                } else {
+                    asmgen.out("""
+                        clc
+                        adc  #<$number
+                        pha
+                        txa
+                        adc  #>$number
+                        tax
+                        pla""")
+                    true
+                }
+            }
+            "-" -> {
+                return if(number in -128..255) {
+                    asmgen.out("""
+                        sec
+                        sbc  #$number
+                        bcs  +
+                        dex
++""")
+                    true
+                } else {
+                    asmgen.out("""
+                        sec
+                        sbc  #<$number
+                        pha
+                        txa
+                        sbc  #>$number
+                        tax
+                        pla""")
+                    true
+                }
+            }
+            else -> return false        // TODO optimize more operators, such as the bitwise logical ones? Might need to know if signed
         }
     }
 
@@ -579,7 +708,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
-        // TODO optimize the stuff below to not use temp variables??
         val tmpVar = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
         asmgen.assignExpressionToVariable(value, tmpVar, value.type)
         asmgen.out("  lda  $name")
@@ -1932,21 +2060,21 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 sta  $name+1""")
                     }
                     "*" -> {
-                        // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
+                        // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word * byte multiplication routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.signExtendAYlsb(valueDt)
                         multiplyVarByWordInAY()
                     }
                     "/" -> {
-                        // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
+                        // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word / byte divmod routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.signExtendAYlsb(valueDt)
                         divideVarByWordInAY()
                     }
                     "%" -> {
-                        // stack contains (u) byte value, sign extend that and proceed with regular 16 bit operation
+                        // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word / byte divmod routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.signExtendAYlsb(valueDt)
