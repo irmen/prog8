@@ -995,11 +995,45 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun assignOptimizedComparisonBytes(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         val signed = expr.left.type == DataType.BYTE || expr.right.type ==  DataType.BYTE
-
-        // TODO no need to use a temporary variable if the right expression is a literal number or a variable name (or register name)
-
         when(expr.operator) {
-            "==" -> {
+            "==" -> byteEquals(expr, signed)
+            "!=" -> byteNotEquals(expr, signed)
+            "<" -> byteLess(expr, signed)
+            "<=" -> byteLessEquals(expr, signed)
+            ">" -> byteGreater(expr, signed)
+            ">=" -> byteGreaterEquals(expr, signed)
+            else -> return false
+        }
+
+        assignRegisterByte(assign.target, CpuRegister.A, signed)
+        return true
+    }
+
+    private fun byteEquals(expr: PtBinaryExpression, signed: Boolean) {
+        when (expr.right) {
+            is PtNumber -> {
+                val number = (expr.right as PtNumber).number.toInt()
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
+                asmgen.out("""
+                    cmp  #$number
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            is PtIdentifier -> {
+                val varname = (expr.right as PtIdentifier).name
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
+                asmgen.out("""
+                    cmp  $varname
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            else -> {
                 asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
                 asmgen.out("""
                     cmp  P8ZP_SCRATCH_B1
@@ -1009,7 +1043,34 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 +                   lda  #1
 +""")
             }
-            "!=" -> {
+        }
+    }
+
+    private fun byteNotEquals(expr: PtBinaryExpression, signed: Boolean) {
+        when(expr.right) {
+            is PtNumber -> {
+                val number = (expr.right as PtNumber).number.toInt()
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
+                asmgen.out("""
+                    cmp  #$number
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            is PtIdentifier -> {
+                val varname = (expr.right as PtIdentifier).name
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
+                asmgen.out("""
+                    cmp  $varname
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            else -> {
                 asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
                 asmgen.out("""
                     cmp  P8ZP_SCRATCH_B1
@@ -1019,7 +1080,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 +                   lda  #1
 +""")
             }
-            "<" -> {
+        }
+    }
+
+    private fun byteLess(expr: PtBinaryExpression, signed: Boolean) {
+        // TODO no need to use a temporary variable if the right expression is a literal number or a variable name (or register name)
+        when(expr.right) {
+//            is PtNumber -> {
+//                TODO("< number")
+//            }
+//            is PtIdentifier -> {
+//                TODO("< variable")
+//            }
+            else -> {
                 asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
                 if(signed)
                     asmgen.out("""
@@ -1041,73 +1114,75 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         rol  a
 +""")
             }
-            "<=" -> {
-                asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
-                if(signed)
-                    asmgen.out("""
-                        sec
-                        sbc  P8ZP_SCRATCH_B1
-                        bvc  +
-                        eor  #$80
-+                       bpl  +
-                        lda  #0
-                        beq  ++
-+                       lda  #1                        
-+""")
-                else
-                    asmgen.out("""
-                        cmp  P8ZP_SCRATCH_B1
-                        lda  #0
-                        rol  a""")
-            }
-            ">" -> {
-                asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
-                if(signed)
-                    asmgen.out("""
-                        sec
-                        sbc  P8ZP_SCRATCH_B1
-                        bvc  +
-                        eor  #$80
-+                       bmi  +
-                        lda  #0
-                        beq  ++
-+                       lda  #1                        
-+""")
-                else
-                    asmgen.out("""
-                        cmp  P8ZP_SCRATCH_B1
-                        lda  #0
-                        rol  a
-                        eor  #1""")
-            }
-            ">=" -> {
-                asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
-                if(signed)
-                    asmgen.out("""
-                        clc
-                        sbc  P8ZP_SCRATCH_B1
-                        bvc  +
-                        eor  #$80
-+                       bmi  +
-                        lda  #0
-                        beq  ++
-+                       lda  #1                        
-+""")
-                else
-                asmgen.out("""
-                        cmp  P8ZP_SCRATCH_B1
-                        beq  +
-                        bcc  +
-                        lda  #0
-                        beq  ++
-+                       lda  #1
-+""")
-            }
-            else -> return false
         }
+    }
 
-        assignRegisterByte(assign.target, CpuRegister.A, signed)
-        return true
+    private fun byteLessEquals(expr: PtBinaryExpression, signed: Boolean) {
+        // TODO no need to use a temporary variable if the right expression is a literal number or a variable name (or register name)
+        asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
+        if(signed)
+            asmgen.out("""
+                sec
+                sbc  P8ZP_SCRATCH_B1
+                bvc  +
+                eor  #$80
++               bpl  +
+                lda  #0
+                beq  ++
++               lda  #1                        
++""")
+        else
+            asmgen.out("""
+                cmp  P8ZP_SCRATCH_B1
+                lda  #0
+                rol  a""")
+    }
+
+    private fun byteGreater(expr: PtBinaryExpression, signed: Boolean) {
+        // TODO no need to use a temporary variable if the right expression is a literal number or a variable name (or register name)
+        asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
+        if(signed)
+            asmgen.out("""
+                sec
+                sbc  P8ZP_SCRATCH_B1
+                bvc  +
+                eor  #$80
++               bmi  +
+                lda  #0
+                beq  ++
++               lda  #1                        
++""")
+        else
+            asmgen.out("""
+                cmp  P8ZP_SCRATCH_B1
+                lda  #0
+                rol  a
+                eor  #1""")
+    }
+
+    private fun byteGreaterEquals(expr: PtBinaryExpression, signed: Boolean) {
+        // TODO no need to use a temporary variable if the right expression is a literal number or a variable name (or register name)
+        asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
+        if(signed)
+            asmgen.out("""
+                clc
+                sbc  P8ZP_SCRATCH_B1
+                bvc  +
+                eor  #$80
++               bmi  +
+                lda  #0
+                beq  ++
++               lda  #1                        
++""")
+        else
+            asmgen.out("""
+                cmp  P8ZP_SCRATCH_B1
+                beq  +
+                bcc  +
+                lda  #0
+                beq  ++
++               lda  #1
++""")
     }
 
     private fun assignOptimizedComparisonWords(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
