@@ -1,8 +1,6 @@
 TODO
 ====
 
-- optimize byteLessEquals() and byteGreater() in AssignmentAsmGen.
-- in other codegen for comparisons, try to reduce lda #0/lda #1 by rol a using the carry from the cmp if possible.
 - investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
