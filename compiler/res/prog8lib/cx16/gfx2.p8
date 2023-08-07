@@ -580,35 +580,25 @@ _done
         when active_mode {
             1 -> {
                 ; lores monochrome
-                %asm {{
-                    lda  x
-                    eor  y
-                    ora  monochrome_dont_stipple_flag
-                    and  #1
-                }}
-                if_nz {
+                if color {
+                    ; solid color or perhaps stipple
                     %asm {{
                         lda  x
-                        and  #7
-                        pha     ; xbits
+                        eor  y
+                        ora  monochrome_dont_stipple_flag
+                        and  #1
                     }}
-                    x /= 8
-                    x += y*(320/8)
+                    if_nz {
+                        mode_1_prepare()
+                        %asm {{
+                            tsb  cx16.VERA_DATA0
+                        }}
+                    }
+                } else {
+                    ; only erase
+                    mode_1_prepare()
                     %asm {{
-                        stz  cx16.VERA_CTRL
-                        stz  cx16.VERA_ADDR_H
-                        lda  x+1
-                        sta  cx16.VERA_ADDR_M
-                        lda  x
-                        sta  cx16.VERA_ADDR_L
-                        ply         ; xbits
-                        lda  bits,y
-                        ldy  color
-                        beq  +
-                        tsb  cx16.VERA_DATA0
-                        bra  ++
-+                       trb  cx16.VERA_DATA0
-+
+                        trb  cx16.VERA_DATA0
                     }}
                 }
             }
@@ -631,35 +621,25 @@ _done
             }
             5 -> {
                 ; highres monochrome
-                %asm {{
-                    lda  x
-                    eor  y
-                    ora  monochrome_dont_stipple_flag
-                    and  #1
-                }}
-                if_nz {
+                if color {
+                    ; solid color or perhaps stipple
                     %asm {{
                         lda  x
-                        and  #7
-                        pha     ; xbits
+                        eor  y
+                        ora  monochrome_dont_stipple_flag
+                        and  #1
                     }}
-                    x /= 8
-                    x += y*(640/8)
+                    if_nz {
+                        mode_5_prepare()
+                        %asm {{
+                            tsb  cx16.VERA_DATA0
+                        }}
+                    }
+                } else {
+                    ; only erase
+                    mode_5_prepare()
                     %asm {{
-                        stz  cx16.VERA_CTRL
-                        stz  cx16.VERA_ADDR_H
-                        lda  x+1
-                        sta  cx16.VERA_ADDR_M
-                        lda  x
-                        sta  cx16.VERA_ADDR_L
-                        ply     ; xbits
-                        lda  bits,y
-                        ldy  color
-                        beq  +
-                        tsb  cx16.VERA_DATA0
-                        bra  ++
-+                       trb  cx16.VERA_DATA0
-+
+                        trb  cx16.VERA_DATA0
                     }}
                 }
             }
@@ -689,6 +669,46 @@ _done
                     sta  cx16.VERA_DATA0
                 }}
             }
+        }
+
+        sub mode_1_prepare() {
+            %asm {{
+                lda  x
+                and  #7
+                pha     ; xbits
+            }}
+            x /= 8
+            x += y*(320/8)
+            %asm {{
+                stz  cx16.VERA_CTRL
+                stz  cx16.VERA_ADDR_H
+                lda  x+1
+                sta  cx16.VERA_ADDR_M
+                lda  x
+                sta  cx16.VERA_ADDR_L
+                ply     ; xbits
+                lda  bits,y
+            }}
+        }
+
+        sub mode_5_prepare() {
+            %asm {{
+                lda  x
+                and  #7
+                pha     ; xbits
+            }}
+            x /= 8
+            x += y*(640/8)
+            %asm {{
+                stz  cx16.VERA_CTRL
+                stz  cx16.VERA_ADDR_H
+                lda  x+1
+                sta  cx16.VERA_ADDR_M
+                lda  x
+                sta  cx16.VERA_ADDR_L
+                ply     ; xbits
+                lda  bits,y
+            }}
         }
     }
 
