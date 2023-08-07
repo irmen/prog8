@@ -156,8 +156,8 @@ gfx2 {
     }
 
     sub horizontal_line(uword x, uword y, uword length, ubyte color) {
-        ubyte[9] masked_ends   = [ 0, %10000000, %11000000, %11100000, %11110000, %11111000, %11111100, %11111110, %11111111]
         ubyte[9] masked_starts = [ 0, %00000001, %00000011, %00000111, %00001111, %00011111, %00111111, %01111111, %11111111]
+        ubyte[9] masked_ends   = [ 0, %10000000, %11000000, %11100000, %11110000, %11111000, %11111100, %11111110, %11111111]
 
         if length==0
             return
@@ -168,11 +168,21 @@ gfx2 {
                 if separate_pixels as uword > length
                     separate_pixels = lsb(length)
                 if separate_pixels {
-                    position(x,y)
-                    cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
-                    cx16.VERA_DATA0 = cx16.VERA_DATA0 | masked_starts[separate_pixels]
+                    if monochrome_dont_stipple_flag {
+                        position(x,y)
+                        cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
+                        if color
+                            cx16.VERA_DATA0 |= masked_starts[separate_pixels]
+                        else
+                            cx16.VERA_DATA0 &= ~masked_starts[separate_pixels]
+                        x += separate_pixels
+                    } else {
+                        repeat separate_pixels {
+                            plot(x, y, color)
+                            x++
+                        }
+                    }
                     length -= separate_pixels
-                    x += separate_pixels
                 }
                 if length {
                     position(x, y)
@@ -211,8 +221,18 @@ _loop                   lda  length
 _done
                     }}
 
-                    cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
-                    cx16.VERA_DATA0 = cx16.VERA_DATA0 | masked_ends[separate_pixels]
+                    if monochrome_dont_stipple_flag {
+                        cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
+                        if color
+                            cx16.VERA_DATA0 |= masked_ends[separate_pixels]
+                        else
+                            cx16.VERA_DATA0 &= ~masked_ends[separate_pixels]
+                    } else {
+                        repeat separate_pixels {
+                            plot(x, y, color)
+                            x++
+                        }
+                    }
                 }
                 cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off again
             }
