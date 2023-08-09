@@ -1416,6 +1416,11 @@ internal class AstChecker(private val program: Program,
         super.visit(memwrite)
     }
 
+    override fun visit(inlineAssembly: InlineAssembly) {
+        if(inlineAssembly.isIR && compilerOptions.compTarget.name != VMTarget.NAME)
+            errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
+    }
+
     private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
         when (val targetStatement = target.targetStatement(program)) {
             is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement

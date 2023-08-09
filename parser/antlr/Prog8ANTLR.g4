@@ -233,9 +233,9 @@ literalvalue :
 	| floatliteral
 	;
 
-inlineasm :  '%asm' INLINEASMBLOCK;
+inlineasm :  '%asm' EOL? INLINEASMBLOCK;
 
-inlineir: '%ir' INLINEASMBLOCK;
+inlineir: '%ir' EOL? INLINEASMBLOCK;
 
 inline: 'inline';
 
@@ -255,7 +255,7 @@ statement_block :
 sub_params :  vardecl (',' EOL? vardecl)* ;
 
 asmsubroutine :
-    inline? 'asmsub' asmsub_decl  statement_block
+    inline? 'asmsub' asmsub_decl EOL? (statement_block EOL)
     ;
 
 romsubroutine :

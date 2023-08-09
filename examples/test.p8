@@ -1,32 +1,31 @@
-%import gfx2
 %zeropage dontuse
 
 main {
-    sub start () {
-        gfx2.screen_mode(5)
-        gfx2.monochrome_stipple(false)
-        for cx16.r0 in 100 to 200 {
-            for cx16.r1 in 100 to 110 {
-                gfx2.plot(cx16.r0, cx16.r1, 1)
-            }
-        }
+    sub start () { foo() derp() other() }
+    sub foo() { cx16.r0++ }
+    asmsub derp() { %asm {{ nop }} %ir {{ loadr.b r0,1 }} }
 
-        gfx2.monochrome_stipple(true)
-        for cx16.r0 in 100 to 200 {
-            for cx16.r1 in 110 to 120 {
-                gfx2.plot(cx16.r0, cx16.r1, 1)
-            }
-        }
+    sub other()
+    {
+        cx16.r0++
+        asmother()
+        asmir()
+    }
 
-        gfx2.monochrome_stipple(true)
-        for cx16.r0 in 110 to 190 {
-            for cx16.r1 in 105 to 115 {
-                gfx2.plot(cx16.r0, cx16.r1, 0)
-            }
-        }
+    asmsub asmother()
+    {
+        %asm
+        {{
+            txa
+            tay
+        }}
+    }
 
-        gfx2.disc(320, 240, 140, 1)
-        gfx2.monochrome_stipple(false)
-        gfx2.disc(320, 240, 100, 0)
+    asmsub asmir()
+    {
+        %ir
+        {{
+            loadr.b r0,1
+        }}
     }
 }

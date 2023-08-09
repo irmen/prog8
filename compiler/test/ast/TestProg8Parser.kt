@@ -19,6 +19,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8.code.target.cbm.PetsciiEncoding
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
@@ -984,4 +985,44 @@ main {
 
         compileText(C64Target(),  false, src, writeAssembly = false) shouldNotBe null
     }
+
+    test("various alternative curly brace styles are ok") {
+        val src="""
+%zeropage dontuse
+
+main {
+    ; curly braces without newline
+    sub start () { foo() derp() other() }
+    sub foo() { cx16.r0++ }
+    asmsub derp() { %asm {{ nop }} %ir {{ loadr.b r0,1 }} }
+
+    ; curly braces on next line
+    sub other()
+    {
+        cx16.r0++
+        asmother()
+        asmir()
+    }
+
+    asmsub asmother()
+    {
+        %asm
+        {{
+            txa
+            tay
+        }}
+    }
+
+    asmsub asmir()
+    {
+        %ir
+        {{
+            loadr.b r0,1
+        }}
+    }
+}"""
+
+        compileText(VMTarget(),  false, src, writeAssembly = false) shouldNotBe null
+    }
+
 })

@@ -1001,7 +1001,10 @@ $repeatLabel""")
     }
 
     private fun translate(asm: PtInlineAssembly) {
-        assemblyLines.add(asm.assembly.trimEnd().trimStart('\r', '\n'))
+        if(asm.isIR)
+            throw AssemblyError("%asm containing IR code cannot be translated to 6502 assembly")
+        else
+            assemblyLines.add(asm.assembly.trimEnd().trimStart('\r', '\n'))
     }
 
     private fun translate(incbin: PtIncludeBinary) {
