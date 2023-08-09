@@ -178,21 +178,20 @@ One or more .p8 module files
     Can be repeated to define multiple symbols.
 
 ``-varshigh <rambank>``
-    Places the non-zeropage variables in a separate high memory area, instead of inside the program itself.
-    This results in an increase of the amount of system ram available for the program
-    itself. The amount of ram saved depends on the amount and types of variables in the program,
-    but can be several hundreds of bytes or more.
-    The new memory location of the variables depends on the compilation target machine:
+    Places uninitialized non-zeropage variables in a separate memory area, instead of inside the program itself.
+    This increases the amount of system ram available for program code.
+    The size of the increase depends on the program but can be several hundreds of bytes or more.
+    The location of the memory area for these variables depends on the compilation target machine:
 
-    c64: $C000 - $CEFF  (specified rambank number is ignored)
+    c64: $C000 - $CFFF   ; 4 kB, and the specified rambank number is ignored
 
-    cx16: $A000 - $BFFF  in the given HiRAM bank (note: you must make sure that this HiRAM bank is mapped in when accessing variables! The bank should be 1 or up. Choose 1 if unsure.)
+    cx16: $A000 - $BFFF  ; 8 kB in the specified HiRAM bank (note: no auto bank switching is done, you must make sure yourself that this HiRAM bank is active when accessing these variables!)
 
     If you use this option, you can no longer use the part of the above memory area that is
-    now alotted to the variables for your own purposes. The output of the 64tass assembler step at the
+    alotted to the variables, for your own purposes. The output of the 64tass assembler step at the
     end of compilation shows precise details of where and how much memory is used by the variables
-    (it's called 'BSS' section or Gap).  Compilation (or rather, assembling) will fail if there are too
-    many variables to fit in the high ram block.
+    (it's called 'BSS' section or Gap at the address mentioned above).
+    Assembling the program will fail if there are too many variables to fit in a single high ram bank.
 
 
 Module source code files
