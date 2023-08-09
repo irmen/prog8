@@ -438,6 +438,8 @@ The following names are reserved, they have a special meaning::
 	true  false              ; boolean values 1 and 0
 
 
+.. _range-expression:
+
 Range expression
 ^^^^^^^^^^^^^^^^
 
@@ -449,9 +451,23 @@ from the starting value to (and including) the ending value::
 
 You an provide a step value if you need something else than the default increment which is one (or,
 in case of downto, a decrement of one).   Because a step of minus one is so common you can just use
-the downto variant to avoid having to specify the step as well.
+the downto variant to avoid having to specify the step as well::
 
-If used in the place of a literal value, it expands into the actual array of integer values::
+    0 to 7                   ; range of values 0, 1, 2, 3, 4, 5, 6, 7
+    20 downto 10 step -3     ; range of values 20, 17, 14, 11
+
+    aa = 5
+    xx = 10
+    aa to xx                 ; range of 5, 6, 7, 8, 9, 10
+
+    byte[] array = 10 to 13  ; sets the array to [10, 11, 12, 13]
+
+    for  i  in  0 to 127  {
+        ; i loops 0, 1, 2, ... 127
+    }
+
+
+Range expressions are most often used in for loops, but can be also be used to create array initialization values::
 
 	byte[] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
 
@@ -516,15 +532,15 @@ assignment: ``=``
     Note that an assignment sometimes is not possible or supported.
 
 augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
-	This is syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``
+    This is syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``
 
 postfix increment and decrement: ``++``  ``--``
-	Syntactic sugar; ``aa++`` is equivalent to ``aa = aa + 1``, and ``aa--`` is equivalent to ``aa = aa - 1``.
-	Because these operations are so common, we have these short forms.
+    Syntactic sugar; ``aa++`` is equivalent to ``aa = aa + 1``, and ``aa--`` is equivalent to ``aa = aa - 1``.
+    Because these operations are so common, we have these short forms.
 
 comparison: ``!=``  ``<``  ``>``  ``<=``  ``>=``
-	Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
-	The result is a 'boolean' value 'true' or 'false' (which in reality is just a byte value of 1 or 0).
+    Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
+    The result is a 'boolean' value 'true' or 'false' (which in reality is just a byte value of 1 or 0).
 
 logical:  ``not``  ``and``  ``or``  ``xor``
 	These operators are the usual logical operations that are part of a logical expression to reason
@@ -543,21 +559,10 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 		all operands from these logical expressions, even when one of them already determines the outcome!
 		If you don't want this to happen, you have to split and nest the if-statements yourself.
 
-range creation:  ``to``
-	Creates a range of values from the LHS value to the RHS value, inclusive.
-	These are mainly used in for loops to set the loop range. Example::
-
-		0 to 7		; range of values 0, 1, 2, 3, 4, 5, 6, 7  (constant)
-
-		aa = 5
-		aa = 10
-	    aa to xx		; range of 5, 6, 7, 8, 9, 10
-
-		byte[] array = 10 to 13   ; sets the array to [1, 2, 3, 4]
-
-		for  i  in  0 to 127  {
-			; i loops 0, 1, 2, ... 127
-		}
+range creation:  ``to``, ``downto``
+    Creates a range of values from the LHS value to the RHS value, inclusive.
+    These are mainly used in for loops to set the loop range.
+    See :ref:`range-expression` for details.
 
 containment check:  ``in``
     Tests if a value is present in a list of values, which can be a string or an array.
