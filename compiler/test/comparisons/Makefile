@@ -9,7 +9,7 @@ test: clean generate test_prgs
 
 generate:
 	python make_tests.py
-	p8compile -noopt -target cx16 *.p8 >/dev/null
+	p8compile -target cx16 *.p8 >/dev/null
 
 test_prgs:
 	x16emu -run -prg more_compares.prg

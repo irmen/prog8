@@ -16,14 +16,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     fun translate(assignment: PtAssignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
-        val assign = AsmAssignment(source, target, program.memsizer, assignment.position)
+        val pos = if(assignment.position !== Position.DUMMY) assignment.position else if(assignment.target.position !== Position.DUMMY) assignment.target.position else assignment.value.position
+        val assign = AsmAssignment(source, target, program.memsizer, pos)
         translateNormalAssignment(assign, assignment.definingISub())
     }
 
     fun translate(augmentedAssign: PtAugmentedAssign) {
         val target = AsmAssignTarget.fromAstAssignment(augmentedAssign.target, augmentedAssign.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(augmentedAssign.value, program, asmgen).adjustSignedUnsigned(target)
-        val assign = AsmAugmentedAssignment(source, augmentedAssign.operator, target, program.memsizer, augmentedAssign.position)
+        val pos = if(augmentedAssign.position !== Position.DUMMY) augmentedAssign.position else if(augmentedAssign.target.position !== Position.DUMMY) augmentedAssign.target.position else augmentedAssign.value.position
+        val assign = AsmAugmentedAssignment(source, augmentedAssign.operator, target, program.memsizer, pos)
         augmentableAsmGen.translate(assign, augmentedAssign.definingISub())
     }
 
@@ -369,7 +371,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             is PtBinaryExpression -> {
                 if(!attemptAssignOptimizedBinexpr(value, assign)) {
                     // TOO BAD: the expression was too complex to translate into assembly.
-                    throw AssemblyError("Expression is too complex to translate into assembly. Split it up into several separate statements, introduce a temporary variable, or otherwise rewrite it. Location: ${assign.position}")
+                    val pos = if(value.position!==Position.DUMMY) value.position else assign.position
+                    throw AssemblyError("Expression is too complex to translate into assembly. Split it up into several separate statements, introduce a temporary variable, or otherwise rewrite it. Location: $pos")
                 }
             }
             else -> throw AssemblyError("weird assignment value type $value")
@@ -410,66 +413,65 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
-        if(expr.operator in ComparisonOperators) {
-            if(expr.right.asConstInteger() == 0) {
-                if(expr.operator == "==" || expr.operator=="!=") {
-                    when(assign.target.datatype) {
-                        in ByteDatatypes -> if(attemptAssignToByteCompareZero(expr, assign)) return true
-                        else -> {
-                            // do nothing, this is handled by a type cast.
-                        }
+        val translatedOk = when (expr.operator) {
+            in ComparisonOperators -> optimizedComparison(expr, assign)
+            in setOf("&", "|", "^", "and", "or", "xor") -> optimizedLogicalOrBitwiseExpr(expr, assign.target)
+            "==", "!=" -> optimizedEqualityExpr(expr, assign.target)
+            "+", "-" -> optimizedPlusMinExpr(expr, assign.target)
+            "<<", ">>" -> optimizedBitshiftExpr(expr, assign.target)
+            "*" -> optimizedMultiplyExpr(expr, assign.target)
+            "/" -> optimizedDivideExpr(expr, assign.target)
+            "%" -> optimizedRemainderExpr(expr, assign.target)
+            else -> false
+        }
+
+        return if(translatedOk)
+            true
+        else
+            anyExprGen.assignAnyExpressionUsingStack(expr, assign)
+    }
+
+    private fun optimizedComparison(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        if(expr.right.asConstInteger() == 0) {
+            if(expr.operator == "==" || expr.operator=="!=") {
+                when(assign.target.datatype) {
+                    in ByteDatatypes -> if(attemptAssignToByteCompareZero(expr, assign)) return true
+                    else -> {
+                        // do nothing, this is handled by a type cast.
                     }
                 }
             }
-
-            if(expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
-                if(assignOptimizedComparisonBytes(expr, assign))
-                    return true
-            } else  if(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
-                if(assignOptimizedComparisonWords(expr, assign))
-                    return true
-            }
-
-            val origTarget = assign.target.origAstTarget
-            if(origTarget!=null) {
-                assignConstantByte(assign.target, 0)
-                val assignTrue = PtNodeGroup()
-                val assignment = PtAssignment(assign.position)
-                assignment.add(origTarget)
-                assignment.add(PtNumber.fromBoolean(true, assign.position))
-                assignTrue.add(assignment)
-                val assignFalse = PtNodeGroup()
-                val ifelse = PtIfElse(assign.position)
-                val exprClone = PtBinaryExpression(expr.operator, expr.type, expr.position)
-                expr.children.forEach { exprClone.children.add(it) }        // doesn't seem to need a deep clone
-                ifelse.add(exprClone)
-                ifelse.add(assignTrue)
-                ifelse.add(assignFalse)
-                ifelse.parent = expr.parent
-                asmgen.translate(ifelse)
-                return true
-            }
         }
 
-        if(expr.type !in IntegerDatatypes)
-            return anyExprGen.assignAnyExpressionUsingStack(expr, assign)
+        if(expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+            if(assignOptimizedComparisonBytes(expr, assign))
+                return true
+        } else  if(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+            if(assignOptimizedComparisonWords(expr, assign))
+                return true
+        }
 
-        if(expr.operator in setOf("&", "|", "^", "and", "or", "xor"))
-            return optimizedLogicalOrBitwiseExpr(expr, assign.target)
-        if(expr.operator == "==" || expr.operator == "!=")
-            return optimizedEqualityExpr(expr, assign.target)
-        if(expr.operator=="+" || expr.operator=="-")
-            return optimizedPlusMinExpr(expr, assign.target)
-        if(expr.operator=="<<" || expr.operator==">>")
-            return optimizedBitshiftExpr(expr, assign.target)
-        if(expr.operator=="*")
-            return optimizedMultiplyExpr(expr, assign.target)
-        if(expr.operator=="/")
-            return optimizedDivideExpr(expr, assign.target)
-        if(expr.operator=="%")
-            return optimizedRemainderExpr(expr, assign.target)
+        val origTarget = assign.target.origAstTarget
+        if(origTarget!=null) {
+            assignConstantByte(assign.target, 0)
+            val assignTrue = PtNodeGroup()
+            val assignment = PtAssignment(assign.position)
+            assignment.add(origTarget)
+            assignment.add(PtNumber.fromBoolean(true, assign.position))
+            assignTrue.add(assignment)
+            val assignFalse = PtNodeGroup()
+            val ifelse = PtIfElse(assign.position)
+            val exprClone = PtBinaryExpression(expr.operator, expr.type, expr.position)
+            expr.children.forEach { exprClone.children.add(it) }        // doesn't seem to need a deep clone
+            ifelse.add(exprClone)
+            ifelse.add(assignTrue)
+            ifelse.add(assignFalse)
+            ifelse.parent = expr.parent
+            asmgen.translate(ifelse)
+            return true
+        }
 
-        return anyExprGen.assignAnyExpressionUsingStack(expr, assign)
+        return false
     }
 
     private fun optimizedRemainderExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
