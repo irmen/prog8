@@ -586,23 +586,22 @@ class IRCodeGen(
             else -> throw AssemblyError("invalid loopvar node type")
         }
         val loopvarDtIr = irType(loopvarDt)
-        val iterable = forLoop.iterable as PtRange
-        val step = iterable.step.number.toInt()
-        val rangeStart = (iterable.from as PtNumber).number.toInt()
-        val rangeEndExclusiveUntyped = (iterable.to as PtNumber).number.toInt() + step
-        if(step==0)
-            throw AssemblyError("step 0")
-        if(step>0 && rangeEndExclusiveUntyped<rangeStart || step<0 && rangeEndExclusiveUntyped>rangeStart)
+        val iterable = (forLoop.iterable as PtRange).toConstantIntegerRange()!!
+        if(iterable.isEmpty())
             throw AssemblyError("empty range")
+        if(iterable.step==0)
+            throw AssemblyError("step 0")
+        val rangeEndExclusiveUntyped = iterable.last + iterable.step
         val rangeEndExclusiveWrapped = if(loopvarDtIr==IRDataType.BYTE) rangeEndExclusiveUntyped and 255 else rangeEndExclusiveUntyped and 65535
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
-        chunk += IRInstruction(Opcode.LOAD, loopvarDtIr, reg1=indexReg, immediate = rangeStart)
+        chunk += IRInstruction(Opcode.LOAD, loopvarDtIr, reg1=indexReg, immediate = iterable.first)
         chunk += IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=indexReg, labelSymbol=loopvarSymbol)
         result += chunk
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
-        val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, step)
+        val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)
         chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
+        chunk2 += IRInstruction(Opcode.XOR, loopvarDtIr, reg1 = 999, immediate = 111)
         chunk2 += IRInstruction(Opcode.BNE, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped, labelSymbol = loopLabel)
         result += chunk2
         return result

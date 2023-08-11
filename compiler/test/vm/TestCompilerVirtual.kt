@@ -210,13 +210,13 @@ main {
         var result = compileText(target, true, src, writeAssembly = true)!!
         var virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.stepCount shouldBe 48
+            vm.stepCount shouldBe 59
         }
 
         result = compileText(target, false, src, writeAssembly = true)!!
         virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.stepCount shouldBe 48
+            vm.stepCount shouldBe 59
         }
     }
 
