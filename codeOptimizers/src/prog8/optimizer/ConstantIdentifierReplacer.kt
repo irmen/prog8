@@ -280,10 +280,16 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     val rangeExpr = decl.value as? RangeExpression
                     if(rangeExpr!=null) {
                         // convert the initializer range expression to an actual array
+                        val constRange = rangeExpr.toConstantIntegerRange()
+                        if(constRange?.isEmpty()==true) {
+                            if(constRange.first>constRange.last && constRange.step>=0)
+                                errors.err("descending range with positive step", decl.value?.position!!)
+                            else if(constRange.first<constRange.last && constRange.step<=0)
+                                errors.err("ascending range with negative step", decl.value?.position!!)
+                        }
                         val declArraySize = decl.arraysize?.constIndex()
                         if(declArraySize!=null && declArraySize!=rangeExpr.size())
                             errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
-                        val constRange = rangeExpr.toConstantIntegerRange()
                         if(constRange!=null) {
                             val eltType = rangeExpr.inferType(program).getOr(DataType.UBYTE)
                             val newValue = if(eltType in ByteDatatypes) {

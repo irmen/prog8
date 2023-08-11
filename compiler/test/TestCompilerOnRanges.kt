@@ -264,7 +264,15 @@ class TestCompilerOnRanges: FunSpec({
             NumericLiteral.optimalInteger(2, Position.DUMMY),
             Position.DUMMY)
         expr.size() shouldBe 6
-        expr.toConstantIntegerRange()
+        expr.toConstantIntegerRange() shouldBe (10..20 step 2)
+
+        val expr2 = RangeExpression(
+            NumericLiteral.optimalInteger(20, Position.DUMMY),
+            NumericLiteral.optimalInteger(10, Position.DUMMY),
+            NumericLiteral.optimalInteger(-3, Position.DUMMY),
+            Position.DUMMY)
+        expr2.size() shouldBe 4
+        expr2.toConstantIntegerRange() shouldBe (20 downTo 10 step 3)
     }
 
     test("range with negative step should be constvalue") {

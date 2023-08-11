@@ -589,22 +589,21 @@ class IRCodeGen(
         val iterable = forLoop.iterable as PtRange
         val step = iterable.step.number.toInt()
         val rangeStart = (iterable.from as PtNumber).number.toInt()
-        val rangeEndUntyped = (iterable.to as PtNumber).number.toInt() + step
+        val rangeEndExclusiveUntyped = (iterable.to as PtNumber).number.toInt() + step
         if(step==0)
             throw AssemblyError("step 0")
-        if(step>0 && rangeEndUntyped<rangeStart || step<0 && rangeEndUntyped>rangeStart)
+        if(step>0 && rangeEndExclusiveUntyped<rangeStart || step<0 && rangeEndExclusiveUntyped>rangeStart)
             throw AssemblyError("empty range")
-        val rangeEndWrapped = if(loopvarDtIr==IRDataType.BYTE) rangeEndUntyped and 255 else rangeEndUntyped and 65535
+        val rangeEndExclusiveWrapped = if(loopvarDtIr==IRDataType.BYTE) rangeEndExclusiveUntyped and 255 else rangeEndExclusiveUntyped and 65535
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
         chunk += IRInstruction(Opcode.LOAD, loopvarDtIr, reg1=indexReg, immediate = rangeStart)
         chunk += IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=indexReg, labelSymbol=loopvarSymbol)
         result += chunk
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
-        result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
-        val chunk2 = IRCodeChunk(null, null)
+        val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, step)
         chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
-        chunk2 += IRInstruction(Opcode.BNE, loopvarDtIr, reg1 = indexReg, immediate = rangeEndWrapped, labelSymbol = loopLabel)
+        chunk2 += IRInstruction(Opcode.BNE, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped, labelSymbol = loopLabel)
         result += chunk2
         return result
     }
