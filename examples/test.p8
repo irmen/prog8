@@ -2,77 +2,153 @@
 %zeropage basicsafe
 
 main {
-    sub start () {
-        ubyte[4] @shared array = 10 to 20 step 3
-        ubyte[4] @shared array2 = 20 downto 10 step -3
-        byte[7] @shared array3 = 10 downto -10 step -3
-
-        ubyte xx
-        byte bb
-
-        cx16.r1=0
-        for cx16.r0 in 0 to 10 {
-            cx16.r1++
-        }
-        txt.print_uw(cx16.r1)
-        txt.nl()
-        txt.nl()
-
-        for xx in array {
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
-        for xx in array2 {
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
-        for bb in array3 {
-            txt.print_b(bb)
-            txt.spc()
-        }
-        txt.nl()
-        txt.nl()
-
-
-        for xx in 10 to 20 step 3 {             ; TODO fix IR/VM code that wraps around instead of stopping at 19
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
-
-        for xx in 20 downto 10 step -3 {        ; TODO fix IR/VM code that wraps around instead of stopping at 11
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
-
-        for bb in 10 downto -10 step -3 {        ; TODO fix IR/VM code that wraps around instead of stopping at -8
-            txt.print_b(bb)
-            txt.spc()
-        }
-
-        txt.nl()
-        txt.nl()
-        ubyte ending = 20
-
-        for xx in 10 to ending step 3 {
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
-        ending =10
-        for xx in 20 downto ending step -3 {
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
-
-        byte endingb = -10
-        for bb in 10 downto endingb step -3 {
-            txt.print_b(bb)
-            txt.spc()
-        }
+    sub start() {
+        greater()
+        greater_signed()
+        less()
+        less_signed()
     }
+
+    sub value(ubyte arg) -> ubyte {
+        cx16.r0++
+        return arg
+    }
+
+    sub svalue(byte arg) -> byte {
+        cx16.r0++
+        return arg
+    }
+
+    sub greater () {
+        ubyte b1 = 10
+        ubyte b2 = 20
+        ubyte b3 = 10
+
+        txt.print("101010: ")
+        ubyte xx
+        xx = b2>10
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2>20
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2>b1
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b3>b1
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2>value(10)
+        txt.print_ub(xx)
+        txt.spc()
+        xx = b3>value(20)
+        txt.print_ub(xx)
+        txt.spc()
+
+        txt.nl()
+    }
+
+    sub greater_signed () {
+        byte b1 = -20
+        byte b2 = -10
+        byte b3 = -20
+
+        txt.print("101010: ")
+        ubyte xx
+        xx = b2 > -20
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2 > -10
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2>b1
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b3>b1
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2>svalue(-20)
+        txt.print_ub(xx)
+        txt.spc()
+        xx = b3>svalue(-10)
+        txt.print_ub(xx)
+        txt.spc()
+
+        txt.nl()
+    }
+
+    sub less () {
+        ubyte b1 = 20
+        ubyte b2 = 10
+        ubyte b3 = 20
+
+        txt.print("101010: ")
+        ubyte xx
+        xx = b2<20
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2<10
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2<b1
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b3<b1
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2<value(20)
+        txt.print_ub(xx)
+        txt.spc()
+        xx = b2<value(10)
+        txt.print_ub(xx)
+        txt.spc()
+
+        txt.nl()
+    }
+
+    sub less_signed () {
+        byte b1 = -10
+        byte b2 = -20
+        byte b3 = -10
+
+        txt.print("101010: ")
+        ubyte xx
+        xx = b2 < -10
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2 < -20
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2<b1
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b3<b1
+        txt.print_ub(xx)
+        txt.spc()
+
+        xx = b2<svalue(-10)
+        txt.print_ub(xx)
+        txt.spc()
+        xx = b3<svalue(-20)
+        txt.print_ub(xx)
+        txt.spc()
+
+        txt.nl()
+    }
+
 }

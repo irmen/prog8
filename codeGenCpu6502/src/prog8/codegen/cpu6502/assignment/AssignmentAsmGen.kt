@@ -1085,6 +1085,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
+    // checked OK:
     private fun byteLess(expr: PtBinaryExpression, signed: Boolean) {
         // note: this is the inverse of byteGreaterEqual
         when(expr.right) {
@@ -1145,8 +1146,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else
                     asmgen.out("""
                         cmp  P8ZP_SCRATCH_B1
-                        rol  a
-                        and  #1""")
+                        bcc  +
+                        beq  +
+                        lda  #1
+                        bne  ++
++                       lda  #0
++""")
             }
         }
     }
@@ -1155,6 +1160,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         // note: this is the inverse of byteGreater
         when(expr.right) {
             is PtNumber -> {
+                // TODO verify if this is correct code on all corner cases
                 val number = (expr.right as PtNumber).number.toInt()
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
                 if(signed)
@@ -1176,6 +1182,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         eor  #1""")
             }
             is PtIdentifier -> {
+                // TODO verify if this is correct code on all corner cases
                 val varname = (expr.right as PtIdentifier).name
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
                 if(signed)
@@ -1197,6 +1204,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         eor  #1""")
             }
             else -> {
+                // TODO verify if this is correct code on all corner cases
                 // note: left and right operands get reversed here to reduce code size
                 asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
                 if(signed)
@@ -1219,6 +1227,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
+    // checked OK:
     private fun byteGreater(expr: PtBinaryExpression, signed: Boolean) {
         // note: this is the inverse of byteLessEqual
         when(expr.right) {
@@ -1229,6 +1238,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("""
                         sec
                         sbc  #$number
+                        beq  +++
                         bvc  +
                         eor  #$80
 +                       bmi  +
@@ -1239,8 +1249,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else
                     asmgen.out("""
                         cmp  #$number
-                        lda  #0
-                        rol  a""")
+                        bcc  +
+                        beq  +
+                        lda  #1
+                        bne  ++
++                       lda  #0
++""")
             }
             is PtIdentifier -> {
                 val varname = (expr.right as PtIdentifier).name
@@ -1249,6 +1263,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("""
                         sec
                         sbc  $varname
+                        beq  +++
                         bvc  +
                         eor  #$80
 +                       bmi  +
@@ -1259,8 +1274,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else
                     asmgen.out("""
                         cmp  $varname
-                        lda  #0
-                        rol  a""")
+                        bcc  +
+                        beq  +
+                        lda  #1
+                        bne  ++
++                       lda  #0
++""")
             }
             else -> {
                 // note: left and right operands get reversed here to reduce code size
@@ -1290,6 +1309,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         // note: this is the inverse of byteLess
         when(expr.right) {
             is PtNumber -> {
+                // TODO verify if this is correct code on all corner cases
                 val number = (expr.right as PtNumber).number.toInt()
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
                 if(signed) {
@@ -1309,6 +1329,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         and  #1""")
             }
             is PtIdentifier -> {
+                // TODO verify if this is correct code on all corner cases
                 val varname = (expr.right as PtIdentifier).name
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
                 if(signed) {
@@ -1328,6 +1349,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         and  #1""")
             }
             else -> {
+                // TODO verify if this is correct code on all corner cases
                 // note: left and right operands get reversed here to reduce code size
                 asmgen.assignByteOperandsToAAndVar(expr.right, expr.left, "P8ZP_SCRATCH_B1")
                 if(signed)
