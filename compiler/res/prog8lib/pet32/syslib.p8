@@ -1,5 +1,6 @@
 ; Prog8 definitions for the Commodore PET
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
+; see: https://www.pagetable.com/?p=926  ,  http://www.zimmers.net/cbmpics/cbm/PETx/petmem.txt
 
 cbm {
     ; Commodore (CBM) common variables, vectors and kernal routines
@@ -27,6 +28,10 @@ romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; define an outp
 romsub $FFCC = CLRCHN() clobbers(A,X)                           ; restore default devices
 romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A              ; input a character (for keyboard, read a whole line from the screen) A=byte read.
 romsub $FFD2 = CHROUT(ubyte char @ A)                           ; output a character
+romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; check the STOP key (and some others in A)
+romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; get a character
+romsub $FFE7 = CLALL() clobbers(A,X)                            ; close all files
+romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 
 }
 
@@ -71,8 +76,6 @@ asmsub  cleanup_at_exit() {
         ; Soft-reset the system back to initial power-on Basic prompt.
         %asm {{
             sei
-            lda  #0
-            sta  $ff00      ; default bank 15
             jmp  (cbm.RESET_VEC)
         }}
     }
