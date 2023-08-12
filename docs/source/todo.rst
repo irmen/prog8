@@ -48,6 +48,7 @@ Libraries:
 
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
+- pet32 target: make syslib more complete (missing kernal routines)?
 - c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 
 

@@ -35,7 +35,7 @@ as ROM/Kernal subroutine definitions, memory location constants, and utility sub
 Many of these definitions overlap for the C64 and Commander X16 targets so it is still possible
 to write programs that work on both targets without modifications.
 
-This module is usually imported automatically and can provide definitions in the ``sys``, ``c64``, ``cx16``, ``c128``, ``atari`` blocks
+This module is usually imported automatically and can provide definitions in the ``sys``, ``cbm``, ``c64``, ``cx16``, ``c128``, ``atari`` blocks
 depending on the chosen compilation target. Read the `syslib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib>`_ for the correct compilation target to see exactly what is there.
 
 

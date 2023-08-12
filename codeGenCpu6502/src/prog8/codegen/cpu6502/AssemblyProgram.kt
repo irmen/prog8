@@ -22,7 +22,7 @@ internal class AssemblyProgram(
         val assemblerCommand: List<String>
 
         when (compTarget.name) {
-            in setOf("c64", "c128", "cx16") -> {
+            in setOf("c64", "c128", "cx16", "pet32") -> {
                 // CBM machines .prg generation.
 
                 // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)

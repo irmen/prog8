@@ -74,6 +74,8 @@ What does Prog8 provide?
 - "c64": Commodore-64  (6502 like CPU)
 - "c128": Commodore-128  (6502 like CPU - the Z80 cpu mode is not supported)
 - "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU)
+- "pet32": Commodore PET (experimental)
+- "atari": Atari 8 bit such as 800XL (experimental)
 - If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compiler target flag)
 
 

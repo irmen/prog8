@@ -52,6 +52,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             C64Target.NAME -> C64Target()
             C128Target.NAME -> C128Target()
             Cx16Target.NAME -> Cx16Target()
+            PETTarget.NAME -> PETTarget()
             AtariTarget.NAME -> AtariTarget()
             VMTarget.NAME -> VMTarget()
             else -> throw IllegalArgumentException("invalid compilation target")

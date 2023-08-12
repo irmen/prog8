@@ -1,4 +1,4 @@
-; Prog8 definitions for the Text I/O and Screen routines for the Commodore-128
+; Prog8 definitions for the Text I/O and Screen routines for the Commodore PET
 
 %import syslib
 %import conv
@@ -38,17 +38,11 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
     }}
 }
 
-asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
-	; ---- fill the character screen with the given fill character and character color.
-	;      (assumes screen and color matrix are at their default addresses)
+asmsub  fill_screen (ubyte char @ A) clobbers(A)  {
+	; ---- fill the character screen with the given fill character
 
 	%asm {{
-		pha
-		tya
-		jsr  clear_screencolors
-		pla
-		jsr  clear_screenchars
-		rts
+		jmp  clear_screenchars
         }}
 
 }
@@ -68,59 +62,19 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
         }}
 }
 
-asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
-	; ---- clear the character screen colors with the given color (leaves characters).
-	;      (assumes color matrix is at the default address)
-	%asm {{
-		ldy  #250
--		sta  cbm.Colors+250*0-1,y
-		sta  cbm.Colors+250*1-1,y
-		sta  cbm.Colors+250*2-1,y
-		sta  cbm.Colors+250*3-1,y
-		dey
-		bne  -
-		rts
-        }}
-}
-
-sub color (ubyte txtcol) {
-    cbm.COLOR = txtcol
-}
-
 sub lowercase() {
-    c64.VMCSB |= 2
-    c128.VM1 |= 2
+    txt.chrout(14)
 }
 
 sub uppercase() {
-    c64.VMCSB &= ~2
-    c128.VM1 &= ~2
+    txt.chrout(142)
 }
 
-asmsub  scroll_left  (bool alsocolors @ Pc) clobbers(A, X, Y)  {
+asmsub  scroll_left  () clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
-	;      Carry flag determines if screen color data must be scrolled too
 
 	%asm {{
-		bcc _scroll_screen
-
-+               ; scroll the screen and the color memory
-		ldx  #0
-		ldy  #38
--
-        .for row=0, row<=24, row+=1
-            lda  cbm.Screen + 40*row + 1,x
-            sta  cbm.Screen + 40*row + 0,x
-            lda  cbm.Colors + 40*row + 1,x
-            sta  cbm.Colors + 40*row + 0,x
-        .next
-		inx
-		dey
-		bpl  -
-		rts
-
-_scroll_screen  ; scroll only the screen memory
 		ldx  #0
 		ldy  #38
 -
@@ -136,27 +90,10 @@ _scroll_screen  ; scroll only the screen memory
 	}}
 }
 
-asmsub  scroll_right  (bool alsocolors @ Pc) clobbers(A,X)  {
+asmsub  scroll_right  () clobbers(A,X)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
-	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		bcc  _scroll_screen
-
-+               ; scroll the screen and the color memory
-		ldx  #38
--
-        .for row=0, row<=24, row+=1
-            lda  cbm.Screen + 40*row + 0,x
-            sta  cbm.Screen + 40*row + 1,x
-            lda  cbm.Colors + 40*row + 0,x
-            sta  cbm.Colors + 40*row + 1,x
-        .next
-		dex
-		bpl  -
-		rts
-
-_scroll_screen  ; scroll only the screen memory
 		ldx  #38
 -
         .for row=0, row<=24, row+=1
@@ -170,27 +107,10 @@ _scroll_screen  ; scroll only the screen memory
 	}}
 }
 
-asmsub  scroll_up  (bool alsocolors @ Pc) clobbers(A,X)  {
+asmsub  scroll_up  () clobbers(A,X)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
-	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		bcc  _scroll_screen
-
-+               ; scroll the screen and the color memory
-		ldx #39
--
-        .for row=1, row<=24, row+=1
-            lda  cbm.Screen + 40*row,x
-            sta  cbm.Screen + 40*(row-1),x
-            lda  cbm.Colors + 40*row,x
-            sta  cbm.Colors + 40*(row-1),x
-        .next
-		dex
-		bpl  -
-		rts
-
-_scroll_screen  ; scroll only the screen memory
 		ldx #39
 -
         .for row=1, row<=24, row+=1
@@ -204,27 +124,10 @@ _scroll_screen  ; scroll only the screen memory
 	}}
 }
 
-asmsub  scroll_down  (bool alsocolors @ Pc) clobbers(A,X)  {
+asmsub  scroll_down  () clobbers(A,X)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
-	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
-		bcc  _scroll_screen
-
-+               ; scroll the screen and the color memory
-		ldx #39
--
-        .for row=23, row>=0, row-=1
-            lda  cbm.Colors + 40*row,x
-            sta  cbm.Colors + 40*(row+1),x
-            lda  cbm.Screen + 40*row,x
-            sta  cbm.Screen + 40*(row+1),x
-        .next
-		dex
-		bpl  -
-		rts
-
-_scroll_screen  ; scroll only the screen memory
 		ldx #39
 -
         .for row=23, row>=0, row-=1
@@ -466,7 +369,7 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y) 
 _mod		sta  $ffff		; modified
 		rts
 
-_screenrows	.word  $0400 + range(0, 1000, 40)
+_screenrows	.word  $8000 + range(0, 1000, 40)
 	}}
 }
 
@@ -490,71 +393,22 @@ _mod		lda  $ffff		; modified
 	}}
 }
 
-asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A, Y)  {
-	; ---- set the color in A on the screen matrix at the given position
+sub  setcc  (ubyte column, ubyte row, ubyte char)  {
+	; ---- set char at the given position on the screen
 	%asm {{
-		pha
-		tya
-		asl  a
-		tay
-		lda  _colorrows+1,y
-		sta  _mod+2
-		txa
-		clc
-		adc  _colorrows,y
-		sta  _mod+1
-		bcc  +
-		inc  _mod+2
-+		pla
-_mod		sta  $ffff		; modified
-		rts
-
-_colorrows	.word  $d800 + range(0, 1000, 40)
-	}}
-}
-
-asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
-	; ---- get the color in the screen color matrix at the given location
-	%asm  {{
-		pha
-		tya
-		asl  a
-		tay
-		lda  setclr._colorrows+1,y
-		sta  _mod+2
-		pla
-		clc
-		adc  setclr._colorrows,y
-		sta  _mod+1
-		bcc  _mod
-		inc  _mod+2
-_mod		lda  $ffff		; modified
-		rts
-	}}
-}
-
-sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
-	; ---- set char+color at the given position on the screen
-	%asm {{
-		lda  row
+  		lda  row
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
 		sta  _charmod+2
-		adc  #$d4
-		sta  _colormod+2
 		lda  setchr._screenrows,y
 		clc
 		adc  column
 		sta  _charmod+1
-		sta  _colormod+1
 		bcc  +
 		inc  _charmod+2
-		inc  _colormod+2
 +		lda  char
 _charmod	sta  $ffff		; modified
-		lda  charcolor
-_colormod	sta  $ffff		; modified
 		rts
 	}}
 }
@@ -569,8 +423,7 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 asmsub width() clobbers(X,Y) -> ubyte @A {
     ; -- returns the text screen width (number of columns)
     %asm {{
-        jsr  cbm.SCREEN
-        txa
+        lda  $d5
         rts
     }}
 }
@@ -578,8 +431,7 @@ asmsub width() clobbers(X,Y) -> ubyte @A {
 asmsub height() clobbers(X, Y) -> ubyte @A {
     ; -- returns the text screen height (number of rows)
     %asm {{
-        jsr  cbm.SCREEN
-        tya
+        lda  #25
         rts
     }}
 }
