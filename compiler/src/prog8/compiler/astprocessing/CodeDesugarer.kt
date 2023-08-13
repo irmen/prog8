@@ -200,6 +200,15 @@ _after:
             }
         }
 
+        if(expr.operator=="*" && expr.inferType(program).isInteger && expr.left isSameAs expr.right) {
+            // replace squaring with call to builtin function to do this in a more optimized way
+            val function = if(expr.left.inferType(program).isBytes) "prog8_lib_square_byte" else "prog8_lib_square_word"
+            val squareCall = BuiltinFunctionCall(
+                IdentifierReference(listOf(function), expr.position),
+                mutableListOf(expr.left.copy()), expr.position)
+            return listOf(IAstModification.ReplaceNode(expr, squareCall, parent))
+        }
+
         return noModifications
     }
 }

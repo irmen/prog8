@@ -814,9 +814,9 @@ asl_word_AY     .proc
 
 
 square          .proc
-; -- calculate square root of signed word in AY, result in AY
-; routine by Lee Davsion, source: http://6502.org/source/integers/square.htm
-; using this routine is about twice as fast as doing a regular multiplication.
+; -- calculate square of signed word (actually -255..255) in AY, result in AY
+; routine by Lee Davison, source: http://6502.org/source/integers/square.htm
+; using this routine is a lot faster as doing a regular multiplication (for words)
 ;
 ; Calculates the 16 bit unsigned integer square of the signed 16 bit integer in
 ; Numberl/Numberh.  The result is always in the range 0 to 65025 and is held in

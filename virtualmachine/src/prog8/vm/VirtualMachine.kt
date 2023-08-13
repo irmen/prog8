@@ -247,6 +247,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.CMP -> InsCMP(ins)
             Opcode.CMPI -> InsCMPI(ins)
             Opcode.SQRT -> InsSQRT(ins)
+            Opcode.SQUARE -> InsSQUARE(ins)
             Opcode.EXT -> InsEXT(ins)
             Opcode.EXTS -> InsEXTS(ins)
             Opcode.ANDR -> InsANDR(ins)
@@ -1243,6 +1244,24 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
             IRDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, sqrt(registers.getFloat(i.fpReg2!!)))
+        }
+        nextPc()
+    }
+
+    private fun InsSQUARE(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                val value = registers.getUB(i.reg2!!).toDouble().toInt()
+                registers.setUB(i.reg1!!, (value*value).toUByte())
+            }
+            IRDataType.WORD -> {
+                val value = registers.getUW(i.reg2!!).toDouble().toInt()
+                registers.setUW(i.reg1!!, (value*value).toUShort())
+            }
+            IRDataType.FLOAT -> {
+                val value = registers.getFloat(i.fpReg2!!)
+                registers.setFloat(i.fpReg1!!, value*value)
+            }
         }
         nextPc()
     }

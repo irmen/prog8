@@ -45,7 +45,25 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "rol2" -> funcRolRor(Opcode.ROL, call)
             "ror2" -> funcRolRor(Opcode.ROR, call)
             "prog8_lib_stringcompare" -> funcStringCompare(call)
+            "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
+            "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
+        }
+    }
+
+    private fun funcSquare(call: PtBuiltinFunctionCall, resultType: IRDataType): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val valueTr = exprGen.translateExpression(call.args[0])
+        addToResult(result, valueTr, valueTr.resultReg, valueTr.resultFpReg)
+        return if(resultType==IRDataType.FLOAT) {
+            val resultFpReg = codeGen.registers.nextFreeFloat()
+            addInstr(result, IRInstruction(Opcode.SQUARE, resultType, fpReg1 = resultFpReg, fpReg2 = valueTr.resultFpReg), null)
+            ExpressionCodeResult(result, resultType, -1, resultFpReg)
+        }
+        else {
+            val resultReg = codeGen.registers.nextFree()
+            addInstr(result, IRInstruction(Opcode.SQUARE, resultType, reg1 = resultReg, reg2 = valueTr.resultReg), null)
+            ExpressionCodeResult(result, resultType, resultReg, -1)
         }
     }
 

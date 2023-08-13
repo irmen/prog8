@@ -184,29 +184,32 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
         val leftDt = left.inferType(program)
         val rightDt = right.inferType(program)
 
-//        fun dynamicBooleanType(): InferredTypes.InferredType {
-//            // as a special case, an expression yielding a boolean result, adapts the result
-//            // type to what is required (byte or word), to avoid useless type casting
-//            return when (parent) {
-//                is TypecastExpression -> InferredTypes.InferredType.known((parent as TypecastExpression).type)
-//                is Assignment -> (parent as Assignment).target.inferType(program)
-//                else -> InferredTypes.InferredType.known(DataType.BOOL)        // or UBYTE?
-//            }
-//        }
-
         return when (operator) {
             "+", "-", "*", "%", "/" -> {
                 if (!leftDt.isKnown || !rightDt.isKnown)
                     InferredTypes.unknown()
                 else {
                     try {
-                        InferredTypes.knownFor(
+                        val dt = InferredTypes.knownFor(
                             commonDatatype(
                                 leftDt.getOr(DataType.BYTE),
                                 rightDt.getOr(DataType.BYTE),
                                 null, null
                             ).first
                         )
+                        if(operator=="*") {
+                            // if both operands are the same, X*X is always positive.
+                            if(left isSameAs right) {
+                                if(dt.istype(DataType.BYTE))
+                                    InferredTypes.knownFor(DataType.UBYTE)
+                                else if(dt.istype(DataType.WORD))
+                                    InferredTypes.knownFor(DataType.UWORD)
+                                else
+                                    dt
+                            } else
+                                dt
+                        } else
+                            dt
                     } catch (x: FatalAstException) {
                         InferredTypes.unknown()
                     }

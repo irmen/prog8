@@ -72,10 +72,29 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall)
             "prog8_lib_stringcompare" -> funcStringCompare(fcall)
+            "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE)
+            "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
+    }
+
+    private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataType) {
+        // square of word value is faster with dedicated routine, square of byte just use the regular multiplication routine.
+        when (resultType) {
+            DataType.UBYTE -> {
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
+                asmgen.out("  tay  |  jsr  math.multiply_bytes")
+            }
+            DataType.UWORD -> {
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                asmgen.out("  jsr  math.square")
+            }
+            else -> {
+                throw AssemblyError("optimized square only for integer types")
+            }
+        }
     }
 
     private fun funcDivmod(fcall: PtBuiltinFunctionCall) {

@@ -5,7 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8.compiler.astprocessing.IntermediateAstMaker
 import prog8tests.helpers.compileText
@@ -26,16 +26,6 @@ class TestIntermediateAst: FunSpec({
             }
         """
         val target = C64Target()
-        val options = CompilationOptions(
-            OutputType.RAW,
-            CbmPrgLauncherType.NONE,
-            ZeropageType.DONTUSE,
-            emptyList(),
-            floats = false,
-            noSysInit = true,
-            compTarget = target,
-            loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
-        )
         val result = compileText(target, false, text, writeAssembly = false)!!
         val ast = IntermediateAstMaker(result.compilerAst).transform()
         ast.name shouldBe result.compilerAst.name
