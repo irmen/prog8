@@ -602,7 +602,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             asmgen.out("  pha")
             if(dt in ByteDatatypes) {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
-                asmgen.out("  ply")
+                asmgen.restoreRegisterStack(CpuRegister.Y, true)
                 if(expr.operator==">>")
                     if(signed)
                         asmgen.out("  jsr  math.lsr_byte_A")
@@ -614,7 +614,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return true
             } else {
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
-                asmgen.out("  plx")
+                asmgen.restoreRegisterStack(CpuRegister.X, true)
                 if(expr.operator==">>")
                     if(signed)
                         asmgen.out("  jsr  math.lsr_word_AY")
