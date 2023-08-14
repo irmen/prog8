@@ -14,7 +14,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'c64': the Commodore 64
 - 'cx16': the `Commander X16 <https://www.commanderx16.com/>`_
 - 'c128': the Commodore 128  (*limited support*)
-- 'pet32': the Commodore PET 4032  (*experimental support*)
+- 'pet32': the Commodore PET 4032  (*limited support*)
 - 'atari': the Atari 800 XL  (*experimental support*)
 - 'virtual': a builtin virtual machine
 

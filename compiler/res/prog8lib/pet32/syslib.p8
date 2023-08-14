@@ -68,11 +68,8 @@ asmsub RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y {
 asmsub RDTIM16() clobbers(X) -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
     %asm {{
-        jsr  cbm.RDTIM
-        pha
-        txa
-        tay
-        pla
+        lda  TIME_LO
+        ldy  TIME_MID
         rts
     }}
 }
@@ -127,7 +124,7 @@ asmsub  cleanup_at_exit() {
 
     asmsub waitvsync() clobbers(A) {
         ; --- busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
-        ;     TODO: on PET this now simply waits until the next jiffy clock update
+        ;     Note: on PET this simply waits until the next jiffy clock update, I don't know if a true vsync is possible there
         %asm {{
             lda  #1
             ldy  #0

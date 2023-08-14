@@ -1,7 +1,8 @@
 TODO
 ====
 
-- check mult and sqrt routines with the benchmarked ones on https://github.com/TobyLobster/sqrt_test / https://github.com/TobyLobster/multiply_test
+- don't allow txt.print('@')  if possible, don't cast up a byte to str
+- check mult routines with the benchmarked ones on https://github.com/TobyLobster/multiply_test
 - is math.square still the fastest after this? (now used for word*word)
 - [on branch:] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction

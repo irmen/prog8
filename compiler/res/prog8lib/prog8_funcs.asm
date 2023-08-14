@@ -127,33 +127,42 @@ _possibly_zero	cmp  #0
 
 
 func_sqrt16_into_A	.proc
-		; integer square root from  http://6502org.wikidot.com/software-math-sqrt
-		sta  P8ZP_SCRATCH_W1
-		sty  P8ZP_SCRATCH_W1+1
-		lda  #0
-		sta  P8ZP_SCRATCH_B1
-		sta  P8ZP_SCRATCH_REG
-		ldx  #8
--		sec
-		lda  P8ZP_SCRATCH_W1+1
-		sbc  #$40
-		tay
-		lda  P8ZP_SCRATCH_REG
-		sbc  P8ZP_SCRATCH_B1
-		bcc  +
-		sty  P8ZP_SCRATCH_W1+1
-		sta  P8ZP_SCRATCH_REG
-+		rol  P8ZP_SCRATCH_B1
-		asl  P8ZP_SCRATCH_W1
-		rol  P8ZP_SCRATCH_W1+1
-		rol  P8ZP_SCRATCH_REG
-		asl  P8ZP_SCRATCH_W1
-		rol  P8ZP_SCRATCH_W1+1
-		rol  P8ZP_SCRATCH_REG
-		dex
-		bne  -
-		lda  P8ZP_SCRATCH_B1
-		rts
+		; integer square root
+		; http://6502org.wikidot.com/software-math-sqrt
+		; https://github.com/TobyLobster/sqrt_test/blob/main/sqrt/sqrt7.a
+		; Tweaked by TobyLobster and 0xC0DE to be smaller and faster
+_numl = P8ZP_SCRATCH_W1
+_numh = P8ZP_SCRATCH_W1+1
+_loop_counter = P8ZP_SCRATCH_REG
+_root = P8ZP_SCRATCH_B1
+            sta  _numl
+            sty  _numh
+            ldx  #$ff
+            stx  _loop_counter
+            inx
+            stx  _root
+            sec
+_loop       lda  _numh
+            sbc  #$40
+            tay
+            txa
+            sbc  _root
+            bcc  +
+            sty  _numh
+            bcs  ++
++           txa
++           rol  _root
+            asl  _numl
+            rol  _numh
+            rol  a
+            asl  _numl
+            rol  _numh
+            rol  a
+            tax
+            lsr  _loop_counter
+            bne  _loop
+            lda  _root
+            rts
 		.pend
 
 

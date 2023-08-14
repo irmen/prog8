@@ -4,7 +4,8 @@
 ;  some more interesting routines can be found here:
 ;	http://6502org.wikidot.com/software-math
 ;	http://codebase64.org/doku.php?id=base:6502_6510_maths
-;
+;       https://github.com/TobyLobster/multiply_test
+;       https://github.com/TobyLobster/sqrt_test
 
 
 multiply_bytes	.proc
