@@ -466,7 +466,7 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y) 
 _mod		sta  $ffff		; modified
 		rts
 
-_screenrows	.word  $0400 + range(0, 1000, 40)
+_screenrows	.word  cbm.Screen + range(0, 1000, 40)
 	}}
 }
 

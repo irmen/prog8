@@ -27,20 +27,9 @@ sub spc() {
     txt.chrout(' ')
 }
 
-asmsub column(ubyte col @A) clobbers(A, X, Y) {
-    ; ---- set the cursor on the given column (starting with 0) on the current line
-    %asm {{
-        sec
-        jsr  cbm.PLOT
-        tay
-        clc
-        jmp  cbm.PLOT
-    }}
-}
 
-asmsub  fill_screen (ubyte char @ A) clobbers(A)  {
-	; ---- fill the character screen with the given fill character
-
+asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
+	; ---- fill the character screen with the given fill character. color is ignored on PET
 	%asm {{
 		jmp  clear_screenchars
         }}
@@ -48,7 +37,7 @@ asmsub  fill_screen (ubyte char @ A) clobbers(A)  {
 }
 
 asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
-	; ---- clear the character screen with the given fill character (leaves colors)
+	; ---- clear the character screen with the given fill character
 	;      (assumes screen matrix is at the default address)
 	%asm {{
 		ldy  #250
@@ -61,6 +50,15 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 		rts
         }}
 }
+
+sub  clear_screencolors (ubyte color)  {
+    ; --- dummy function on PET
+}
+
+sub color (ubyte txtcol) {
+    ; --- dummy function on PET
+}
+
 
 sub lowercase() {
     txt.chrout(14)
@@ -369,7 +367,7 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y) 
 _mod		sta  $ffff		; modified
 		rts
 
-_screenrows	.word  $8000 + range(0, 1000, 40)
+_screenrows	.word  cbm.Screen + range(0, 1000, 40)
 	}}
 }
 
@@ -393,8 +391,13 @@ _mod		lda  $ffff		; modified
 	}}
 }
 
-sub  setcc  (ubyte column, ubyte row, ubyte char)  {
-	; ---- set char at the given position on the screen
+sub  setclr  (ubyte col, ubyte row, ubyte color)  {
+    ; --- dummy function on PET
+}
+
+
+sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
+	; ---- set char at the given position on the screen. charcolor is ignored on PET
 	%asm {{
   		lda  row
 		asl  a
@@ -415,8 +418,20 @@ _charmod	sta  $ffff		; modified
 
 asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 	%asm  {{
-		clc
-		jmp  cbm.PLOT
+	    jsr  home
+	    cpy  #0
+	    beq  +
+-	    lda  #17
+	    jsr  chrout
+	    dey
+	    bne  -
++	    cpx  #0
+	    beq  +
+-       lda  #29
+        jsr  chrout
+        dex
+        bne  -
++		rts
 	}}
 }
 
@@ -424,6 +439,8 @@ asmsub width() clobbers(X,Y) -> ubyte @A {
     ; -- returns the text screen width (number of columns)
     %asm {{
         lda  $d5
+        clc
+        adc  #1
         rts
     }}
 }
