@@ -428,12 +428,12 @@ internal class ProgramAndVarsGen(
                 asmgen.out("""
                     lda  #<${name}_init_value
                     ldy  #>${name}_init_value
-                    sta  cx16.r0L
-                    sty  cx16.r0H
+                    sta  cx16.r0
+                    sty  cx16.r0+1
                     lda  #<${name}
                     ldy  #>${name}
-                    sta  cx16.r1L
-                    sty  cx16.r1H
+                    sta  cx16.r1
+                    sty  cx16.r1+1
                     lda  #<$size
                     ldy  #>$size
                     jsr  sys.memcopy""")

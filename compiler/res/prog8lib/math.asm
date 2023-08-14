@@ -56,37 +56,124 @@ _multiplier      = P8ZP_SCRATCH_REG
 
 multiply_words	.proc
 	; -- multiply two 16-bit words into a 32-bit result  (signed and unsigned)
-	;      input: A/Y = first 16-bit number, P8ZP_SCRATCH_W1 in ZP = second 16-bit number
-	;      output: multiply_words.result  4-bytes/32-bits product, LSB order (low-to-high)  low 16 bits also in AY.
+	;      input: A/Y = first 16-bit number, cx16.R0 = second 16-bit number
+	;      output: multiply_words.result == cx16.R0:R1, 4-bytes/32-bits product, LSB order (low-to-high)  low 16 bits also in AY.
 
-		sta  P8ZP_SCRATCH_W2
-		sty  P8ZP_SCRATCH_W2+1
+; mult62.a
+; based on Dr Jefyll, http://forum.6502.org/viewtopic.php?f=9&t=689&start=0#p19958
+; - adjusted to use fixed zero page addresses
+; - removed 'decrement to avoid clc' as this is slower on average
+; - rearranged memory use to remove final memory copy and give LSB first order to result
+; - removed temp zp storage bytes
+; - unrolled the outer loop
+; - unrolled the two inner loops once
+;
+; 16 bit x 16 bit unsigned multiply, 32 bit result
+; Average cycles:
+; 93 bytes
 
-mult16		lda  #0
-		sta  result+2	; clear upper bits of product
-		sta  result+3
-		ldx  #16			; for all 16 bits...
--	 	lsr  P8ZP_SCRATCH_W1+1	; divide multiplier by 2
-		ror  P8ZP_SCRATCH_W1
-		bcc  +
-		lda  result+2	; get upper half of product and add multiplicand
-		clc
-		adc  P8ZP_SCRATCH_W2
-		sta  result+2
-		lda  result+3
-		adc  P8ZP_SCRATCH_W2+1
-+ 		ror  a				; rotate partial product
-		sta  result+3
-		ror  result+2
-		ror  result+1
-		ror  result
-		dex
-		bne  -
-		lda  result
-		ldy  result+1
-		rts
+_multiplicand    = P8ZP_SCRATCH_W1   ; 2 bytes
+_multiplier      = cx16.r0   ; 2 bytes
+result           = cx16.r0   ; 4 bytes   (note: shares memory with multiplier)  so is r0 and ALSO r1.
 
-result		.byte  0,0,0,0
+; 16 bit x 16 bit unsigned multiply, 32 bit result
+;
+; On Entry:
+;   (multiplier, multiplier+1): two byte multiplier, four bytes needed for result
+;   (multiplicand, multiplicand+1): two byte multiplicand
+; On Exit:
+;   (result, result+1, result+2, result+3): product
+
+    sta  _multiplicand
+    sty  _multiplicand+1
+
+    lda  #0              ;
+    sta  result+2        ; 16 bits of zero in A, result+2
+                        ;  Note:    First 8 shifts are  A -> result+2 -> result
+                        ;           Final 8 shifts are  A -> result+2 -> result+1
+
+    ; --- 1st byte ---
+    ldy  #4              ; count for inner loop
+    lsr  result
+
+    ; inner loop (8 times)
+_inner_loop
+    ; first time
+    bcc +
+    tax                 ; retain A
+    lda  result+2
+    clc
+    adc  _multiplicand
+    sta  result+2
+    txa                 ; recall A
+    adc  _multiplicand+1
+
++
+    ror  a                ; shift
+    ror  result+2
+    ror  result
+
+    ; second time
+    bcc +
+    tax                 ; retain A
+    lda  result+2
+    clc
+    adc  _multiplicand
+    sta  result+2
+    txa                 ; recall A
+    adc  _multiplicand+1
+
++
+    ror  a                 ; shift
+    ror  result+2
+    ror  result
+
+    dey
+    bne  _inner_loop      ; go back for 1 more shift?
+
+    ; --- 2nd byte ---
+    ldy  #4              ; count for inner loop
+    lsr  result+1
+
+    ; inner loop (8 times)
+_inner_loop2
+    ; first time
+    bcc  +
+    tax                 ; retain A
+    lda  result+2
+    clc
+    adc  _multiplicand
+    sta  result+2
+    txa                 ; recall A
+    adc  _multiplicand+1
+
++
+    ror  a                ; shift
+    ror  result+2
+    ror  result+1
+
+    ; second time
+    bcc  +
+    tax                 ; retain A
+    lda  result+2
+    clc
+    adc  _multiplicand
+    sta  result+2
+    txa                 ; recall A
+    adc  _multiplicand+1
+
++
+    ror  a                ; shift
+    ror  result+2
+    ror  result+1
+    dey
+    bne  _inner_loop2     ; go back for 1 more shift?
+
+    sta  result+3        ; ms byte of hi-word of result
+
+    lda  result
+    ldy  result+1
+    rts
 		.pend
 
 
