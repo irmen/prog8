@@ -10,37 +10,47 @@
 
 multiply_bytes	.proc
 	; -- multiply 2 bytes A and Y, result as byte in A  (signed or unsigned)
-		sta  P8ZP_SCRATCH_B1         ; num1
-		sty  P8ZP_SCRATCH_REG        ; num2
-		lda  #0
-		beq  _enterloop
-_doAdd		clc
-		adc  P8ZP_SCRATCH_B1
-_loop		asl  P8ZP_SCRATCH_B1
-_enterloop	lsr  P8ZP_SCRATCH_REG
-		bcs  _doAdd
-		bne  _loop
-		rts
-		.pend
+	; https://github.com/TobyLobster/multiply_test/blob/main/tests/mult29.a
 
+_multiplicand    = P8ZP_SCRATCH_B1
+_multiplier      = P8ZP_SCRATCH_REG
 
-multiply_bytes_into_word	.proc
-	; -- multiply 2 bytes A and Y, result as word in A/Y (unsigned)
-		sta  P8ZP_SCRATCH_B1
-		sty  P8ZP_SCRATCH_REG
-		lda  #0
-		ldx  #8
-		lsr  P8ZP_SCRATCH_B1
--		bcc  +
-		clc
-		adc  P8ZP_SCRATCH_REG
-+		ror  a
-		ror  P8ZP_SCRATCH_B1
-		dex
-		bne  -
-		tay
-		lda  P8ZP_SCRATCH_B1
-		rts
+    sty  _multiplicand
+    lsr  a
+    sta  _multiplier
+    lda  #0
+    ldx  #2
+-
+    bcc  +
+    clc
+    adc  _multiplicand
++
+    ror  a
+    ror  _multiplier
+    bcc  +
+    clc
+    adc  _multiplicand
++
+    ror  a
+    ror  _multiplier
+
+    bcc  +
+    clc
+    adc  _multiplicand
++
+    ror  a
+    ror  _multiplier
+    bcc  +
+    clc
+    adc  _multiplicand
++
+    ror  a
+    ror  _multiplier
+    dex
+    bne  -
+    ; tay       ; if you want 16 bits result in AY, enable this again
+    lda  _multiplier
+    rts
 		.pend
 
 
