@@ -351,5 +351,20 @@ main
 
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
+
+    test("char as str param is error") {
+        val src = """
+main {
+    sub start() {
+        print('@')
+    }
+
+    sub print(str message) {
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.single() shouldContain  "cannot use byte value"
+    }
 })
 

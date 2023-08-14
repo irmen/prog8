@@ -954,7 +954,15 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override fun copy() = IdentifierReference(nameInSource, position)
     override fun constValue(program: Program): NumericLiteral? {
-        val node = definingScope.lookup(nameInSource) ?: throw UndefinedSymbolError(this)
+        val node = definingScope.lookup(nameInSource)
+        if(node==null) {
+            // maybe not a statement but perhaps a subroutine parameter?
+            (definingScope as? Subroutine)?.let { sub ->
+                if(sub.parameters.any { it.name==nameInSource.last() })
+                    return null
+            }
+            throw UndefinedSymbolError(this)
+        }
         val vardecl = node as? VarDecl
         if(vardecl==null) {
             return null

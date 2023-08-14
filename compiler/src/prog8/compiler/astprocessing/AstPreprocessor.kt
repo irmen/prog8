@@ -1,9 +1,12 @@
 package prog8.compiler.astprocessing
 
+import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
+import prog8.ast.findParentNode
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -200,5 +203,43 @@ class AstPreprocessor(val program: Program,
         }
 
         return noModifications
+    }
+
+    override fun after(bfc: BuiltinFunctionCall, parent: Node): Iterable<IAstModification> {
+        val stmtOfExpression = findParentNode<Statement>(bfc)
+            ?: throw FatalAstException("cannot determine statement scope of function call expression at ${bfc.position}")
+        checkStringParam(bfc as IFunctionCall, stmtOfExpression)
+        return noModifications
+    }
+
+    override fun after(bfcs: BuiltinFunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        checkStringParam(bfcs as IFunctionCall, bfcs)
+        return noModifications
+    }
+
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+        val stmtOfExpression = findParentNode<Statement>(functionCallExpr)
+            ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")
+
+        checkStringParam(functionCallExpr as IFunctionCall, stmtOfExpression)
+        return noModifications
+    }
+
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        checkStringParam(functionCallStatement as IFunctionCall, functionCallStatement)
+        return noModifications
+    }
+
+    private fun checkStringParam(call: IFunctionCall, stmt: Statement) {
+        val targetStatement = call.target.checkFunctionOrLabelExists(program, stmt, errors)
+        if(targetStatement!=null) {
+            if(targetStatement is Subroutine) {
+                for(arg in call.args.zip(targetStatement.parameters)) {
+                    if(arg.first.inferType(program).isBytes && arg.second.type==DataType.STR) {
+                        errors.err("cannot use byte value for string parameter", arg.first.position)
+                    }
+                }
+            }
+        }
     }
 }

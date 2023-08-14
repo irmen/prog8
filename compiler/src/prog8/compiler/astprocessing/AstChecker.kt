@@ -220,7 +220,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(jump: Jump) {
         val ident = jump.identifier
         if(ident!=null) {
-            val targetStatement = checkFunctionOrLabelExists(ident, jump)
+            val targetStatement = ident.checkFunctionOrLabelExists(program, jump, errors)
             if(targetStatement!=null) {
                 if(targetStatement is BuiltinFunctionPlaceholder)
                     errors.err("can't jump to a builtin function", jump.position)
@@ -1068,7 +1068,7 @@ internal class AstChecker(private val program: Program,
         val stmtOfExpression = findParentNode<Statement>(functionCallExpr)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")
 
-        val targetStatement = checkFunctionOrLabelExists(functionCallExpr.target, stmtOfExpression)
+        val targetStatement = functionCallExpr.target.checkFunctionOrLabelExists(program, stmtOfExpression, errors)
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCallExpr.args, functionCallExpr.position)
 
@@ -1120,7 +1120,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
-        val targetStatement = checkFunctionOrLabelExists(functionCallStatement.target, functionCallStatement)
+        val targetStatement = functionCallStatement.target.checkFunctionOrLabelExists(program, functionCallStatement, errors)
         if(targetStatement!=null) {
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
             checkUnusedReturnValues(functionCallStatement, targetStatement, errors)
@@ -1419,25 +1419,6 @@ internal class AstChecker(private val program: Program,
     override fun visit(inlineAssembly: InlineAssembly) {
         if(inlineAssembly.isIR && compilerOptions.compTarget.name != VMTarget.NAME)
             errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
-    }
-
-    private fun checkFunctionOrLabelExists(target: IdentifierReference, statement: Statement): Statement? {
-        when (val targetStatement = target.targetStatement(program)) {
-            is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement
-            is VarDecl -> {
-                if(statement is Jump) {
-                    if (targetStatement.datatype == DataType.UWORD)
-                        return targetStatement
-                    else
-                        errors.err("wrong address variable datatype, expected uword", target.position)
-                }
-                else
-                    errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", target.position)
-            }
-            null -> errors.undefined(target.nameInSource, target.position)
-            else -> errors.err("cannot call that: ${target.nameInSource.joinToString(".")}", target.position)
-        }
-        return null
     }
 
     private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteral) : Boolean {

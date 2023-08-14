@@ -5,10 +5,7 @@ import prog8.ast.Program
 import prog8.ast.expressions.CharLiteral
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.Directive
-import prog8.ast.statements.InlineAssembly
-import prog8.ast.statements.Subroutine
-import prog8.ast.statements.VarDeclOrigin
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
@@ -151,4 +148,25 @@ internal fun Subroutine.hasRtsInAsm(): Boolean {
         .asSequence()
         .filterIsInstance<InlineAssembly>()
         .any { it.hasReturnOrRts() }
+}
+
+internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, statement: Statement, errors: IErrorReporter): Statement? {
+    when (val targetStatement = this.targetStatement(program)) {
+        is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement
+        is VarDecl -> {
+            if(statement is Jump) {
+                if (targetStatement.datatype == DataType.UWORD)
+                    return targetStatement
+                else
+                    errors.err("wrong address variable datatype, expected uword", this.position)
+            }
+            else
+                errors.err("cannot call that: ${this.nameInSource.joinToString(".")}", this.position)
+        }
+        null -> {
+            errors.undefined(this.nameInSource, this.position)
+        }
+        else -> errors.err("cannot call that: ${this.nameInSource.joinToString(".")}", this.position)
+    }
+    return null
 }
