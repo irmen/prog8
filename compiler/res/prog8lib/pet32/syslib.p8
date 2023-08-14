@@ -33,6 +33,51 @@ romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; get a characte
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; close all files
 romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 
+asmsub STOP2() clobbers(X) -> ubyte @A  {
+    ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
+    %asm {{
+        jsr  cbm.STOP
+        beq  +
+        lda  #0
+        rts
++       lda  #1
+        rts
+    }}
+}
+
+asmsub SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y) {
+    ; PET stub to set the software clock
+    %asm {{
+        sty  TIME_HI
+        stx  TIME_MID
+        sta  TIME_LO
+        rts
+    }}
+}
+
+asmsub RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y {
+    ; PET stub to read the software clock (A=lo,X=mid,Y=high)
+    %asm {{
+        ldy  TIME_HI
+        ldx  TIME_MID
+        lda  TIME_LO
+        rts
+    }}
+}
+
+asmsub RDTIM16() clobbers(X) -> uword @AY {
+    ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience
+    %asm {{
+        jsr  cbm.RDTIM
+        pha
+        txa
+        tay
+        pla
+        rts
+    }}
+}
+
+
 }
 
 sys {
