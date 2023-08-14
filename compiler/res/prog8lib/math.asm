@@ -847,67 +847,79 @@ mul_word_640	.proc
 ; support for bit shifting that is too large to be unrolled:
 
 lsr_byte_A	.proc
-		; -- lsr signed byte in A times the value in Y (>1)
+		; -- lsr signed byte in A times the value in Y
+		cpy  #0
+		beq  +
 		cmp  #0
 		bpl  lsr_ubyte_A
 -       	sec
 		ror  a
 		dey
 		bne  -
-		rts
++		rts
 		.pend
 
 lsr_ubyte_A	.proc
-		; -- lsr unsigned byte in A times the value in Y (>1)
+		; -- lsr unsigned byte in A times the value in Y
+		cpy  #0
+		beq  +
 -		lsr  a
 		dey
 		bne  -
-		rts
++		rts
 		.pend
 
 asl_byte_A      .proc
-		; -- asl any byte in A times the value in Y (>1)
+		; -- asl any byte in A times the value in Y
+		cpy  #0
+		beq  +
 -		asl  a
 		dey
 		bne  -
-		rts
++		rts
 		.pend
 
 
 lsr_word_AY     .proc
-		; -- lsr signed word in AY times the value in X (>1)
+		; -- lsr signed word in AY times the value in X
+		cpx  #0
+		beq  +
 		cpy  #0
 		bpl  lsr_uword_AY
 		sty  P8ZP_SCRATCH_B1
-_negative       sec
+-		sec
 		ror  P8ZP_SCRATCH_B1
 		ror  a
 		dex
-		bne  _negative
+		bne  -
 		ldy  P8ZP_SCRATCH_B1
-		rts
++		rts
 		.pend
 
 lsr_uword_AY    .proc
-		; -- lsr unsigned word in AY times the value in X (>1)
+		; -- lsr unsigned word in AY times the value in X
+		cpx  #0
+		beq  +
 		sty  P8ZP_SCRATCH_B1
 -		lsr  P8ZP_SCRATCH_B1
 		ror  a
 		dex
 		bne  -
 		ldy  P8ZP_SCRATCH_B1
-		rts
++		rts
 		.pend
 
 asl_word_AY     .proc
-		; -- asl any word in AY times the value in X (>1)
+		; -- asl any word in AY times the value in X
+		cpx  #0
+		beq  +
 		sty  P8ZP_SCRATCH_B1
 -               asl  a
 		rol  P8ZP_SCRATCH_B1
 		dex
 		bne  -
 		ldy  P8ZP_SCRATCH_B1
-		rts
++		rts
 		.pend
 
 
