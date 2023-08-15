@@ -8,6 +8,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.parser.Prog8ANTLRParser
+import prog8.parser.Prog8ANTLRParser.*
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 
@@ -310,12 +311,18 @@ private fun Prog8ANTLRParser.Sub_paramsContext.toAst(): List<SubroutineParameter
         }
 
 private fun Prog8ANTLRParser.Assign_targetContext.toAst() : AssignTarget {
-    val identifier = scoped_identifier()
-    return when {
-        identifier!=null -> AssignTarget(identifier.toAst(), null, null, toPosition())
-        arrayindexed()!=null -> AssignTarget(null, arrayindexed().toAst(), null, toPosition())
-        directmemory()!=null -> AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), toPosition()), toPosition())
-        else -> AssignTarget(scoped_identifier()?.toAst(), null, null, toPosition())
+    return when(this) {
+        is IdentifierTargetContext ->
+            AssignTarget(scoped_identifier().toAst(), null, null, scoped_identifier().toPosition())
+        is MemoryTargetContext ->
+            AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()), toPosition())
+        is ArrayindexedTargetContext -> {
+            val arrayvar = scoped_identifier().toAst()
+            val index = arrayindex().toAst()
+            val arrayindexed = ArrayIndexedExpression(arrayvar, index, scoped_identifier().toPosition())
+            AssignTarget(null, arrayindexed, null, toPosition())
+        }
+        else -> throw FatalAstException("weird assign target node $this")
     }
 }
 
@@ -427,6 +434,12 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
         }
     }
 
+    if(arrayindex()!=null) {
+        val identifier = scoped_identifier().toAst()
+        val index = arrayindex().toAst()
+        return ArrayIndexedExpression(identifier, index, scoped_identifier().toPosition())
+    }
+
     if(scoped_identifier()!=null)
         return scoped_identifier().toAst()
 
@@ -447,9 +460,6 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
         return expression(0).toAst()        // expression within ( )
-
-    if(arrayindexed()!=null)
-        return arrayindexed().toAst()
 
     if(typecast()!=null)
         return TypecastExpression(expression(0).toAst(), typecast().datatype().toAst(), false, toPosition())
@@ -495,12 +505,6 @@ private fun Prog8ANTLRParser.StringliteralContext.toAst(): StringLiteral {
     } catch(ex: IllegalArgumentException) {
         throw SyntaxError(ex.message!!, toPosition())
     }
-}
-
-private fun Prog8ANTLRParser.ArrayindexedContext.toAst(): ArrayIndexedExpression {
-    return ArrayIndexedExpression(scoped_identifier().toAst(),
-            arrayindex().toAst(),
-            toPosition())
 }
 
 private fun Prog8ANTLRParser.Expression_listContext.toAst() = expression().map{ it.toAst() }

@@ -152,9 +152,9 @@ augassignment :
 	;
 
 assign_target:
-	scoped_identifier
-	| arrayindexed
-	| directmemory
+	scoped_identifier               #IdentifierTarget
+	| scoped_identifier arrayindex  #ArrayindexedTarget        // TODO expression instead of just scoped_identifier
+	| directmemory                  #MemoryTarget
 	;
 
 postincrdecr :  assign_target  operator = ('++' | '--') ;
@@ -180,15 +180,13 @@ expression :
 	| left = expression EOL? bop = 'xor' EOL? right = expression
 	| literalvalue
 	| scoped_identifier
-	| arrayindexed
+	| scoped_identifier arrayindex          // TODO expression instead of just scoped_identifier
 	| directmemory
 	| addressof
 	| expression typecast
 	;
 
 typecast : 'as' datatype;
-
-arrayindexed :  scoped_identifier arrayindex  ;
 
 directmemory : '@' '(' expression ')';
 
