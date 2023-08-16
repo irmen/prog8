@@ -16,6 +16,15 @@ sub print_f(float value) {
     }}
 }
 
+sub parse_f(str value) -> float {
+    ; -- parse a string value of a number to float
+    %ir {{
+        loadm.w  r65535,floats.parse_f.value
+        syscall 45 (r65535.w): fr0.f
+        returnr.f fr0
+    }}
+}
+
 sub pow(float value, float power) -> float {
     %ir {{
         loadm.f fr0,floats.pow.value

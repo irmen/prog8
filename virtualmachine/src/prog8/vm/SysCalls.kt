@@ -52,6 +52,7 @@ SYSCALLS:
 42 = CLAMP_UWORD
 43 = CLAMP_FLOAT
 44 = ATAN
+45 = STR_TO_FLOAT
 */
 
 enum class Syscall {
@@ -99,7 +100,8 @@ enum class Syscall {
     CLAMP_WORD,
     CLAMP_UWORD,
     CLAMP_FLOAT,
-    ATAN
+    ATAN,
+    STR_TO_FLOAT
     ;
 
     companion object {
@@ -365,6 +367,11 @@ object SysCalls {
                     0
                 }
                 return returnValue(callspec.returns!!, value, vm)
+            }
+            Syscall.STR_TO_FLOAT -> {
+                val stringAddr = getArgValues(callspec.arguments, vm).single() as UShort
+                val memstring = vm.memory.getString(stringAddr.toInt())
+                returnValue(callspec.returns!!, memstring.toFloat(), vm)
             }
             Syscall.COMPARE_STRINGS -> {
                 val (firstV, secondV) = getArgValues(callspec.arguments, vm)

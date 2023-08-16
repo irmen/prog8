@@ -312,13 +312,10 @@ point variables.  This includes ``print_f``, the routine used to print floating 
 ``rndseedf (seed)``
     Sets a new seed for the float pseudo-RNG sequence. Use a negative non-zero number as seed value.
 
-.. attention::
-    A "parse" routine to convert a string into a floating point number is suspiciously absent.
-    This is because unfortunately there is no such routine available on each of the compiler targets.
-    Only the C64 target has the ``floats.FREADSTR()`` kernal routine that parses a string into a float into FAC1,
-    but the X16 has no equivalent in the kernal rom at this time.
-    The same is true for parsing an *integer* number however you can use the parse routines in the ``conv`` module as
-    a stepping stone to eventually load the number into FAC1 using one of the available kernal routines.
+``parse_f (stringvalue)``
+    Parses the string value as floating point number.
+    Warning: this routine may stop working on the Commander X16 when a new ROM version is released,
+    because it uses an internal BASIC routine. Then it will require a fix.
 
 
 graphics
