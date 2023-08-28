@@ -300,14 +300,20 @@ You can do one of two things to fix the build error:
 - install a JDK with that version,
 - or change the version number to match the JDK version that *is* installed on your system (must be >= 11)
 
-Strange assembler error
-^^^^^^^^^^^^^^^^^^^^^^^
+Strange assembler errors
+^^^^^^^^^^^^^^^^^^^^^^^^
 If the compilation of your program fails in the assembly step, please check that you have
 the required version of the 64tass assembler installed. See :ref:`requirements`.
 Also make sure that inside hand-written inlined assembly,
 you don't use symbols named just a single letter (especially 'a', 'x' and 'y').
 Sometimes these are interpreted as the CPU register of that name. To avoid such confusions,
 always use 2 or more letters for symbols in your assembly code.
+
+'shadowing' warnings form the assembler
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Avoid using 'a', 'x' or 'y' as symbols in your inlined assembly code.
+Also avoid using 64tass' built-in function or type names as symbols in your inlined assembly code.
+The 64tass manual contains `a list of those <https://tass64.sourceforge.net/#functions>`_.
 
 
 Community

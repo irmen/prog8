@@ -27,7 +27,7 @@ internal class AssemblyProgram(
 
                 // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
                 val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "-Wno-strict-bool", "-Wno-shadow", // "-Werror",
+                    "-Wall", // "-Wno-strict-bool", "-Werror",
                     "--dump-labels", "--vice-labels", "--labels=$viceMonListFile", "--no-monitor"
                 )
 
