@@ -28,7 +28,7 @@ sub spc() {
 }
 
 
-asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
+asmsub  fill_screen (ubyte character @ A, ubyte color @ Y) clobbers(A)  {
 	; ---- fill the character screen with the given fill character. color is ignored on PET
 	%asm {{
 		jmp  clear_screenchars
@@ -36,7 +36,7 @@ asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 
 }
 
-asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
+asmsub  clear_screenchars (ubyte character @ A) clobbers(Y)  {
 	; ---- clear the character screen with the given fill character
 	;      (assumes screen matrix is at the default address)
 	%asm {{
@@ -139,7 +139,7 @@ asmsub  scroll_down  () clobbers(A,X)  {
 	}}
 }
 
-romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse.
+romsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse.
 
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
@@ -396,7 +396,7 @@ sub  setclr  (ubyte col, ubyte row, ubyte color)  {
 }
 
 
-sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
+sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)  {
 	; ---- set char at the given position on the screen. charcolor is ignored on PET
 	%asm {{
   		lda  row
@@ -406,11 +406,11 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
 		sta  _charmod+2
 		lda  setchr._screenrows,y
 		clc
-		adc  column
+		adc  col
 		sta  _charmod+1
 		bcc  +
 		inc  _charmod+2
-+		lda  char
++		lda  character
 _charmod	sta  $ffff		; modified
 		rts
 	}}

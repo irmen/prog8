@@ -32,7 +32,7 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
     }}
 }
 
-asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
+asmsub  fill_screen (ubyte character @ A, ubyte color @ Y) clobbers(A)  {
     ; ---- fill the character screen with the given fill character and character color.
     ;      (assumes screen and color matrix are at their default addresses)
     ;      TODO
@@ -42,7 +42,7 @@ asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
     }}
 }
 
-asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
+asmsub  clear_screenchars (ubyte character @ A) clobbers(Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
 	; TODO
@@ -114,10 +114,10 @@ asmsub  scroll_down  (bool alsocolors @ Pc) clobbers(A)  {
 }
 
 
-romsub $F2B0 = outchar(ubyte char @ A)
+romsub $F2B0 = outchar(ubyte character @ A)
 romsub $F2Fd = waitkey()
 
-asmsub chrout(ubyte char @ A) {
+asmsub chrout(ubyte character @ A) {
 	%asm {{
 		sta  _tmp_outchar+1
 		txa
@@ -364,7 +364,7 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
         }}
 }
 
-sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor)  {
+sub  setcc  (ubyte col, ubyte row, ubyte char, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
 	; TODO
 	%asm {{

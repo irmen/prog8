@@ -43,12 +43,12 @@ diskio {
             ubyte high = cbm.CHRIN()
             txt.print_uw(mkword(high, low))
             txt.spc()
-            ubyte @zp char
+            ubyte @zp character
             repeat {
-                char = cbm.CHRIN()
-                if char==0
+                character = cbm.CHRIN()
+                if character==0
                     break
-                txt.chrout(char)
+                txt.chrout(character)
             }
             txt.nl()
             void cbm.CHRIN()     ; skip 2 bytes
@@ -209,12 +209,12 @@ io_error:
 
             ; read the filename
             repeat {
-                ubyte char = cbm.CHRIN()
-                if char==0
+                ubyte character = cbm.CHRIN()
+                if character==0
                     break
-                if char=='\"'
+                if character=='\"'
                     break
-                @(nameptr) = char
+                @(nameptr) = character
                 nameptr++
             }
 
@@ -297,19 +297,19 @@ close_end:
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
 
         ; commander X16 supports fast block-read via macptr() kernal call
-        uword size
+        uword readsize
         while num_bytes {
-            size = 255
-            if num_bytes<size
-                size = num_bytes
-            size = cx16.macptr(lsb(size), bufferpointer, false)
+            readsize = 255
+            if num_bytes<readsize
+                readsize = num_bytes
+            readsize = cx16.macptr(lsb(readsize), bufferpointer, false)
             if_cs
                 goto byte_read_loop     ; macptr block read not supported, do fallback loop
-            list_blocks += size
-            bufferpointer += size
+            list_blocks += readsize
+            bufferpointer += readsize
             if msb(bufferpointer) == $c0
                 bufferpointer = mkword($a0, lsb(bufferpointer))  ; wrap over bank boundary
-            num_bytes -= size
+            num_bytes -= readsize
             if cbm.READST() & $40 {
                 f_close()       ; end of file, close it
                 break
@@ -470,25 +470,25 @@ io_error:
 
 
     ; saves a block of memory to disk, including the default 2 byte prg header.
-    sub save(uword filenameptr, uword address, uword size) -> bool {
-        return internal_save_routine(filenameptr, address, size, false)
+    sub save(uword filenameptr, uword startaddress, uword savesize) -> bool {
+        return internal_save_routine(filenameptr, startaddress, savesize, false)
     }
 
     ; like save() but omits the 2 byte prg header.
-    sub save_raw(uword filenameptr, uword address, uword size) -> bool {
-        return internal_save_routine(filenameptr, address, size, true)
+    sub save_raw(uword filenameptr, uword startaddress, uword savesize) -> bool {
+        return internal_save_routine(filenameptr, startaddress, savesize, true)
     }
 
-    sub internal_save_routine(uword filenameptr, uword address, uword size, bool headerless) -> bool {
+    sub internal_save_routine(uword filenameptr, uword startaddress, uword savesize, bool headerless) -> bool {
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         cbm.SETLFS(1, drivenumber, 0)
-        uword @shared end_address = address + size
+        uword @shared end_address = startaddress + savesize
         cx16.r0L = 0
 
         %asm {{
-            lda  address
+            lda  startaddress
             sta  P8ZP_SCRATCH_W1
-            lda  address+1
+            lda  startaddress+1
             sta  P8ZP_SCRATCH_W1+1
             ldx  end_address
             ldy  end_address+1
@@ -532,8 +532,8 @@ io_error:
     ; Identical to load(), but DOES INCLUDE the first 2 bytes in the file.
     ; No program header is assumed in the file. Everything is loaded.
     ; See comments on load() for more details.
-    sub load_raw(uword filenameptr, uword address) -> uword {
-        return internal_load_routine(filenameptr, address, true)
+    sub load_raw(uword filenameptr, uword startaddress) -> uword {
+        return internal_load_routine(filenameptr, startaddress, true)
     }
 
 
@@ -606,7 +606,7 @@ io_error:
         return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
     }
 
-    asmsub vload(str name @R0, ubyte bank @A, uword address @R1) clobbers(X, Y) -> ubyte @A {
+    asmsub vload(str name @R0, ubyte bank @A, uword startaddress @R1) clobbers(X, Y) -> ubyte @A {
         ; -- like the basic command VLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file has to have the usual 2 byte header (which will be skipped)
@@ -645,7 +645,7 @@ internal_vload:
         }}
     }
 
-    asmsub vload_raw(str name @R0, ubyte bank @A, uword address @R1) clobbers(X, Y) -> ubyte @A {
+    asmsub vload_raw(str name @R0, ubyte bank @A, uword startaddress @R1) clobbers(X, Y) -> ubyte @A {
         ; -- like the basic command BVLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file is read fully including the first two bytes.

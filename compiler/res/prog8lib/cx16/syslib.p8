@@ -38,7 +38,7 @@ romsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> bool @Pc    ; (via 798 
 romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; (via 800 ($320)) define an output channel
 romsub $FFCC = CLRCHN() clobbers(A,X)                           ; (via 802 ($322)) restore default devices
 romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A   ; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
-romsub $FFD2 = CHROUT(ubyte char @ A)                           ; (via 806 ($326)) output a character
+romsub $FFD2 = CHROUT(ubyte character @ A)                           ; (via 806 ($326)) output a character
 romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> bool @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
 romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) clobbers (X, Y) -> bool @ Pc, ubyte @ A       ; (via 818 ($332)) save to a device
 romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
@@ -346,8 +346,8 @@ romsub $ff35 = GRAPH_draw_oval(uword x @R0, uword y @R1, uword width @R2, uword 
 romsub $ff38 = GRAPH_draw_image(uword x @R0, uword y @R1, uword ptr @R2, uword width @R3, uword height @R4)  clobbers(A,X,Y)
 romsub $ff3b = GRAPH_set_font(uword fontptr @R0)  clobbers(A,X,Y)
 romsub $ff3e = GRAPH_get_char_size(ubyte baseline @A, ubyte width @X, ubyte height_or_style @Y, bool is_control @Pc)  clobbers(A,X,Y)
-romsub $ff41 = GRAPH_put_char(uword x @R0, uword y @R1, ubyte char @A)  clobbers(A,X,Y)
-romsub $ff41 = GRAPH_put_next_char(ubyte char @A)  clobbers(A,X,Y)     ; alias for the routine above that doesn't reset the position of the initial character
+romsub $ff41 = GRAPH_put_char(uword x @R0, uword y @R1, ubyte character @A)  clobbers(A,X,Y)
+romsub $ff41 = GRAPH_put_next_char(ubyte character @A)  clobbers(A,X,Y)     ; alias for the routine above that doesn't reset the position of the initial character
 
 ; framebuffer
 romsub $fef6 = FB_init()  clobbers(A,X,Y)
@@ -377,7 +377,7 @@ romsub $fee7 = memory_copy(uword source @R0, uword target @R1, uword num_bytes @
 romsub $feea = memory_crc(uword address @R0, uword num_bytes @R1)  clobbers(A,X,Y) -> uword @R2
 romsub $feed = memory_decompress(uword input @R0, uword output @R1)  clobbers(A,X,Y) -> uword @R1       ; last address +1 is result in R1
 romsub $fedb = console_init(uword x @R0, uword y @R1, uword width @R2, uword height @R3)  clobbers(A,X,Y)
-romsub $fede = console_put_char(ubyte char @A, bool wrapping @Pc)  clobbers(A,X,Y)
+romsub $fede = console_put_char(ubyte character @A, bool wrapping @Pc)  clobbers(A,X,Y)
 romsub $fee1 = console_get_char()  clobbers(X,Y) -> ubyte @A
 romsub $fed8 = console_put_image(uword pointer @R0, uword width @R1, uword height @R2)  clobbers(A,X,Y)
 romsub $fed5 = console_set_paging_message(uword msgptr @R0)  clobbers(A,X,Y)

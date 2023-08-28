@@ -27,7 +27,7 @@ romsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> bool @Pc    ; define an
 romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; define an output channel
 romsub $FFCC = CLRCHN() clobbers(A,X)                           ; restore default devices
 romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A              ; input a character (for keyboard, read a whole line from the screen) A=byte read.
-romsub $FFD2 = CHROUT(ubyte char @ A)                           ; output a character
+romsub $FFD2 = CHROUT(ubyte character @ A)                           ; output a character
 romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; check the STOP key (and some others in A)
 romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; get a character
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; close all files

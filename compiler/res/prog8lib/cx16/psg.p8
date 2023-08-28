@@ -16,11 +16,11 @@ psg {
     const ubyte LEFT     = %01000000
     const ubyte RIGHT    = %10000000
 
-    sub voice(ubyte voice_num, ubyte channel, ubyte volume, ubyte waveform, ubyte pulsewidth) {
+    sub voice(ubyte voice_num, ubyte channel, ubyte vol, ubyte waveform, ubyte pulsewidth) {
         ; -- Enables a 'voice' on the PSG.
         ;    voice_num = 0-15, the voice number.
         ;    channel = either LEFT or RIGHT or (LEFT|RIGHT). Specifies the stereo channel(s) to use.
-        ;    volume = 0-63, the starting volume for the voice
+        ;    vol = 0-63, the starting volume for the voice
         ;    waveform = one of PULSE,SAWTOOTH,TRIANGLE,NOISE.
         ;    pulsewidth = 0-63.  Specifies the pulse width for waveform=PULSE.
         envelope_states[voice_num] = 255
@@ -30,11 +30,11 @@ psg {
         cx16.VERA_ADDR_L = lsb(cx16.r0)
         cx16.VERA_ADDR_M = msb(cx16.r0)
         cx16.VERA_ADDR_H = 1
-        cx16.VERA_DATA0 = channel | volume
+        cx16.VERA_DATA0 = channel | vol
         cx16.VERA_ADDR_L++
         cx16.VERA_DATA0 = waveform | pulsewidth
-        envelope_volumes[voice_num] = mkword(volume, 0)
-        envelope_maxvolumes[voice_num] = volume
+        envelope_volumes[voice_num] = mkword(vol, 0)
+        envelope_maxvolumes[voice_num] = vol
         sys.irqsafe_clear_irqd()
     }
 

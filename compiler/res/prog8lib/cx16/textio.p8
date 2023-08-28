@@ -42,7 +42,7 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
     }}
 }
 
-asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A, X)  {
+asmsub  fill_screen (ubyte character @ A, ubyte color @ Y) clobbers(A, X)  {
 	; ---- fill the character screen with the given fill character and character color.
 	%asm {{
         sty  _ly+1
@@ -88,7 +88,7 @@ set_vera_textmatrix_addresses:
         }}
 }
 
-asmsub  clear_screenchars (ubyte char @ A) clobbers(X, Y)  {
+asmsub  clear_screenchars (ubyte character @ A) clobbers(X, Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
 	%asm {{
@@ -384,7 +384,7 @@ _nextline
 	}}
 }
 
-romsub $FFD2 = chrout(ubyte char @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse.
+romsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse.
 
 asmsub  print (str text @ AY) clobbers(A,Y)  {
 	; ---- print null terminated string from A/Y
@@ -674,12 +674,12 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
 	}}
 }
 
-sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor) {
+sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor) {
 	; ---- set char+color at the given position on the screen
 	;      note: color handling is the same as on the C64: it only sets the foreground color and leaves the background color as is.
 	;            Use setcc2 if you want Cx-16 specific feature of setting both Bg+Fg colors (is faster as well).
 	%asm {{
-            lda  column
+            lda  col
             asl  a
             tax
             ldy  row
@@ -691,7 +691,7 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor) {
             ;clc
             adc  #>VERA_TEXTMATRIX_ADDR
             sta  cx16.VERA_ADDR_M
-            lda  char
+            lda  character
             sta  cx16.VERA_DATA0
             inc  cx16.VERA_ADDR_L
             lda  charcolor
@@ -705,12 +705,12 @@ sub  setcc  (ubyte column, ubyte row, ubyte char, ubyte charcolor) {
     }}
 }
 
-sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
+sub  setcc2  (ubyte col, ubyte row, ubyte character, ubyte colors)  {
 	; ---- set char+color at the given position on the screen
 	;      note: on the CommanderX16 this allows you to set both Fg and Bg colors;
 	;            use the high nybble in A to set the Bg color! Is a bit faster than setcc() too.
 	%asm {{
-            lda  column
+            lda  col
             asl  a
             tax
             ldy  row
@@ -722,7 +722,7 @@ sub  setcc2  (ubyte column, ubyte row, ubyte char, ubyte colors)  {
             ; clc
             adc  #>VERA_TEXTMATRIX_ADDR
             sta  cx16.VERA_ADDR_M
-            lda  char
+            lda  character
             sta  cx16.VERA_DATA0
             inc  cx16.VERA_ADDR_L
             lda  colors

@@ -42,12 +42,12 @@ diskio {
             ubyte high = cbm.CHRIN()
             txt.print_uw(mkword(high, low))
             txt.spc()
-            ubyte @zp char
+            ubyte @zp character
             repeat {
-                char = cbm.CHRIN()
-                if char==0
+                character = cbm.CHRIN()
+                if character==0
                     break
-                txt.chrout(char)
+                txt.chrout(character)
             }
             txt.nl()
             void cbm.CHRIN()     ; skip 2 bytes
@@ -211,12 +211,12 @@ io_error:
 
             ; read the filename
             repeat {
-                ubyte char = cbm.CHRIN()
-                if char==0
+                ubyte character = cbm.CHRIN()
+                if character==0
                     break
-                if char=='\"'
+                if character=='\"'
                     break
-                @(nameptr) = char
+                @(nameptr) = character
                 nameptr++
             }
 
@@ -444,16 +444,16 @@ io_error:
         goto done
     }
 
-    sub save(uword filenameptr, uword address, uword size) -> bool {
+    sub save(uword filenameptr, uword start_address, uword savesize) -> bool {
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         cbm.SETLFS(1, drivenumber, 0)
-        uword @shared end_address = address + size
+        uword @shared end_address = start_address + savesize
         cx16.r0L = 0
 
         %asm {{
-            lda  address
+            lda  start_address
             sta  P8ZP_SCRATCH_W1
-            lda  address+1
+            lda  start_address+1
             sta  P8ZP_SCRATCH_W1+1
             lda  #<P8ZP_SCRATCH_W1
             ldx  end_address
@@ -504,16 +504,16 @@ io_error:
     ; Identical to load(), but DOES INCLUDE the first 2 bytes in the file.
     ; No program header is assumed in the file. Everything is loaded.
     ; See comments on load() for more details.
-    sub load_raw(uword filenameptr, uword address) -> uword {
+    sub load_raw(uword filenameptr, uword start_address) -> uword {
         ; read the 2 header bytes separately to skip them
         if not f_open(filenameptr)
             return 0
-        cx16.r1 = f_read(address, 2)
+        cx16.r1 = f_read(start_address, 2)
         f_close()
         if cx16.r1!=2
             return 0
-        address += 2
-        return load(filenameptr, address)
+        start_address += 2
+        return load(filenameptr, start_address)
     }
 
     sub delete(uword filenameptr) {

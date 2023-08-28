@@ -225,7 +225,7 @@ _done       rts
         }}
     }
 
-    asmsub lowerchar(ubyte char @A) -> ubyte @A {
+    asmsub lowerchar(ubyte character @A) -> ubyte @A {
         %asm {{
             and  #$7f
             cmp  #97
@@ -237,7 +237,7 @@ _done       rts
         }}
     }
 
-    asmsub upperchar(ubyte char @A) -> ubyte @A {
+    asmsub upperchar(ubyte character @A) -> ubyte @A {
         %asm {{
             cmp  #65
             bcc  +
@@ -280,10 +280,10 @@ _done       rts
 ;
 ; see http://6502.org/source/strings/patmatch.htm
 
-str = P8ZP_SCRATCH_W1
+strptr = P8ZP_SCRATCH_W1
 
-	sta  str
-	sty  str+1
+	sta  strptr
+	sty  strptr+1
 	lda  cx16.r0
 	sta  modify_pattern1+1
 	sta  modify_pattern2+1
@@ -306,9 +306,9 @@ next    lda $ffff,x   ; look at next pattern character    MODIFIED
 	iny             ; no, let's look at the string
 	cmp #'?'     ; is the pattern caracter a ques?
 	bne reg         ; no, it's a regular character
-	lda (str),y     ; yes, so it will match anything
+	lda (strptr),y     ; yes, so it will match anything
 	beq fail        ;  except the end of string
-reg     cmp (str),y     ; are both characters the same?
+reg     cmp (strptr),y     ; are both characters the same?
 	bne fail        ; no, so no match
 	inx             ; yes, keep checking
 	cmp #0          ; are we at end of string?
@@ -330,7 +330,7 @@ stloop  txa             ; we first try to match with * = ""
 	tax
 	bcs found       ; we found a match, return with c=1
 	iny             ; no match yet, try to grow * string
-	lda (str),y     ; are we at the end of string?
+	lda (strptr),y     ; are we at the end of string?
 	bne stloop      ; not yet, add a character
 fail    clc             ; yes, no match found, return with c=0
 	rts

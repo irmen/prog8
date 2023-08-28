@@ -50,22 +50,22 @@ graphics {
         cx16.GRAPH_draw_line(x1, y1, x2, y2)
     }
 
-    sub fillrect(uword x, uword y, uword width, uword height) {
-        cx16.GRAPH_draw_rect(x, y, width, height, 0, 1)
+    sub fillrect(uword xx, uword yy, uword width, uword height) {
+        cx16.GRAPH_draw_rect(xx, yy, width, height, 0, 1)
     }
 
-    sub rect(uword x, uword y, uword width, uword height) {
-        cx16.GRAPH_draw_rect(x, y, width, height, 0, 0)
+    sub rect(uword xx, uword yy, uword width, uword height) {
+        cx16.GRAPH_draw_rect(xx, yy, width, height, 0, 0)
     }
 
-    sub horizontal_line(uword x, uword y, uword length) {
+    sub horizontal_line(uword xx, uword yy, uword length) {
         if length
-            cx16.GRAPH_draw_line(x, y, x+length-1, y)
+            cx16.GRAPH_draw_line(xx, yy, xx+length-1, yy)
     }
 
-    sub vertical_line(uword x, uword y, uword height) {
+    sub vertical_line(uword xx, uword yy, uword height) {
         if height
-            cx16.GRAPH_draw_line(x, y, x, y+height-1)
+            cx16.GRAPH_draw_line(xx, yy, xx, yy+height-1)
     }
 
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {

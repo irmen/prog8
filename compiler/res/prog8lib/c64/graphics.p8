@@ -127,46 +127,46 @@ graphics {
         }
     }
 
-    sub rect(uword x, ubyte y, uword width, ubyte height) {
+    sub rect(uword xx, ubyte yy, uword width, ubyte height) {
         if width==0 or height==0
             return
-        horizontal_line(x, y, width)
+        horizontal_line(xx, yy, width)
         if height==1
             return
-        horizontal_line(x, y+height-1, width)
-        vertical_line(x, y+1, height-2)
+        horizontal_line(xx, yy+height-1, width)
+        vertical_line(xx, yy+1, height-2)
         if width==1
             return
-        vertical_line(x+width-1, y+1, height-2)
+        vertical_line(xx+width-1, yy+1, height-2)
     }
 
-    sub fillrect(uword x, ubyte y, uword width, ubyte height) {
+    sub fillrect(uword xx, ubyte yy, uword width, ubyte height) {
         if width==0
             return
         repeat height {
-            horizontal_line(x, y, width)
-            y++
+            horizontal_line(xx, yy, width)
+            yy++
         }
     }
 
-    sub horizontal_line(uword x, ubyte y, uword length) {
+    sub horizontal_line(uword xx, ubyte yy, uword length) {
         if length<8 {
-            internal_plotx=x
+            internal_plotx=xx
             repeat lsb(length) {
-                internal_plot(y)
+                internal_plot(yy)
                 internal_plotx++
             }
             return
         }
 
-        ubyte separate_pixels = lsb(x) & 7
-        uword addr = get_y_lookup(y) + (x&$fff8)
+        ubyte separate_pixels = lsb(xx) & 7
+        uword pixaddr = get_y_lookup(yy) + (xx&$fff8)
 
         if separate_pixels {
             %asm {{
-                lda  addr
+                lda  pixaddr
                 sta  P8ZP_SCRATCH_W1
-                lda  addr+1
+                lda  pixaddr+1
                 sta  P8ZP_SCRATCH_W1+1
                 ldy  separate_pixels
                 lda  hline_filled_right,y
@@ -175,7 +175,7 @@ graphics {
                 ora  (P8ZP_SCRATCH_W1),y
                 sta  (P8ZP_SCRATCH_W1),y
             }}
-            addr += 8
+            pixaddr += 8
             length += separate_pixels
             length -= 8
         }
@@ -191,9 +191,9 @@ graphics {
                 ror  length
                 lsr  length+1
                 ror  length
-                lda  addr
+                lda  pixaddr
                 sta  _modified+1
-                lda  addr+1
+                lda  pixaddr+1
                 sta  _modified+2
                 lda  length
                 ora  length+1
@@ -227,11 +227,11 @@ hline_zero2
         }
     }
 
-    sub vertical_line(uword x, ubyte y, ubyte height) {
-        internal_plotx = x
+    sub vertical_line(uword xx, ubyte yy, ubyte height) {
+        internal_plotx = xx
         repeat height {
-            internal_plot(y)
-            y++
+            internal_plot(yy)
+            yy++
         }
     }
 
@@ -300,8 +300,8 @@ hline_zero2
 ; here is the non-asm code for the plot routine below:
 ;    sub plot_nonasm(uword px, ubyte py) {
 ;        ubyte[] ormask = [128, 64, 32, 16, 8, 4, 2, 1]
-;        uword addr = BITMAP_ADDRESS + 320*(py>>3) + (py & 7) + (px & %0000000111111000)
-;        @(addr) |= ormask[lsb(px) & 7]
+;        uword pixaddr = BITMAP_ADDRESS + 320*(py>>3) + (py & 7) + (px & %0000000111111000)
+;        @(pixaddr) |= ormask[lsb(px) & 7]
 ;    }
 
     inline asmsub  plot(uword plotx @XY, ubyte ploty @A) clobbers (A, X, Y) {
@@ -360,7 +360,7 @@ _y_lookup_hi    .byte  >_plot_y_values
         }}
     }
 
-    asmsub get_y_lookup(ubyte y @Y) -> uword @AY {
+    asmsub get_y_lookup(ubyte yy @Y) -> uword @AY {
         %asm {{
             lda  internal_plot._y_lookup_lo,y
             pha
