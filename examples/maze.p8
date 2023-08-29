@@ -14,6 +14,7 @@ main {
             maze.initialize()
             maze.drawStartFinish()
             maze.generate()
+            maze.openpassages()
             maze.drawStartFinish()
             maze.solve()
             maze.drawStartFinish()
@@ -65,6 +66,8 @@ maze {
             }
         }
     }
+
+    ubyte[4] directionflags = [LEFT,RIGHT,UP,DOWN]
 
     sub generate() {
         ubyte cx = startCx
@@ -163,13 +166,59 @@ carve_restart_after_repath:
             if not candidates
                 return 0
 
-            ubyte[4] bitflags = [LEFT,RIGHT,UP,DOWN]
             repeat {
-                ubyte choice = candidates & bitflags[math.rnd() & 3]
+                ubyte choice = candidates & directionflags[math.rnd() & 3]
                 if choice
                     return choice
             }
         }
+    }
+
+    sub openpassages() {
+        ; open just a few extra passages, so that multiple routes are possible in theory.
+        ubyte cell
+        ubyte numpassages
+        ubyte cx
+        ubyte cy
+        do {
+            do {
+                cx = math.rnd() % (numCellsHoriz-2) + 1
+                cy = math.rnd() % (numCellsVert-2) + 1
+            } until not @(celladdr(cx, cy)) & STONE
+            ubyte direction = directionflags[math.rnd() & 3]
+            if not @(celladdr(cx, cy)) & direction {
+                when direction {
+                    LEFT -> {
+                        if not @(celladdr(cx-1,cy)) & STONE {
+                            @(celladdr(cx,cy)) |= LEFT
+                            drawCell(cx,cy)
+                            numpassages++
+                        }
+                    }
+                    RIGHT -> {
+                        if not @(celladdr(cx+1,cy)) & STONE {
+                            @(celladdr(cx,cy)) |= RIGHT
+                            drawCell(cx,cy)
+                            numpassages++
+                        }
+                    }
+                    UP -> {
+                        if not @(celladdr(cx,cy-1)) & STONE {
+                            @(celladdr(cx,cy)) |= UP
+                            drawCell(cx,cy)
+                            numpassages++
+                        }
+                    }
+                    DOWN -> {
+                        if not @(celladdr(cx,cy+1)) & STONE {
+                            @(celladdr(cx,cy)) |= DOWN
+                            drawCell(cx,cy)
+                            numpassages++
+                        }
+                    }
+                }
+            }
+        } until numpassages==10
     }
 
     sub solve() {

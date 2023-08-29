@@ -163,7 +163,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     else -> {
                         asmgen.assignExpressionTo(memory.address, AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UWORD, memory.definingISub(), target.position, register = RegisterOrPair.AY))
                         asmgen.saveRegisterStack(CpuRegister.A, true)
-                        asmgen.saveRegisterStack(CpuRegister.Y, false)
+                        asmgen.saveRegisterStack(CpuRegister.Y, true)
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY_into_A")
                         when(value.kind) {
                             SourceStorageKind.LITERALNUMBER -> {

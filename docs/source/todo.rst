@@ -1,7 +1,5 @@
 TODO
 ====
-- maze example is broken on c64/c128 (not on cx16...)
-
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm?
 
 - allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
