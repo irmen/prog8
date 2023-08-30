@@ -52,7 +52,7 @@ Language features
 
 - It is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
   It generates a machine code program runnable on actual 8-bit 6502 hardware.
-- Fast execution speed due to compilation to native assembly code. It's possible to write certain raster interrupt 'demoscene' effects purely in Prog8.
+- Fast execution speed due to compilation to native assembly code. It's possible to write games purely in Prog8, and even certain raster interrupt 'demoscene' effects.
 - Provides a very convenient edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to this emulator.
 - Based on simple and familiar imperative structured programming (it looks like a mix of C and Python)
@@ -62,19 +62,18 @@ Language features
   and inline assembly to have full control when every register, cycle or byte matters
 - Subroutines with parameters and return values
 - Complex nested expressions are possible
-- Variables are allocated statically
+- Variables are all allocated statically
 - Conditional branches to map directly on processor branch instructions
 - ``when`` statement to avoid if-else chains
 - ``in`` expression for concise and efficient multi-value/containment test
-- Nested subroutines can access variables from outer scopes to avoids the overhead to pass everything via parameters
+- Several powerful built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``, ``sort`` and ``reverse``
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
-- Floating point math also supported on select compiler targets (C64, Cx16 and virtual).
+- Floating point math is supported on select compiler targets.
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
 - High-level code optimizations, such as const-folding (zero-allocation constants that are optimized away in expressions), expression and statement simplifications/rewriting.
-- Many built-in functions, such as ``sin``, ``cos``, ``abs``, ``sqrt``, ``msb``, ``min``, ``max``, ``rol``, ``ror``, ``sort`` and ``reverse``
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
-- Supports the sixteen 'virtual' 16-bit registers R0 .. R15 from the Commander X16, also on the other machines.
-- If you only use standard Kernal and core prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compilation target flag)!
+- Supports the sixteen 'virtual' 16-bit registers R0 .. R15 as defined on the Commander X16, also on the other machines.
+- If you only use standard Kernal and core prog8 library routines, it is sometimes possible to compile the *exact same program* for different machines (just change the compilation target flag)
 
 
 Code example
