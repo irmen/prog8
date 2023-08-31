@@ -515,7 +515,8 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
         ;    note: inefficient when reading multiple sequential bytes!
         %asm {{
                 pha
-                lda  #1
+                lda  cx16.VERA_CTRL
+                ora  #1
                 sta  cx16.VERA_CTRL
                 pla
                 and  #1
