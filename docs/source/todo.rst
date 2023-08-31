@@ -1,6 +1,6 @@
 TODO
 ====
-- optimize assembly output for if word1 & word2 ...  (no need for stack pushes)
+- optimize assembly output for ( word1 & word2 ==0) ...  (no need for stack pushes)
 
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm?
 
