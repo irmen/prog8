@@ -100,8 +100,8 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
 
     asmsub log2(ubyte value @A) -> ubyte @Y {
         %asm {{
-            ldy  #$80
-            sty  P8ZP_SCRATCH_B1
+            sta  P8ZP_SCRATCH_B1
+            lda  #$80
             ldy  #7
 -           bit  P8ZP_SCRATCH_B1
             beq  +
@@ -109,7 +109,7 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
 +           dey
             bne  +
             rts
-+           lsr  P8ZP_SCRATCH_B1
++           lsr  a
             bne  -
         }}
     }
