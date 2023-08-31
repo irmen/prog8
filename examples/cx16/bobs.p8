@@ -5,7 +5,7 @@
 
 ; "unlimited sprites / bobs" demo effect.
 ; Note that everything is prog8, no inline assembly used/required.
-
+; Note2: these aren't actual sprites, it's a bitmap backbuffer display trick.
 
 main {
     sub start() {
@@ -104,7 +104,7 @@ main {
 
         bitshift(lsb(blit_x) & 7)
 
-        ; left column of the (shifted)sprite
+        ; left column of the (shifted) "sprite" (bob)
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(vmem)
         cx16.VERA_ADDR_M = msb(vmem)
@@ -117,7 +117,7 @@ main {
         for ix in 0 to len(shifted_sprite)-1 step 3
             cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
 
-        ; middle column of the (shifted)sprite
+        ; middle column of the (shifted) "sprite" (bob)
         vmem++
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(vmem)
@@ -128,7 +128,7 @@ main {
         for ix in 1 to len(shifted_sprite)-1 step 3
             cx16.VERA_DATA1 = cx16.VERA_DATA0 & shifted_mask[ix] | shifted_sprite[ix]
 
-        ; right column of the (shifted)sprite
+        ; right column of the (shifted) "sprite" (bob)
         vmem++
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(vmem)
