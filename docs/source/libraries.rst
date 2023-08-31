@@ -343,6 +343,11 @@ Various 8-bit integer trig functions that use lookup tables to quickly calculate
 Usually a custom lookup table is the way to go if your application needs these,
 but perhaps the provided ones can be of service too.
 
+``log2 (ubyte v)``
+    Returns the 2-Log of the byte value v.
+
+``log2w (uword v)``
+    Returns the 2-Log of the word value v.
 
 ``rnd ()``
     Returns next random byte 0-255 from the pseudo-RNG sequence.

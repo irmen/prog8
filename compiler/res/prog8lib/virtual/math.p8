@@ -183,6 +183,31 @@ math {
         }}
     }
 
+    sub log2(ubyte value) -> ubyte {
+        ubyte result = 7
+        ubyte compare = $80
+        repeat {
+            if value&compare
+                return result
+            result--
+            if_z
+                return 0
+            compare >>= 1
+        }
+    }
+
+    sub log2w(uword value) -> ubyte {
+        ubyte result = 15
+        uword compare = $8000
+        repeat {
+            if value&compare
+                return result
+            result--
+            if_z
+                return 0
+            compare >>= 1
+        }
+    }
 
 sub direction(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
     ; From a pair of positive coordinates, calculate discrete direction between 0 and 23 into A.

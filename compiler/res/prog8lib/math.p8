@@ -98,6 +98,47 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         }}
     }
 
+    asmsub log2(ubyte value @A) -> ubyte @Y {
+        %asm {{
+            ldy  #$80
+            sty  P8ZP_SCRATCH_B1
+            ldy  #7
+-           bit  P8ZP_SCRATCH_B1
+            beq  +
+            rts
++           dey
+            bne  +
+            rts
++           lsr  P8ZP_SCRATCH_B1
+            bne  -
+        }}
+    }
+
+    asmsub log2w(uword value @AY) -> ubyte @Y {
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  #<$8000
+            sta  cx16.r0
+            lda  #>$8000
+            sta  cx16.r0+1
+            ldy  #15
+-           lda  P8ZP_SCRATCH_W1
+            and  cx16.r0
+            sta  P8ZP_SCRATCH_B1
+            lda  P8ZP_SCRATCH_W1+1
+            and  cx16.r0+1
+            ora  P8ZP_SCRATCH_B1
+            beq  +
+            rts
++           dey
+            bne  +
+            rts
++           lsr  cx16.r0+1
+            ror  cx16.r0
+            jmp  -
+        }}
+    }
 
 sub direction_sc(byte x1, byte y1, byte x2, byte y2) -> ubyte {
     ; From a pair of signed coordinates around the origin, calculate discrete direction between 0 and 23 into A.
