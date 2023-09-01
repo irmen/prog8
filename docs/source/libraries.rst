@@ -472,5 +472,17 @@ It includes an interrupt routine to handle simple Attack/Release envelopes as we
 See the examples/cx16/bdmusic.p8  program for ideas how to use it.
 
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/psg.p8>`_
-to see what's in there. (Note: slight variations for different compiler targets)
+to see what's in there.
 
+
+sprites  (cx16 only)
+--------------------
+Available for the Cx16 target. Simple routines to manipulate sprites.
+They're not written for high performance, but for simplicity.
+That's why they control one sprite at a time. The exception is the ``pos_batch`` routine,
+which is quite efficient to update sprite positions of multiple sprites in one go.
+See the examples/cx16/sprites/dragon.p8 and dragons.p8 programs for ideas how to use it.
+
+
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/sprites.p8>`_
+to see what's in there.

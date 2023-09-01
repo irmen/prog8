@@ -98,6 +98,8 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "vtui/testvtui",
             "pcmaudio/play-adpcm",
             "pcmaudio/stream-wav",
+            "sprites/dragon",
+            "sprites/dragons",
             "amiga",
             "bdmusic",
             "bobs",

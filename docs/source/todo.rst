@@ -2,6 +2,8 @@ TODO
 ====
 - optimize assembly output for ( word1 & word2 ==0) ...  (no need for stack pushes)
 
+- opimize assembly where pha/pla can be converted into tax/txa  (saves 2 cycles, clobbers X)
+
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm?
 
 - allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
