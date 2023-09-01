@@ -742,11 +742,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         asmgen.out("""
                             ldy  #0
                             lda  ($varname),y
-                            pha
+                            tax
                             iny
                             lda  ($varname),y
                             tay
-                            pla""")
+                            txa""")
                     }
                 } else fallback()
             }
@@ -759,11 +759,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
                     asmgen.out("""
                         lda  ($varname),y
-                        pha
+                        tax
                         iny
                         lda  ($varname),y
                         tay
-                        pla""")
+                        txa""")
                 } else fallback()
             }
             else -> fallback()

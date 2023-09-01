@@ -255,11 +255,11 @@ $loopLabel""")
                 sec
                 sbc  #<${stepsize.absoluteValue}
                 sta  $varname
-                pha
+                tax
                 lda  $varname+1
                 sbc  #>${stepsize.absoluteValue}
                 sta  $varname+1
-                pla
+                txa
 $modifiedLabel2 cmp  #0    ; modified 
                 lda  $varname+1
 $modifiedLabel  sbc  #0    ; modified

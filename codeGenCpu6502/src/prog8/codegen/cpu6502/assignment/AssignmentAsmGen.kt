@@ -88,7 +88,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                     } else {
                         asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                        asmgen.out("  lda  ${arrayVarName}_lsb,y |  pha |  lda  ${arrayVarName}_msb,y |  tay |  pla")
+                        asmgen.out("  lda  ${arrayVarName}_lsb,y |  tax |  lda  ${arrayVarName}_msb,y |  tay |  txa")
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                     }
                     return
@@ -122,7 +122,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         in WordDatatypes  -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                            asmgen.out("  lda  $arrayVarName,y |  pha |  lda  $arrayVarName+1,y |  tay |  pla")
+                            asmgen.out("  lda  $arrayVarName,y |  tax |  lda  $arrayVarName+1,y |  tay |  txa")
                             assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         }
                         DataType.FLOAT -> {
@@ -257,13 +257,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             when (assign.target.datatype) {
                                 DataType.STR -> {
                                     asmgen.out("""
-                                                        pha
-                                                        lda  #<${assign.target.asmVarname}
-                                                        sta  P8ZP_SCRATCH_W1
-                                                        lda  #>${assign.target.asmVarname}
-                                                        sta  P8ZP_SCRATCH_W1+1
-                                                        pla
-                                                        jsr  prog8_lib.strcpy""")
+                                        tax
+                                        lda  #<${assign.target.asmVarname}
+                                        sta  P8ZP_SCRATCH_W1
+                                        lda  #>${assign.target.asmVarname}
+                                        sta  P8ZP_SCRATCH_W1+1
+                                        txa
+                                        jsr  prog8_lib.strcpy""")
                                 }
                                 DataType.UWORD -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                                 else -> throw AssemblyError("str return value type mismatch with target")
@@ -306,14 +306,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                             sec
                                             eor  #255
                                             adc  #0
-                                            pha
+                                            tax
                                             tya
                                             eor  #255
                                             adc  #0
                                             tay
-                                            pla""")
+                                            txa""")
                                     }
-                                    "~" -> asmgen.out("  pha |  tya |  eor  #255 |  tay |  pla |  eor  #255")
+                                    "~" -> asmgen.out("  tax |  tya |  eor  #255 |  tay |  txa |  eor  #255")
                                     "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
                                     else -> throw AssemblyError("invalid prefix operator")
                                 }
@@ -759,20 +759,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("""
                                 clc
                                 adc  P8ZP_SCRATCH_W1
-                                pha
+                                tax
                                 tya
                                 adc  P8ZP_SCRATCH_W1+1
                                 tay
-                                pla""")
+                                txa""")
                 else
                     asmgen.out("""
                                 sec
                                 sbc  P8ZP_SCRATCH_W1
-                                pha
+                                tax
                                 tya
                                 sbc  P8ZP_SCRATCH_W1+1
                                 tay
-                                pla""")
+                                txa""")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
             }
 
@@ -784,20 +784,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("""
                                 clc
                                 adc  #<$symbol
-                                pha
+                                tax
                                 tya
                                 adc  #>$symbol
                                 tay
-                                pla""")
+                                txa""")
                     else
                         asmgen.out("""
                                 sec
                                 sbc  #<$symbol
-                                pha
+                                tax
                                 tya
                                 sbc  #>$symbol
                                 tay
-                                pla""")
+                                txa""")
                     assignRegisterpairWord(target, RegisterOrPair.AY)
                     return true
                 }
@@ -808,20 +808,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("""
                                 clc
                                 adc  $symname
-                                pha
+                                tax
                                 tya
                                 adc  $symname+1
                                 tay
-                                pla""")
+                                txa""")
                     else
                         asmgen.out("""
                                 sec
                                 sbc  $symname
-                                pha
+                                tax
                                 tya
                                 sbc  $symname+1
                                 tay
-                                pla""")
+                                txa""")
                     assignRegisterpairWord(target, RegisterOrPair.AY)
                     return true
                 }
@@ -831,20 +831,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("""
                                 clc
                                 adc  #<${right.number.toHex()}
-                                pha
+                                tax
                                 tya
                                 adc  #>${right.number.toHex()}
                                 tay
-                                pla""")
+                                txa""")
                     } else if(expr.operator=="-") {
                         asmgen.out("""
                                 sec
                                 sbc  #<${right.number.toHex()}
-                                pha
+                                tax
                                 tya
                                 sbc  #>${right.number.toHex()}
                                 tay
-                                pla""")
+                                txa""")
                     }
                     assignRegisterpairWord(target, RegisterOrPair.AY)
                     return true
@@ -926,9 +926,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
             when (expr.operator) {
-                "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_W1 |  pha |  tya |  and  P8ZP_SCRATCH_W1+1 |  tay |  pla")
-                "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_W1 |  pha |  tya |  ora  P8ZP_SCRATCH_W1+1 |  tay |  pla")
-                "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_W1 |  pha |  tya |  eor  P8ZP_SCRATCH_W1+1 |  tay |  pla")
+                "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_W1 |  tax |  tya |  and  P8ZP_SCRATCH_W1+1 |  tay |  txa")
+                "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_W1 |  tax |  tya |  ora  P8ZP_SCRATCH_W1+1 |  tay |  txa")
+                "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_W1 |  tax |  tya |  eor  P8ZP_SCRATCH_W1+1 |  tay |  txa")
                 else -> throw AssemblyError("invalid operator")
             }
             assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -1489,18 +1489,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             is PtNumber -> {
                 val number = right.number.toHex()
                 when (operator) {
-                    "&", "and" -> asmgen.out("  and  #<$number |  pha |  tya |  and  #>$number |  tay |  pla")
-                    "|", "or" -> asmgen.out("  ora  #<$number |  pha |  tya |  ora  #>$number |  tay |  pla")
-                    "^", "xor" -> asmgen.out("  eor  #<$number |  pha |  tya |  eor  #>$number |  tay |  pla")
+                    "&", "and" -> asmgen.out("  and  #<$number |  tax |  tya |  and  #>$number |  tay |  txa")
+                    "|", "or" -> asmgen.out("  ora  #<$number |  tax |  tya |  ora  #>$number |  tay |  txa")
+                    "^", "xor" -> asmgen.out("  eor  #<$number |  tax |  tya |  eor  #>$number |  tay |  txa")
                     else -> throw AssemblyError("invalid operator")
                 }
             }
             is PtIdentifier -> {
                 val name = asmgen.asmSymbolName(right)
                 when (operator) {
-                    "&", "and" -> asmgen.out("  and  $name |  pha |  tya |  and  $name+1 |  tay |  pla")
-                    "|", "or" -> asmgen.out("  ora  $name |  pha |  tya |  ora  $name+1 |  tay |  pla")
-                    "^", "xor" -> asmgen.out("  eor  $name |  pha |  tya |  eor  $name+1 |  tay |  pla")
+                    "&", "and" -> asmgen.out("  and  $name |  tax |  tya |  and  $name+1 |  tay |  txa")
+                    "|", "or" -> asmgen.out("  ora  $name |  tax |  tya |  ora  $name+1 |  tay |  txa")
+                    "^", "xor" -> asmgen.out("  eor  $name |  tax |  tya |  eor  $name+1 |  tay |  txa")
                     else -> throw AssemblyError("invalid operator")
                 }
             }
@@ -1510,6 +1510,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        // TODO optimized code for   (word1 & word2) == 0  :
+//        if(expr.left.type in WordDatatypes && (expr.operator=="==" || expr.operator=="!=") && expr.left is PtBinaryExpression) {
+//            ...
+//        }
+
         when (expr.operator) {
             "==" -> {
                 when(val dt = expr.left.type) {
@@ -2095,12 +2100,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         if(regs!=RegisterOrPair.AY)
                             throw AssemblyError("only supports AY here")
                         asmgen.out("""
-                            pha
+                            tax
                             lda  #<$targetAsmVarName
                             sta  P8ZP_SCRATCH_W2
                             lda  #>$targetAsmVarName
                             sta  P8ZP_SCRATCH_W2+1
-                            pla
+                            txa
                             jsr  floats.cast_from_uw""")
                     }
                     else -> throw AssemblyError("weird type")
@@ -2123,12 +2128,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         if(regs!=RegisterOrPair.AY)
                             throw AssemblyError("only supports AY here")
                         asmgen.out("""
-                            pha
+                            tax
                             lda  #<$targetAsmVarName
                             sta  P8ZP_SCRATCH_W2
                             lda  #>$targetAsmVarName
                             sta  P8ZP_SCRATCH_W2+1
-                            pla
+                            txa
                             jsr  floats.cast_from_w""")
                     }
                     else -> throw AssemblyError("weird type")
@@ -2562,12 +2567,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         pla""")
                     RegisterOrPair.AY -> asmgen.out("""
                         lda  $sourceName
-                        pha
+                        tax
                         ora  #$7f
                         bmi  +
                         lda  #0
 +                       tay
-                        pla""")
+                        txa""")
                     RegisterOrPair.XY -> asmgen.out("""
                         lda  $sourceName
                         tax 
@@ -3770,12 +3775,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                     sec
                                     eor  #255
                                     adc  #0
-                                    pha
+                                    tax
                                     tya
                                     eor  #255
                                     adc  #0
                                     tay
-                                    pla""")
+                                    txa""")
                             }
                             RegisterOrPair.XY -> {
                                 asmgen.out("""

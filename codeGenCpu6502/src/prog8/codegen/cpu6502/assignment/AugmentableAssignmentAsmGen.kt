@@ -415,8 +415,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     }
                                 }
                                 asmgen.out("""
-                                    lda  P8ZP_SCRATCH_W1
-                                    pha
+                                    ldx  P8ZP_SCRATCH_W1
                                     lda  P8ZP_SCRATCH_W1+1
                                     pha
                                     lda  #<$tempvar
@@ -424,7 +423,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     sta  P8ZP_SCRATCH_W1
                                     sty  P8ZP_SCRATCH_W1+1
                                     ply
-                                    pla
+                                    txa
                                     jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
                             }
                             else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
@@ -445,11 +444,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("""
                         clc
                         adc  $variable
-                        pha
+                        tay
                         txa
                         adc  $variable+1
                         tax
-                        pla""")
+                        tya""")
                     true
                 } else {
                     asmgen.out("""
@@ -469,11 +468,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("""
                         sec
                         sbc  $variable
-                        pha
+                        tay
                         txa
                         sbc  $variable+1
                         tax
-                        pla""")
+                        tya""")
                     true
                 } else {
                     asmgen.out("""
@@ -508,11 +507,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("""
                         clc
                         adc  #<$number
-                        pha
+                        tay
                         txa
                         adc  #>$number
                         tax
-                        pla""")
+                        tya""")
                     true
                 }
             }
@@ -529,11 +528,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("""
                         sec
                         sbc  #<$number
-                        pha
+                        tay
                         txa
                         sbc  #>$number
                         tax
-                        pla""")
+                        tya""")
                     true
                 }
             }
@@ -1990,12 +1989,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         fun divideVarByWordInAY() {
             asmgen.out("""
-                    pha
+                    tax
                     lda  $name
                     sta  P8ZP_SCRATCH_W1
                     lda  $name+1
                     sta  P8ZP_SCRATCH_W1+1
-                    pla""")
+                    txa""")
             if (dt == DataType.WORD)
                 asmgen.out("  jsr  math.divmod_w_asm")
             else
@@ -2007,12 +2006,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             if(dt==DataType.WORD)
                 throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
             asmgen.out("""
-                pha
+                tax
                 lda  $name
                 sta  P8ZP_SCRATCH_W1
                 lda  $name+1
                 sta  P8ZP_SCRATCH_W1+1
-                pla
+                txa
                 jsr  math.divmod_uw_asm
                 lda  P8ZP_SCRATCH_W2
                 ldy  P8ZP_SCRATCH_W2+1

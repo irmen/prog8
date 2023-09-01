@@ -1,11 +1,6 @@
 TODO
 ====
-- optimize assembly output for ( word1 & word2 ==0) ...  (no need for stack pushes)
-
-- opimize assembly where pha/pla can be converted into tax/txa  (saves 2 cycles, clobbers X)
-
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm?
-
 - allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
 - allow 'chained' array indexing for assign targets:  ptrarray[0][0] = 42   this is just evaluating the lhs as a uword pointer expression
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
@@ -61,6 +56,7 @@ Libraries:
 
 Optimizations:
 
+- optimize assembly output for ( word1 & word2 ==0) ...  (no need for stack pushes) see attemptAssignToByteCompareZero().
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
