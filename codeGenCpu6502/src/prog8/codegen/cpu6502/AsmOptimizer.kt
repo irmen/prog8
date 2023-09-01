@@ -43,6 +43,13 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
+    mods = optimizeUnneededTempvarInAdd(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
+        linesByFour = getLinesBy(lines, 4)
+        numberOfOptimizations++
+    }
+
     var linesByFourteen = getLinesBy(lines, 14)
     mods = optimizeSameAssignments(linesByFourteen, machine, symbolTable)
     if(mods.isNotEmpty()) {
@@ -507,5 +514,28 @@ private fun optimizeUselessPushPopStack(linesByFour: List<List<IndexedValue<Stri
         optimize('x', lines)
         optimize('y', lines)
     }
+    return mods
+}
+
+private fun optimizeUnneededTempvarInAdd(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+    // sequence:  sta  P8ZP_SCRATCH_XX  / lda  something / clc / adc  P8ZP_SCRATCH_XX
+    // this can be performed without the scratch variable:  clc  /  adc  something
+    val mods = mutableListOf<Modification>()
+
+    for(lines in linesByFour) {
+        val first = lines[0].value.trimStart()
+        val second = lines[1].value.trimStart()
+        val third = lines[2].value.trimStart()
+        val fourth = lines[3].value.trimStart()
+        if(first.startsWith("sta  P8ZP_SCRATCH_") && second.startsWith("lda") && third.startsWith("clc") && fourth.startsWith("adc  P8ZP_SCRATCH_") ) {
+            if(fourth.substring(4)==first.substring(4)) {
+                mods.add(Modification(lines[0].index, false, "    clc"))
+                mods.add(Modification(lines[1].index, false, "    adc  ${second.substring(3).trimStart()}"))
+                mods.add(Modification(lines[2].index, true, null))
+                mods.add(Modification(lines[3].index, true, null))
+            }
+        }
+    }
+
     return mods
 }

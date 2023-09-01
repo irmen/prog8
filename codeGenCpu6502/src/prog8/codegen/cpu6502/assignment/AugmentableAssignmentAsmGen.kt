@@ -707,6 +707,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
+        // TODO optimize: don't use scratch var if possible
         val tmpVar = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
         asmgen.assignExpressionToVariable(value, tmpVar, value.type)
         asmgen.out("  lda  $name")
@@ -1080,6 +1081,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "-" -> {
                 asmgen.translateDirectMemReadExpressionToRegA(memread)
+                // TODO optimize: don't use scratch var if possible
                 val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
                 asmgen.out("""
                     sta  $tmpByte
@@ -2025,8 +2027,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
                     "+" -> {
-                        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
-                        if(valueDt==DataType.UBYTE)
+                        if(valueDt==DataType.UBYTE) {
+                            // TODO optimize: don't use scratch var
+                            asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
                             asmgen.out("""
                                 lda  $name
                                 clc
@@ -2035,7 +2038,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 bcc  +
                                 inc  $name+1
 +""")
-                        else
+                        } else {
+                            // TODO optimize: don't use scratch var
+                            asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
                             asmgen.out("""
                                 ldy  #0
                                 lda  P8ZP_SCRATCH_B1
@@ -2047,8 +2052,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 tya
                                 adc  $name+1
                                 sta  $name+1""")
+                        }
                     }
                     "-" -> {
+                        // TODO optimize: don't use scratch var
                         asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
                         if(valueDt==DataType.UBYTE)
                             asmgen.out("""
