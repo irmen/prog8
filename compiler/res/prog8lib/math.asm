@@ -58,6 +58,7 @@ multiply_words	.proc
 	; -- multiply two 16-bit words into a 32-bit result  (signed and unsigned)
 	;      input: A/Y = first 16-bit number, cx16.R0 = second 16-bit number
 	;      output: multiply_words.result == cx16.R0:R1, 4-bytes/32-bits product, LSB order (low-to-high)  low 16 bits also in AY.
+	; TODO: should not use R0 and R1 at all !!!  result needs 4 consecutive bytes, so it can't be in zeropage at all...
 
 ; mult62.a
 ; based on Dr Jefyll, http://forum.6502.org/viewtopic.php?f=9&t=689&start=0#p19958

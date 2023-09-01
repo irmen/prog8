@@ -707,11 +707,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
-        // TODO optimize: don't use scratch var if possible
-        val tmpVar = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
-        asmgen.assignExpressionToVariable(value, tmpVar, value.type)
-        asmgen.out("  lda  $name")
-        inplacemodificationRegisterAwithVariable(operator, tmpVar, dt in SignedDatatypes)
+        asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+        inplacemodificationRegisterAwithVariableWithSwappedOperands(operator, name, dt in SignedDatatypes)
         asmgen.out("  sta  $name")
     }
 
@@ -722,15 +719,16 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationRegisterAwithVariable(operator: String, variable: String, signed: Boolean) {
+        // A = A <operator> variable
         when (operator) {
             "+" -> asmgen.out("  clc |  adc  $variable")
             "-" -> asmgen.out("  sec |  sbc  $variable")
             "*" -> asmgen.out("  ldy  $variable  |  jsr  math.multiply_bytes")
             "/" -> {
                 if(signed)
-                    asmgen.out(" ldy  $variable  |  jsr  math.divmod_b_asm |  tya")
+                    asmgen.out("  ldy  $variable  |  jsr  math.divmod_b_asm |  tya")
                 else
-                    asmgen.out(" ldy  $variable  |  jsr  math.divmod_ub_asm |  tya")
+                    asmgen.out("  ldy  $variable  |  jsr  math.divmod_ub_asm |  tya")
             }
             "%" -> {
                 if(signed)
@@ -864,6 +862,164 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         cpy  $variable
                         rol  a""")
                 } else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        sec
+                        sbc  $variable
+                        bvc  +
+                        eor  #$80
++                		bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+                }
+            }
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
+    private fun inplacemodificationRegisterAwithVariableWithSwappedOperands(operator: String, variable: String, signed: Boolean) {
+        // A = variable <operator> A
+
+        if(operator in AssociativeOperators)
+            return inplacemodificationRegisterAwithVariable(operator, variable, signed)     // just reuse existing code for associative operators
+
+        // now implement the non-assiciative operators...
+        when (operator) {
+            "-" -> {
+                // TODO optimize: don't use scratch var
+                val tmpVar = if(variable!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
+                asmgen.out("  sta  $tmpVar |  lda  $variable |  sec |  sbc  $tmpVar")
+            }
+            "/" -> {
+                if(signed)
+                    asmgen.out("  tay |  lda  $variable  |  jsr  math.divmod_b_asm |  tya")
+                else
+                    asmgen.out("  tay |  lda  $variable  |  jsr  math.divmod_ub_asm |  tya")
+            }
+            "%" -> {
+                if(signed)
+                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                asmgen.out("  tay |  lda  $variable  |  jsr  math.divmod_ub_asm")
+            }
+            "<<" -> {
+                asmgen.out("""
+                    tay
+                    beq  +
+                    lda  $variable
+-                   asl  a
+                    dey
+                    bne  -
++""")
+            }
+            ">>" -> {
+                if(!signed) {
+                    asmgen.out("""
+                        tay
+                        beq  +
+                        lda  $variable
+-                       lsr  a
+                        dey
+                        bne  -
++""")
+                } else {
+                    asmgen.out("""
+                        tay
+                        beq  +
+                        lda  $variable
+                        sta  P8ZP_SCRATCH_B1
+-                       asl  a
+                        ror  P8ZP_SCRATCH_B1
+                        lda  P8ZP_SCRATCH_B1
+                        dey
+                        bne  -
++""")
+                }
+            }
+            "<" -> {
+                if(!signed) {
+                    TODO("swap operand order")
+                    asmgen.out("""
+                        tay
+                        lda  #0
+                        cpy  $variable
+                        rol  a
+                        eor  #1""")
+                }
+                else {
+                    TODO("swap operand order")
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        sec
+                        sbc  $variable
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+                }
+            }
+            "<=" -> {
+                if(!signed) {
+                    TODO("swap operand order")
+                    asmgen.out("""
+                        tay
+                        lda  #0
+                        ldy  $variable
+                        rol  a""")
+                } else {
+                    TODO("swap operand order")
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        clc
+                        sbc  $variable
+                        bvc  +
+                        eor  #$80
++                       bmi  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+                }
+            }
+            ">" -> {
+                if(!signed) {
+                    TODO("swap operand order")
+                    asmgen.out("""
+                        tay
+                        lda  #0
+                        cpy  $variable
+                        beq  +
+                        rol  a
++""")
+                } else {
+                    TODO("swap operand order")
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        clc
+                        sbc  $variable
+                        bvc  +
+                        eor  #$80
++                		bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+                }
+            }
+            ">=" -> {
+                if(!signed) {
+                    TODO("swap operand order")
+                    asmgen.out("""
+                        tay
+                        lda  #0
+                        cpy  $variable
+                        rol  a""")
+                } else {
+                    TODO("swap operand order")
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
                         sec
