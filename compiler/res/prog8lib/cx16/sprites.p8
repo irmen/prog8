@@ -7,20 +7,19 @@
 ; note: collision mask is not supported here yet.
 
 sprites {
-    const uword VERA_SPRITEREGS = $fc00     ; $1fc00
-    const ubyte PALETTE_OFFSET = 16         ; color palette indices 16-31
     const ubyte SIZE_8  = 0
     const ubyte SIZE_16 = 1
     const ubyte SIZE_32 = 2
     const ubyte SIZE_64 = 3
     const ubyte COLORS_16 = 0
     const ubyte COLORS_256 = 128
+    const uword VERA_SPRITEREGS = $fc00     ; $1fc00
     uword @zp sprite_reg
 
     sub init(ubyte spritenum,
              ubyte databank, uword dataaddr,
              ubyte width_flag, ubyte height_flag,
-             ubyte colors_flag) {
+             ubyte colors_flag, ubyte palette_offset_idx) {
         hide(spritenum)
         cx16.VERA_DC_VIDEO |= %01000000             ; enable sprites globally
         dataaddr >>= 5
@@ -29,7 +28,15 @@ sprites {
         cx16.vpoke(1, sprite_reg, lsb(dataaddr))                    ; address 12:5
         cx16.vpoke(1, sprite_reg+1, colors_flag | msb(dataaddr))    ; 4 bpp + address 16:13
         cx16.vpoke(1, sprite_reg+6, %00001100)                      ; z depth %11 = in front of both layers, no flips
-        cx16.vpoke(1, sprite_reg+7, height_flag<<6 | width_flag<<4 | PALETTE_OFFSET>>4) ; 64x64 pixels, palette offset
+        cx16.vpoke(1, sprite_reg+7, height_flag<<6 | width_flag<<4 | palette_offset_idx>>4) ; 64x64 pixels, palette offset
+    }
+
+    sub data(ubyte spritenum, ubyte bank, uword addr) {
+        addr >>= 5
+        addr |= (bank as uword)<<11
+        sprite_reg = VERA_SPRITEREGS + spritenum*$0008
+        cx16.vpoke(1, sprite_reg, lsb(addr))                    ; address 12:5
+        cx16.vpoke_mask(1, sprite_reg+1, %11110000, msb(addr))    ; address 16:13
     }
 
     sub pos(ubyte spritenum, word xpos, word ypos) {
