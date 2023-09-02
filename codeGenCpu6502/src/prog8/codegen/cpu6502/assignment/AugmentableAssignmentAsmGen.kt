@@ -813,10 +813,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<=" -> {
                 if(!signed) {
                     asmgen.out("""
-                        tay
+                        cmp  $variable
+                        bcc  +
+                        beq  +
                         lda  #0
-                        ldy  $variable
-                        rol  a""")
+                        beq  ++
++                       lda  #1
++""")
                 } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
@@ -966,10 +969,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 if(!signed) {
                     TODO("swap operand order")
                     asmgen.out("""
-                        tay
+                        cmp  $variable
+                        bcc  +
+                        beq  +
                         lda  #0
-                        ldy  $variable
-                        rol  a""")
+                        beq  ++
++                       lda  #1
++""")
                 } else {
                     TODO("swap operand order")
                     // see http://www.6502.org/tutorials/compare_beyond.html
