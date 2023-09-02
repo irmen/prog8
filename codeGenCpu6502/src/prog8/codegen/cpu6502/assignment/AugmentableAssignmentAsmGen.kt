@@ -790,11 +790,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<" -> {
                 if(!signed) {
                     asmgen.out("""
-                        tay
+                        cmp  $variable
+                        bcc  +
                         lda  #0
-                        cpy  $variable
-                        rol  a
-                        eor  #1""")
+                        beq  ++
++                       lda  #1
++""")
                 }
                 else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
@@ -941,17 +942,63 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             "<" -> {
+                // variable<A --> A>variable?
                 if(!signed) {
-                    TODO("swap operand order")
                     asmgen.out("""
                         tay
                         lda  #0
                         cpy  $variable
+                        beq  +
                         rol  a
-                        eor  #1""")
++""")
                 }
                 else {
-                    TODO("swap operand order")
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        clc
+                        sbc  $variable
+                        bvc  +
+                        eor  #$80
++                		bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+                }
+            }
+            "<=" -> {
+                // variable<=A --> A>=variable?
+                if(!signed) {
+                    asmgen.out("""
+                        tay
+                        lda  #0
+                        cpy  $variable
+                        rol  a""")
+                } else {
+                    // see http://www.6502.org/tutorials/compare_beyond.html
+                    asmgen.out("""
+                        sec
+                        sbc  $variable
+                        bvc  +
+                        eor  #$80
++                		bpl  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+                }
+            }
+            ">" -> {
+                // variable>A --> A<variable?
+                if(!signed) {
+                    asmgen.out("""
+                        cmp  $variable
+                        bcc  +
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+                } else {
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
                         sec
@@ -965,9 +1012,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +""")
                 }
             }
-            "<=" -> {
+            ">=" -> {
+                // variable>=A  --> A<=variable?
                 if(!signed) {
-                    TODO("swap operand order")
                     asmgen.out("""
                         cmp  $variable
                         bcc  +
@@ -977,7 +1024,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +                       lda  #1
 +""")
                 } else {
-                    TODO("swap operand order")
                     // see http://www.6502.org/tutorials/compare_beyond.html
                     asmgen.out("""
                         clc
@@ -985,54 +1031,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         bvc  +
                         eor  #$80
 +                       bmi  +
-                        lda  #0
-                        beq  ++
-+                       lda  #1
-+""")
-                }
-            }
-            ">" -> {
-                if(!signed) {
-                    TODO("swap operand order")
-                    asmgen.out("""
-                        tay
-                        lda  #0
-                        cpy  $variable
-                        beq  +
-                        rol  a
-+""")
-                } else {
-                    TODO("swap operand order")
-                    // see http://www.6502.org/tutorials/compare_beyond.html
-                    asmgen.out("""
-                        clc
-                        sbc  $variable
-                        bvc  +
-                        eor  #$80
-+                		bpl  +
-                        lda  #0
-                        beq  ++
-+                       lda  #1
-+""")
-                }
-            }
-            ">=" -> {
-                if(!signed) {
-                    TODO("swap operand order")
-                    asmgen.out("""
-                        tay
-                        lda  #0
-                        cpy  $variable
-                        rol  a""")
-                } else {
-                    TODO("swap operand order")
-                    // see http://www.6502.org/tutorials/compare_beyond.html
-                    asmgen.out("""
-                        sec
-                        sbc  $variable
-                        bvc  +
-                        eor  #$80
-+                		bpl  +
                         lda  #0
                         beq  ++
 +                       lda  #1
