@@ -543,7 +543,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
                 in WordDatatypes -> {
-                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "cx16.r0")
+                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "math.multiply_words.multiplier")
                     asmgen.out("  jsr  math.multiply_words")
                     assignRegisterpairWord(target, RegisterOrPair.AY)
                     return true
@@ -567,7 +567,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  jsr  math.mul_word_${value}")
                     }
                     else {
-                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "cx16.r0")
+                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "math.multiply_words.multiplier")
                         asmgen.out("  jsr  math.multiply_words")
                     }
                     assignRegisterpairWord(target, RegisterOrPair.AY)

@@ -1335,9 +1335,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 } else {
                     asmgen.out("""
                         lda  $name
-                        sta  cx16.r0
+                        sta  math.multiply_words.multiplier
                         lda  $name+1
-                        sta  cx16.r0+1
+                        sta  math.multiply_words.multiplier+1
                         lda  #<$value
                         ldy  #>$value
                         jsr  math.multiply_words
@@ -1786,15 +1786,15 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     "*" -> {
                         if(valueDt==DataType.UBYTE) {
-                            asmgen.out("  lda  $otherName |  sta  cx16.r0")
+                            asmgen.out("  lda  $otherName |  sta  math.multiply_words.multiplier")
                             if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                asmgen.out("  stz  cx16.r0+1")
+                                asmgen.out("  stz  math.multiply_words.multiplier+1")
                             else
-                                asmgen.out("  lda  #0 |  sta  cx16.r0+1")
+                                asmgen.out("  lda  #0 |  sta  math.multiply_words.multiplier+1")
                         } else {
                             asmgen.out("  lda  $otherName")
                             asmgen.signExtendAYlsb(valueDt)
-                            asmgen.out("  sta  cx16.r0 |  sty  cx16.r0+1")
+                            asmgen.out("  sta  math.multiply_words.multiplier |  sty  math.multiply_words.multiplier+1")
                         }
                         asmgen.out("""
                                 lda  $name
@@ -1930,31 +1930,16 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
                     "-" -> asmgen.out("  lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
                     "*" -> {
-                        if(otherName=="cx16.r0")
-                            asmgen.out("""
-                                lda  $name
-                                ldy  $name+1
-                                jsr  math.multiply_words
-                                sta  $name
-                                sty  $name+1""")
-                        else if(name=="cx16.r0")
-                            asmgen.out("""
-                                lda  $otherName
-                                ldy  $otherName+1
-                                jsr  math.multiply_words
-                                sta  $name
-                                sty  $name+1""")
-                        else
-                            asmgen.out("""
-                                lda  $otherName
-                                ldy  $otherName+1
-                                sta  cx16.r0
-                                sty  cx16.r0+1
-                                lda  $name
-                                ldy  $name+1
-                                jsr  math.multiply_words
-                                sta  $name
-                                sty  $name+1""")
+                        asmgen.out("""
+                            lda  $otherName
+                            ldy  $otherName+1
+                            sta  math.multiply_words.multiplier
+                            sty  math.multiply_words.multiplier+1
+                            lda  $name
+                            ldy  $name+1
+                            jsr  math.multiply_words
+                            sta  $name
+                            sty  $name+1""")
                     }
                     "/" -> {
                         if(dt==DataType.WORD) {
@@ -2135,8 +2120,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
         fun multiplyVarByWordInAY() {
             asmgen.out("""
-                sta  cx16.r0
-                sty  cx16.r0+1
+                sta  math.multiply_words.multiplier
+                sty  math.multiply_words.multiplier+1
                 lda  $name
                 ldy  $name+1
                 jsr  math.multiply_words

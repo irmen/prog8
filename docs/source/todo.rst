@@ -1,10 +1,8 @@
 TODO
 ====
+- fix on c64 target: examples/cube3d-float (broken since 9.3 with the evalstack removal)  it works on x16 target, oddly enough.
+  More detailed and simpler code for this problem in floatproblem64.p8
 
-- fix: amiga example with noopt draws wrong lines, caused by "2x faster word multiplication routine" because it trashes r0 and r1 now
-  multiply_words in math.asm needs fixing.
-
-- fix: test all other things with noopt once again!  (examples/c64 are all ok)
 - fix: search for TODO("swap operand order")
 - optimize: search for TODO optimize: don't use scratch var
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm?

@@ -56,9 +56,12 @@ _multiplier      = P8ZP_SCRATCH_REG
 
 multiply_words	.proc
 	; -- multiply two 16-bit words into a 32-bit result  (signed and unsigned)
-	;      input: A/Y = first 16-bit number, cx16.R0 = second 16-bit number
-	;      output: multiply_words.result == cx16.R0:R1, 4-bytes/32-bits product, LSB order (low-to-high)  low 16 bits also in AY.
-	; TODO: should not use R0 and R1 at all !!!  result needs 4 consecutive bytes, so it can't be in zeropage at all...
+	;      input: A/Y = first 16-bit number, multiply_words.multiplier = second 16-bit number
+	;      output: multiply_words.result, 4-bytes/32-bits product, LSB order (low-to-high)  low 16 bits also in AY.
+
+	; NOTE: the result (which includes the multiplier parameter on entry) is a 4-byte array.
+	;       this routine could be faster if we could stick that into zeropage,
+	;       but there currently is no way to use 4 consecutive bytes in ZP (without disabling irq and saving/restoring them)...
 
 ; mult62.a
 ; based on Dr Jefyll, http://forum.6502.org/viewtopic.php?f=9&t=689&start=0#p19958
@@ -73,9 +76,8 @@ multiply_words	.proc
 ; Average cycles:
 ; 93 bytes
 
-_multiplicand    = P8ZP_SCRATCH_W1   ; 2 bytes
-_multiplier      = cx16.r0   ; 2 bytes
-result           = cx16.r0   ; 4 bytes   (note: shares memory with multiplier)  so is r0 and ALSO r1.
+_multiplicand    = P8ZP_SCRATCH_W2   ; 2 bytes
+multiplier      = result
 
 ; 16 bit x 16 bit unsigned multiply, 32 bit result
 ;
@@ -175,6 +177,9 @@ _inner_loop2
     lda  result
     ldy  result+1
     rts
+
+result		.byte  0,0,0,0
+
 		.pend
 
 
