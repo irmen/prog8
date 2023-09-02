@@ -1,7 +1,7 @@
 TODO
 ====
 - fix on c64 target: examples/cube3d-float (broken since 9.3 with the evalstack removal)  it works on x16 target, oddly enough.
-  More detailed and simpler code for this problem in floatproblem64.p8
+  More detailed and simpler code for this problem in floatproblem64.p8 / floatproblem64.asm (the minified version)
 
 - fix: search for TODO("swap operand order")
 - optimize: search for TODO optimize: don't use scratch var
