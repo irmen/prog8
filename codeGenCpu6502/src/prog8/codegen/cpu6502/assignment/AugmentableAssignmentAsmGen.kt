@@ -892,7 +892,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         // now implement the non-assiciative operators...
         when (operator) {
             "-" -> {
-                // TODO optimize: don't use scratch var
+                // A = variable - A
                 val tmpVar = if(variable!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
                 asmgen.out("  sta  $tmpVar |  lda  $variable |  sec |  sbc  $tmpVar")
             }
@@ -1240,8 +1240,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +""")
             }
             "-" -> {
+                // name -= @(memory)
                 asmgen.translateDirectMemReadExpressionToRegA(memread)
-                // TODO optimize: don't use scratch var if possible
                 val tmpByte = if(name!="P8ZP_SCRATCH_B1") "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_REG"
                 asmgen.out("""
                     sta  $tmpByte
@@ -1249,7 +1249,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sec
                     sbc  $tmpByte
                     sta  $name
-                    bcc  +
+                    bcs  +
                     dec  $name+1
 +""")
             }

@@ -3,25 +3,25 @@
 
 main {
     sub start() {
-        byte index = 100
-        byte[] t_index = [-1,-2,-3,-4,-5]
 
-        index = 4
-        index = index>t_index[4]
-        txt.print_b(index)
-        txt.nl()
-        index = index>t_index[4]
-        txt.print_b(index)
-        txt.nl()
+        uword ww= 300
+        @($4000) = 100
+        ww -= @($4000)
+        ww -= 100
+        txt.print_uw(ww)        ; 100
 
-;        index = index < t_index[4]
-;        index = index < t_index[nibble]
-;        txt.print_ub(index)
+;        ubyte index = 100
+;        ubyte[] t_index = [1,2,3,4,5]
+;        ubyte nibble = 0
+;
+;        index = index + t_index[4]
+;        index = index + t_index[nibble]
+;        txt.print_ub(index)     ; 106
 ;        txt.nl()
 ;
 ;        nibble++
-;        index = index > t_index[3]
-;        index = index > t_index[nibble]
+;        index = index - t_index[3]
+;        index = index - t_index[nibble]
 ;        txt.print_ub(index)     ; 100
 ;        txt.nl()
     }
