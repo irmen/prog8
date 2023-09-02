@@ -4,11 +4,10 @@
 main {
     sub start() {
 
-        uword ww= 300
-        @($4000) = 100
-        ww -= @($4000)
-        ww -= 100
-        txt.print_uw(ww)        ; 100
+        byte bb = 20
+        word ww= 300
+        ww += bb*3
+        txt.print_w(ww)        ; 240
 
 ;        ubyte index = 100
 ;        ubyte[] t_index = [1,2,3,4,5]

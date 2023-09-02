@@ -3,7 +3,6 @@ TODO
 - fix on c64 target: examples/cube3d-float (broken since 9.3 with the evalstack removal)  it works on x16 target, oddly enough.
   More detailed and simpler code for this problem in floatproblem64.p8 / floatproblem64.asm (the minified version)
 
-- optimize: search for TODO optimize: don't use scratch var
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm?
 - allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
 - allow 'chained' array indexing for assign targets:  ptrarray[0][0] = 42   this is just evaluating the lhs as a uword pointer expression

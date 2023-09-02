@@ -2172,23 +2172,21 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
                     "+" -> {
+                        // name += byteexpression
                         if(valueDt==DataType.UBYTE) {
-                            // TODO optimize: don't use scratch var
-                            asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
+                            asmgen.assignExpressionToRegister(value, RegisterOrPair.A, false)
                             asmgen.out("""
-                                lda  $name
                                 clc
-                                adc  P8ZP_SCRATCH_B1
+                                adc  $name
                                 sta  $name
                                 bcc  +
                                 inc  $name+1
 +""")
                         } else {
-                            // TODO optimize: don't use scratch var
-                            asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
+                            asmgen.assignExpressionToRegister(value, RegisterOrPair.A, true)
                             asmgen.out("""
                                 ldy  #0
-                                lda  P8ZP_SCRATCH_B1
+                                cmp  #0
                                 bpl  +
                                 dey         ; sign extend
 +                               clc
@@ -2200,7 +2198,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                     "-" -> {
-                        // TODO optimize: don't use scratch var
+                        // name -= byteexpression
                         asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
                         if(valueDt==DataType.UBYTE)
                             asmgen.out("""
