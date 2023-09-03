@@ -3,6 +3,8 @@ package prog8.codegen.cpu6502.assignment
 import prog8.code.ast.PtBinaryExpression
 import prog8.code.ast.PtExpression
 import prog8.code.core.*
+import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.codegen.cpu6502.AsmGen6502Internal
 
 //
@@ -245,11 +247,28 @@ internal class AnyExprAsmGen(
     }
 
     private fun assignFloatOperandsToFACandARG(left: PtExpression, right: PtExpression) {
-        asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
-        if(!right.isSimple()) asmgen.pushFAC1()
-        asmgen.assignExpressionToRegister(right, RegisterOrPair.FAC2, true)
-        if(!right.isSimple()) asmgen.popFAC1()
-        // TODO: always make sure FAC2 is loaded last (done using CONUPK)  otherwise the result will be corrupt on C64
+        when(asmgen.options.compTarget.name) {
+            C64Target.NAME -> {
+                // c64 has a quirk: always make sure FAC2 is loaded last (done using CONUPK)  otherwise the result will be corrupt on C64
+                // this requires some more forced copying around of float values in certain cases
+                if (right.isSimple()) {
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
+                    asmgen.assignExpressionToRegister(right, RegisterOrPair.FAC2, true)
+                } else {
+                    asmgen.assignExpressionToRegister(right, RegisterOrPair.FAC1, true)
+                    asmgen.pushFAC1()
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
+                    asmgen.popFAC2()
+                }
+            }
+            Cx16Target.NAME -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
+                if (!right.isSimple()) asmgen.pushFAC1()
+                asmgen.assignExpressionToRegister(right, RegisterOrPair.FAC2, true)
+                if (!right.isSimple()) asmgen.popFAC1()
+            }
+            else -> TODO("don't know how to evaluate float expression for selected compilation target")
+        }
     }
 
     private fun setupFloatComparisonFAC1vsVarAY(expr: PtBinaryExpression) {

@@ -3031,7 +3031,11 @@ $repeatLabel""")
     }
 
     internal fun popFAC1() {
-        out("  jsr  floats.popFAC1")
+        out("  clc |  jsr  floats.popFAC")
+    }
+
+    internal fun popFAC2() {
+        out("  sec |  jsr  floats.popFAC")
     }
 
     internal fun needAsaveForExpr(arg: PtExpression): Boolean =

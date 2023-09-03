@@ -418,8 +418,9 @@ pushFAC1    .proc
 	rts
 	.pend
 
-popFAC1 .proc
-	; -- pop floating point value from cpu stack into FAC1
+popFAC .proc
+	; -- pop floating point value from cpu stack into FAC1 or FAC2 (
+	;    carry flag clear=FAC1, carry set=FAC2
 	; save return address
 	pla
 	sta  P8ZP_SCRATCH_W2
@@ -437,8 +438,11 @@ popFAC1 .proc
 	sta  floats.floats_temp_var
 	lda  #<floats.floats_temp_var
 	ldy  #>floats.floats_temp_var
+	bcs  +
 	jsr  floats.MOVFM
-	; re-push return address
+	jmp  ++
++       jsr  floats.CONUPK
++	; re-push return address
 	lda  P8ZP_SCRATCH_W2+1
 	pha
 	lda  P8ZP_SCRATCH_W2
