@@ -153,7 +153,7 @@ augassignment :
 
 assign_target:
 	scoped_identifier               #IdentifierTarget
-	| scoped_identifier arrayindex  #ArrayindexedTarget        // TODO expression instead of just scoped_identifier
+	| arrayindexed                  #ArrayindexedTarget
 	| directmemory                  #MemoryTarget
 	;
 
@@ -180,11 +180,17 @@ expression :
 	| left = expression EOL? bop = 'xor' EOL? right = expression
 	| literalvalue
 	| scoped_identifier
-	| scoped_identifier arrayindex          // TODO expression instead of just scoped_identifier
+	| arrayindexed
 	| directmemory
 	| addressof
 	| expression typecast
 	;
+
+arrayindexed:
+    scoped_identifier arrayindex
+    // TODO to allow chained array indexing:  | arrayindexed arrayindex
+    ;
+
 
 typecast : 'as' datatype;
 

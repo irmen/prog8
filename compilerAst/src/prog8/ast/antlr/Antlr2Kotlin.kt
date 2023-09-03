@@ -317,9 +317,10 @@ private fun Prog8ANTLRParser.Assign_targetContext.toAst() : AssignTarget {
         is MemoryTargetContext ->
             AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()), toPosition())
         is ArrayindexedTargetContext -> {
-            val arrayvar = scoped_identifier().toAst()
-            val index = arrayindex().toAst()
-            val arrayindexed = ArrayIndexedExpression(arrayvar, index, scoped_identifier().toPosition())
+            val ax = arrayindexed()
+            val arrayvar = ax.scoped_identifier().toAst()
+            val index = ax.arrayindex().toAst()
+            val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
             AssignTarget(null, arrayindexed, null, toPosition())
         }
         else -> throw FatalAstException("weird assign target node $this")
@@ -434,10 +435,11 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
         }
     }
 
-    if(arrayindex()!=null) {
-        val identifier = scoped_identifier().toAst()
-        val index = arrayindex().toAst()
-        return ArrayIndexedExpression(identifier, index, scoped_identifier().toPosition())
+    if(arrayindexed()!=null) {
+        val ax = arrayindexed()
+        val identifier = ax.scoped_identifier().toAst()
+        val index = ax.arrayindex().toAst()
+        return ArrayIndexedExpression(identifier, index, ax.toPosition())
     }
 
     if(scoped_identifier()!=null)
