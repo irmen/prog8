@@ -1,6 +1,7 @@
 package prog8.codegen.cpu6502.assignment
 
 import prog8.code.ast.PtBinaryExpression
+import prog8.code.ast.PtExpression
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
 
@@ -180,37 +181,25 @@ internal class AnyExprAsmGen(
     private fun assignFloatBinExpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         when(expr.operator) {
             "+" -> {
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
-                if(!expr.right.isSimple()) asmgen.pushFAC1()
-                asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.FAC2, true)
-                if(!expr.right.isSimple()) asmgen.popFAC1()
+                assignFloatOperandsToFACandARG(expr.left, expr.right)
                 asmgen.out("  jsr  floats.FADDT")
                 asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
                 return true
             }
             "-" -> {
-                asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.FAC1, true)
-                if(!expr.left.isSimple()) asmgen.pushFAC1()
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.FAC2, true)
-                if(!expr.left.isSimple()) asmgen.popFAC1()
+                assignFloatOperandsToFACandARG(expr.right, expr.left)
                 asmgen.out("  jsr  floats.FSUBT")
                 asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
                 return true
             }
             "*" -> {
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
-                if(!expr.right.isSimple()) asmgen.pushFAC1()
-                asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.FAC2, true)
-                if(!expr.right.isSimple()) asmgen.popFAC1()
+                assignFloatOperandsToFACandARG(expr.left, expr.right)
                 asmgen.out("  jsr  floats.FMULTT")
                 asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
                 return true
             }
             "/" -> {
-                asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.FAC1, true)
-                if(!expr.left.isSimple()) asmgen.pushFAC1()
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.FAC2, true)
-                if(!expr.left.isSimple()) asmgen.popFAC1()
+                assignFloatOperandsToFACandARG(expr.right, expr.left)
                 asmgen.out("  jsr  floats.FDIVT")
                 asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
                 return true
@@ -253,6 +242,14 @@ internal class AnyExprAsmGen(
             }
             else -> TODO("float expression operator ${expr.operator}")
         }
+    }
+
+    private fun assignFloatOperandsToFACandARG(left: PtExpression, right: PtExpression) {
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
+        if(!right.isSimple()) asmgen.pushFAC1()
+        asmgen.assignExpressionToRegister(right, RegisterOrPair.FAC2, true)
+        if(!right.isSimple()) asmgen.popFAC1()
+        // TODO: always make sure FAC2 is loaded last (done using CONUPK)  otherwise the result will be corrupt on C64
     }
 
     private fun setupFloatComparisonFAC1vsVarAY(expr: PtBinaryExpression) {

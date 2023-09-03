@@ -1,7 +1,9 @@
 TODO
 ====
 - fix on c64 target: examples/cube3d-float (broken since 9.3 with the evalstack removal)  it works on x16 target, oddly enough.
-  More detailed and simpler code for this problem in floatproblem64.p8 / floatproblem64.asm (the minified version)
+  More detailed and simpler code for this problem in floatproblem.p8 / floatproblem64-small.asm (the minified version)
+  Seems like MOVFM (loading FAC) corrupts the sign of ARG, so CONUPK (loading ARG) needs to be done AFTER MOVFM (loading FAC)...?
+  See assignFloatOperandsToFACandARG()
 
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm?
 - allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
