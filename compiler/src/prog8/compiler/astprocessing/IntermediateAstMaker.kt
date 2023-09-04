@@ -326,7 +326,7 @@ class IntermediateAstMaker(private val program: Program) {
 
     private fun transform(srcUnroll: UnrollLoop): PtNodeGroup {
         val result = PtNodeGroup()
-        repeat(srcUnroll.iterations) {
+        repeat(srcUnroll.iterations.constValue(program)!!.number.toInt()) {
             srcUnroll.body.statements.forEach {
                 result.add(transformStatement(it))
             }

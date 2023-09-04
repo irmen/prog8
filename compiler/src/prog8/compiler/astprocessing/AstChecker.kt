@@ -76,14 +76,19 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(unrollLoop: UnrollLoop) {
-        if(unrollLoop.iterations<0 || unrollLoop.iterations>65535)
-            errors.err("invalid number of unrolls", unrollLoop.position)
-        unrollLoop.body.statements.forEach {
-            if(it !is InlineAssembly && it !is Assignment && it !is BuiltinFunctionCallStatement && it !is FunctionCallStatement && it !is PostIncrDecr)
-                errors.err("invalid statement in unroll loop", it.position)
-        }
-        if(unrollLoop.iterations * unrollLoop.body.statements.size > 256) {
-            errors.warn("large number of unrolls, potential code size issue", unrollLoop.position)
+        val iterations = unrollLoop.iterations.constValue(program)?.number?.toInt()
+        if(iterations==null) {
+            errors.err("unroll needs constant number of iterations", unrollLoop.position)
+        } else {
+            if (iterations < 0 || iterations > 65535)
+                errors.err("invalid number of unrolls", unrollLoop.position)
+            unrollLoop.body.statements.forEach {
+                if (it !is InlineAssembly && it !is Assignment && it !is BuiltinFunctionCallStatement && it !is FunctionCallStatement && it !is PostIncrDecr)
+                    errors.err("invalid statement in unroll loop", it.position)
+            }
+            if (iterations * unrollLoop.body.statements.size > 256) {
+                errors.warn("large number of unrolls, potential code size issue", unrollLoop.position)
+            }
         }
         super.visit(unrollLoop)
     }

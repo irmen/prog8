@@ -299,7 +299,7 @@ untilloop:  'do' (statement | statement_block) EOL? 'until' expression ;
 
 repeatloop:  'repeat' expression? EOL? (statement | statement_block) ;
 
-unrollloop:  'unroll' integerliteral? EOL? (statement | statement_block) ;
+unrollloop:  'unroll' expression EOL? (statement | statement_block) ;      // note: expression must evaluate to a constant
 
 whenstmt: 'when' expression EOL? '{' EOL? (when_choice | EOL) * '}' EOL? ;
 

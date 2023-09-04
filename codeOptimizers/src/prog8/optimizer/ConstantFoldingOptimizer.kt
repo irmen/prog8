@@ -628,5 +628,4 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
             return null
         }
     }
-
 }

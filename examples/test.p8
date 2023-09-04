@@ -1,22 +1,15 @@
 %import textio
-%zeropage basicsafe
+%zeropage dontuse
 
 main {
     sub start() {
+        const ubyte CONSTANT=80
+        cx16.r0 = 0
+        unroll CONSTANT-10 {
+            cx16.r0++
+        }
+        txt.print_uw(cx16.r0)
 
-        ubyte[5] xx = [11,22,33,44,55]
-        ubyte[5] yy = [101,102,103,104,105]
-        ubyte i=3
-        ubyte j = 4
-        uword screen
-
-        ubyte result = xx[i] + yy[j]
-        txt.print_ub(result)    ; 149
-        txt.nl()
-        result = xx[i] + yy[i]
-        txt.print_ub(result)    ; 148
-        txt.nl()
-        @(screen+i) = xx[i] + yy[i]
 
 ;        ubyte index = 100
 ;        ubyte[] t_index = [1,2,3,4,5]

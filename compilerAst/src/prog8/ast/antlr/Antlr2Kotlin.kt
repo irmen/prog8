@@ -583,7 +583,7 @@ private fun Prog8ANTLRParser.RepeatloopContext.toAst(): RepeatLoop {
 }
 
 private fun Prog8ANTLRParser.UnrollloopContext.toAst(): UnrollLoop {
-    val iterations = integerliteral().toAst().number.toInt()
+    val iterations = expression().toAst()
     val statements = statement_block()?.toAst() ?: mutableListOf(statement().toAst())
     val scope = AnonymousScope(statements, statement_block()?.toPosition()
         ?: statement().toPosition())

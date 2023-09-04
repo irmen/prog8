@@ -931,11 +931,13 @@ class RepeatLoop(var iterations: Expression?, var body: AnonymousScope, override
         iterations?.referencesIdentifier(nameInSource)==true || body.referencesIdentifier(nameInSource)
 }
 
-class UnrollLoop(val iterations: Int, var body: AnonymousScope, override val position: Position) : Statement() {
+class UnrollLoop(var iterations: Expression, var body: AnonymousScope, override val position: Position) : Statement() {
+    // note: the iterations needs to evaluate to a constant number once parsed.
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
+        iterations.linkParents(this)
         body.linkParents(this)
     }
 
@@ -943,13 +945,14 @@ class UnrollLoop(val iterations: Int, var body: AnonymousScope, override val pos
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if (node===body) body = replacement as AnonymousScope
+        else if (node===iterations) iterations = replacement as Expression
         else throw FatalAstException("invalid replace")
         replacement.parent = this
     }
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = body.referencesIdentifier(nameInSource)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = iterations.referencesIdentifier(nameInSource) || body.referencesIdentifier(nameInSource)
 }
 
 class UntilLoop(var body: AnonymousScope,

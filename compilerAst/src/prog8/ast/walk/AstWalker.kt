@@ -398,6 +398,7 @@ abstract class AstWalker {
 
     fun visit(unrollLoop: UnrollLoop, parent: Node) {
         track(before(unrollLoop, parent), unrollLoop, parent)
+        unrollLoop.iterations.accept(this, unrollLoop)
         unrollLoop.body.accept(this, unrollLoop)
         track(after(unrollLoop, parent), unrollLoop, parent)
     }

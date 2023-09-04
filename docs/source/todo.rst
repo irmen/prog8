@@ -1,9 +1,6 @@
 TODO
 ====
 
-- fix compiler crash on "unroll for x in 0 to txt.DEFAULT_WIDTH-1"
-- fix compiler error on "unroll txt.DEFAULT_WIDTH"
-
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm??
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
