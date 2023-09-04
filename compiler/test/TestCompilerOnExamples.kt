@@ -118,6 +118,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "mandelbrot",
             "mandelbrot-gfx-colors",
             "multipalette",
+            "plasma",
             "rasterbars",
             "sincos",
             "snow",
