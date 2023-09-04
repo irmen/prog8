@@ -9,7 +9,7 @@
 ;  Cleanup and porting to C by Ullrich von Bassewitz.
 ;  See https://github.com/cc65/cc65/tree/master/samples/cbm/plasma.c
 ;
-;  Converted to prog8 by Irmen de Jong.
+;  Optimized and Converted to prog8 by Irmen de Jong.
 
 
 main {
@@ -77,11 +77,14 @@ main {
         c2A += 2
         c2B -= 3
 
+        ; sys.waitvsync()    ; if you put this in it will run at 30 fps synced which looks really nice and smooth
+
         ; use vera auto increment writes to avoid slow txt.setchr(x, y, xbuf[x] + ybuf[y])
         for y in 0 to txt.DEFAULT_HEIGHT-1 {
             cx16.vaddr_autoincr(1, VERA_TXTSCREEN + y*$0100, 0, 2)
+            ubyte @zp yvalue = ybuf[y]
             for x in 0 to txt.DEFAULT_WIDTH-1 {
-                cx16.VERA_DATA0 = xbuf[x] + ybuf[y]
+                cx16.VERA_DATA0 = xbuf[x] + yvalue
             }
         }
     }

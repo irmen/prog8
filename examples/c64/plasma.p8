@@ -8,7 +8,7 @@
 ;  Cleanup and porting to C by Ullrich von Bassewitz.
 ;  See https://github.com/cc65/cc65/tree/master/samples/cbm/plasma.c
 ;
-;  Converted to prog8 by Irmen de Jong.
+;  Optimized and Converted to prog8 by Irmen de Jong.
 
 
 main {
@@ -73,14 +73,14 @@ main {
         ubyte @zp x
         ubyte @zp y
 
-        for y in 24 downto 0 {
+        for y in 0 to 24 {
             ybuf[y] = math.sin8u(c1a) + math.sin8u(c1b)
             c1a += 4
             c1b += 9
         }
         c1A += 3
         c1B -= 5
-        for x in 39 downto 0 {
+        for x in 0 to 39 {
             xbuf[x] = math.sin8u(c2a) + math.sin8u(c2b)
             c2a += 3
             c2b += 7
@@ -89,17 +89,17 @@ main {
         c2B -= 3
 
         for y in 0 to 24 {
+            ubyte @zp @shared yvalue = ybuf[y]
             for x in 0 to 39 {
-                @(screen+x) = xbuf[x] + ybuf[y]
+                ; @(screen+x) = xbuf[x] + yvalue
 ; max optimized asm is this: (achieving ~21 fps on the C64):
-;                %asm {{
-;                     ldy  p8_y
-;                     lda  p8_ybuf,y
-;                     ldy  p8_x
-;                     clc
-;                     adc  p8_xbuf,y
-;                     sta  (p8_screen),y
-;                 }}
+                %asm {{
+                     lda  p8_yvalue
+                     ldy  p8_x
+                     clc
+                     adc  p8_xbuf,y
+                     sta  (p8_screen),y
+                 }}
             }
             screen += 40
         }
