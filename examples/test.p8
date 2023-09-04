@@ -10,13 +10,13 @@ main {
         ubyte j = 4
         uword screen
 
-        ubyte result = xx[i] + yy[j]        ; TODO optimize to use add addr,y
+        ubyte result = xx[i] + yy[j]
         txt.print_ub(result)    ; 149
         txt.nl()
-        result = xx[i] + yy[i]              ; TODO optimize to use add addr,y
+        result = xx[i] + yy[i]
         txt.print_ub(result)    ; 148
         txt.nl()
-        @(screen+i) = xx[i] + yy[i]     ; TODO why is this using P8ZP_SCRATCH_B1?
+        @(screen+i) = xx[i] + yy[i]
 
 ;        ubyte index = 100
 ;        ubyte[] t_index = [1,2,3,4,5]

@@ -88,14 +88,10 @@ main {
         c2A += 2
         c2B -= 3
 
-        for y in 24 downto 0 {
-            for x in 39 downto 0 {
-                ; split the array expression to avoid a prog8 temporary var inefficiency
-                ; this pure prog8 version achieves ~17 fps
-                ubyte @zp tmp = ybuf[y]
-                @(screen+x) = xbuf[x] + tmp
-; prog8 at this time needs a temp variable to calculate the above expression.
-; in optimized asm, this is the fastest way to do this line (achieving ~21 fps on the C64):
+        for y in 0 to 24 {
+            for x in 0 to 39 {
+                @(screen+x) = xbuf[x] + ybuf[y]
+; max optimized asm is this: (achieving ~21 fps on the C64):
 ;                %asm {{
 ;                     ldy  p8_y
 ;                     lda  p8_ybuf,y

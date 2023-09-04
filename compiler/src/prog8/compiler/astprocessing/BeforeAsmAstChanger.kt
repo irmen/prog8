@@ -78,6 +78,16 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                         val typeCast = binExpr.left as? TypecastExpression
                         if(typeCast!=null && typeCast.expression isSameAs assignment.target)
                             return noModifications
+
+                        if(binExpr.operator in "+-") {
+                            val leftDt = binExpr.left.inferType(program)
+                            val rightDt = binExpr.right.inferType(program)
+                            if(leftDt==rightDt && leftDt.isInteger && rightDt.isInteger && binExpr.right is ArrayIndexedExpression) {
+                                // don't split array[i] +/- array[i]    (the codegen has an optimized path for this)
+                                return noModifications
+                            }
+                        }
+
                         val sourceDt = binExpr.left.inferType(program).getOrElse { throw AssemblyError("unknown dt") }
                         val (_, left) = binExpr.left.typecastTo(assignment.target.inferType(program).getOrElse { throw AssemblyError(
                             "unknown dt"

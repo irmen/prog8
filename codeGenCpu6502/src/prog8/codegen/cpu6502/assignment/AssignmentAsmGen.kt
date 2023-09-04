@@ -739,15 +739,31 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
                 else -> {
-                    assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
-                    asmgen.out("  pha")
-                    assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)
-                    asmgen.out("  pla")
-                    if(expr.operator=="+")
-                        asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
-                    else
-                        asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
-                    assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes)
+                    val rightArrayIndexer = expr.right as? PtArrayIndexer
+                    if(rightArrayIndexer!=null && rightArrayIndexer.type in ByteDatatypes && left.type in ByteDatatypes) {
+                        // special optimization for  bytevalue +/- bytearr[y] :  no need to use a tempvar, just use adc array,y or sbc array,y
+                        assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
+                        asmgen.out("  pha")
+                        asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y, false)
+                        asmgen.out("  pla")
+                        val arrayvarname = if(rightArrayIndexer.usesPointerVariable)
+                                "(${rightArrayIndexer.variable.name})"
+                            else
+                                asmgen.asmSymbolName(rightArrayIndexer.variable)
+                        if (expr.operator == "+")
+                            asmgen.out("  clc |  adc  $arrayvarname,y")
+                        else
+                            asmgen.out("  sec |  sbc  $arrayvarname,y")
+                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes)
+                    } else {
+                        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)
+                        assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
+                        if (expr.operator == "+")
+                            asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
+                        else
+                            asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
+                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes)
+                    }
                     return true
                 }
             }
@@ -1857,7 +1873,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             return
         }
 
-        // No more special optmized cases yet. Do the rest via more complex evaluation
+        // No more special optimized cases yet. Do the rest via more complex evaluation
         // note: cannot use assignTypeCastedValue because that is ourselves :P
         // NOTE: THIS MAY TURN INTO A STACK OVERFLOW ERROR IF IT CAN'T SIMPLIFY THE TYPECAST..... :-/
         asmgen.assignExpressionTo(origTypeCastExpression, target)
