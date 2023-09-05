@@ -13,10 +13,7 @@ main {
         charset.make_custom_charset()
 
         ; activate the new charset in RAM
-        ubyte block = c64.CIA2PRA
         const ubyte PAGE1 = ((cbm.Screen >> 6) & $F0) | ((charset.CHARSET >> 10) & $0E)
-
-        c64.CIA2PRA = (block & $FC) | (lsb(cbm.Screen >> 14) ^ $03)
         c64.VMCSB = PAGE1
 
         txt.print("\n @ @ @ @\n")

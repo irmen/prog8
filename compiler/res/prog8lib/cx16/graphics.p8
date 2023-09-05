@@ -29,7 +29,7 @@ graphics {
     sub disable_bitmap_mode() {
         ; enables text mode, erase the text screen, color white
         void cx16.screen_mode(0, false)
-        txt.fill_screen(' ', 1)     ; doesn't seem to fully clear the text screen after returning from gfx mode
+        txt.clear_screen()
     }
 
 

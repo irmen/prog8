@@ -136,6 +136,7 @@ c64 {
     %option no_symbol_prefixing
 
         ; the default locations of the 8 sprite pointers (store address of sprite / 64)
+        ; (depending on the VIC bank and screen ram address selection these can be shifted around though)
         &ubyte  SPRPTR0         = 2040
         &ubyte  SPRPTR1         = 2041
         &ubyte  SPRPTR2         = 2042

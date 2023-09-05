@@ -1,4 +1,5 @@
 %import math
+%import textio
 %import palette
 
 ; use the mouse to move the cursor around the screen
@@ -16,6 +17,7 @@ main  {
         ubyte yy
         void cx16.screen_mode(128, false)
         cx16.mouse_config2(1)
+        txt.print("move the mouse for the spotlight.")
 
         ; prefill
         for yy in 0 to HEIGHT-1 {

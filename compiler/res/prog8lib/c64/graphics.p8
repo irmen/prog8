@@ -1,35 +1,42 @@
-%import textio
-
 ; bitmap pixel graphics module for the C64
 ; only black/white monochrome 320x200 for now
-; assumes bitmap screen memory is $2000-$3fff
+;
+; Sets character matrix and bitmap screen memory at a higher memory location $5c00-$7fff
+; so that the program itself can be larger without starting to overwrite the graphics memory.
 
 graphics {
     %option no_symbol_prefixing
 
-    const uword BITMAP_ADDRESS = $2000
     const uword WIDTH = 320
     const ubyte HEIGHT = 200
 
+    const uword BITMAP_ADDRESS = $6000      ; MUST BE IN REGULAR RAM if you are not messing with ROM/RAM banking.
+    const uword CHARS_ADDRESS = $5c00       ; must be in same vic bank as the bitmap
+
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.
-        c64.SCROLY = %00111011
-        c64.SCROLX = %00001000
-        c64.VMCSB = (c64.VMCSB & %11110000) | %00001000   ; $2000-$3fff
         clear_screen(1, 0)
+        c64.SCROLY = %00111011      ; enable bitmap graphics mode
+        c64.SCROLX = %00001000      ; 40 column mode, no scrolling, multicolor bitmap off
+        c64.VMCSB = (lsb(CHARS_ADDRESS >> 6) & $F0) | (((BITMAP_ADDRESS & $3fff) / $0800) << 1)     ; set bitmap address
+        c64.CIA2DDRA |= %11
+        c64.CIA2PRA = lsb(BITMAP_ADDRESS >> 14) ^ 3     ; set VIC bank.
     }
 
     sub disable_bitmap_mode() {
-        ; enables text mode, erase the text screen, color white
-        c64.SCROLY = %00011011
-        c64.SCROLX = %00001000
-        c64.VMCSB = (c64.VMCSB & %11110000) | %00000100   ; $1000-$2fff
-        txt.fill_screen(' ', 1)
+        ; enables erase the text screen, text mode
+        sys.memset(CHARS_ADDRESS, 40*25, sc:' ')
+        c64.SCROLY = %00011011      ; disable bitmap graphics mode
+        c64.SCROLX = %00001000      ; 40 column mode, no scrolling
+        c64.VMCSB  = %00010100      ; screen addresses back to defaults
+        c64.CIA2DDRA |= %11
+        c64.CIA2PRA = %11   ; back to VIC bank 0.
     }
 
     sub clear_screen(ubyte pixelcolor, ubyte bgcolor) {
         sys.memset(BITMAP_ADDRESS, 320*200/8, 0)
-        txt.fill_screen(pixelcolor << 4 | bgcolor, 0)
+        sys.memset(CHARS_ADDRESS, 40*25, pixelcolor << 4 | bgcolor)
+        sys.memset(cbm.Colors, 40*25, 255)
     }
 
     sub line(uword @zp x1, ubyte @zp y1, uword @zp x2, ubyte @zp y2) {
@@ -352,7 +359,7 @@ _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 ; the y lookup tables encodes this formula:  BITMAP_ADDRESS + 320*(py>>3) + (py & 7)    (y from 0..199)
 ; We use the 64tass syntax for range expressions to calculate this table on assembly time.
 
-_plot_y_values := $2000 + 320*(range(200)>>3) + (range(200) & 7)
+_plot_y_values := BITMAP_ADDRESS + 320*(range(200)>>3) + (range(200) & 7)
 
 _y_lookup_lo    .byte  <_plot_y_values
 _y_lookup_hi    .byte  >_plot_y_values

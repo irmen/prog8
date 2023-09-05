@@ -69,12 +69,6 @@ main {
             return sqrt(sqx + sqy)
         }
 
-;        sub distance(ubyte cix) -> uword {
-;            float dx = x as float - circle_x[cix]
-;            float dy = y as float - circle_y[cix]
-;            return floats.sqrt(dx*dx + dy*dy) as uword
-;        }
-
         sub not_edge() -> bool {
             if x as word - radius < 0
                 return false
