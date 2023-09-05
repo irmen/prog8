@@ -1,7 +1,5 @@
 %import textio
 %import floats
-%zeropage basicsafe
-%option no_sysinit
 
 ; The "Byte Sieve" test.  https://en.wikipedia.org/wiki/Byte_Sieve
 ; Note: this program can be compiled for multiple target systems.
@@ -9,7 +7,6 @@
 main {
     sub start() {
 
-        cbm.SETTIM(0, 0, 0)
 
         const ubyte ITERS = 10
         uword count
@@ -22,15 +19,17 @@ main {
         txt.print_ub(ITERS)
         txt.print(" iterations, calculating...\n")
 
+        cbm.SETTIM(0, 0, 0)
+
         repeat ITERS {
             sys.memset(flags_ptr, SIZEPL, 1)
             count = 0
             for i in 0 to SIZEPL-1 {
-                if @(flags_ptr+i) {
-                    prime = i + i + 3
+                if flags_ptr[i] {
+                    prime = i*2 + 3
                     k = i + prime
-                    while k <= SIZEPL-1 {
-                        @(flags_ptr + k) = false
+                    while k < SIZEPL {
+                        flags_ptr[k] = false
                         k += prime
                     }
 ;                    txt.print_uw(prime)
@@ -48,5 +47,6 @@ main {
         txt.print(" sec total = ")
         floats.print_f(time/ITERS)
         txt.print(" sec per iteration\n")
+        sys.wait(9999)
     }
 }

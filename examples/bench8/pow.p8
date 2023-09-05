@@ -35,8 +35,8 @@ main {
 
         floats.print_f(res)
         txt.nl()
-        txt.print_uw(cbm.RDTIM16())
-        txt.print(" jiffies")
-        sys.wait(300)
+        floats.print_f(cbm.RDTIM16() / 60.0)
+        txt.print(" seconds")
+        sys.wait(9999)
     }
 }

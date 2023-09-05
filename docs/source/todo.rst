@@ -1,11 +1,7 @@
 TODO
 ====
 
-- examples/bench8/crc16 produces wrong answer (expected ffd0 in 4.6 sec)
-- examples/bench8/crc32 produces wrong answer (expected e1fa84c6  in 40.1 sec)
-
-- add bench8/sieve and sieve-bit ports
-
+- fix ir/vm when running bench8/sieve-bit, it produces wrong result
 
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm??
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....

@@ -1,4 +1,5 @@
 %import textio
+%import floats
 
 main {
 
@@ -23,8 +24,8 @@ main {
         ubyte crc = crc8($e000, $2000)
         txt.print_ubhex(crc, true)
         txt.nl()
-        txt.print_uw(cbm.RDTIM16())
-        txt.print(" jiffies")
-        sys.wait(300)
+        floats.print_f(cbm.RDTIM16() / 60.0)
+        txt.print(" seconds")
+        sys.wait(9999)
     }
 }

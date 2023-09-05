@@ -1,11 +1,12 @@
 %import textio
+%import floats
 
 main {
 
     sub crc16(uword data, uword length) -> uword {
         uword crc = 0
         repeat length {
-            crc ^= @(data) << $0008
+            crc ^= mkword(@(data), 0)
             repeat 8 {
                 if crc & $8000
                     crc = (crc<<1)^$1021
@@ -23,8 +24,8 @@ main {
         uword crc = crc16($e000, $2000)
         txt.print_uwhex(crc, true)
         txt.nl()
-        txt.print_uw(cbm.RDTIM16())
-        txt.print(" jiffies")
-        sys.wait(300)
+        floats.print_f(cbm.RDTIM16() / 60.0)
+        txt.print(" seconds")
+        sys.wait(9999)
     }
 }

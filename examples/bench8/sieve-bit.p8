@@ -1,35 +1,42 @@
 %import textio
 %import floats
-%zeropage basicsafe
-
-; TODO fix VM : produces wrong number of primes (and varies too, so it uses uninitialized memory somewhere)
-
 
 main {
+    const ubyte N_ITER = 4
     const uword SIZE = 16000
 
     uword @zp flags_ptr = memory("flags", SIZE/8+1, $100)
     ubyte[] bitv = [ $01, $02, $04, $08, $10, $20, $40, $80 ]
 
     sub start() {
-        txt.print("calculating... (expecting 3431): ")
-        txt.print_uw(sieve())
+        txt.print_ub(N_ITER)
+        txt.print(" iterations, calculating... (expecting 3431)\n")
+
+        cbm.SETTIM(0, 0, 0)
+        uword prime_count
+        repeat N_ITER {
+            prime_count = sieve()
+        }
+
+        txt.print_uw(prime_count)
         txt.print(" primes\n")
+
+        float time = cbm.RDTIM16() as float / 60.0
+        floats.print_f(time)
+        txt.print(" sec total = ")
+        floats.print_f(time/N_ITER)
+        txt.print(" sec per iteration\n")
+        sys.wait(9999)
     }
 
     sub check_flag(uword idx) -> ubyte
     {
-        ubyte mask = bitv[lsb(idx)&7]
-        ubyte flag = flags_ptr[idx/8]
-        return flag & mask
+        return flags_ptr[idx/8] & bitv[lsb(idx)&7]
     }
 
     sub clear_flag(uword idx)
     {
-        ubyte mask = bitv[lsb(idx)&7]
-        ubyte flag = flags_ptr[idx/8]
-        flag &= ~mask
-        flags_ptr[idx/8] = flag
+        flags_ptr[idx/8] &= ~bitv[lsb(idx)&7]
     }
 
     sub sieve() -> uword {
@@ -47,6 +54,8 @@ main {
                     clear_flag(k)
                     k += prime
                 }
+;                    txt.print_uw(prime)
+;                    txt.spc()
                 count++
             }
         }

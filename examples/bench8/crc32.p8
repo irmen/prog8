@@ -1,4 +1,5 @@
 %import textio
+%import floats
 
 main {
     sub crc32(uword data, uword length) {
@@ -7,7 +8,7 @@ main {
         cx16.r0 = 0
         cx16.r1 = 0
         repeat length {
-            cx16.r0 ^= @(data) << $0008
+            cx16.r0 ^= mkword(@(data), 0)
             repeat 8 {
                 if cx16.r0 & $8000 {
                     sys.clear_carry()
@@ -35,8 +36,8 @@ main {
         txt.print_uwhex(cx16.r0, true)
         txt.print_uwhex(cx16.r1, false)
         txt.nl()
-        txt.print_uw(cbm.RDTIM16())
-        txt.print(" jiffies")
-        sys.wait(300)
+        floats.print_f(cbm.RDTIM16() / 60.0)
+        txt.print(" seconds")
+        sys.wait(9999)
     }
 }

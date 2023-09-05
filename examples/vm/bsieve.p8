@@ -17,11 +17,11 @@ main {
         sys.memset(flags_ptr, SIZEPL, 1)
         count = 0
         for i in 0 to SIZEPL-1 {
-            if @(flags_ptr+i) {
+            if flags_ptr[i] {
                 prime = i + i + 3
                 k = i + prime
                 while k <= SIZEPL-1 {
-                    @(flags_ptr + k) = false
+                    flags_ptr[k] = false
                     k += prime
                 }
                 txt.print_uw(prime)
