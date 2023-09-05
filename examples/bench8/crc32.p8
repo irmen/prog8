@@ -29,7 +29,7 @@ main {
     }
 
     sub start() {
-        txt.print("calculating...")
+        txt.print("calculating (expecting $e1fa84c6)...\n")
         cbm.SETTIM(0,0,0)
         crc32($e000, $2000)
         txt.print_uwhex(cx16.r0, true)
@@ -37,6 +37,6 @@ main {
         txt.nl()
         txt.print_uw(cbm.RDTIM16())
         txt.print(" jiffies")
-        sys.wait(100)
+        sys.wait(300)
     }
 }

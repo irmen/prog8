@@ -18,13 +18,13 @@ main {
    }
 
     sub start() {
-        txt.print("calculating...")
+        txt.print("calculating (expecting $a2)...")
         cbm.SETTIM(0,0,0)
         ubyte crc = crc8($e000, $2000)
-        txt.print_ubhex(crc, true)      ; should be $a2
+        txt.print_ubhex(crc, true)
         txt.nl()
         txt.print_uw(cbm.RDTIM16())
         txt.print(" jiffies")
-        sys.wait(100)
+        sys.wait(300)
     }
 }

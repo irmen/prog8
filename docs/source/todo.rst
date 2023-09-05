@@ -1,6 +1,13 @@
 TODO
 ====
 
+- examples/bench8/pow.p8: result value 0 is borked, fix array[j] += testpow(2.5/(i+1.0), j) assignment in 6502 codegen
+- examples/bench8/crc16 produces wrong answer (expected ffd0 in 4.6 sec)
+- examples/bench8/crc32 produces wrong answer (expected e1fa84c6  in 40.1 sec)
+
+- add bench8/sieve and sieve-bit ports
+
+
 - prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm??
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction

@@ -18,13 +18,13 @@ main {
     }
 
     sub start() {
-        txt.print("calculating...")
+        txt.print("calculating (expecting $ffd0)...")
         cbm.SETTIM(0,0,0)
         uword crc = crc16($e000, $2000)
-        txt.print_uwhex(crc, true)      ; should be $ffd0
+        txt.print_uwhex(crc, true)
         txt.nl()
         txt.print_uw(cbm.RDTIM16())
         txt.print(" jiffies")
-        sys.wait(100)
+        sys.wait(300)
     }
 }

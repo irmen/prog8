@@ -18,10 +18,10 @@ main {
     }
 
     sub start() {
-        txt.print("calculating...")
-        cbm.SETTIM(0,0,0)
+        txt.print("calculating (expecting 3.614007e+12)... ")
+        ; cbm.SETTIM(0,0,0)
 
-        float res
+        float res=0.0
         uword i
         ubyte j
         for i in 0 to N_ITER-1 {
@@ -35,8 +35,8 @@ main {
 
         floats.print_f(res)
         txt.nl()
-        txt.print_uw(cbm.RDTIM16())
-        txt.print(" jiffies")
-        sys.wait(100)
+;        txt.print_uw(cbm.RDTIM16())
+;        txt.print(" jiffies")
+        sys.wait(300)
     }
 }

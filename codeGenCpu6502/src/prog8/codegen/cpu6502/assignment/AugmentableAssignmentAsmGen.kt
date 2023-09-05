@@ -422,7 +422,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     ldy  #>$tempvar
                                     sta  P8ZP_SCRATCH_W1
                                     sty  P8ZP_SCRATCH_W1+1
-                                    ply
+                                    pla
+                                    tay
                                     txa
                                     jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
                             }
