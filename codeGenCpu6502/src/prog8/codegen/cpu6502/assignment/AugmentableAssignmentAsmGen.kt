@@ -385,8 +385,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     asmgen.out("  sta  ${target.array.variable.name},y |  txa |  sta  ${target.array.variable.name}+1,y")
                             }
                             DataType.FLOAT -> {
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.FLOAT, CpuRegister.A)
+                                // copy array value into tempvar
                                 val tempvar = asmgen.getTempVarName(DataType.FLOAT)
+                                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.FLOAT, CpuRegister.A)
                                 asmgen.out("""
                                     ldy  #>${target.asmVarname}
                                     clc
@@ -395,9 +396,14 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     iny
 +                                   sta  P8ZP_SCRATCH_W1
                                     sty  P8ZP_SCRATCH_W1+1
+                                    pha  ; save array ptr lsb
+                                    tya
+                                    pha  ; save array ptr msb
                                     lda  #<$tempvar
                                     ldy  #>$tempvar
-                                    jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
+                                    jsr  floats.copy_float""")
+
+                                // calculate on tempvar
                                 when(value.kind) {
                                     SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(tempvar, operator, value.number!!.number)
                                     SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(tempvar, operator, value.asmVarname)
@@ -414,18 +420,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                         }
                                     }
                                 }
+
+                                // copy tempvar back into array
                                 asmgen.out("""
-                                    ldx  P8ZP_SCRATCH_W1
-                                    lda  P8ZP_SCRATCH_W1+1
-                                    pha
                                     lda  #<$tempvar
                                     ldy  #>$tempvar
                                     sta  P8ZP_SCRATCH_W1
                                     sty  P8ZP_SCRATCH_W1+1
-                                    pla
+                                    pla  ; restore array ptr msb
                                     tay
-                                    txa
-                                    jsr  floats.copy_float""")   // copy from array into float temp var, clobbers A,Y
+                                    pla  ; restore array ptr lsb
+                                    jsr  floats.copy_float""")
                             }
                             else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                         }

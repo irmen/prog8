@@ -1,7 +1,6 @@
 TODO
 ====
 
-- examples/bench8/pow.p8: result value 0 is borked, fix array[j] += testpow(2.5/(i+1.0), j) assignment in 6502 codegen
 - examples/bench8/crc16 produces wrong answer (expected ffd0 in 4.6 sec)
 - examples/bench8/crc32 produces wrong answer (expected e1fa84c6  in 40.1 sec)
 

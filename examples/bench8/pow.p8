@@ -18,8 +18,8 @@ main {
     }
 
     sub start() {
-        txt.print("calculating (expecting 3.614007e+12)... ")
-        ; cbm.SETTIM(0,0,0)
+        txt.print("calculating (expecting 3.614007e+12)...\n")
+        cbm.SETTIM(0,0,0)
 
         float res=0.0
         uword i
@@ -35,8 +35,8 @@ main {
 
         floats.print_f(res)
         txt.nl()
-;        txt.print_uw(cbm.RDTIM16())
-;        txt.print(" jiffies")
+        txt.print_uw(cbm.RDTIM16())
+        txt.print(" jiffies")
         sys.wait(300)
     }
 }

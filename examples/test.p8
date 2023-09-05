@@ -1,29 +1,28 @@
 %import textio
-%zeropage dontuse
+%import floats
+%zeropage basicsafe
 
 main {
+    float[4] array
+
+    sub testpow(float x) -> float {
+        return 1.234
+    }
+
     sub start() {
-        const ubyte CONSTANT=80
-        cx16.r0 = 0
-        unroll CONSTANT-10 {
-            cx16.r0++
-        }
-        txt.print_uw(cx16.r0)
+        float res
+        ubyte j = 2
+        res += testpow(1.234)
+        floats.print_f(res)
+        txt.nl()
+        floats.print_f(array[j])
+        txt.nl()
+        txt.nl()
 
-
-;        ubyte index = 100
-;        ubyte[] t_index = [1,2,3,4,5]
-;        ubyte nibble = 0
-;
-;        index = index + t_index[4]
-;        index = index + t_index[nibble]
-;        txt.print_ub(index)     ; 106
-;        txt.nl()
-;
-;        nibble++
-;        index = index - t_index[3]
-;        index = index - t_index[nibble]
-;        txt.print_ub(index)     ; 100
-;        txt.nl()
+        array[j] += testpow(1.234)
+        floats.print_f(res)
+        txt.nl()
+        floats.print_f(array[j])
+        txt.nl()
     }
 }
