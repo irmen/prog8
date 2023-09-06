@@ -53,6 +53,6 @@ class PETZeropage(options: CompilationOptions) : Zeropage(options) {
     }
 
     override fun allocateCx16VirtualRegisters() {
-        TODO("Not known if C128 can put the virtual regs in ZP")
+        TODO("Not known if PET can put the virtual regs in ZP")
     }
 }

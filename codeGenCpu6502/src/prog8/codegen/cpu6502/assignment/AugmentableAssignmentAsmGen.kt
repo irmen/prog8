@@ -57,9 +57,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         // the asm-gen code can deal with situations where you want to assign a byte into a word.
         // it will create the most optimized code to do this (so it type-extends for us).
         // But we can't deal with writing a word into a byte - explicit typeconversion should be done
-        if(program.memsizer.memorySize(value.datatype) > program.memsizer.memorySize(target.datatype)) {
-            TODO("missing type cast: value type > target type  ${target.position}")
-        }
+        if(program.memsizer.memorySize(value.datatype) > program.memsizer.memorySize(target.datatype))
+            throw AssemblyError("missing type cast: value type > target type  ${target.position}")
 
         fun regName(v: AsmAssignSource) = "cx16.${v.register!!.name.lowercase()}"
 

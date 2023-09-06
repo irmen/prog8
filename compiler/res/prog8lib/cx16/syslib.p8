@@ -395,6 +395,7 @@ romsub $febd = kbdbuf_peek() -> ubyte @A, ubyte @X     ; key in A, queue length 
 romsub $febd = kbdbuf_peek2() -> uword @AX             ; alternative to above to not have the hassle to deal with multiple return values
 romsub $fec0 = kbdbuf_get_modifiers() -> ubyte @A
 romsub $fec3 = kbdbuf_put(ubyte key @A) clobbers(X)
+romsub $fed2 = keymap(uword identifier @XY, bool read @Pc) -> bool @Pc
 romsub $ff68 = mouse_config(ubyte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
 romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A
 romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
@@ -403,10 +404,10 @@ romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to above to not have the hassle to deal with multiple return values
 
 ; Audio (rom bank 10)
-romsub $C04B = psg_init() clobbers(A,X,Y)
+romsub $C04B = psg_init() clobbers(A,X,Y)                              ; (re)init Vera PSG
 romsub $C063 = ym_init() clobbers(A,X,Y) -> bool @Pc                   ; (re)init YM chip
 romsub $C066 = ym_loaddefpatches() clobbers(A,X,Y) -> bool @Pc         ; load default YM patches
-romsub $C09F = audio_init() clobbers(A,X,Y) -> bool @Pc                ; (re)initialize PSG and YM audio chips
+romsub $C09F = audio_init() clobbers(A,X,Y) -> bool @Pc                ; (re)initialize both vera PSG and YM audio chips
 ; TODO: add more of the audio routines?
 
 

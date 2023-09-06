@@ -143,8 +143,6 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
 
     private fun simplifyConditionalExpression(expr: BinaryExpression): CondExprSimplificationResult {
 
-        // TODO: somehow figure out if the expr will result in stack-evaluation STILL after being split off,
-        //       in that case: do *not* split it off but just keep it as it is (otherwise code size increases)
         // NOTE: do NOT move this to an earler ast transform phase (such as StatementReorderer or StatementOptimizer) - it WILL result in larger code.
 
         if(compTarget.name == VMTarget.NAME)  // don't apply this optimization for Vm target
