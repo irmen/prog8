@@ -37,16 +37,16 @@ All have type b or w or f.
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
-loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2
-loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2
+loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (only the lsb part used for indexing)
+loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2 (only the lsb part used for indexing)
 loadr       reg1, reg2                - load reg1 with value in register reg2
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
-storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2
-storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2
+storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (only the lsb part used for indexing)
+storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2 (only the lsb part used for indexing)
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
-storezx     reg1,         address     - store zero at memory address, indexed by value in reg
+storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (only the lsb part used for indexing)
 
 
 CONTROL FLOW

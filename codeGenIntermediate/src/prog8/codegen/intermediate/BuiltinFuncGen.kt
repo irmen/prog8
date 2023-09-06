@@ -549,6 +549,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcLsb(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         return exprGen.translateExpression(call.args.single())
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
+        // TODO to be more strict, maybe we *should* introduce a new result register that is of type .b?
     }
 
     private fun funcMsb(call: PtBuiltinFunctionCall): ExpressionCodeResult {

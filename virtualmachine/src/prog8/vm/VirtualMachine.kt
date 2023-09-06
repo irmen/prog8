@@ -435,18 +435,18 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsLOADX(i: IRInstruction) {
         when (i.type!!) {
             IRDataType.BYTE -> {
-                val value = memory.getUB(i.address!! + registers.getUW(i.reg2!!).toInt())
+                val value = memory.getUB(i.address!! + registers.getUB(i.reg2!!).toInt())
                 registers.setUB(i.reg1!!, value)
                 statusZero = value==0.toUByte()
                 statusNegative = value>=0x80u
             }
             IRDataType.WORD -> {
-                val value = memory.getUW(i.address!! + registers.getUW(i.reg2!!).toInt())
+                val value = memory.getUW(i.address!! + registers.getUB(i.reg2!!).toInt())
                 registers.setUW(i.reg1!!, value)
                 statusZero = value== 0.toUShort()
                 statusNegative = value>=0x8000u
             }
-            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!! + registers.getUW(i.reg1!!).toInt()))
+            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!! + registers.getUB(i.reg1!!).toInt()))
         }
         nextPc()
     }
@@ -514,9 +514,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSTOREX(i: IRInstruction) {
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt() + i.address!!, registers.getUB(i.reg1!!))
-            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt() + i.address!!, registers.getUW(i.reg1!!))
-            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt() + i.address!!, registers.getFloat(i.fpReg1!!))
+            IRDataType.BYTE -> memory.setUB(i.address!! + registers.getUB(i.reg2!!).toInt(), registers.getUB(i.reg1!!))
+            IRDataType.WORD -> memory.setUW(i.address!! + registers.getUB(i.reg2!!).toInt(), registers.getUW(i.reg1!!))
+            IRDataType.FLOAT -> memory.setFloat(i.address!! + registers.getUB(i.reg1!!).toInt(), registers.getFloat(i.fpReg1!!))
         }
         nextPc()
     }
@@ -559,9 +559,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSTOREZX(i: IRInstruction) {
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toInt() + i.address!!, 0u)
-            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toInt() + i.address!!, 0u)
-            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt() + i.address!!, 0f)
+            IRDataType.BYTE -> memory.setUB(i.address!! + registers.getUB(i.reg1!!).toInt(), 0u)
+            IRDataType.WORD -> memory.setUW(i.address!! + registers.getUB(i.reg1!!).toInt(), 0u)
+            IRDataType.FLOAT -> memory.setFloat(i.address!! + registers.getUB(i.reg1!!).toInt(), 0f)
         }
         nextPc()
     }
