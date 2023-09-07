@@ -740,8 +740,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
                 else -> {
                     val rightArrayIndexer = expr.right as? PtArrayIndexer
-                    if(rightArrayIndexer!=null && rightArrayIndexer.type in ByteDatatypes && left.type in ByteDatatypes) {
-                        // special optimization for  bytevalue +/- bytearr[y] :  no need to use a tempvar, just use adc array,y or sbc array,y
+                    if(asmgen.isTargetCpu(CpuType.CPU65c02) && rightArrayIndexer!=null && rightArrayIndexer.type in ByteDatatypes && left.type in ByteDatatypes) {
+                        // special optimization (available on 65c02) for  bytevalue +/- bytearr[y] :  no need to use a tempvar, just use adc array,y or sbc array,y
                         assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
                         asmgen.out("  pha")
                         asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y, false)
