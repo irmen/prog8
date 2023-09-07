@@ -740,20 +740,32 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
                 else -> {
                     val rightArrayIndexer = expr.right as? PtArrayIndexer
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02) && rightArrayIndexer!=null && rightArrayIndexer.type in ByteDatatypes && left.type in ByteDatatypes) {
-                        // special optimization (available on 65c02) for  bytevalue +/- bytearr[y] :  no need to use a tempvar, just use adc array,y or sbc array,y
+                    if(rightArrayIndexer!=null && rightArrayIndexer.type in ByteDatatypes && left.type in ByteDatatypes) {
+                        // special optimization for  bytevalue +/- bytearr[y] :  no need to use a tempvar, just use adc array,y or sbc array,y  or  adc (ptr),y / sbc (ptr),y
                         assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
-                        asmgen.out("  pha")
+                        if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pha")
                         asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y, false)
-                        asmgen.out("  pla")
-                        val arrayvarname = if(rightArrayIndexer.usesPointerVariable)
+                        if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pla")
+                        if(rightArrayIndexer.usesPointerVariable && !asmgen.isZpVar(rightArrayIndexer.variable)) {
+                            asmgen.out("""
+                                ldx  ${rightArrayIndexer.variable.name}
+                                stx  P8ZP_SCRATCH_W1
+                                ldx  ${rightArrayIndexer.variable.name}+1
+                                stx  P8ZP_SCRATCH_W1+1""")
+                            if (expr.operator == "+")
+                                asmgen.out("  clc |  adc  (P8ZP_SCRATCH_W1),y")
+                            else
+                                asmgen.out("  sec |  sbc  (P8ZP_SCRATCH_W1),y")
+                        } else {
+                            val arrayvarname = if (rightArrayIndexer.usesPointerVariable)
                                 "(${rightArrayIndexer.variable.name})"
                             else
                                 asmgen.asmSymbolName(rightArrayIndexer.variable)
-                        if (expr.operator == "+")
-                            asmgen.out("  clc |  adc  $arrayvarname,y")
-                        else
-                            asmgen.out("  sec |  sbc  $arrayvarname,y")
+                            if (expr.operator == "+")
+                                asmgen.out("  clc |  adc  $arrayvarname,y")
+                            else
+                                asmgen.out("  sec |  sbc  $arrayvarname,y")
+                        }
                         assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes)
                     } else {
                         assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)

@@ -777,6 +777,7 @@ io_error:
         cbm.SETLFS(15, drivenumber, 15)
         void cbm.OPEN()
         cbm.CLOSE(15)
+        void cbm.CHKIN(12)       ; back to the channel that f_open uses
     }
 
 
