@@ -33,10 +33,10 @@ dependencies {
 sourceSets {
     main {
         java {
-            srcDirs = ["${project.projectDir}/src"]
+            srcDir "${project.projectDir}/src"
         }
         resources {
-            srcDirs = ["${project.projectDir}/res"]
+            srcDir "${project.projectDir}/res"
         }
     }
 }

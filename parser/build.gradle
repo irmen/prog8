@@ -28,13 +28,14 @@ generateGrammarSource {
     arguments += ["-no-listener","-no-visitor"]
 }
 
+
 sourceSets {
     main {
         java {
-            srcDirs = ["${project.projectDir}/src"]
+            srcDir "${project.projectDir}/src"
         }
         antlr {
-        	srcDirs = ["${project.projectDir}/antlr"]
+            srcDirs = ["${project.projectDir}/antlr"]
         }
     }
 }

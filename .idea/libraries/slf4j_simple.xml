@@ -1,9 +1,9 @@
 <component name="libraryTable">
   <library name="slf4j.simple" type="repository">
-    <properties maven-id="org.slf4j:slf4j-simple:2.0.7" />
+    <properties maven-id="org.slf4j:slf4j-simple:2.0.9" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-simple/2.0.7/slf4j-simple-2.0.7.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/2.0.7/slf4j-api-2.0.7.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-simple/2.0.9/slf4j-simple-2.0.9.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

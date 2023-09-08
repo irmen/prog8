@@ -28,7 +28,7 @@ class Jsonding: RsJson.Source {
 class RequestParser : Take {
     override fun act(request: Request): Response {
         val form = RqFormBase(request)
-        val names = form.names()
+        // val names = form.names()
         val a = form.param("a").single()
         val args = CompilerArguments(
             Path(a),
@@ -44,7 +44,7 @@ class RequestParser : Take {
             splitWordArrays = false,
             varsHighBank = null,
         )
-        val compilationResult = compileProgram(args)
+        compileProgram(args)
         return RsJson(Jsonding())
     }
 }

@@ -1,7 +1,8 @@
 TODO
 ====
 
-- prefix prog8 subroutines with p8s_ instead of p8_ to not let them clash with variables in the asm??
+- optimize assembly output for (word1 & word2 ==0) ...  (no need for stack pushes) see attemptAssignToByteCompareZero().
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!
@@ -53,12 +54,10 @@ Libraries:
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?
-- c64: make the graphics.BITMAP_ADDRESS configurable (VIC banking)
 
 
 Optimizations:
 
-- optimize assembly output for ( word1 & word2 ==0) ...  (no need for stack pushes) see attemptAssignToByteCompareZero().
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
