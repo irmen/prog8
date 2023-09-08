@@ -35,7 +35,7 @@ main {
     sub start() {
         ubyte i
         for i in 0 to 7 {
-            c64.SPRPTR[i] = $0a00/64
+            c64.set_sprite_ptr(i, $0a00)           ; alternatively, set directly:  c64.SPRPTR[i] = $0a00 / 64
         }
         c64.SPENA = 255                 ; enable all sprites
         sys.set_rasterirq(&irq.irqhandler, 230, true)     ; enable animation

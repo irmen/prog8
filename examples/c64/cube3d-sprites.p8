@@ -171,6 +171,7 @@ main {
 
             c64.SPXYW[i] = mkword(sy, sx)
 
+            ; because we want speed, we don't use the dynamic c64.set_sprite_ptr() here
             if(zc < 30*128)
                 c64.SPRPTR[i] = $2000/64 +1     ; large ball
             else

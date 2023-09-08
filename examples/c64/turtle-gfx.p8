@@ -30,19 +30,18 @@ turtle {
     float angle
     bool pendown
 
+    const uword SPRITE_MEMORY = $5800
+
     sub init() {
         xpos = 160.0
         ypos = 100.0
         angle = 0.0
         pendown = true
 
-        const uword SPRITE_MEMORY = $5800
-        const uword SPRITE_ADDR_POINTERS = (graphics.CHARS_ADDRESS & $fc00) + 1016      ; no longer the default location 2040!
-
-        sys.memcopy(&turtlesprite, SPRITE_MEMORY, len(turtlesprite))
-        @(SPRITE_ADDR_POINTERS) = (SPRITE_MEMORY & $3fff) / 64
-        c64.SPENA = 1
-        c64.SP0COL = 5
+        sys.memcopy(&turtlesprite, SPRITE_MEMORY, len(turtlesprite))    ; copy the sprite pixel data
+        c64.set_sprite_ptr(0, SPRITE_MEMORY)        ; use dynamic setter because of changed vic memory layout
+        c64.SPENA = 1       ; sprites on
+        c64.SP0COL = 5      ; green sprite
 
         update_turtle_sprite()
     }

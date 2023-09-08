@@ -136,7 +136,8 @@ c64 {
     %option no_symbol_prefixing
 
         ; the default locations of the 8 sprite pointers (store address of sprite / 64)
-        ; (depending on the VIC bank and screen ram address selection these can be shifted around though)
+        ; (depending on the VIC bank and screen ram address selection these can be shifted around though,
+        ; see the two routines after this for a dynamic way of determining the correct memory location)
         &ubyte  SPRPTR0         = 2040
         &ubyte  SPRPTR1         = 2041
         &ubyte  SPRPTR2         = 2042
@@ -285,6 +286,39 @@ c64 {
 
 ; ---- end of SID registers ----
 
+
+    sub get_vic_memory_base() -> uword {
+        ; one of the 4 possible banks. $0000/$4000/$8000/$c000.
+        c64.CIA2DDRA |= %11
+        return ((c64.CIA2PRA & 3) ^ 3) as uword << 14
+    }
+
+    sub get_char_matrix_ptr() -> uword {
+        ; Usually the character screen matrix is at 1024-2039 (see above)
+        ; However the vic memory configuration can be altered and this moves these registers with it.
+        ; So this routine determines it dynamically from the VIC memory setup.
+        uword chars_matrix_offset = (c64.VMCSB & $f0) as uword << 6
+        return get_vic_memory_base() + chars_matrix_offset
+    }
+
+    sub get_bitmap_ptr() -> uword {
+        return get_vic_memory_base() + ((c64.VMCSB & %00001000) as uword << 10)
+    }
+
+    sub get_sprite_addr_ptrs() -> uword {
+        ; Usually the sprite address pointers are at addresses 2040-2047 (see above)
+        ; However the vic memory configuration can be altered and this moves these registers with it.
+        ; So this routine determines it dynamically from the VIC memory setup.
+        return get_char_matrix_ptr() + 1016
+    }
+
+    sub set_sprite_ptr(ubyte sprite_num, uword sprite_data_address) {
+        ; Sets the sprite data pointer to the given address.
+        ; Because it takes some time to calculate things based on the vic memory setup,
+        ; its only suitable if you're not continuously changing the data address.
+        ; Otherwise store the correct sprite data pointer location somewhere yourself and reuse it.
+        @(get_sprite_addr_ptrs() + sprite_num) = lsb(sprite_data_address / 64)
+    }
 }
 
 sys {

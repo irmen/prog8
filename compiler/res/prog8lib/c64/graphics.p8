@@ -10,15 +10,16 @@ graphics {
     const uword WIDTH = 320
     const ubyte HEIGHT = 200
 
-    const uword BITMAP_ADDRESS = $6000      ; MUST BE IN REGULAR RAM if you are not messing with ROM/RAM banking.
-    const uword CHARS_ADDRESS = $5c00       ; must be in same vic bank as the bitmap
+    const uword BITMAP_ADDRESS = $6000      ; MUST BE IN REGULAR RAM if you are not messing with ROM/RAM banking. (and $2000-aligned)
+                                            ; note: this constant is also used in a asm multiplication table below!
+    const uword CHARS_ADDRESS = $5c00       ; must be in same vic memory bank as the bitmap.
 
     sub enable_bitmap_mode() {
         ; enable bitmap screen, erase it and set colors to black/white.
         clear_screen(1, 0)
         c64.SCROLY = %00111011      ; enable bitmap graphics mode
         c64.SCROLX = %00001000      ; 40 column mode, no scrolling, multicolor bitmap off
-        c64.VMCSB = (lsb(CHARS_ADDRESS >> 6) & $F0) | (((BITMAP_ADDRESS & $3fff) / $0800) << 1)     ; set bitmap address
+        c64.VMCSB = (lsb(CHARS_ADDRESS >> 6) & $F0) | (lsb((BITMAP_ADDRESS & $3fff) / $0800) << 1)     ; set bitmap address
         c64.CIA2DDRA |= %11
         c64.CIA2PRA = lsb(BITMAP_ADDRESS >> 14) ^ 3     ; set VIC bank.
     }
