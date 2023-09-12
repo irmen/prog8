@@ -1,7 +1,9 @@
 TODO
 ====
 
-- optimize assembly output for (word1 & word2 ==0) ...  (no need for stack pushes) see attemptAssignToByteCompareZero().
+- possibly optimize assembly output for (word1 & word2 ==0)
+    see attemptAssignToByteCompareZero() for assignment.
+    see testZeroOrJumpElsewhere() for if condition.
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction

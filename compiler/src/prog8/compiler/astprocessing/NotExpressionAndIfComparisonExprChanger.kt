@@ -1,16 +1,17 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.*
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.FatalAstException
-import prog8.ast.expressions.*
-import prog8.ast.statements.AssignTarget
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.AssignmentOrigin
-import prog8.ast.statements.IfElse
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.NumericLiteral
+import prog8.ast.expressions.PrefixExpression
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
-import prog8.code.target.VMTarget
+import prog8.code.core.DataType
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.IErrorReporter
+import prog8.code.core.IntegerDatatypes
 
 internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
 
@@ -98,109 +99,5 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
         }
         return noModifications
-    }
-
-
-    override fun before(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
-        if(compTarget.name == VMTarget.NAME)  // don't apply this optimization for Vm target
-            return noModifications
-
-        val binExpr = ifElse.condition as? BinaryExpression
-        if(binExpr==null || binExpr.operator !in ComparisonOperators)
-            return noModifications
-
-        // Simplify the conditional expression, introduce simple assignments if required.
-        // NOTE: sometimes this increases code size because additional stores/loads are generated for the
-        //       intermediate variables. We assume these are optimized away from the resulting assembly code later.
-        val simplify = simplifyConditionalExpression(binExpr)
-        val modifications = mutableListOf<IAstModification>()
-        if(simplify.rightVarAssignment!=null) {
-            modifications += IAstModification.ReplaceNode(binExpr.right, simplify.rightOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(
-                ifElse,
-                simplify.rightVarAssignment,
-                parent as IStatementContainer
-            )
-        }
-        if(simplify.leftVarAssignment!=null) {
-            modifications += IAstModification.ReplaceNode(binExpr.left, simplify.leftOperandReplacement!!, binExpr)
-            modifications += IAstModification.InsertBefore(
-                ifElse,
-                simplify.leftVarAssignment,
-                parent as IStatementContainer
-            )
-        }
-
-        return modifications
-    }
-
-    private class CondExprSimplificationResult(
-        val leftVarAssignment: Assignment?,
-        val leftOperandReplacement: Expression?,
-        val rightVarAssignment: Assignment?,
-        val rightOperandReplacement: Expression?
-    )
-
-    private fun simplifyConditionalExpression(expr: BinaryExpression): CondExprSimplificationResult {
-
-        // NOTE: do NOT move this to an earler ast transform phase (such as StatementReorderer or StatementOptimizer) - it WILL result in larger code.
-
-        if(compTarget.name == VMTarget.NAME)  // don't apply this optimization for Vm target
-            return CondExprSimplificationResult(null, null, null, null)
-
-        val leftDt = expr.left.inferType(program)
-        val rightDt = expr.right.inferType(program)
-
-        if(!leftDt.isInteger || !rightDt.isInteger) {
-            // we can't reasonably simplify non-integer expressions
-            return CondExprSimplificationResult(null, null, null, null)
-        }
-
-        var leftAssignment: Assignment? = null
-        var leftOperandReplacement: Expression? = null
-        var rightAssignment: Assignment? = null
-        var rightOperandReplacement: Expression? = null
-        val separateLeftExpr = !expr.left.isSimple
-                && expr.left !is IFunctionCall
-                && expr.left !is ContainmentCheck
-        val separateRightExpr = !expr.right.isSimple
-                && expr.right !is IFunctionCall
-                && expr.right !is ContainmentCheck
-
-        if(separateLeftExpr) {
-            val name = getTempRegisterName(leftDt)
-            leftOperandReplacement = IdentifierReference(name, expr.position)
-            leftAssignment = Assignment(
-                AssignTarget(IdentifierReference(name, expr.position), null, null, expr.position),
-                expr.left.copy(),
-                AssignmentOrigin.ASMGEN, expr.position
-            )
-        }
-        if(separateRightExpr) {
-            val (tempVarName, _) = program.getTempVar(rightDt.getOrElse { throw FatalAstException("invalid dt") }, true)
-            rightOperandReplacement = IdentifierReference(tempVarName, expr.position)
-            rightAssignment = Assignment(
-                AssignTarget(IdentifierReference(tempVarName, expr.position), null, null, expr.position),
-                expr.right.copy(),
-                AssignmentOrigin.ASMGEN, expr.position
-            )
-        }
-        return CondExprSimplificationResult(
-            leftAssignment, leftOperandReplacement,
-            rightAssignment, rightOperandReplacement
-        )
-    }
-    
-    fun getTempRegisterName(dt: InferredTypes.InferredType): List<String> {
-        return when {
-            // TODO assume (hope) cx16.r9 isn't used for anything else during the use of this temporary variable...
-            dt istype DataType.UBYTE -> listOf("cx16", "r9L")
-            dt istype DataType.BOOL -> listOf("cx16", "r9L")
-            dt istype DataType.BYTE -> listOf("cx16", "r9sL")
-            dt istype DataType.UWORD -> listOf("cx16", "r9")
-            dt istype DataType.WORD -> listOf("cx16", "r9s")
-            dt.isPassByReference -> listOf("cx16", "r9")
-            else -> throw FatalAstException("invalid dt $dt")
-        }
     }
 }
