@@ -25,6 +25,7 @@ main {
         cbm.SETTIM(0,0,0)
 
         while cbm.GETIN()==0 {
+            ; sys.waitvsync()
             doplasma()
             frames ++
         }
@@ -64,15 +65,15 @@ main {
 
         for y in 0 to txt.DEFAULT_HEIGHT-1 {
             ybuf[y] = math.sin8u(c1a) + math.sin8u(c1b)
-            c1a += 4
-            c1b += 9
+            c1a += 2
+            c1b += 5
         }
         c1A += 3
         c1B -= 5
         for x in 0 to txt.DEFAULT_WIDTH-1 {
             xbuf[x] = math.sin8u(c2a) + math.sin8u(c2b)
-            c2a += 3
-            c2b += 7
+            c2a += 4
+            c2b += 1
         }
         c2A += 2
         c2B -= 3

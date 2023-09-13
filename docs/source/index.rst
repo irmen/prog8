@@ -201,6 +201,7 @@ Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-fil
     targetsystem.rst
     technical.rst
     portingguide.rst
+    software.rst
     todo.rst
 
 

@@ -1538,11 +1538,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
-        // TODO optimized code for   (word1 & word2) == 0  :
-//        if(expr.left.type in WordDatatypes && (expr.operator=="==" || expr.operator=="!=") && expr.left is PtBinaryExpression) {
-//            println("TODO optimize logical word expr ${expr.position}")
-//        }
-
         when (expr.operator) {
             "==" -> {
                 when(val dt = expr.left.type) {
