@@ -65,8 +65,20 @@ main {
         txt.print("\ndecoding all blocks...\n")
         cbm.SETTIM(0,0,0)
         repeat num_adpcm_blocks {
+
+            ; If the IMA data is mono, an individual chunk of data begins with the following preamble:
+            ; bytes 0-1:   initial predictor (in little-endian format)
+            ; byte 2:      initial index
+            ; byte 3:      unknown, usually 0 and is probably reserved
+            ; If the IMA data is stereo, a chunk begins with two preambles, one for the left audio channel and one for the right channel.
+            ; (so we have 8 bytes of preamble).
+            ; The remaining bytes in the chunk are the IMA nibbles. The first 4 bytes, or 8 nibbles,
+            ; belong to the left channel and -if it's stereo- the next 4 bytes belong to the right channel.
+
+            ; The code here assumes mono.
             adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
             nibblesptr += 4
+
             repeat 252 {
                ubyte @zp nibble = @(nibblesptr)
                adpcm.decode_nibble(nibble & 15)     ; first word

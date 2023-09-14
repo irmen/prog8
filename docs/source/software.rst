@@ -32,3 +32,12 @@ there are also larger pieces of software written using Prog8. Here's a list.
 `Streaming Music Demo <https://github.com/irmen/cx16musicdemo>`_
     Demoscene like "music demos" for the Commander X16.
     They display graphics, animated song lyrics, and play a high quality sampled song streamed from disk.
+
+
+Various things:
+
+`GalaX16 and other programs <https://github.com/reltham/X16Prog8Code>`_
+    Beginnings of a Galaga game for the Commander X16.
+
+`Prog8 code for ZSMkit <https://github.com/mooinglemur/zsmkit/tree/main/p8demo>`_
+    ZSMkit is an advanced music and sound effects engine for the Commander X16.
