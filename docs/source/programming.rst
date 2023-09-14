@@ -909,6 +909,12 @@ ror2 (x)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror2(@($5000))``
 
+setlsb (x, value)
+    Sets the least significant byte of word variable x to a new value. Leaves the MSB untouched.
+
+setmsb (x, value)
+    Sets the most significant byte of word variable x to a new value. Leaves the LSB untouched.
+
 sizeof (name)
     Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
     the object. For instance, for a variable of type uword, the sizeof is 2.

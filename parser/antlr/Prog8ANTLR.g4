@@ -189,6 +189,7 @@ expression :
 arrayindexed:
     scoped_identifier arrayindex
     // TODO to allow chained array indexing:  | arrayindexed arrayindex
+    // TODO or even to allow array indexing on any uword address value:  | expression arrayindex
     ;
 
 

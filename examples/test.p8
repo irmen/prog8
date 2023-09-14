@@ -3,20 +3,31 @@
 
 main {
     sub start() {
-        uword zz = 0
+        uword zz = $ea45
+        txt.print_uwhex(zz, true)
+        txt.nl()
 
-        @(&zz) = 1
-        txt.print_uw(zz)
+        setlsb(zz, $11)
+        txt.print_uwhex(zz, true)
         txt.nl()
-        @(&zz+1) = 2
-        txt.print_uw(zz)
+        setmsb(zz, $22)
+        txt.print_uwhex(zz, true)
         txt.nl()
-        ubyte bb
-        bb = @(&zz)
-        txt.print_ub(bb)
         txt.nl()
-        bb = @(&zz+1)
-        txt.print_ub(bb)
+
+        uword[] array = [$1234,$5678,$abcd]     ; TODO also with @split
+
+        ubyte one = 1
+        ubyte two = 2
+        txt.print_uwhex(array[1], true)
+        txt.nl()
+        txt.print_uwhex(array[2], true)
+        txt.nl()
+        setlsb(array[one],$ff)
+        setmsb(array[two],$00)
+        txt.print_uwhex(array[1], true)
+        txt.nl()
+        txt.print_uwhex(array[2], true)
         txt.nl()
     }
 }

@@ -41,6 +41,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "rol2" -> funcRol2(fcall)
             "ror" -> funcRor(fcall)
             "ror2" -> funcRor2(fcall)
+            "setlsb" -> funcSetLsbMsb(fcall, false)
+            "setmsb" -> funcSetLsbMsb(fcall, true)
             "sort" -> funcSort(fcall)
             "reverse" -> funcReverse(fcall)
             "memory" -> funcMemory(fcall, discardResult, resultRegister)
@@ -607,6 +609,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.assignExpressionToVariable(addressOf, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD)
         }
         asmgen.assignExpressionToVariable(indexer.index, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE)
+    }
+
+    private fun funcSetLsbMsb(fcall: PtBuiltinFunctionCall, msb: Boolean) {
+        TODO("setlsb/setmsb for $fcall")
     }
 
     private fun funcSgn(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {

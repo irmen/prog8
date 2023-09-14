@@ -70,6 +70,8 @@ class FSignature(val pure: Boolean,      // does it have side effects?
 
 val BuiltinFunctions: Map<String, FSignature> = mapOf(
     // this set of function have no return value and operate in-place:
+    "setlsb"    to FSignature(false, listOf(FParam("variable", arrayOf(DataType.WORD, DataType.UWORD)), FParam("value", arrayOf(DataType.BYTE, DataType.UBYTE))), null),
+    "setmsb"    to FSignature(false, listOf(FParam("variable", arrayOf(DataType.WORD, DataType.UWORD)), FParam("value", arrayOf(DataType.BYTE, DataType.UBYTE))), null),
     "rol"       to FSignature(false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     "ror"       to FSignature(false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     "rol2"      to FSignature(false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
@@ -131,4 +133,4 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "callfar"   to FSignature(false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), DataType.UWORD),
 )
 
-val InplaceModifyingBuiltinFunctions = setOf("rol", "ror", "rol2", "ror2", "sort", "reverse")
+val InplaceModifyingBuiltinFunctions = setOf("setlsb", "setmsb", "rol", "ror", "rol2", "ror2", "sort", "reverse")
