@@ -1,16 +1,22 @@
+%import textio
 %zeropage basicsafe
 
 main {
-    uword w1
-    uword w2
-
     sub start() {
-        bool zz = (w1 & w2)==0
+        uword zz = 0
 
-        if (w1 & w2)
-            w1++
-
-        if not(w1 & w2)
-            w1++
+        @(&zz) = 1
+        txt.print_uw(zz)
+        txt.nl()
+        @(&zz+1) = 2
+        txt.print_uw(zz)
+        txt.nl()
+        ubyte bb
+        bb = @(&zz)
+        txt.print_ub(bb)
+        txt.nl()
+        bb = @(&zz+1)
+        txt.print_ub(bb)
+        txt.nl()
     }
 }

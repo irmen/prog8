@@ -986,17 +986,17 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         } else {
             when(resultRegister) {
                 null, RegisterOrPair.A -> {
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     asmgen.out("  tya")
                 }
                 RegisterOrPair.X -> {
                     asmgen.out("  pha")
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AX)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AX)
                     asmgen.out("  pla")
                 }
                 RegisterOrPair.Y -> {
                     asmgen.out("  pha")
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     asmgen.out("  pla")
                 }
                 else -> throw AssemblyError("invalid reg")
@@ -1032,35 +1032,35 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         } else {
             when(resultRegister) {
                 null, RegisterOrPair.A -> {
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     // NOTE: we rely on the fact that the above assignment to AY, assigns the Lsb to A as the last instruction.
                     //       this is required because the compiler assumes the status bits are set according to what A is (lsb)
                     //       and will not generate another cmp when lsb() is directly used inside a comparison expression.
                 }
                 RegisterOrPair.X -> {
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.XY)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.XY)
                     // NOTE: we rely on the fact that the above assignment to XY, assigns the Lsb to X as the last instruction.
                     //       this is required because the compiler assumes the status bits are set according to what X is (lsb)
                     //       and will not generate another cmp when lsb() is directly used inside a comparison expression.
                 }
                 RegisterOrPair.Y -> {
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     asmgen.out("  tay |  cpy  #0")
                 }
                 RegisterOrPair.AY -> {
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AY)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     asmgen.out("  ldy  #0 |  cmp  #0")
                 }
                 RegisterOrPair.AX -> {
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.AX)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AX)
                     asmgen.out("  ldx  #0 |  cmp  #0")
                 }
                 RegisterOrPair.XY -> {
-                    asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.XY)
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.XY)
                     asmgen.out("  ldy  #0 |  cpx  #0")
                 }
                 in Cx16VirtualRegisters -> {
-                    asmgen.assignExpressionToRegister(fcall.args.single(), resultRegister)
+                    asmgen.assignExpressionToRegister(arg, resultRegister)
                     val zero = PtNumber(DataType.UBYTE, 0.0, Position.DUMMY)
                     zero.parent=fcall
                     assignAsmGen.assignExpressionToVariable(zero, "cx16.${resultRegister.toString().lowercase()}H", DataType.UBYTE)

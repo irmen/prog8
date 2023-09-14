@@ -3592,6 +3592,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun storeRegisterAInMemoryAddress(memoryAddress: PtMemoryByte) {
         val addressExpr = memoryAddress.address
         val addressLv = addressExpr as? PtNumber
+        val addressOf = addressExpr as? PtAddressOf
 
         fun storeViaExprEval() {
             when(addressExpr) {
@@ -3613,10 +3614,21 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             addressLv != null -> {
                 asmgen.out("  sta  ${addressLv.number.toHex()}")
             }
+            addressOf != null -> {
+                asmgen.out("  sta  ${asmgen.asmSymbolName(addressOf.identifier)}")
+            }
             addressExpr is PtIdentifier -> {
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
             addressExpr is PtBinaryExpression -> {
+                if(addressExpr.operator=="+" || addressExpr.operator=="-") {
+                    val addrOf = addressExpr.left as? PtAddressOf
+                    val offset = (addressExpr.right as? PtNumber)?.number?.toInt()
+                    if(addrOf!=null && offset!=null) {
+                        asmgen.out("  sta  ${asmgen.asmSymbolName(addrOf.identifier)}${addressExpr.operator}${offset}")
+                        return
+                    }
+                }
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.operator, true))
                     storeViaExprEval()
             }

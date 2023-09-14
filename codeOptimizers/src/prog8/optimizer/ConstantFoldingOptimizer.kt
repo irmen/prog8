@@ -19,12 +19,13 @@ import kotlin.math.floor
 class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
 
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
-        // @( &thing )  -->  thing
+        // @( &thing )  -->  thing  (but only if thing is a byte type!)
         val addrOf = memread.addressExpression as? AddressOf
-        return if(addrOf!=null)
-            listOf(IAstModification.ReplaceNode(memread, addrOf.identifier, parent))
-        else
-            noModifications
+        if(addrOf!=null) {
+            if(addrOf.identifier.inferType(program).isBytes)
+                return listOf(IAstModification.ReplaceNode(memread, addrOf.identifier, parent))
+        }
+        return noModifications
     }
 
     override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {

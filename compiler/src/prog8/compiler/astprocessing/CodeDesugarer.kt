@@ -24,6 +24,7 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - replace peek() and poke() by direct memory accesses.
     // - repeat-forever loops replaced by label+jump.
     // - pointer[word] replaced by @(pointer+word)
+    // - @(&var) and @(&var+1) replaced by lsb(var) and msb(var) if var is a word
 
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
@@ -211,4 +212,28 @@ _after:
 
         return noModifications
     }
+
+    override fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
+        // for word variables:
+        // @(&var) --> lsb(var)
+        // @(&var+1) --> msb(var)
+
+        val addrOf = memread.addressExpression as? AddressOf
+        if(addrOf!=null && addrOf.identifier.inferType(program).isWords) {
+            val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), memread.position), mutableListOf(addrOf.identifier), memread.position)
+            return listOf(IAstModification.ReplaceNode(memread, lsb, parent))
+        }
+        val expr = memread.addressExpression as? BinaryExpression
+        if(expr!=null && expr.operator=="+") {
+            val addressOf = expr.left as? AddressOf
+            val offset = (expr.right as? NumericLiteral)?.number?.toInt()
+            if(addressOf!=null && offset==1) {
+                val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), memread.position), mutableListOf(addressOf.identifier), memread.position)
+                return listOf(IAstModification.ReplaceNode(memread, msb, parent))
+            }
+        }
+
+        return noModifications
+    }
+
 }
