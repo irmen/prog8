@@ -3589,7 +3589,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun storeRegisterAInMemoryAddress(memoryAddress: PtMemoryByte) {
+    internal fun storeRegisterAInMemoryAddress(memoryAddress: PtMemoryByte) {
         val addressExpr = memoryAddress.address
         val addressLv = addressExpr as? PtNumber
         val addressOf = addressExpr as? PtAddressOf

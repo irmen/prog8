@@ -612,7 +612,51 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcSetLsbMsb(fcall: PtBuiltinFunctionCall, msb: Boolean) {
-        TODO("setlsb/setmsb for $fcall")
+        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A, false)
+
+        val address: PtExpression
+        when(fcall.args[0]) {
+            is PtIdentifier -> {
+                if(msb) {
+                    address = PtBinaryExpression("+", DataType.UWORD, fcall.args[0].position)
+                    val addressOf = PtAddressOf(fcall.position)
+                    addressOf.add(fcall.args[0])
+                    address.add(addressOf)
+                    address.add(PtNumber(address.type, 1.0, fcall.args[0].position))
+                } else {
+                    address = PtAddressOf(fcall.position)
+                    address.add(fcall.args[0])
+                }
+            }
+            is PtNumber -> {
+                val num = (fcall.args[0] as PtNumber).number + if(msb) 1 else 0
+                address = PtNumber(fcall.args[0].type, num, fcall.args[0].position)
+            }
+            is PtAddressOf -> {
+                if(msb) {
+                    address = PtBinaryExpression("+", DataType.UWORD, fcall.args[0].position)
+                    address.add(fcall.args[0])
+                    address.add(PtNumber(address.type, 1.0, fcall.args[0].position))
+                } else {
+                    address = fcall.args[0]
+                }
+            }
+            is PtArrayIndexer -> {
+                val indexer = fcall.args[0] as PtArrayIndexer
+                require(!indexer.usesPointerVariable)
+                if(indexer.splitWords) {
+                    // lsb/msb in split arrays, element index 'size' is always 1
+                    TODO("setlsb/setmsb on split array element ${fcall.position}")
+                } else {
+                    TODO("setlsb/setmsb on array element ${fcall.position}")
+                }
+            }
+            else -> throw AssemblyError("setlsb/setmsb on weird target ${fcall.args[0]}")
+        }
+        val mem = PtMemoryByte(fcall.position)
+        mem.add(address)
+        mem.parent = fcall
+        assignAsmGen.storeRegisterAInMemoryAddress(mem)     // TODO use assignRegisterByte()???,  and assignConstantByte() if the value is contstant zero
     }
 
     private fun funcSgn(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
