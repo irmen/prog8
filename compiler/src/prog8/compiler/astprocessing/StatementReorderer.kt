@@ -304,8 +304,8 @@ internal class StatementReorderer(
         val eltsize = program.memsizer.memorySize(ArrayToElementTypes.getValue(sourceVar.datatype))
         val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assign.position),
             mutableListOf(
-                AddressOf(sourceIdent, assign.position),
-                AddressOf(identifier, assign.position),
+                AddressOf(sourceIdent, null, assign.position),
+                AddressOf(identifier, null, assign.position),
                 NumericLiteral.optimalInteger(numelements*eltsize, assign.position)
             ), false, assign.position
         )

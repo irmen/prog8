@@ -49,7 +49,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     DataType.WORD -> assignVariableWord(assign.target, variable, assign.source.datatype)
                     DataType.UWORD -> {
                         if(assign.source.datatype in PassByReferenceDatatypes)
-                            assignAddressOf(assign.target, variable)
+                            assignAddressOf(assign.target, variable, null, null)
                         else
                             assignVariableWord(assign.target, variable, assign.source.datatype)
                     }
@@ -181,7 +181,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when(val value = assign.source.expression!!) {
             is PtAddressOf -> {
                 val sourceName = asmgen.asmSymbolName(value.identifier)
-                assignAddressOf(assign.target, sourceName)
+                val arrayDt = value.identifier.type
+                assignAddressOf(assign.target, sourceName, arrayDt, value.arrayIndexExpr)
             }
             is PtNumber -> throw AssemblyError("source kind should have been literalnumber")
             is PtIdentifier -> throw AssemblyError("source kind should have been variable")
@@ -806,28 +807,32 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
             when (right) {
                 is PtAddressOf -> {
-                    assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
                     val symbol = asmgen.asmVariableName(right.identifier)
-                    if(expr.operator=="+")
-                        asmgen.out("""
-                                clc
-                                adc  #<$symbol
-                                tax
-                                tya
-                                adc  #>$symbol
-                                tay
-                                txa""")
-                    else
-                        asmgen.out("""
-                                sec
-                                sbc  #<$symbol
-                                tax
-                                tya
-                                sbc  #>$symbol
-                                tay
-                                txa""")
-                    assignRegisterpairWord(target, RegisterOrPair.AY)
-                    return true
+                    if(right.isFromArrayElement) {
+                        TODO("address-of array element $symbol at ${right.position}")
+                    } else {
+                        assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
+                        if(expr.operator=="+")
+                            asmgen.out("""
+                                    clc
+                                    adc  #<$symbol
+                                    tax
+                                    tya
+                                    adc  #>$symbol
+                                    tay
+                                    txa""")
+                        else
+                            asmgen.out("""
+                                    sec
+                                    sbc  #<$symbol
+                                    tax
+                                    tya
+                                    sbc  #>$symbol
+                                    tay
+                                    txa""")
+                        assignRegisterpairWord(target, RegisterOrPair.AY)
+                        return true
+                    }
                 }
                 is PtIdentifier -> {
                     val symname = asmgen.asmVariableName(right)
@@ -1619,7 +1624,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 // use subroutine
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.saveRegisterStack(CpuRegister.A, true)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position,"P8ZP_SCRATCH_W1"), varname)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position,"P8ZP_SCRATCH_W1"), varname, null, null)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 val stringVal = (variable as PtVariable).value as PtString
                 asmgen.out("  ldy  #${stringVal.value.length}")
@@ -1632,7 +1637,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.saveRegisterStack(CpuRegister.A, true)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W1"), varname)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W1"), varname, null, null)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
@@ -1640,7 +1645,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W2"), varname)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W2"), varname, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
                 return
@@ -2167,12 +2172,24 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun assignAddressOf(target: AsmAssignTarget, sourceName: String) {
+    private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
+        val offset = if(arrayIndexExpr!=null) {
+            val constIndex = arrayIndexExpr.asConstInteger()
+            if(constIndex!=null) {
+                if(arrayDt in SplitWordArrayTypes)
+                    constIndex
+                else
+                    program.memsizer.memorySize(arrayDt!!, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
+            } else {
+                TODO("address-of array element $sourceName with non-const index at ${target.position}")
+            }
+        } else 0
+
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
-                        lda  #<$sourceName
-                        ldy  #>$sourceName
+                        lda  #<$sourceName+$offset
+                        ldy  #>$sourceName+$offset
                         sta  ${target.asmVarname}
                         sty  ${target.asmVarname}+1
                     """)
@@ -2181,20 +2198,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 throw AssemblyError("can't store word into memory byte")
             }
             TargetStorageKind.ARRAY -> {
-                asmgen.out("  lda  #<$sourceName |  ldy #>$sourceName")
+                asmgen.out("  lda  #<$sourceName+$offset |  ldy #>$sourceName+$offset")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  ldx  #>$sourceName |  lda  #<$sourceName")
-                    RegisterOrPair.AY -> asmgen.out("  ldy  #>$sourceName |  lda  #<$sourceName")
-                    RegisterOrPair.XY -> asmgen.out("  ldy  #>$sourceName |  ldx  #<$sourceName")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #>$sourceName+$offset |  lda  #<$sourceName+$offset")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #>$sourceName+$offset |  lda  #<$sourceName+$offset")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #>$sourceName+$offset |  ldx  #<$sourceName+$offset")
                     in Cx16VirtualRegisters -> {
                         asmgen.out(
                             """
-                            lda  #<$sourceName
+                            lda  #<$sourceName+$offset
                             sta  cx16.${target.register.toString().lowercase()}
-                            lda  #>$sourceName
+                            lda  #>$sourceName+$offset
                             sta  cx16.${target.register.toString().lowercase()}+1
                         """)
                     }
@@ -3622,7 +3639,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 asmgen.out("  sta  ${addressLv.number.toHex()}")
             }
             addressOf != null -> {
-                asmgen.out("  sta  ${asmgen.asmSymbolName(addressOf.identifier)}")
+                if(addressOf.isFromArrayElement) {
+                    TODO("address-of array element $addressOf")
+                } else {
+                    asmgen.out("  sta  ${asmgen.asmSymbolName(addressOf.identifier)}")
+                }
             }
             addressExpr is PtIdentifier -> {
                 asmgen.storeAIntoPointerVar(addressExpr)
@@ -3632,8 +3653,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     val addrOf = addressExpr.left as? PtAddressOf
                     val offset = (addressExpr.right as? PtNumber)?.number?.toInt()
                     if(addrOf!=null && offset!=null) {
-                        asmgen.out("  sta  ${asmgen.asmSymbolName(addrOf.identifier)}${addressExpr.operator}${offset}")
-                        return
+                        if(addrOf.isFromArrayElement) {
+                            TODO("address-of array element $addrOf")
+                        } else {
+                            asmgen.out("  sta  ${asmgen.asmSymbolName(addrOf.identifier)}${addressExpr.operator}${offset}")
+                            return
+                        }
                     }
                 }
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.operator, true))

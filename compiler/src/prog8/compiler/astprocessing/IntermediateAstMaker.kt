@@ -440,6 +440,8 @@ class IntermediateAstMaker(private val program: Program) {
             addr.add(PtIdentifier(name+"_lsb", dt, src.identifier.position))        // NOTE: assumes _lsb is first in memory! (immediately followed by _msb)
         else
             addr.add(transform(src.identifier))
+        if(src.arrayIndex!=null)
+            addr.add(transformExpression(src.arrayIndex!!.indexExpr))
         return addr
     }
 

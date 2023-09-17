@@ -1,7 +1,7 @@
 TODO
 ====
 
-- allow taking address of array variable (now gives parser error)
+- implement codegen TODO's "address-of array element"  (part of:  allow taking address of array element (now gives parser error):  &array[10] )
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....

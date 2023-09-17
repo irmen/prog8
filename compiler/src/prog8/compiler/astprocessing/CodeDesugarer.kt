@@ -219,6 +219,8 @@ _after:
         // @(&var+1) --> msb(var)
 
         val addrOf = memread.addressExpression as? AddressOf
+        if(addrOf?.arrayIndex!=null)
+            return noModifications
         if(addrOf!=null && addrOf.identifier.inferType(program).isWords) {
             val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), memread.position), mutableListOf(addrOf.identifier), memread.position)
             return listOf(IAstModification.ReplaceNode(memread, lsb, parent))

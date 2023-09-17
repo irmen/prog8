@@ -3,10 +3,7 @@ package prog8.codegen.intermediate
 import prog8.code.StRomSub
 import prog8.code.StSub
 import prog8.code.ast.*
-import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
-import prog8.code.core.PassByValueDatatypes
-import prog8.code.core.SignedDatatypes
+import prog8.code.core.*
 import prog8.intermediate.*
 
 internal class ExpressionCodeResult(val chunks: IRCodeChunks, val dt: IRDataType, val resultReg: Int, val resultFpReg: Int) {
@@ -69,10 +66,28 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val vmDt = irType(expr.type)
                 val symbol = expr.identifier.name
                 // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
-                val code = IRCodeChunk(null, null)
+                val result = mutableListOf<IRCodeChunkBase>()
                 val resultRegister = codeGen.registers.nextFree()
-                code += IRInstruction(Opcode.LOAD, vmDt, reg1=resultRegister, labelSymbol = symbol)
-                ExpressionCodeResult(code, vmDt, resultRegister, -1)
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
+                if(expr.isFromArrayElement) {
+                    val indexTr = translateExpression(expr.arrayIndexExpr!!)
+                    addToResult(result, indexTr, indexTr.resultReg, -1)
+                    if(expr.identifier.type in SplitWordArrayTypes) {
+                        result += IRCodeChunk(null, null).also {
+                            // multiply indexTr resultreg by the eltSize and add this to the resultRegister.
+                            it += IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=resultRegister, reg2=indexTr.resultReg)
+                        }
+                    } else {
+                        val eltSize = codeGen.program.memsizer.memorySize(expr.identifier.type, 1)
+                        result += IRCodeChunk(null, null).also {
+                            // multiply indexTr resultreg by the eltSize and add this to the resultRegister.
+                            if(eltSize>1)
+                                it += IRInstruction(Opcode.MUL, IRDataType.BYTE, reg1=indexTr.resultReg, immediate = eltSize)
+                            it += IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=resultRegister, reg2=indexTr.resultReg)
+                        }
+                    }
+                }
+                ExpressionCodeResult(result, vmDt, resultRegister, -1)
             }
             is PtMemoryByte -> {
                 val result = mutableListOf<IRCodeChunkBase>()

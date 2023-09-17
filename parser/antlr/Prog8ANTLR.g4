@@ -197,7 +197,7 @@ typecast : 'as' datatype;
 
 directmemory : '@' '(' expression ')';
 
-addressof : <assoc=right> ADDRESS_OF scoped_identifier ;
+addressof : <assoc=right> ADDRESS_OF (scoped_identifier | arrayindexed) ;
 
 
 functioncall : scoped_identifier '(' expression_list? ')'  ;

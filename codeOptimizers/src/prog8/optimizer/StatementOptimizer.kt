@@ -30,7 +30,7 @@ class StatementOptimizer(private val program: Program,
         if(functionCallStatement.target.nameInSource==listOf("txt", "print")) {
             val arg = functionCallStatement.args.single()
             val stringVar: IdentifierReference? = if(arg is AddressOf) {
-                arg.identifier
+                if(arg.arrayIndex==null) arg.identifier else null
             } else {
                 arg as? IdentifierReference
             }

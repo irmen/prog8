@@ -265,7 +265,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                                 if(identifier?.isSubroutineParameter(program)==false) {
                                     modifications += IAstModification.ReplaceNode(
                                             identifier,
-                                            AddressOf(identifier, arg.position),
+                                            AddressOf(identifier, null, arg.position),
                                             call as Node)
                                 }
                             } else if(arg is NumericLiteral) {
@@ -286,7 +286,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         if(arg is IdentifierReference && DataType.UWORD == param.type) {
                             modifications += IAstModification.ReplaceNode(
                                 arg,
-                                AddressOf(arg, arg.position),
+                                AddressOf(arg, null, arg.position),
                                 call as Node
                             )
                         }
@@ -312,7 +312,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                                     if(identifier?.isSubroutineParameter(program)==false) {
                                         modifications += IAstModification.ReplaceNode(
                                             call.args[index],
-                                            AddressOf(identifier, pair.second.position),
+                                            AddressOf(identifier, null, pair.second.position),
                                             call as Node)
                                         break
                                     }
@@ -325,7 +325,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         if(pair.second is IdentifierReference && DataType.UWORD in pair.first.possibleDatatypes) {
                             modifications += IAstModification.ReplaceNode(
                                 call.args[index],
-                                AddressOf(pair.second as IdentifierReference, pair.second.position),
+                                AddressOf(pair.second as IdentifierReference, null, pair.second.position),
                                 call as Node
                             )
                         }
