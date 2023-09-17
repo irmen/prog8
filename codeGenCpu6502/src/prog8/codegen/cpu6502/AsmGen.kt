@@ -2417,8 +2417,7 @@ $repeatLabel""")
                     cmp  #<$number
                     bne  $jumpIfFalseLabel
                     cpy  #>$number
-                    bne  $jumpIfFalseLabel
-                    """)
+                    bne  $jumpIfFalseLabel""")
             }
             is PtIdentifier -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
@@ -2426,18 +2425,21 @@ $repeatLabel""")
                     cmp  ${asmVariableName(right)}
                     bne  $jumpIfFalseLabel
                     cpy  ${asmVariableName(right)}+1
-                    bne  $jumpIfFalseLabel
-                    """)
+                    bne  $jumpIfFalseLabel""")
             }
             is PtAddressOf -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val name = asmSymbolName(right.identifier)
-                out("""
-                    cmp  #<$name
-                    bne  $jumpIfFalseLabel
-                    cpy  #>$name
-                    bne  $jumpIfFalseLabel
-                    """)
+                if(right.isFromArrayElement) {
+                    TODO("address-of array element $name at ${right.position}")
+                    // assignmentAsmGen.assignAddressOf(target, name, right.arrayIndexExpr)
+                } else {
+                    out("""
+                        cmp  #<$name
+                        bne  $jumpIfFalseLabel
+                        cpy  #>$name
+                        bne  $jumpIfFalseLabel""")
+                }
             }
             else -> {
                 if(left.isSimple()) {
@@ -2518,12 +2520,16 @@ $repeatLabel""")
             is PtAddressOf -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val name = asmSymbolName(right.identifier)
-                out("""
-                    cmp  #<$name
-                    bne  +
-                    cpy  #>$name
-                    beq  $jumpIfFalseLabel
-+""")
+                if(right.isFromArrayElement) {
+                    TODO("address-of array element $name at ${right.position}")
+                } else {
+                    out("""
+                        cmp  #<$name
+                        bne  +
+                        cpy  #>$name
+                        beq  $jumpIfFalseLabel
+    +""")
+                }
             }
             else -> {
                 if(left.isSimple()) {
@@ -2849,8 +2855,12 @@ $repeatLabel""")
             is PtAddressOf -> {
                 assignExpressionToRegister(right, RegisterOrPair.AY)
                 val name = asmSymbolName(left.identifier)
-                code("#>$name", "#<$name")
-                return true
+                if(left.isFromArrayElement) {
+                    TODO("address-of array element $name at ${left.position}")
+                } else {
+                    code("#>$name", "#<$name")
+                    return true
+                }
             }
             is PtIdentifier -> {
                 assignExpressionToRegister(right, RegisterOrPair.AY)
@@ -2898,8 +2908,12 @@ $repeatLabel""")
             is PtAddressOf -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val name = asmSymbolName(right.identifier)
-                code("#>$name", "#<$name")
-                return true
+                if(right.isFromArrayElement) {
+                    TODO("address-of array element $name at ${right.position}")
+                } else {
+                    code("#>$name", "#<$name")
+                    return true
+                }
             }
             is PtIdentifier -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)

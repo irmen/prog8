@@ -469,8 +469,15 @@ private fun Prog8ANTLRParser.ExpressionContext.toAst() : Expression {
     if(directmemory()!=null)
         return DirectMemoryRead(directmemory().expression().toAst(), toPosition())
 
-    if(addressof()!=null)
-        return AddressOf(addressof().scoped_identifier().toAst(), toPosition())
+    if(addressof()!=null) {
+        val addressOf = addressof()
+        val identifier = addressOf.scoped_identifier()
+        val array = addressOf.arrayindexed()
+        return if(identifier!=null)
+            AddressOf(addressof().scoped_identifier().toAst(), null, toPosition())
+        else
+            AddressOf(array.scoped_identifier().toAst(), array.arrayindex().toAst(), toPosition())
+    }
 
     throw FatalAstException(text)
 }

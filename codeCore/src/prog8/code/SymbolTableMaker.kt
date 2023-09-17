@@ -126,7 +126,11 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
     private fun makeInitialArray(value: PtArray): List<StArrayElement> {
         return value.children.map {
             when(it) {
-                is PtAddressOf -> StArrayElement(null, it.identifier.name)
+                is PtAddressOf -> {
+                    if(it.isFromArrayElement)
+                        TODO("address-of array element $it in initial array value")
+                    StArrayElement(null, it.identifier.name)
+                }
                 is PtIdentifier -> StArrayElement(null, it.name)
                 is PtNumber -> StArrayElement(it.number, null)
                 else -> throw AssemblyError("invalid array element $it")

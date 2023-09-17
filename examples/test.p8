@@ -1,37 +1,53 @@
 %import textio
+%import floats
+
 %zeropage basicsafe
 
 main {
     sub start() {
-        uword zz = $ea45
-        txt.print_uwhex(zz, true)
+        ubyte[] barray = [11,22,33]
+        uword[] warray = [$1234,$5678,$abcd]
+        uword[] @split split_warray = [$1234,$5678,$abcd]
+        float[] float_array = [11.11,22.22,33.33]
+
+        txt.print("incr of 1: ")
+        txt.print_uw(&barray)
+        txt.spc()
+        txt.print_uw(&barray[0])
+        txt.spc()
+        txt.print_uw(&barray[1])
+        txt.spc()
+        txt.print_uw(&barray[2])
         txt.nl()
 
-        ;@(&zz) = $11
-        setlsb(zz, 0)
-        txt.print_uwhex(zz, true)
-        txt.nl()
-        ;@(&zz+1) = $22
-        setmsb(zz, 0)
-        txt.print_uwhex(zz, true)
-        txt.nl()
+        txt.print("incr of 2: ")
+        txt.print_uw(&warray)
+        txt.spc()
+        txt.print_uw(&warray[0])
+        txt.spc()
+        txt.print_uw(&warray[1])
+        txt.spc()
+        txt.print_uw(&warray[2])
         txt.nl()
 
-        uword[] @split array = [$1234,$5678,$abcd]     ; TODO also with @split
+        txt.print("incr of 1: ")
+        txt.print_uw(&split_warray)
+        txt.spc()
+        txt.print_uw(&split_warray[0])
+        txt.spc()
+        txt.print_uw(&split_warray[1])
+        txt.spc()
+        txt.print_uw(&split_warray[2])
+        txt.nl()
 
-        ubyte one = 1
-        ubyte two = 2
-        txt.print_uwhex(array[1], true)
-        txt.nl()
-        txt.print_uwhex(array[2], true)
-        txt.nl()
-        ;@(&array+one*2) = $ff
-        ;@(&array+two*2+1) = $ff
-        setlsb(array[one],0)
-        setmsb(array[two],0)
-        txt.print_uwhex(array[1], true)
-        txt.nl()
-        txt.print_uwhex(array[2], true)
+        txt.print("incr of 4 or 5: ")
+        txt.print_uw(&float_array)
+        txt.spc()
+        txt.print_uw(&float_array[0])
+        txt.spc()
+        txt.print_uw(&float_array[1])
+        txt.spc()
+        txt.print_uw(&float_array[2])
         txt.nl()
     }
 }

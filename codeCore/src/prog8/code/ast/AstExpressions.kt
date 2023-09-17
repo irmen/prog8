@@ -24,7 +24,17 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
 
     infix fun isSameAs(other: PtExpression): Boolean {
         return when(this) {
-            is PtAddressOf -> other is PtAddressOf && other.type==type && other.identifier isSameAs identifier
+            is PtAddressOf -> {
+                if(other !is PtAddressOf)
+                    return false
+                if (other.type!==type || !(other.identifier isSameAs identifier))
+                    return false
+                if(other.children.size!=children.size)
+                    return false
+                if(children.size==1)
+                    return true
+                return arrayIndexExpr!! isSameAs other.arrayIndexExpr!!
+            }
             is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index && other.splitWords==splitWords
             is PtBinaryExpression -> other is PtBinaryExpression && other.left isSameAs left && other.right isSameAs right
             is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
@@ -105,7 +115,12 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
 
 class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
     val identifier: PtIdentifier
-        get() = children.single() as PtIdentifier
+        get() = children[0] as PtIdentifier
+    val arrayIndexExpr: PtExpression?
+        get() = if(children.size==2) children[1] as PtExpression else null
+
+    val isFromArrayElement: Boolean
+        get() = children.size==2
 }
 
 

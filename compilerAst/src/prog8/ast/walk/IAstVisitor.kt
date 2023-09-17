@@ -173,6 +173,7 @@ interface IAstVisitor {
 
     fun visit(addressOf: AddressOf) {
         addressOf.identifier.accept(this)
+        addressOf.arrayIndex?.accept(this)
     }
 
     fun visit(inlineAssembly: InlineAssembly) {

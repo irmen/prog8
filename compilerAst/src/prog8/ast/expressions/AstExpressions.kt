@@ -49,7 +49,7 @@ sealed class Expression: Node {
                 (other is TypecastExpression && other.implicit==implicit && other.type==type && other.expression isSameAs expression)
             }
             is AddressOf -> {
-                (other is AddressOf && other.identifier.nameInSource == identifier.nameInSource)
+                (other is AddressOf && other.identifier.nameInSource == identifier.nameInSource && other.arrayIndex==arrayIndex)
             }
             is RangeExpression -> {
                 (other is RangeExpression && other.from==from && other.to==to && other.step==step)
@@ -369,25 +369,34 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     }
 }
 
-data class AddressOf(var identifier: IdentifierReference, override val position: Position) : Expression() {
+data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayIndex?, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        identifier.parent=this
+        identifier.linkParents(this)
+        arrayIndex?.linkParents(this)
     }
 
     override val isSimple = true
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is IdentifierReference && node===identifier)
-        identifier = replacement
-        replacement.parent = this
+        if(node===identifier) {
+            require(replacement is IdentifierReference)
+            identifier = replacement
+            replacement.parent = this
+        } else if(node===arrayIndex) {
+            require(replacement is ArrayIndex)
+            arrayIndex = replacement
+            replacement.parent = this
+        } else {
+            throw FatalAstException("invalid replace, no child node $node")
+        }
     }
 
-    override fun copy() = AddressOf(identifier.copy(), position)
+    override fun copy() = AddressOf(identifier.copy(), arrayIndex?.copy(), position)
     override fun constValue(program: Program): NumericLiteral? = null
-    override fun referencesIdentifier(nameInSource: List<String>) = identifier.nameInSource==nameInSource
+    override fun referencesIdentifier(nameInSource: List<String>) = identifier.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UWORD)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
