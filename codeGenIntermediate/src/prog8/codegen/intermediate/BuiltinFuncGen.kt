@@ -581,66 +581,109 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcSetLsbMsb(call: PtBuiltinFunctionCall, msb: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val target = call.args[0]
+        val isConstZeroValue = call.args[1].asConstInteger()==0
         when(target) {
             is PtIdentifier -> {
-                val valueTr = exprGen.translateExpression(call.args[1])
-                addToResult(result, valueTr, valueTr.resultReg, -1)
-                result += IRCodeChunk(null, null).also {
-                    val pointerReg = codeGen.registers.nextFree()
-                    it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=pointerReg, labelSymbol = target.name)
-                    if(msb)
-                        it += IRInstruction(Opcode.INC, IRDataType.WORD, reg1=pointerReg)
-                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=pointerReg)
-                    // TODO use STOREZI if the value is zero
+                if(isConstZeroValue) {
+                    result += IRCodeChunk(null, null).also {
+                        val pointerReg = codeGen.registers.nextFree()
+                        it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = pointerReg, labelSymbol = target.name)
+                        if (msb)
+                            it += IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = pointerReg)
+                        it += IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerReg)
+                    }
+                } else {
+                    val valueTr = exprGen.translateExpression(call.args[1])
+                    addToResult(result, valueTr, valueTr.resultReg, -1)
+                    result += IRCodeChunk(null, null).also {
+                        val pointerReg = codeGen.registers.nextFree()
+                        it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = pointerReg, labelSymbol = target.name)
+                        if (msb)
+                            it += IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = pointerReg)
+                        it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = pointerReg)
+                    }
                 }
             }
             is PtArrayIndexer -> {
                 require(!target.usesPointerVariable)
                 if(target.splitWords) {
                     // lsb/msb in split arrays, element index 'size' is always 1
-                    val varName = target.variable.name + if(msb) "_msb" else "_lsb"
-                    val valueTr = exprGen.translateExpression(call.args[1])
-                    addToResult(result, valueTr, valueTr.resultReg, -1)
                     val constIndex = target.index.asConstInteger()
-                    if(constIndex!=null) {
-                        val offsetReg = codeGen.registers.nextFree()
-                        result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = constIndex)
-                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=offsetReg, labelSymbol = varName)
-                            // TODO: use STOREZX if the value is zero
+                    val varName = target.variable.name + if(msb) "_msb" else "_lsb"
+                    if(isConstZeroValue) {
+                        if(constIndex!=null) {
+                            val offsetReg = codeGen.registers.nextFree()
+                            result += IRCodeChunk(null, null).also {
+                                it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = constIndex)
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=offsetReg, labelSymbol = varName)
+                            }
+                        } else {
+                            val indexTr = exprGen.translateExpression(target.index)
+                            addToResult(result, indexTr, indexTr.resultReg, -1)
+                            result += IRCodeChunk(null, null).also {
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexTr.resultReg, labelSymbol = varName)
+                            }
                         }
                     } else {
-                        val indexTr = exprGen.translateExpression(target.index)
-                        addToResult(result, indexTr, indexTr.resultReg, -1)
-                        result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = varName)
-                            // TODO: use STOREZX if the value is zero
+                        val valueTr = exprGen.translateExpression(call.args[1])
+                        addToResult(result, valueTr, valueTr.resultReg, -1)
+                        if(constIndex!=null) {
+                            val offsetReg = codeGen.registers.nextFree()
+                            result += IRCodeChunk(null, null).also {
+                                it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = constIndex)
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=offsetReg, labelSymbol = varName)
+                            }
+                        } else {
+                            val indexTr = exprGen.translateExpression(target.index)
+                            addToResult(result, indexTr, indexTr.resultReg, -1)
+                            result += IRCodeChunk(null, null).also {
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = varName)
+                            }
                         }
                     }
                 }
                 else {
-                    val valueTr = exprGen.translateExpression(call.args[1])
-                    addToResult(result, valueTr, valueTr.resultReg, -1)
                     val eltSize = codeGen.program.memsizer.memorySize(target.type)
                     val constIndex = target.index.asConstInteger()
-                    if(constIndex!=null) {
-                        val offsetReg = codeGen.registers.nextFree()
-                        val offset = eltSize*constIndex + if(msb) 1 else 0
-                        result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = offset)
-                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=offsetReg, labelSymbol = target.variable.name)
-                            // TODO: use STOREZX if the value is zero
+                    if(isConstZeroValue) {
+                        if(constIndex!=null) {
+                            val offsetReg = codeGen.registers.nextFree()
+                            val offset = eltSize*constIndex + if(msb) 1 else 0
+                            result += IRCodeChunk(null, null).also {
+                                it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = offset)
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=offsetReg, labelSymbol = target.variable.name)
+                            }
+                        } else {
+                            val indexTr = exprGen.translateExpression(target.index)
+                            addToResult(result, indexTr, indexTr.resultReg, -1)
+                            result += IRCodeChunk(null, null).also {
+                                if(eltSize>1)
+                                    it += codeGen.multiplyByConst(IRDataType.BYTE, indexTr.resultReg, eltSize)
+                                if(msb)
+                                    it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexTr.resultReg)
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexTr.resultReg, labelSymbol = target.variable.name)
+                            }
                         }
                     } else {
-                        val indexTr = exprGen.translateExpression(target.index)
-                        addToResult(result, indexTr, indexTr.resultReg, -1)
-                        result += IRCodeChunk(null, null).also {
-                            if(eltSize>1)
-                                it += codeGen.multiplyByConst(IRDataType.BYTE, indexTr.resultReg, eltSize)
-                            if(msb)
-                                it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexTr.resultReg)
-                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = target.variable.name)
-                            // TODO: use STOREZX if the value is zero
+                        val valueTr = exprGen.translateExpression(call.args[1])
+                        addToResult(result, valueTr, valueTr.resultReg, -1)
+                        if(constIndex!=null) {
+                            val offsetReg = codeGen.registers.nextFree()
+                            val offset = eltSize*constIndex + if(msb) 1 else 0
+                            result += IRCodeChunk(null, null).also {
+                                it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = offset)
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=offsetReg, labelSymbol = target.variable.name)
+                            }
+                        } else {
+                            val indexTr = exprGen.translateExpression(target.index)
+                            addToResult(result, indexTr, indexTr.resultReg, -1)
+                            result += IRCodeChunk(null, null).also {
+                                if(eltSize>1)
+                                    it += codeGen.multiplyByConst(IRDataType.BYTE, indexTr.resultReg, eltSize)
+                                if(msb)
+                                    it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexTr.resultReg)
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = target.variable.name)
+                            }
                         }
                     }
                 }

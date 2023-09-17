@@ -612,51 +612,82 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcSetLsbMsb(fcall: PtBuiltinFunctionCall, msb: Boolean) {
-        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A, false)
-
-        val address: PtExpression
+        val target: AsmAssignTarget
         when(fcall.args[0]) {
             is PtIdentifier -> {
-                if(msb) {
-                    address = PtBinaryExpression("+", DataType.UWORD, fcall.args[0].position)
-                    val addressOf = PtAddressOf(fcall.position)
-                    addressOf.add(fcall.args[0])
-                    address.add(addressOf)
-                    address.add(PtNumber(address.type, 1.0, fcall.args[0].position))
-                } else {
-                    address = PtAddressOf(fcall.position)
-                    address.add(fcall.args[0])
-                }
+                val varname = asmgen.asmVariableName(fcall.args[0] as PtIdentifier) + if(msb) "+1" else ""
+                target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, variableAsmName = varname)
             }
             is PtNumber -> {
                 val num = (fcall.args[0] as PtNumber).number + if(msb) 1 else 0
-                address = PtNumber(fcall.args[0].type, num, fcall.args[0].position)
+                val mem = PtMemoryByte(fcall.position)
+                mem.add(PtNumber(DataType.UBYTE, num, fcall.position))
+                target = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, memory = mem)
             }
             is PtAddressOf -> {
+                val mem = PtMemoryByte(fcall.position)
                 if(msb) {
-                    address = PtBinaryExpression("+", DataType.UWORD, fcall.args[0].position)
+                    val address = PtBinaryExpression("+", DataType.UWORD, fcall.args[0].position)
                     address.add(fcall.args[0])
                     address.add(PtNumber(address.type, 1.0, fcall.args[0].position))
+                    mem.add(address)
                 } else {
-                    address = fcall.args[0]
+                    mem.add(fcall.args[0])
                 }
+                target = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, memory = mem)
             }
             is PtArrayIndexer -> {
                 val indexer = fcall.args[0] as PtArrayIndexer
                 require(!indexer.usesPointerVariable)
+                val elementSize: Int
+                val msbAdd: Int
                 if(indexer.splitWords) {
-                    // lsb/msb in split arrays, element index 'size' is always 1
-                    TODO("setlsb/setmsb on split array element ${fcall.position}")
+                    val arrayVariable = indexer.variable
+                    indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.ARRAY_UB, arrayVariable.position)
+                    indexer.children[0].parent = indexer
+                    elementSize = 1
+                    msbAdd = 0
                 } else {
-                    TODO("setlsb/setmsb on array element ${fcall.position}")
+                    elementSize = 2
+                    msbAdd = if(msb) 1 else 0
                 }
+
+                // double the index because of word array (if not split), add one if msb (if not split)
+                val constIndexNum = (indexer.index as? PtNumber)?.number
+                if(constIndexNum!=null) {
+                    indexer.children[1] = PtNumber(indexer.index.type, constIndexNum*elementSize + msbAdd, indexer.position)
+                    indexer.children[1].parent = indexer
+                } else {
+                    val multipliedIndex: PtExpression
+                    if(elementSize==1) {
+                        multipliedIndex = indexer.index
+                    } else {
+                        multipliedIndex = PtBinaryExpression("<<", indexer.index.type, indexer.position)
+                        multipliedIndex.add(indexer.index)
+                        multipliedIndex.add(PtNumber(DataType.UBYTE, 1.0, indexer.position))
+                    }
+                    if(msbAdd>0) {
+                        val msbIndex = PtBinaryExpression("+", indexer.index.type, indexer.position)
+                        msbIndex.add(multipliedIndex)
+                        msbIndex.add(PtNumber(DataType.UBYTE, msbAdd.toDouble(), indexer.position))
+                        indexer.children[1] = msbIndex
+                        msbIndex.parent = indexer
+                    } else {
+                        indexer.children[1] = multipliedIndex
+                        multipliedIndex.parent=indexer
+                    }
+                }
+                target = AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, array = indexer)
             }
             else -> throw AssemblyError("setlsb/setmsb on weird target ${fcall.args[0]}")
         }
-        val mem = PtMemoryByte(fcall.position)
-        mem.add(address)
-        mem.parent = fcall
-        assignAsmGen.storeRegisterAInMemoryAddress(mem)     // TODO use assignRegisterByte()???,  and assignConstantByte() if the value is contstant zero
+
+        if(fcall.args[1].asConstInteger() == 0) {
+            assignAsmGen.assignConstantByte(target, 0)
+        } else {
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A, false)
+            assignAsmGen.assignRegisterByte(target, CpuRegister.A, false)
+        }
     }
 
     private fun funcSgn(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
