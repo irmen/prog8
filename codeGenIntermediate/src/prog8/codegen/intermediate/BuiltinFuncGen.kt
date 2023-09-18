@@ -71,6 +71,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcCallfar(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
         val bankTr = exprGen.translateExpression(call.args[0])
         val addressTr = exprGen.translateExpression(call.args[1])
         val argumentwordTr = exprGen.translateExpression(call.args[2])
@@ -112,6 +113,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcStringCompare(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
         val left  = exprGen.translateExpression(call.args[0])
         val right = exprGen.translateExpression(call.args[1])
         addToResult(result, left, left.resultReg, -1)
@@ -146,6 +148,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type")
             }
         val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
@@ -167,6 +170,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type")
             }
         val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
@@ -310,6 +314,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type to reverse")
             }
         val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
@@ -333,6 +338,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type to sort")
             }
         val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
@@ -356,6 +362,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcClamp(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
         val type = irType(call.type)
         val valueTr = exprGen.translateExpression(call.args[0])
         val minimumTr = exprGen.translateExpression(call.args[1])

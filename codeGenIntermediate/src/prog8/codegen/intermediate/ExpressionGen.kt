@@ -122,6 +122,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         when(check.iterable.type) {
             DataType.STR -> {
+                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
                 val elementTr = translateExpression(check.element)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(check.iterable)
@@ -130,6 +131,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
                 val elementTr = translateExpression(check.element)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(check.iterable)
@@ -141,6 +143,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
                 val elementTr = translateExpression(check.element)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(check.iterable)
@@ -381,6 +384,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         when (val callTarget = codeGen.symbolTable.flat.getValue(fcall.name)) {
             is StSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
+                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = callTarget.parameters.size), null)
                 // assign the arguments
                 val argRegisters = mutableListOf<FunctionCallArgs.ArgumentSpec>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
@@ -401,8 +405,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFree(), null)
                 }
                 // create the call
-                val call = IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec))
-                addInstr(result, call, null)
+                addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec)), null)
                 return if(fcall.void)
                     ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
                 else if(fcall.type==DataType.FLOAT)
@@ -412,6 +415,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             is StRomSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
+                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = callTarget.parameters.size), null)
                 // assign the arguments
                 val argRegisters = mutableListOf<FunctionCallArgs.ArgumentSpec>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {

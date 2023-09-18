@@ -1,53 +1,20 @@
 %import textio
-%import floats
 
 %zeropage basicsafe
 
 main {
     sub start() {
-        ubyte[] barray = [11,22,33]
-        uword[] warray = [$1234,$5678,$abcd]
-        uword[] @split split_warray = [$1234,$5678,$abcd]
-        float[] float_array = [11.11,22.22,33.33]
+        ubyte arg3 = 200
+        uword result = calc(101, 202, arg3)
+        txt.print_uw(result)
 
-        txt.print("incr of 1: ")
-        txt.print_uw(&barray)
-        txt.spc()
-        txt.print_uw(&barray[0])
-        txt.spc()
-        txt.print_uw(&barray[1])
-        txt.spc()
-        txt.print_uw(&barray[2])
-        txt.nl()
+        str name = "irmen"
+        ubyte[] array = [1,2,3,4]
+        bool xx = 44 in array
+        bool yy = 'a' in name
+    }
 
-        txt.print("incr of 2: ")
-        txt.print_uw(&warray)
-        txt.spc()
-        txt.print_uw(&warray[0])
-        txt.spc()
-        txt.print_uw(&warray[1])
-        txt.spc()
-        txt.print_uw(&warray[2])
-        txt.nl()
-
-        txt.print("incr of 1: ")
-        txt.print_uw(&split_warray)
-        txt.spc()
-        txt.print_uw(&split_warray[0])
-        txt.spc()
-        txt.print_uw(&split_warray[1])
-        txt.spc()
-        txt.print_uw(&split_warray[2])
-        txt.nl()
-
-        txt.print("incr of 4 or 5: ")
-        txt.print_uw(&float_array)
-        txt.spc()
-        txt.print_uw(&float_array[0])
-        txt.spc()
-        txt.print_uw(&float_array[1])
-        txt.spc()
-        txt.print_uw(&float_array[2])
-        txt.nl()
+    sub calc(ubyte a1, ubyte a2, ubyte a3) -> uword {
+        return a1 as uword + a2 + a3
     }
 }

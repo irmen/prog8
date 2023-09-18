@@ -179,6 +179,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
             Opcode.JUMP, Opcode.JUMPI -> InsJUMP(ins)
+            Opcode.PREPARECALL -> nextPc()
             Opcode.CALL -> InsCALL(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()

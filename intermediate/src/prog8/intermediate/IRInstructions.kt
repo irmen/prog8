@@ -53,6 +53,7 @@ CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction at 'location' (label/memory address)
 jumpi       reg1                      - continue running at memory address in reg1 (indirect jump)
+preparecall numparams                 - indicator that the next instructions are the param setup and function call/syscall with <numparams> parameters
 call   label(argument register list) [: resultreg.type]
                                       - calls a subroutine with the given arguments and return value (optional).
                                         save current instruction location+1, continue execution at instruction nr of the label.
@@ -60,9 +61,11 @@ call   label(argument register list) [: resultreg.type]
                                         If the call is to a rom-routine, 'label' will be a hexadecimal address instead such as $ffd2
                                         If the arguments should be passed in CPU registers, they'll have a @REGISTER postfix.
                                         For example: call $ffd2(r5.b@A)
+                                        Always preceded by parameter setup and preparecall instructions
 syscall   number (argument register list) [: resultreg.type]
                                       - do a systemcall identified by number, result value(s) are pushed on value stack by the syscall code so
                                         will be POPped off into the given resultregister if any.
+                                        Always preceded by parameter setup and preparecall instructions
 return                                - restore last saved instruction location and continue at that instruction. No return value.
 returnr     reg1                      - like return, but also returns the value in reg1 to the caller
 
@@ -244,6 +247,7 @@ enum class Opcode {
 
     JUMP,
     JUMPI,
+    PREPARECALL,
     CALL,
     SYSCALL,
     RETURN,
@@ -541,6 +545,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
+    Opcode.PREPARECALL to InstructionFormat.from("N,<i"),
     Opcode.CALL       to InstructionFormat.from("N,call"),
     Opcode.SYSCALL    to InstructionFormat.from("N,syscall"),
     Opcode.RETURN     to InstructionFormat.from("N"),
