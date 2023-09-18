@@ -1,20 +1,14 @@
-%import textio
-
-%zeropage basicsafe
-
 main {
+    uword[] pages = [ &page_credits.chars_1]
+
     sub start() {
-        ubyte arg3 = 200
-        uword result = calc(101, 202, arg3)
-        txt.print_uw(result)
-
-        str name = "irmen"
-        ubyte[] array = [1,2,3,4]
-        bool xx = 44 in array
-        bool yy = 'a' in name
+        ; cx16.r0  = pages[0]       ; TODO fix IR compiler error undefined symbol pages
+        uword @shared foo = pages[0]    ; TODO fix IR compiler error no chunk with label 'page_credits.chars_1'  (caused by optimizer)
     }
 
-    sub calc(ubyte a1, ubyte a2, ubyte a3) -> uword {
-        return a1 as uword + a2 + a3
-    }
+}
+
+page_credits {
+  ubyte[] chars_1 = [11]
+  ; TODO fix IR compiler crash when this array is moved into main block itself
 }
