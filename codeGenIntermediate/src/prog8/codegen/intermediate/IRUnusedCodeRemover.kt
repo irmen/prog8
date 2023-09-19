@@ -25,18 +25,29 @@ class IRUnusedCodeRemover(
     }
 
     private fun pruneSymboltable(blockLabel: String) {
-        // we could clean up the SymbolTable as well, but ONLY if these symbols aren't referenced somewhere still in an instruction
+        // we could clean up the SymbolTable as well, but ONLY if these symbols aren't referenced somewhere still in an instruction or variable initializer value
         val prefix = "$blockLabel."
         val blockVars = irprog.st.allVariables().filter { it.name.startsWith(prefix) }
         blockVars.forEach { stVar ->
-            irprog. allSubs().flatMap { it.chunks }.forEach { chunk ->
+            irprog.allSubs().flatMap { it.chunks }.forEach { chunk ->
                 chunk.instructions.forEach { ins ->
                     if(ins.labelSymbol == stVar.name) {
-                        return
+                        return  // symbol occurs in an instruction
                     }
                 }
             }
+
+            irprog.st.allVariables().forEach { stVar->
+                val initValue = stVar.onetimeInitializationArrayValue
+                if(initValue!=null && !initValue.isEmpty()) {
+                    if(initValue.any {
+                        it.addressOfSymbol?.startsWith(blockLabel)==true
+                    })
+                        return   // symbol occurs in an initializer value (address-of this symbol)_
+                }
+            }
         }
+
         irprog.st.removeTree(blockLabel)
     }
 
@@ -207,9 +218,7 @@ class IRUnusedCodeRemover(
         return removeUnlinkedChunks(linkedChunks)
     }
 
-    private fun removeUnlinkedChunks(
-        linkedChunks: Set<IRCodeChunkBase>
-    ): Int {
+    private fun removeUnlinkedChunks(linkedChunks: Set<IRCodeChunkBase>): Int {
         var numRemoved = 0
         irprog.foreachSub { sub ->
             sub.chunks.withIndex().reversed().forEach { (index, chunk) ->

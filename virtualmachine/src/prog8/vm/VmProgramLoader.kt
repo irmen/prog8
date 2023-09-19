@@ -1,5 +1,8 @@
 package prog8.vm
 
+import prog8.code.StArray
+import prog8.code.StArrayElement
+import prog8.code.StStaticVariable
 import prog8.code.core.ArrayDatatypes
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
@@ -239,129 +242,177 @@ class VmProgramLoader {
                     else -> throw IRParseException("invalid dt")
                 }
             }
-            variable.onetimeInitializationArrayValue?.let {
-                require(variable.length==it.size || it.size==1 || it.size==0)
-                if(it.isEmpty() || it.size==1) {
-                    val value = if(it.isEmpty()) {
+            variable.onetimeInitializationArrayValue?.let { iElts ->
+                require(variable.length==iElts.size || iElts.size==1 || iElts.size==0)
+                if(iElts.isEmpty() || iElts.size==1) {
+                    val iElt = if(iElts.isEmpty()) {
                         require(variable.uninitialized)
-                        0.0
+                        StArrayElement(0.0, null)
                     } else {
                         require(!variable.uninitialized)
-                        it[0].number!!
+                        iElts[0]
                     }
-                    when(variable.dt) {
-                        DataType.STR, DataType.ARRAY_UB -> {
-                            repeat(variable.length!!) {
-                                memory.setUB(addr, value.toInt().toUByte())
-                                addr++
-                            }
-                        }
-                        DataType.ARRAY_B -> {
-                            repeat(variable.length!!) {
-                                memory.setSB(addr, value.toInt().toByte())
-                                addr++
-                            }
-                        }
-                        DataType.ARRAY_UW -> {
-                            repeat(variable.length!!) {
-                                memory.setUW(addr, value.toInt().toUShort())
-                                addr+=2
-                            }
-                        }
-                        DataType.ARRAY_W -> {
-                            repeat(variable.length!!) {
-                                memory.setSW(addr, value.toInt().toShort())
-                                addr+=2
-                            }
-                        }
-                        in SplitWordArrayTypes -> {
-                            val number = value.toUInt()
-                            for(elt in it) {
-                                memory.setUB(addr, (number and 255u).toUByte())
-                                memory.setUB(addr+variable.length!!, (number shr 8).toUByte())
-                                addr++
-                            }
-                        }
-                        DataType.ARRAY_F -> {
-                            repeat(variable.length!!) {
-                                memory.setFloat(addr, value.toFloat())
-                                addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
-                            }
-                        }
-                        else -> throw IRParseException("invalid dt")
-                    }
+                    initializeWithOneValue(variable, iElt, addr, symbolAddresses, memory, program)
                 } else {
-                    when(variable.dt) {
-                        DataType.STR, DataType.ARRAY_UB -> {
-                            for(elt in it) {
-                                if(elt.addressOfSymbol!=null) {
-                                    val name = elt.addressOfSymbol!!
-                                    val symbolAddress = if(name.startsWith('<')) {
-                                        symbolAddresses[name.drop(1)]?.and(255)
-                                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
-                                    } else if(name.startsWith('>')) {
-                                        symbolAddresses[name.drop(1)]?.shr(8)
-                                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
-                                    } else
-                                        throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
-                                    memory.setUB(addr, symbolAddress.toUByte())
-                                } else {
-                                    memory.setUB(addr, elt.number!!.toInt().toUByte())
-                                }
-                                addr++
-                            }
-                        }
-                        DataType.ARRAY_B -> {
-                            for(elt in it) {
-                                memory.setSB(addr, elt.number!!.toInt().toByte())
-                                addr++
-                            }
-                        }
-                        DataType.ARRAY_UW -> {
-                            for(elt in it) {
-                                if(elt.addressOfSymbol!=null) {
-                                    val name = elt.addressOfSymbol!!
-                                    val symbolAddress = symbolAddresses[name]
-                                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
-                                    memory.setUW(addr, symbolAddress.toUShort())
-                                } else {
-                                    memory.setUW(addr, elt.number!!.toInt().toUShort())
-                                }
-                                addr+=2
-                            }
-                        }
-                        DataType.ARRAY_W -> {
-                            for(elt in it) {
-                                memory.setSW(addr, elt.number!!.toInt().toShort())
-                                addr+=2
-                            }
-                        }
-                        in SplitWordArrayTypes -> {
-                            for(elt in it) {
-                                val number = if(elt.addressOfSymbol!=null) {
-                                    val name = elt.addressOfSymbol!!
-                                    val symbolAddress = symbolAddresses[name]
-                                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
-                                    symbolAddress.toUInt()
-                                } else {
-                                    elt.number!!.toInt().toUInt()
-                                }
-                                memory.setUB(addr, (number and 255u).toUByte())
-                                memory.setUB(addr + variable.length!!, (number shr 8).toUByte())
-                                addr++
-                            }
-                        }
-                        DataType.ARRAY_F -> {
-                            for(elt in it) {
-                                memory.setFloat(addr, elt.number!!.toFloat())
-                                addr+=program.options.compTarget.machine.FLOAT_MEM_SIZE
-                            }
-                        }
-                        else -> throw IRParseException("invalid dt")
-                    }
+                    initializeWithValues(variable, iElts, addr, symbolAddresses, memory, program)
                 }
             }
             require(variable.onetimeInitializationStringValue==null) { "in vm/ir, strings should have been converted into bytearrays." }
+        }
+    }
+
+    private fun initializeWithValues(
+        variable: StStaticVariable,
+        iElts: StArray,
+        startAddress: Int,
+        symbolAddresses: MutableMap<String, Int>,
+        memory: Memory,
+        program: IRProgram
+    ) {
+        var address = startAddress
+        when (variable.dt) {
+            DataType.STR, DataType.ARRAY_UB -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toUByte()
+                    memory.setUB(address, value)
+                    address++
+                }
+            }
+
+            DataType.ARRAY_B -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toByte()
+                    memory.setSB(address, value)
+                    address++
+                }
+            }
+
+            DataType.ARRAY_UW -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toUShort()
+                    memory.setUW(address, value)
+                    address += 2
+                }
+            }
+
+            DataType.ARRAY_W -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toShort()
+                    memory.setSW(address, value)
+                    address += 2
+                }
+            }
+
+            in SplitWordArrayTypes -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toUInt()
+                    memory.setUB(address, (value and 255u).toUByte())
+                    memory.setUB(address + variable.length!!, (value shr 8).toUByte())
+                    address++
+                }
+            }
+
+            DataType.ARRAY_F -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toFloat()
+                    memory.setFloat(address, value)
+                    address += program.options.compTarget.machine.FLOAT_MEM_SIZE
+                }
+            }
+
+            else -> throw IRParseException("invalid dt")
+        }
+    }
+
+    private fun initializeWithOneValue(
+        variable: StStaticVariable,
+        iElt: StArrayElement,
+        startAddress: Int,
+        symbolAddresses: MutableMap<String, Int>,
+        memory: Memory,
+        program: IRProgram
+    ) {
+        var address = startAddress
+        when (variable.dt) {
+            DataType.STR, DataType.ARRAY_UB -> {
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toUByte()
+                repeat(variable.length!!) {
+                    memory.setUB(address, value)
+                    address++
+                }
+            }
+
+            DataType.ARRAY_B -> {
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toByte()
+                repeat(variable.length!!) {
+                    memory.setSB(address, value)
+                    address++
+                }
+            }
+
+            DataType.ARRAY_UW -> {
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toUShort()
+                repeat(variable.length!!) {
+                    memory.setUW(address, value)
+                    address += 2
+                }
+            }
+
+            DataType.ARRAY_W -> {
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toShort()
+                repeat(variable.length!!) {
+                    memory.setSW(address, value)
+                    address += 2
+                }
+            }
+
+            in SplitWordArrayTypes -> {
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toUInt()
+                val lsb = (value and 255u).toUByte()
+                val msb = (value shr 8).toUByte()
+                repeat(variable.length!!) {
+                    memory.setUB(address, lsb)
+                    memory.setUB(address + variable.length!!, msb)
+                    address++
+                }
+            }
+
+            DataType.ARRAY_F -> {
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toFloat()
+                repeat(variable.length!!) {
+                    memory.setFloat(address, value)
+                    address += program.options.compTarget.machine.FLOAT_MEM_SIZE
+                }
+            }
+
+            else -> throw IRParseException("invalid dt")
+        }
+    }
+
+    private fun getInitializerValue(arrayDt: DataType, elt: StArrayElement, symbolAddresses: MutableMap<String, Int>): Double {
+        if(elt.addressOfSymbol!=null) {
+            when(arrayDt) {
+                DataType.ARRAY_UB, DataType.STR, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {
+                    val name = elt.addressOfSymbol!!
+                    val symbolAddress = if(name.startsWith('<')) {
+                        symbolAddresses[name.drop(1)]?.and(255)
+                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
+                    } else if(name.startsWith('>')) {
+                        symbolAddresses[name.drop(1)]?.shr(8)
+                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
+                    } else
+                        throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
+                    return symbolAddress.toDouble()
+                }
+                else -> {
+                    val name = elt.addressOfSymbol!!
+                    val symbolAddress = symbolAddresses[name]
+                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
+                    return symbolAddress.toDouble()
+                }
+            }
+        } else {
+            return elt.number!!
         }
     }
 }
