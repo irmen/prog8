@@ -223,7 +223,7 @@ class IRProgram(val name: String,
                                 var i = index+1
                                 var instr2 = chunk.instructions[i]
                                 val registers = mutableSetOf<Int>()
-                                while(instr2.opcode!=Opcode.SYSCALL && instr2.opcode!=Opcode.CALL) {
+                                while(instr2.opcode!=Opcode.SYSCALL && instr2.opcode!=Opcode.CALL && i<chunk.instructions.size-1) {
                                     if(instr2.reg1direction==OperandDirection.WRITE || instr2.reg1direction==OperandDirection.READWRITE) registers.add(instr2.reg1!!)
                                     if(instr2.reg2direction==OperandDirection.WRITE || instr2.reg2direction==OperandDirection.READWRITE) registers.add(instr2.reg2!!)
                                     if(instr2.reg3direction==OperandDirection.WRITE || instr2.reg3direction==OperandDirection.READWRITE) registers.add(instr2.reg3!!)
@@ -232,8 +232,11 @@ class IRProgram(val name: String,
                                     i++
                                     instr2 = chunk.instructions[i]
                                 }
-                                val expectedRegisterLoads = chunk.instructions[i].fcallArgs!!.arguments.map { it.reg.registerNum }
-                                require(registers.containsAll(expectedRegisterLoads)) { "not all argument registers are given a value in the preparecall-call sequence" }
+                                // it could be that the actual call is only in another code chunk, so IF we find one, we can check. Otherwise just skip the check...
+                                if(chunk.instructions[i].fcallArgs!=null) {
+                                    val expectedRegisterLoads = chunk.instructions[i].fcallArgs!!.arguments.map { it.reg.registerNum }
+                                    require(registers.containsAll(expectedRegisterLoads)) { "not all argument registers are given a value in the preparecall-call sequence" }
+                                }
                             }
                         }
                     }
