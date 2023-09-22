@@ -383,13 +383,13 @@ class VirtualMachine(irProgram: IRProgram) {
         else {
             if(i.immediate!=null) {
                 setResultReg(i.reg1!!, i.immediate!!, i.type!!)
-                statusZero = i.immediate==0
-                statusNegative = i.immediate!! <0
+                statusbitsNZ(i.immediate!!, i.type!!)
             }
             else {
                 if(i.labelSymbol==null)
                     throw IllegalArgumentException("expected LOAD of address of labelsymbol")
                 setResultReg(i.reg1!!, i.address!!, i.type!!)
+                statusbitsNZ(i.address!!, i.type!!)
             }
         }
         nextPc()
@@ -400,14 +400,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = memory.getUB(i.address!!)
                 registers.setUB(i.reg1!!, value)
-                statusZero = value==0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val value = memory.getUW(i.address!!)
                 registers.setUW(i.reg1!!, value)
-                statusZero = value== 0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!!))
         }
@@ -419,14 +417,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = memory.getUB(registers.getUW(i.reg2!!).toInt())
                 registers.setUB(i.reg1!!, value)
-                statusZero = value==0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val value = memory.getUW(registers.getUW(i.reg2!!).toInt())
                 registers.setUW(i.reg1!!, value)
-                statusZero = value== 0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(registers.getUW(i.reg1!!).toInt()))
         }
@@ -438,14 +434,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = memory.getUB(i.address!! + registers.getUB(i.reg2!!).toInt())
                 registers.setUB(i.reg1!!, value)
-                statusZero = value==0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val value = memory.getUW(i.address!! + registers.getUB(i.reg2!!).toInt())
                 registers.setUW(i.reg1!!, value)
-                statusZero = value== 0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, memory.getFloat(i.address!! + registers.getUB(i.reg1!!).toInt()))
         }
@@ -458,15 +452,13 @@ class VirtualMachine(irProgram: IRProgram) {
                 val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
                 val value = memory.getUB(pointer.toInt())
                 registers.setUB(i.reg1!!, value)
-                statusZero = value==0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
                 val value = memory.getUW(pointer.toInt())
                 registers.setUW(i.reg1!!, value)
-                statusZero = value== 0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> {
                 val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg1!!)
@@ -481,14 +473,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = registers.getUB(i.reg2!!)
                 registers.setUB(i.reg1!!, value)
-                statusZero = value==0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val value = registers.getUW(i.reg2!!)
                 registers.setUW(i.reg1!!, value)
-                statusZero = value== 0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg2!!))
         }
@@ -908,14 +898,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = (registers.getUB(i.reg1!!)+1u).toUByte()
                 registers.setUB(i.reg1!!, value)
-                statusZero = value==0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val value = (registers.getUW(i.reg1!!)+1u).toUShort()
                 registers.setUW(i.reg1!!, value)
-                statusZero = value==0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg1!!)+1f)
         }
@@ -928,14 +916,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = (memory.getUB(address)+1u).toUByte()
                 memory.setUB(address, value)
-                statusZero = value==0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val value = (memory.getUW(address)+1u).toUShort()
                 memory.setUW(address, value)
-                statusZero = value== 0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> memory.setFloat(address, memory.getFloat(address)+1f)
         }
@@ -947,14 +933,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = (registers.getUB(i.reg1!!)-1u).toUByte()
                 registers.setUB(i.reg1!!, value)
-                statusZero = value== 0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val value = (registers.getUW(i.reg1!!)-1u).toUShort()
                 registers.setUW(i.reg1!!, value)
-                statusZero = value== 0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg1!!)-1f)
         }
@@ -966,14 +950,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = (memory.getUB(i.address!!)-1u).toUByte()
                 memory.setUB(i.address!!, value)
-                statusZero = value== 0.toUByte()
-                statusNegative = value>=0x80u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> {
                 val value = (memory.getUW(i.address!!)-1u).toUShort()
                 memory.setUW(i.address!!, value)
-                statusZero = value== 0.toUShort()
-                statusNegative = value>=0x8000u
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.FLOAT -> memory.setFloat(i.address!!, memory.getFloat(i.address!!)-1f)
         }
@@ -1268,52 +1250,50 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsCMP(i: IRInstruction) {
-        val comparison: Int
-        when(i.type!!) {
+        val comparison = when(i.type!!) {
             IRDataType.BYTE -> {
                 val reg1 = registers.getUB(i.reg1!!)
                 val reg2 = registers.getUB(i.reg2!!)
-                comparison = reg1.toInt() - reg2.toInt()
-                statusNegative = (comparison and 0x80)==0x80
+                reg1.toInt() - reg2.toInt()
             }
             IRDataType.WORD -> {
                 val reg1 = registers.getUW(i.reg1!!)
                 val reg2 = registers.getUW(i.reg2!!)
-                comparison = reg1.toInt() - reg2.toInt()
-                statusNegative = (comparison and 0x8000)==0x8000
+                reg1.toInt() - reg2.toInt()
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        if(comparison==0){
-            statusZero = true
-            statusCarry = true
-        } else if(comparison>0) {
-            statusZero = false
-            statusCarry = true
-        } else {
-            statusZero = false
-            statusCarry = false
-        }
+        statusbitsComparison(comparison, i.type!!)
         nextPc()
     }
 
-
     private fun InsCMPI(i: IRInstruction) {
-        val comparison: Int
-        when(i.type!!) {
+        val comparison = when(i.type!!) {
             IRDataType.BYTE -> {
                 val reg1 = registers.getUB(i.reg1!!)
-                comparison = reg1.toInt() - (i.immediate!! and 255)
-                statusNegative = (comparison and 0x80)==0x80
+                reg1.toInt() - (i.immediate!! and 255)
             }
             IRDataType.WORD -> {
                 val reg1 = registers.getUW(i.reg1!!)
-                comparison = reg1.toInt() - (i.immediate!! and 65535)
-                statusNegative = (comparison and 0x8000)==0x8000
+                reg1.toInt() - (i.immediate!! and 65535)
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        if(comparison==0){
+        statusbitsComparison(comparison, i.type!!)
+        nextPc()
+    }
+
+    private fun statusbitsNZ(value: Int, type: IRDataType) {
+        statusZero = value==0
+        when(type) {
+            IRDataType.BYTE -> statusNegative = (value and 0x80)==0x80
+            IRDataType.WORD -> statusNegative = (value and 0x8000)==0x8000
+            IRDataType.FLOAT -> { /* floats don't change the status bits */ }
+        }
+    }
+
+    private fun statusbitsComparison(comparison: Int, type: IRDataType) {
+        if(comparison==0) {
             statusZero = true
             statusCarry = true
         } else if(comparison>0) {
@@ -1323,7 +1303,12 @@ class VirtualMachine(irProgram: IRProgram) {
             statusZero = false
             statusCarry = false
         }
-        nextPc()
+        when(type) {
+            IRDataType.BYTE -> statusNegative = (comparison and 0x80)!=0
+            IRDataType.WORD -> statusNegative = (comparison and 0x8000)!=0
+            IRDataType.FLOAT -> { /* floats don't change the status bits */ }
+        }
+        // TODO statusOverflow
     }
 
     private fun plusMinusMultAnyByte(operator: String, reg1: Int, reg2: Int) {

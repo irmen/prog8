@@ -1,16 +1,20 @@
 %import textio
 
 main {
-    uword[] pages1 = [ &page_credits.chars_1]
-    uword foo2 = &page_credits.chars_1
+    ubyte begin = 10
+    ubyte end = 20
 
     sub start() {
-        txt.print_uw(foo2)
-        uword @shared foo = pages1[0]    ; TODO fix IR compiler error no chunk with label 'page_credits.chars_1'  (caused by optimizer)
+        ubyte xx
+        for xx in begin to end step 3 {
+            txt.print_ub(xx)
+            txt.spc()
+        }
+        txt.nl()
+        for xx in end to begin step -3 {
+            txt.print_ub(xx)
+            txt.spc()
+        }
+        txt.nl()
     }
-
-}
-
-page_credits {
-  ubyte[] chars_1 = [11]
 }
