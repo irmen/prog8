@@ -1,20 +1,12 @@
 %import textio
+%import floats
 
 main {
-    ubyte begin = 10
-    ubyte end = 20
-
     sub start() {
-        ubyte xx
-        for xx in begin to end step 3 {
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
-        for xx in end to begin step -3 {
-            txt.print_ub(xx)
-            txt.spc()
-        }
-        txt.nl()
+        float xx = 10.1
+        ubyte yy= xx==10.1
+        txt.print_ub(yy)
+        if xx==10.1
+            txt.print("equal")
     }
 }

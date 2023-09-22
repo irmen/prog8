@@ -84,7 +84,6 @@ bstneg                        address   - branch to location if Status bit Negat
 bstvc                         address   - branch to location if Status bit Overflow is clear
 bstvs                         address   - branch to location if Status bit Overflow is set
 beqr        reg1, reg2,       address   - jump to location in program given by location, if reg1 == reg2
-beq         reg1, value,      address   - jump to location in program given by location, if reg1 == immediate value
 bner        reg1, reg2,       address   - jump to location in program given by location, if reg1 != reg2
 bne         reg1, value,      address   - jump to location in program given by location, if reg1 != immediate value
 bgt         reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (unsigned)
@@ -262,7 +261,6 @@ enum class Opcode {
     BSTVC,
     BSTVS,
     BEQR,
-    BEQ,
     BNER,
     BNE,
     BGTR,
@@ -408,7 +406,6 @@ val OpcodesThatBranch = setOf(
     Opcode.BSTVC,
     Opcode.BSTVS,
     Opcode.BEQR,
-    Opcode.BEQ,
     Opcode.BNER,
     Opcode.BNE,
     Opcode.BGTR,
@@ -559,7 +556,6 @@ val instructionFormats = mutableMapOf(
     Opcode.BSTVC      to InstructionFormat.from("N,<a"),
     Opcode.BSTVS      to InstructionFormat.from("N,<a"),
     Opcode.BEQR       to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BEQ        to InstructionFormat.from("BW,<r1,<i,<a"),
     Opcode.BNER       to InstructionFormat.from("BW,<r1,<r2,<a"),
     Opcode.BNE        to InstructionFormat.from("BW,<r1,<i,<a"),
     Opcode.BGTR       to InstructionFormat.from("BW,<r1,<r2,<a"),

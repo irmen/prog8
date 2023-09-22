@@ -197,7 +197,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BGTSR -> InsBGTSR(ins)
             Opcode.BGER -> InsBGER(ins)
             Opcode.BGESR -> InsBGESR(ins)
-            Opcode.BEQ -> InsBEQ(ins)
             Opcode.BNE -> InsBNE(ins)
             Opcode.BGT -> InsBGT(ins)
             Opcode.BLT -> InsBLT(ins)
@@ -673,14 +672,6 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsBEQR(i: IRInstruction) {
         val (left: Int, right: Int) = getBranchOperands(i)
-        if(left==right)
-            branchTo(i)
-        else
-            nextPc()
-    }
-
-    private fun InsBEQ(i: IRInstruction) {
-        val (left: UInt, right: UInt) = getBranchOperandsImmU(i)
         if(left==right)
             branchTo(i)
         else
