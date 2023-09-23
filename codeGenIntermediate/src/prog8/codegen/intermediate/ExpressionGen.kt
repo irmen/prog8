@@ -565,12 +565,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultRegister, immediate = 1)
                 it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=valueReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg)
-                if (notEquals) {
-                    it += IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=valueReg, immediate = 0, labelSymbol = label)
-                } else {
-                    it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=valueReg, immediate = 0)
-                    it += IRInstruction(Opcode.BSTEQ, labelSymbol = label)
-                }
+                it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=valueReg, immediate = 0)
+                it += if (notEquals)
+                    IRInstruction(Opcode.BSTNE, labelSymbol = label)
+                else
+                    IRInstruction(Opcode.BSTEQ, labelSymbol = label)
                 it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultRegister, immediate = 0)
             }
             result += IRCodeChunk(label, null)

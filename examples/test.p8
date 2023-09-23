@@ -3,10 +3,12 @@
 
 main {
     sub start() {
-        float xx = 10.1
-        ubyte yy= xx==10.1
-        txt.print_ub(yy)
-        if xx==10.1
-            txt.print("equal")
+        float x=10
+        float y=20
+        bool r = x!=y
+        txt.print_ub(r)
+        repeat 4 {
+            txt.print(".")
+        }
     }
 }

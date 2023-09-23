@@ -499,7 +499,8 @@ class IRCodeGen(
                         result += translateNode(forLoop.statements)
                         result += IRCodeChunk(null, null).also {
                             it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexReg)
-                            it += IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = if(iterableLength==256) 0 else iterableLength, labelSymbol = loopLabel)
+                            it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=indexReg, immediate = if(iterableLength==256) 0 else iterableLength)
+                            it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
                         }
                     }
                     else -> {
@@ -514,7 +515,10 @@ class IRCodeGen(
                         }
                         result += translateNode(forLoop.statements)
                         result += addConstReg(IRDataType.BYTE, indexReg, elementSize)
-                        addInstr(result, IRInstruction(Opcode.BNE, IRDataType.BYTE, reg1=indexReg, immediate = if(lengthBytes==256) 0 else lengthBytes, labelSymbol = loopLabel), null)
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=indexReg, immediate = if(lengthBytes==256) 0 else lengthBytes)
+                            it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+                        }
                     }
                 }
             }
@@ -608,7 +612,8 @@ class IRCodeGen(
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)
         chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
-        chunk2 += IRInstruction(Opcode.BNE, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped, labelSymbol = loopLabel)
+        chunk2 += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped)
+        chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
         result += chunk2
         return result
     }
@@ -973,10 +978,13 @@ class IRCodeGen(
                             it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
                             it += branchInstr(goto, Opcode.BSTEQ)
                         }
+                        "!=" -> {
+                            it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
+                            it += branchInstr(goto, Opcode.BSTNE)
+                        }
                         else -> {
                             // TODO: the old list of operators, still to be converted
                             val gotoOpcode = when (condition.operator) {
-                                "!=" -> Opcode.BNE
                                 "<" -> Opcode.BLTS
                                 ">" -> Opcode.BGTS
                                 "<=" -> Opcode.BLES
@@ -1029,10 +1037,13 @@ class IRCodeGen(
                 addInstr(result, IRInstruction(Opcode.CMPI, irDtLeft, reg1 = leftTr.resultReg, immediate = 0), null)
                 addInstr(result, branchInstr(goto, Opcode.BSTEQ), null)
             }
+            "!=" -> {
+                addInstr(result, IRInstruction(Opcode.CMPI, irDtLeft, reg1 = leftTr.resultReg, immediate = 0), null)
+                addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
+            }
             else -> {
                 // TODO: to-be converted operators
                 val opcode = when (condition.operator) {
-                    "!=" -> Opcode.BNE
                     "<" -> if (signed) Opcode.BLTS else Opcode.BLT
                     ">" -> if (signed) Opcode.BGTS else Opcode.BGT
                     "<=" -> if (signed) Opcode.BLES else Opcode.BLE
@@ -1060,12 +1071,10 @@ class IRCodeGen(
         if(condition==null) {
             val tr = expressionEval.translateExpression(ifElse.condition)
             result += tr.chunks
-            if (goto.address != null)
-                addInstr(result, IRInstruction(Opcode.BNE, irDtLeft, reg1 = tr.resultReg, immediate = 0, address = goto.address?.toInt()), null)
-            else if (goto.generatedLabel != null)
-                addInstr(result, IRInstruction(Opcode.BNE, irDtLeft, reg1 = tr.resultReg, immediate = 0, labelSymbol = goto.generatedLabel), null)
-            else
-                addInstr(result, IRInstruction(Opcode.BNE, irDtLeft, reg1 = tr.resultReg, immediate = 0, labelSymbol = goto.identifier!!.name), null)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.CMPI, irDtLeft, reg1 = tr.resultReg, immediate = 0)
+                it += branchInstr(goto, Opcode.BSTNE)
+            }
         } else {
             val leftTr = expressionEval.translateExpression(condition.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -1078,10 +1087,13 @@ class IRCodeGen(
                         addInstr(result, IRInstruction(Opcode.CMPI, irDtLeft, reg1 = firstReg, immediate = number), null)
                         addInstr(result, branchInstr(goto, Opcode.BSTEQ), null)
                     }
+                    "!=" -> {
+                        addInstr(result, IRInstruction(Opcode.CMPI, irDtLeft, reg1 = firstReg, immediate = number), null)
+                        addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
+                    }
                     else -> {
                         // TODO: to-be converted operators
                         val opcode = when (condition.operator) {
-                            "!=" -> Opcode.BNE
                             "<" -> if(signed) Opcode.BLTS else Opcode.BLT
                             ">" -> if(signed) Opcode.BGTS else Opcode.BGT
                             "<=" -> if(signed) Opcode.BLES else Opcode.BLE
@@ -1165,7 +1177,10 @@ class IRCodeGen(
                 it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightFpReg)
             }
             when (condition.operator) {
-                "==" -> elseBranch = Opcode.BNE
+                "==" -> {
+                    elseBranch = Opcode.BSTNE
+                    useCmpi = true
+                }
                 "!=" -> {
                     elseBranch = Opcode.BSTEQ
                     useCmpi = true
@@ -1183,7 +1198,10 @@ class IRCodeGen(
             compResultReg = tr.resultReg
             addToResult(result, tr, tr.resultReg, -1)
             when (condition.operator) {
-                "==" -> elseBranch = Opcode.BNE
+                "==" -> {
+                    elseBranch = Opcode.BSTNE
+                    useCmpi = true
+                }
                 "!=" -> {
                     elseBranch = Opcode.BSTEQ
                     useCmpi = true
@@ -1273,7 +1291,10 @@ class IRCodeGen(
                 val elseBranch: Opcode
                 var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
                 when (condition.operator) {
-                    "==" -> elseBranch = Opcode.BNE
+                    "==" -> {
+                        elseBranch = Opcode.BSTNE
+                        useCmpi = true
+                    }
                     "!=" -> {
                         elseBranch = Opcode.BSTEQ
                         useCmpi = true
@@ -1322,7 +1343,10 @@ class IRCodeGen(
                     val elseBranch: Opcode
                     var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
                     when (condition.operator) {
-                        "==" -> elseBranch = Opcode.BNE
+                        "==" -> {
+                            elseBranch = Opcode.BSTNE
+                            useCmpi = true
+                        }
                         "!=" -> {
                             elseBranch = Opcode.BSTEQ
                             useCmpi = true
@@ -1593,8 +1617,8 @@ class IRCodeGen(
         }
         result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)
-            it += IRInstruction(Opcode.BNE, irDt, reg1 = countTr.resultReg, immediate = 0, labelSymbol = repeatLabel)
+            it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)  // sets status bits
+            it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
         }
         result += IRCodeChunk(skipRepeatLabel, null)
         return result
