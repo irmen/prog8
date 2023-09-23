@@ -191,7 +191,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BSTNEG -> InsBSTNEG(ins)
             Opcode.BSTPOS -> InsBSTPOS(ins)
             Opcode.BSTVC, Opcode.BSTVS -> TODO("overflow status flag not yet supported in VM (BSTVC,BSTVS)")
-            Opcode.BNER -> InsBNER(ins)
             Opcode.BGTR -> InsBGTR(ins)
             Opcode.BGTSR -> InsBGTSR(ins)
             Opcode.BGER -> InsBGER(ins)
@@ -663,14 +662,6 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsBSTPOS(i: IRInstruction) {
         if(!statusNegative)
-            branchTo(i)
-        else
-            nextPc()
-    }
-
-    private fun InsBNER(i: IRInstruction) {
-        val (left: Int, right: Int) = getBranchOperands(i)
-        if(left!=right)
             branchTo(i)
         else
             nextPc()

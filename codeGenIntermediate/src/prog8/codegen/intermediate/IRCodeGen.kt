@@ -1120,13 +1120,14 @@ class IRCodeGen(
                 var useCmp = false
                 when (condition.operator) {
                     "==" -> {
-                        opcode = Opcode.BSTEQ
                         useCmp = true
+                        opcode = Opcode.BSTEQ
                         firstReg = leftTr.resultReg
                         secondReg = rightTr.resultReg
                     }
                     "!=" -> {
-                        opcode = Opcode.BNER
+                        useCmp = true
+                        opcode = Opcode.BSTNE
                         firstReg = leftTr.resultReg
                         secondReg = rightTr.resultReg
                     }
@@ -1405,7 +1406,8 @@ class IRCodeGen(
                     addToResult(result, rightTr, rightTr.resultReg, -1)
                     when (condition.operator) {
                         "==" -> {
-                            elseBranch = Opcode.BNER
+                            useCmp = true
+                            elseBranch = Opcode.BSTNE
                             elseBranchFirstReg = leftTr.resultReg
                             elseBranchSecondReg = rightTr.resultReg
                         }
