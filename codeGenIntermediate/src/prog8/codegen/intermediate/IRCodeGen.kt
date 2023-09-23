@@ -566,8 +566,11 @@ class IRCodeGen(
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         if(step==1 || step==-1) {
             // if endvalue == loopvar, stop loop, else iterate
-            addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol), null)
-            addInstr(result, IRInstruction(Opcode.BEQR, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg, labelSymbol = labelAfterFor), null)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol)
+                it += IRInstruction(Opcode.CMP, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg)
+                it += IRInstruction(Opcode.BSTEQ, labelSymbol = labelAfterFor)
+            }
             result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
             addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = loopLabel), null)
         } else {
@@ -1114,9 +1117,11 @@ class IRCodeGen(
                 val firstReg: Int
                 val secondReg: Int
                 val opcode: Opcode
+                var useCmp = false
                 when (condition.operator) {
                     "==" -> {
-                        opcode = Opcode.BEQR
+                        opcode = Opcode.BSTEQ
+                        useCmp = true
                         firstReg = leftTr.resultReg
                         secondReg = rightTr.resultReg
                     }
@@ -1149,12 +1154,20 @@ class IRCodeGen(
                     }
                     else -> throw AssemblyError("invalid comparison operator")
                 }
-                if (goto.address != null)
-                    addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, address = goto.address?.toInt()), null)
-                else if (goto.generatedLabel != null)
-                    addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.generatedLabel), null)
-                else
-                    addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.identifier!!.name), null)
+
+                if(useCmp) {
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.CMP, irDtLeft, reg1 = firstReg, reg2 = secondReg)
+                        it += branchInstr(goto, opcode)
+                    }
+                } else {
+                    if (goto.address != null)
+                        addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, address = goto.address?.toInt()), null)
+                    else if (goto.generatedLabel != null)
+                        addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.generatedLabel), null)
+                    else
+                        addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.identifier!!.name), null)
+                }
             }
         }
     }
@@ -1388,6 +1401,7 @@ class IRCodeGen(
                 } else {
                     val rightTr = expressionEval.translateExpression(condition.right)
                     val elseBranch: Opcode
+                    var useCmp = false
                     addToResult(result, rightTr, rightTr.resultReg, -1)
                     when (condition.operator) {
                         "==" -> {
@@ -1396,7 +1410,8 @@ class IRCodeGen(
                             elseBranchSecondReg = rightTr.resultReg
                         }
                         "!=" -> {
-                            elseBranch = Opcode.BEQR
+                            useCmp = true
+                            elseBranch = Opcode.BSTEQ
                             elseBranchFirstReg = leftTr.resultReg
                             elseBranchSecondReg = rightTr.resultReg
                         }
@@ -1431,7 +1446,14 @@ class IRCodeGen(
                         // if and else parts
                         val elseLabel = createLabelName()
                         val afterIfLabel = createLabelName()
-                        addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg, labelSymbol = elseLabel), null)
+                        if(useCmp) {
+                            result += IRCodeChunk(null,null).also {
+                                it += IRInstruction(Opcode.CMP, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg)
+                                it += IRInstruction(elseBranch, labelSymbol = elseLabel)
+                            }
+                        } else {
+                            addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg, labelSymbol = elseLabel), null)
+                        }
                         result += translateNode(ifElse.ifScope)
                         addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
                         result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
@@ -1439,7 +1461,14 @@ class IRCodeGen(
                     } else {
                         // only if part
                         val afterIfLabel = createLabelName()
-                        addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg, labelSymbol = afterIfLabel), null)
+                        if(useCmp) {
+                            result += IRCodeChunk(null,null).also {
+                                it += IRInstruction(Opcode.CMP, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg)
+                                it += IRInstruction(elseBranch, labelSymbol = afterIfLabel)
+                            }
+                        } else {
+                            addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg, labelSymbol = afterIfLabel), null)
+                        }
                         result += translateNode(ifElse.ifScope)
                         result += IRCodeChunk(afterIfLabel, null)
                     }
