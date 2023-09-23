@@ -601,7 +601,6 @@ class IRCodeGen(
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)
         chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
-        chunk2 += IRInstruction(Opcode.XOR, loopvarDtIr, reg1 = 999, immediate = 111)
         chunk2 += IRInstruction(Opcode.BNE, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped, labelSymbol = loopLabel)
         result += chunk2
         return result
