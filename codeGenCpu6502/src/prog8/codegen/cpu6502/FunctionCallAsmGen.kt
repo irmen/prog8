@@ -141,13 +141,14 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                     }
                     is PtIdentifier -> {
                         val sourceName = asmgen.asmVariableName(value)
+                        // note: cannot use X register here to store A because it might be used for other arguments
                         asmgen.out("""
-                            tax
+                            pha
                             clc
                             lda  $sourceName
                             beq  +
                             sec  
-+                           txa""")
++                           pla""")
                     }
                     else -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
