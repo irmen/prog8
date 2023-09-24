@@ -64,6 +64,7 @@ multiply_words	.proc
 	;       but there currently is no way to use 4 consecutive bytes in ZP (without disabling irq and saving/restoring them)...
 
 ; mult62.a
+; from: https://github.com/TobyLobster/multiply_test/blob/main/tests/mult62.a
 ; based on Dr Jefyll, http://forum.6502.org/viewtopic.php?f=9&t=689&start=0#p19958
 ; - adjusted to use fixed zero page addresses
 ; - removed 'decrement to avoid clc' as this is slower on average

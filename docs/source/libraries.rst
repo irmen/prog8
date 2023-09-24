@@ -485,3 +485,17 @@ See the examples/cx16/sprites/dragon.p8 and dragons.p8 programs for ideas how to
 
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/sprites.p8>`_
 to see what's in there.
+
+
+verafx  (cx16 only)
+-------------------
+Available for the Cx16 target.
+Experimental routines that use the new Vera FX logic (hopefully coming in the Vera in new X16 boards,
+the emulators already support it).
+
+For now, the hardware 16*16 multiplier is exposed via ``mult`` and ``muls`` routines.
+They are about 4 to 5 times faster as the default 6502 cpu routine for word multiplication.
+But they depend on
+
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/verafx.p8>`_
+to see what's in there.

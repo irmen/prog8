@@ -267,6 +267,17 @@ cx16 {
     &ubyte  VERA_AUDIO_DATA     = VERA_BASE + $001D
     &ubyte  VERA_SPI_DATA       = VERA_BASE + $001E
     &ubyte  VERA_SPI_CTRL       = VERA_BASE + $001F
+
+    ; experimental Vera FX registers: (depends on particular value set in VERA_CTRL!!!)
+    &ubyte VERA_FX_CTRL         = VERA_BASE + $0009
+    &ubyte VERA_FX_MULT         = VERA_BASE + $000C
+    &ubyte VERA_FX_CACHE_L      = VERA_BASE + $0009
+    &ubyte VERA_FX_CACHE_M      = VERA_BASE + $000A
+    &ubyte VERA_FX_CACHE_H      = VERA_BASE + $000B
+    &ubyte VERA_FX_CACHE_U      = VERA_BASE + $000C
+    &ubyte VERA_FX_ACCUM_RESET  = VERA_BASE + $0009     ; (DCSEL=6)
+
+
 ; VERA_PSG_BASE     = $1F9C0
 ; VERA_PALETTE_BASE = $1FA00
 ; VERA_SPRITES_BASE = $1FC00

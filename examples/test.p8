@@ -1,26 +1,39 @@
 %import textio
-%import floats
+%import verafx
+%zeropage basicsafe
+%option no_sysinit
 
 main {
     sub start() {
-        ubyte from = 10
-        ubyte compare=9
-        if from==compare
-            goto equal
 
-        txt.print("from is not compare\n")
-equal:
+        const word MULTIPLIER = 431
 
-        ubyte end = 15
-        ubyte xx
-        for xx in from to end {
-            txt.print_ub(xx)
-            txt.spc()
+        ; verify results:
+        for value in -50 to 50 {
+            if value*MULTIPLIER != verafx.muls(value, MULTIPLIER) {
+                txt.print("verafx muls error\n")
+                sys.exit(1)
+            }
         }
+
+
+        word value
+        txt.print("verafx muls...")
+        cbm.SETTIM(0,0,0)
+        for value in -50 to 50 {
+            repeat 250 void verafx.muls(value, MULTIPLIER)
+        }
+        txt.print_uw(cbm.RDTIM16())
         txt.nl()
 
-        ubyte ten=9
-        if from!=ten
-            txt.print("from is not 10\n")
+        txt.print("6502 muls...")
+        cbm.SETTIM(0,0,0)
+        for value in -50 to 50 {
+            repeat 250 cx16.r0s = value*MULTIPLIER
+        }
+        txt.print_uw(cbm.RDTIM16())
+        txt.nl()
+
     }
 }
+
