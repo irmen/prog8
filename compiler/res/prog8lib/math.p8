@@ -140,6 +140,16 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         }}
     }
 
+    asmsub mul16_last_upper() -> uword @AY {
+        ; this routine peeks into the internal 32 bits multiplication result buffer of the
+        ; 16*16 bits multiplication routine, to fetch the upper 16 bits of the last calculation.
+        %asm {{
+            lda  multiply_words.result+2
+            ldy  multiply_words.result+3
+            rts
+        }}
+    }
+
 sub direction_sc(byte x1, byte y1, byte x2, byte y2) -> ubyte {
     ; From a pair of signed coordinates around the origin, calculate discrete direction between 0 and 23 into A.
     cx16.r0L = 3        ; quadrant
