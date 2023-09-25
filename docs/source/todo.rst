@@ -58,6 +58,7 @@ Libraries:
 
 Optimizations:
 
+- treat every scalar variable decl with initialization value, as const by default, unless the variable gets assigned to somewhere (or has its address taken, or is @shared)
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,

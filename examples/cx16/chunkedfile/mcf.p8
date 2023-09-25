@@ -179,7 +179,7 @@ processchunk_call           jsr  $ffff      ; modified
         cx16.r3 = address
         while size {
             ubyte readsize = 255
-            if size < 255
+            if msb(size)==0
                 readsize = lsb(size)
             cx16.r2 = cx16.macptr(readsize, bonkbuffer, false)  ; can't macptr directly to bonk ram
             cx16.rombank(bonk)

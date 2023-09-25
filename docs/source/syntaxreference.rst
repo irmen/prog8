@@ -450,7 +450,8 @@ from the starting value to (and including) the ending value::
     <start>  downto  <end>   [ step  <step> ]
 
 You an provide a step value if you need something else than the default increment which is one (or,
-in case of downto, a decrement of one).   Because a step of minus one is so common you can just use
+in case of downto, a decrement of one).  Unlike the start and end values, the step value must be a constant.
+Because a step of minus one is so common you can just use
 the downto variant to avoid having to specify the step as well::
 
     0 to 7                   ; range of values 0, 1, 2, 3, 4, 5, 6, 7
@@ -729,6 +730,7 @@ for loop
 The loop variable must be a byte or word variable, and it must be defined separately first.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
 array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
+Remember that a step value in a range must be a constant value.
 
 You can use a single statement, or a statement block like in the example below::
 
