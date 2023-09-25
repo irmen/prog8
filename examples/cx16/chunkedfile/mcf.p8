@@ -3,14 +3,16 @@
 
 ; Streaming routine for MCF files (multipurpose chunk format):
 ; 1. call open()
-; 2. set callbacks if needed, set_callbacks()
-; 3. call stream() in a loop
-; 4. call close() if you want to cleanup halfway through for some reason
+; 2. set callbacks if needed; set_callbacks()
+; 3. set bonk ram (cartridge ram) load buffer, if needed; set_bonkbuffer()
+; 4. call stream() in a loop
+; 5. call close() if you want to cleanup halfway through for some reason
 
 
 mcf {
     uword loadlist_buf = memory("loadlist", 256, 0)
     uword @zp loadlist_ptr
+    uword bonkbuffer
     bool needs_loadlist
     ubyte file_channel
 
@@ -47,6 +49,11 @@ mcf {
             sty  p8_mcf.p8_stream.processchunk_call+2
             rts
         }}
+    }
+
+    sub set_bonkbuffer(uword buffer) {
+        ; needs to be a buffer of 256 bytes (1 page)
+        bonkbuffer = buffer
     }
 
     sub stream() {
@@ -89,6 +96,15 @@ mcf {
                         loadlist_ptr+=6
                     }
                     250 -> {
+                        ; bonk ram (cartridge ram)
+                        ; This cannot use MACPTR (because the kernal rom isn't banked in)
+                        ; so we have to load it into a buffer and copy it manually.
+                        ; Because this will be rarely used, the buffer is not allocated here to save memory, and instead
+                        ; the user has to set it with the config routine when the program wants to use this chunk type.
+                        blockload_bonkram(peekw(loadlist_ptr+1), peek(loadlist_ptr+3), peekw(loadlist_ptr+4))
+                        loadlist_ptr+=6
+                    }
+                    249 -> {
                         ; dummy chunk
                         blockload_dummy(peekw(loadlist_ptr+1))
                         loadlist_ptr+=6
@@ -156,6 +172,22 @@ processchunk_call           jsr  $ffff      ; modified
             cx16.r3 += cx16.r2
         }
         cx16.rambank(orig_ram_bank)
+    }
+
+    sub blockload_bonkram(uword size, ubyte bonk, uword address) {
+        ubyte orig_rom_bank = cx16.getrombank()
+        cx16.r3 = address
+        while size {
+            ubyte readsize = 255
+            if size < 255
+                readsize = lsb(size)
+            cx16.r2 = cx16.macptr(readsize, bonkbuffer, false)  ; can't macptr directly to bonk ram
+            cx16.rombank(bonk)
+            sys.memcopy(bonkbuffer, cx16.r3, cx16.r2)   ; copy to bonk ram
+            cx16.rombank(orig_rom_bank)
+            size -= cx16.r2
+            cx16.r3 += cx16.r2
+        }
     }
 
     sub readblock(uword size, uword address, bool dontAdvance) -> uword {

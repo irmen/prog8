@@ -3,13 +3,16 @@ from typing import Sequence
 
 # Chunk types:
 # user types: 0 - 239
-# reserved: 240 - 249
-CHUNK_DUMMY = 250
+# reserved: 240 - 248
+CHUNK_DUMMY = 249
+CHUNK_BONKRAM = 250
 CHUNK_SYSTEMRAM = 251
 CHUNK_VIDEORAM = 252
 CHUNK_PAUSE = 253
 CHUNK_EOF = 254
 CHUNK_IGNORE = 255
+
+ChunksWithData = {CHUNK_DUMMY, CHUNK_SYSTEMRAM, CHUNK_VIDEORAM, CHUNK_BONKRAM}
 
 
 class LoadList:
@@ -26,8 +29,8 @@ class LoadList:
             raise ValueError("chunktype must be 0 - 255")
         if size < 0 or size > 65535:
             raise ValueError(f"size must be 0 - 65535 bytes")
-        if bank < 0 or bank > 31:
-            raise ValueError("bank must be 0 - 31")
+        if bank < 0 or bank > 255:
+            raise ValueError("bank must be 0 - 255")
         if address < 0 or address > 65535:
             raise ValueError("address must be 0 - 65535")
         data = struct.pack("<BHBH", chunktype, size, bank, address)
@@ -88,7 +91,7 @@ class MultiChunkFile:
                 for chunk in loadlist.parse():
                     if chunk[0] == CHUNK_EOF:
                         break
-                    elif chunk[0] in (CHUNK_DUMMY, CHUNK_SYSTEMRAM, CHUNK_VIDEORAM) or chunk[0] < 240:
+                    elif chunk[0] in ChunksWithData or chunk[0] < 240:
                         data = inf.read(chunk[1])
                         self.chunks.append(data)
                         num_data += 1
@@ -141,7 +144,7 @@ class MultiChunkFile:
                         if lc[0] == CHUNK_EOF:
                             eof_found = True
                             break
-                        elif lc[0] in (CHUNK_DUMMY, CHUNK_SYSTEMRAM, CHUNK_VIDEORAM) or lc[0] < 240:
+                        elif lc[0] in ChunksWithData or lc[0] < 240:
                             size, bank, address = lc[1:]
                             data = next(chunk_iter)
                             if isinstance(data, bytes):
@@ -161,9 +164,11 @@ class MultiChunkFile:
     def add_Dummy(self, size: int) -> None:
         self.add_chunk(CHUNK_DUMMY, data=bytearray(size))
 
-    def add_SystemRam(self, bank: int, address: int, data: bytes, chunksize: int=0xfe00) -> None:
+    def add_SystemRam(self, bank: int, address: int, data: bytes, chunksize: int = 0xfe00) -> None:
         if address >= 0xa000 and address < 0xc000:
             raise ValueError("use add_BankedRam instead to load chunks into banked ram $a000-$c000")
+        if bank < 0 or bank > 31:
+            raise ValueError("bank must be 0 - 31")
         while data:
             if address >= 65536:
                 raise ValueError("data too large for system ram")
@@ -171,14 +176,14 @@ class MultiChunkFile:
             data = data[chunksize:]
             address += chunksize
 
-    def add_BankedRam(self, bank: int, address: int, data: bytes, chunksize: int=0x2000) -> None:
+    def add_BankedRam(self, bank: int, address: int, data: bytes, chunksize: int = 0x2000) -> None:
         if address < 0xa000 or address >= 0xc000:
             raise ValueError("use add_SystemRam instead to load chunks into normal system ram")
-        if chunksize>0x2000:
-            raise ValueError("chunksize too large for banked ram")
+        if chunksize > 0x2000:
+            raise ValueError("chunksize too large for banked ram, max 8K")
         while data:
             if address >= 0xc000:
-                address -= 0xc000
+                address -= 0x2000
                 bank += 1
                 if bank >= 32:
                     raise ValueError("data too large for banked ram")
@@ -186,7 +191,24 @@ class MultiChunkFile:
             data = data[chunksize:]
             address += chunksize
 
-    def add_VideoRam(self, bank: int, address: int, data: bytes, chunksize: int=0xfe00) -> None:
+    def add_BonkRam(self, bonk: int, address: int, data: bytes, chunksize: int = 0x4000) -> None:
+        if bonk < 32 or bonk > 255:
+            raise ValueError("bank for bonk ram (cartridge ram) must be 32 - 255")
+        if chunksize > 0x4000:
+            raise ValueError("chunksize too large for bonk ram (cartridge ram), max 16K")
+        if address < 0xc000 or address > 0xffff:
+            raise ValueError("use add_SystemRam instead to load chunks into normal system ram")
+        while data:
+            if address > 0xffff:
+                address -= 0x4000
+                bonk += 1
+                if bonk > 255:
+                    raise ValueError("data too large for bonk ram (cartridge ram)")
+            self.add_chunk(CHUNK_BONKRAM, bonk, address, data[:chunksize])
+            data = data[chunksize:]
+            address += chunksize
+
+    def add_VideoRam(self, bank: int, address: int, data: bytes, chunksize: int = 0xfe00) -> None:
         if bank < 0 or bank > 1:
             raise ValueError("bank for videoram must be 0 or 1")
         while data:
@@ -245,7 +267,7 @@ if __name__ == "__main__":
         palette1 = open("testdata/ME-TITLESCREEN.PAL", "rb").read()
         palette2 = open("testdata/DS-TITLESCREEN.PAL", "rb").read()
     except IOError:
-        print("""ERROR: cannot load the demo data files. 
+        print("""ERROR: cannot load the demo data files.
 You'll need to put the titlescreen data files from the 'musicdemo' project into the testdata directory.
 The musicdemo is on github: https://github.com/irmen/cx16musicdemo
 The four files are the two ME- and the two DS- TITLESCREEN.BIN and .PAL files, and are generated by running the makefile in that project.""")
@@ -268,6 +290,7 @@ The four files are the two ME- and the two DS- TITLESCREEN.BIN and .PAL files, a
         mcf.add_VideoRam(1, 0xfa00, palette2)
         mcf.add_VideoRam(0, 0, bitmap2)
         mcf.add_Pause(222)
+        mcf.add_BonkRam(32, 0xc000, bytearray(32768))
     mcf.add_Pause(111)
     mcf.add_EOF()
     mcf.write("demo.mcf")

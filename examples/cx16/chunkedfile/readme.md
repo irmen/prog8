@@ -36,7 +36,7 @@ and so on.
 There is no limit to the number of chunks and the size of the file, as long as it fits on the disk.
 
 
-### LoadList chunk 
+### LoadList chunk
 
 This chunk is a list of what kinds of chunks occur in the file after it.
 It starts with a small identification header:
@@ -52,7 +52,7 @@ Then a sequence of 1 or more chunk specs (6 bytes each), as long as it still fit
 | data                 | meaning                                    |
 |----------------------|--------------------------------------------|
 | byte                 | chunk type                                 |
-| word (little-endian) | chunk size                                 | 
+| word (little-endian) | chunk size                                 |
 | byte                 | bank number (used for some chunk types)    |
 | word (little-endian) | memory address (used for some chunk types) |
 
@@ -61,18 +61,19 @@ If there are more chunks in the file than fit in a single loadlist, we simply ad
 (The file only ends once an End Of File chunk type is encountered in a loadlist.)
 
 
-### Chunk types   
+### Chunk types
 
-| chunk type   | meaning                                                                                                                                                                        |
-|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
-| 0 - 239      | custom chunk types. See below.                                                                                                                                                 |  
-| 240 - 249    | reserved for future system chunk types.                                                                                                                                        | 
-| 250          | dummy chunk: read a chunk of the specified number of bytes but don't do anything with it. Useful to realign the file I/O on disk block size.                                   | 
-| 251          | system ram load: use banknumber + address to set the RAM bank and load address and loads the chunk there, then continue streaming.                                             | 
-| 252          | video ram load: use banknumber + address to set the Vera VRAM bank (hi byte) and load address (mid+lo byte) and loads the chunk into video ram there, then continue streaming. | 
-| 253          | pause streaming. Returns from stream routine with pause status: Carry=clear. And reg.r0=size. until perhaps the program calls the stream routine again to resume.              | 
-| 254          | end of file. Closes the file and stops streaming: returns from stream routine with exit status: Carry=set.                                                                     | 
-| 255          | ignore this byte. Used to pad out the loadlist chunk to 256 bytes.                                                                                                             | 
+| chunk type | meaning                                                                                                                                                                                                                                         |
+|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 0 - 239    | custom chunk types. See below.                                                                                                                                                                                                                  |
+| 240 - 248  | reserved for future system chunk types.                                                                                                                                                                                                         |
+| 249        | dummy chunk: read a chunk of the specified number of bytes but don't do anything with it. Useful to realign the file I/O on disk block size.                                                                                                    |
+| 250        | bonk ram load: use banknumber + address to set the Cartridge RAM ('bonk' RAM) bank and load address and loads the chunk there, then continue streaming. Note this is slower than other types of ram. Rquires 1 page of user chosen buffer area. |
+| 251        | system ram load: use banknumber + address to set the RAM bank and load address and loads the chunk there, then continue streaming.                                                                                                              |
+| 252        | video ram load: use banknumber + address to set the Vera VRAM bank (hi byte) and load address (mid+lo byte) and loads the chunk into video ram there, then continue streaming.                                                                  |
+| 253        | pause streaming. Returns from stream routine with pause status: Carry=clear. And reg.r0=size. until perhaps the program calls the stream routine again to resume.                                                                               |
+| 254        | end of file. Closes the file and stops streaming: returns from stream routine with exit status: Carry=set.                                                                                                                                      |
+| 255        | ignore this byte. Used to pad out the loadlist chunk to 256 bytes.                                                                                                                                                                              |
 
 
 ### Custom chunk types (0 - 239)
@@ -85,10 +86,10 @@ The first routine has the following signature:
 
 **get_buffer()**:
     Arguments: reg.A = chunk type, reg.XY = chunksize.
-    Returns: Carry flag=success (set = fail, clear = ok), ram bank in reg.A, memory address in reg.XY. 
+    Returns: Carry flag=success (set = fail, clear = ok), ram bank in reg.A, memory address in reg.XY.
 
 The second routine has the following signature:
-    
+
 **process_chunk()**:
     Arguments: none (save them from the get_buffer call if needed).
     Returns: Carry flag=success (set = fail, clear = ok).

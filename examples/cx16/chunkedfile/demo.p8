@@ -7,11 +7,14 @@ main {
 
     sub start() {
         uword duration
+        ubyte[256] bonkbuffer
 
         set_screen_mode()
         cbm.SETTIM(0,0,0)
 
         mcf.set_callbacks(mcf_get_buffer, mcf_process_chunk)        ; not needed if the stream has no custom chunk types
+        mcf.set_bonkbuffer(bonkbuffer)
+
         if mcf.open("demo.mcf", 8, 2) {
             repeat {
                 mcf.stream()
