@@ -24,7 +24,7 @@ object PetsciiEncoding {
         '\ufffe',    //       0x0A -> UNDEFINED
         '\ufffe',    //       0x0B -> UNDEFINED
         '\ufffe',    //       0x0C -> UNDEFINED
-        '\r'    ,    //       0x0D -> CARRIAGE RETURN
+        '\n'    ,    //       0x0D -> LINE FEED (RETURN)
         '\u000e',    //       0x0E -> SHIFT OUT
         '\ufffe',    //       0x0F -> UNDEFINED
         '\ufffe',    //       0x10 -> UNDEFINED
@@ -152,7 +152,7 @@ object PetsciiEncoding {
         '\uf113',    //      0x8A -> FUNCTION KEY 4 (CUS)
         '\uf115',    //      0x8B -> FUNCTION KEY 6 (CUS)
         '\uf117',    //      0x8C -> FUNCTION KEY 8 (CUS)
-        '\n'    ,    //       0x8D -> LINE FEED
+        '\r'    ,    //       0x8D -> CARRIAGE RETURN (SHIFT-RETURN)
         '\u000f',    //      0x8E -> SHIFT IN
         '\ufffe',    //       0x8F -> UNDEFINED
         '\uf105',    //       0x90 -> BLACK COLOR SWITCH (CUS)
@@ -283,7 +283,7 @@ object PetsciiEncoding {
         '\ufffe',    //       0x0A -> UNDEFINED
         '\ufffe',    //       0x0B -> UNDEFINED
         '\ufffe',    //       0x0C -> UNDEFINED
-        '\r'    ,    //       0x0D -> CARRIAGE RETURN
+        '\n'    ,    //       0x0D -> LINE FEED (RETURN)
         '\u000e',    //       0x0E -> SHIFT OUT
         '\ufffe',    //       0x0F -> UNDEFINED
         '\ufffe',    //       0x10 -> UNDEFINED
@@ -411,7 +411,7 @@ object PetsciiEncoding {
         '\uf113',    //       0x8A -> FUNCTION KEY 4 (CUS)
         '\uf115',    //       0x8B -> FUNCTION KEY 6 (CUS)
         '\uf117',    //       0x8C -> FUNCTION KEY 8 (CUS)
-        '\n'    ,    //       0x8D -> LINE FEED
+        '\r'    ,    //       0x8D -> CARRIAGE RETURN (SHIFT-RETURN)
         '\u000f',    //       0x8E -> SHIFT IN
         '\ufffe',    //       0x8F -> UNDEFINED
         '\uf105',    //       0x90 -> BLACK COLOR SWITCH (CUS)
@@ -1061,6 +1061,7 @@ object PetsciiEncoding {
             '}' -> '├'
             '|' -> '│'
             '\\' -> '╲'
+            '\r' -> '\n'        // to make \r (carriage returrn) equivalent to \n (line feed): RETURN ($0d)
             else -> chr
         }
 

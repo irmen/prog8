@@ -89,6 +89,17 @@ class TestStringEncodings: FunSpec({
             PetsciiEncoding.encodeScreencode("~", false).expectError { "shouldn't be able to encode tilde" }
         }
 
+        test("testReturn") {
+            PetsciiEncoding.encodePetscii("\r", true) shouldBe Ok(listOf<UByte>(13u))
+            PetsciiEncoding.encodePetscii("\r", false) shouldBe Ok(listOf<UByte>(13u))
+            PetsciiEncoding.encodePetscii("\n", true) shouldBe Ok(listOf<UByte>(13u))
+            PetsciiEncoding.encodePetscii("\n", false) shouldBe Ok(listOf<UByte>(13u))
+            PetsciiEncoding.decodePetscii(listOf(13u), false) shouldBe Ok("\n")
+            PetsciiEncoding.decodePetscii(listOf(13u), true) shouldBe Ok("\n")
+            PetsciiEncoding.decodePetscii(listOf(0x8du), false) shouldBe Ok("\r")
+            PetsciiEncoding.decodePetscii(listOf(0x8du), true) shouldBe Ok("\r")
+        }
+
         test("testSpecialReplacements") {
             fun encodeP(c: Char, lower: Boolean) = PetsciiEncoding.encodePetscii(c.toString(), lower).getOrElse { throw it }.single()
             fun encodeS(c: Char, lower: Boolean) = PetsciiEncoding.encodeScreencode(c.toString(), lower).getOrElse { throw it }.single()
@@ -122,6 +133,10 @@ class TestStringEncodings: FunSpec({
             encodeP('\\', true) shouldBe 205u
             encodeS('\\', false) shouldBe 77u
             encodeS('\\', true) shouldBe 77u
+            encodeP('\r', true) shouldBe 13u
+            encodeP('\r', false) shouldBe 13u
+            encodeP('\n', true) shouldBe 13u
+            encodeP('\n', false) shouldBe 13u
         }
 
         test("testBoxDrawingCharsEncoding") {
