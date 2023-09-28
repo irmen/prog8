@@ -47,6 +47,7 @@ class VirtualMachine(irProgram: IRProgram) {
     var statusNegative = false
     internal var randomGenerator = Random(0xa55a7653)
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
+    internal var mul16_last_upper = 0u
     val cx16virtualregsBaseAddress: Int
 
     init {
@@ -1447,10 +1448,14 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun plusMinusMultAnyWord(operator: String, reg1: Int, reg2: Int) {
         val left = registers.getUW(reg1)
         val right = registers.getUW(reg2)
-        val result = when(operator) {
-            "+" -> left + right
-            "-" -> left - right
-            "*" -> left * right
+        val result: UInt
+        when(operator) {
+            "+" -> result = left + right
+            "-" -> result = left - right
+            "*" -> {
+                result = left.toUInt() * right
+                mul16_last_upper = result shr 16
+            }
             else -> throw IllegalArgumentException("operator word $operator")
         }
         registers.setUW(reg1, result.toUShort())
@@ -1458,10 +1463,14 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun plusMinusMultConstWord(operator: String, reg1: Int, value: UShort) {
         val left = registers.getUW(reg1)
-        val result = when(operator) {
-            "+" -> left + value
-            "-" -> left - value
-            "*" -> left * value
+        val result: UInt
+        when(operator) {
+            "+" -> result = left + value
+            "-" -> result = left - value
+            "*" -> {
+                result = left.toUInt() * value
+                mul16_last_upper = result shr 16
+            }
             else -> throw IllegalArgumentException("operator word $operator")
         }
         registers.setUW(reg1, result.toUShort())
@@ -1470,10 +1479,14 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun plusMinusMultAnyWordInplace(operator: String, reg1: Int, address: Int) {
         val memvalue = memory.getUW(address)
         val operand = registers.getUW(reg1)
-        val result = when(operator) {
-            "+" -> memvalue + operand
-            "-" -> memvalue - operand
-            "*" -> memvalue * operand
+        val result: UInt
+        when(operator) {
+            "+" -> result = memvalue + operand
+            "-" -> result = memvalue - operand
+            "*" -> {
+                result = memvalue.toUInt() * operand
+                mul16_last_upper = result shr 16
+            }
             else -> throw IllegalArgumentException("operator word $operator")
         }
         memory.setUW(address, result.toUShort())

@@ -141,8 +141,13 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
     }
 
     asmsub mul16_last_upper() -> uword @AY {
-        ; this routine peeks into the internal 32 bits multiplication result buffer of the
+        ; This routine peeks into the internal 32 bits multiplication result buffer of the
         ; 16*16 bits multiplication routine, to fetch the upper 16 bits of the last calculation.
+        ; Notes:
+        ;   - to avoid interference it's best to fetch and store this value immediately after the multiplication expression.
+        ;     for instance, simply printing a number may already result in new multiplication calls being performed
+        ;   - not all multiplications in the source code result in an actual multiplication call:
+        ;     some simpler multiplications will be optimized away into faster routines. These will not set the upper 16 bits at all!
         %asm {{
             lda  multiply_words.result+2
             ldy  multiply_words.result+3

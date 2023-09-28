@@ -1,7 +1,6 @@
 TODO
 ====
 
-- VM: make matn.mul16_last_upper()
 - clean up the active file channel assumptions in diskio (basically do chkin every time and not in f_open?)
 - return the file channel number from f_open and f_open_w instead of just true (so user can change it and set it back if they want instead of relying on the magic numbers 12 and 13)
   OR just add routines to set it back to 12/13 so no tracking has to occur by the user at all

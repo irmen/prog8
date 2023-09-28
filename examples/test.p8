@@ -1,4 +1,5 @@
 %import textio
+%import math
 ;%import verafx
 %zeropage basicsafe
 %option no_sysinit
@@ -12,9 +13,10 @@ main {
         uword value1=5678
         uword value2=9999
         uword result = value1*value2
+        uword upper16 = math.mul16_last_upper()
         txt.print_uw(result)
         txt.spc()
-        txt.print_uw(math.mul16_last_upper())
+        txt.print_uw(upper16)
         txt.nl()
 
 

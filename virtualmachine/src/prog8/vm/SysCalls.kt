@@ -53,6 +53,7 @@ SYSCALLS:
 43 = CLAMP_FLOAT
 44 = ATAN
 45 = STR_TO_FLOAT
+46 = MUL16_LAST_UPPER
 */
 
 enum class Syscall {
@@ -101,7 +102,8 @@ enum class Syscall {
     CLAMP_UWORD,
     CLAMP_FLOAT,
     ATAN,
-    STR_TO_FLOAT
+    STR_TO_FLOAT,
+    MUL16_LAST_UPPER
     ;
 
     companion object {
@@ -489,6 +491,9 @@ object SysCalls {
                     radians+=2*PI
                 val result = floor(radians/2.0/PI*256.0)
                 returnValue(callspec.returns!!, result, vm)
+            }
+            Syscall.MUL16_LAST_UPPER -> {
+                returnValue(callspec.returns!!, vm.mul16_last_upper, vm)
             }
         }
     }
