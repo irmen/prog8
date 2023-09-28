@@ -1076,7 +1076,10 @@ object PetsciiEncoding {
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Petscii character for '${chr}' (${chr.code})")
+                    if(chr.isISOControl())
+                        throw CharConversionException("no ${case}Petscii character for char #${chr.code}")
+                    else
+                        throw CharConversionException("no ${case}Petscii character for char #${chr.code} '${chr}'")
                 }
             }
         }
@@ -1119,7 +1122,10 @@ object PetsciiEncoding {
                 }
                 else -> {
                     val case = if (lowercase) "lower" else "upper"
-                    throw CharConversionException("no ${case}Screencode character for '${chr}' (${chr.code})")
+                    if(chr.isISOControl())
+                        throw CharConversionException("no ${case}Screencode character for char #${chr.code}")
+                    else
+                        throw CharConversionException("no ${case}Screencode character for char #${chr.code} '${chr}'")
                 }
             }
         }

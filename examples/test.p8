@@ -7,50 +7,11 @@
 
 main {
     sub start() {
-        txt.print("\\r=")
+        txt.print("petscii \\r=")
         txt.print_ub('\r')
         txt.print(" and \\n=")
         txt.print_ub('\n')
         txt.nl()
-
-        ubyte[256] buf
-
-        void diskio.delete("lines.txt")
-        if diskio.f_open_w("@:lines.txt") {
-            txt.print("writing...\n")
-            repeat 10 {
-                if not diskio.f_write("line\r", 5) {
-                    diskio.f_close_w()
-                    txt.print("write error\n")
-                    break
-                }
-            }
-            diskio.f_close_w()
-        }
-        txt.print("\nwritten.\n\n")
-
-        if diskio.f_open("lines.txt") {
-            txt.print("reading...\n")
-            repeat {
-                if diskio.f_readline(buf)==0 {
-                    diskio.f_close()
-                    txt.print("readline is 0\n")
-                    break
-                }
-                if cbm.READST() {
-                    txt.print(diskio.status())
-                    diskio.f_close()
-                    break
-                }
-                txt.print(buf)
-                txt.nl()
-            }
-            diskio.f_close()
-        } else {
-            txt.print(diskio.status())
-        }
-
-        txt.print("\ndone.\n")
 
 ;        txt.print_uw(math.mul16_last_upper())
 ;        txt.nl()

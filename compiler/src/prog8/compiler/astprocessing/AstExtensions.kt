@@ -5,10 +5,12 @@ import prog8.ast.Program
 import prog8.ast.expressions.CharLiteral
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
+import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import java.io.CharConversionException
 
 
 internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: CompilationOptions) {
@@ -63,13 +65,35 @@ internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, err
                 errors.err("compilation target doesn't support this text encoding", char.position)
                 return noModifications
             }
-            return listOf(IAstModification.ReplaceNode(
-                char,
-                NumericLiteral(DataType.UBYTE, target.encodeString(char.value.toString(), char.encoding)[0].toDouble(), char.position),
-                parent
-            ))
+            return try {
+                val encoded = target.encodeString(char.value.toString(), char.encoding)
+                listOf(IAstModification.ReplaceNode(
+                    char,
+                    NumericLiteral(DataType.UBYTE, encoded[0].toDouble(), char.position),
+                    parent
+                ))
+            } catch (x: CharConversionException) {
+                errors.err(x.message ?: "can't encode character", char.position)
+                noModifications
+            }
+        }
+
+        override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
+            // this only *checks* for errors for string encoding. The actual encoding is done much later
+            require(string.encoding != Encoding.DEFAULT)
+            if(string.encoding != Encoding.DEFAULT && string.encoding !in target.supportedEncodings) {
+                errors.err("compilation target doesn't support this text encoding", string.position)
+                return noModifications
+            }
+            try {
+                target.encodeString(string.value, string.encoding)
+            } catch (x: CharConversionException) {
+                errors.err(x.message ?: "can't encode string", string.position)
+            }
+            return noModifications
         }
     }
+
     walker.visit(this)
     walker.applyModifications()
 }
