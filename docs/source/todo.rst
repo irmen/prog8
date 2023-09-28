@@ -1,7 +1,6 @@
 TODO
 ====
 
-- fix c64 diskio.f_write optimizer issue (in test.p8)
 - why is petscii \n translated to $8d and not $0d?  and \r IS translated to $0d?
 - add a compiler switch to replace all calls to the math word mul routine on the X16 by the verafx call instead.
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....

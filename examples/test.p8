@@ -7,6 +7,12 @@
 
 main {
     sub start() {
+        txt.print("\\r=")
+        txt.print_ub('\r')
+        txt.print(" and \\n=")
+        txt.print_ub('\n')
+        txt.nl()
+
         ubyte[256] buf
 
         void diskio.delete("lines.txt")
