@@ -7,22 +7,33 @@
 diskio {
     %option no_symbol_prefixing
 
+    const ubyte READ_IO_CHANNEL=12
+    const ubyte WRITE_IO_CHANNEL=13
+
     ubyte drivenumber = 8
 
     sub set_drive(ubyte number) {
         drivenumber = number
     }
 
+    sub reset_read_channel() {
+        void cbm.CHKIN(READ_IO_CHANNEL)
+    }
+
+    sub reset_write_channel() {
+        cbm.CHKOUT(WRITE_IO_CHANNEL)
+    }
+
     sub directory() -> bool {
         ; -- Prints the directory contents to the screen. Returns success.
 
         cbm.SETNAM(1, "$")
-        cbm.SETLFS(12, drivenumber, 0)
+        cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         ubyte status = 1
         void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void cbm.CHKIN(12)        ; use #12 as input channel
+        reset_read_channel()
         if_cs
             goto io_error
 
@@ -60,7 +71,7 @@ diskio {
 
 io_error:
         cbm.CLRCHN()        ; restore default i/o devices
-        cbm.CLOSE(12)
+        cbm.CLOSE(READ_IO_CHANNEL)
 
         if status and status & $40 == 0 {            ; bit 6=end of file
             txt.print("\ni/o error, status: ")
@@ -76,12 +87,12 @@ io_error:
         ; -- Returns pointer to disk name string or 0 if failure.
 
         cbm.SETNAM(1, "$")
-        cbm.SETLFS(12, drivenumber, 0)
+        cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         ubyte okay = false
         void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void cbm.CHKIN(12)        ; use #12 as input channel
+        reset_read_channel()
         if_cs
             goto io_error
 
@@ -108,7 +119,7 @@ io_error:
 
 io_error:
         cbm.CLRCHN()        ; restore default i/o devices
-        cbm.CLOSE(12)
+        cbm.CLOSE(READ_IO_CHANNEL)
         if okay
             return &list_filename
         return 0
@@ -152,7 +163,7 @@ io_error:
         return files_found
     }
 
-    ; ----- iterative file lister functions (uses io channel 12) -----
+    ; ----- iterative file lister functions (uses the read io channel) -----
 
     sub lf_start_list(uword pattern_ptr) -> bool {
         ; -- start an iterative file listing with optional pattern matching.
@@ -163,11 +174,11 @@ io_error:
         iteration_in_progress = true
 
         cbm.SETNAM(1, "$")
-        cbm.SETLFS(12, drivenumber, 0)
+        cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
-        void cbm.CHKIN(12)        ; use #12 as input channel
+        reset_read_channel()
         if_cs
             goto io_error
 
@@ -192,7 +203,7 @@ io_error:
             return false
 
         repeat {
-            void cbm.CHKIN(12)        ; use #12 as input channel again
+            reset_read_channel()        ; use the input io channel again
 
             uword nameptr = &list_filename
             ubyte blocks_lsb = cbm.CHRIN()
@@ -253,13 +264,13 @@ close_end:
         ; -- end an iterative file listing session (close channels).
         if iteration_in_progress {
             cbm.CLRCHN()
-            cbm.CLOSE(12)
+            cbm.CLOSE(READ_IO_CHANNEL)
             iteration_in_progress = false
         }
     }
 
 
-    ; ----- iterative file loader functions (uses io channel 12) -----
+    ; ----- iterative file loader functions (uses the input io channel) -----
 
     sub f_open(uword filenameptr) -> bool {
         ; -- open a file for iterative reading with f_read
@@ -267,18 +278,18 @@ close_end:
         f_close()
 
         cbm.SETNAM(string.length(filenameptr), filenameptr)
-        cbm.SETLFS(12, drivenumber, 12)     ; note: has to be 12,x,12 because otherwise f_seek doesn't work
+        cbm.SETLFS(READ_IO_CHANNEL, drivenumber, READ_IO_CHANNEL)     ; note: has to be Channel,x,Channel because otherwise f_seek doesn't work
         void cbm.OPEN()          ; open 12,8,12,"filename"
         if_cc {
             if cbm.READST()==0 {
                 iteration_in_progress = true
-                void cbm.CHKIN(12)          ; use #12 as input channel
+                reset_read_channel()
                 if_cc {
                     void cbm.CHRIN()        ; read first byte to test for file not found
                     if not cbm.READST() {
-                        cbm.CLOSE(12)           ; close file because we already consumed first byte
+                        cbm.CLOSE(READ_IO_CHANNEL)           ; close file because we already consumed first byte
                         void cbm.OPEN()         ; re-open the file
-                        void cbm.CHKIN(12)
+                        cbm.CLRCHN()            ; reset default i/o channels
                         return true
                     }
                 }
@@ -294,6 +305,7 @@ close_end:
         if not iteration_in_progress or not num_bytes
             return 0
 
+        reset_read_channel()
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
 
         %asm {{
@@ -328,6 +340,7 @@ m_in_buffer     sta  $ffff
         if not iteration_in_progress
             return 0
 
+        reset_read_channel()
         uword total_read = 0
         while not cbm.READST() {
             cx16.r0 = f_read(bufferpointer, 256)
@@ -346,8 +359,7 @@ m_in_buffer     sta  $ffff
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
-            ldx  #12
-            jsr  cbm.CHKIN              ; use channel 12 again for input
+            jsr  reset_read_channel
             ldy  #0
 _loop       jsr  cbm.CHRIN
             sta  (P8ZP_SCRATCH_W1),y
@@ -368,25 +380,23 @@ _end        rts
         ; -- end an iterative file loading session (close channels).
         if iteration_in_progress {
             cbm.CLRCHN()
-            cbm.CLOSE(12)
+            cbm.CLOSE(READ_IO_CHANNEL)
             iteration_in_progress = false
         }
     }
 
 
-    ; ----- iterative file writing functions (uses io channel 13) -----
+    ; ----- iterative file writing functions (uses write io channel) -----
 
     sub f_open_w(uword filenameptr) -> bool {
         ; -- open a file for iterative writing with f_write
         f_close_w()
 
         cbm.SETNAM(string.length(filenameptr), filenameptr)
-        cbm.SETLFS(13, drivenumber, 1)
+        cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, 1)
         void cbm.OPEN()             ; open 13,8,1,"filename"
-        if_cc {
-            cbm.CHKOUT(13)          ; use #13 as output channel
+        if_cc
             return not cbm.READST()
-        }
         f_close_w()
         return false
     }
@@ -394,7 +404,7 @@ _end        rts
     sub f_write(uword bufferpointer, uword num_bytes) -> bool {
         ; -- write the given number of bytes to the currently open file
         if num_bytes!=0 {
-            cbm.CHKOUT(13)        ; use #13 as output channel again
+            reset_write_channel()
             repeat num_bytes {
                 cbm.CHROUT(@(bufferpointer))
                 bufferpointer++
@@ -407,7 +417,7 @@ _end        rts
     sub f_close_w() {
         ; -- end an iterative file writing session (close channels).
         cbm.CLRCHN()
-        cbm.CLOSE(13)
+        cbm.CLOSE(WRITE_IO_CHANNEL)
     }
 
 

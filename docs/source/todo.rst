@@ -1,9 +1,8 @@
 TODO
 ====
 
-- clean up the active file channel assumptions in diskio (basically do chkin every time and not in f_open?)
-- return the file channel number from f_open and f_open_w instead of just true (so user can change it and set it back if they want instead of relying on the magic numbers 12 and 13)
-  OR just add routines to set it back to 12/13 so no tracking has to occur by the user at all
+- fix c64 diskio.f_write optimizer issue (in test.p8)
+- why is petscii \n translated to $8d and not $0d?  and \r IS translated to $0d?
 - add a compiler switch to replace all calls to the math word mul routine on the X16 by the verafx call instead.
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
