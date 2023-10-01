@@ -1,7 +1,7 @@
-%import diskio
+%import gfx2
 %import textio
 ;%import math
-;%import verafx
+%import verafx
 %zeropage basicsafe
 %option no_sysinit
 
@@ -35,6 +35,11 @@ main {
         w1 *= sb2
         txt.print_w(w1)
         txt.nl()
+
+        gfx2.screen_mode(1)
+        verafx.fill(0, 0, %10101010, 1200)        ; should fill top half of the screen
+        verafx.fill(0, 4800, %11111111, 1200)     ; should fill bottom half of the screen
+
 
 ;        txt.print_uw(math.mul16_last_upper())
 ;        txt.nl()

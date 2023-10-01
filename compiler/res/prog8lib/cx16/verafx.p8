@@ -6,6 +6,17 @@
 verafx {
     %option no_symbol_prefixing
 
+    sub fill(ubyte vbank, uword vaddr, ubyte data, uword numlongs) {
+        ; TODO use vera fx cache write
+        cx16.vaddr(vbank, vaddr, 0, true)
+        repeat numlongs {
+            cx16.VERA_DATA0 = data
+            cx16.VERA_DATA0 = data
+            cx16.VERA_DATA0 = data
+            cx16.VERA_DATA0 = data
+        }
+    }
+
     ; unsigned multiplication just passes the values as signed to muls
     ; if you do this yourself in your call to muls, it will save a few instructions.
     sub mult(uword value1, uword value2) -> uword {
@@ -46,9 +57,10 @@ verafx {
             stz  cx16.VERA_DATA0      ; multiply and write out result
             lda  #%00010001           ; $01 with Increment 1
             sta  cx16.VERA_ADDR_H     ; so we can read out the result
-            stz  cx16.VERA_FX_CTRL    ; Cache write disable
             lda  cx16.VERA_DATA0
             ldy  cx16.VERA_DATA0
+            stz  cx16.VERA_FX_CTRL    ; Cache write disable
+            stz  cx16.VERA_CTRL       ; reset DCSEL
             rts
 ; we skip the upper 16 bits of the result:
 ;            lda  cx16.VERA_DATA0

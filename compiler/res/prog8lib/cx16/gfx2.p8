@@ -32,6 +32,7 @@ gfx2 {
     bool monochrome_dont_stipple_flag = false            ; set to false to enable stippling mode in monochrome displaymodes
 
     sub screen_mode(ubyte mode) {
+        cx16.VERA_CTRL=0
         when mode {
             1 -> {
                 ; lores monochrome

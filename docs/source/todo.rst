@@ -1,7 +1,6 @@
 TODO
 ====
 
-- add a compiler switch to replace all calls to the math word mul routine on the X16 by the verafx call instead. Search TODO("vera fx mul")
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!
@@ -20,6 +19,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- Currently "320*240/8/8" gives integer overflow, so: allow constant integer subexpressions to contain out of range integers (>65535 etc) as long as the final constant value is within byte/word range.
 - allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
 - allow 'chained' array indexing for assign targets:  ptrarray[0][0] = 42   this is just evaluating the lhs as a uword pointer expression
 
