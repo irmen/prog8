@@ -73,6 +73,7 @@ Language features
 - High-level code optimizations, such as const-folding (zero-allocation constants that are optimized away in expressions), expression and statement simplifications/rewriting.
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - Supports the sixteen 'virtual' 16-bit registers R0 .. R15 as defined on the Commander X16, also on the other machines.
+- Support for low level system features such as (optional) transparent use of the Vera Fx hardware assisted word multiplication on the Commander X16
 - If you only use standard Kernal and core prog8 library routines, it is sometimes possible to compile the *exact same program* for different machines (just change the compilation target flag)
 
 

@@ -38,6 +38,7 @@ class CompilerArguments(val filepath: Path,
                         val varsHighBank: Int?,
                         val compilationTarget: String,
                         val splitWordArrays: Boolean,
+                        val veraFxMul: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -64,7 +65,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
     try {
         val totalTime = measureTimeMillis {
-            val (programresult, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, args.sourceDirs)
+            val (programresult, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, args.veraFxMul, args.sourceDirs)
             compilationOptions = options
 
             with(compilationOptions) {
@@ -76,6 +77,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 experimentalCodegen = args.experimentalCodegen
                 varsHighBank = args.varsHighBank
                 splitWordArrays = args.splitWordArrays
+                veraFxMul = args.veraFxMul
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
             }
@@ -232,6 +234,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
 fun parseMainModule(filepath: Path,
                     errors: IErrorReporter,
                     compTarget: ICompilationTarget,
+                    veraFxMul: Boolean,
                     sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
@@ -250,9 +253,10 @@ fun parseMainModule(filepath: Path,
     for(lib in compTarget.machine.importLibs(compilerOptions, compTarget.name))
         importer.importImplicitLibraryModule(lib)
 
-    if(compilerOptions.compTarget.name!=VMTarget.NAME && !compilerOptions.experimentalCodegen) {
+    if(compilerOptions.compTarget.name!=VMTarget.NAME && !compilerOptions.experimentalCodegen)
         importer.importImplicitLibraryModule("math")
-    }
+    if(veraFxMul)
+        importer.importImplicitLibraryModule("verafx")
     importer.importImplicitLibraryModule("prog8_lib")
 
     if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)

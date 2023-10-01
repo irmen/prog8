@@ -52,6 +52,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             varsHighBank = null,
             compilationTarget = Cx16Target.NAME,
             splitWordArrays = false,
+            veraFxMul = false,
             symbolDefs = emptyMap(),
             sourceDirs,
             outputDir

@@ -34,7 +34,8 @@ internal fun compileFile(
         symbolDefs = emptyMap(),
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests(),
-        splitWordArrays = false
+        splitWordArrays = false,
+        veraFxMul = false
     )
     return compileProgram(args)
 }

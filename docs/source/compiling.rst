@@ -179,6 +179,14 @@ One or more .p8 module files
     This removes the need to add @split yourself but some programs may fail to compile with
     this option as not all array operations are implemented yet on split arrays.
 
+``-verafxmul``
+    Use Vera Fx hardware assisted word multiplication routines (only on the Commander X16)
+    These are expected to be several times faster than the regular cpu routine,
+    but could interfere with regular Vera code. Also they use the 4 bytes at the top of video ram
+    just before the Vera PSG registers.
+    Use this option only if you know what you're doing, otherwise, calling ``verafx.muls()``
+    manually gives you more control where this vera routine is used or not.
+
 ``-vm``
     load and run a p8-virt or p8-ir listing in the internal VirtualMachine instead of compiling a prog8 program file..
 

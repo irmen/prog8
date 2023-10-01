@@ -1342,16 +1342,31 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 if(value in asmgen.optimizedWordMultiplications) {
                     asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                 } else {
-                    asmgen.out("""
-                        lda  $name
-                        sta  math.multiply_words.multiplier
-                        lda  $name+1
-                        sta  math.multiply_words.multiplier+1
-                        lda  #<$value
-                        ldy  #>$value
-                        jsr  math.multiply_words
-                        sta  $name
-                        sty  $name+1""")
+                    if(asmgen.options.veraFxMul) {
+                        asmgen.out("""
+                            lda  $name
+                            ldy  $name+1
+                            sta  cx16.r0
+                            sty  cx16.r0+1
+                            lda  #<$value
+                            ldy  #>$value
+                            sta  cx16.r1
+                            sty  cx16.r1+1
+                            jsr  verafx.muls
+                            sta  $name
+                            sty  $name+1""")
+                    } else {
+                        asmgen.out("""
+                            lda  $name
+                            sta  math.multiply_words.multiplier
+                            lda  $name+1
+                            sta  math.multiply_words.multiplier+1
+                            lda  #<$value
+                            ldy  #>$value
+                            jsr  math.multiply_words
+                            sta  $name
+                            sty  $name+1""")
+                    }
                 }
             }
             "/" -> {
@@ -1794,23 +1809,45 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 sta  $name+1""")
                     }
                     "*" -> {
-                        if(valueDt==DataType.UBYTE) {
-                            asmgen.out("  lda  $otherName |  sta  math.multiply_words.multiplier")
-                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                asmgen.out("  stz  math.multiply_words.multiplier+1")
-                            else
-                                asmgen.out("  lda  #0 |  sta  math.multiply_words.multiplier+1")
-                        } else {
-                            asmgen.out("  lda  $otherName")
-                            asmgen.signExtendAYlsb(valueDt)
-                            asmgen.out("  sta  math.multiply_words.multiplier |  sty  math.multiply_words.multiplier+1")
-                        }
-                        asmgen.out("""
+                        if(asmgen.options.veraFxMul) {
+                            if(valueDt==DataType.UBYTE) {
+                                asmgen.out("  lda  $otherName |  sta  cx16.r1")
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                    asmgen.out("  stz  cx16.r1+1")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  cx16.r1+1")
+                            } else {
+                                asmgen.out("  lda  $otherName")
+                                asmgen.signExtendAYlsb(valueDt)
+                                asmgen.out("  sta  cx16.r1 |  sty  cx16.r1+1")
+                            }
+                            asmgen.out("""
                                 lda  $name
                                 ldy  $name+1
-                                jsr  math.multiply_words
+                                sta  cx16.r0
+                                sty  cx16.r0+1
+                                jsr  verafx.muls
                                 sta  $name
                                 sty  $name+1""")
+                        } else {
+                            if(valueDt==DataType.UBYTE) {
+                                asmgen.out("  lda  $otherName |  sta  math.multiply_words.multiplier")
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                    asmgen.out("  stz  math.multiply_words.multiplier+1")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  math.multiply_words.multiplier+1")
+                            } else {
+                                asmgen.out("  lda  $otherName")
+                                asmgen.signExtendAYlsb(valueDt)
+                                asmgen.out("  sta  math.multiply_words.multiplier |  sty  math.multiply_words.multiplier+1")
+                            }
+                            asmgen.out("""
+                                    lda  $name
+                                    ldy  $name+1
+                                    jsr  math.multiply_words
+                                    sta  $name
+                                    sty  $name+1""")
+                        }
                     }
                     "/" -> {
                         if(dt==DataType.UWORD) {
@@ -1939,16 +1976,31 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
                     "-" -> asmgen.out("  lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
                     "*" -> {
-                        asmgen.out("""
-                            lda  $otherName
-                            ldy  $otherName+1
-                            sta  math.multiply_words.multiplier
-                            sty  math.multiply_words.multiplier+1
-                            lda  $name
-                            ldy  $name+1
-                            jsr  math.multiply_words
-                            sta  $name
-                            sty  $name+1""")
+                        if(asmgen.options.veraFxMul) {
+                            asmgen.out("""
+                                lda  $name
+                                ldy  $name+1
+                                sta  cx16.r0
+                                sty  cx16.r0+1
+                                lda  $otherName
+                                ldy  $otherName+1
+                                sta  cx16.r1
+                                sty  cx16.r1+1
+                                jsr  verafx.muls
+                                sta  $name
+                                sty  $name+1""")
+                        } else {
+                            asmgen.out("""
+                                lda  $otherName
+                                ldy  $otherName+1
+                                sta  math.multiply_words.multiplier
+                                sty  math.multiply_words.multiplier+1
+                                lda  $name
+                                ldy  $name+1
+                                jsr  math.multiply_words
+                                sta  $name
+                                sty  $name+1""")
+                        }
                     }
                     "/" -> {
                         if(dt==DataType.WORD) {
@@ -2128,15 +2180,29 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
     private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
         fun multiplyVarByWordInAY() {
-            asmgen.out("""
-                sta  math.multiply_words.multiplier
-                sty  math.multiply_words.multiplier+1
-                lda  $name
-                ldy  $name+1
-                jsr  math.multiply_words
-                sta  $name
-                sty  $name+1
-            """)
+            if(asmgen.options.veraFxMul) {
+                asmgen.out("""
+                    sta  cx16.r1
+                    sty  cx16.r1+1
+                    lda  $name
+                    ldy  $name+1
+                    sta  cx16.r0
+                    sty  cx16.r0+1
+                    jsr  verafx.muls
+                    sta  $name
+                    sty  $name+1
+                """)
+            } else {
+                asmgen.out("""
+                    sta  math.multiply_words.multiplier
+                    sty  math.multiply_words.multiplier+1
+                    lda  $name
+                    ldy  $name+1
+                    jsr  math.multiply_words
+                    sta  $name
+                    sty  $name+1
+                """)
+            }
         }
 
         fun divideVarByWordInAY() {

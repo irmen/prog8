@@ -4,6 +4,7 @@
 ; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg/edit
 
 verafx {
+    %option no_symbol_prefixing
 
     ; unsigned multiplication just passes the values as signed to muls
     ; if you do this yourself in your call to muls, it will save a few instructions.

@@ -1,8 +1,7 @@
 TODO
 ====
 
-- why is petscii \n translated to $8d and not $0d?  and \r IS translated to $0d?
-- add a compiler switch to replace all calls to the math word mul routine on the X16 by the verafx call instead.
+- add a compiler switch to replace all calls to the math word mul routine on the X16 by the verafx call instead. Search TODO("vera fx mul")
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!

@@ -7,10 +7,33 @@
 
 main {
     sub start() {
-        txt.print("petscii \\r=")
-        txt.print_ub('\r')
-        txt.print(" and \\n=")
-        txt.print_ub('\n')
+        word w1 = -123
+        word w2 = 222
+        ubyte b2 = 222
+        byte sb2 = 111
+        txt.print_w(w1*w2)
+        txt.nl()
+        txt.print_w(w1*222)
+        txt.nl()
+        w1 = -123
+        w1 *= 222
+        txt.print_w(w1)
+        txt.nl()
+        w1 = -123
+        w1 *= w2
+        txt.print_w(w1)
+        txt.nl()
+        w1 = -123
+        w1 *= (w2-1)
+        txt.print_w(w1)
+        txt.nl()
+        w1 = -123
+        w1 *= b2
+        txt.print_w(w1)
+        txt.nl()
+        w1 = -123
+        w1 *= sb2
+        txt.print_w(w1)
         txt.nl()
 
 ;        txt.print_uw(math.mul16_last_upper())
