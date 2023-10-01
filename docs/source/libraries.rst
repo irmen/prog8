@@ -493,9 +493,14 @@ Available for the Cx16 target.
 Experimental routines that use the new Vera FX logic (hopefully coming in the Vera in new X16 boards,
 the emulators already support it).
 
-For now, the hardware 16*16 multiplier is exposed via ``mult`` and ``muls`` routines.
-They are about 4 to 5 times faster as the default 6502 cpu routine for word multiplication.
-But they depend on
+``mult`` , ``muls``
+    For now, the hardware 16*16 multiplier is exposed via ``mult`` and ``muls`` routines (unsigned and signed respectively).
+    They are about 4 to 5 times faster as the default 6502 cpu routine for word multiplication.
+    But they depend on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
+
+``clear``
+    There's also a ``clear`` routine here to very quickly clear a piece of vram to a given byte value (it writes 4 bytes at a time).
+    The routine is around 3 times faster as a regular unrolled loop to clear vram.
 
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/verafx.p8>`_
 to see what's in there.

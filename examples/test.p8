@@ -37,8 +37,24 @@ main {
         txt.nl()
 
         gfx2.screen_mode(1)
-        verafx.fill(0, 0, %10101010, 1200)        ; should fill top half of the screen
-        verafx.fill(0, 4800, %11111111, 1200)     ; should fill bottom half of the screen
+
+        cbm.SETTIM(0,0,0)
+        repeat 255 {
+            gfx2.clear_screen()
+        }
+        uword time1 = cbm.RDTIM16()
+
+        cbm.SETTIM(0,0,0)
+        repeat 255 {
+            verafx.clear(0, 0, %10101010, 2400)
+        }
+        uword time2 = cbm.RDTIM16()
+
+        gfx2.screen_mode(0)
+        txt.print_uw(time1)
+        txt.spc()
+        txt.print_uw(time2)
+        txt.nl()
 
 
 ;        txt.print_uw(math.mul16_last_upper())

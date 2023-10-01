@@ -6,15 +6,45 @@
 verafx {
     %option no_symbol_prefixing
 
-    sub fill(ubyte vbank, uword vaddr, ubyte data, uword numlongs) {
-        ; TODO use vera fx cache write
-        cx16.vaddr(vbank, vaddr, 0, true)
-        repeat numlongs {
-            cx16.VERA_DATA0 = data
-            cx16.VERA_DATA0 = data
-            cx16.VERA_DATA0 = data
-            cx16.VERA_DATA0 = data
+    sub clear(ubyte vbank, uword vaddr, ubyte data, uword amountof32bits) {
+        ; use cached 4-byte write to quickly clear a portion of the video memory to a given byte value
+        ; this routine is around 3 times faster as gfx2.clear_screen()
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
+        cx16.VERA_ADDR_M = msb(vaddr)
+        cx16.VERA_ADDR_L = lsb(vaddr)
+        cx16.VERA_CTRL = 6<<1       ; dcsel = 6, fill the 32 bits cache
+        cx16.VERA_FX_CACHE_L = data
+        cx16.VERA_FX_CACHE_M = data
+        cx16.VERA_FX_CACHE_H = data
+        cx16.VERA_FX_CACHE_U = data
+        cx16.VERA_CTRL = 2<<1       ; dcsel = 2
+        cx16.VERA_FX_MULT = 0
+        cx16.VERA_FX_CTRL = %01000000    ; cache write enable
+
+        if (amountof32bits & %1111110000000011) == 0 {
+            repeat lsb(amountof32bits >> 2)
+                unroll 4 cx16.VERA_DATA0=0       ; write 4 bytes at a time, unrolled
         }
+        else if (amountof32bits & %1111111000000001) == 0 {
+            repeat lsb(amountof32bits >> 1)
+                unroll 2 cx16.VERA_DATA0=0       ; write 4 bytes at a time, unrolled
+        }
+        else if (lsb(amountof32bits) & 3) == 0 {
+            repeat amountof32bits >> 2
+                unroll 4 cx16.VERA_DATA0=0       ; write 4 bytes at a time, unrolled
+        }
+        else if (lsb(amountof32bits) & 1) == 0 {
+            repeat amountof32bits >> 1
+                unroll 2 cx16.VERA_DATA0=0       ; write 4 bytes at a time, unrolled
+        }
+        else {
+            repeat amountof32bits
+                cx16.VERA_DATA0=0       ; write 4 bytes at a time
+        }
+
+        cx16.VERA_FX_CTRL = 0       ; cache write disable
+        cx16.VERA_CTRL = 0
     }
 
     ; unsigned multiplication just passes the values as signed to muls
