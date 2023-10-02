@@ -514,5 +514,8 @@ the emulators already support it).
     There's also a ``clear`` routine here to very quickly clear a piece of vram to a given byte value (it writes 4 bytes at a time).
     The routine is around 3 times faster as a regular unrolled loop to clear vram.
 
+``transparency``
+    Enable or disable transparent writes (color 0 will be transparent if enabled).
+
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/verafx.p8>`_
 to see what's in there.

@@ -98,4 +98,13 @@ verafx {
 ;            sta  $0403
         }}
     }
+
+    sub transparency(bool enable) {
+        cx16.VERA_CTRL = 2<<1       ; dcsel = 2
+        if enable
+            cx16.VERA_FX_CTRL |= %10000000
+        else
+            cx16.VERA_FX_CTRL &= %01111111
+        cx16.VERA_CTRL = 0
+    }
 }
