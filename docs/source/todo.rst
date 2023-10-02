@@ -1,6 +1,7 @@
 TODO
 ====
 
+- add some routines to use the x16's emulator special addresses such as the stdout print register?
 - '>>='  can be used as an operator in an expression?? should only be augmented assignment!
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....

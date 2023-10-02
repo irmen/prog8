@@ -21,7 +21,6 @@ class CompilationOptions(val output: OutputType,
                          var experimentalCodegen: Boolean = false,
                          var varsHighBank: Int? = null,
                          var splitWordArrays: Boolean = false,
-                         var veraFxMul: Boolean = false,
                          var outputDir: Path = Path(""),
                          var symbolDefs: Map<String, String> = emptyMap()
 ) {

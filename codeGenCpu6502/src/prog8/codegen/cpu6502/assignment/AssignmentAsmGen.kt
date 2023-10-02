@@ -544,28 +544,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
                 in WordDatatypes -> {
-                    if(asmgen.options.veraFxMul) {
-                        if(expr.right.isSimple()) {
-                            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R0, expr.left.type in SignedDatatypes)
-                            asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R1, expr.left.type in SignedDatatypes)
-                        } else {
-                            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type in SignedDatatypes)
-                            asmgen.saveRegisterStack(CpuRegister.A, false)
-                            asmgen.saveRegisterStack(CpuRegister.Y, false)
-                            asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R1, expr.left.type in SignedDatatypes)
-                            asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                            asmgen.restoreRegisterStack(CpuRegister.A, false)
-                            asmgen.out("  sta  cx16.r0 |  sty  cx16.r0+1")
-                        }
-                        asmgen.out("  jsr  verafx.muls")
-                        assignRegisterpairWord(target, RegisterOrPair.AY)
-                        return true
-                    } else {
-                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "math.multiply_words.multiplier")
-                        asmgen.out("  jsr  math.multiply_words")
-                        assignRegisterpairWord(target, RegisterOrPair.AY)
-                        return true
-                    }
+                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "math.multiply_words.multiplier")
+                    asmgen.out("  jsr  math.multiply_words")
+                    assignRegisterpairWord(target, RegisterOrPair.AY)
+                    return true
                 }
                 else -> return false
             }
@@ -586,16 +568,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  jsr  math.mul_word_${value}")
                     }
                     else {
-                        if(asmgen.options.veraFxMul) {
-                            asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "cx16.r1")
-                            asmgen.out("""
-                                sta  cx16.r0
-                                sty  cx16.r0+1
-                                jsr  verafx.muls""")
-                        } else {
-                            asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "math.multiply_words.multiplier")
-                            asmgen.out("  jsr  math.multiply_words")
-                        }
+                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "math.multiply_words.multiplier")
+                        asmgen.out("  jsr  math.multiply_words")
                     }
                     assignRegisterpairWord(target, RegisterOrPair.AY)
                     return true
