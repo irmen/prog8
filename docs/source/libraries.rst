@@ -435,6 +435,18 @@ On the other targets, it only contains the definition of the 16 memory mapped vi
     restore the values of all 16 virtual registers r0 - r15 from the buffer. Might be useful in an IRQ handler to avoid clobbering them.
 
 
+emudbg  (cx16 only)
+-------------------
+X16Emu Emulator debug routines, for Cx16 only.
+Allows you to interface with the emulator's debug routines/registers.
+There's stuff like ``is_emulator`` to detect if running in the emulator,
+and ``console_write`` to write a (iso) string to the emulator's console (stdout) etc.
+
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/emudbg.p8>`_
+to see what's in there.
+Information about the exposed debug registers is in the `emulator's documentation <https://github.com/X16Community/x16-emulator#debug-io-registers>`_.
+
+
 
 gfx2  (cx16 only)
 -----------------

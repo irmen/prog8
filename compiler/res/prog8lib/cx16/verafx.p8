@@ -4,7 +4,6 @@
 ; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg/edit
 
 verafx {
-    %option no_symbol_prefixing
 
     sub clear(ubyte vbank, uword vaddr, ubyte data, uword amountof32bits) {
         ; use cached 4-byte write to quickly clear a portion of the video memory to a given byte value

@@ -1,7 +1,8 @@
 TODO
 ====
 
-- add some routines to use the x16's emulator special addresses such as the stdout print register?
+- add verafx transparent writes enable/disable routines
+- add %option verafxmuls in block to enable transparent verafx muls use for that block only + add warning message to docs to not use it it in prg AND irq code
 - '>>='  can be used as an operator in an expression?? should only be augmented assignment!
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
