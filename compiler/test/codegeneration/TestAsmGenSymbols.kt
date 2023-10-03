@@ -75,7 +75,7 @@ class TestAsmGenSymbols: StringSpec({
     fun createTestAsmGen6502(program: Program): AsmGen6502Internal {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), false, true, C64Target(), 999u)
-        val ptProgram = IntermediateAstMaker(program).transform()
+        val ptProgram = IntermediateAstMaker(program, errors).transform()
         val st = SymbolTableMaker(ptProgram, options).make()
         return AsmGen6502Internal(ptProgram, st, options, errors)
     }

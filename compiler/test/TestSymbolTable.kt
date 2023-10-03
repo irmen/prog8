@@ -82,7 +82,28 @@ class TestSymbolTable: FunSpec({
         st.allMemMappedVariables.single().scopedName shouldBe "block1.sub1.v3"
         st.allMemorySlabs.single().scopedName shouldBe "block1.sub1.slab1"
     }
-    
+
+    test("static vars") {
+        val node = PtIdentifier("dummy", DataType.UBYTE, Position.DUMMY)
+        val stVar1 = StStaticVariable("initialized", DataType.UBYTE, 99.0, null, null, null, ZeropageWish.DONTCARE, node)
+        val stVar2 = StStaticVariable("uninitialized", DataType.UBYTE, null, null, null, null, ZeropageWish.DONTCARE, node)
+        val arrayInitNonzero = listOf(StArrayElement(1.1, null), StArrayElement(2.2, null), StArrayElement(3.3, null))
+        val arrayInitAllzero = listOf(StArrayElement(0.0, null), StArrayElement(0.0, null), StArrayElement(0.0, null))
+        val stVar3 = StStaticVariable("initialized", DataType.ARRAY_UW, null, null, arrayInitNonzero, 3, ZeropageWish.DONTCARE, node)
+        val stVar4 = StStaticVariable("initialized", DataType.ARRAY_UW, null, null, arrayInitAllzero, 3, ZeropageWish.DONTCARE, node)
+        val stVar5 = StStaticVariable("uninitialized", DataType.ARRAY_UW, null, null, null, 3, ZeropageWish.DONTCARE, node)
+
+        stVar1.uninitialized shouldBe false
+        stVar1.length shouldBe null
+        stVar2.uninitialized shouldBe true
+        stVar2.length shouldBe null
+        stVar3.uninitialized shouldBe false
+        stVar3.length shouldBe 3
+        stVar4.uninitialized shouldBe false
+        stVar4.length shouldBe 3
+        stVar5.uninitialized shouldBe true
+        stVar5.length shouldBe 3
+    }
 })
 
 

@@ -824,6 +824,8 @@ internal class AstChecker(private val program: Program,
                     err("missing option directive argument(s)")
                 else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page", "merge", "splitarrays", "no_symbol_prefixing")}.any { !it })
                     err("invalid option directive argument(s)")
+                if(directive.args.any {it.name=="align_word"} && directive.args.any { it.name=="align_page"})
+                    err("conflicting alignment options")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }

@@ -1,20 +1,20 @@
 %import textio
-%import gfx2
-%import verafx
 %zeropage basicsafe
 
 main {
     sub start() {
-        gfx2.screen_mode(4)
-        gfx2.disc(160, 120, 100, 2)
-        ; verafx.transparency(true)
-        gfx2.position(0, 70)
-        repeat 3000 {
-            gfx2.next_pixel(7)
-            repeat 10
-                gfx2.next_pixel(0)      ; transparent!
-        }
-        verafx.transparency(false)
+        alignblock.flags[0] = 222
+        cx16.r0++
+        cx16.r1++
+        txt.print_uwhex(alignblock.flags, true)
+        txt.spc()
+        txt.print_ub(alignblock.flags[0])
+        txt.nl()
     }
+}
+
+alignblock {
+    %option align_page
+    ubyte[10] flags
 }
 

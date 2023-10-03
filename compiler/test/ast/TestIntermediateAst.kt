@@ -8,6 +8,7 @@ import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8.compiler.astprocessing.IntermediateAstMaker
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestIntermediateAst: FunSpec({
@@ -26,8 +27,9 @@ class TestIntermediateAst: FunSpec({
             }
         """
         val target = C64Target()
+        val errors = ErrorReporterForTests()
         val result = compileText(target, false, text, writeAssembly = false)!!
-        val ast = IntermediateAstMaker(result.compilerAst).transform()
+        val ast = IntermediateAstMaker(result.compilerAst, errors).transform()
         ast.name shouldBe result.compilerAst.name
         ast.allBlocks().any() shouldBe true
         val entry = ast.entrypoint() ?: fail("no main.start() found")

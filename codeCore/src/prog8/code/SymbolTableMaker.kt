@@ -74,10 +74,9 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                             numElements = value.value.length + 1   // include the terminating 0-byte
                         }
                         is PtArray -> {
-                            val array = makeInitialArray(value)
-                            initialArray = if(array.all { it.number==0.0 }) null else array            // all 0 as init value -> just uninitialized
+                            initialArray = makeInitialArray(value)
                             initialString = null
-                            numElements = array.size
+                            numElements = initialArray.size
                             require(node.arraySize?.toInt()==numElements)
                         }
                         else -> {

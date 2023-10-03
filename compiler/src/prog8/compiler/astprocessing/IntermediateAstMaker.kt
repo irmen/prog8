@@ -19,7 +19,7 @@ import kotlin.io.path.isRegularFile
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class IntermediateAstMaker(private val program: Program) {
+class IntermediateAstMaker(private val program: Program, private val errors: IErrorReporter) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(
             program.name,
@@ -398,13 +398,26 @@ class IntermediateAstMaker(private val program: Program) {
     }
 
     private fun transform(srcVar: VarDecl): PtNode {
-        return when(srcVar.type) {
+        when(srcVar.type) {
             VarDeclType.VAR -> {
                 val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
-                PtVariable(srcVar.name, srcVar.datatype, srcVar.zeropage, value, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
+                if(srcVar.datatype in ArrayDatatypes) {
+                    if(value==null) {
+                        val blockOptions = srcVar.definingBlock.options()
+                        if("align_page" in blockOptions || "align_word" in blockOptions) {
+                            errors.warn("converting uninitialized array to explicit zeros because of block alignment option", srcVar.position)
+                            val zeros = PtArray(srcVar.datatype, srcVar.position)
+                            repeat(srcVar.arraysize!!.constIndex()!!) {
+                                zeros.children.add(PtNumber(ArrayToElementTypes.getValue(srcVar.datatype), 0.0, srcVar.position))
+                            }
+                            return PtVariable(srcVar.name, srcVar.datatype, srcVar.zeropage, zeros, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
+                        }
+                    }
+                }
+                return PtVariable(srcVar.name, srcVar.datatype, srcVar.zeropage, value, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
             }
-            VarDeclType.CONST -> PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, srcVar.position)
-            VarDeclType.MEMORY -> PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
+            VarDeclType.CONST -> return PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, srcVar.position)
+            VarDeclType.MEMORY -> return PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
         }
     }
 

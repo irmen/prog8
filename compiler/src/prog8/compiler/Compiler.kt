@@ -109,7 +109,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 program.processAstBeforeAsmGeneration(compilationOptions, args.errors)
                 args.errors.report()
 
-                val intermediateAst = IntermediateAstMaker(program).transform()
+                val intermediateAst = IntermediateAstMaker(program, args.errors).transform()
 //                println("*********** COMPILER AST RIGHT BEFORE ASM GENERATION *************")
 //                printProgram(program)
 //                println("*********** AST RIGHT BEFORE ASM GENERATION *************")

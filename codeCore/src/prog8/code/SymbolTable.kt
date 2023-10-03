@@ -196,13 +196,10 @@ class StStaticVariable(name: String,
         }
         if(onetimeInitializationNumericValue!=null) {
             require(dt in NumericDatatypes)
-            require(onetimeInitializationNumericValue!=0.0) { "zero as init value should just remain uninitialized"}
         }
         if(onetimeInitializationArrayValue!=null) {
             require(dt in ArrayDatatypes)
-            if(onetimeInitializationArrayValue.all { it.number!=null} ) {
-                require(onetimeInitializationArrayValue.any { it.number != 0.0 }) { "array of all zerors as init value should just remain uninitialized" }
-            }
+            require(length==onetimeInitializationArrayValue.size)
         }
         if(onetimeInitializationStringValue!=null) {
             require(dt == DataType.STR)
