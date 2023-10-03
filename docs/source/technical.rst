@@ -18,6 +18,9 @@ it won't actually increase the size of the resulting program binary.
 Prog8 takes care of properly filling this memory area with zeros at program startup and then reinitializes
 the subset of variables that have a nonzero initialization value.
 
+Arrays with initialization values are not put into BSS but just occupy a sequence of bytes in
+the program memory: their values are not reinitialized at program start.
+
 It is possible to relocate the BSS section using a compiler option
 so that more system ram is available for the program code itself.
 
