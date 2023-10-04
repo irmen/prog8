@@ -9,12 +9,9 @@
 main {
 
     sub start() {
-        gfx2.screen_mode(4)
+        gfx2.screen_mode(1)
         demofill()
-        sys.wait(2*60)
-        gfx2.screen_mode(5)
-        demo1()
-        sys.wait(2*60)
+        sys.wait(120)
         demo2()
 
         gfx2.screen_mode(0)
@@ -27,140 +24,24 @@ main {
         gfx2.rect(180, 5, 25, 190, 1)
         gfx2.line(100, 150, 240, 10, 1)
         gfx2.line(101, 150, 241, 10, 1)
-        ;gfx2.monochrome_stipple(true)
         sys.wait(60)
         gfx2.fill(100,100,2)
-        ;gfx2.monochrome_stipple(false)
         gfx2.fill(182,140,3)
         gfx2.fill(182,40,1)
 
     }
 
-    sub demo1() {
-        uword yy = 10
-        uword xx
-        uword cnt
-
-        gfx2.monochrome_stipple(true)
-        gfx2.disc(320,240,200,1)
-        for xx in 0 to 639 {
-            gfx2.vertical_line(xx, 0, 480, 1)
-        }
-        for xx in 0 to 639 {
-            gfx2.vertical_line(xx, 0, 480, 0)
-        }
-
-        xx=gfx2.width/2
-        yy=10
-        gfx2.monochrome_stipple(false)
-        linesy()
-        linesx()
-        gfx2.monochrome_stipple(true)
-        linesy()
-        linesx()
-
-
-
-        sub linesx() {
-            repeat 8 {
-                gfx2.horizontal_line(10,yy,300,3)
-                yy++
-            }
-            yy+=4
-
-            repeat 8 {
-                gfx2.line(10,yy,309,yy,4)
-                yy++
-            }
-            yy+=4
-
-            repeat 8 {
-                for cnt in 10 to 309 {
-                    gfx2.plot(cnt, yy, 1)
-                }
-                yy+=1
-            }
-            yy += 4
-
-            repeat 8 {
-                gfx2.horizontal_line(10,yy,100,3)
-                yy++
-            }
-            yy+=4
-
-            repeat 8 {
-                gfx2.line(10,yy,109,yy,4)
-                yy++
-            }
-            yy+=4
-
-            repeat 8 {
-                for cnt in 10 to 109 {
-                    gfx2.plot(cnt, yy, 1)
-                }
-                yy++
-            }
-            yy+=4
-        }
-
-        sub linesy() {
-            repeat 8 {
-                gfx2.vertical_line(xx,10,300,3)
-                xx++
-            }
-            xx+=4
-
-            repeat 8 {
-                gfx2.line(xx,10, xx, 309, 4)
-                xx++
-            }
-            xx+=4
-
-            repeat 8 {
-                for cnt in 10 to 309 {
-                    gfx2.plot(xx, cnt, 1)
-                }
-                xx+=1
-            }
-            xx += 4
-
-            repeat 8 {
-                gfx2.vertical_line(xx,10,100,3)
-                xx++
-            }
-            xx+=4
-
-            repeat 8 {
-                gfx2.line(xx,10,xx,109,4)
-                xx++
-            }
-            xx+=4
-
-            repeat 8 {
-                for cnt in 10 to 109 {
-                    gfx2.plot(xx, cnt, 1)
-                }
-                xx++
-            }
-            xx+=4
-        }
-    }
-
     sub demo2 () {
         gfx2.text_charset(3)
-
-        ubyte[] modes = [4, 1, 5]
-        ubyte mode
-        for mode in modes {
-            gfx2.screen_mode(mode)
-            draw()
-            sys.wait(200)
-        }
-
+        gfx2.screen_mode(1)
+        draw()
+        sys.wait(120)
+        gfx2.screen_mode(2)
+        draw()
+        sys.wait(120)
     }
 
     sub draw() {
-
         gfx2.rect(10,10, 1, 1, 4)
         gfx2.rect(20,10, 2, 1, 4)
         gfx2.rect(30,10, 3, 1, 4)

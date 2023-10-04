@@ -3,7 +3,7 @@
 
 main {
     sub start() {
-        gfx2.screen_mode(4)
+        gfx2.screen_mode(1)
 
         uword[128] @split flakes1_xx
         uword[128] @split flakes1_yy

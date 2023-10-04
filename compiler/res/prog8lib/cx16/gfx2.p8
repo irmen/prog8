@@ -4,6 +4,7 @@
 ;
 ; No text layer is currently shown, text can be drawn as part of the bitmap itself.
 ; Note: for similar graphics routines that also work on the C-64, use the "graphics" module instead.
+; Note: for identical routines for a monochrome 1 bpp screen, use the "monogfx" module instead.
 ; Note: for color palette manipulation, use the "palette" module or write Vera registers yourself.
 ; Note: this library implements code for various resolutions and color depths. This takes up memory.
 ;       If you're memory constrained you should probably not use this built-in library,
@@ -12,12 +13,10 @@
 ;
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
-;   mode 1 = bitmap 320 x 240 monochrome
-;   mode 2 = bitmap 320 x 240 x 4c (not yet implemented: just use 256c, there's enough vram for that)
+;   mode 1 = bitmap 320 x 240 x 256c (8 bpp)
+;   mode 2 = bitmap 640 x 480 x 4c (2 bpp. there's not enough vram for more colors in hires mode.)
 ;   mode 3 = bitmap 320 x 240 x 16c (not yet implemented: just use 256c, there's enough vram for that)
-;   mode 4 = bitmap 320 x 240 x 256c  (like SCREEN $80 but using this api instead of kernal)
-;   mode 5 = bitmap 640 x 480 monochrome
-;   mode 6 = bitmap 640 x 480 x 4c
+;   mode 4 = bitmap 320 x 240 x 4c (not yet implemented: just use 256c, there's enough vram for that)
 ;   higher color dephts in highres are not supported due to lack of VRAM
 
 gfx2 {
@@ -29,25 +28,11 @@ gfx2 {
     uword width = 0
     uword height = 0
     ubyte bpp = 0
-    bool monochrome_dont_stipple_flag = true            ; set to false to enable stippling mode in monochrome displaymodes
 
     sub screen_mode(ubyte mode) {
         cx16.VERA_CTRL=0
         when mode {
             1 -> {
-                ; lores monochrome
-                cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
-                cx16.VERA_DC_HSCALE = 64
-                cx16.VERA_DC_VSCALE = 64
-                cx16.VERA_L1_CONFIG = %00000100
-                cx16.VERA_L1_MAPBASE = 0
-                cx16.VERA_L1_TILEBASE = 0
-                width = 320
-                height = 240
-                bpp = 1
-            }
-            ; TODO modes 2, 3
-            4 -> {
                 ; lores 256c
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
                 cx16.VERA_DC_HSCALE = 64
@@ -59,19 +44,7 @@ gfx2 {
                 height = 240
                 bpp = 8
             }
-            5 -> {
-                ; highres monochrome
-                cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
-                cx16.VERA_DC_HSCALE = 128
-                cx16.VERA_DC_VSCALE = 128
-                cx16.VERA_L1_CONFIG = %00000100
-                cx16.VERA_L1_MAPBASE = 0
-                cx16.VERA_L1_TILEBASE = %00000001
-                width = 640
-                height = 480
-                bpp = 1
-            }
-            6 -> {
+            2 -> {
                 ; highres 4c
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
                 cx16.VERA_DC_HSCALE = 128
@@ -101,37 +74,20 @@ gfx2 {
     }
 
     sub clear_screen() {
-        monochrome_stipple(false)
         position(0, 0)
         when active_mode {
             1 -> {
-                ; lores monochrome
-                repeat 240/2/8
-                    cs_innerloop640()
-            }
-            ; TODO modes 2, 3
-            4 -> {
                 ; lores 256c
                 repeat 240/2
                     cs_innerloop640()
             }
-            5 -> {
-                ; highres monochrome
-                repeat 480/8
-                    cs_innerloop640()
-            }
-            6 -> {
+            2 -> {
                 ; highres 4c
                 repeat 480/4
                     cs_innerloop640()
             }
-            ; modes 7 and 8 not supported due to lack of VRAM
         }
         position(0, 0)
-    }
-
-    sub monochrome_stipple(bool enable) {
-        monochrome_dont_stipple_flag = not enable
     }
 
     sub rect(uword xx, uword yy, uword rwidth, uword rheight, ubyte color) {
@@ -157,87 +113,10 @@ gfx2 {
     }
 
     sub horizontal_line(uword xx, uword yy, uword length, ubyte color) {
-        ubyte[9] masked_starts = [ 0, %00000001, %00000011, %00000111, %00001111, %00011111, %00111111, %01111111, %11111111]
-        ubyte[9] masked_ends   = [ 0, %10000000, %11000000, %11100000, %11110000, %11111000, %11111100, %11111110, %11111111]
-
         if length==0
             return
         when active_mode {
-            1, 5 -> {
-                ; monochrome modes, either resolution
-                ubyte separate_pixels = (8-lsb(xx)) & 7
-                if separate_pixels as uword > length
-                    separate_pixels = lsb(length)
-                if separate_pixels {
-                    if monochrome_dont_stipple_flag {
-                        position(xx,yy)
-                        cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
-                        if color
-                            cx16.VERA_DATA0 |= masked_starts[separate_pixels]
-                        else
-                            cx16.VERA_DATA0 &= ~masked_starts[separate_pixels]
-                        xx += separate_pixels
-                    } else {
-                        repeat separate_pixels {
-                            plot(xx, yy, color)
-                            xx++
-                        }
-                    }
-                    length -= separate_pixels
-                }
-                if length {
-                    position(xx, yy)
-                    separate_pixels = lsb(length) & 7
-                    xx += length & $fff8
-                    %asm {{
-                        lsr  length+1
-                        ror  length
-                        lsr  length+1
-                        ror  length
-                        lsr  length+1
-                        ror  length
-                        lda  color
-                        bne  +
-                        ldy  #0     ; black
-                        bra  _loop
-+                       lda  monochrome_dont_stipple_flag
-                        beq  _stipple
-                        ldy  #255       ; don't stipple
-                        bra  _loop
-_stipple                lda  yy
-                        and  #1         ; determine stipple pattern to use
-                        bne  +
-                        ldy  #%01010101
-                        bra  _loop
-+                       ldy  #%10101010
-_loop                   lda  length
-                        ora  length+1
-                        beq  _done
-                        sty  cx16.VERA_DATA0
-                        lda  length
-                        bne  +
-                        dec  length+1
-+                       dec  length
-                        bra  _loop
-_done
-                    }}
-
-                    if monochrome_dont_stipple_flag {
-                        cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
-                        if color
-                            cx16.VERA_DATA0 |= masked_ends[separate_pixels]
-                        else
-                            cx16.VERA_DATA0 &= ~masked_ends[separate_pixels]
-                    } else {
-                        repeat separate_pixels {
-                            plot(xx, yy, color)
-                            xx++
-                        }
-                    }
-                }
-                cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off again
-            }
-            4 -> {
+            1 -> {
                 ; lores 256c
                 position(xx, yy)
                 %asm {{
@@ -258,8 +137,8 @@ _done
 +
                 }}
             }
-            6 -> {
-                ; highres 4c ....also mostly usable for mode 2, lores 4c?
+            2 -> {
+                ; highres 4c ....also mostly usable for lores 4c?
                 color &= 3
                 ubyte[4] colorbits
                 ubyte ii
@@ -308,60 +187,7 @@ _done
 
     sub vertical_line(uword xx, uword yy, uword lheight, ubyte color) {
         when active_mode {
-            1, 5 -> {
-                ; monochrome, lo-res
-                cx16.r15L = gfx2.plot.maskbits[xx as ubyte & 7]           ; bitmask
-                if color {
-                    if monochrome_dont_stipple_flag {
-                        ; draw continuous line.
-                        position2(xx,yy,true)
-                        if active_mode==1
-                            set_both_strides(11)    ; 40 increment = 1 line in 320 px monochrome
-                        else
-                            set_both_strides(12)    ; 80 increment = 1 line in 640 px monochrome
-                        repeat lheight {
-                            %asm {{
-                                lda  cx16.VERA_DATA0
-                                ora  cx16.r15L
-                                sta  cx16.VERA_DATA1
-                            }}
-                        }
-                    } else {
-                        ; draw stippled line.
-                        if xx&1 {
-                            yy++
-                            lheight--
-                        }
-                        position2(xx,yy,true)
-                        if active_mode==1
-                            set_both_strides(12)    ; 80 increment = 2 line in 320 px monochrome
-                        else
-                            set_both_strides(13)    ; 160 increment = 2 line in 640 px monochrome
-                        repeat lheight/2 {
-                            %asm {{
-                                lda  cx16.VERA_DATA0
-                                ora  cx16.r15L
-                                sta  cx16.VERA_DATA1
-                            }}
-                        }
-                    }
-                } else {
-                    position2(xx,yy,true)
-                    cx16.r15 = ~cx16.r15    ; erase pixels
-                    if active_mode==1
-                        set_both_strides(11)    ; 40 increment = 1 line in 320 px monochrome
-                    else
-                        set_both_strides(12)    ; 80 increment = 1 line in 640 px monochrome
-                    repeat lheight {
-                        %asm {{
-                            lda  cx16.VERA_DATA0
-                            and  cx16.r15L
-                            sta  cx16.VERA_DATA1
-                        }}
-                    }
-                }
-            }
-            4 -> {
+            1 -> {
                 ; lores 256c
                 ; set vera auto-increment to 320 pixel increment (=next line)
                 position(xx,yy)
@@ -376,7 +202,7 @@ _done
 +
                 }}
             }
-            6 -> {
+            2 -> {
                 ; highres 4c
                 ; use TWO vera adress pointers simultaneously one for reading, one for writing, so auto-increment is possible
                 if lheight==0
@@ -571,7 +397,6 @@ _done
     }
 
     sub plot(uword @zp xx, uword @zp yy, ubyte @zp color) {
-        ubyte[8] @shared maskbits = [128, 64, 32, 16, 8, 4, 2, 1]
         ubyte[4] @shared mask4c = [%00111111, %11001111, %11110011, %11111100]
         ubyte[4] @shared shift4c = [6,4,2,0]
         ubyte[4] shiftedleft_4c_1 = [1<<6, 1<<4, 1<<2, 1<<0]
@@ -580,31 +405,6 @@ _done
 
         when active_mode {
             1 -> {
-                ; lores monochrome
-                if color {
-                    ; solid color or perhaps stipple
-                    %asm {{
-                        lda  xx
-                        eor  yy
-                        ora  monochrome_dont_stipple_flag
-                        and  #1
-                    }}
-                    if_nz {
-                        mode_1_prepare()
-                        %asm {{
-                            tsb  cx16.VERA_DATA0
-                        }}
-                    }
-                } else {
-                    ; only erase
-                    mode_1_prepare()
-                    %asm {{
-                        trb  cx16.VERA_DATA0
-                    }}
-                }
-            }
-            ; TODO modes 2, 3
-            4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(yy, xx)      ; 24 bits result is in r0 and r1L (highest byte)
                 %asm {{
@@ -620,32 +420,8 @@ _done
                     sta  cx16.VERA_DATA0
                 }}
             }
-            5 -> {
-                ; highres monochrome
-                if color {
-                    ; solid color or perhaps stipple
-                    %asm {{
-                        lda  xx
-                        eor  yy
-                        ora  monochrome_dont_stipple_flag
-                        and  #1
-                    }}
-                    if_nz {
-                        mode_5_prepare()
-                        %asm {{
-                            tsb  cx16.VERA_DATA0
-                        }}
-                    }
-                } else {
-                    ; only erase
-                    mode_5_prepare()
-                    %asm {{
-                        trb  cx16.VERA_DATA0
-                    }}
-                }
-            }
-            6 -> {
-                ; highres 4c   ....also mostly usable for mode 2, lores 4c?
+            2 -> {
+                ; highres 4c   ....also mostly usable for lores 4c?
                 void addr_mul_24_for_highres_4c(yy, xx)      ; 24 bits result is in r0 and r1L (highest byte)
                 cx16.r2L = lsb(xx) & 3       ; xbits
                 ; color &= 3
@@ -671,76 +447,11 @@ _done
                 }}
             }
         }
-
-        sub mode_1_prepare() {
-            %asm {{
-                lda  xx
-                and  #7
-                pha     ; xbits
-            }}
-            xx /= 8
-            xx += yy*(320/8)
-            %asm {{
-                stz  cx16.VERA_CTRL
-                stz  cx16.VERA_ADDR_H
-                lda  xx+1
-                sta  cx16.VERA_ADDR_M
-                lda  xx
-                sta  cx16.VERA_ADDR_L
-                ply     ; xbits
-                lda  maskbits,y
-            }}
-        }
-
-        sub mode_5_prepare() {
-            %asm {{
-                lda  xx
-                and  #7
-                pha     ; xbits
-            }}
-            xx /= 8
-            xx += yy*(640/8)
-            %asm {{
-                stz  cx16.VERA_CTRL
-                stz  cx16.VERA_ADDR_H
-                lda  xx+1
-                sta  cx16.VERA_ADDR_M
-                lda  xx
-                sta  cx16.VERA_ADDR_L
-                ply     ; xbits
-                lda  maskbits,y
-            }}
-        }
     }
 
     sub pget(uword @zp xx, uword yy) -> ubyte {
         when active_mode {
             1 -> {
-                ; lores monochrome
-                %asm {{
-                    lda  xx
-                    and  #7
-                    pha     ; xbits
-                }}
-                xx /= 8
-                xx += yy*(320/8)
-                %asm {{
-                    stz  cx16.VERA_CTRL
-                    stz  cx16.VERA_ADDR_H
-                    lda  xx+1
-                    sta  cx16.VERA_ADDR_M
-                    lda  xx
-                    sta  cx16.VERA_ADDR_L
-                    ply         ; xbits
-                    lda  plot.maskbits,y
-                    and  cx16.VERA_DATA0
-                    beq  +
-                    lda  #1
-+
-                }}
-            }
-            ; TODO modes 2, 3
-            4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(yy, xx)      ; 24 bits result is in r0 and r1L (highest byte)
                 %asm {{
@@ -754,31 +465,7 @@ _done
                     lda  cx16.VERA_DATA0
                 }}
             }
-            5 -> {
-                ; hires monochrome
-                %asm {{
-                    lda  xx
-                    and  #7
-                    pha     ; xbits
-                }}
-                xx /= 8
-                xx += yy*(640/8)
-                %asm {{
-                    stz  cx16.VERA_CTRL
-                    stz  cx16.VERA_ADDR_H
-                    lda  xx+1
-                    sta  cx16.VERA_ADDR_M
-                    lda  xx
-                    sta  cx16.VERA_ADDR_L
-                    ply     ; xbits
-                    lda  plot.maskbits,y
-                    and  cx16.VERA_DATA0
-                    beq  +
-                    lda  #1
-+
-                }}
-            }
-            6 -> {
+            2 -> {
                 ; hires 4c
                 void addr_mul_24_for_highres_4c(yy, xx)      ; 24 bits result is in r0 and r1L (highest byte)
                 %asm {{
@@ -915,29 +602,16 @@ skip:
     sub position(uword @zp xx, uword yy) {
         when active_mode {
             1 -> {
-                ; lores monochrome
-                cx16.r0 = yy*(320/8) + xx/8
-                cx16.vaddr(0, cx16.r0, 0, 1)
-            }
-            ; TODO modes 2, 3
-            4 -> {
                 ; lores 256c
                 void addr_mul_24_for_lores_256c(yy, xx)      ; 24 bits result is in r0 and r1L (highest byte)
-                cx16.r2L = cx16.r1L
-                cx16.vaddr(cx16.r2L, cx16.r0, 0, 1)
             }
-            5 -> {
-                ; highres monochrome
-                cx16.r0 = yy*(640/8) + xx/8
-                cx16.vaddr(0, cx16.r0, 0, 1)
-            }
-            6 -> {
+            2 -> {
                 ; highres 4c
                 void addr_mul_24_for_highres_4c(yy, xx)      ; 24 bits result is in r0 and r1L (highest byte)
-                cx16.r2L = cx16.r1L
-                cx16.vaddr(cx16.r2L, cx16.r0, 0, 1)
             }
         }
+        cx16.r2L = cx16.r1L
+        cx16.vaddr(cx16.r2L, cx16.r0, 0, 1)
     }
 
     sub position2(uword @zp xx, uword yy, bool also_port_1) {
@@ -949,7 +623,6 @@ skip:
     inline asmsub next_pixel(ubyte color @A) {
         ; -- sets the next pixel byte to the graphics chip.
         ;    for 8 bpp screens this will plot 1 pixel.
-        ;    for 1 bpp screens it will plot 8 pixels at once (color = bit pattern).
         ;    for 2 bpp screens it will plot 4 pixels at once (color = bit pattern).
         %asm {{
             sta  cx16.VERA_DATA0
@@ -959,7 +632,6 @@ skip:
     asmsub next_pixels(uword pixels @AY, uword amount @R0) clobbers(A, X, Y)  {
         ; -- sets the next bunch of pixels from a prepared array of bytes.
         ;    for 8 bpp screens this will plot 1 pixel per byte.
-        ;    for 1 bpp screens it will plot 8 pixels at once (colors are the bit patterns per byte).
         ;    for 2 bpp screens it will plot 4 pixels at once (colors are the bit patterns per byte).
         %asm {{
             sta  P8ZP_SCRATCH_W1
@@ -1020,92 +692,7 @@ skip:
         ubyte[8] @shared char_bitmap_bytes_right
 
         when active_mode {
-            1, 5 -> {
-                ; monochrome mode, either resolution
-                cx16.r3 = sctextptr
-                while @(cx16.r3) {
-                    chardataptr = charset_addr + @(cx16.r3) * $0008
-                    ; copy the character bitmap into RAM
-                    cx16.vaddr_autoincr(charset_bank, chardataptr, 0, 1)
-                    %asm {{
-                        ; pre-shift the bits
-                        lda  text.xx
-                        and  #7
-                        sta  P8ZP_SCRATCH_B1
-                        ldy  #0
--                       lda  cx16.VERA_DATA0
-                        stz  P8ZP_SCRATCH_REG
-                        ldx  P8ZP_SCRATCH_B1
-                        cpx  #0
-                        beq  +
--                       lsr  a
-                        ror  P8ZP_SCRATCH_REG
-                        dex
-                        bne  -
-+                       sta  char_bitmap_bytes_left,y
-                        lda  P8ZP_SCRATCH_REG
-                        sta  char_bitmap_bytes_right,y
-                        iny
-                        cpy  #8
-                        bne  --
-                    }}
-                    ; left part of shifted char
-                    position2(xx, yy, true)
-                    set_autoincrs_mode1_or_5()
-                    if color {
-                        %asm {{
-                            ldy  #0
--                           lda  char_bitmap_bytes_left,y
-                            ora  cx16.VERA_DATA1
-                            sta  cx16.VERA_DATA0
-                            iny
-                            cpy  #8
-                            bne  -
-                        }}
-                    } else {
-                        %asm {{
-                            ldy  #0
--                           lda  char_bitmap_bytes_left,y
-                            eor  #255
-                            and  cx16.VERA_DATA1
-                            sta  cx16.VERA_DATA0
-                            iny
-                            cpy  #8
-                            bne  -
-                        }}
-                    }
-                    ; right part of shifted char
-                    if lsb(xx) & 7 {
-                        position2(xx+8, yy, true)
-                        set_autoincrs_mode1_or_5()
-                        if color {
-                            %asm {{
-                                ldy  #0
-    -                           lda  char_bitmap_bytes_right,y
-                                ora  cx16.VERA_DATA1
-                                sta  cx16.VERA_DATA0
-                                iny
-                                cpy  #8
-                                bne  -
-                            }}
-                        } else {
-                            %asm {{
-                                ldy  #0
-    -                           lda  char_bitmap_bytes_right,y
-                                eor  #255
-                                and  cx16.VERA_DATA1
-                                sta  cx16.VERA_DATA0
-                                iny
-                                cpy  #8
-                                bne  -
-                            }}
-                        }
-                    }
-                    cx16.r3++
-                    xx += 8
-                }
-            }
-            4 -> {
+            1 -> {
                 ; lores 256c
                 while @(sctextptr) {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
@@ -1132,7 +719,7 @@ skip:
                     sctextptr++
                 }
             }
-            6 -> {
+            2 -> {
                 ; hires 4c
                 ; we're going to use a few cx16 registers to make sure every variable is in zeropage in the inner loop.
                 cx16.r11L = color
@@ -1193,21 +780,6 @@ skip:
                     xx+=8
                     sctextptr++
                 }
-            }
-        }
-
-        sub set_autoincrs_mode1_or_5() {
-            ; set autoincrements to go to next pixel row (40 or 80 increment)
-            if active_mode==1 {
-                cx16.VERA_CTRL = 0
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (11<<4)
-                cx16.VERA_CTRL = 1
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (11<<4)
-            } else {
-                cx16.VERA_CTRL = 0
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (12<<4)
-                cx16.VERA_CTRL = 1
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (12<<4)
             }
         }
     }

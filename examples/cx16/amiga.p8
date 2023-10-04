@@ -8,7 +8,7 @@
 main {
 
     sub start() {
-        gfx2.screen_mode(6)             ; select 640*480 mode, 4 colors
+        gfx2.screen_mode(2)             ; select 640*480 mode, 4 colors
         mouse.set_pointer_image()
         cx16.mouse_config(-1, 640/8, 240/8)
         uword[4] amigacolors = [$aaa, $000, $fff, $68c]     ; gray, black, white, lightblue

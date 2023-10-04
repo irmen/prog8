@@ -22,13 +22,13 @@ main {
     }
 
     sub demofill() {
-        monogfx.circle(160, 120, 110, 1)
-        monogfx.rect(180, 5, 25, 190, 1)
-        monogfx.line(100, 150, 240, 10, 1)
-        monogfx.line(101, 150, 241, 10, 1)
+        monogfx.circle(160, 120, 110, true)
+        monogfx.rect(180, 5, 25, 190, true)
+        monogfx.line(100, 150, 240, 10, true)
+        monogfx.line(101, 150, 241, 10, true)
         monogfx.stipple(true)
         sys.wait(60)
-        monogfx.fill(100,100,2)
+        monogfx.fill(100,100,true)
     }
 
     sub demo1() {
@@ -37,12 +37,12 @@ main {
         uword cnt
 
         monogfx.stipple(true)
-        monogfx.disc(320,240,200,1)
+        monogfx.disc(320,240,200,true)
         for xx in 0 to 639 {
-            monogfx.vertical_line(xx, 0, 480, 1)
+            monogfx.vertical_line(xx, 0, 480, true)
         }
         for xx in 0 to 639 {
-            monogfx.vertical_line(xx, 0, 480, 0)
+            monogfx.vertical_line(xx, 0, 480, false)
         }
 
         xx=monogfx.width/2
@@ -58,40 +58,40 @@ main {
 
         sub linesx() {
             repeat 8 {
-                monogfx.horizontal_line(10,yy,300,3)
+                monogfx.horizontal_line(10,yy,300,true)
                 yy++
             }
             yy+=4
 
             repeat 8 {
-                monogfx.line(10,yy,309,yy,4)
+                monogfx.line(10,yy,309,yy,false)
                 yy++
             }
             yy+=4
 
             repeat 8 {
                 for cnt in 10 to 309 {
-                    monogfx.plot(cnt, yy, 1)
+                    monogfx.plot(cnt, yy, true)
                 }
                 yy+=1
             }
             yy += 4
 
             repeat 8 {
-                monogfx.horizontal_line(10,yy,100,3)
+                monogfx.horizontal_line(10,yy,100,true)
                 yy++
             }
             yy+=4
 
             repeat 8 {
-                monogfx.line(10,yy,109,yy,4)
+                monogfx.line(10,yy,109,yy,false)
                 yy++
             }
             yy+=4
 
             repeat 8 {
                 for cnt in 10 to 109 {
-                    monogfx.plot(cnt, yy, 1)
+                    monogfx.plot(cnt, yy, true)
                 }
                 yy++
             }
@@ -100,40 +100,40 @@ main {
 
         sub linesy() {
             repeat 8 {
-                monogfx.vertical_line(xx,10,300,3)
+                monogfx.vertical_line(xx,10,300,true)
                 xx++
             }
             xx+=4
 
             repeat 8 {
-                monogfx.line(xx,10, xx, 309, 4)
+                monogfx.line(xx,10, xx, 309, false)
                 xx++
             }
             xx+=4
 
             repeat 8 {
                 for cnt in 10 to 309 {
-                    monogfx.plot(xx, cnt, 1)
+                    monogfx.plot(xx, cnt, true)
                 }
                 xx+=1
             }
             xx += 4
 
             repeat 8 {
-                monogfx.vertical_line(xx,10,100,3)
+                monogfx.vertical_line(xx,10,100,true)
                 xx++
             }
             xx+=4
 
             repeat 8 {
-                monogfx.line(xx,10,xx,109,4)
+                monogfx.line(xx,10,xx,109,false)
                 xx++
             }
             xx+=4
 
             repeat 8 {
                 for cnt in 10 to 109 {
-                    monogfx.plot(xx, cnt, 1)
+                    monogfx.plot(xx, cnt, true)
                 }
                 xx++
             }
@@ -153,31 +153,31 @@ main {
 
     sub draw() {
 
-        monogfx.rect(10,10, 1, 1, 4)
-        monogfx.rect(20,10, 2, 1, 4)
-        monogfx.rect(30,10, 3, 1, 4)
-        monogfx.rect(40,10, 1, 2, 4)
-        monogfx.rect(50,10, 1, 3, 4)
-        monogfx.rect(60,10, 2, 2, 4)
-        monogfx.rect(70,10, 3, 3, 4)
-        monogfx.rect(80,10, 4, 4, 4)
-        monogfx.rect(90,10, 5, 5, 4)
-        monogfx.rect(100,10, 8, 8, 4)
-        monogfx.rect(110,10, 20, 5, 4)
-        monogfx.rect(80, 80, 200, 140, 4)
+        monogfx.rect(10,10, 1, 1, true)
+        monogfx.rect(20,10, 2, 1, true)
+        monogfx.rect(30,10, 3, 1, true)
+        monogfx.rect(40,10, 1, 2, true)
+        monogfx.rect(50,10, 1, 3, true)
+        monogfx.rect(60,10, 2, 2, true)
+        monogfx.rect(70,10, 3, 3, true)
+        monogfx.rect(80,10, 4, 4, true)
+        monogfx.rect(90,10, 5, 5, true)
+        monogfx.rect(100,10, 8, 8, true)
+        monogfx.rect(110,10, 20, 5, true)
+        monogfx.rect(80, 80, 200, 140, true)
 
-        monogfx.fillrect(10,40, 1, 1, 5)
-        monogfx.fillrect(20,40, 2, 1, 5)
-        monogfx.fillrect(30,40, 3, 1, 5)
-        monogfx.fillrect(40,40, 1, 2, 5)
-        monogfx.fillrect(50,40, 1, 3, 5)
-        monogfx.fillrect(60,40, 2, 2, 5)
-        monogfx.fillrect(70,40, 3, 3, 5)
-        monogfx.fillrect(80,40, 4, 4, 5)
-        monogfx.fillrect(90,40, 5, 5, 5)
-        monogfx.fillrect(100,40, 8, 8, 5)
-        monogfx.fillrect(110,40, 20, 5, 5)
-        monogfx.fillrect(82, 82, 200-4, 140-4, 5)
+        monogfx.fillrect(10,40, 1, 1, true)
+        monogfx.fillrect(20,40, 2, 1, true)
+        monogfx.fillrect(30,40, 3, 1, true)
+        monogfx.fillrect(40,40, 1, 2, true)
+        monogfx.fillrect(50,40, 1, 3, true)
+        monogfx.fillrect(60,40, 2, 2, true)
+        monogfx.fillrect(70,40, 3, 3, true)
+        monogfx.fillrect(80,40, 4, 4, true)
+        monogfx.fillrect(90,40, 5, 5, true)
+        monogfx.fillrect(100,40, 8, 8, true)
+        monogfx.fillrect(110,40, 20, 5, true)
+        monogfx.fillrect(82, 82, 200-4, 140-4, true)
 
         ubyte i
         for i in 0 to 254 step 4 {
@@ -185,7 +185,7 @@ main {
             uword y1 = (monogfx.height-128)/2 + math.cos8u(i)/2
             uword x2 = ((monogfx.width-64)/2 as uword) + math.sin8u(i)/4
             uword y2 = (monogfx.height-64)/2 + math.cos8u(i)/4
-            monogfx.line(x1, y1, x2, y2, i+1)
+            monogfx.line(x1, y1, x2, y2, true)
         }
 
         sys.wait(60)
@@ -194,10 +194,10 @@ main {
         ubyte radius
 
         for radius in 110 downto 8 step -4 {
-            monogfx.circle(monogfx.width/2, (monogfx.height/2 as ubyte), radius, radius)
+            monogfx.circle(monogfx.width/2, (monogfx.height/2 as ubyte), radius, true)
         }
 
-        monogfx.disc(monogfx.width/2, monogfx.height/2, 80, 2)
+        monogfx.disc(monogfx.width/2, monogfx.height/2, 80, true)
 
         ubyte tp
         for tp in 0 to 15 {

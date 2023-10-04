@@ -1,7 +1,6 @@
 TODO
 ====
 
-- gfx2 and monogfx rect draw problem  in monochrome modes one of the small rectangles is drawn garbled
 - make monogfx the new graphics module? also change c64 and c128 graphics modules
 - add %option verafxmuls in block to enable transparent verafx muls use for that block only + add warning message to docs to not use it it in prg AND irq code
 
@@ -57,6 +56,8 @@ Compiler:
 
 Libraries:
 
+- port monogfx, gf2, graphics to the vm
+- use verafx transparent writes to speed up pixel plotting in gfx2 and monogfx modules (avoids read/mask/write)
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?

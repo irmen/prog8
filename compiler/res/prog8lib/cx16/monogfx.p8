@@ -98,9 +98,65 @@ monogfx {
 
         if length==0
             return
+        if length<=8 {
+            ; just use 2 byte writes with shifted mask
+            position2(xx,yy,true)
+            %asm {{
+                ldy  length
+                lda  masked_ends,y
+                sta  cx16.r0L           ; save left byte
+                stz  P8ZP_SCRATCH_B1
+                lda  xx
+                and  #7
+                beq  +
+                tay
+                lda  cx16.r0L
+-               lsr  a
+                ror  P8ZP_SCRATCH_B1
+                dey
+                bne  -
+                sta  cx16.r0L           ; new left byte
++
+                lda  dont_stipple_flag
+                bne  _dontstipple
+                ; determine stipple pattern
+                lda  yy
+                and  #1
+                beq  +
+                lda  #%10101010
+                bne  ++
++               lda  #%01010101
++               sta  P8ZP_SCRATCH_REG
+                lda  cx16.r0L
+                and  P8ZP_SCRATCH_REG
+                sta  cx16.r0L
+                lda  P8ZP_SCRATCH_B1
+                and  P8ZP_SCRATCH_REG
+                sta  P8ZP_SCRATCH_B1
+_dontstipple
+                lda  draw
+                beq  _clear
+                lda  cx16.r0L           ; left byte
+                ora  cx16.VERA_DATA1
+                sta  cx16.VERA_DATA0
+                lda  P8ZP_SCRATCH_B1    ; right byte
+                ora  cx16.VERA_DATA1
+                sta  cx16.VERA_DATA0
+                rts
+_clear
+                lda  cx16.r0L           ; left byte
+                eor  #255
+                and  cx16.VERA_DATA1
+                sta  cx16.VERA_DATA0
+                lda  P8ZP_SCRATCH_B1    ; right byte
+                eor  #255
+                and  cx16.VERA_DATA1
+                sta  cx16.VERA_DATA0
+                rts
+            }}
+        }
+
         ubyte separate_pixels = (8-lsb(xx)) & 7
-        if separate_pixels as uword > length
-            separate_pixels = lsb(length)
         if separate_pixels {
             if dont_stipple_flag {
                 position(xx,yy)
@@ -190,10 +246,11 @@ _done
                 }
             } else {
                 ; draw stippled line.
-                if xx&1 {
+                if (xx ^ yy)&1==0  {
                     yy++
                     lheight--
                 }
+                lheight++   ; because it is divided by 2 later, don't round off the last pixel
                 position2(xx,yy,true)
                 if width==320
                     set_both_strides(12)    ; 80 increment = 2 line in 320 px monochrome
@@ -583,7 +640,7 @@ skip:
             cx16.r0 = yy*(320/8)
         else
             cx16.r0 = yy*(640/8)
-        cx16.vaddr(0, cx16.r0+xx/8, 0, 1)
+        cx16.vaddr(0, cx16.r0+(xx/8), 0, 1)
     }
 
     sub position2(uword @zp xx, uword yy, bool also_port_1) {
