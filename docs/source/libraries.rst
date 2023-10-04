@@ -447,18 +447,34 @@ to see what's in there.
 Information about the exposed debug registers is in the `emulator's documentation <https://github.com/X16Community/x16-emulator#debug-io-registers>`_.
 
 
+monogfx  (cx16 only)
+--------------------
+Full-screen lores or hires monochrome bitmap graphics routines, available on the Cx16 machine only.
+Same interface as gfx2, but is optimized for monochrome (1 bpp) screens.
 
-gfx2  (cx16 only)
------------------
-Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
-
-- multiple full-screen resolutions: 640 * 480 monochrome, and 320 * 240 monochrome and 256 colors
-- clearing screen, switching screen mode, also back to text mode is possible.
+- lores 320*240 or hires 640*480 bitmap mode, monochrome
+- clearing screen, switching screen mode, also back to text mode
 - drawing and reading individual pixels
 - drawing lines, rectangles, filled rectangles, circles, discs
 - flood fill
 - drawing text inside the bitmap
-- in monochrome mode, it's possible to use a stippled drawing pattern to simulate a shade of gray.
+- can draw using a stipple pattern (alternate black/white pixels)
+
+Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/monogfx.p8>`_
+to see what's in there.
+
+
+gfx2  (cx16 only)
+-----------------
+Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
+Same interface as monogfx, but for color screens. For 1 bpp monochrome screens, use monogfx.
+
+- multiple full-screen bitmap color resolutions
+- clearing screen, switching screen mode, also back to text mode
+- drawing and reading individual pixels
+- drawing lines, rectangles, filled rectangles, circles, discs
+- flood fill
+- drawing text inside the bitmap
 
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx2.p8>`_
 to see what's in there.

@@ -5,7 +5,7 @@
 ; Wraps the graphics functions that are in ROM.
 ; Only lo-res 320x240 256 color mode for now.
 ; Unlike graphics module on the C64, you can use colors() to set new drawing colors for every draw operation.
-; For other resolutions or other color modes, use the "gfx2" module instead. (which is Cx16-specific)
+; For other resolutions or other color modes, use the "gfx2" or "monogfx" module instead. (which is Cx16-specific)
 ; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
 
 

@@ -29,7 +29,7 @@ gfx2 {
     uword width = 0
     uword height = 0
     ubyte bpp = 0
-    bool monochrome_dont_stipple_flag = false            ; set to false to enable stippling mode in monochrome displaymodes
+    bool monochrome_dont_stipple_flag = true            ; set to false to enable stippling mode in monochrome displaymodes
 
     sub screen_mode(ubyte mode) {
         cx16.VERA_CTRL=0
