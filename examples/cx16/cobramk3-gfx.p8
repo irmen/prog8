@@ -2,16 +2,11 @@
 %import test_stack
 %import conv
 %import math
+%import verafx
 
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
 
 main {
-
-    ; storage for rotated coordinates
-    word[shipdata.totalNumberOfPoints] @split rotatedx
-    word[shipdata.totalNumberOfPoints] @split rotatedy
-    word[shipdata.totalNumberOfPoints] @split rotatedz
-
     sub start()  {
         uword anglex
         uword angley
@@ -24,11 +19,11 @@ main {
         print_ship_name()
 
         repeat {
-            rotate_vertices(msb(anglex), msb(angley), msb(anglez))
+            matrix_math.rotate_vertices(msb(anglex), msb(angley), msb(anglez))
 
-            cx16.GRAPH_set_colors(0, 0, 0)
-            ; cx16.GRAPH_clear()
-            cx16.GRAPH_draw_rect(32, 10, 256, 220, 0, true)
+            verafx.clear(0, 320*10, 0, 320*(220/4))
+            ; cx16.GRAPH_set_colors(0, 0, 0)
+            ; cx16.GRAPH_draw_rect(32, 10, 256, 220, 0, true)
 
             cx16.GRAPH_set_colors(1, 0, 0)
             draw_lines_hiddenremoval()
@@ -84,39 +79,6 @@ _ones       pla
     	}}
     }
 
-    sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {
-        ; rotate around origin (0,0,0)
-
-        ; set up the 3d rotation matrix values
-        word wcosa = math.cos8(ax)
-        word wsina = math.sin8(ax)
-        word wcosb = math.cos8(ay)
-        word wsinb = math.sin8(ay)
-        word wcosc = math.cos8(az)
-        word wsinc = math.sin8(az)
-
-        word wcosa_sinb = wcosa*wsinb / 128
-        word wsina_sinb = wsina*wsinb / 128
-
-        word Axx = wcosa*wcosb / 128
-        word Axy = (wcosa_sinb*wsinc - wsina*wcosc) / 128
-        word Axz = (wcosa_sinb*wcosc + wsina*wsinc) / 128
-        word Ayx = wsina*wcosb / 128
-        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc) / 128
-        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc) / 128
-        word Azx = -wsinb
-        word Azy = wcosb*wsinc / 128
-        word Azz = wcosb*wcosc / 128
-
-        ubyte @zp i
-        for i in 0 to shipdata.totalNumberOfPoints-1 {
-            ; don't normalize by dividing by 128, instead keep some precision for perspective calc later
-            rotatedx[i] = Axx*shipdata.xcoor[i] + Axy*shipdata.ycoor[i] + Axz*shipdata.zcoor[i]
-            rotatedy[i] = Ayx*shipdata.xcoor[i] + Ayy*shipdata.ycoor[i] + Ayz*shipdata.zcoor[i]
-            rotatedz[i] = Azx*shipdata.xcoor[i] + Azy*shipdata.ycoor[i] + Azz*shipdata.zcoor[i]
-        }
-    }
-
     const uword screen_width = 320
     const ubyte screen_height = 240
 
@@ -126,12 +88,12 @@ _ones       pla
         for i in shipdata.totalNumberOfEdges -1 downto 0 {
             ubyte @zp vFrom = shipdata.edgesFrom[i]
             ubyte @zp vTo = shipdata.edgesTo[i]
-            word persp1 = 200 + rotatedz[vFrom]/256
-            word persp2 = 200 + rotatedz[vTo]/256
-            cx16.GRAPH_draw_line(rotatedx[vFrom] / persp1 + screen_width/2 as uword,
-                rotatedy[vFrom] / persp1 + screen_height/2 as uword,
-                rotatedx[vTo] / persp2 + screen_width/2 as uword,
-                rotatedy[vTo] / persp2 + screen_height/2 as uword)
+            word persp1 = 200 + matrix_math.rotatedz[vFrom]/256
+            word persp2 = 200 + matrix_math.rotatedz[vTo]/256
+            cx16.GRAPH_draw_line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
+                matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as uword,
+                matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
+                matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword)
         }
     }
 
@@ -143,7 +105,7 @@ _ones       pla
         ubyte @zp pointIdx = 0
         ubyte faceNumber
         for faceNumber in shipdata.totalNumberOfFaces -1 downto 0 {
-            if facing_away(pointIdx) {
+            if matrix_math.facing_away(pointIdx) {
                 ; don't draw this face, fast-forward over the edges and points
                 edgeIdx += 3    ; every face hast at least 3 edges
                 while shipdata.facesEdges[edgeIdx]!=255 {
@@ -183,6 +145,62 @@ _ones       pla
         }
     }
 
+    ubyte[shipdata.totalNumberOfEdges] edgestodraw
+
+    sub draw_edge(ubyte edgeidx) {
+        edgestodraw[edgeidx] = false
+        ubyte vFrom = shipdata.edgesFrom[edgeidx]
+        ubyte vTo = shipdata.edgesTo[edgeidx]
+        word persp1 = 170 + matrix_math.rotatedz[vFrom]/256
+        word persp2 = 170 + matrix_math.rotatedz[vTo]/256
+        cx16.GRAPH_draw_line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
+            matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as uword,
+            matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
+            matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword)
+    }
+}
+
+matrix_math {
+    %option verafxmuls      ; accellerate all word-multiplications in this block using Vera FX hardware muls
+
+    ; storage for rotated coordinates
+    word[shipdata.totalNumberOfPoints] @split rotatedx
+    word[shipdata.totalNumberOfPoints] @split rotatedy
+    word[shipdata.totalNumberOfPoints] @split rotatedz
+
+    sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {
+        ; rotate around origin (0,0,0)
+
+        ; set up the 3d rotation matrix values
+        word wcosa = math.cos8(ax)
+        word wsina = math.sin8(ax)
+        word wcosb = math.cos8(ay)
+        word wsinb = math.sin8(ay)
+        word wcosc = math.cos8(az)
+        word wsinc = math.sin8(az)
+
+        word wcosa_sinb = wcosa*wsinb / 128
+        word wsina_sinb = wsina*wsinb / 128
+
+        word Axx = wcosa*wcosb / 128
+        word Axy = (wcosa_sinb*wsinc - wsina*wcosc) / 128
+        word Axz = (wcosa_sinb*wcosc + wsina*wsinc) / 128
+        word Ayx = wsina*wcosb / 128
+        word Ayy = (wsina_sinb*wsinc + wcosa*wcosc) / 128
+        word Ayz = (wsina_sinb*wcosc - wcosa*wsinc) / 128
+        word Azx = -wsinb
+        word Azy = wcosb*wsinc / 128
+        word Azz = wcosb*wcosc / 128
+
+        ubyte @zp i
+        for i in 0 to shipdata.totalNumberOfPoints-1 {
+            ; don't normalize by dividing by 128, instead keep some precision for perspective calc later
+            rotatedx[i] = Axx*shipdata.xcoor[i] + Axy*shipdata.ycoor[i] + Axz*shipdata.zcoor[i]
+            rotatedy[i] = Ayx*shipdata.xcoor[i] + Ayy*shipdata.ycoor[i] + Ayz*shipdata.zcoor[i]
+            rotatedz[i] = Azx*shipdata.xcoor[i] + Azy*shipdata.ycoor[i] + Azz*shipdata.zcoor[i]
+        }
+    }
+
     sub facing_away(ubyte edgePointsIdx) -> bool {
         ; simplistic visibility determination by checking the Z component of the surface normal
         ; TODO: actually take the line of sight vector into account
@@ -198,20 +216,6 @@ _ones       pla
         word p3x = rotatedx[p3] / 128
         word p3y = rotatedy[p3] / 128
         return (p2x-p3x)*(p1y-p3y) - (p2y-p3y)*(p1x-p3x) > 0
-    }
-
-    ubyte[shipdata.totalNumberOfEdges] edgestodraw
-
-    sub draw_edge(ubyte edgeidx) {
-        edgestodraw[edgeidx] = false
-        ubyte vFrom = shipdata.edgesFrom[edgeidx]
-        ubyte vTo = shipdata.edgesTo[edgeidx]
-        word persp1 = 170 + rotatedz[vFrom]/256
-        word persp2 = 170 + rotatedz[vTo]/256
-        cx16.GRAPH_draw_line(rotatedx[vFrom] / persp1 + screen_width/2 as uword,
-            rotatedy[vFrom] / persp1 + screen_height/2 as uword,
-            rotatedx[vTo] / persp2 + screen_width/2 as uword,
-            rotatedy[vTo] / persp2 + screen_height/2 as uword)
     }
 }
 

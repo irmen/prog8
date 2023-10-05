@@ -3,6 +3,59 @@
 
 main {
 
+    sub start()  {
+
+        uword anglex
+        uword angley
+        uword anglez
+
+        repeat {
+            matrix_math.rotate_vertices(msb(anglex), msb(angley), msb(anglez))
+            txt.clear_screenchars(' ')
+            draw_edges()
+            anglex+=500
+            angley+=215
+            anglez+=453
+            sys.waitvsync()
+        }
+    }
+
+    sub draw_edges() {
+
+        ; plot the points of the 3d cube
+        ; first the points on the back, then the points on the front (painter algorithm)
+
+        ubyte @zp i
+        word @zp rz
+        word @zp persp
+        byte sx
+        byte sy
+
+        for i in 0 to len(matrix_math.xcoor)-1 {
+            rz = matrix_math.rotatedz[i]
+            if rz >= 10 {
+                persp = 400 + rz/64
+                sx = matrix_math.rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
+                sy = matrix_math.rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
+                txt.setcc(sx as ubyte, sy as ubyte, 46, 7)
+            }
+        }
+
+        for i in 0 to len(matrix_math.xcoor)-1 {
+            rz = matrix_math.rotatedz[i]
+            if rz < 10 {
+                persp = 400 + rz/64
+                sx = matrix_math.rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
+                sy = matrix_math.rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
+                txt.setcc(sx as ubyte, sy as ubyte, 81, 7)
+            }
+        }
+    }
+}
+
+matrix_math {
+    %option verafxmuls      ; accellerate all word-multiplications in this block using Vera FX hardware muls
+
     ; vertices
     word[] @split xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
     word[] @split ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
@@ -12,24 +65,6 @@ main {
     word[len(xcoor)] @split rotatedx
     word[len(ycoor)] @split rotatedy
     word[len(zcoor)] @split rotatedz
-
-    sub start()  {
-
-        uword anglex
-        uword angley
-        uword anglez
-
-        repeat {
-            rotate_vertices(msb(anglex), msb(angley), msb(anglez))
-            txt.clear_screenchars(' ')
-            draw_edges()
-            anglex+=500
-            angley+=215
-            anglez+=453
-            sys.waitvsync()
-            sys.waitvsync()
-        }
-    }
 
     sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {
         ; rotate around origin (0,0,0)
@@ -64,35 +99,4 @@ main {
         }
     }
 
-    sub draw_edges() {
-
-        ; plot the points of the 3d cube
-        ; first the points on the back, then the points on the front (painter algorithm)
-
-        ubyte @zp i
-        word @zp rz
-        word @zp persp
-        byte sx
-        byte sy
-
-        for i in 0 to len(xcoor)-1 {
-            rz = rotatedz[i]
-            if rz >= 10 {
-                persp = 400 + rz/64
-                sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
-                sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
-                txt.setcc(sx as ubyte, sy as ubyte, 46, 7)
-            }
-        }
-
-        for i in 0 to len(xcoor)-1 {
-            rz = rotatedz[i]
-            if rz < 10 {
-                persp = 400 + rz/64
-                sx = rotatedx[i] / persp as byte + txt.DEFAULT_WIDTH/2
-                sy = rotatedy[i] / persp as byte + txt.DEFAULT_HEIGHT/2
-                txt.setcc(sx as ubyte, sy as ubyte, 81, 7)
-            }
-        }
-    }
 }
