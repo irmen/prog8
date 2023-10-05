@@ -1,7 +1,6 @@
 TODO
 ====
 
-- make monogfx the new graphics module? also change c64 and c128 graphics modules
 - add %option verafxmuls in block to enable transparent verafx muls use for that block only + add warning message to docs to not use it it in prg AND irq code
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
