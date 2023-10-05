@@ -75,6 +75,7 @@ class PtBlock(name: String,
               val library: Boolean,
               val forceOutput: Boolean,
               val noSymbolPrefixing: Boolean,
+              val veraFxMuls: Boolean,
               val alignment: BlockAlignment,
               val source: SourceCode,       // taken from the module the block is defined in.
               position: Position

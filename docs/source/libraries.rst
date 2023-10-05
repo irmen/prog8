@@ -525,6 +525,8 @@ the emulators already support it).
     For now, the hardware 16*16 multiplier is exposed via ``mult`` and ``muls`` routines (unsigned and signed respectively).
     They are about 4 to 5 times faster as the default 6502 cpu routine for word multiplication.
     But they depend on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
+    Note: there is a block level %option "verafxmuls" that automatically replaces all word multiplications in that block
+    by calls to verafx.muls/mult, but be careful with it because it may interfere with other Vera operations or IRQs.
 
 ``clear``
     There's also a ``clear`` routine here to very quickly clear a piece of vram to a given byte value (it writes 4 bytes at a time).

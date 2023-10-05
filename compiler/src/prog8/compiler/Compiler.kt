@@ -254,6 +254,10 @@ fun parseMainModule(filepath: Path,
         importer.importImplicitLibraryModule("math")
     }
     importer.importImplicitLibraryModule("prog8_lib")
+    if(program.allBlocks.any { it.options().any { option->option=="verafxmuls" } }) {
+        if(compTarget.name==Cx16Target.NAME)
+            importer.importImplicitLibraryModule("verafx")
+    }
 
     if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)
         errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)

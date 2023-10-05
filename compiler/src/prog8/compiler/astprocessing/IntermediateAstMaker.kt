@@ -161,6 +161,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transform(srcBlock: Block): PtBlock {
         var alignment = PtBlock.BlockAlignment.NONE
         var forceOutput = false
+        var veraFxMuls = false
         var noSymbolPrefixing = false
         val directives = srcBlock.statements.filterIsInstance<Directive>()
         for (directive in directives.filter { it.directive == "%option" }) {
@@ -169,15 +170,16 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                     "align_word" -> alignment = PtBlock.BlockAlignment.WORD
                     "align_page" -> alignment = PtBlock.BlockAlignment.PAGE
                     "no_symbol_prefixing" -> noSymbolPrefixing = true
-                    "force_output" -> forceOutput=true
+                    "force_output" -> forceOutput = true
                     "merge", "splitarrays"  -> { /* ignore this one */ }
+                    "verafxmuls" -> veraFxMuls = true
                     else -> throw FatalAstException("weird directive option: ${arg.name}")
                 }
             }
         }
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
         val src = srcBlock.definingModule.source
-        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, noSymbolPrefixing, alignment, src, srcBlock.position)
+        val block = PtBlock(srcBlock.name, srcBlock.address, srcBlock.isInLibrary, forceOutput, noSymbolPrefixing, veraFxMuls, alignment, src, srcBlock.position)
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements)
             block.add(transformStatement(stmt))

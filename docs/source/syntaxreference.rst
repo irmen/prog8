@@ -141,7 +141,7 @@ Directives
     - ``splitarrays`` (block or module) makes all word-arrays in this scope lsb/msb split arrays (as if they all have the @split tag). See Arrays.
     - ``no_symbol_prefixing`` (block) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
       Only use this if you know what you're doing because it could result in invalid assembly code being generated.
-
+    - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
 

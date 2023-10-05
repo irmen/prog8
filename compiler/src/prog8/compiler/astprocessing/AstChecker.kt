@@ -7,6 +7,8 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.compiler.builtinFunctionReturnType
 import java.io.CharConversionException
@@ -822,10 +824,16 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page", "merge", "splitarrays", "no_symbol_prefixing")}.any { !it })
+                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page", "merge", "splitarrays", "no_symbol_prefixing", "verafxmuls")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.args.any {it.name=="align_word"} && directive.args.any { it.name=="align_page"})
                     err("conflicting alignment options")
+                if(directive.parent is Block) {
+                    if(directive.args.any {it.name !in arrayOf("align_word", "align_page", "no_symbol_prefixing", "force_output", "merge", "splitarrays", "verafxmuls")})
+                        err("using an option that is not valid for blocks")
+                }
+                if(directive.args.any { it.name=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)
+                    err("verafx option is only valid on cx16 target")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }

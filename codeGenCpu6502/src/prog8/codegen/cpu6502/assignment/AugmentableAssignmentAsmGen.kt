@@ -83,19 +83,20 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                     in WordDatatypes -> {
+                        val block = target.origAstTarget?.definingBlock()
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, value.asmVarname, value.datatype)
-                            SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, regName(value), value.datatype)
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt(), block)
+                            SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, value.asmVarname, value.datatype, block)
+                            SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, regName(value), value.datatype, block)
                             SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread(target.asmVarname, target.datatype, operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.array!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.array!!, block)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.expression)
+                                    inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.expression, block)
                                 }
                                 else {
-                                    inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.expression!!)
+                                    inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.expression!!, block)
                                 }
                             }
                         }
@@ -230,18 +231,19 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
                             }
                             in WordDatatypes -> {
+                                val block = target.origAstTarget?.definingBlock()
                                 when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt())
-                                    SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, value.asmVarname, value.datatype)
-                                    SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, regName(value), value.datatype)
+                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt(), block)
+                                    SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, value.asmVarname, value.datatype, block)
+                                    SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, regName(value), value.datatype, block)
                                     SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread(targetVarName, target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.array!!)
+                                    SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.array!!, block)
                                     SourceStorageKind.EXPRESSION -> {
                                         if(value.expression is PtTypeCast) {
                                             if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression)
+                                            inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression, block)
                                         } else {
-                                            inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression!!)
+                                            inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression!!, block)
                                         }
                                     }
                                 }
@@ -327,12 +329,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     asmgen.out("  lda  ${target.array.variable.name},y")
                                     asmgen.out("  ldx  ${target.array.variable.name}+1,y")
                                 }
+                                val block = target.origAstTarget?.definingBlock()
                                 when(value.kind) {
                                     SourceStorageKind.LITERALNUMBER -> {
                                         val number = value.number!!.number.toInt()
                                         if(!inplacemodificationRegisterAXwithLiteralval(operator, number)) {
                                             asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                            inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, number)
+                                            inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, number, block)
                                             asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
                                         }
                                     }
@@ -343,7 +346,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                                 value.datatype
                                             )) {
                                             asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                            inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype)
+                                            inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype, block)
                                             asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
                                         }
                                     }
@@ -354,7 +357,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                                 value.datatype
                                             )) {
                                             asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                            inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype)
+                                            inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype, block)
                                             asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
                                         }
                                     }
@@ -365,15 +368,15 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     }
                                     SourceStorageKind.ARRAY -> {
                                         asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                        inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!)
+                                        inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!, block)
                                         asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
                                     }
                                     SourceStorageKind.EXPRESSION -> {
                                         asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
                                         if(value.expression is PtTypeCast)
-                                            inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression)
+                                            inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression, block)
                                         else
-                                            inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!)
+                                            inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!, block)
                                         asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
                                     }
                                 }
@@ -1277,12 +1280,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.out("  eor  $name  |  sta  $name")
             }
             else -> {
-                inplacemodificationWordWithValue(name, dt, operator, memread)
+                inplacemodificationWordWithValue(name, dt, operator, memread, memread.definingBlock())
             }
         }
     }
 
-    private fun inplacemodificationWordWithLiteralval(name: String, dt: DataType, operator: String, value: Int) {
+    private fun inplacemodificationWordWithLiteralval(name: String, dt: DataType, operator: String, value: Int, block: PtBlock?) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         when (operator) {
             "+" -> {
@@ -1342,16 +1345,31 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 if(value in asmgen.optimizedWordMultiplications) {
                     asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                 } else {
-                    asmgen.out("""
-                        lda  $name
-                        sta  math.multiply_words.multiplier
-                        lda  $name+1
-                        sta  math.multiply_words.multiplier+1
-                        lda  #<$value
-                        ldy  #>$value
-                        jsr  math.multiply_words
-                        sta  $name
-                        sty  $name+1""")
+                    if(block?.veraFxMuls==true)
+                        // cx16 verafx hardware mul
+                        asmgen.out("""
+                            lda  $name
+                            ldy  $name+1
+                            sta  cx16.r0
+                            sty  cx16.r0+1
+                            lda  #<$value
+                            ldy  #>$value
+                            sta  cx16.r1
+                            sty  cx16.r1+1
+                            jsr  verafx.muls
+                            sta  $name
+                            sty  $name+1""")
+                    else
+                        asmgen.out("""
+                            lda  $name
+                            sta  math.multiply_words.multiplier
+                            lda  $name+1
+                            sta  math.multiply_words.multiplier+1
+                            lda  #<$value
+                            ldy  #>$value
+                            jsr  math.multiply_words
+                            sta  $name
+                            sty  $name+1""")
                 }
             }
             "/" -> {
@@ -1741,7 +1759,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplacemodificationWordWithVariable(name: String, dt: DataType, operator: String, otherName: String, valueDt: DataType) {
+    private fun inplacemodificationWordWithVariable(name: String, dt: DataType, operator: String, otherName: String, valueDt: DataType, block: PtBlock?) {
         when (valueDt) {
             in ByteDatatypes -> {
                 // the other variable is a BYTE type so optimize for that
@@ -1794,23 +1812,46 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 sta  $name+1""")
                     }
                     "*" -> {
-                        if(valueDt==DataType.UBYTE) {
-                            asmgen.out("  lda  $otherName |  sta  math.multiply_words.multiplier")
-                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                asmgen.out("  stz  math.multiply_words.multiplier+1")
-                            else
-                                asmgen.out("  lda  #0 |  sta  math.multiply_words.multiplier+1")
-                        } else {
-                            asmgen.out("  lda  $otherName")
-                            asmgen.signExtendAYlsb(valueDt)
-                            asmgen.out("  sta  math.multiply_words.multiplier |  sty  math.multiply_words.multiplier+1")
-                        }
-                        asmgen.out("""
+                        if(block?.veraFxMuls==true) {
+                            // cx16 verafx hardware muls
+                            if(valueDt==DataType.UBYTE) {
+                                asmgen.out("  lda  $otherName |  sta  cx16.r1")
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                    asmgen.out("  stz  cx16.r1+1")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  cx16.r1+1")
+                            } else {
+                                asmgen.out("  lda  $otherName")
+                                asmgen.signExtendAYlsb(valueDt)
+                                asmgen.out("  sta  cx16.r1 |  sty  cx16.r1+1")
+                            }
+                            asmgen.out("""
                                 lda  $name
                                 ldy  $name+1
-                                jsr  math.multiply_words
+                                sta  cx16.r0
+                                sty  cx16.r0+1
+                                jsr  verafx.muls
                                 sta  $name
                                 sty  $name+1""")
+                        } else {
+                            if(valueDt==DataType.UBYTE) {
+                                asmgen.out("  lda  $otherName |  sta  math.multiply_words.multiplier")
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                    asmgen.out("  stz  math.multiply_words.multiplier+1")
+                                else
+                                    asmgen.out("  lda  #0 |  sta  math.multiply_words.multiplier+1")
+                            } else {
+                                asmgen.out("  lda  $otherName")
+                                asmgen.signExtendAYlsb(valueDt)
+                                asmgen.out("  sta  math.multiply_words.multiplier |  sty  math.multiply_words.multiplier+1")
+                            }
+                            asmgen.out("""
+                                    lda  $name
+                                    ldy  $name+1
+                                    jsr  math.multiply_words
+                                    sta  $name
+                                    sty  $name+1""")
+                        }
                     }
                     "/" -> {
                         if(dt==DataType.UWORD) {
@@ -1939,16 +1980,31 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
                     "-" -> asmgen.out("  lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
                     "*" -> {
-                        asmgen.out("""
-                            lda  $otherName
-                            ldy  $otherName+1
-                            sta  math.multiply_words.multiplier
-                            sty  math.multiply_words.multiplier+1
-                            lda  $name
-                            ldy  $name+1
-                            jsr  math.multiply_words
-                            sta  $name
-                            sty  $name+1""")
+                        if(block?.veraFxMuls==true)
+                            // cx16 verafx hardware muls
+                            asmgen.out("""
+                                lda  $name
+                                ldy  $name+1
+                                sta  cx16.r0
+                                sty  cx16.r0+1
+                                lda  $otherName
+                                ldy  $otherName+1
+                                sta  cx16.r1
+                                sty  cx16.r1+1
+                                jsr  verafx.muls
+                                sta  $name
+                                sty  $name+1""")
+                        else
+                            asmgen.out("""
+                                lda  $otherName
+                                ldy  $otherName+1
+                                sta  math.multiply_words.multiplier
+                                sty  math.multiply_words.multiplier+1
+                                lda  $name
+                                ldy  $name+1
+                                jsr  math.multiply_words
+                                sta  $name
+                                sty  $name+1""")
                     }
                     "/" -> {
                         if(dt==DataType.WORD) {
@@ -2126,17 +2182,31 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
+    private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression, block: PtBlock?) {
         fun multiplyVarByWordInAY() {
-            asmgen.out("""
-                sta  math.multiply_words.multiplier
-                sty  math.multiply_words.multiplier+1
-                lda  $name
-                ldy  $name+1
-                jsr  math.multiply_words
-                sta  $name
-                sty  $name+1
-            """)
+            if(block?.veraFxMuls==true)
+                // cx16 verafx hardware muls
+                asmgen.out("""
+                    sta  cx16.r1
+                    sty  cx16.r1+1
+                    lda  $name
+                    ldy  $name+1
+                    sta  cx16.r0
+                    sty  cx16.r0+1
+                    jsr  verafx.muls
+                    sta  $name
+                    sty  $name+1
+                """)
+            else
+                asmgen.out("""
+                    sta  math.multiply_words.multiplier
+                    sty  math.multiply_words.multiplier+1
+                    lda  $name
+                    ldy  $name+1
+                    jsr  math.multiply_words
+                    sta  $name
+                    sty  $name+1
+                """)
         }
 
         fun divideVarByWordInAY() {
