@@ -70,21 +70,23 @@ gfx2 {
 
         active_mode = mode
         if bpp
-            clear_screen()
+            clear_screen(0)
     }
 
-    sub clear_screen() {
+    sub clear_screen(ubyte color) {
         position(0, 0)
         when active_mode {
             1 -> {
                 ; lores 256c
                 repeat 240/2
-                    cs_innerloop640()
+                    cs_innerloop640(color)
             }
             2 -> {
                 ; highres 4c
+                ubyte[] colors = [%00000000, %01010101, %10101010, %11111111]
+                color = colors[color&3]
                 repeat 480/4
-                    cs_innerloop640()
+                    cs_innerloop640(color)
             }
         }
         position(0, 0)
@@ -104,6 +106,8 @@ gfx2 {
     }
 
     sub fillrect(uword xx, uword yy, uword rwidth, uword rheight, ubyte color) {
+        ; Draw a filled rectangle of the given size and color.
+        ; To fill the whole screen, use clear_screen(color) instead - it is much faster.
         if rwidth==0
             return
         repeat rheight {
@@ -784,17 +788,17 @@ skip:
         }
     }
 
-    asmsub cs_innerloop640() clobbers(Y) {
+    asmsub cs_innerloop640(ubyte color @A) clobbers(Y) {
         %asm {{
             ldy  #80
--           stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
+-           sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
             dey
             bne  -
             rts

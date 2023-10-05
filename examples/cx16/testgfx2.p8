@@ -78,7 +78,8 @@ main {
         }
 
         sys.wait(60)
-        gfx2.clear_screen()
+        gfx2.clear_screen(2)
+        gfx2.clear_screen(0)
 
         ubyte radius
 

@@ -189,7 +189,8 @@ main {
         }
 
         sys.wait(60)
-        monogfx.clear_screen()
+        monogfx.clear_screen(1)
+        monogfx.clear_screen(0)
 
         ubyte radius
 

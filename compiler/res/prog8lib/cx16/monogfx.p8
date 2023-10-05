@@ -26,7 +26,7 @@ monogfx {
         cx16.VERA_L1_TILEBASE = 0
         width = 320
         height = 240
-        clear_screen()
+        clear_screen(0)
     }
 
     sub hires() {
@@ -40,7 +40,7 @@ monogfx {
         cx16.VERA_L1_TILEBASE = %00000001
         width = 640
         height = 480
-        clear_screen()
+        clear_screen(0)
     }
 
     sub textmode() {
@@ -50,17 +50,17 @@ monogfx {
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
     }
 
-    sub clear_screen() {
+    sub clear_screen(ubyte color) {
         stipple(false)
         position(0, 0)
         when width {
             320 -> {
                 repeat 240/2/8
-                    cs_innerloop640()
+                    cs_innerloop640(color)
             }
             640 -> {
                 repeat 480/8
-                    cs_innerloop640()
+                    cs_innerloop640(color)
             }
         }
         position(0, 0)
@@ -84,6 +84,8 @@ monogfx {
     }
 
     sub fillrect(uword xx, uword yy, uword rwidth, uword rheight, bool draw) {
+        ; Draw a filled rectangle of the given size and color.
+        ; To fill the whole screen, use clear_screen(color) instead - it is much faster.
         if rwidth==0
             return
         repeat rheight {
@@ -765,17 +767,20 @@ skip:
         }
     }
 
-    asmsub cs_innerloop640() clobbers(Y) {
+    asmsub cs_innerloop640(ubyte color @A) clobbers(Y) {
         %asm {{
-            ldy  #80
--           stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
-            stz  cx16.VERA_DATA0
+            cmp  #0
+            beq  +
+            lda  #255
++           ldy  #80
+-           sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
             dey
             bne  -
             rts
