@@ -301,22 +301,22 @@ close_end:
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
-        ;    NOTE: cannot be used to load into VRAM.  Use vload() or call cx16.macptr() yourself with the vera data register as address.
+        ;    NOTE: cannot be used to load into VRAM.  Use vload() or call cx16.MACPTR() yourself with the vera data register as address.
         if not iteration_in_progress or not num_bytes
             return 0
 
         reset_read_channel()
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
 
-        ; commander X16 supports fast block-read via macptr() kernal call
+        ; commander X16 supports fast block-read via MACPTR() kernal call
         uword readsize
         while num_bytes {
             readsize = 255
             if num_bytes<readsize
                 readsize = num_bytes
-            readsize = cx16.macptr(lsb(readsize), bufferpointer, false)
+            readsize = cx16.MACPTR(lsb(readsize), bufferpointer, false)
             if_cs
-                goto byte_read_loop     ; macptr block read not supported, do fallback loop
+                goto byte_read_loop     ; MACPTR block read not supported, do fallback loop
             list_blocks += readsize
             bufferpointer += readsize
             if msb(bufferpointer) == $c0
@@ -329,7 +329,7 @@ close_end:
         }
         return list_blocks  ; number of bytes read
 
-byte_read_loop:         ; fallback if macptr() isn't supported on the device
+byte_read_loop:         ; fallback if MACPTR isn't supported on the device
         %asm {{
             lda  bufferpointer
             sta  m_in_buffer+1
@@ -360,7 +360,7 @@ m_in_buffer     sta  $ffff
     ; optimized for Commander X16 to use MACPTR block read kernal call
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
-        ;    NOTE: cannot be used to load into VRAM.  Use vload() or call cx16.macptr() yourself with the vera data register as address.
+        ;    NOTE: cannot be used to load into VRAM.  Use vload() or call cx16.MACPTR() yourself with the vera data register as address.
         if not iteration_in_progress
             return 0
 

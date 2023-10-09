@@ -1,6 +1,8 @@
 TODO
 ====
 
+- make the adpcm example able to decode and play stereo music.
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!
@@ -53,6 +55,8 @@ Compiler:
 
 Libraries:
 
+- gfx2 cs_innerloop640() extend number of bytes cleared, and use vera fx cached writes
+- gfx2 horizontal_line and vertical_line: use vera fx cached writes
 - port monogfx, gf2, graphics to the vm
 - use verafx transparent writes to speed up pixel plotting in gfx2 and monogfx modules (avoids read/mask/write)
 - fix the problems in atari target, and flesh out its libraries.

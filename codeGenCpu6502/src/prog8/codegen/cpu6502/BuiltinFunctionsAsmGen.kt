@@ -183,7 +183,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.out("  sta  (+)+0 |  sty  (+)+1")
         asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.AY)     // uword argument
         asmgen.out("""
-            jsr  cx16.jsrfar
+            jsr  cx16.JSRFAR
 +           .word  0
 +           .byte  0""")
         // note that by convention the values in A+Y registers are now the return value of the call.

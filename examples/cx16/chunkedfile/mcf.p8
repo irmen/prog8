@@ -181,7 +181,7 @@ processchunk_call           jsr  $ffff      ; modified
             ubyte readsize = 255
             if msb(size)==0
                 readsize = lsb(size)
-            cx16.r2 = cx16.macptr(readsize, bonkbuffer, false)  ; can't macptr directly to bonk ram
+            cx16.r2 = cx16.MACPTR(readsize, bonkbuffer, false)  ; can't MACPTR directly to bonk ram
             cx16.rombank(bonk)
             sys.memcopy(bonkbuffer, cx16.r3, cx16.r2)   ; copy to bonk ram
             cx16.rombank(orig_rom_bank)
@@ -192,9 +192,9 @@ processchunk_call           jsr  $ffff      ; modified
 
     sub readblock(uword size, uword address, bool dontAdvance) -> uword {
         if msb(size)>=2
-            return cx16.macptr(0, address, dontAdvance)         ; read 512 bytes
+            return cx16.MACPTR(0, address, dontAdvance)         ; read 512 bytes
         if msb(size)
-            return cx16.macptr(255, address, dontAdvance)       ; read 255 bytes
-        return cx16.macptr(lsb(size), address, dontAdvance)     ; read remaining number of bytes
+            return cx16.MACPTR(255, address, dontAdvance)       ; read 255 bytes
+        return cx16.MACPTR(lsb(size), address, dontAdvance)     ; read remaining number of bytes
     }
 }

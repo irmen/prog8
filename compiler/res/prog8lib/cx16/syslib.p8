@@ -331,17 +331,16 @@ cx16 {
 ; spelling of the names is taken from the Commander X-16 rom sources
 
 ; supported C128 additions
-romsub $ff4a = close_all(ubyte device @A)  clobbers(A,X,Y)
-romsub $ff59 = lkupla(ubyte la @A)  clobbers(A,X,Y)
-romsub $ff5c = lkupsa(ubyte sa @Y)  clobbers(A,X,Y)
+romsub $ff4a = CLOSE_ALL(ubyte device @A)  clobbers(A,X,Y)
+romsub $ff59 = LKUPLA(ubyte la @A)  clobbers(A,X,Y)
+romsub $ff5c = LKUPSA(ubyte sa @Y)  clobbers(A,X,Y)
 romsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc)  clobbers(X, Y) -> ubyte @A, bool @Pc        ; note: X,Y size result is not supported, use SCREEN or get_screen_mode routine for that
 romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)      ; incompatible with C128  dlchr()
 ; not yet supported: romsub $ff65 = pfkey()  clobbers(A,X,Y)
-romsub $ff6e = jsrfar()  ; following word = address to call, byte after that=rom/ram bank it is in
+romsub $ff6e = JSRFAR()  ; following word = address to call, byte after that=rom/ram bank it is in
 romsub $ff74 = fetch(ubyte bank @X, ubyte index @Y)  clobbers(X) -> ubyte @A
 romsub $ff77 = stash(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
-romsub $ff7a = cmpare(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
-romsub $ff7d = primm()
+romsub $ff7d = PRIMM()
 
 ; It's not documented what registers are clobbered, so we assume the worst for all following kernal routines...:
 
@@ -395,7 +394,8 @@ romsub $fed5 = console_set_paging_message(uword msgptr @R0)  clobbers(A,X,Y)
 romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
 romsub $fecc = monitor()  clobbers(A,X,Y)
 
-romsub $ff44 = macptr(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
+romsub $ff44 = MACPTR(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
+romsub $feb1 = MCIOUT(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
 romsub $ff47 = enter_basic(bool cold_or_warm @Pc)  clobbers(A,X,Y)
 romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()

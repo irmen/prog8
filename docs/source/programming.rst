@@ -937,7 +937,7 @@ memory (name, size, alignment)
     You can only treat it as a pointer or use it in inline assembly.
 
 callfar (bank, address, argumentword) -> uword     ; NOTE: specific to cx16 target for now
-    Calls an assembly routine in another bank on the Commander X16 (using its ``jsrfar`` routine)
+    Calls an assembly routine in another bank on the Commander X16 (using its ``JSRFAR`` routine)
     Be aware that ram OR rom bank may be changed depending on the address it jumps to!
     The argumentword will be loaded into the A+Y registers before calling the routine.
     The uword value that the routine returns in the A+Y registers, will be returned.
