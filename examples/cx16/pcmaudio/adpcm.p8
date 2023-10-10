@@ -12,6 +12,9 @@ adpcm {
     ; $ sox --guard source.mp3 -r 8000 -c 1 -e ima-adpcm out.wav trim 01:27.50 00:09
     ; $ ffmpeg -i source.mp3 -ss 00:01:27.50 -to 00:01:36.50  -ar 8000 -ac 1 -c:a adpcm_ima_wav -block_size 256 -map_metadata -1 -bitexact out.wav
     ; And/or use a tool such as https://github.com/dbry/adpcm-xq  (make sure to set the correct block size, -b8)
+    ;
+    ; NOTE: for speed reasons this implementation doesn't guard against clipping errors.
+    ;       if the output sounds distorted, lower the volume of the source waveform to 80% and try again etc.
 
 
     ; IMA-ADPCM file data stream format:
@@ -40,8 +43,8 @@ adpcm {
             15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794,
             32767]
 
-    uword @zp predict       ; decoded 16 bit pcm sample for first channel.
-    uword @zp predict_2     ; decoded 16 bit pcm sample for second channel.
+    uword @requirezp predict       ; decoded 16 bit pcm sample for first channel.
+    uword @requirezp predict_2     ; decoded 16 bit pcm sample for second channel.
     ubyte @requirezp index
     ubyte @requirezp index_2
     uword @zp pstep
@@ -76,8 +79,17 @@ adpcm {
         pstep >>= 1
         cx16.r0s += pstep
         if nibble & %1000
-            cx16.r0s = -cx16.r0s
-        predict += cx16.r0s as uword
+            predict -= cx16.r0s
+        else
+            predict += cx16.r0s
+
+        ; NOTE: the original C/Python code uses a 32 bits prediction value and clips it to a 16 bit word
+        ;       but for speed reasons we only work with 16 bit words here all the time (with possible clipping error)
+        ; if predicted > 32767:
+        ;    predicted = 32767
+        ; elif predicted < -32767:
+        ;    predicted = - 32767
+
         index += t_index[nibble]
         if_neg              ; was:  if index & 128
             index = 0
@@ -101,8 +113,17 @@ adpcm {
         pstep_2 >>= 1
         cx16.r0s += pstep_2
         if nibble_2 & %1000
-            cx16.r0s = -cx16.r0s
-        predict_2 += cx16.r0s as uword
+            predict_2 -= cx16.r0s
+        else
+            predict_2 += cx16.r0s
+
+        ; NOTE: the original C/Python code uses a 32 bits prediction value and clips it to a 16 bit word
+        ;       but for speed reasons we only work with 16 bit words here all the time (with possible clipping error)
+        ; if predicted > 32767:
+        ;    predicted = 32767
+        ; elif predicted < -32767:
+        ;    predicted = - 32767
+
         index_2 += t_index[nibble_2]
         if_neg              ; was:  if index & 128
             index_2 = 0

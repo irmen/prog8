@@ -79,17 +79,17 @@ main {
         }
 
         if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
-            if(wavfile.block_align!=256 or wavfile.nchannels!=1) {
-                error("unsupported format!")
+            if(wavfile.block_align!=256) {
+                error("unsupported block alignment!")
             }
         }
 
         txt.print("\ngood file! playback starts!\n")
         cx16.rombank(0)                         ; activate kernal bank for faster calls
         cx16.VERA_AUDIO_RATE = 0                ; halt playback
-        cx16.VERA_AUDIO_CTRL = %10101111        ; mono 16 bit
+        cx16.VERA_AUDIO_CTRL = %10101011        ; mono 16 bit, volume 11
         if wavfile.nchannels==2
-            cx16.VERA_AUDIO_CTRL = %10111111    ; stereo 16 bit
+            cx16.VERA_AUDIO_CTRL = %10111011    ; stereo 16 bit, volume 11
         if(wavfile.bits_per_sample==8)
             cx16.VERA_AUDIO_CTRL &= %11011111    ; set to 8 bit instead
         repeat 1024
@@ -103,7 +103,7 @@ main {
         if diskio.f_open(MUSIC_FILENAME) {
             uword block_size = 1024
             if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
-                block_size = wavfile.block_align
+                block_size = wavfile.block_align * 2      ; read 2 adpcm blocks at a time (512 bytes)
             void diskio.f_read(buffer, wavfile.data_offset)       ; skip to actual sample data start
             void diskio.f_read(buffer, block_size)  ; preload buffer
             cx16.VERA_AUDIO_RATE = vera_rate    ; start playback
@@ -144,6 +144,7 @@ main {
 interrupt {
 
     bool aflow_semaphore
+    uword @requirezp nibblesptr
 
     asmsub wait_and_clear_aflow_semaphore() {
         %asm {{
@@ -159,8 +160,17 @@ interrupt {
         if cx16.VERA_ISR & %00001000 {
             ; AFLOW irq occurred, refill buffer
             aflow_semaphore = 0
-            if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
-                adpcm_block()
+            if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
+                nibblesptr = main.start.buffer
+                if wavfile.nchannels==2 {
+                    adpcm_block_stereo()
+                    adpcm_block_stereo()
+                }
+                else {
+                    adpcm_block_mono()
+                    adpcm_block_mono()
+                }
+            }
             else if wavfile.bits_per_sample==16
                 uncompressed_block_16()
             else
@@ -235,9 +245,8 @@ interrupt {
 ;        }
     }
 
-    sub adpcm_block() {
+    sub adpcm_block_mono() {
         ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)
-        uword @requirezp nibblesptr = main.start.buffer
         adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
         cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
         cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
@@ -256,4 +265,85 @@ interrupt {
             }
         }
     }
+
+    sub adpcm_block_stereo() {
+        ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)
+        adpcm.init(peekw(nibblesptr), @(nibblesptr+2))            ; left channel
+        cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+        cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+        adpcm.init_second(peekw(nibblesptr+4), @(nibblesptr+6))   ; right channel
+        cx16.VERA_AUDIO_DATA = lsb(adpcm.predict_2)
+        cx16.VERA_AUDIO_DATA = msb(adpcm.predict_2)
+        nibblesptr += 8
+        repeat 248/8
+            decode_nibbles_unrolled()
+    }
+
+
+    sub decode_nibbles_unrolled() {
+        ; decode 4 left channel nibbles
+        uword[8] left
+        uword[8] right
+        ubyte @requirezp nibble = @(nibblesptr)
+        adpcm.decode_nibble(nibble & 15)     ; first word
+        left[0] = adpcm.predict
+        adpcm.decode_nibble(nibble>>4)       ; second word
+        left[1] = adpcm.predict
+        nibble = @(nibblesptr+1)
+        adpcm.decode_nibble(nibble & 15)     ; first word
+        left[2] = adpcm.predict
+        adpcm.decode_nibble(nibble>>4)       ; second word
+        left[3] = adpcm.predict
+        nibble = @(nibblesptr+2)
+        adpcm.decode_nibble(nibble & 15)     ; first word
+        left[4] = adpcm.predict
+        adpcm.decode_nibble(nibble>>4)       ; second word
+        left[5] = adpcm.predict
+        nibble = @(nibblesptr+3)
+        adpcm.decode_nibble(nibble & 15)     ; first word
+        left[6] = adpcm.predict
+        adpcm.decode_nibble(nibble>>4)       ; second word
+        left[7] = adpcm.predict
+
+        ; decode 4 right channel nibbles
+        nibble = @(nibblesptr+4)
+        adpcm.decode_nibble_second(nibble & 15)     ; first word
+        right[0] = adpcm.predict_2
+        adpcm.decode_nibble_second(nibble>>4)       ; second word
+        right[1] = adpcm.predict_2
+        nibble = @(nibblesptr+5)
+        adpcm.decode_nibble_second(nibble & 15)     ; first word
+        right[2] = adpcm.predict_2
+        adpcm.decode_nibble_second(nibble>>4)       ; second word
+        right[3] = adpcm.predict_2
+        nibble = @(nibblesptr+6)
+        adpcm.decode_nibble_second(nibble & 15)     ; first word
+        right[4] = adpcm.predict_2
+        adpcm.decode_nibble_second(nibble>>4)       ; second word
+        right[5] = adpcm.predict_2
+        nibble = @(nibblesptr+7)
+        adpcm.decode_nibble_second(nibble & 15)     ; first word
+        right[6] = adpcm.predict_2
+        adpcm.decode_nibble_second(nibble>>4)       ; second word
+        right[7] = adpcm.predict_2
+        nibblesptr += 8
+
+        %asm {{
+            ; copy to vera PSG fifo buffer
+            ldy  #0
+-           lda  p8_left,y
+            sta  cx16.VERA_AUDIO_DATA
+            lda  p8_left+1,y
+            sta  cx16.VERA_AUDIO_DATA
+            lda  p8_right,y
+            sta  cx16.VERA_AUDIO_DATA
+            lda  p8_right+1,y
+            sta  cx16.VERA_AUDIO_DATA
+            iny
+            iny
+            cpy  #16
+            bne  -
+        }}
+    }
+
 }
