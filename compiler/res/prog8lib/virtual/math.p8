@@ -2,9 +2,6 @@
 
 math {
 
-    ; TODO: the VM doesn't yet store the full 32 bits result of a 16*16 multiplication, so there is NO mul16_last_upper() routine here at this time.
-
-
     sub sin8u(ubyte angle) -> ubyte {
         ubyte[256] sintab = [$80, $83, $86, $89, $8c, $8f, $92, $95, $98, $9b, $9e, $a2, $a5, $a7, $aa, $ad, $b0, $b3, $b6, $b9,
                              $bc, $be, $c1, $c4, $c6, $c9, $cb, $ce, $d0, $d3, $d5, $d7, $da, $dc, $de, $e0,

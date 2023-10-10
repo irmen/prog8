@@ -6,6 +6,21 @@
 verafx {
     %option no_symbol_prefixing
 
+    sub available() -> bool {
+        ; returns true if Vera FX is available (Vera V0.3.1 or later), false if not.
+        cx16.r1L = 0
+        cx16.r0L = cx16.VERA_CTRL
+        cx16.VERA_CTRL = $7e
+        if cx16.VERA_DC_VER0 == $56 {
+            ; Vera version number is valid.
+            ; Vera fx is available on Vera version 0.3.1 and later,
+            ; so no need to even check VERA_DC_VER1, which contains 0 (or higher)
+            cx16.r1L = mkword(cx16.VERA_DC_VER2, cx16.VERA_DC_VER3) >= $0301
+        }
+        cx16.VERA_CTRL = cx16.r0L
+        return cx16.r1L
+    }
+
     sub clear(ubyte vbank, uword vaddr, ubyte data, uword amountof32bits) {
         ; use cached 4-byte write to quickly clear a portion of the video memory to a given byte value
         ; this routine is around 3 times faster as gfx2.clear_screen()
