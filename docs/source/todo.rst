@@ -1,7 +1,7 @@
 TODO
 ====
 
-- make the adpcm example able to decode and play stereo music.
+- stream-wav example: add stereo adpcm support
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction

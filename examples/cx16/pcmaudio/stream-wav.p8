@@ -242,15 +242,18 @@ interrupt {
         cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
         cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
         nibblesptr += 4
-        repeat 252 {
-           ubyte @zp nibble = @(nibblesptr)
-           adpcm.decode_nibble(nibble & 15)     ; first word
-           cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-           cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-           adpcm.decode_nibble(nibble>>4)       ; second word
-           cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-           cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-           nibblesptr++
+        ubyte @zp nibble
+        repeat 252/2 {
+            unroll 2 {
+                nibble = @(nibblesptr)
+                adpcm.decode_nibble(nibble & 15)     ; first word
+                cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+                cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+                adpcm.decode_nibble(nibble>>4)       ; second word
+                cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+                cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+                nibblesptr++
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 adpcm {
 
-    ; IMA ADPCM decoder.
+    ; IMA ADPCM decoder.  Supports mono and stereo streams.
     ; https://wiki.multimedia.cx/index.php/IMA_ADPCM
     ; https://wiki.multimedia.cx/index.php/Microsoft_IMA_ADPCM
 
@@ -8,10 +8,21 @@ adpcm {
     ; thus compressing the audio data by a factor of 4.
     ; The encoding precision is about 13 bits per sample so it's a lossy compression scheme.
     ;
-    ; HOW TO CREATE IMA-ADPCM ENCODED AUDIO? Use sox or ffmpeg:
+    ; HOW TO CREATE IMA-ADPCM ENCODED AUDIO? Use sox or ffmpeg like so (example):
     ; $ sox --guard source.mp3 -r 8000 -c 1 -e ima-adpcm out.wav trim 01:27.50 00:09
     ; $ ffmpeg -i source.mp3 -ss 00:01:27.50 -to 00:01:36.50  -ar 8000 -ac 1 -c:a adpcm_ima_wav -block_size 256 -map_metadata -1 -bitexact out.wav
-    ; Or use a tool such as https://github.com/dbry/adpcm-xq  (make sure to set the correct block size)
+    ; And/or use a tool such as https://github.com/dbry/adpcm-xq  (make sure to set the correct block size, -b8)
+
+
+    ; IMA-ADPCM file data stream format:
+    ; If the IMA data is mono, an individual chunk of data begins with the following preamble:
+    ; bytes 0-1:   initial predictor (in little-endian format)
+    ; byte 2:      initial index
+    ; byte 3:      unknown, usually 0 and is probably reserved
+    ; If the IMA data is stereo, a chunk begins with two preambles, one for the left audio channel and one for the right channel.
+    ; (so we have 8 bytes of preamble).
+    ; The remaining bytes in the chunk are the IMA nibbles. The first 4 bytes, or 8 nibbles,
+    ; belong to the left channel and -if it's stereo- the next 4 bytes belong to the right channel.
 
 
     ubyte[] t_index = [ -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
@@ -29,17 +40,29 @@ adpcm {
             15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794,
             32767]
 
-    uword @zp predict
+    uword @zp predict       ; decoded 16 bit pcm sample for first channel.
+    uword @zp predict_2     ; decoded 16 bit pcm sample for second channel.
     ubyte @requirezp index
+    ubyte @requirezp index_2
     uword @zp pstep
+    uword @zp pstep_2
 
     sub init(uword startPredict, ubyte startIndex) {
+        ; initialize first decoding channel.
         predict = startPredict
         index = startIndex
         pstep = t_step[index]
     }
 
+    sub init_second(uword startPredict_2, ubyte startIndex_2) {
+        ; initialize second decoding channel.
+        predict_2 = startPredict_2
+        index_2 = startIndex_2
+        pstep_2 = t_step[index_2]
+    }
+
     sub decode_nibble(ubyte nibble) {
+        ; decoder for nibbles for the first channel.
         ; this is the hotspot of the decoder algorithm!
         cx16.r0s = 0                ; difference
         if nibble & %0100
@@ -61,5 +84,30 @@ adpcm {
         else if index > len(t_step)-1
             index = len(t_step)-1
         pstep = t_step[index]
+    }
+
+    sub decode_nibble_second(ubyte nibble_2) {
+        ; decoder for nibbles for the second channel.
+        ; this is the hotspot of the decoder algorithm!
+        cx16.r0s = 0                ; difference
+        if nibble_2 & %0100
+            cx16.r0s += pstep_2
+        pstep_2 >>= 1
+        if nibble_2 & %0010
+            cx16.r0s += pstep_2
+        pstep_2 >>= 1
+        if nibble_2 & %0001
+            cx16.r0s += pstep_2
+        pstep_2 >>= 1
+        cx16.r0s += pstep_2
+        if nibble_2 & %1000
+            cx16.r0s = -cx16.r0s
+        predict_2 += cx16.r0s as uword
+        index_2 += t_index[nibble_2]
+        if_neg              ; was:  if index & 128
+            index_2 = 0
+        else if index_2 > len(t_step)-1
+            index_2 = len(t_step)-1
+        pstep_2 = t_step[index_2]
     }
 }

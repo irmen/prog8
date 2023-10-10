@@ -8,7 +8,7 @@
 ;
 ; Simple IMA ADPCM playback example.  (factor 4 lossy compressed pcm audio)
 ;
-; NOTE:  this program requires 16 bits MONO audio, and 256 byte encoded block size!
+; NOTE:  this program requires 16 bits MONO or STEREO audio, and 256 byte encoded block size!
 ; HOW TO CREATE SUCH IMA-ADPCM ENCODED AUDIO? Use sox or ffmpeg:
 ; $ sox --guard source.mp3 -r 8000 -c 1 -e ima-adpcm out.wav trim 01:27.50 00:09
 ; $ ffmpeg -i source.mp3 -ss 00:01:27.50 -to 00:01:36.50  -ar 8000 -ac 1 -c:a adpcm_ima_wav -block_size 256 -map_metadata -1 -bitexact out.wav
@@ -40,10 +40,15 @@ main {
         txt.print_uw(wavfile.sample_rate)
         txt.print(" vera rate = ")
         txt.print_uw(vera_rate_hz)
-        txt.print("\n(b)enchmark or (p)layback? ")
+        txt.print(" #channels = ")
+        txt.print_ub(wavfile.nchannels)
+        txt.print("\n\n(b)enchmark or (p)layback? ")
 
         when cbm.CHRIN() {
-            'b' -> benchmark()
+            'b' -> when wavfile.nchannels {
+                       1-> benchmark_mono()
+                       2-> benchmark_stereo()
+                   }
             'p' -> playback()
         }
     }
@@ -59,58 +64,168 @@ main {
         num_adpcm_blocks = (adpcm_size / 256) as ubyte      ; THE ADPCM DATA NEEDS TO BE ENCODED IN 256-byte BLOCKS !
     }
 
-    sub benchmark() {
+    sub benchmark_mono() {
         nibblesptr = &wavdata.wav_data + wavfile.data_offset
 
         txt.print("\ndecoding all blocks...\n")
         cbm.SETTIM(0,0,0)
         repeat num_adpcm_blocks {
-
-            ; If the IMA data is mono, an individual chunk of data begins with the following preamble:
-            ; bytes 0-1:   initial predictor (in little-endian format)
-            ; byte 2:      initial index
-            ; byte 3:      unknown, usually 0 and is probably reserved
-            ; If the IMA data is stereo, a chunk begins with two preambles, one for the left audio channel and one for the right channel.
-            ; (so we have 8 bytes of preamble).
-            ; The remaining bytes in the chunk are the IMA nibbles. The first 4 bytes, or 8 nibbles,
-            ; belong to the left channel and -if it's stereo- the next 4 bytes belong to the right channel.
-
-            ; The code here assumes mono.
             adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
             nibblesptr += 4
+            decode_mono_nibbles()
+        }
 
-            repeat 252 {
-               ubyte @zp nibble = @(nibblesptr)
-               adpcm.decode_nibble(nibble & 15)     ; first word
-               adpcm.decode_nibble(nibble>>4)       ; second word
-               nibblesptr++
+        decoding_report(1 + 252*2)
+    }
+
+    sub decode_mono_nibbles() {
+        ; slightly unrolled
+        ubyte @zp nibble
+        repeat 252/2 {
+            unroll 2 {
+                nibble = @(nibblesptr)
+                adpcm.decode_nibble(nibble & 15)     ; first word
+                cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+                cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+                adpcm.decode_nibble(nibble>>4)       ; second word
+                cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+                cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+                nibblesptr++
             }
         }
+    }
+
+    uword[8] left
+    uword[8] right
+
+    sub benchmark_stereo() {
+        nibblesptr = &wavdata.wav_data + wavfile.data_offset
+        txt.print("\n\ndecoding all blocks...\n")
+        cbm.SETTIM(0,0,0)
+
+        repeat num_adpcm_blocks {
+
+            adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
+            nibblesptr += 4
+            adpcm.init_second(peekw(nibblesptr), @(nibblesptr+2))
+            nibblesptr += 4
+
+            repeat 248/8 {
+                decode_stereo_nibbles()
+                nibblesptr += 8
+                copy_stereo_to_fifo()
+            }
+        }
+
+        decoding_report(2 + 248*4)
+    }
+
+    asmsub copy_stereo_to_fifo() clobbers(A, Y) {
+        %asm {{
+            ; copy to vera PSG fifo buffer
+            ldy  #0
+-           lda  p8_left,y
+            sta  cx16.VERA_AUDIO_DATA
+            lda  p8_left+1,y
+            sta  cx16.VERA_AUDIO_DATA
+            lda  p8_right,y
+            sta  cx16.VERA_AUDIO_DATA
+            lda  p8_right+1,y
+            sta  cx16.VERA_AUDIO_DATA
+            iny
+            iny
+            cpy  #16
+            bne  -
+        }}
+    }
+
+    sub decode_stereo_nibbles() {
+        ; decode 4 left channel nibbles
+        ubyte @zp nibble = @(nibblesptr)
+        adpcm.decode_nibble(nibble & 15)     ; first word
+        left[0] = adpcm.predict
+        adpcm.decode_nibble(nibble>>4)       ; second word
+        left[1] = adpcm.predict
+        nibble = @(nibblesptr+1)
+        adpcm.decode_nibble(nibble & 15)     ; first word
+        left[2] = adpcm.predict
+        adpcm.decode_nibble(nibble>>4)       ; second word
+        left[3] = adpcm.predict
+        nibble = @(nibblesptr+2)
+        adpcm.decode_nibble(nibble & 15)     ; first word
+        left[4] = adpcm.predict
+        adpcm.decode_nibble(nibble>>4)       ; second word
+        left[5] = adpcm.predict
+        nibble = @(nibblesptr+3)
+        adpcm.decode_nibble(nibble & 15)     ; first word
+        left[6] = adpcm.predict
+        adpcm.decode_nibble(nibble>>4)       ; second word
+        left[7] = adpcm.predict
+
+        ; decode 4 right channel nibbles
+        nibble = @(nibblesptr+4)
+        adpcm.decode_nibble_second(nibble & 15)     ; first word
+        right[0] = adpcm.predict_2
+        adpcm.decode_nibble_second(nibble>>4)       ; second word
+        right[1] = adpcm.predict_2
+        nibble = @(nibblesptr+5)
+        adpcm.decode_nibble_second(nibble & 15)     ; first word
+        right[2] = adpcm.predict_2
+        adpcm.decode_nibble_second(nibble>>4)       ; second word
+        right[3] = adpcm.predict_2
+        nibble = @(nibblesptr+6)
+        adpcm.decode_nibble_second(nibble & 15)     ; first word
+        right[4] = adpcm.predict_2
+        adpcm.decode_nibble_second(nibble>>4)       ; second word
+        right[5] = adpcm.predict_2
+        nibble = @(nibblesptr+7)
+        adpcm.decode_nibble_second(nibble & 15)     ; first word
+        right[6] = adpcm.predict_2
+        adpcm.decode_nibble_second(nibble>>4)       ; second word
+        right[7] = adpcm.predict_2
+    }
+
+    sub decoding_report(float pcm_words_per_block) {
         const float REFRESH_RATE = 25.0e6/(525.0*800)       ; Vera VGA refresh rate is not precisely 60 hz!
         float duration_secs = (cbm.RDTIM16() as float) / REFRESH_RATE
         floats.print_f(duration_secs)
         txt.print(" seconds (approx)\n")
-        const float PCM_WORDS_PER_BLOCK = 1 + 252*2
-        float words_per_second = PCM_WORDS_PER_BLOCK * (num_adpcm_blocks as float) / duration_secs
-        txt.print_uw(words_per_second as uword)
-        txt.print(" decoded pcm words/sec\n")
         float src_per_second = adpcm_size as float / duration_secs
         txt.print_uw(src_per_second as uword)
         txt.print(" adpcm data bytes/sec\n")
+        float words_per_second = pcm_words_per_block * (num_adpcm_blocks as float) / duration_secs
+        when wavfile.nchannels {
+            1 -> {
+                txt.print_uw(words_per_second as uword)
+                txt.print(" decoded mono pcm words/sec (max hz)\n")
+            }
+            2 -> {
+                txt.print_uw(words_per_second as uword)
+                txt.print(" decoded pcm words/sec\n")
+                txt.print_uw(words_per_second/2 as uword)
+                txt.print(" decoded stereo audio frames/sec (max hz)\n")
+            }
+        }
     }
 
     sub playback() {
         nibblesptr = &wavdata.wav_data + wavfile.data_offset
         adpcm_blocks_left = num_adpcm_blocks
 
-        cx16.VERA_AUDIO_CTRL = %10101111        ; mono 16 bit
+        when wavfile.nchannels {
+            1 -> cx16.VERA_AUDIO_CTRL = %10101111        ; mono 16 bit
+            2 -> cx16.VERA_AUDIO_CTRL = %10111111        ; stereo 16 bit
+        }
         cx16.VERA_AUDIO_RATE = 0                ; halt playback
         repeat 1024 {
             cx16.VERA_AUDIO_DATA = 0
         }
 
         sys.set_irqd()
-        cx16.CINV = &irq_handler
+        when wavfile.nchannels {
+            1 -> cx16.CINV = &irq_handler_mono
+            2 -> cx16.CINV = &irq_handler_stereo
+        }
         cx16.VERA_IEN = %00001000               ; enable AFLOW
         sys.clear_irqd()
 
@@ -128,25 +243,59 @@ main {
 ;        txt.print("audio off.\n")
     }
 
-    sub irq_handler() {
+    sub irq_handler_mono() {
         if cx16.VERA_ISR & %00001000 {
             ; AFLOW irq.
-    	    ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
+            ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
 
             ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)
             adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
             cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
             cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
             nibblesptr += 4
-            repeat 252 {
-               ubyte @zp nibble = @(nibblesptr)
-               adpcm.decode_nibble(nibble & 15)     ; first word
-               cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-               cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-               adpcm.decode_nibble(nibble>>4)       ; second word
-               cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-               cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-               nibblesptr++
+            decode_mono_nibbles()
+            adpcm_blocks_left--
+            if adpcm_blocks_left==0 {
+                ; restart adpcm data from the beginning
+                nibblesptr = &wavdata.wav_data + wavfile.data_offset
+                adpcm_blocks_left = num_adpcm_blocks
+                txt.print("end of data, restarting.\n")
+            }
+
+        } else {
+            ; it's not AFLOW, handle other IRQ here.
+        }
+
+        ;; cx16.vpoke(1,$fa0c, 0)      ; back to other screen color
+
+        %asm {{
+            ply
+            plx
+            pla
+            rti
+        }}
+    }
+
+    sub irq_handler_stereo() {
+        if cx16.VERA_ISR & %00001000 {
+            ; AFLOW irq.
+    	    ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
+
+            ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)
+            ; left channel
+            adpcm.init(peekw(nibblesptr), @(nibblesptr+2))
+            cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
+            cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
+            nibblesptr += 4
+            ; right channel
+            adpcm.init_second(peekw(nibblesptr), @(nibblesptr+2))
+            cx16.VERA_AUDIO_DATA = lsb(adpcm.predict_2)
+            cx16.VERA_AUDIO_DATA = msb(adpcm.predict_2)
+            nibblesptr += 4
+            repeat 31 {
+                decode_stereo_nibbles()
+                nibblesptr += 8
+                copy_stereo_to_fifo()
             }
 
             adpcm_blocks_left--
@@ -164,10 +313,10 @@ main {
         ;; cx16.vpoke(1,$fa0c, 0)      ; back to other screen color
 
         %asm {{
-    	    ply
-	    plx
-	    pla
-	    rti
+            ply
+	        plx
+	        pla
+	        rti
         }}
     }
 
