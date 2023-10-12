@@ -1,6 +1,16 @@
 TODO
 ====
 
+- optimize word array assignment to not use tax/tay etc but simply lda+ldx:  (note: with and without @split!)
+        uword pstep = w_array[index] ->
+            ldy  p8_index
+            lda  p8_w_array,y
+            ldx  p8_w_array+1,y
+            sta  p8_pstep
+            stx  p8_pstep+1
+
+- gfx2: use vera auto in/decrement in the flood fill routine
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!

@@ -575,7 +575,7 @@ gfx2 {
             pop_stack()
             xx = x1
             while xx >= 0 and pget(xx as uword, yy as uword) == cx16.r11L {
-                plot(xx as uword, yy as uword, cx16.r10L)
+                plot(xx as uword, yy as uword, cx16.r10L)           ; TODO use vera auto decrement
                 xx--
             }
             if xx >= x1
@@ -588,7 +588,7 @@ gfx2 {
 
             do {
                 while xx <= width-1 and pget(xx as uword, yy as uword) == cx16.r11L {
-                    plot(xx as uword, yy as uword, cx16.r10L)
+                    plot(xx as uword, yy as uword, cx16.r10L)       ; TODO use vera auto increment
                     xx++
                 }
                 push_stack(left, xx - 1, yy, dy)

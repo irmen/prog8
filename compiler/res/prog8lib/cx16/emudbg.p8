@@ -23,6 +23,8 @@ emudbg {
     &ubyte EMU_EMU_DETECT2        = EMU_BASE + 15
 
     sub is_emulator() -> bool {
+        ; Test for emulator presence.
+        ; It is recommended to only use the other debug routines if this returns true.
         return EMU_EMU_DETECT1=='1' and EMU_EMU_DETECT2=='6'
     }
 

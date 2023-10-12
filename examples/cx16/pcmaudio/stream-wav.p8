@@ -84,7 +84,7 @@ main {
             }
         }
 
-        txt.print("\ngood file! playback starts!\n")
+        txt.print("\ngood file! playback starts! ")
         cx16.rombank(0)                         ; activate kernal bank for faster calls
         cx16.VERA_AUDIO_RATE = 0                ; halt playback
         cx16.VERA_AUDIO_CTRL = %10101011        ; mono 16 bit, volume 11
@@ -100,6 +100,9 @@ main {
         cx16.VERA_IEN = %00001000               ; enable AFLOW  only for now
         sys.clear_irqd()
 
+        str progress_chars = "-\\|/-\\|/"
+        ubyte progress = 0
+
         if diskio.f_open(MUSIC_FILENAME) {
             uword block_size = 1024
             if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
@@ -114,7 +117,9 @@ main {
                 ;; cx16.vpoke(1,$fa00, $00)    ; paint a screen color
                 if size<block_size
                     break
-                txt.chrout('.')
+                txt.chrout(progress_chars[progress/2 & 7])
+                txt.chrout($9d)     ; cursor left
+                progress++
             }
             diskio.f_close()
         } else {
