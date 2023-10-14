@@ -2210,7 +2210,26 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     program.memsizer.memorySize(arrayDt!!, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
             } else {
                 val eltSize = program.memsizer.memorySize(ArrayToElementTypes.getValue(arrayDt!!))
-                TODO("address-of array element $sourceName size $eltSize with non-const index at ${target.position}")
+                assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_W1", DataType.UWORD)
+                when(eltSize) {
+                    1 -> {}
+                    2 -> {
+                        if(arrayDt !in SplitWordArrayTypes)
+                            asmgen.out("  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1")
+                    }
+                    else -> TODO("address-of array element $sourceName size $eltSize with non-const index at ${target.position}")
+                }
+                asmgen.out("""
+                    lda  #<$sourceName
+                    clc
+                    adc  P8ZP_SCRATCH_W1
+                    tax
+                    lda  #>$sourceName
+                    adc  P8ZP_SCRATCH_W1+1
+                    tay
+                    txa""")
+                assignRegisterpairWord(target, RegisterOrPair.AY)
+                return
             }
         } else 0
 
@@ -2286,9 +2305,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(sourceDt==DataType.UBYTE) {
                     asmgen.out("  lda  $sourceName |  sta  ${target.asmVarname}")
                     if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                        asmgen.out("  stz  ${target.asmVarname}")
+                        asmgen.out("  stz  ${target.asmVarname}+1")
                     else
-                        asmgen.out("  lda  #0 |  sta  ${target.asmVarname}")
+                        asmgen.out("  lda  #0 |  sta  ${target.asmVarname}+1")
                 }
                 else
                     asmgen.out("""

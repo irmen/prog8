@@ -1,9 +1,8 @@
 TODO
 ====
 
-- fix TODO  "address-of array element" in assignAddressOf()
-
 - gfx2: use vera auto in/decrement in the flood fill routine
+- add an option to inject an actual instruction (STP on 65c02, BRK on 6502) for breakpoints, instead of only listing them in the vice symbol file.
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
