@@ -1,18 +1,33 @@
+%import textio
+%zeropage basicsafe
+
 main {
     sub start() {
-        cx16.r1H = %00000001        ; enable auto-indent
-        cx16.r2L = 4
-        cx16.r2H = 80
-        cx16.r3L = 8
-        cx16.r3H = 11<<4 | 7;  background_color<<4 | text_color
-        cx16.r4 = 0
-        cx16.r1L = 0
-        cx16.rombank($d)
-        %asm {{
-            ldx #2
-            ldy #64
-            jmp $c006
-        }}
+        uword[] w_array = [1111,2222,3333,4444]
+        uword[] @split split_array = [1111,2222,3333,4444]
+        ubyte index = 2
+
+        uword value = 9999
+        w_array[index] = value
+        split_array[index] = value
+
+        uword pstep = w_array[index]
+        uword psteps = split_array[index]
+        ;; uword @zp ptr = &w_array[index]
+
+        txt.print_uw(pstep)
+        txt.nl()
+        txt.print_uw(psteps)
+        txt.nl()
+;        txt.print_uw(peekw(ptr))
+;        txt.nl()
+
+        w_array[index] += 10
+        split_array[index] += 10
+        txt.print_uw(w_array[index])
+        txt.nl()
+        txt.print_uw(split_array[index])
+        txt.nl()
     }
 }
 

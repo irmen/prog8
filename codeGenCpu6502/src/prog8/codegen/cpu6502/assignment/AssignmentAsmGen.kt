@@ -88,8 +88,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                     } else {
                         asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                        asmgen.out("  lda  ${arrayVarName}_lsb,y |  tax |  lda  ${arrayVarName}_msb,y |  tay |  txa")
-                        assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                        asmgen.out("  lda  ${arrayVarName}_lsb,y |  ldx  ${arrayVarName}_msb,y")
+                        assignRegisterpairWord(assign.target, RegisterOrPair.AX)
                     }
                     return
                 }
@@ -122,8 +122,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         in WordDatatypes  -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                            asmgen.out("  lda  $arrayVarName,y |  tax |  lda  $arrayVarName+1,y |  tay |  txa")
-                            assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                            asmgen.out("  lda  $arrayVarName,y |  ldx  $arrayVarName+1,y")
+                            assignRegisterpairWord(assign.target, RegisterOrPair.AX)
                         }
                         DataType.FLOAT -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.A)
@@ -2209,7 +2209,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else
                     program.memsizer.memorySize(arrayDt!!, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
             } else {
-                TODO("address-of array element $sourceName with non-const index at ${target.position}")
+                val eltSize = program.memsizer.memorySize(ArrayToElementTypes.getValue(arrayDt!!))
+                TODO("address-of array element $sourceName size $eltSize with non-const index at ${target.position}")
             }
         } else 0
 

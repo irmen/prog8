@@ -1,13 +1,7 @@
 TODO
 ====
 
-- optimize word array assignment to not use tax/tay etc but simply lda+ldx:  (note: with and without @split!)
-        uword pstep = w_array[index] ->
-            ldy  p8_index
-            lda  p8_w_array,y
-            ldx  p8_w_array+1,y
-            sta  p8_pstep
-            stx  p8_pstep+1
+- fix TODO  "address-of array element" in assignAddressOf()
 
 - gfx2: use vera auto in/decrement in the flood fill routine
 
