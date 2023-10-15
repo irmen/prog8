@@ -1,7 +1,6 @@
 TODO
 ====
 
-- codegen for cx16.r2L >>= gfx2.plot.shift4c[cx16.r1L] is wrong (gfx2.p8 older version fill hires 4c)
 - why does cx16.r1L = lsb(xx) & 3  generate 5 asm instructions? (noopt)
 - optimize asm:  sta VAR / <something with A> / sta VAR
 - gfx2/monogfx: use vera auto in/decrement in the flood fill routine (getpixels)

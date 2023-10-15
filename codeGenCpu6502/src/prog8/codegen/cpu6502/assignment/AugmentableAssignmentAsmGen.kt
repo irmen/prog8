@@ -918,8 +918,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<<" -> {
                 asmgen.out("""
                     tay
-                    beq  +
                     lda  $variable
+                    cpy  #0
+                    beq  +
 -                   asl  a
                     dey
                     bne  -
@@ -929,8 +930,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 if(!signed) {
                     asmgen.out("""
                         tay
-                        beq  +
                         lda  $variable
+                        cpy  #0
+                        beq  +
 -                       lsr  a
                         dey
                         bne  -
@@ -938,8 +940,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 } else {
                     asmgen.out("""
                         tay
-                        beq  +
                         lda  $variable
+                        cpy  #0
+                        beq  +
                         sta  P8ZP_SCRATCH_B1
 -                       asl  a
                         ror  P8ZP_SCRATCH_B1
@@ -1899,12 +1902,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     "<<" -> {
                         asmgen.out("""
-                        ldy  $otherName
-                        beq  +
--                       asl  $name
-                        rol  $name+1
-                        dey
-                        bne  -
+                            ldy  $otherName
+                            beq  +
+-                           asl  $name
+                            rol  $name+1
+                            dey
+                            bne  -
 +""")
                     }
                     ">>" -> {

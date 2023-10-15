@@ -9,6 +9,23 @@
 main {
 
     sub start() {
+        ubyte[] shifts = [0,2,4,6]
+        ubyte value = 100
+        ubyte index = 2
+        value >>= shifts[index]
+        txt.print_ub(value)
+        txt.nl()
+        value = 100
+        index = 1
+        value >>= shifts[index]
+        txt.print_ub(value)
+        txt.nl()
+        value = 100
+        index = 0
+        value >>= shifts[index]
+        txt.print_ub(value)
+        txt.nl()
+
         gfx2.screen_mode(2)
         demofill()
         repeat {
