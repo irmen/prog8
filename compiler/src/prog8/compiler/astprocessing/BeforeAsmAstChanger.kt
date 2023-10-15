@@ -39,6 +39,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         return noModifications
     }
 
+/* TODO remove permanently:
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
         // Try to replace A = B <operator> Something  by A= B, A = A <operator> Something
         // this triggers the more efficent augmented assignment code generation more often.
@@ -104,6 +105,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         }
         return noModifications
     }
+*/
 
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         if(scope.statements.any { it is VarDecl || it is IStatementContainer })
