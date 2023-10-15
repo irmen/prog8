@@ -1026,6 +1026,15 @@ $repeatLabel""")
         val label = "_prog8_breakpoint_${breakpointLabels.size+1}"
         breakpointLabels.add(label)
         out(label)
+        if(options.breakpointCpuInstruction) {
+            val instruction =
+                when(options.compTarget.machine.cpu) {
+                    CpuType.CPU6502 -> "brk"
+                    CpuType.CPU65c02 -> "stp"
+                    else -> throw AssemblyError("invalid cpu type")
+                }
+            out("  $instruction")
+        }
     }
 
     internal fun signExtendAYlsb(valueDt: DataType) {

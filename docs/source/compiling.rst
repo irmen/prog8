@@ -166,6 +166,13 @@ One or more .p8 module files
 ``-asmlist``
     Generate an assembler listing file as well.
 
+``-breakinstr``
+    Also output a CPU instruction for a ``%breakpoint``, as well as the entry in the vice monitor list file.
+    This can be useful on emulators/systems that don't parse the breakpoint information in the list file,
+    such as the X16Emu emulator for the Commander X16. Prog8 then uses a STP instruction (65c02) to trigger a
+    breakpoint in the debugger (if enabled with -debug on the emulator). On a 6502 CPU, this option
+    will output a BRK instruction instead.
+
 ``-expericodegen``
     Use experimental code generation backend (*incomplete*).
 

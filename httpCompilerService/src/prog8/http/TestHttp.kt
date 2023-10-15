@@ -42,6 +42,7 @@ class RequestParser : Take {
             asmListfile = false,
             experimentalCodegen = false,
             splitWordArrays = false,
+            breakpointCpuInstruction = false,
             varsHighBank = null,
         )
         compileProgram(args)

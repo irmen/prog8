@@ -27,6 +27,7 @@ main {
         txt.spc()
         txt.print_uwhex(ptr, true)
         txt.nl()
+        %breakpoint
         ptr = &split_array
         txt.print_uw(peekw(ptr))
         txt.nl()

@@ -38,6 +38,7 @@ class CompilerArguments(val filepath: Path,
                         val varsHighBank: Int?,
                         val compilationTarget: String,
                         val splitWordArrays: Boolean,
+                        val breakpointCpuInstruction: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -74,6 +75,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 asmListfile = args.asmListfile
                 includeSourcelines = args.includeSourcelines
                 experimentalCodegen = args.experimentalCodegen
+                breakpointCpuInstruction = args.breakpointCpuInstruction
                 varsHighBank = args.varsHighBank
                 splitWordArrays = args.splitWordArrays
                 outputDir = args.outputDir.normalize()
