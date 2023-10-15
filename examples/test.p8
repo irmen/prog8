@@ -1,49 +1,27 @@
+%import gfx2
 %import textio
+%import math
+
+%option no_sysinit
 %zeropage basicsafe
 
+
 main {
+
     sub start() {
-        ubyte[] b_array = [11,22,33,44]
-        uword[] w_array = [1111,2222,3333,4444]
-        uword[] @split split_array = [1111,2222,3333,4444]
-        ubyte index = 2
+        gfx2.screen_mode(2)
+        demofill()
+        repeat {
+        }
+    }
 
-        uword value = 9999
-        w_array[index] = value
-        split_array[index] = value
-
-        uword pstep = w_array[index]
-        uword psteps = split_array[index]
-
-        txt.print_uw(pstep)
-        txt.nl()
-        txt.print_uw(psteps)
-        txt.nl()
-
-        uword @zp ptr = &w_array[index]
-        txt.print_uw(peekw(ptr))
-        txt.nl()
-        txt.print_uwhex(&w_array, true)
-        txt.spc()
-        txt.print_uwhex(ptr, true)
-        txt.nl()
-        %breakpoint
-        ptr = &split_array
-        txt.print_uw(peekw(ptr))
-        txt.nl()
-        txt.print_uwhex(&w_array, true)
-        txt.spc()
-        txt.print_uwhex(ptr, true)
-        txt.nl()
-
-        ptr = &b_array[index]
-        txt.print_ub(peek(ptr))
-        txt.nl()
-        txt.print_uwhex(&b_array, true)
-        txt.spc()
-        txt.print_uwhex(ptr, true)
-        txt.nl()
-
+    sub demofill() {
+        gfx2.circle(160, 120, 110, 1)
+        gfx2.rect(180, 5, 25, 190, 1)
+        gfx2.line(100, 150, 240, 10, 1)
+        gfx2.line(101, 150, 241, 10, 1)
+        gfx2.fill(100,100,2)
+        gfx2.fill(182,140,3)
+        gfx2.fill(182,40,1)
     }
 }
-

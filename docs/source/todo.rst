@@ -1,8 +1,11 @@
 TODO
 ====
 
-- gfx2: use vera auto in/decrement in the flood fill routine
-- add an option to inject an actual instruction (STP on 65c02, BRK on 6502) for breakpoints, instead of only listing them in the vice symbol file.
+- codegen for cx16.r2L >>= gfx2.plot.shift4c[cx16.r1L] is wrong (gfx2.p8 older version fill hires 4c)
+- why does cx16.r1L = lsb(xx) & 3  generate 5 asm instructions? (noopt)
+- optimize asm:  sta VAR / <something with A> / sta VAR
+- gfx2/monogfx: use vera auto in/decrement in the flood fill routine (getpixels)
+- gfx2: use vera fx fill for horizontal_line of sufficient length?
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction

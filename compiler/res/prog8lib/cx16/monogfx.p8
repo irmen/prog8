@@ -608,10 +608,13 @@ _done
         while cx16.r12L {
             pop_stack()
             xx = x1
-            while xx >= 0 and pget(xx as uword, yy as uword) == cx16.r11L {
-                plot(xx as uword, yy as uword, cx16.r10L)
+
+            cx16.r9 = xx
+            while xx >= 0 and pget(xx as uword, yy as uword) == cx16.r11L
                 xx--
-            }
+            if cx16.r9!=xx
+                horizontal_line(xx as uword+1, yy as uword, cx16.r9-(xx as uword), cx16.r10L)
+
             if xx >= x1
                 goto skip
 
@@ -621,10 +624,12 @@ _done
             xx = x1 + 1
 
             do {
-                while xx <= width-1 and pget(xx as uword, yy as uword) == cx16.r11L {
-                    plot(xx as uword, yy as uword, cx16.r10L)
+                cx16.r9 = xx
+                while xx <= width-1 and pget(xx as uword, yy as uword) == cx16.r11L
                     xx++
-                }
+                if cx16.r9!=xx
+                    horizontal_line(cx16.r9, yy as uword, (xx as uword)-cx16.r9, cx16.r10L)
+
                 push_stack(left, xx - 1, yy, dy)
                 if xx > x2 + 1
                     push_stack(x2 + 1, xx - 1, yy, -dy)

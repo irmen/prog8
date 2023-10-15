@@ -17,7 +17,7 @@
 ;   mode 2 = bitmap 640 x 480 x 4c (2 bpp. there's not enough vram for more colors in hires mode.)
 ;   mode 3 = bitmap 320 x 240 x 16c (not yet implemented: just use 256c, there's enough vram for that)
 ;   mode 4 = bitmap 320 x 240 x 4c (not yet implemented: just use 256c, there's enough vram for that)
-;   higher color dephts in highres are not supported due to lack of VRAM
+;   higher color depths in highres are not supported due to lack of VRAM
 
 gfx2 {
 
@@ -481,11 +481,20 @@ gfx2 {
                     lda  cx16.r0L
                     sta  cx16.VERA_ADDR_L
                     lda  cx16.VERA_DATA0
-                    sta  cx16.r0L
+                    pha
+                    lda  xx
+                    and  #3
+                    tay
+                    lda  gfx2.plot.shift4c,y
+                    tay
+                    pla
+                    cpy  #0
+                    beq  +
+-                   lsr  a
+                    dey
+                    bne  -
++                   and #3
                 }}
-                cx16.r1L = lsb(xx) & 3
-                cx16.r0L >>= gfx2.plot.shift4c[cx16.r1L]
-                return cx16.r0L & 3
             }
             else -> return 0
         }
@@ -574,10 +583,12 @@ gfx2 {
         while cx16.r12L {
             pop_stack()
             xx = x1
-            while xx >= 0 and pget(xx as uword, yy as uword) == cx16.r11L {
-                plot(xx as uword, yy as uword, cx16.r10L)           ; TODO use vera auto decrement
+            cx16.r9 = xx
+            while xx >= 0 and pget(xx as uword, yy as uword) == cx16.r11L
                 xx--
-            }
+            if cx16.r9!=xx
+                horizontal_line(xx as uword+1, yy as uword, cx16.r9-(xx as uword), cx16.r10L)
+
             if xx >= x1
                 goto skip
 
@@ -587,10 +598,12 @@ gfx2 {
             xx = x1 + 1
 
             do {
-                while xx <= width-1 and pget(xx as uword, yy as uword) == cx16.r11L {
-                    plot(xx as uword, yy as uword, cx16.r10L)       ; TODO use vera auto increment
+                cx16.r9 = xx
+                while xx <= width-1 and pget(xx as uword, yy as uword) == cx16.r11L
                     xx++
-                }
+                if cx16.r9!=xx
+                    horizontal_line(cx16.r9, yy as uword, (xx as uword)-cx16.r9, cx16.r10L)
+
                 push_stack(left, xx - 1, yy, dy)
                 if xx > x2 + 1
                     push_stack(x2 + 1, xx - 1, yy, -dy)
