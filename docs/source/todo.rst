@@ -1,8 +1,7 @@
 TODO
 ====
 
-- monogfx/gfx2 flood fill is broken after removing the after(assignment: Assignment) from BeforeAsmAstChanger that splits assignments
-  also other things broken? rectangle? not sure
+- fix codegen signed byte to word casting issue  uw = 8888 + (bb as ubyte)
 
 - remove after(assignment from BeforeAsmAstChanger permanently once issues above fixed
 - gfx2/monogfx: use vera auto in/decrement in the flood fill routine (getpixels)

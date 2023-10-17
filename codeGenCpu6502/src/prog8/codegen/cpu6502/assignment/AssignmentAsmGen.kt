@@ -913,10 +913,34 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 is PtTypeCast -> {
                     val castedValue = right.value
                     if(right.type in WordDatatypes && castedValue.type in ByteDatatypes && castedValue is PtIdentifier) {
-                        val castedSymname = asmgen.asmVariableName(castedValue)
-                        assignExpressionToRegister(left, RegisterOrPair.AY, dt == DataType.WORD)
-                        if (expr.operator == "+")
-                            asmgen.out(
+                        if(right.type in SignedDatatypes) {
+                            // we need to sign extend, do this via temporary word variable
+                            asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.WORD)
+                            assignExpressionToRegister(left, RegisterOrPair.AY, dt == DataType.WORD)
+                            if(expr.operator=="+") {
+                                asmgen.out("""
+                                clc
+                                adc  P8ZP_SCRATCH_W1
+                                tax
+                                tya
+                                adc  P8ZP_SCRATCH_W1+1
+                                tay
+                                txa""")
+                            } else if(expr.operator=="-") {
+                                asmgen.out("""
+                                sec
+                                sbc  P8ZP_SCRATCH_W1
+                                tax
+                                tya
+                                sbc  P8ZP_SCRATCH_W1+1
+                                tay
+                                txa""")
+                            }
+                        } else {
+                            assignExpressionToRegister(left, RegisterOrPair.AY, dt == DataType.WORD)
+                            val castedSymname = asmgen.asmVariableName(castedValue)
+                            if (expr.operator == "+")
+                                asmgen.out(
                                 """
                                     clc
                                     adc  $castedSymname
@@ -924,8 +948,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                     iny
 +"""
                             )
-                        else
-                            asmgen.out(
+                            else
+                                asmgen.out(
                                 """
                                     sec
                                     sbc  $castedSymname
@@ -933,6 +957,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                     dey
 +"""
                             )
+                        }
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                         return true
                     }
@@ -1844,13 +1869,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignCastViaLsbFunc(value, target)
                     } else if(valueDt in WordDatatypes && targetDt in WordDatatypes) {
                         // word to word, just assign
-                        assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
+                        assignExpressionToRegister(value, target.register!!, valueDt in SignedDatatypes)
                     } else if(valueDt in ByteDatatypes && targetDt in ByteDatatypes) {
                         // byte to byte, just assign
-                        assignExpressionToRegister(value, target.register!!, targetDt==DataType.BYTE || targetDt==DataType.WORD)
+                        assignExpressionToRegister(value, target.register!!, valueDt in SignedDatatypes)
                     } else if(valueDt in ByteDatatypes && targetDt in WordDatatypes) {
                         // byte to word, just assign
-                        assignExpressionToRegister(value, target.register!!, targetDt==DataType.WORD)
+                        assignExpressionToRegister(value, target.register!!, valueDt==DataType.WORD)
                     } else
                         throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker")
                 }
@@ -2299,6 +2324,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun assignVariableWord(target: AsmAssignTarget, sourceName: String, sourceDt: DataType) {
+        if(sourceDt==DataType.BYTE) {
+            // need to sign extend
+            asmgen.out("  lda  $sourceName")
+            asmgen.signExtendAYlsb(DataType.BYTE)
+            assignRegisterpairWord(target, RegisterOrPair.AY)
+            return
+        }
         require(sourceDt in WordDatatypes || sourceDt==DataType.UBYTE)
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
@@ -2342,16 +2374,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                     lda  $sourceName+1
                                     sta  ${target.asmVarname}+$scaledIdx+1""")
                         }
-                        DataType.FLOAT -> {
-                            asmgen.out("""
-                                lda  #<$sourceName
-                                ldy  #>$sourceName
-                                sta  P8ZP_SCRATCH_W1
-                                sty  P8ZP_SCRATCH_W1+1
-                                lda  #<(${target.asmVarname}+$scaledIdx)
-                                ldy  #>(${target.asmVarname}+$scaledIdx)
-                                jsr  floats.copy_float""")
-                        }
                         else -> throw AssemblyError("weird target variable type ${target.datatype}")
                     }
                 }
@@ -2376,20 +2398,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                     sta  ${target.asmVarname},y
                                     lda  $sourceName+1
                                     sta  ${target.asmVarname}+1,y""")
-                        }
-                        DataType.FLOAT -> {
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.A)
-                            asmgen.out("""
-                                ldy  #<$sourceName
-                                sty  P8ZP_SCRATCH_W1
-                                ldy  #>$sourceName
-                                sty  P8ZP_SCRATCH_W1+1
-                                ldy  #>${target.asmVarname}
-                                clc
-                                adc  #<${target.asmVarname}
-                                bcc  +
-                                iny
-+                               jsr  floats.copy_float""")
                         }
                         else -> throw AssemblyError("weird dt")
                     }

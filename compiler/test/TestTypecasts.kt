@@ -58,11 +58,10 @@ class TestTypecasts: FunSpec({
 
         val result2 = compileText(C64Target(), true, text, writeAssembly = true)!!
         val stmts2 = result2.compilerAst.entrypoint.statements
-        stmts2.size shouldBe 6
-        val expr2 = (stmts2[4] as Assignment).value as BinaryExpression
+        stmts2.size shouldBe 5
+        val expr2 = (stmts2[3] as Assignment).value as BinaryExpression
         expr2.operator shouldBe "&"
         expr2.right shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        (expr2.left as IdentifierReference).nameInSource shouldBe listOf("bb")
     }
 
     test("bool expressions with functioncalls") {
@@ -740,7 +739,7 @@ main  {
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 15
+        result.compilerAst.entrypoint.statements.size shouldBe 14
     }
 
     test("invalid typecasts of numbers") {

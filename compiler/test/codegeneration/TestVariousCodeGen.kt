@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.PtArrayIndexer
 import prog8.code.ast.PtAssignment
+import prog8.code.ast.PtBinaryExpression
 import prog8.code.ast.PtVariable
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
@@ -93,7 +94,7 @@ main {
         seed.type shouldBe DataType.ARRAY_UW
         val assign = start.children[1] as PtAssignment
         assign.target.identifier!!.name shouldBe "cx16.r0"
-        assign.value shouldBe instanceOf<PtArrayIndexer>()
+        assign.value shouldBe instanceOf<PtBinaryExpression>()
     }
 
     test("peek and poke argument types") {
