@@ -1830,8 +1830,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 RegisterOrPair.AY,
                 RegisterOrPair.XY,
                 in Cx16VirtualRegisters -> {
-                    // cast an ubyte value to a 16 bits register, just assign it and make use of the value extension
-                    return assignExpressionToRegister(value, target.register!!, false)
+                    assignExpressionToRegister(value, RegisterOrPair.A, false)
+                    assignRegisterByte(target, CpuRegister.A, false)
+                    return
                 }
                 else -> {}
             }

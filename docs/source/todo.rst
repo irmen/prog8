@@ -1,9 +1,6 @@
 TODO
 ====
 
-- fix codegen signed byte to word casting issue  uw = 8888 + (bb as ubyte)
-
-- remove after(assignment from BeforeAsmAstChanger permanently once issues above fixed
 - gfx2/monogfx: use vera auto in/decrement in the flood fill routine (getpixels)
 - gfx2: use vera fx fill for horizontal_line of sufficient length?
 
