@@ -1,9 +1,6 @@
 TODO
 ====
 
-- gfx2/monogfx: use vera auto in/decrement in the flood fill routine (getpixels)
-- gfx2: use vera fx fill for horizontal_line of sufficient length?
-
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? etc), but only after setting the status bits is verified!

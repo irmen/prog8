@@ -608,14 +608,11 @@ _done
         while cx16.r12L {
             pop_stack()
             xx = x1
-
-            cx16.r9 = xx
             while xx >= 0 and pget(xx as uword, yy as uword) == cx16.r11L
                 xx--
-            if cx16.r9!=xx
-                horizontal_line(xx as uword+1, yy as uword, cx16.r9-(xx as uword), cx16.r10L)
-
-            if xx >= x1
+            if x1!=xx
+                horizontal_line(xx as uword+1, yy as uword, x1-xx as uword, cx16.r10L)
+            else
                 goto skip
 
             left = xx + 1
