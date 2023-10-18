@@ -292,7 +292,7 @@ ship {
 
     ubyte fuel = Max_fuel
     uword cash = 1000               ; actually has to be 4 bytes for the ultra rich....
-    ubyte[17] cargohold = 0
+    ubyte[17] cargohold
 
     sub init() {
         sys.memset(cargohold, len(cargohold), 0)
@@ -318,8 +318,8 @@ market {
     str[17] names = ["Food", "Textiles", "Radioactives", "Slaves", "Liquor/Wines", "Luxuries", "Narcotics", "Computers",
                      "Machinery", "Alloys", "Firearms", "Furs", "Minerals", "Gold", "Platinum", "Gem-Stones", "Alien Items"]
 
-    ubyte[17] current_quantity = 0
-    uword[17] current_price = 0
+    ubyte[17] current_quantity
+    uword[17] current_price
 
     sub init(ubyte fluct) {
         ; Prices and availabilities are influenced by the planet's economy type
