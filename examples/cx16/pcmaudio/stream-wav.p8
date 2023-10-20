@@ -1,10 +1,3 @@
-%import textio
-%import diskio
-%import floats
-%import adpcm
-%import wavfile
-%option no_sysinit
-
 ;
 ; This program can stream a regular .wav file from the sdcard.
 ; It can be uncompressed or IMA-adpcm compressed (factor 4 lossy compression).
@@ -22,33 +15,54 @@
 ; is slightly more efficient because the data blocks are then sector-aligned on the disk
 ;
 
+%import diskio
+%import floats
+%import adpcm
+%import wavfile
+%import textio
+%option no_sysinit
+
 main {
+
+    str MUSIC_FILENAME = "?"*32
     uword vera_rate_hz
     ubyte vera_rate
 
     sub start() {
-        uword buffer = memory("buffer", 1024, 256)
-        str MUSIC_FILENAME = "?"*32
-
         txt.print("name of .wav file to play on drive 8: ")
         while 0==txt.input_chars(MUSIC_FILENAME) {
             ; until user types a name...
         }
+        prepare_music()
+        txt.print("\ngood file! playback starts! ")
+        cx16.rombank(0)                         ; activate kernal bank for faster calls
+        interrupts.wait()
+        interrupts.set_handler()
+        play_stuff()
+        txt.print("done!\n")
+        repeat { }
+    }
 
-        bool wav_ok = false
+    sub error(str msg) {
+        txt.print(msg)
+        repeat { }
+    }
+
+    sub prepare_music() {
         txt.print("\nchecking ")
         txt.print(MUSIC_FILENAME)
         txt.nl()
+        bool wav_ok = false
         if diskio.f_open(MUSIC_FILENAME) {
-            void diskio.f_read(buffer, 128)
-            wav_ok = wavfile.parse_header(buffer)
+            void diskio.f_read(music.buffer, 128)
+            wav_ok = wavfile.parse_header(music.buffer)
             diskio.f_close()
         }
-        if not wav_ok {
+        if not wav_ok
             error("no good wav file!")
-        }
 
         calculate_vera_rate()
+
         txt.print("wav format: ")
         txt.print_ub(wavfile.wavefmt)
         txt.print("\nchannels: ")
@@ -74,9 +88,8 @@ main {
         if wavfile.nchannels>2 or
            (wavfile.wavefmt!=wavfile.WAVE_FORMAT_DVI_ADPCM and wavfile.wavefmt!=wavfile.WAVE_FORMAT_PCM) or
            wavfile.sample_rate > 48828 or
-           wavfile.bits_per_sample>16 {
-            error("unsupported format!")
-        }
+           wavfile.bits_per_sample>16
+                error("unsupported format!")
 
         if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
             if(wavfile.block_align!=256) {
@@ -84,8 +97,6 @@ main {
             }
         }
 
-        txt.print("\ngood file! playback starts! ")
-        cx16.rombank(0)                         ; activate kernal bank for faster calls
         cx16.VERA_AUDIO_RATE = 0                ; halt playback
         cx16.VERA_AUDIO_CTRL = %10101011        ; mono 16 bit, volume 11
         if wavfile.nchannels==2
@@ -94,42 +105,6 @@ main {
             cx16.VERA_AUDIO_CTRL &= %11011111    ; set to 8 bit instead
         repeat 1024
             cx16.VERA_AUDIO_DATA = 0            ; fill buffer with short silence
-
-        sys.set_irqd()
-        cx16.CINV = &interrupt.handler
-        cx16.VERA_IEN = %00001000               ; enable AFLOW  only for now
-        sys.clear_irqd()
-
-        str progress_chars = "-\\|/-\\|/"
-        ubyte progress = 0
-
-        if diskio.f_open(MUSIC_FILENAME) {
-            uword block_size = 1024
-            if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
-                block_size = wavfile.block_align * 2      ; read 2 adpcm blocks at a time (512 bytes)
-            void diskio.f_read(buffer, wavfile.data_offset)       ; skip to actual sample data start
-            void diskio.f_read(buffer, block_size)  ; preload buffer
-            cx16.VERA_AUDIO_RATE = vera_rate    ; start playback
-            repeat {
-                interrupt.wait_and_clear_aflow_semaphore()
-                ;; cx16.vpoke(1,$fa00, $a0)    ; paint a screen color
-                uword size = diskio.f_read(buffer, block_size)
-                ;; cx16.vpoke(1,$fa00, $00)    ; paint a screen color
-                if size<block_size
-                    break
-                txt.chrout(progress_chars[progress/2 & 7])
-                txt.chrout($9d)     ; cursor left
-                progress++
-            }
-            diskio.f_close()
-        } else {
-            txt.print("load error")
-        }
-
-        cx16.VERA_AUDIO_RATE = 0                ; halt playback
-        txt.print("done!\n")
-        repeat {
-        }
     }
 
     sub calculate_vera_rate() {
@@ -138,51 +113,78 @@ main {
         vera_rate_hz = (vera_rate as float) * vera_freq_factor as uword
     }
 
-    sub error(str msg) {
-        txt.print(msg)
-        repeat {
+    sub play_stuff() {
+        if diskio.f_open(MUSIC_FILENAME) {
+            uword block_size = 1024
+            if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
+                block_size = wavfile.block_align * 2      ; read 2 adpcm blocks at a time (512 bytes)
+            void diskio.f_read(music.buffer, wavfile.data_offset)       ; skip to actual sample data start
+            music.pre_buffer(block_size)
+            cx16.VERA_AUDIO_RATE = vera_rate    ; start audio playback
+
+            str progress_chars = "-\\|/-\\|/"
+            ubyte progress = 0
+
+            repeat {
+                interrupts.wait()
+                if interrupts.vsync {
+                    interrupts.vsync=false
+                    ; ...do something triggered by vsync irq...
+                }
+                if interrupts.aflow {
+                    interrupts.aflow=false
+                    if not music.load_next_block(block_size)
+                        break
+                    ; Note: copying the samples into the fifo buffer is done by the aflow interrupt handler itself.
+                    txt.chrout(progress_chars[progress/2 & 7])
+                    txt.chrout($9d)     ; cursor left
+                    progress++
+                }
+            }
+
+            diskio.f_close()
+        } else {
+            error("load error")
         }
+
+        cx16.VERA_AUDIO_RATE = 0                ; halt playback
     }
+
 }
 
 
-interrupt {
+interrupts {
 
-    bool aflow_semaphore
-    uword @requirezp nibblesptr
+    sub set_handler() {
+        sys.set_irqd()
+        cx16.CINV = &handler         ; handles both AFLOW and VSYNC
+        cx16.VERA_IEN = %00001001    ; enable AFLOW + VSYNC
+        sys.clear_irqd()
+    }
 
-    asmsub wait_and_clear_aflow_semaphore() {
+    bool aflow
+    bool vsync
+
+    asmsub wait() {
         %asm {{
--           wai
-            lda  p8_aflow_semaphore
-            bne  -
-            inc  p8_aflow_semaphore
-            rts
+            wai
         }}
     }
 
     sub handler() {
         if cx16.VERA_ISR & %00001000 {
-            ; AFLOW irq occurred, refill buffer
-            aflow_semaphore = 0
-            if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
-                nibblesptr = main.start.buffer
-                if wavfile.nchannels==2 {
-                    adpcm_block_stereo()
-                    adpcm_block_stereo()
-                }
-                else {
-                    adpcm_block_mono()
-                    adpcm_block_mono()
-                }
-            }
-            else if wavfile.bits_per_sample==16
-                uncompressed_block_16()
-            else
-                uncompressed_block_8()
-        } else if cx16.VERA_ISR & %00000001 {
+            ; Filling the fifo is the only way to clear the Aflow irq.
+            ; So we do this here, otherwise the aflow irq will keep triggering.
+            ; Note that filling the buffer with fresh audio samples is NOT done here,
+            ; but instead in the main program code that triggers on the 'aflow' being true!
+            cx16.save_virtual_registers()
+            music.aflow_play_block()
+            cx16.restore_virtual_registers()
+            aflow = true
+        }
+        if cx16.VERA_ISR & %00000001 {
             cx16.VERA_ISR = %00000001
-            ; handle vsync irq here
+            vsync = true
         }
 
         %asm {{
@@ -193,13 +195,49 @@ interrupt {
         }}
     }
 
+}
+
+
+music {
+    uword @requirezp nibblesptr
+    uword buffer = memory("buffer", 1024, 256)
+
+    sub pre_buffer(uword block_size) {
+        ; pre-buffer first block
+        void diskio.f_read(buffer, block_size)
+    }
+
+    sub aflow_play_block() {
+        ; play block that is currently in the buffer
+        if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
+            nibblesptr = buffer
+            if wavfile.nchannels==2 {
+                adpcm_block_stereo()
+                adpcm_block_stereo()
+            }
+            else {
+                adpcm_block_mono()
+                adpcm_block_mono()
+            }
+        }
+        else if wavfile.bits_per_sample==16
+            uncompressed_block_16()
+        else
+            uncompressed_block_8()
+    }
+
+    sub load_next_block(uword block_size) -> bool {
+        ; read next block from disk into the buffer, for next time the irq triggers
+        return diskio.f_read(buffer, block_size) == block_size
+    }
+
     asmsub uncompressed_block_8() {
         ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
         ; converting unsigned wav 8 bit samples to signed 8 bit on the fly
         %asm {{
-            lda  p8_main.p8_start.p8_buffer
+            lda  p8_buffer
             sta  cx16.r0L
-            lda  p8_main.p8_start.p8_buffer+1
+            lda  p8_buffer+1
             sta  cx16.r0H
             ldx  #4
 -           ldy  #0
@@ -227,9 +265,9 @@ interrupt {
     asmsub uncompressed_block_16() {
         ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
         %asm {{
-            lda  p8_main.p8_start.p8_buffer
+            lda  p8_buffer
             sta  cx16.r0L
-            lda  p8_main.p8_start.p8_buffer+1
+            lda  p8_buffer+1
             sta  cx16.r0H
             ldx  #4
 -           ldy  #0
@@ -283,7 +321,6 @@ interrupt {
         repeat 248/8
             decode_nibbles_unrolled()
     }
-
 
     sub decode_nibbles_unrolled() {
         ; decode 4 left channel nibbles

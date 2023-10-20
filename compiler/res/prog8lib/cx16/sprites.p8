@@ -104,7 +104,6 @@ sprites {
     }
 
     sub set_palette_offset(ubyte spritenum, ubyte offset) {
-        sprite_reg = VERA_SPRITEREGS + 7 + spritenum*$0008
-        cx16.vpoke_mask(1, sprite_reg, %11110000, offset>>4)
+        cx16.vpoke_mask(1, VERA_SPRITEREGS + 7 + spritenum*$0008, %11110000, offset>>4)
     }
 }
