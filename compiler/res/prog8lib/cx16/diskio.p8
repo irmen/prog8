@@ -1,6 +1,10 @@
 ; Commander X16 disk drive I/O routines.
 ; Largely compatible with the default C64 ones, but adds more stuff specific to the X16 as well.
 
+; NOTE: If you experience weird behavior with these routines and you are using them
+;       in the X16 emulator using HostFs, please try again with an SD-card image instead first.
+;       It is possible that there are still small differences between HostFS and actual CBM DOS in the emulator.
+
 %import textio
 %import string
 %import syslib
@@ -516,9 +520,6 @@ io_error:
         if_cc
             cx16.r0L = cbm.READST()==0
 
-        cbm.CLRCHN()
-        cbm.CLOSE(1)
-
         return cx16.r0L
     }
 
@@ -567,8 +568,6 @@ io_error:
 +
         }}
 
-        cbm.CLRCHN()
-        cbm.CLOSE(1)
         return cx16.r1
     }
 

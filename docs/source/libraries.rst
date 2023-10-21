@@ -181,6 +181,11 @@ Als contains routines for operating on subdirectories (chdir, mkdir, rmdir) and 
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/diskio.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)
 
+.. note::
+    If you are using the X16 emulator with HostFS, and are experiencing weird behavior with these
+    routines, please first try again with an SD-card image instead of HostFs.
+    It is possible that there are still small differences between HostFS and actual CBM DOS in the X16 emulator.
+
 
 string
 ------

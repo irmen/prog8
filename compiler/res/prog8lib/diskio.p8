@@ -476,9 +476,6 @@ io_error:
         if_cc
             cx16.r0L = cbm.READST()==0
 
-        cbm.CLRCHN()
-        cbm.CLOSE(1)
-
         return cx16.r0L
     }
 
@@ -506,8 +503,6 @@ io_error:
 +
         }}
 
-        cbm.CLRCHN()
-        cbm.CLOSE(1)
         return cx16.r1
     }
 
