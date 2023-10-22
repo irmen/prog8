@@ -407,7 +407,7 @@ romsub $febd = kbdbuf_peek2() -> uword @AX             ; alternative to above to
 romsub $fec0 = kbdbuf_get_modifiers() -> ubyte @A
 romsub $fec3 = kbdbuf_put(ubyte key @A) clobbers(X)
 romsub $fed2 = keymap(uword identifier @XY, bool read @Pc) -> bool @Pc
-romsub $ff68 = mouse_config(ubyte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
+romsub $ff68 = mouse_config(byte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
 romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A
 romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
@@ -450,7 +450,7 @@ asmsub kbdbuf_clear() {
     }}
 }
 
-asmsub mouse_config2(ubyte shape @A) clobbers (A, X, Y) {
+asmsub mouse_config2(byte shape @A) clobbers (A, X, Y) {
     ; -- convenience wrapper function that handles the screen resolution for mouse_config() for you
     %asm {{
         pha                         ; save shape

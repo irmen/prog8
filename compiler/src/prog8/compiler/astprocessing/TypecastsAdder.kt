@@ -9,6 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import kotlin.math.sign
 
 
 class TypecastsAdder(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : AstWalker() {
@@ -245,96 +246,54 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     private fun afterFunctionCallArgs(call: IFunctionCall): Iterable<IAstModification> {
         // see if a typecast is needed to convert the arguments into the required parameter's type
         val modifications = mutableListOf<IAstModification>()
-
-        when(val sub = call.target.targetStatement(program)) {
-            is Subroutine -> {
-                sub.parameters.zip(call.args).forEach { (param, arg) ->
-                    val argItype = arg.inferType(program)
-                    if(argItype.isKnown) {
-                        val argtype = argItype.getOr(DataType.UNDEFINED)
-                        val requiredType = param.type
-                        if (requiredType != argtype) {
-                            if (argtype isAssignableTo requiredType) {
-                                // don't need a cast for pass-by-reference types that are assigned to UWORD
-                                if(requiredType!=DataType.UWORD || argtype !in PassByReferenceDatatypes)
-                                    addTypecastOrCastedValueModification(modifications, arg, requiredType, call as Node)
-                            } else if(requiredType == DataType.UWORD && argtype in PassByReferenceDatatypes) {
-                                // We allow STR/ARRAY values in place of UWORD parameters.
-                                // Take their address instead, UNLESS it's a str parameter in the containing subroutine
-                                val identifier = arg as? IdentifierReference
-                                if(identifier?.isSubroutineParameter(program)==false) {
-                                    modifications += IAstModification.ReplaceNode(
-                                            identifier,
-                                            AddressOf(identifier, null, arg.position),
-                                            call as Node)
-                                }
-                            } else if(arg is NumericLiteral) {
-                                val cast = arg.cast(requiredType)
-                                if(cast.isValid)
-                                    modifications += IAstModification.ReplaceNode(
-                                            arg,
-                                            cast.valueOrZero(),
-                                            call as Node)
-                            } else if(requiredType==DataType.BOOL && argtype!=DataType.BOOL) {
-                                // cast to bool
-                                addTypecastOrCastedValueModification(modifications, arg, requiredType, call as Node)
-                            }
-                        }
-                    }
-                    else {
-                        // if the argument is an identifier reference and the param is UWORD, add the missing &.
-                        if(arg is IdentifierReference && DataType.UWORD == param.type) {
-                            modifications += IAstModification.ReplaceNode(
-                                arg,
-                                AddressOf(arg, null, arg.position),
-                                call as Node
-                            )
-                        }
-                    }
-                }
-            }
-            is BuiltinFunctionPlaceholder -> {
-                val func = BuiltinFunctions.getValue(sub.name)
-                func.parameters.zip(call.args).forEachIndexed { index, pair ->
-                    val argItype = pair.second.inferType(program)
-                    if (argItype.isKnown) {
-                        val argtype = argItype.getOr(DataType.UNDEFINED)
-                        if (pair.first.possibleDatatypes.all { argtype != it }) {
-                            for (possibleType in pair.first.possibleDatatypes) {
-                                if (argtype isAssignableTo possibleType) {
-                                    addTypecastOrCastedValueModification(modifications, pair.second, possibleType, call as Node)
-                                    break
-                                }
-                                else if(DataType.UWORD in pair.first.possibleDatatypes && argtype in PassByReferenceDatatypes) {
-                                    // We allow STR/ARRAY values in place of UWORD parameters.
-                                    // Take their address instead, UNLESS it's a str parameter in the containing subroutine
-                                    val identifier = pair.second as? IdentifierReference
-                                    if(identifier?.isSubroutineParameter(program)==false) {
-                                        modifications += IAstModification.ReplaceNode(
-                                            call.args[index],
-                                            AddressOf(identifier, null, pair.second.position),
-                                            call as Node)
-                                        break
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else {
-                        // if the argument is an identifier reference and the param is UWORD, add the missing &.
-                        if(pair.second is IdentifierReference && DataType.UWORD in pair.first.possibleDatatypes) {
-                            modifications += IAstModification.ReplaceNode(
-                                call.args[index],
-                                AddressOf(pair.second as IdentifierReference, null, pair.second.position),
-                                call as Node
-                            )
-                        }
-                    }
-                }
-            }
-            else -> { }
+        val sub = call.target.targetStatement(program)
+        val params = when(sub) {
+            is BuiltinFunctionPlaceholder -> BuiltinFunctions.getValue(sub.name).parameters
+            is Subroutine -> sub.parameters.map { FParam(it.name, listOf(it.type).toTypedArray()) }
+            else -> emptyList()
         }
 
+        params.zip(call.args).forEach {
+            val targetDt = it.first.possibleDatatypes.first()
+            val argIdt = it.second.inferType(program)
+            if (argIdt.isKnown) {
+                val argDt = argIdt.getOr(DataType.UNDEFINED)
+                if (argDt !in it.first.possibleDatatypes) {
+                    val identifier = it.second as? IdentifierReference
+                    val number = it.second as? NumericLiteral
+                    if(number!=null) {
+                        addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
+                    } else if(identifier!=null && targetDt==DataType.UWORD && argDt in PassByReferenceDatatypes) {
+                        if(!identifier.isSubroutineParameter(program)) {
+                            // We allow STR/ARRAY values for UWORD parameters.
+                            // If it's an array (not STR), take the address.
+                            if(argDt != DataType.STR) {
+                                modifications += IAstModification.ReplaceNode(
+                                    identifier,
+                                    AddressOf(identifier, null, it.second.position),
+                                    call as Node
+                                )
+                            }
+                        }
+                    } else if(targetDt==DataType.BOOL) {
+                        addTypecastOrCastedValueModification(modifications, it.second, DataType.BOOL, call as Node)
+                    } else if(argDt isAssignableTo targetDt) {
+                        if(argDt!=DataType.STR || targetDt!=DataType.UWORD)
+                            addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
+                    }
+                }
+            } else {
+                val identifier = it.second as? IdentifierReference
+                if(identifier!=null && targetDt==DataType.UWORD) {
+                    // take the address of the identifier
+                    modifications += IAstModification.ReplaceNode(
+                        identifier,
+                        AddressOf(identifier, null, it.second.position),
+                        call as Node
+                    )
+                }
+            }
+        }
         return modifications
     }
 
@@ -448,7 +407,11 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         if(expressionToCast is NumericLiteral && expressionToCast.type!=DataType.FLOAT) { // refuse to automatically truncate floats
             val castedValue = expressionToCast.cast(requiredType)
             if (castedValue.isValid) {
-                modifications += IAstModification.ReplaceNode(expressionToCast, castedValue.valueOrZero(), parent)
+                val signOriginal = sign(expressionToCast.number)
+                val signCasted = sign(castedValue.valueOrZero().number)
+                if(signOriginal==signCasted) {
+                    modifications += IAstModification.ReplaceNode(expressionToCast, castedValue.valueOrZero(), parent)
+                }
                 return
             }
         }
