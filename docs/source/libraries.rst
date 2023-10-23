@@ -452,8 +452,8 @@ to see what's in there.
 Information about the exposed debug registers is in the `emulator's documentation <https://github.com/X16Community/x16-emulator#debug-io-registers>`_.
 
 
-monogfx  (cx16 only)
---------------------
+monogfx  (cx16 and virtual)
+---------------------------
 Full-screen lores or hires monochrome bitmap graphics routines, available on the Cx16 machine only.
 Same interface as gfx2, but is optimized for monochrome (1 bpp) screens.
 

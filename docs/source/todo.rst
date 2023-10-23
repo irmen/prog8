@@ -53,10 +53,10 @@ Compiler:
 
 Libraries:
 
-- gfx2 cs_innerloop640() extend number of bytes cleared, and use vera fx cached writes
+- gfx2 cs_innerloop640() extend number of bytes cleared, and use vera fx cached writes (speed up screen clear)
 - gfx2 horizontal_line and vertical_line: use vera fx cached writes
-- port monogfx, gf2, graphics to the vm
 - use verafx transparent writes to speed up pixel plotting in gfx2 and monogfx modules (avoids read/mask/write)
+- port gfx2 to the vm?  First add colors to the vm?
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?

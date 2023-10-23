@@ -74,7 +74,7 @@ multiply_words	.proc
 ; - unrolled the two inner loops once
 ;
 ; 16 bit x 16 bit unsigned multiply, 32 bit result
-; Average cycles:
+; Average cycles: ~442 ?
 ; 93 bytes
 
 _multiplicand    = P8ZP_SCRATCH_W2   ; 2 bytes
