@@ -503,24 +503,18 @@ class AsmGen6502Internal (
             return
         }
 
-        val indexVar = expr.index as? PtIdentifier
-            ?: throw AssemblyError("array indexer should have been replaced with a temp var @ ${expr.index.position}")
-
-        val indexName = asmVariableName(indexVar)
-
         if(expr.splitWords) {
-            when (register) {
-                CpuRegister.A -> out("  lda  $indexName")
-                CpuRegister.X -> out("  ldx  $indexName")
-                CpuRegister.Y -> out("  ldy  $indexName")
-            }
+            assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register), false)
             return
         }
 
         when (elementDt) {
-            in ByteDatatypes -> out("  ld$reg  $indexName")
+            in ByteDatatypes -> {
+                assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register), false)
+            }
             in WordDatatypes -> {
-                out("  lda  $indexName |  asl  a")
+                assignExpressionToRegister(expr.index, RegisterOrPair.A, false)
+                out("  asl  a")
                 when (register) {
                     CpuRegister.A -> {}
                     CpuRegister.X -> out(" tax")
@@ -529,12 +523,13 @@ class AsmGen6502Internal (
             }
             DataType.FLOAT -> {
                 require(options.compTarget.memorySize(DataType.FLOAT) == 5) {"invalid float size ${expr.position}"}
+                assignExpressionToRegister(expr.index, RegisterOrPair.A, false)
                 out("""
-                    lda  $indexName
+                    sta  P8ZP_SCRATCH_REG
                     asl  a
                     asl  a
                     clc
-                    adc  $indexName"""
+                    adc  P8ZP_SCRATCH_REG"""
                 )
                 when (register) {
                     CpuRegister.A -> {}

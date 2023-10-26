@@ -54,6 +54,6 @@ main  {
             return 0
         else if screenx>255+32
             return 255
-        return lsb(screenx-32)
+        return lsb(screenx)-32
     }
 }

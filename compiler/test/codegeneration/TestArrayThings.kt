@@ -147,5 +147,18 @@ main {
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
+
+    test("array target with expression for index") {
+        val text = """
+main {
+    sub start() {
+        ubyte[] array = [1,2,3]
+        array[cx16.r0L+1] += 42
+        cx16.r0L = array[cx16.r0L+1]
+    } 
+}"""
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
 })
 

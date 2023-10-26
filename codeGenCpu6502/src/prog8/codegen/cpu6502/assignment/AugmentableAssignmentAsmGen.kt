@@ -205,239 +205,251 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             TargetStorageKind.ARRAY -> {
                 val indexNum = target.array!!.index as? PtNumber
-                val indexVar = target.array.index as? PtIdentifier
-                when {
-                    indexNum!=null -> {
-                        val targetVarName = if(target.array.splitWords)
-                            "${target.asmVarname} + ${indexNum.number.toInt()}"
-                        else
-                            "${target.asmVarname} + ${indexNum.number.toInt()*program.memsizer.memorySize(target.datatype)}"
-                        when (target.datatype) {
-                            in ByteDatatypes -> {
-                                when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt())
-                                    SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, value.asmVarname)
-                                    SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, regName(value))
-                                    SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.array!!)
-                                    SourceStorageKind.EXPRESSION -> {
-                                        if(value.expression is PtTypeCast) {
-                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.expression)
-                                        } else {
-                                            inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.expression!!)
-                                        }
+                if (indexNum!=null) {
+                    val targetVarName = if(target.array.splitWords)
+                        "${target.asmVarname} + ${indexNum.number.toInt()}"
+                    else
+                        "${target.asmVarname} + ${indexNum.number.toInt()*program.memsizer.memorySize(target.datatype)}"
+                    when (target.datatype) {
+                        in ByteDatatypes -> {
+                            when(value.kind) {
+                                SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt())
+                                SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, value.asmVarname)
+                                SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, regName(value))
+                                SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.memory!!)
+                                SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.array!!)
+                                SourceStorageKind.EXPRESSION -> {
+                                    if(value.expression is PtTypeCast) {
+                                        if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
+                                        inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.expression)
+                                    } else {
+                                        inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.expression!!)
                                     }
                                 }
                             }
-                            in WordDatatypes -> {
-                                val block = target.origAstTarget?.definingBlock()
-                                when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt(), block)
-                                    SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, value.asmVarname, value.datatype, block)
-                                    SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, regName(value), value.datatype, block)
-                                    SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread(targetVarName, target.datatype, operator, value.memory!!)
-                                    SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.array!!, block)
-                                    SourceStorageKind.EXPRESSION -> {
-                                        if(value.expression is PtTypeCast) {
-                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression, block)
-                                        } else {
-                                            inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression!!, block)
-                                        }
-                                    }
-                                }
-                            }
-                            DataType.FLOAT -> {
-                                when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.number!!.number)
-                                    SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(targetVarName, operator, value.asmVarname)
-                                    SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(targetVarName, operator, regName(value))
-                                    SourceStorageKind.MEMORY -> TODO("memread into float array")
-                                    SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(targetVarName, operator, value.array!!)
-                                    SourceStorageKind.EXPRESSION -> {
-                                        if(value.expression is PtTypeCast) {
-                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                            inplacemodificationFloatWithValue(targetVarName, operator, value.expression)
-                                        } else {
-                                            inplacemodificationFloatWithValue(targetVarName, operator, value.expression!!)
-                                        }
-                                    }
-                                }
-                            }
-                            else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                         }
+
+                        in WordDatatypes -> {
+                            val block = target.origAstTarget?.definingBlock()
+                            when(value.kind) {
+                                SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt(), block)
+                                SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, value.asmVarname, value.datatype, block)
+                                SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, regName(value), value.datatype, block)
+                                SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread(targetVarName, target.datatype, operator, value.memory!!)
+                                SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.array!!, block)
+                                SourceStorageKind.EXPRESSION -> {
+                                    if(value.expression is PtTypeCast) {
+                                        if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
+                                        inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression, block)
+                                    } else {
+                                        inplacemodificationWordWithValue(targetVarName, target.datatype, operator, value.expression!!, block)
+                                    }
+                                }
+                            }
+                        }
+
+                        DataType.FLOAT -> {
+                            when(value.kind) {
+                                SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.number!!.number)
+                                SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(targetVarName, operator, value.asmVarname)
+                                SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(targetVarName, operator, regName(value))
+                                SourceStorageKind.MEMORY -> TODO("memread into float array")
+                                SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(targetVarName, operator, value.array!!)
+                                SourceStorageKind.EXPRESSION -> {
+                                    if(value.expression is PtTypeCast) {
+                                        if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
+                                        inplacemodificationFloatWithValue(targetVarName, operator, value.expression)
+                                    } else {
+                                        inplacemodificationFloatWithValue(targetVarName, operator, value.expression!!)
+                                    }
+                                }
+                            }
+                        }
+
+                        else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                     }
-                    indexVar!=null -> {
-                        when (target.datatype) {
-                            in ByteDatatypes -> {
-                                if(value.kind==SourceStorageKind.EXPRESSION
-                                    && value.expression is PtTypeCast
-                                    && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
-                                    return
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
-                                asmgen.saveRegisterStack(CpuRegister.Y, false)
+                }
+                else {
+                    when (target.datatype) {
+                        in ByteDatatypes -> {
+                            if(value.kind==SourceStorageKind.EXPRESSION
+                                && value.expression is PtTypeCast
+                                && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
+                                return
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
+                            asmgen.saveRegisterStack(CpuRegister.Y, false)
+                            asmgen.out("  lda  ${target.array.variable.name},y")
+                            when(value.kind) {
+                                SourceStorageKind.LITERALNUMBER -> {
+                                    inplacemodificationRegisterAwithVariable(operator, "#${value.number!!.number.toInt()}", target.datatype in SignedDatatypes)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                                }
+
+                                SourceStorageKind.VARIABLE -> {
+                                    inplacemodificationRegisterAwithVariable(operator, value.asmVarname, target.datatype in SignedDatatypes)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                                }
+
+                                SourceStorageKind.REGISTER -> {
+                                    inplacemodificationRegisterAwithVariable(operator, regName(value), target.datatype in SignedDatatypes)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                                }
+
+                                SourceStorageKind.MEMORY -> {
+                                    asmgen.out("  sta  P8ZP_SCRATCH_B1")
+                                    inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.memory!!)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                    asmgen.out("  lda  P8ZP_SCRATCH_B1")
+                                }
+
+                                SourceStorageKind.ARRAY -> {
+                                    asmgen.out("  sta  P8ZP_SCRATCH_B1")
+                                    inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.array!!)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                    asmgen.out("  lda  P8ZP_SCRATCH_B1")
+                                }
+
+                                SourceStorageKind.EXPRESSION -> {
+                                    asmgen.out("  sta  P8ZP_SCRATCH_B1")
+                                    if(value.expression is PtTypeCast)
+                                        inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression)
+                                    else
+                                        inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                    asmgen.out("  lda  P8ZP_SCRATCH_B1")
+                                }
+                            }
+                            asmgen.out("  sta  ${target.array.variable.name},y")
+                        }
+
+                        in WordDatatypes -> {
+                            if(value.kind==SourceStorageKind.EXPRESSION
+                                && value.expression is PtTypeCast
+                                && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
+                                return
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                            asmgen.saveRegisterStack(CpuRegister.Y, false)
+                            if(target.array.splitWords) {
+                                asmgen.out("  lda  ${target.array.variable.name}_lsb,y")
+                                asmgen.out("  ldx  ${target.array.variable.name}_msb,y")
+                            } else {
                                 asmgen.out("  lda  ${target.array.variable.name},y")
-                                when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> {
-                                        inplacemodificationRegisterAwithVariable(operator, "#${value.number!!.number.toInt()}", target.datatype in SignedDatatypes)
-                                        asmgen.restoreRegisterStack(CpuRegister.Y, true)
-                                    }
-                                    SourceStorageKind.VARIABLE -> {
-                                        inplacemodificationRegisterAwithVariable(operator, value.asmVarname, target.datatype in SignedDatatypes)
-                                        asmgen.restoreRegisterStack(CpuRegister.Y, true)
-                                    }
-                                    SourceStorageKind.REGISTER -> {
-                                        inplacemodificationRegisterAwithVariable(operator, regName(value), target.datatype in SignedDatatypes)
-                                        asmgen.restoreRegisterStack(CpuRegister.Y, true)
-                                    }
-                                    SourceStorageKind.MEMORY -> {
-                                        asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                        inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.memory!!)
-                                        asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                                        asmgen.out("  lda  P8ZP_SCRATCH_B1")
-                                    }
-                                    SourceStorageKind.ARRAY -> {
-                                        asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                        inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.array!!)
-                                        asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                                        asmgen.out("  lda  P8ZP_SCRATCH_B1")
-                                    }
-                                    SourceStorageKind.EXPRESSION -> {
-                                        asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                        if(value.expression is PtTypeCast)
-                                            inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression)
-                                        else
-                                            inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
-                                        asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                                        asmgen.out("  lda  P8ZP_SCRATCH_B1")
-                                    }
-                                }
-                                asmgen.out("  sta  ${target.array.variable.name},y")
+                                asmgen.out("  ldx  ${target.array.variable.name}+1,y")
                             }
-                            in WordDatatypes -> {
-                                if(value.kind==SourceStorageKind.EXPRESSION
-                                    && value.expression is PtTypeCast
-                                    && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
-                                    return
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
-                                asmgen.saveRegisterStack(CpuRegister.Y, false)
-                                if(target.array.splitWords) {
-                                    asmgen.out("  lda  ${target.array.variable.name}_lsb,y")
-                                    asmgen.out("  ldx  ${target.array.variable.name}_msb,y")
-                                } else {
-                                    asmgen.out("  lda  ${target.array.variable.name},y")
-                                    asmgen.out("  ldx  ${target.array.variable.name}+1,y")
-                                }
-                                val block = target.origAstTarget?.definingBlock()
-                                when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> {
-                                        val number = value.number!!.number.toInt()
-                                        if(!inplacemodificationRegisterAXwithLiteralval(operator, number)) {
-                                            asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                            inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, number, block)
-                                            asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
-                                        }
-                                    }
-                                    SourceStorageKind.VARIABLE -> {
-                                        if(!inplacemodificationRegisterAXwithVariable(
-                                                operator,
-                                                value.asmVarname,
-                                                value.datatype
-                                            )) {
-                                            asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                            inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype, block)
-                                            asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
-                                        }
-                                    }
-                                    SourceStorageKind.REGISTER -> {
-                                        if(!inplacemodificationRegisterAXwithVariable(
-                                                operator,
-                                                regName(value),
-                                                value.datatype
-                                            )) {
-                                            asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                            inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype, block)
-                                            asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
-                                        }
-                                    }
-                                    SourceStorageKind.MEMORY -> {
+                            val block = target.origAstTarget?.definingBlock()
+                            when(value.kind) {
+                                SourceStorageKind.LITERALNUMBER -> {
+                                    val number = value.number!!.number.toInt()
+                                    if(!inplacemodificationRegisterAXwithLiteralval(operator, number)) {
                                         asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                        inplacemodificationWordWithMemread("P8ZP_SCRATCH_W1", target.datatype, operator, value.memory!!)
+                                        inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, number, block)
                                         asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
-                                    }
-                                    SourceStorageKind.ARRAY -> {
-                                        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                        inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!, block)
-                                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
-                                    }
-                                    SourceStorageKind.EXPRESSION -> {
-                                        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-                                        if(value.expression is PtTypeCast)
-                                            inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression, block)
-                                        else
-                                            inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!, block)
-                                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
-                                    }
-                                }
-                                asmgen.restoreRegisterStack(CpuRegister.Y, true)
-                                if(target.array.splitWords)
-                                    asmgen.out("  sta  ${target.array.variable.name}_lsb,y |  txa |  sta  ${target.array.variable.name}_msb,y")
-                                else
-                                    asmgen.out("  sta  ${target.array.variable.name},y |  txa |  sta  ${target.array.variable.name}+1,y")
-                            }
-                            DataType.FLOAT -> {
-                                // copy array value into tempvar
-                                val tempvar = asmgen.getTempVarName(DataType.FLOAT)
-                                asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.FLOAT, CpuRegister.A)
-                                asmgen.out("""
-                                    ldy  #>${target.asmVarname}
-                                    clc
-                                    adc  #<${target.asmVarname}
-                                    bcc  +
-                                    iny
-+                                   sta  P8ZP_SCRATCH_W1
-                                    sty  P8ZP_SCRATCH_W1+1
-                                    pha  ; save array ptr lsb
-                                    tya
-                                    pha  ; save array ptr msb
-                                    lda  #<$tempvar
-                                    ldy  #>$tempvar
-                                    jsr  floats.copy_float""")
-
-                                // calculate on tempvar
-                                when(value.kind) {
-                                    SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(tempvar, operator, value.number!!.number)
-                                    SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(tempvar, operator, value.asmVarname)
-                                    SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(tempvar, operator, regName(value))
-                                    SourceStorageKind.MEMORY -> TODO("memread into float")
-                                    SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(tempvar, operator, value.array!!)
-                                    SourceStorageKind.EXPRESSION -> {
-                                        if(value.expression is PtTypeCast) {
-                                            if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
-                                                return
-                                            inplacemodificationFloatWithValue(tempvar, operator, value.expression)
-                                        } else {
-                                            inplacemodificationFloatWithValue(tempvar, operator, value.expression!!)
-                                        }
                                     }
                                 }
 
-                                // copy tempvar back into array
-                                asmgen.out("""
-                                    lda  #<$tempvar
-                                    ldy  #>$tempvar
-                                    sta  P8ZP_SCRATCH_W1
-                                    sty  P8ZP_SCRATCH_W1+1
-                                    pla  ; restore array ptr msb
-                                    tay
-                                    pla  ; restore array ptr lsb
-                                    jsr  floats.copy_float""")
+                                SourceStorageKind.VARIABLE -> {
+                                    if(!inplacemodificationRegisterAXwithVariable(
+                                            operator,
+                                            value.asmVarname,
+                                            value.datatype
+                                        )) {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                        inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype, block)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                    }
+                                }
+
+                                SourceStorageKind.REGISTER -> {
+                                    if(!inplacemodificationRegisterAXwithVariable(
+                                            operator,
+                                            regName(value),
+                                            value.datatype
+                                        )) {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                        inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype, block)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                    }
+                                }
+
+                                SourceStorageKind.MEMORY -> {
+                                    asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                    inplacemodificationWordWithMemread("P8ZP_SCRATCH_W1", target.datatype, operator, value.memory!!)
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                }
+
+                                SourceStorageKind.ARRAY -> {
+                                    asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                    inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.array!!, block)
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                }
+
+                                SourceStorageKind.EXPRESSION -> {
+                                    asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                    if(value.expression is PtTypeCast)
+                                        inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression, block)
+                                    else
+                                        inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!, block)
+                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                }
                             }
-                            else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
+                            asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                            if(target.array.splitWords)
+                                asmgen.out("  sta  ${target.array.variable.name}_lsb,y |  txa |  sta  ${target.array.variable.name}_msb,y")
+                            else
+                                asmgen.out("  sta  ${target.array.variable.name},y |  txa |  sta  ${target.array.variable.name}+1,y")
                         }
+
+                        DataType.FLOAT -> {
+                            // copy array value into tempvar
+                            val tempvar = asmgen.getTempVarName(DataType.FLOAT)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.FLOAT, CpuRegister.A)
+                            asmgen.out("""
+                                                ldy  #>${target.asmVarname}
+                                                clc
+                                                adc  #<${target.asmVarname}
+                                                bcc  +
+                                                iny
+            +                                   sta  P8ZP_SCRATCH_W1
+                                                sty  P8ZP_SCRATCH_W1+1
+                                                pha  ; save array ptr lsb
+                                                tya
+                                                pha  ; save array ptr msb
+                                                lda  #<$tempvar
+                                                ldy  #>$tempvar
+                                                jsr  floats.copy_float""")
+
+                            // calculate on tempvar
+                            when(value.kind) {
+                                SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(tempvar, operator, value.number!!.number)
+                                SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(tempvar, operator, value.asmVarname)
+                                SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(tempvar, operator, regName(value))
+                                SourceStorageKind.MEMORY -> TODO("memread into float")
+                                SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(tempvar, operator, value.array!!)
+                                SourceStorageKind.EXPRESSION -> {
+                                    if(value.expression is PtTypeCast) {
+                                        if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
+                                            return
+                                        inplacemodificationFloatWithValue(tempvar, operator, value.expression)
+                                    } else {
+                                        inplacemodificationFloatWithValue(tempvar, operator, value.expression!!)
+                                    }
+                                }
+                            }
+
+                            // copy tempvar back into array
+                            asmgen.out("""
+                                                lda  #<$tempvar
+                                                ldy  #>$tempvar
+                                                sta  P8ZP_SCRATCH_W1
+                                                sty  P8ZP_SCRATCH_W1+1
+                                                pla  ; restore array ptr msb
+                                                tay
+                                                pla  ; restore array ptr lsb
+                                                jsr  floats.copy_float""")
+                        }
+
+                        else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                     }
-                    else -> throw AssemblyError("indexer expression should have been replaced by auto indexer var")
                 }
             }
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")

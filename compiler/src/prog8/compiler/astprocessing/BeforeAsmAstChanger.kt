@@ -4,8 +4,10 @@ import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
-import prog8.ast.expressions.*
-import prog8.ast.getTempVar
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.ContainmentCheck
+import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -154,36 +156,5 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             throw InternalCompilerException("0==X should have been swapped to if X==0")
 
         return noModifications
-    }
-
-    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-
-        if(options.compTarget.name!=VMTarget.NAME) {    // don't apply this optimization/check for Vm target
-            val index = arrayIndexedExpression.indexer.indexExpr
-            if (index !is NumericLiteral && index !is IdentifierReference) {
-                // replace complex indexing expression with a temp variable to hold the computed index first
-                return getAutoIndexerVarFor(arrayIndexedExpression)
-            }
-        }
-
-        return noModifications
-    }
-
-    private fun getAutoIndexerVarFor(expr: ArrayIndexedExpression): MutableList<IAstModification> {
-        val modifications = mutableListOf<IAstModification>()
-        val statement = expr.containingStatement
-        val dt = expr.indexer.indexExpr.inferType(program)
-        val (tempVarName, _) = program.getTempVar(dt.getOrElse { throw FatalAstException("invalid dt") })
-        val target = AssignTarget(IdentifierReference(tempVarName, expr.indexer.position), null, null, expr.indexer.position)
-        val assign = Assignment(target, expr.indexer.indexExpr, AssignmentOrigin.ASMGEN, expr.indexer.position)
-        modifications.add(IAstModification.InsertBefore(statement, assign, statement.parent as IStatementContainer))
-        modifications.add(
-            IAstModification.ReplaceNode(
-                expr.indexer.indexExpr,
-                target.identifier!!.copy(),
-                expr.indexer
-            )
-        )
-        return modifications
     }
 }

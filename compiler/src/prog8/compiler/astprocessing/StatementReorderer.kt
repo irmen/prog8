@@ -52,10 +52,6 @@ internal class StatementReorderer(
                             // This allows you to restart the program and have the same starting values of the variables
                             // So basically consider 'ubyte xx' as a short form for 'ubyte xx; xx=0'
                             decl.value = null
-                            if(decl.name.startsWith("tempvar_") && decl.definingScope.name=="prog8_lib") {
-                                // no need to zero out the special internal temporary variables.
-                                return noModifications
-                            }
                             if(decl.findInitializer(program)!=null)
                                 return noModifications   // an initializer assignment for a vardecl is already here
                             val nextFor = decl.nextSibling() as? ForLoop

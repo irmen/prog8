@@ -76,6 +76,13 @@ enum class RegisterOrPair {
 
     companion object {
         val names by lazy { values().map { it.toString()} }
+        fun fromCpuRegister(cpu: CpuRegister): RegisterOrPair {
+            return when(cpu) {
+                CpuRegister.A -> A
+                CpuRegister.X -> X
+                CpuRegister.Y -> Y
+            }
+        }
     }
 
     fun asCpuRegister(): CpuRegister = when(this) {
