@@ -1,4 +1,6 @@
 ; Internal Math library routines - always included by the compiler
+; note: some functions you might expect here are builtin functions,
+;       such as abs, sqrt, clamp, min, max for example.
 
 math {
 
@@ -277,4 +279,17 @@ math {
             returnr.w r0
         }}
     }
+
+    sub diff(ubyte b1, ubyte b2) -> ubyte {
+        if b1>b2
+            return b1-b2
+        return b2-b1
+    }
+
+    sub diffw(uword w1, uword w2) -> uword {
+        if w1>w2
+            return w1-w2
+        return w2-w1
+    }
+
 }

@@ -407,6 +407,13 @@ but perhaps the provided ones can be of service too.
     If you already know the quadrant and x/y deltas, calculate discrete direction between 0 and 23.
     This is a heavily optimized routine (small and fast).
 
+``diff (ubyte b1, ubyte b2) -> ubyte``
+    Returns the absolute difference, or distance, between the two byte values.
+    (This routine is more efficient than doing a compare and a subtract separately, or using abs)
+
+``diffw (uword w1, uword w2) -> uword``
+    Returns the absolute difference, or distance, between the two word values.
+    (This routine is more efficient than doing a compare and a subtract separately, or using abs)
 
 
 cx16logo

@@ -1,4 +1,6 @@
 ; Internal Math library routines - always included by the compiler
+; note: some functions you might expect here are builtin functions,
+;       such as abs, sqrt, clamp, min, max for example.
 
 math {
     %option no_symbol_prefixing
@@ -444,5 +446,42 @@ log2_tab
 
     }}
 }
+
+    asmsub diff(ubyte v1 @A, ubyte v2 @Y) -> ubyte @A {
+        ; -- returns the (absolute) difference, or distance, between the two bytes
+        %asm {{
+            sty  P8ZP_SCRATCH_REG
+            sec
+            sbc  P8ZP_SCRATCH_REG
+            bcs  +
+            eor  #255
+            inc  a
++           rts
+        }}
+    }
+
+    asmsub diffw(uword w1 @R0, uword w2 @AY) -> uword @AY {
+        ; -- returns the (absolute) difference, or distance, between the two words
+        %asm {{
+            sec
+            sbc  cx16.r0L
+            sta  cx16.r0L
+            tya
+            sbc  cx16.r0H
+            sta  cx16.r0H
+            bcs  +
+            eor  #255
+            sta  cx16.r0H
+            lda  cx16.r0L
+            eor  #255
+            inc  a
+            sta  cx16.r0L
+            bne  +
+            inc  cx16.r0H
++           lda  cx16.r0L
+            ldy  cx16.r0H
+            rts
+        }}
+    }
 
 }
