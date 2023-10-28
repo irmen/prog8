@@ -69,37 +69,60 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
     }
 
-    private fun argumentsViaRegisters(sub: PtAsmSub, call: PtFunctionCall) {
-        if(sub.parameters.size==1) {
-            argumentViaRegister(sub, IndexedValue(0, sub.parameters.single().second), call.args[0])
-        } else {
-            if(asmsub6502ArgsHaveRegisterClobberRisk(call.args, sub.parameters)) {
-                registerArgsViaCpuStackEvaluation(call, sub)
-            } else {
-                asmsub6502ArgsEvalOrder(sub).forEach {
-                    val param = sub.parameters[it]
-                    val arg = call.args[it]
-                    argumentViaRegister(sub, IndexedValue(it, param.second), arg)
-                }
+
+    private fun usesOtherRegistersWhileEvaluating(arg: PtExpression): Boolean {
+        return when(arg) {
+            is PtBuiltinFunctionCall -> {
+                if (arg.name == "lsb" || arg.name == "msb")
+                    return usesOtherRegistersWhileEvaluating(arg.args[0])
+                if (arg.name == "mkword")
+                    return usesOtherRegistersWhileEvaluating(arg.args[0]) || usesOtherRegistersWhileEvaluating(arg.args[1])
+                return !arg.isSimple()
             }
+            is PtAddressOf -> false
+            is PtIdentifier -> false
+            is PtMachineRegister -> false
+            is PtMemoryByte -> false
+            is PtNumber -> false
+            else -> true
         }
     }
 
-    private fun registerArgsViaCpuStackEvaluation(call: PtFunctionCall, callee: PtAsmSub) {
-        // this is called when one or more of the arguments are 'complex' and
-        // cannot be assigned to a register easily or risk clobbering other registers.
+    private fun argumentsViaRegisters(sub: PtAsmSub, call: PtFunctionCall) {
+        val cpuRegisters = setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y, RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)
+        val registersUsed = mutableListOf<RegisterOrStatusflag>();
 
-        if(callee.parameters.isEmpty())
-            return
+        fun usedA() = registersUsed.any {it.registerOrPair==RegisterOrPair.A || it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.AY}
+        fun usedX() = registersUsed.any {it.registerOrPair==RegisterOrPair.X || it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.XY}
+        fun usedY() = registersUsed.any {it.registerOrPair==RegisterOrPair.Y || it.registerOrPair==RegisterOrPair.AY || it.registerOrPair==RegisterOrPair.XY}
 
-        // use the cpu hardware stack as intermediate storage for the arguments.
-        val argOrder = asmsub6502ArgsEvalOrder(callee)
-        argOrder.reversed().forEach {
-            asmgen.pushCpuStack(callee.parameters[it].second.type, call.args[it])
-        }
-        argOrder.forEach {
-            val param = callee.parameters[it]
-            asmgen.popCpuStack(callee, param.second, param.first)
+        if(sub.parameters.size==1) {
+            argumentViaRegister(sub, IndexedValue(0, sub.parameters.single().second), call.args[0])
+        } else {
+            val optimalEvalOrder = asmsub6502ArgsEvalOrder(sub)
+            optimalEvalOrder.forEach {
+                val param = sub.parameters[it]
+                val arg = call.args[it]
+                registersUsed += if(usesOtherRegistersWhileEvaluating(arg)) {
+                    if(!registersUsed.any{it.statusflag!=null || it.registerOrPair in cpuRegisters})
+                        argumentViaRegister(sub, IndexedValue(it, param.second), arg)
+                    else if(registersUsed.any {it.statusflag!=null}) {
+                        throw AssemblyError("call argument evaluation problem: can't save cpu statusregister parameter ${call.position}")
+                    }
+                    else {
+                        if(usedX()) asmgen.saveRegisterStack(CpuRegister.X, false)
+                        if(usedY()) asmgen.saveRegisterStack(CpuRegister.Y, false)
+                        if(usedA()) asmgen.saveRegisterStack(CpuRegister.A, false)
+                        val used = argumentViaRegister(sub, IndexedValue(it, param.second), arg)
+                        if(usedA()) asmgen.restoreRegisterStack(CpuRegister.A, false)
+                        if(usedY()) asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                        if(usedX()) asmgen.restoreRegisterStack(CpuRegister.X, true)
+                        used
+                    }
+                } else {
+                    argumentViaRegister(sub, IndexedValue(it, param.second), arg)
+                }
+            }
         }
     }
 
@@ -112,7 +135,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         asmgen.assignExpressionToVariable(value, varName, parameter.type)
     }
 
-    private fun argumentViaRegister(sub: IPtSubroutine, parameter: IndexedValue<PtSubroutineParameter>, value: PtExpression, registerOverride: RegisterOrPair? = null) {
+    private fun argumentViaRegister(sub: IPtSubroutine, parameter: IndexedValue<PtSubroutineParameter>, value: PtExpression, registerOverride: RegisterOrPair? = null): RegisterOrStatusflag {
         // pass argument via a register parameter
         if(!isArgumentTypeCompatible(value.type, parameter.value.type))
             throw AssemblyError("argument type incompatible")
@@ -156,6 +179,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                     }
                 }
             } else throw AssemblyError("can only use Carry as status flag parameter")
+            return RegisterOrStatusflag(null, statusflag)
         }
         else {
             // via register or register pair
@@ -188,6 +212,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 }
                 asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, Position.DUMMY), scope)
             }
+            return RegisterOrStatusflag(register, null)
         }
     }
 
@@ -209,3 +234,5 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         return false
     }
 }
+
+
