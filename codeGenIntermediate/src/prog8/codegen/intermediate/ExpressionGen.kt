@@ -188,18 +188,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val memOffset = (arrayIx.index as PtNumber).number.toInt()
                 result += IRCodeChunk(null, null).also {
                     val tmpRegMsb = codeGen.registers.nextFree()
-                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_lsb+$memOffset")
                     it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=tmpRegMsb, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_msb+$memOffset")
-                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=resultRegister, reg3=tmpRegMsb)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_lsb+$memOffset")
+                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=tmpRegMsb, reg3=resultRegister)
                 }
             } else {
                 val tr = translateExpression(arrayIx.index)
                 addToResult(result, tr, tr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
                     val tmpRegMsb = codeGen.registers.nextFree()
-                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=resultRegister, reg2 = tr.resultReg, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_lsb")
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2 = tr.resultReg, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_msb")
-                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=resultRegister, reg3=tmpRegMsb)
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=resultRegister, reg2 = tr.resultReg, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_lsb")
+                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=tmpRegMsb, reg3=resultRegister)
                 }
             }
             return ExpressionCodeResult(result, vmDt, finalResultReg, -1)

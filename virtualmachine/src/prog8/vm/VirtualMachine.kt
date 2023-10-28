@@ -2097,8 +2097,8 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsCONCAT(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> {
-                val lsb = registers.getUB(i.reg2!!)
-                val msb = registers.getUB(i.reg3!!)
+                val msb = registers.getUB(i.reg2!!)
+                val lsb = registers.getUB(i.reg3!!)
                 registers.setUW(i.reg1!!, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
             }
             IRDataType.WORD -> throw IllegalArgumentException("concat.w not yet supported, requires 32-bits registers")

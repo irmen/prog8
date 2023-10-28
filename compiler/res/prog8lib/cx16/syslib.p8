@@ -11,9 +11,9 @@ cbm {
 ; CLEARSCR -> use txt.clear_screen
 ; HOMECRSR -> use txt.home or txt.plot
 
-romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT) initialize screen editor and video chip
-romsub $FF84 = IOINIT() clobbers(A, X)                          ; initialize I/O devices (CIA, SID, IRQ)
-romsub $FF87 = RAMTAS() clobbers(A,X,Y)                         ; initialize RAM, tape buffer, screen
+romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT) initialize screen editor and video chip, including resetting to the default color palette
+romsub $FF84 = IOINIT() clobbers(A, X)                          ; initialize I/O devices (CIA, IRQ, ...)
+romsub $FF87 = RAMTAS() clobbers(A,X,Y)                         ; initialize RAM, screen
 romsub $FF8A = RESTOR() clobbers(A,X,Y)                         ; restore default I/O vectors
 romsub $FF8D = VECTOR(uword userptr @ XY, bool dir @ Pc) clobbers(A,Y)     ; read/set I/O vector table
 romsub $FF90 = SETMSG(ubyte value @ A)                          ; set Kernal message control flag

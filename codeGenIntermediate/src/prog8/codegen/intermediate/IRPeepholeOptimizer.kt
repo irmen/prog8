@@ -45,6 +45,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                         val indexedInstructions = chunk1.instructions.withIndex()
                             .map { IndexedValue(it.index, it.value) }
                         val changed = removeNops(chunk1, indexedInstructions)
+                                || replaceConcatZeroMsbWithExt(chunk1, indexedInstructions)
                                 || removeDoubleLoadsAndStores(chunk1, indexedInstructions)       // TODO not yet implemented
                                 || removeUselessArithmetic(chunk1, indexedInstructions)
                                 || removeNeedlessCompares(chunk1, indexedInstructions)
@@ -61,6 +62,22 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         // TODO also do register optimization step here at the end?
 
         irprog.linkChunks()  // re-link
+    }
+
+    private fun replaceConcatZeroMsbWithExt(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if (ins.opcode == Opcode.CONCAT) {
+                // if the previous instruction loads a zero in the msb, this can be turned into EXT.B instead
+                val prev = indexedInstructions[idx-1].value
+                if(prev.opcode==Opcode.LOAD && prev.immediate==0 && prev.reg1==ins.reg2) {
+                    chunk.instructions[idx] = IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = ins.reg1, reg2 = ins.reg3)
+                    chunk.instructions.removeAt(idx-1)
+                    changed = true
+                }
+            }
+        }
+        return changed
     }
 
     private fun removeEmptyChunks(sub: IRSubroutine) {

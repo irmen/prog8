@@ -220,7 +220,7 @@ sec                                       - set Carry status bit
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
 msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
-concat [b, w] reg1, reg2, reg3            - reg1.w = concatenated lsb/lsw of reg2 (as lsb) and lsb/lsw of reg3 (as msb) into word or int (int not yet implemented; requires 32bits regs)
+concat [b, w] reg1, reg2, reg3            - reg1.w = 'concatenate' two registers: lsb/lsw of reg2 (as msb) and lsb/lsw of reg3 (as lsb) into word or int (int not yet implemented; requires 32bits regs)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
  */
