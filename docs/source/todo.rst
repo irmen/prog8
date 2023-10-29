@@ -2,7 +2,11 @@
 TODO
 ====
 
-- [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
+- [on branch: shortcircuit] complete McCarthy evaluation. This may also reduce code size perhaps for things like if a>4 or a<2 ....
+    - vm ircodegen (DONE)
+    - in 6502 codegen (see vm's ExpressionGen operatorAnd / operatorOr)
+
+- IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? Bitwise operations, etc), but only after setting the status bits is verified!
 
 ...
 
@@ -11,7 +15,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- (after shortcircuit is in:) What happens when we make all subs return a boolean not as ubyte in A, but in the cpu's Carry flag?
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
@@ -27,7 +30,6 @@ Compiler:
     - (need separate step in codegen and IR to write the "golden" variables)
 
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
-- ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: getting it in shape for code generation
 - ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
@@ -48,7 +50,7 @@ Compiler:
 
 Libraries:
 
-- once a VAL_1 implementation is merged into the X16 kernal properly, remove all the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
+- once a VAL_1 implementation is merged into the X16 kernal properly, remove all the workarounds in cx16 floats.parse_f()
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?
@@ -56,6 +58,8 @@ Libraries:
 
 Optimizations:
 
+- give a warning for variables that could be a const - or even make them a const (if not @shared)?
+- treat every scalar variable decl with initialization value, as const by default, unless the variable gets assigned to somewhere (or has its address taken, or is @shared)
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
@@ -78,6 +82,9 @@ What if we were to re-introduce Structs in prog8? Some thoughts:
 Other language/syntax features to think about
 ---------------------------------------------
 
-- add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
-  challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
-  How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
+- module directive to set the text encoding for that whole file (iso, petscii, etc.)
+- chained assignments   `x=y=z=99`
+- declare multiple variables    `ubyte x,y,z`    (if init value present, all get that init value)
+- chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`)
+- postincrdecr as expression, preincrdecr expression   (`y = x++`,   `y = ++x`)    .... is this even possible, expression with side effects like this?
+- negative array index to refer to an element from the end of the array.  Python `[-1]` or Raku syntax `[\*-1]`  , `[\*/2]` .... \*=size of the array

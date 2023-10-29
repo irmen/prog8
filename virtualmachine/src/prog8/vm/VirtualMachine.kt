@@ -311,8 +311,16 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private inline fun setResultReg(reg: Int, value: Int, type: IRDataType) {
         when(type) {
-            IRDataType.BYTE -> registers.setUB(reg, value.toUByte())
-            IRDataType.WORD -> registers.setUW(reg, value.toUShort())
+            IRDataType.BYTE -> {
+                registers.setUB(reg, value.toUByte())
+                statusZero = value==0
+                statusNegative = value>=0x80
+            }
+            IRDataType.WORD -> {
+                registers.setUW(reg, value.toUShort())
+                statusZero = value==0
+                statusNegative = value>=0x8000
+            }
             IRDataType.FLOAT -> throw IllegalArgumentException("attempt to set integer result register but float type")
         }
     }

@@ -14,10 +14,10 @@ Program to execute is not stored in the system memory, it's just a separate list
 65536 virtual floating point registers (64 bits double precision)  fr0-fr65535
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
-Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC!!!
-                                             LOAD instructions DO affect the Z and N flags
-                                             INC/DEC instructions DO affect the Z and N flags
-                                             other instructions such as logical or arithmetic operations DO NOT AFFECT THE STATUS FLAGS UNLESS EXPLICITLY NOTED!
+Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC,
+                                             LOAD instructions DO affect the Z and N flags.
+                                             INC/DEC instructions DO affect the Z and N flags,
+                                             other instructions only affect Z an N flags if the value in a result register is written.
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 

@@ -50,6 +50,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val includeSourcelines by cli.option(ArgType.Boolean, fullName = "sourcelines", description = "include original Prog8 source lines in generated asm code")
     val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
+    val noShortCircuit by cli.option(ArgType.Boolean, fullName = "noshortcircuit", description = "do not apply McCarthy/short-circuit evaluation to boolean expressions")
     val breakpointCpuInstruction by cli.option(ArgType.Boolean, fullName = "breakinstr", description = "also use a CPU instruction for %breakpoint")
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${PETTarget.NAME}', '${VMTarget.NAME}') (required)")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
@@ -148,6 +149,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
+                    noShortCircuit != true,
                     includeSourcelines == true,
                     experimentalCodegen == true,
                     varsHighBank,
@@ -224,6 +226,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
+                    noShortCircuit != true,
                     includeSourcelines == true,
                     experimentalCodegen == true,
                     varsHighBank,
