@@ -457,7 +457,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationRegisterAXwithVariable(operator: String, variable: String, varDt: DataType): Boolean {
-        // note: we only optimize addition and subtraction, and these are the same for unsigned or signed.
         when(operator) {
             "+" -> {
                 return if(varDt in WordDatatypes) {
@@ -507,12 +506,44 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     true
                 }
             }
-            else -> return false        // TODO optimize more operators, such as the bitwise logical ones? Might need to know if signed
+            "|" -> {
+                asmgen.out("""
+                    ora  $variable
+                    tay
+                    txa
+                    ora  $variable+1
+                    tax
+                    tya
+                """)
+                return true
+            }
+            "&" -> {
+                asmgen.out("""
+                    and  $variable
+                    tay
+                    txa
+                    and  $variable+1
+                    tax
+                    tya
+                """)
+                return true
+            }
+            "^" -> {
+                asmgen.out("""
+                    eor  $variable
+                    tay
+                    txa
+                    eor  $variable+1
+                    tax
+                    tya
+                """)
+                return true
+            }
+            else -> return false
         }
     }
 
     private fun inplacemodificationRegisterAXwithLiteralval(operator: String, number: Int): Boolean {
-        // note: we only optimize addition and subtraction, and these are the same for unsigned or signed.
         when(operator) {
             "+" -> {
                 return if(number in -128..255) {
@@ -556,7 +587,40 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     true
                 }
             }
-            else -> return false        // TODO optimize more operators, such as the bitwise logical ones? Might need to know if signed
+            "|" -> {
+                asmgen.out("""
+                    ora  #<$number
+                    tay
+                    txa
+                    ora  #>$number
+                    tax
+                    tya
+                """)
+                return true
+            }
+            "&" -> {
+                asmgen.out("""
+                    and  #<$number
+                    tay
+                    txa
+                    and  #>$number
+                    tax
+                    tya
+                """)
+                return true
+            }
+            "^" -> {
+                asmgen.out("""
+                    eor  #<$number
+                    tay
+                    txa
+                    eor  #>$number
+                    tax
+                    tya
+                """)
+                return true
+            }
+            else -> return false
         }
     }
 

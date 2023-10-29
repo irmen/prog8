@@ -5,10 +5,24 @@
 
 main {
     sub start() {
-        ubyte lower = 123
-        ubyte upper = 0
-        uword ww = mkword(upper, lower)
+        uword[] array = [$1010,$2020,$3030,$4040,$5050]
+        ubyte index = 2
+        uword value = $0205
 
-        txt.print_uwhex(ww, true)
+        array[index] ^= $0205
+        txt.print_uwhex(array[2], true)
+        txt.nl()
+
+        array[index]+=9
+
+        txt.print_uwhex(array[2], true)
+        txt.nl()
+
+        array[index] = $3030
+        array[index] |= value
+        txt.print_uwhex(array[2], true)
+        txt.nl()
+
+        ; TODO met var array[index]|=index
     }
 }
