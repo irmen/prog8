@@ -348,15 +348,19 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcMkword(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        // TODO use ext instruction if msb is 0
         val result = mutableListOf<IRCodeChunkBase>()
-        val msbTr = exprGen.translateExpression(call.args[0])
-        addToResult(result, msbTr, msbTr.resultReg, -1)
-        val lsbTr = exprGen.translateExpression(call.args[1])
-        addToResult(result, lsbTr, lsbTr.resultReg, -1)
         val resultReg = codeGen.registers.nextFree()
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=resultReg, reg2 = msbTr.resultReg, reg3 = lsbTr.resultReg)
+        if((call.args[0] as? PtNumber)?.number == 0.0) {
+            // msb is 0, use EXT
+            val lsbTr = exprGen.translateExpression(call.args[1])
+            addToResult(result, lsbTr, lsbTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=resultReg, reg2 = lsbTr.resultReg), null)
+        } else {
+            val msbTr = exprGen.translateExpression(call.args[0])
+            addToResult(result, msbTr, msbTr.resultReg, -1)
+            val lsbTr = exprGen.translateExpression(call.args[1])
+            addToResult(result, lsbTr, lsbTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=resultReg, reg2 = msbTr.resultReg, reg3 = lsbTr.resultReg), null)
         }
         return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
     }

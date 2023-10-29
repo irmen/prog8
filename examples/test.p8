@@ -5,8 +5,10 @@
 
 main {
     sub start() {
-        uword sprite_reg
-        cx16.r0 = sprite_reg+1
-        cx16.vpoke(1, sprite_reg+1, 42)
+        ubyte lower = 123
+        ubyte upper = 0
+        uword ww = mkword(upper, lower)
+
+        txt.print_uwhex(ww, true)
     }
 }
