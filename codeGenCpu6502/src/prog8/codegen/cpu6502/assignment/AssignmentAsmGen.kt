@@ -68,12 +68,21 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         throw AssemblyError("non-array var indexing requires bytes dt")
                     if(value.type != DataType.UBYTE)
                         throw AssemblyError("non-array var indexing requires bytes index")
-                    asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
-                    if(asmgen.isZpVar(value.variable)) {
-                        asmgen.out("  lda  ($arrayVarName),y")
+                    if(asmgen.isTargetCpu(CpuType.CPU65c02) && (value.index as? PtNumber)?.number==0.0) {
+                        if (asmgen.isZpVar(value.variable)) {
+                            asmgen.out("  lda  ($arrayVarName)")
+                        } else {
+                            asmgen.out("  lda  $arrayVarName |  sta  P8ZP_SCRATCH_W1 |  lda  $arrayVarName+1 |  sta  P8ZP_SCRATCH_W1+1")
+                            asmgen.out("  lda  (P8ZP_SCRATCH_W1)")
+                        }
                     } else {
-                        asmgen.out("  lda  $arrayVarName |  sta  P8ZP_SCRATCH_W1 |  lda  $arrayVarName+1 |  sta  P8ZP_SCRATCH_W1+1")
-                        asmgen.out("  lda  (P8ZP_SCRATCH_W1),y")
+                        asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
+                        if (asmgen.isZpVar(value.variable)) {
+                            asmgen.out("  lda  ($arrayVarName),y")
+                        } else {
+                            asmgen.out("  lda  $arrayVarName |  sta  P8ZP_SCRATCH_W1 |  lda  $arrayVarName+1 |  sta  P8ZP_SCRATCH_W1+1")
+                            asmgen.out("  lda  (P8ZP_SCRATCH_W1),y")
+                        }
                     }
                     assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes)
                     return
@@ -3778,10 +3787,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             }
                             else -> {
                                 asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
-                                asmgen.out("""
-                                    ldy  #0
-                                    lda  (P8ZP_SCRATCH_W2),y
-                                    eor  #255""")
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                                    asmgen.out("""
+                                        lda  (P8ZP_SCRATCH_W2)
+                                        eor  #255""")
+                                } else {
+                                    asmgen.out("""
+                                        ldy  #0
+                                        lda  (P8ZP_SCRATCH_W2),y
+                                        eor  #255""")
+                                }
                                 asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                             }
                         }
