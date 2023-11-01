@@ -14,10 +14,10 @@
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
 ;   mode 1 = bitmap 320 x 240 x 256c (8 bpp)
-;   mode 2 = bitmap 640 x 480 x 4c (2 bpp. there's not enough vram for more colors in hires mode.)
-;   mode 3 = bitmap 320 x 240 x 16c (not yet implemented: just use 256c, there's enough vram for that)
-;   mode 4 = bitmap 320 x 240 x 4c (not yet implemented: just use 256c, there's enough vram for that)
-;   higher color depths in highres are not supported due to lack of VRAM
+;   mode 2 = bitmap 640 x 480 x 4c (2 bpp)
+;   mode 3 = bitmap 320 x 240 x 4c (not yet implemented: just use 256c, there's enough vram for that)
+;   mode 4 = bitmap 320 x 240 x 16c (not yet implemented: just use 256c, there's enough vram for that)
+;   mode 5 = bitmap 640 x 400 x 16c (not yet implemented)
 
 gfx2 {
 

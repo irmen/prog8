@@ -89,7 +89,6 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     }
 
     private fun argumentsViaRegisters(sub: PtAsmSub, call: PtFunctionCall) {
-        val cpuRegisters = setOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y, RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)
         val registersUsed = mutableListOf<RegisterOrStatusflag>();
 
         fun usedA() = registersUsed.any {it.registerOrPair==RegisterOrPair.A || it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.AY}
@@ -104,7 +103,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 val param = sub.parameters[it]
                 val arg = call.args[it]
                 registersUsed += if(usesOtherRegistersWhileEvaluating(arg)) {
-                    if(!registersUsed.any{it.statusflag!=null || it.registerOrPair in cpuRegisters})
+                    if(!registersUsed.any{it.statusflag!=null || it.registerOrPair in CpuRegisters})
                         argumentViaRegister(sub, IndexedValue(it, param.second), arg)
                     else if(registersUsed.any {it.statusflag!=null}) {
                         throw AssemblyError("call argument evaluation problem: can't save cpu statusregister parameter ${call.position}")

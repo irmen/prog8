@@ -159,6 +159,7 @@ val ElementToArrayTypes = mapOf(
     DataType.FLOAT to DataType.ARRAY_F,
     DataType.BOOL to DataType.ARRAY_BOOL
 )
+
 val Cx16VirtualRegisters = arrayOf(
     RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,
     RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
@@ -166,6 +167,10 @@ val Cx16VirtualRegisters = arrayOf(
     RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15
 )
 
+val CpuRegisters = setOf(
+    RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y,
+    RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY
+)
 
 
 enum class OutputType {

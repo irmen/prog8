@@ -1,6 +1,10 @@
 TODO
 ====
 
+- fix the parameter passing bug intruduced recently. Example: cx16.FB_cursor_position(math.rnd(), math.rnd())
+
+- add a %zpallowed option to specify the range of zeropage register that can be used (intersect with the actual available zp registers ofcourse)
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? Bitwise operations, etc), but only after setting the status bits is verified!
