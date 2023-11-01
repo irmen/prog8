@@ -563,7 +563,7 @@ class AsmGen6502Internal (
         when(reg) {
             RegisterOrPair.A,
             RegisterOrPair.X,
-            RegisterOrPair.Y -> assignmentAsmGen.assignRegisterByte(target, reg.asCpuRegister(), target.datatype in SignedDatatypes)
+            RegisterOrPair.Y -> assignmentAsmGen.assignRegisterByte(target, reg.asCpuRegister(), target.datatype in SignedDatatypes, true)
             RegisterOrPair.AX,
             RegisterOrPair.AY,
             RegisterOrPair.XY,

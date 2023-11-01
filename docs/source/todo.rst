@@ -1,8 +1,6 @@
 TODO
 ====
 
-- fix the parameter passing bug intruduced recently. Example: cx16.FB_cursor_position(math.rnd(), math.rnd())
-
 - add a %zpallowed option to specify the range of zeropage register that can be used (intersect with the actual available zp registers ofcourse)
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....

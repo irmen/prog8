@@ -110,8 +110,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val var3name = asmgen.asmVariableName(fcall.args[3] as PtIdentifier)
         val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[2].position, var2name)
         val remainderTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[3].position, var3name)
-        assignAsmGen.assignRegisterByte(remainderTarget, CpuRegister.A, false)
-        assignAsmGen.assignRegisterByte(divisionTarget, CpuRegister.Y, false)
+        assignAsmGen.assignRegisterByte(remainderTarget, CpuRegister.A, false, false)
+        assignAsmGen.assignRegisterByte(divisionTarget, CpuRegister.Y, false, false)
     }
 
     private fun funcDivmodW(fcall: PtBuiltinFunctionCall) {
@@ -273,11 +273,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         when(fcall.args[0].type) {
             DataType.UBYTE -> {
                 asmgen.out("  ldy  #0 |  jsr  prog8_lib.func_sqrt16_into_A")
-                assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false)
+                assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
             DataType.UWORD -> {
                 asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
-                assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false)
+                assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
             DataType.FLOAT -> {
                 asmgen.out("  jsr  floats.func_sqrt_into_FAC1")
@@ -686,7 +686,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             assignAsmGen.assignConstantByte(target, 0)
         } else {
             asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A, false)
-            assignAsmGen.assignRegisterByte(target, CpuRegister.A, false)
+            assignAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
         }
     }
 
@@ -701,7 +701,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
             else -> throw AssemblyError("weird type $dt")
         }
-        assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, true)
+        assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, true, true)
     }
 
     private fun funcAnyAll(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
@@ -714,7 +714,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             in SplitWordArrayTypes -> TODO("split word any/all")
             else -> throw AssemblyError("weird type $dt")
         }
-        assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, dt in SignedDatatypes)
+        assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, dt in SignedDatatypes, true)
     }
 
     private fun funcAbs(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
@@ -723,7 +723,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         when (dt) {
             DataType.BYTE -> {
                 asmgen.out("  jsr  prog8_lib.abs_b_into_A")
-                assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A,false)
+                assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A,false, true)
             }
             DataType.WORD -> {
                 asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
@@ -871,7 +871,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A, signed)    // value
                 asmgen.out("  jsr  prog8_lib.func_clamp_${fcall.type.toString().lowercase()}")
                 val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
-                assignAsmGen.assignRegisterByte(targetReg, CpuRegister.A, signed)
+                assignAsmGen.assignRegisterByte(targetReg, CpuRegister.A, signed, true)
             }
             in WordDatatypes -> {
                 assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
@@ -887,55 +887,59 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcMin(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         val signed = fcall.type in SignedDatatypes
-        if(fcall.type in ByteDatatypes) {
-            asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
-            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left
-            asmgen.out("  cmp  P8ZP_SCRATCH_B1")
-            if(signed) asmgen.out("  bmi  +") else asmgen.out("  bcc  +")
-            asmgen.out("""
-                lda  P8ZP_SCRATCH_B1
-+""")
-            val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
-            asmgen.assignRegister(RegisterOrPair.A, targetReg)
-        } else if(fcall.type in WordDatatypes) {
-            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
-            asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
-            if(signed) {
+        when (fcall.type) {
+            in ByteDatatypes -> {
+                asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left
+                asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                if(signed) asmgen.out("  bmi  +") else asmgen.out("  bcc  +")
                 asmgen.out("""
-                    lda  P8ZP_SCRATCH_W1
-                    ldy  P8ZP_SCRATCH_W1+1
-                    cmp  P8ZP_SCRATCH_W2
-                    tya
-                    sbc  P8ZP_SCRATCH_W2+1
-                    bvc  +
-                    eor  #$80
-+                   bpl  +
-                    lda  P8ZP_SCRATCH_W1                   
-                    ldy  P8ZP_SCRATCH_W1+1
-                    jmp  ++
-+                   lda  P8ZP_SCRATCH_W2
-                    ldy  P8ZP_SCRATCH_W2+1
-+""")
-            } else {
-                asmgen.out("""
-                    lda  P8ZP_SCRATCH_W1+1
-                    cmp  P8ZP_SCRATCH_W2+1
-                    bcc  ++
-                    bne  +
-                    lda  P8ZP_SCRATCH_W1
-                    cmp  P8ZP_SCRATCH_W2
-                    bcc  ++
-+                   lda  P8ZP_SCRATCH_W2
-                    ldy  P8ZP_SCRATCH_W2+1
-                    jmp  ++
-+                   lda  P8ZP_SCRATCH_W1
-                    ldy  P8ZP_SCRATCH_W1+1
-+""")
+                    lda  P8ZP_SCRATCH_B1
+    +""")
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
+                asmgen.assignRegister(RegisterOrPair.A, targetReg)
             }
-            val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, signed, fcall.position, fcall.definingISub(), asmgen)
-            asmgen.assignRegister(RegisterOrPair.AY, targetReg)
-        } else {
-            throw AssemblyError("min float not supported")
+            in WordDatatypes -> {
+                asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
+                asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
+                if(signed) {
+                    asmgen.out("""
+                        lda  P8ZP_SCRATCH_W1
+                        ldy  P8ZP_SCRATCH_W1+1
+                        cmp  P8ZP_SCRATCH_W2
+                        tya
+                        sbc  P8ZP_SCRATCH_W2+1
+                        bvc  +
+                        eor  #$80
+    +                   bpl  +
+                        lda  P8ZP_SCRATCH_W1                   
+                        ldy  P8ZP_SCRATCH_W1+1
+                        jmp  ++
+    +                   lda  P8ZP_SCRATCH_W2
+                        ldy  P8ZP_SCRATCH_W2+1
+    +""")
+                } else {
+                    asmgen.out("""
+                        lda  P8ZP_SCRATCH_W1+1
+                        cmp  P8ZP_SCRATCH_W2+1
+                        bcc  ++
+                        bne  +
+                        lda  P8ZP_SCRATCH_W1
+                        cmp  P8ZP_SCRATCH_W2
+                        bcc  ++
+    +                   lda  P8ZP_SCRATCH_W2
+                        ldy  P8ZP_SCRATCH_W2+1
+                        jmp  ++
+    +                   lda  P8ZP_SCRATCH_W1
+                        ldy  P8ZP_SCRATCH_W1+1
+    +""")
+                }
+                val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, signed, fcall.position, fcall.definingISub(), asmgen)
+                asmgen.assignRegister(RegisterOrPair.AY, targetReg)
+            }
+            else -> {
+                throw AssemblyError("min float not supported")
+            }
         }
     }
 
