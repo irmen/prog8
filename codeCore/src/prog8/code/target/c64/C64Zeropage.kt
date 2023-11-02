@@ -75,6 +75,8 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
             // in these cases there is enough space on the zero page to stick the cx16 virtual registers in there as well.
             allocateCx16VirtualRegisters()
         }
+
+        retainAllowed()
     }
 
     override fun allocateCx16VirtualRegisters() {

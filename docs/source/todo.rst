@@ -1,7 +1,9 @@
 TODO
 ====
 
-- add a %zpallowed option to specify the range of zeropage register that can be used (intersect with the actual available zp registers ofcourse)
+- fix assembly error for uword[3] @zp @split word_addrs  (not defined symbol 'p8_word_addrs_lsb')
+- fix fill() to not access pixels outside of the screen (use virtual testmongfx first?)
+- change fill() to use unsigned types for optimization, and re-check previous problem.
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction

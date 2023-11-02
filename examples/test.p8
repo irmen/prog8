@@ -1,16 +1,10 @@
 %import syslib
-%import gfx2
-%import math
+%zpreserved $a0,$ff
+%zpallowed $70,$b0
 
 main {
     sub start() {
-        void cx16.screen_mode(128, false)
-
-        ubyte color
         repeat {
-            cx16.FB_cursor_position(math.rnd(), math.rnd())
-            cx16.FB_set_pixel(color)
-            color++
         }
     }
 }

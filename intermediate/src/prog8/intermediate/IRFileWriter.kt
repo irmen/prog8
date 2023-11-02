@@ -187,6 +187,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         for(range in irProgram.options.zpReserved) {
             xml.writeCharacters("zpReserved=${range.first},${range.last}\n")
         }
+        for(range in irProgram.options.zpAllowed) {
+            xml.writeCharacters("zpAllowed=${range.first},${range.last}\n")
+        }
         xml.writeCharacters("loadAddress=${irProgram.options.loadAddress.toHex()}\n")
         xml.writeCharacters("optimize=${irProgram.options.optimize}\n")
         xml.writeCharacters("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")

@@ -18,6 +18,7 @@ class TestIRPeepholeOpt: FunSpec({
             CbmPrgLauncherType.NONE,
             ZeropageType.DONTUSE,
             emptyList(),
+            CompilationOptions.AllZeropageAllowed,
             floats = false,
             noSysInit = true,
             compTarget = target,

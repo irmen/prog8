@@ -69,6 +69,7 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
         free.addAll(distinctFree)
 
         removeReservedFromFreePool()
+        retainAllowed()
     }
 
     override fun allocateCx16VirtualRegisters() {

@@ -100,6 +100,12 @@ Directives
     Global setting, can occur multiple times. It allows you to reserve or 'block' a part of the zeropage so
     that it will not be used by the compiler.
 
+.. data:: %zpallowed <fromaddress>,<toaddress>
+
+    Level: module.
+    Global setting, can occur multiple times. It allows you to designate a part of the zeropage that
+    the compiler is allowed to use (if other options don't prevent usage).
+
 
 .. data:: %address <address>
 

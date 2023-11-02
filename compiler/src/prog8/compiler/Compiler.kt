@@ -107,6 +107,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
             if (args.writeAssembly) {
 
+                // re-initialize memory areas with final compilationOptions
                 compilationOptions.compTarget.machine.initializeMemoryAreas(compilationOptions)
                 program.processAstBeforeAsmGeneration(compilationOptions, args.errors)
                 args.errors.report()
@@ -301,6 +302,14 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
         .map { it[0].int!!..it[1].int!! }
         .toList()
 
+    val zpAllowed = toplevelModule.statements
+        .asSequence()
+        .filter { it is Directive && it.directive == "%zpallowed" }
+        .map { (it as Directive).args }
+        .filter { it.size==2 && it[0].int!=null && it[1].int!=null }
+        .map { it[0].int!!..it[1].int!! }
+        .toList()
+
     val outputType = if (outputTypeStr == null) {
         if(compTarget is AtariTarget)
             OutputType.XEX
@@ -330,7 +339,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 
     return CompilationOptions(
         outputType, launcherType,
-        zpType, zpReserved, floatsEnabled, noSysInit,
+        zpType, zpReserved, zpAllowed, floatsEnabled, noSysInit,
         compTarget, 0u
     )
 }

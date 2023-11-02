@@ -19,6 +19,7 @@ class TestVmCodeGen: FunSpec({
             CbmPrgLauncherType.NONE,
             ZeropageType.DONTUSE,
             zpReserved = emptyList(),
+            zpAllowed = CompilationOptions.AllZeropageAllowed,
             floats = true,
             noSysInit = false,
             compTarget = target,

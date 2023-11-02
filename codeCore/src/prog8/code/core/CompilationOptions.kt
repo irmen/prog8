@@ -8,6 +8,7 @@ class CompilationOptions(val output: OutputType,
                          val launcher: CbmPrgLauncherType,
                          val zeropage: ZeropageType,
                          val zpReserved: List<UIntRange>,
+                         val zpAllowed: List<UIntRange>,
                          val floats: Boolean,
                          val noSysInit: Boolean,
                          val compTarget: ICompilationTarget,
@@ -27,5 +28,9 @@ class CompilationOptions(val output: OutputType,
 ) {
     init {
         compTarget.machine.initializeMemoryAreas(this)
+    }
+
+    companion object {
+        val AllZeropageAllowed: List<UIntRange> = listOf(0u..255u)
     }
 }

@@ -86,6 +86,7 @@ class IRFileReader {
         var launcher = CbmPrgLauncherType.NONE
         var zeropage = ZeropageType.FULL
         val zpReserved = mutableListOf<UIntRange>()
+        val zpAllowed = mutableListOf<UIntRange>()
         var loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
         var optimize = true
         var outputDir = Path("")
@@ -112,6 +113,10 @@ class IRFileReader {
                         val (zpstart, zpend) = value.split(',')
                         zpReserved.add(UIntRange(zpstart.toUInt(), zpend.toUInt()))
                     }
+                    "zpAllowed" -> {
+                        val (zpstart, zpend) = value.split(',')
+                        zpAllowed.add(UIntRange(zpstart.toUInt(), zpend.toUInt()))
+                    }
                     "outputDir" -> outputDir = Path(value)
                     "optimize" -> optimize = value.toBoolean()
                     else -> throw IRParseException("illegal OPTION $name")
@@ -124,6 +129,7 @@ class IRFileReader {
             launcher,
             zeropage,
             zpReserved,
+            zpAllowed,
             false,
             false,
             target,

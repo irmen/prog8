@@ -16,6 +16,7 @@ class TestGoldenRam: FunSpec({
         CbmPrgLauncherType.NONE,
         ZeropageType.FULL,
         listOf((0x00u..0xffu)),
+        CompilationOptions.AllZeropageAllowed,
         floats = true,
         noSysInit = false,
         compTarget = VMTarget(),

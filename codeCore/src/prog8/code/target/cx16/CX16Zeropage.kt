@@ -47,8 +47,8 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
             free.addAll(distinctFree)
 
             removeReservedFromFreePool()
-
             allocateCx16VirtualRegisters()
+            retainAllowed()
         }
     }
 

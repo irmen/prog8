@@ -42,6 +42,13 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
         }
     }
 
+    fun retainAllowed() {
+        synchronized(this) {
+            for(allowed in options.zpAllowed)
+                free.retainAll { it in allowed }
+        }
+    }
+
     fun availableBytes() = if(options.zeropage== ZeropageType.DONTUSE) 0 else free.size
     fun hasByteAvailable() = if(options.zeropage== ZeropageType.DONTUSE) false else free.isNotEmpty()
     fun hasWordAvailable(): Boolean {

@@ -50,6 +50,7 @@ class PETZeropage(options: CompilationOptions) : Zeropage(options) {
         free.addAll(distinctFree)
 
         removeReservedFromFreePool()
+        retainAllowed()
     }
 
     override fun allocateCx16VirtualRegisters() {

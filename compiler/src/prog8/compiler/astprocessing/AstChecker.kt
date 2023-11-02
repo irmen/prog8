@@ -773,7 +773,7 @@ internal class AstChecker(private val program: Program,
                         directive.args[0].name != "full")
                     err("invalid zp type, expected basicsafe, floatsafe, kernalsafe, dontuse, or full")
             }
-            "%zpreserved" -> {
+            "%zpreserved", "%zpallowed" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
                 if(directive.args.size!=2 || directive.args[0].int==null || directive.args[1].int==null)
