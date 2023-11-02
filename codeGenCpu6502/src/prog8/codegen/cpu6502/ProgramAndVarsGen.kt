@@ -497,7 +497,15 @@ internal class ProgramAndVarsGen(
         for ((scopedName, zpvar) in zpVariables) {
             if (scopedName.startsWith("cx16.r"))
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
-            asmgen.out("${scopedName.substringAfterLast('.')} \t= ${zpvar.address} \t; zp ${zpvar.dt}")
+            val variable = symboltable.flat.getValue(scopedName) as StStaticVariable
+            if(variable.dt in SplitWordArrayTypes) {
+                val lsbAddr = zpvar.address
+                val msbAddr = zpvar.address + (zpvar.size/2).toUInt()
+                asmgen.out("${scopedName.substringAfterLast('.')}_lsb \t= $lsbAddr \t; zp ${zpvar.dt} (lsbs)")
+                asmgen.out("${scopedName.substringAfterLast('.')}_msb \t= $msbAddr \t; zp ${zpvar.dt} (msbs)")
+            } else {
+                asmgen.out("${scopedName.substringAfterLast('.')} \t= ${zpvar.address} \t; zp ${zpvar.dt}")
+            }
         }
     }
 

@@ -8,6 +8,7 @@ import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import kotlin.io.path.readText
 
 class TestArrayThings: FunSpec({
     test("assign prefix var to array should compile fine and is not split into inplace array modification") {
@@ -159,6 +160,20 @@ main {
 }"""
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
+
+    test("split array in zeropage is okay") {
+        val text = """
+main {
+    sub start() {
+        uword[3] @zp @split @shared thearray
+    } 
+}"""
+        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+        assembly shouldContain "thearray_lsb"
+        assembly shouldContain "thearray_msb"
     }
 })
 

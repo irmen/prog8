@@ -1,7 +1,6 @@
 TODO
 ====
 
-- fix assembly error for uword[3] @zp @split word_addrs  (not defined symbol 'p8_word_addrs_lsb')
 - fix fill() to not access pixels outside of the screen (use virtual testmongfx first?)
 - change fill() to use unsigned types for optimization, and re-check previous problem.
 
