@@ -1787,6 +1787,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
             is PtNumber -> throw AssemblyError("a cast of a literal value should have been const-folded away")
+            is PtArrayIndexer -> {
+                if(targetDt in ByteDatatypes && valueDt in WordDatatypes) {
+                    // just assign the lsb from the array value
+                    return assignCastViaLsbFunc(value, target)
+                }
+            }
             else -> {}
         }
 

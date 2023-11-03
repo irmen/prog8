@@ -1115,7 +1115,25 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            when(resultRegister) {
+            if(arg is PtArrayIndexer && resultRegister in setOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
+                // just read the lsb byte out of the word array
+                val arrayVar = if(arg.splitWords) asmgen.asmVariableName(arg.variable)+"_lsb" else asmgen.asmVariableName(arg.variable)
+                when(resultRegister) {
+                    null, RegisterOrPair.A -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(arg, arg.type, CpuRegister.Y)
+                        asmgen.out("  lda  $arrayVar,y")
+                    }
+                    RegisterOrPair.Y -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(arg, arg.type, CpuRegister.X)
+                        asmgen.out("  lda  $arrayVar,x")
+                    }
+                    RegisterOrPair.X -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(arg, arg.type, CpuRegister.Y)
+                        asmgen.out("  ldx  $arrayVar,y")
+                    }
+                    else -> throw AssemblyError("invalid reg")
+                }
+            } else  when(resultRegister) {
                 null, RegisterOrPair.A -> {
                     asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     // NOTE: we rely on the fact that the above assignment to AY, assigns the Lsb to A as the last instruction.
