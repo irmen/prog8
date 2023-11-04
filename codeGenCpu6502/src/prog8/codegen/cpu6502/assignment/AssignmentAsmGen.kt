@@ -1414,10 +1414,24 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun assignOptimizedComparisonWords(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         val signed = expr.left.type == DataType.WORD || expr.right.type ==  DataType.WORD
+
         when(expr.operator) {
             "==" -> {
-                asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                asmgen.out("""
+                if(expr.left is PtIdentifier) {
+                    val varName = asmgen.asmVariableName(expr.left as PtIdentifier)
+                    asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.AY)
+                    asmgen.out("""
+                    cmp  $varName
+                    bne  +
+                    cpy  $varName+1
+                    bne  +
+                    lda  #1
+                    bne  ++
++                   lda  #0
++""")
+                } else {
+                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
+                    asmgen.out("""
                     cmp  P8ZP_SCRATCH_W1
                     bne  +
                     cpy  P8ZP_SCRATCH_W1+1
@@ -1426,10 +1440,24 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     bne  ++
 +                   lda  #0
 +""")
+                }
             }
             "!=" -> {
-                asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                asmgen.out("""
+                if(expr.left is PtIdentifier) {
+                    val varName = asmgen.asmVariableName(expr.left as PtIdentifier)
+                    asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.AY)
+                    asmgen.out("""
+                    cmp  $varName
+                    bne  +
+                    cpy  $varName+1
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+                } else {
+                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
+                    asmgen.out("""
                     cmp  P8ZP_SCRATCH_W1
                     bne  +
                     cpy  P8ZP_SCRATCH_W1+1
@@ -1438,11 +1466,39 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     beq  ++
 +                   lda  #1
 +""")
+                }
             }
             "<" -> {
-                if(signed) {
-                    asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
-                    asmgen.out("""
+                if(expr.right is PtIdentifier) {
+                    val varName = asmgen.asmVariableName(expr.right as PtIdentifier)
+                    asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.AY)
+                    if(signed)
+                        asmgen.out("""
+		cmp  $varName
+        tya
+		sbc  $varName+1
+		bvc  +
+		eor  #${'$'}80
++		bpl  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                    else
+                        asmgen.out("""
+		cpy  $varName+1
+		bcc  +
+        bne  ++
+		cmp  $varName
+		bcs  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                } else {
+                    if(signed) {
+                        asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
+                        asmgen.out("""
 		cmp  P8ZP_SCRATCH_W1
         tya
 		sbc  P8ZP_SCRATCH_W1+1
@@ -1453,10 +1509,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         bne  ++
 +       lda  #0
 +""")
-                }
-                else {
-                    asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
-                    asmgen.out("""
+                    }
+                    else {
+                        asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
+                        asmgen.out("""
 		cpy  P8ZP_SCRATCH_W1+1
 		bcc  +
         bne  ++
@@ -1466,12 +1522,40 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         bne  ++
 +       lda  #0
 +""")
+                    }
                 }
             }
             "<=" -> {
-                if(signed) {
-                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                    asmgen.out("""
+                if(expr.left is PtIdentifier) {
+                    val varName = asmgen.asmVariableName(expr.left as PtIdentifier)
+                    asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.AY)
+                    if(signed)
+                        asmgen.out("""
+		cmp  $varName
+        tya
+		sbc  $varName+1
+		bvc  +
+		eor  #${'$'}80
++		bmi  +
+        lda  #1
+        bne  ++
++       lda  #0
++""")
+                    else
+                        asmgen.out("""
+		cpy  $varName+1
+		bcc  ++
+		bne  +
+		cmp  $varName
+		bcc  ++                        
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                } else {
+                    if(signed) {
+                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
+                        asmgen.out("""
 		cmp  P8ZP_SCRATCH_W1
         tya
 		sbc  P8ZP_SCRATCH_W1+1
@@ -1482,10 +1566,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         bne  ++
 +       lda  #0
 +""")
-                }
-                else {
-                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                    asmgen.out("""
+                    }
+                    else {
+                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
+                        asmgen.out("""
 		cpy  P8ZP_SCRATCH_W1+1
 		bcc  ++
 		bne  +
@@ -1495,12 +1579,40 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         bne  ++
 +       lda  #0
 +""")
+                    }
                 }
             }
             ">" -> {
-                if(signed) {
-                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                    asmgen.out("""
+                if(expr.left is PtIdentifier) {
+                    val varName = asmgen.asmVariableName(expr.left as PtIdentifier)
+                    asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.AY)
+                    if(signed)
+                        asmgen.out("""
+		cmp  $varName
+        tya
+		sbc  $varName+1
+		bvc  +
+		eor  #${'$'}80
++		bpl  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                    else
+                        asmgen.out("""
+		cpy  $varName+1
+		bcc  +
+        bne  ++
+		cmp  $varName
+		bcs  ++
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                } else {
+                    if(signed) {
+                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
+                        asmgen.out("""
 		cmp  P8ZP_SCRATCH_W1
         tya
 		sbc  P8ZP_SCRATCH_W1+1
@@ -1511,10 +1623,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         bne  ++
 +       lda  #0
 +""")
-                }
-                else {
-                    asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                    asmgen.out("""
+                    }
+                    else {
+                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
+                        asmgen.out("""
 		cpy  P8ZP_SCRATCH_W1+1
 		bcc  +
         bne  ++
@@ -1524,12 +1636,40 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         bne  ++
 +       lda  #0
 +""")
+                    }
                 }
             }
             ">=" -> {
-                if(signed) {
-                    asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
-                    asmgen.out("""
+                if(expr.right is PtIdentifier) {
+                    val varName = asmgen.asmVariableName(expr.right as PtIdentifier)
+                    asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.AY)
+                    if(signed)
+                        asmgen.out("""
+		cmp  $varName
+        tya
+		sbc  $varName+1
+		bvc  +
+		eor  #${'$'}80
++		bmi  +
+        lda  #1
+        bne  ++
++       lda  #0
++""")
+                    else
+                        asmgen.out("""
+		cpy  $varName+1
+		bcc  ++
+		bne  +
+		cmp  $varName
+		bcc  ++                        
++       lda  #1
+        bne  ++
++       lda  #0
++""")
+                } else {
+                    if(signed) {
+                        asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
+                        asmgen.out("""
 		cmp  P8ZP_SCRATCH_W1
         tya
 		sbc  P8ZP_SCRATCH_W1+1
@@ -1540,10 +1680,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         bne  ++
 +       lda  #0
 +""")
-                }
-                else {
-                    asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
-                    asmgen.out("""
+                    }
+                    else {
+                        asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
+                        asmgen.out("""
 		cpy  P8ZP_SCRATCH_W1+1
 		bcc  ++
 		bne  +
@@ -1553,6 +1693,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         bne  ++
 +       lda  #0
 +""")
+                    }
                 }
             }
             else -> return false

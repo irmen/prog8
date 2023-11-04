@@ -23,13 +23,13 @@ internal class AnyExprAsmGen(
                     return assignByteBinExpr(expr, assign)
                 if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
                     require(expr.operator in ComparisonOperators)
-                    TODO("words operands comparison -> byte")
+                    throw AssemblyError("words operands comparison -> byte, should have been handled by assignOptimizedComparisonWords()")
                 }
                 if (expr.left.type==DataType.FLOAT && expr.right.type==DataType.FLOAT) {
                     require(expr.operator in ComparisonOperators)
                     return assignFloatBinExpr(expr, assign)
                 }
-                TODO("weird expr operand types")
+                throw AssemblyError("weird expr operand types: ${expr.left.type} and {${expr.right.type}")
             }
             in WordDatatypes -> {
                 require(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
