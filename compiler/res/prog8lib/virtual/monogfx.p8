@@ -259,11 +259,13 @@ monogfx {
         return sys.gfx_getpixel(xx, yy)
     }
 
-    sub fill(word @zp xx, word @zp yy, bool draw) {
+    sub fill(uword x, uword y, bool draw) {
         ; Non-recursive scanline flood fill.
         ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
         ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
         const ubyte MAXDEPTH = 48
+        word @zp xx = x as word
+        word @zp yy = y as word
         word[MAXDEPTH] @split @shared stack_xl
         word[MAXDEPTH] @split @shared stack_xr
         word[MAXDEPTH] @split @shared stack_y
@@ -304,8 +306,11 @@ monogfx {
         while cx16.r12L {
             pop_stack()
             xx = x1
-            while xx >= 0 and pget(xx as uword, yy as uword) == cx16.r11L
+            while xx >= 0 {
+                if pget(xx as uword, yy as uword) != cx16.r11L
+                    break
                 xx--
+            }
             if x1!=xx
                 horizontal_line(xx as uword+1, yy as uword, x1-xx as uword, cx16.r10L)
             else
@@ -318,8 +323,11 @@ monogfx {
 
             do {
                 cx16.r9 = xx
-                while xx <= width-1 and pget(xx as uword, yy as uword) == cx16.r11L
+                while xx <= width-1 {
+                    if pget(xx as uword, yy as uword) != cx16.r11L
+                        break
                     xx++
+                }
                 if cx16.r9!=xx
                     horizontal_line(cx16.r9, yy as uword, (xx as uword)-cx16.r9, cx16.r10L)
 
@@ -328,8 +336,11 @@ monogfx {
                     push_stack(x2 + 1, xx - 1, yy, -dy)
 skip:
                 xx++
-                while xx <= x2 and pget(xx as uword, yy as uword) != cx16.r11L
+                while xx <= x2 {
+                    if pget(xx as uword, yy as uword) == cx16.r11L
+                        break
                     xx++
+                }
                 left = xx
             } until xx>x2
         }

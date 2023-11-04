@@ -68,9 +68,9 @@ class GraphicsWindow(val pixelWidth: Int, val pixelHeight: Int, val pixelScaling
 
     fun getpixel(x: Int, y: Int): Int {
         if(x<0 || x>=pixelWidth)
-            throw IllegalArgumentException("plot x outside of screen: $x")
+            throw IllegalArgumentException("getpixel x outside of screen: $x")
         if(y<0 || y>=pixelHeight)
-            throw IllegalArgumentException("plot y outside of screen: $y")
+            throw IllegalArgumentException("getpixel y outside of screen: $y")
         return image.getRGB(x, y)
     }
 }
