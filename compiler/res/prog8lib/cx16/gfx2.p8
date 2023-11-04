@@ -40,9 +40,6 @@ gfx2 {
                 cx16.VERA_L1_CONFIG = %00000111
                 cx16.VERA_L1_MAPBASE = 0
                 cx16.VERA_L1_TILEBASE = 0
-                width = 320
-                height = 240
-                bpp = 8
             }
             2 -> {
                 ; highres 4c
@@ -52,25 +49,42 @@ gfx2 {
                 cx16.VERA_L1_CONFIG = %00000101
                 cx16.VERA_L1_MAPBASE = 0
                 cx16.VERA_L1_TILEBASE = %00000001
-                width = 640
-                height = 480
-                bpp = 2
             }
             else -> {
                 ; back to default text mode
                 cx16.r15L = cx16.VERA_DC_VIDEO & %00000111 ; retain chroma + output mode
                 cbm.CINT()
                 cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
-                width = 0
-                height = 0
-                bpp = 0
-                mode = 0
             }
         }
 
-        active_mode = mode
-        if bpp
+        init_mode(mode)
+        if active_mode
             clear_screen(0)
+    }
+
+    sub init_mode(ubyte mode) {
+        ; set the internal configuration variables corresponding to the given screenmode
+        ; doesn't manipulate Vera / the actual display mode
+        active_mode = mode
+        when mode {
+            1 -> {
+                width = 320
+                height = 240
+                bpp = 8
+            }
+            2 -> {
+                width = 640
+                height = 480
+                bpp = 2
+            }
+            else -> {
+                width = 0
+                height = 0
+                bpp = 0
+                active_mode = 0
+            }
+        }
     }
 
     sub clear_screen(ubyte color) {
