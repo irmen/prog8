@@ -1,6 +1,11 @@
 TODO
 ====
 
+- is Jesko's circle algorithm faster than what we have now? https://en.wikipedia.org/wiki/Midpoint_circle_algorithm#Jesko's_Method
+  is it Correct??? Or better to use Casey's algorithm?
+- revisit the seek example to see if write-seeking now works?
+
+- remove unused interned strings in the resulting code (for example from removed if/else blocks)
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? Bitwise operations, etc), but only after setting the status bits is verified!

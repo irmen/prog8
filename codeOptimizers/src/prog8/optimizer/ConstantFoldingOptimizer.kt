@@ -87,7 +87,8 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
 
         if(expr.operator=="==" && rightconst!=null) {
             val leftExpr = expr.left as? BinaryExpression
-            if(leftExpr!=null) {
+            // only do this shuffling when the LHS is not a constant itself (otherwise problematic nested replacements)
+            if(leftExpr?.constValue(program) != null) {
                 val leftRightConst = leftExpr.right.constValue(program)
                 if(leftRightConst!=null) {
                     when (leftExpr.operator) {
