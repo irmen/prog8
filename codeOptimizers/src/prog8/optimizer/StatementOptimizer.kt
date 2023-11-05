@@ -430,6 +430,27 @@ class StatementOptimizer(private val program: Program,
                 }
             }
         }
+
+        val constantValue = whenStmt.condition.constValue(program)?.number
+        if(constantValue!=null) {
+            // when condition is a constant
+            var matchingChoice: WhenChoice? = null
+            loop@ for(choice in whenStmt.choices) {
+                for(value in choice.values ?: emptyList()) {
+                    if(value.constValue(program)?.number == constantValue) {
+                        matchingChoice = choice
+                        break@loop
+                    }
+                }
+            }
+            if(matchingChoice==null)
+                matchingChoice = whenStmt.choices.singleOrNull { it.values==null }
+            if(matchingChoice!=null) {
+                // get rid of the whole when-statement and just leave the matching choice
+                return listOf(IAstModification.ReplaceNode(whenStmt, matchingChoice.statements, parent))
+            }
+        }
+
         return noModifications
     }
 

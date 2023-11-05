@@ -1,27 +1,17 @@
-%import gfx2
+%zeropage basicsafe
+%option no_sysinit
+%import textio
 
 main {
-    sub start() {
-        gfx2.screen_mode(2)
+  const ubyte FOO = 0
+  const ubyte BAR = 1
 
-        gfx2.safe_circle(120, 140, 200, 1)
-        sys.wait(30)
-        gfx2.safe_circle(520, 140, 200, 1)
-        sys.wait(30)
-        gfx2.safe_circle(120, 340, 200, 1)
-        sys.wait(30)
-        gfx2.safe_circle(520, 340, 200, 1)
-        sys.wait(30)
-
-        gfx2.safe_disc(120, 140, 200, 1)
-        sys.wait(30)
-        gfx2.safe_disc(520, 140, 200, 1)
-        sys.wait(30)
-        gfx2.safe_disc(120, 340, 200, 1)
-        sys.wait(30)
-        gfx2.safe_disc(520, 340, 200, 1)
-
-        repeat {
-        }
+  sub start() {
+    when FOO+BAR {
+        1-> txt.print("path 1")
+        2-> txt.print("path 2")
+        else-> txt.print("path 3")
     }
+    txt.nl()
+  }
 }
