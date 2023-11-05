@@ -1,6 +1,9 @@
 ; bitmap pixel graphics module for the C64
 ; only black/white monochrome 320x200 for now
 ;
+; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
+;       You'll have to make sure yourself that you're not writing outside of bitmap boundaries!
+;
 ; Sets character matrix and bitmap screen memory at a higher memory location $5c00-$7fff
 ; so that the program itself can be larger without starting to overwrite the graphics memory.
 
@@ -244,7 +247,8 @@ hline_zero2
     }
 
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {
-        ; Midpoint algorithm
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
+        ; Midpoint algorithm.
         if radius==0
             return
         ubyte @zp ploty
@@ -273,16 +277,17 @@ hline_zero2
             internal_plotx = xcenter - yy
             internal_plot(ploty)
             yy++
-            if decisionOver2<=0
-                decisionOver2 += (yy as word)*2+1
-            else {
+            if decisionOver2>=0 {
                 radius--
-                decisionOver2 += (yy as word -radius)*2+1
+                decisionOver2 -= radius*$0002
             }
+            decisionOver2 += yy*$0002
+            decisionOver2++
         }
     }
 
     sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
         ; Midpoint algorithm, filled
         if radius==0
             return
@@ -295,12 +300,12 @@ hline_zero2
             horizontal_line(xcenter-yy, ycenter+radius, yy*2+1)
             horizontal_line(xcenter-yy, ycenter-radius, yy*2+1)
             yy++
-            if decisionOver2<=0
-                decisionOver2 += (yy as word)*2+1
-            else {
+            if decisionOver2>=0 {
                 radius--
-                decisionOver2 += (yy as word -radius)*2+1
+                decisionOver2 -= radius*$0002
             }
+            decisionOver2 += yy*$0002
+            decisionOver2++
         }
     }
 

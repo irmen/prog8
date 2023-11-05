@@ -7,6 +7,10 @@
 ; Unlike graphics module on the C64, you can use colors() to set new drawing colors for every draw operation.
 ; For other resolutions or other color modes, use the "gfx2" or "monogfx" module instead. (which is Cx16-specific)
 ; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
+;
+; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
+;       You'll have to make sure yourself that you're not writing outside of bitmap boundaries!
+;
 
 
 graphics {
@@ -69,6 +73,8 @@ graphics {
     }
 
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
+
         ;cx16.r0 = xcenter - radius/2
         ;cx16.r1 = ycenter - radius/2
         ;cx16.r2 = radius*2
@@ -111,17 +117,21 @@ graphics {
             cx16.r0 = xcenter - yy
             cx16.FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
+
             yy++
-            if decisionOver2<=0 {
-                decisionOver2 += (yy as word)*2+1
-            } else {
+            if decisionOver2>=0 {
                 xx--
-                decisionOver2 += (yy as word -xx)*2+1
+                decisionOver2 -= xx*$0002
             }
+            decisionOver2 += yy*$0002
+            decisionOver2++
         }
     }
 
     sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
+        ; Midpoint algorithm, filled
+
         if radius==0
             return
         ubyte @zp yy = 0
@@ -132,13 +142,14 @@ graphics {
             horizontal_line(xcenter-radius, ycenter-yy, radius*2+1)
             horizontal_line(xcenter-yy, ycenter+radius, yy*2+1)
             horizontal_line(xcenter-yy, ycenter-radius, yy*2+1)
+
             yy++
-            if decisionOver2<=0
-                decisionOver2 += (yy as word)*2+1
-            else {
+            if decisionOver2>=0 {
                 radius--
-                decisionOver2 += (yy as word -radius)*2+1
+                decisionOver2 -= radius*$0002
             }
+            decisionOver2 += yy*$0002
+            decisionOver2++
         }
     }
 

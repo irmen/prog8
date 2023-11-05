@@ -61,21 +61,21 @@ main {
             byte decisionOver2 = 1-x as byte
 
             while x>=y {
-                txt.setcc(xcenter + x, ycenter + y as ubyte, 81, 1)
-                txt.setcc(xcenter - x, ycenter + y as ubyte, 81, 2)
-                txt.setcc(xcenter + x, ycenter - y as ubyte, 81, 3)
-                txt.setcc(xcenter - x, ycenter - y as ubyte, 81, 4)
-                txt.setcc(xcenter + y, ycenter + x as ubyte, 81, 5)
-                txt.setcc(xcenter - y, ycenter + x as ubyte, 81, 6)
-                txt.setcc(xcenter + y, ycenter - x as ubyte, 81, 7)
-                txt.setcc(xcenter - y, ycenter - x as ubyte, 81, 8)
+                txt.setcc(xcenter + x, ycenter + y, 81, 1)
+                txt.setcc(xcenter - x, ycenter + y, 81, 2)
+                txt.setcc(xcenter + x, ycenter - y, 81, 3)
+                txt.setcc(xcenter - x, ycenter - y, 81, 4)
+                txt.setcc(xcenter + y, ycenter + x, 81, 5)
+                txt.setcc(xcenter - y, ycenter + x, 81, 6)
+                txt.setcc(xcenter + y, ycenter - x, 81, 7)
+                txt.setcc(xcenter - y, ycenter - x, 81, 8)
                 y++
-                if decisionOver2<=0
-                    decisionOver2 += 2*y+1
-                else {
+                if decisionOver2>=0 {
                     x--
-                    decisionOver2 += 2*(y-x)+1
+                    decisionOver2 -= 2*x
                 }
+                decisionOver2 += 2*y
+                decisionOver2++
             }
         }
 
@@ -89,23 +89,23 @@ main {
             while x>=y {
                 xx = cx-x
                 repeat 2*x+1 {
-                    txt.setcc(xx, cy + y as ubyte, 81, 11)
-                    txt.setcc(xx, cy - y as ubyte, 81, 12)
+                    txt.setcc(xx, cy + y, 81, 11)
+                    txt.setcc(xx, cy - y, 81, 12)
                     xx++
                 }
                 xx = cx-y
                 repeat 2*y+1 {
-                    txt.setcc(xx, cy + x as ubyte, 81, 13)
-                    txt.setcc(xx, cy - x as ubyte, 81, 14)
+                    txt.setcc(xx, cy + x, 81, 13)
+                    txt.setcc(xx, cy - x, 81, 14)
                     xx++
                 }
                 y++
-                if decisionOver2<=0
-                    decisionOver2 += 2*y+1
-                else {
+                if decisionOver2>=0 {
                     x--
-                    decisionOver2 += 2*(y-x)+1
+                    decisionOver2 -= 2*x
                 }
+                decisionOver2 += 2*y
+                decisionOver2++
             }
         }
     }

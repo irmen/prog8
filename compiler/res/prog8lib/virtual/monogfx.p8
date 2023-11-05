@@ -1,5 +1,9 @@
 ; Monochrome Bitmap pixel graphics routines for the Virtual Machine
 ; Using the full-screen 640x480 and 320x240 screen modes, but just black/white.
+;
+; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
+;       You'll have to make sure yourself that you're not writing outside of bitmap boundaries!
+
 
 monogfx {
 
@@ -72,6 +76,24 @@ monogfx {
         uword xpos
         for xpos in xx to xx+length-1
             plot(xpos, yy, color)
+    }
+
+    sub safe_horizontal_line(uword xx, uword yy, uword length, bool draw) {
+        ; does bounds checking and clipping
+        if msb(yy)&$80!=0 or yy>=height
+            return
+        if msb(xx)&$80!=0 {
+            length += xx
+            xx = 0
+        }
+        if xx>=width
+            return
+        if xx+length>width
+            length = width-xx
+        if length>width
+            return
+
+        horizontal_line(xx, yy, length, draw)
     }
 
     sub vertical_line(uword xx, uword yy, uword lheight, bool draw) {
@@ -176,6 +198,7 @@ monogfx {
     }
 
     sub circle(uword @zp xcenter, uword @zp ycenter, ubyte radius, bool draw) {
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
         ; Midpoint algorithm.
         if radius==0
             return
@@ -189,36 +212,91 @@ monogfx {
         while xx>=yy {
             cx16.r14 = xcenter + xx
             cx16.r15 = ycenter + yy
-            plot(cx16.r14, cx16.r15, draw)
+            plotq()
             cx16.r14 = xcenter - xx
-            plot(cx16.r14, cx16.r15, draw)
+            plotq()
             cx16.r14 = xcenter + xx
             cx16.r15 = ycenter - yy
-            plot(cx16.r14, cx16.r15, draw)
+            plotq()
             cx16.r14 = xcenter - xx
-            plot(cx16.r14, cx16.r15, draw)
+            plotq()
             cx16.r14 = xcenter + yy
             cx16.r15 = ycenter + xx
-            plot(cx16.r14, cx16.r15, draw)
+            plotq()
             cx16.r14 = xcenter - yy
-            plot(cx16.r14, cx16.r15, draw)
+            plotq()
             cx16.r14 = xcenter + yy
             cx16.r15 = ycenter - xx
-            plot(cx16.r14, cx16.r15, draw)
+            plotq()
             cx16.r14 = xcenter - yy
-            plot(cx16.r14, cx16.r15, draw)
+            plotq()
 
             yy++
-            if decisionOver2<=0
-                decisionOver2 += (yy as word)*2+1
-            else {
+            if decisionOver2>=0 {
                 xx--
-                decisionOver2 += (yy as word -xx)*2+1
+                decisionOver2 -= xx*$0002
             }
+            decisionOver2 += yy*$0002
+            decisionOver2++
+        }
+
+        sub plotq() {
+            ; cx16.r14 = x, cx16.r15 = y, draw=draw
+            plot(cx16.r14, cx16.r15, draw)
+        }
+    }
+
+    sub safe_circle(uword @zp xcenter, uword @zp ycenter, ubyte radius, bool draw) {
+        ; Does bounds checking and clipping.
+        ; Midpoint algorithm.
+        if radius==0
+            return
+
+        ubyte @zp xx = radius
+        ubyte @zp yy = 0
+        word @zp decisionOver2 = (1 as word)-xx
+        ; R14 = internal plot X
+        ; R15 = internal plot Y
+
+        while xx>=yy {
+            cx16.r14 = xcenter + xx
+            cx16.r15 = ycenter + yy
+            plotq()
+            cx16.r14 = xcenter - xx
+            plotq()
+            cx16.r14 = xcenter + xx
+            cx16.r15 = ycenter - yy
+            plotq()
+            cx16.r14 = xcenter - xx
+            plotq()
+            cx16.r14 = xcenter + yy
+            cx16.r15 = ycenter + xx
+            plotq()
+            cx16.r14 = xcenter - yy
+            plotq()
+            cx16.r14 = xcenter + yy
+            cx16.r15 = ycenter - xx
+            plotq()
+            cx16.r14 = xcenter - yy
+            plotq()
+
+            yy++
+            if decisionOver2>=0 {
+                xx--
+                decisionOver2 -= xx*$0002
+            }
+            decisionOver2 += yy*$0002
+            decisionOver2++
+        }
+
+        sub plotq() {
+            ; cx16.r14 = x, cx16.r15 = y, draw=draw
+            safe_plot(cx16.r14, cx16.r15, draw)
         }
     }
 
     sub disc(uword @zp xcenter, uword @zp ycenter, ubyte @zp radius, bool draw) {
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
         ; Midpoint algorithm, filled
         if radius==0
             return
@@ -231,12 +309,35 @@ monogfx {
             horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, draw)
             horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, draw)
             yy++
-            if decisionOver2<=0
-                decisionOver2 += (yy as word)*2+1
-            else {
+            if decisionOver2>=0 {
                 radius--
-                decisionOver2 += (yy as word -radius)*2+1
+                decisionOver2 -= radius*$0002
             }
+            decisionOver2 += yy*$0002
+            decisionOver2++
+        }
+    }
+
+    sub safe_disc(uword @zp xcenter, uword @zp ycenter, ubyte @zp radius, bool draw) {
+        ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
+        ; Midpoint algorithm, filled
+        if radius==0
+            return
+        ubyte @zp yy = 0
+        word @zp decisionOver2 = (1 as word)-radius
+
+        while radius>=yy {
+            safe_horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, draw)
+            safe_horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, draw)
+            safe_horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, draw)
+            safe_horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, draw)
+            yy++
+            if decisionOver2>=0 {
+                radius--
+                decisionOver2 -= radius*$0002
+            }
+            decisionOver2 += yy*$0002
+            decisionOver2++
         }
     }
 
@@ -253,6 +354,15 @@ monogfx {
         }
         else
             sys.gfx_plot(xx, yy, 0)
+    }
+
+    sub safe_plot(uword xx, uword yy, bool draw) {
+        ; A plot that does bounds checks to see if the pixel is inside the screen.
+        if msb(xx)&$80!=0 or msb(yy)&$80!=0
+            return
+        if xx >= width or yy >= height
+            return
+        plot(xx, yy, draw)
     }
 
     sub pget(uword @zp xx, uword yy) -> ubyte {

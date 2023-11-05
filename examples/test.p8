@@ -1,22 +1,27 @@
-%zeropage basicsafe
+%import gfx2
 
 main {
-
-    sub pget(uword x, uword y) -> ubyte {
-        return lsb(x+y)
-    }
-
     sub start() {
+        gfx2.screen_mode(2)
 
-        word xx
-        word x2
-        word yy
+        gfx2.safe_circle(120, 140, 200, 1)
+        sys.wait(30)
+        gfx2.safe_circle(520, 140, 200, 1)
+        sys.wait(30)
+        gfx2.safe_circle(120, 340, 200, 1)
+        sys.wait(30)
+        gfx2.safe_circle(520, 340, 200, 1)
+        sys.wait(30)
 
-        if xx <= x2 and pget(xx as uword, yy as uword) == cx16.r11L
-            xx++
+        gfx2.safe_disc(120, 140, 200, 1)
+        sys.wait(30)
+        gfx2.safe_disc(520, 140, 200, 1)
+        sys.wait(30)
+        gfx2.safe_disc(120, 340, 200, 1)
+        sys.wait(30)
+        gfx2.safe_disc(520, 340, 200, 1)
 
-;        if xx <= x2
-;            if pget(xx as uword, yy as uword) == cx16.r11L
-;                xx++
+        repeat {
+        }
     }
 }

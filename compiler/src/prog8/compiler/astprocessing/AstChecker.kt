@@ -1348,6 +1348,9 @@ internal class AstChecker(private val program: Program,
         if(whenStmt.choices.isEmpty())
             errors.err("empty when statement", whenStmt.position)
 
+        if(whenStmt.condition.constValue(program)!=null)
+            errors.warn("when-value is a constant and will always result in the same choice", whenStmt.condition.position)
+
         super.visit(whenStmt)
     }
 
