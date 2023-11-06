@@ -332,7 +332,7 @@ private fun Prog8ANTLRParser.ClobberContext.toAst() : Set<CpuRegister> {
     try {
         return names.map { CpuRegister.valueOf(it) }.toSet()
     } catch(ax: IllegalArgumentException) {
-        throw SyntaxError("invalid pu register", toPosition())
+        throw SyntaxError("invalid cpu register", toPosition())
     }
 }
 

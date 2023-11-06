@@ -1,17 +1,14 @@
 %zeropage basicsafe
 %option no_sysinit
 %import textio
+%import verafx
 
 main {
-  const ubyte FOO = 0
-  const ubyte BAR = 1
-
-  sub start() {
-    when FOO+BAR {
-        1-> txt.print("path 1")
-        2-> txt.print("path 2")
-        else-> txt.print("path 3")
+    sub start() {
+        uword lower16 = verafx.mult(11111,9988)
+        uword upper16 = cx16.r0
+        txt.print_uwhex(upper16, true)   ; $069d5e9c  = 110976668
+        txt.print_uwhex(lower16, false)
+        txt.nl()
     }
-    txt.nl()
-  }
 }

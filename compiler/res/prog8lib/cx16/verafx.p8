@@ -65,10 +65,16 @@ verafx {
     ; unsigned multiplication just passes the values as signed to muls
     ; if you do this yourself in your call to muls, it will save a few instructions.
     sub mult(uword value1, uword value2) -> uword {
+        ; Returns the lower 16 bits of the 32 bits result,
+        ; the upper 16 bits are stored in cx16.r0 so you can access those separately.
+        ; It's not part of the subroutine's signature to avoid awkward use of multiple returnvalues.
         return muls(value1 as word, value2 as word) as uword
     }
 
-    asmsub muls(word value1 @R0, word value2 @R1) -> word @AY {
+    asmsub muls(word value1 @R0, word value2 @R1) clobbers(X) -> word @AY {
+        ; Returns the lower 16 bits of the 32 bits result in AY,
+        ; the upper 16 bits are stored in cx16.r0 so you can access those separately.
+        ; It's not part of the subroutine's signature to avoid awkward use of multiple returnvalues.
         %asm {{
             lda  #(2 << 1)
             sta  cx16.VERA_CTRL        ; $9F25
@@ -104,14 +110,13 @@ verafx {
             sta  cx16.VERA_ADDR_H     ; so we can read out the result
             lda  cx16.VERA_DATA0
             ldy  cx16.VERA_DATA0
+            ldx  cx16.VERA_DATA0      ; store the upper 16 bits of the result in r0
+            stx  cx16.r0
+            ldx  cx16.VERA_DATA0
+            stx  cx16.r0+1
             stz  cx16.VERA_FX_CTRL    ; Cache write disable
             stz  cx16.VERA_CTRL       ; reset DCSEL
             rts
-; we skip the upper 16 bits of the result:
-;            lda  cx16.VERA_DATA0
-;            sta  $0402
-;            lda  cx16.VERA_DATA0
-;            sta  $0403
         }}
     }
 
