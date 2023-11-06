@@ -155,6 +155,9 @@ dealing with text-based input and output (to the screen). Such as
 - scrolling the text on the screen
 - placing individual characters on the screen
 
+All routines work with Screencode character encoding, except `print`, `chrout` and `input_chars`,
+these work with PETSCII encoding instead.
+
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/textio.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)
 
@@ -418,6 +421,9 @@ but perhaps the provided ones can be of service too.
 ``mul16_last_upper () -> uword``
     Fetches the upper 16 bits of the previous 16*16 bit multiplication.
     To avoid corrupting the result, it is best performed immediately after the multiplication.
+    Note: It is only for the regular 6502 cpu multiplication routine.
+    It does not work for the verafx multiplication routines on the Commander X16!
+    These have a different way to obtain the upper 16 bits of the result: just read cx16.r0.
 
 
 cx16logo

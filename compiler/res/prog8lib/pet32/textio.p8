@@ -1,4 +1,6 @@
 ; Prog8 definitions for the Text I/O and Screen routines for the Commodore PET
+; All routines work with Screencode character encoding, except `print`, `chrout` and `input_chars`,
+; these work with PETSCII encoding instead.
 
 %import syslib
 %import conv
@@ -139,10 +141,10 @@ asmsub  scroll_down  () clobbers(A,X)  {
 	}}
 }
 
-romsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse.
+romsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
 
 asmsub  print (str text @ AY) clobbers(A,Y)  {
-	; ---- print null terminated string from A/Y
+	; ---- print null terminated string, in PETSCII encoding, from A/Y
 	; note: the compiler contains an optimization that will replace
 	;       a call to this subroutine with a string argument of just one char,
 	;       by just one call to cbm.CHROUT of that single char.
@@ -328,7 +330,8 @@ asmsub  print_w  (word value @ AY) clobbers(A,X,Y)  {
 }
 
 asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
-	; ---- Input a string (max. 80 chars) from the keyboard. Returns length in Y. (string is terminated with a 0 byte as well)
+	; ---- Input a string (max. 80 chars) from the keyboard, in PETSCII encoding.
+	;      Returns length in Y. (string is terminated with a 0 byte as well)
 	;      It assumes the keyboard is selected as I/O channel!
 
 	%asm {{
