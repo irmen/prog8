@@ -873,6 +873,8 @@ asmsub  init_system()  {
         jsr  cbm.CHROUT
         lda  #147       ; clear screen
         jsr  cbm.CHROUT
+        lda  #8         ; disable charset case switch
+        jsr  cbm.CHROUT
         lda  #PROG8_VARSHIGH_RAMBANK
         sta  $00    ; select ram bank
         lda  #0
@@ -1247,6 +1249,20 @@ _longcopy
     inline asmsub irqsafe_clear_irqd() {
         %asm {{
         plp
+        }}
+    }
+
+    inline asmsub disable_caseswitch() {
+        %asm {{
+            lda  #8
+            jsr  cbm.CHROUT
+        }}
+    }
+
+    inline asmsub enable_caseswitch() {
+        %asm {{
+            lda  #9
+            jsr  cbm.CHROUT
         }}
     }
 

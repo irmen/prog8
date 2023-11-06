@@ -198,6 +198,14 @@ _longcopy
         }}
     }
 
+    sub disable_caseswitch() {
+        ; no-op
+    }
+
+    sub enable_caseswitch() {
+        ; no-op
+    }
+
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         ;    TODO

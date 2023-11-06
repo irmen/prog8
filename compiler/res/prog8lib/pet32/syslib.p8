@@ -297,6 +297,14 @@ _longcopy
         }}
     }
 
+    sub disable_caseswitch() {
+        ; PET doesn't have a key to swap case, so no-op
+    }
+
+    sub enable_caseswitch() {
+        ; PET doesn't have a key to swap case, so no-op
+    }
+
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{

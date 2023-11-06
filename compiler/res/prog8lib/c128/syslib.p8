@@ -734,6 +734,20 @@ _longcopy
         }}
     }
 
+    inline asmsub disable_caseswitch() {
+        %asm {{
+            lda  #$80
+            sta  247
+        }}
+    }
+
+    inline asmsub enable_caseswitch() {
+        %asm {{
+            lda  #0
+            sta  247
+        }}
+    }
+
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{

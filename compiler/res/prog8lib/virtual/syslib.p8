@@ -79,6 +79,13 @@ sys {
         }}
     }
 
+    sub disable_caseswitch() {
+        ; no-op
+    }
+
+    sub enable_caseswitch() {
+        ; no-op
+    }
 
     sub gfx_enable(ubyte mode) {
         %ir {{

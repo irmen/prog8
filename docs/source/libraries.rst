@@ -132,6 +132,9 @@ sys (part of syslib)
 ``set_leds_brightness (ubyte activity, ubyte power)``  (commander x16 only)
     Sets the brightness of the activity and power leds on the computer.
 
+``disable_caseswitch()`` and ``enable_caseswitch()``
+    Disable or enable the ability to switch character set case using a keyboard combination.
+
 
 conv
 ----
