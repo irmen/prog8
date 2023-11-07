@@ -44,6 +44,43 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
     }}
 }
 
+asmsub get_column() -> ubyte @Y {
+    %asm {{
+        sec
+        jmp cbm.PLOT
+    }}
+}
+
+asmsub row(ubyte rownum @A) clobbers(A, X, Y) {
+    ; ---- set the cursor on the given row (starting with 0) on the current line
+    %asm {{
+        sec
+        jsr  cbm.PLOT
+        tax
+        clc
+        jmp  cbm.PLOT
+    }}
+}
+
+asmsub get_row() -> ubyte @X {
+    %asm {{
+        sec
+        jmp cbm.PLOT
+    }}
+}
+
+sub get_cursor(uword colptr, uword rowptr) {
+    %asm {{
+        sec
+        jsr cbm.PLOT
+        tya
+        ldy #$00
+        sta (colptr),y
+        txa
+        sta (rowptr),y
+    }}
+}
+
 asmsub  fill_screen (ubyte character @ A, ubyte color @ Y) clobbers(A, X)  {
 	; ---- fill the character screen with the given fill character and character color.
 	%asm {{
@@ -759,4 +796,11 @@ asmsub height() clobbers(X, Y) -> ubyte @A {
     }}
 }
 
+asmsub waitkey() {
+    %asm {{
+-       jsr cbm.GETIN
+        beq -
+        rts
+    }}
+}
 }
