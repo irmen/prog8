@@ -24,12 +24,24 @@ sub spc() {
     txt.chrout(' ')
 }
 
-asmsub column(ubyte col @A) clobbers(A, X, Y) {
+const uword COLCRS = 85
+const uword ROWCRS = 84
+sub column(ubyte col) {
     ; ---- set the cursor on the given column (starting with 0) on the current line
-    ;      TODO
-    %asm {{
-        rts
-    }}
+    pokew(COLCRS, col as uword)
+}
+
+sub get_column() -> ubyte {
+    return peekw(COLCRS) as ubyte
+}
+
+sub row(ubyte rownum) {
+    ; ---- set the cursor on the given row (starting with 0) on the current line
+    @(ROWCRS) = rownum
+}
+
+sub get_row() -> ubyte {
+    return @(ROWCRS)
 }
 
 asmsub  fill_screen (ubyte character @ A, ubyte color @ Y) clobbers(A)  {
@@ -372,12 +384,14 @@ sub  setcc  (ubyte col, ubyte row, ubyte char, ubyte charcolor)  {
         }}
 }
 
-asmsub  plot  (ubyte col @ Y, ubyte row @ A) {
-	; ---- set cursor at specific position
-	; TODO
-	%asm  {{
-	    rts
-	}}
+sub  plot(ubyte col, ubyte rownum) {
+  column(col)
+  row(rownum)
+}
+
+sub get_cursor(uword colptr, uword rowptr) {
+  @(colptr) = get_column()
+  @(rowptr) = get_row()
 }
 
 asmsub width() clobbers(X,Y) -> ubyte @A {
