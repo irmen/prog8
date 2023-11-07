@@ -47,7 +47,7 @@ asmsub get_column() -> ubyte @Y {
     }}
 }
 
-asmsub row(ubyte col @A) clobbers(A, X, Y) {
+asmsub row(ubyte rownum @A) clobbers(A, X, Y) {
     ; ---- set the cursor on the given row (starting with 0) on the current line
     %asm {{
         sec
