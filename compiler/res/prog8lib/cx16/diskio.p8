@@ -312,13 +312,12 @@ close_end:
         reset_read_channel()
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
 
-        ; commander X16 supports fast block-read via MACPTR() kernal call
         uword readsize
         while num_bytes {
             readsize = 255
             if num_bytes<readsize
                 readsize = num_bytes
-            readsize = cx16.MACPTR(lsb(readsize), bufferpointer, false)
+            readsize = cx16.MACPTR(lsb(readsize), bufferpointer, false)     ; fast block reads
             if_cs
                 goto byte_read_loop     ; MACPTR block read not supported, do fallback loop
             list_blocks += readsize
@@ -433,6 +432,21 @@ _end        rts
         ; -- write the given number of bytes to the currently open file
         if num_bytes!=0 {
             reset_write_channel()
+            do {
+                cx16.r0 = cx16.MCIOUT(lsb(num_bytes), bufferpointer, false)     ; fast block writes
+                if_cs
+                    goto no_mciout
+                num_bytes -= cx16.r0
+                bufferpointer += cx16.r0
+                if msb(bufferpointer) == $c0
+                    bufferpointer = mkword($a0, lsb(bufferpointer))  ; wrap over bank boundary
+                if cbm.READST()!=0
+                    return false
+            } until num_bytes==0
+            return not cbm.READST()
+
+no_mciout:
+            ; the device doesn't support MCIOUT, use a normal per-byte write loop
             repeat num_bytes {
                 cbm.CHROUT(@(bufferpointer))
                 bufferpointer++

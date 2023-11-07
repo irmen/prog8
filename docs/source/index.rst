@@ -21,7 +21,7 @@ while still being low level enough to create high performance programs.
 You can compile programs for various machines with this CPU:
 
 * Commodore 64
-* Commander X16 (release R42 or newer is required)
+* Commander X16
 * Commodore 128 (limited support for now)
 * Atari 800 XL (limited support for now)
 
@@ -181,7 +181,7 @@ For MacOS you can use the Homebrew system to install a recent version of OpenJDK
 Finally: an **emulator** (or a real machine of course) to test and run your programs on.
 In C64 mode, the compiler assumes the presence of the `VICE emulator <http://vice-emu.sourceforge.net/>`_.
 If you're targeting the Commander X16 instead,
-download a recent emulator version (R42 or newer) for the CommanderX16, such as `x16emu <https://cx16forum.com/forum/viewforum.php?f=30>`_
+download a recent emulator version for the CommanderX16, such as `x16emu <https://cx16forum.com/forum/viewforum.php?f=30>`_
 (preferred, this is the official emulator. If required, source code is `here <https://github.com/X16Community/x16-emulator/>`_.
 There is also `Box16 <https://github.com/indigodarkwolf/box16>`_ which has powerful debugging features.
 You can select which one you want to launch using the ``-emu`` or ``-emu2`` command line options.

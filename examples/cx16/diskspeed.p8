@@ -6,14 +6,13 @@
 main {
 
     ubyte[256] buffer = 0 to 255
-    const ubyte REPEATS = 2
 
     sub print_speed(uword jiffies) {
         if jiffies==0 {
             txt.print("\n 0 jiffies measured, speed is extremely high\n")
             return
         }
-        float speed = 65536.0 * REPEATS / (jiffies as float / 60.0)
+        float speed = floats.floor(65536.0 / (jiffies as float / 60.0))
         txt.nl()
         txt.print_uw(jiffies)
         txt.print(" jiffies = ")
@@ -22,95 +21,56 @@ main {
     }
 
     sub start() {
-        txt.print("\n\ndisk benchmark. drive 8. repeats = ")
-        txt.print_ub(REPEATS)
+        txt.print("\n\ndisk benchmark on drive 8.\n\n")
 
         uword batchtotaltime
 
-        txt.print("\n\nwriting 64kb using save")
-        batchtotaltime = 0
-        repeat REPEATS {
-            cbm.SETTIM(0,0,0)
-            void diskio.save("@:benchmark.dat", $100, 32768)
-            void diskio.save("@:benchmark.dat", $100, 32768)
-            batchtotaltime += cbm.RDTIM16()
-            txt.chrout('.')
-        }
-        print_speed(batchtotaltime)
+        txt.print("writing 64kb using save()")
+        cbm.SETTIM(0,0,0)
+        ; save 2 times 32Kb to make it 64Kb total
+        void diskio.save("@:benchmark.dat", $100, 32768)
+        void diskio.save("@:benchmark.dat", $100, 32768)
+        print_speed(cbm.RDTIM16())
 
         txt.print("\nwriting 64kb sequentially")
-        batchtotaltime = 0
-        repeat REPEATS {
-            if diskio.f_open_w("@:benchmark.dat") {
-                cbm.SETTIM(0,0,0)
-                repeat 65536/256 {
-                    if not diskio.f_write(buffer, 256)
-                        sys.exit(1)
-                }
-                batchtotaltime += cbm.RDTIM16()
-                diskio.f_close_w()
+        if diskio.f_open_w("@:benchmark.dat") {
+            cbm.SETTIM(0,0,0)
+            repeat 65536/256 {
+                if not diskio.f_write(buffer, 256)
+                    sys.exit(1)
             }
-            txt.chrout('.')
+            diskio.f_close_w()
+            print_speed(cbm.RDTIM16())
         }
-        print_speed(batchtotaltime)
 
-        txt.print("\nreading 64kb using load into hiram")
-        batchtotaltime = 0
-        repeat REPEATS {
-            cbm.SETTIM(0,0,0)
-            cx16.rambank(4)
-            if not diskio.load("benchmark.dat", $a000)
-                sys.exit(1)
-            batchtotaltime += cbm.RDTIM16()
-            txt.chrout('.')
-        }
-        print_speed(batchtotaltime)
+        txt.print("\nreading 64kb using load() into hiram")
+        cbm.SETTIM(0,0,0)
+        cx16.rambank(4)
+        if not diskio.load("benchmark.dat", $a000)
+            sys.exit(1)
+        print_speed(cbm.RDTIM16())
 
-        txt.print("\nreading 64kb using vload into videoram")
-        batchtotaltime = 0
-        repeat REPEATS {
-            cbm.SETTIM(0,0,0)
-            if not diskio.vload("benchmark.dat", 0, $0000)
-                sys.exit(1)
-            batchtotaltime += cbm.RDTIM16()
-            txt.chrout('.')
-        }
-        print_speed(batchtotaltime)
+        txt.print("\nreading 64kb using vload() into vram")
+        cbm.SETTIM(0,0,0)
+        if not diskio.vload("benchmark.dat", 0, $0000)
+            sys.exit(1)
+        print_speed(cbm.RDTIM16())
 
         txt.print("\nreading 64kb sequentially")
-        batchtotaltime = 0
-        repeat REPEATS {
-            if diskio.f_open("benchmark.dat") {
-                cbm.SETTIM(0,0,0)
-                repeat 65536/255 {
-                    if not diskio.f_read(buffer, 255)
-                        sys.exit(1)
-                }
-                batchtotaltime += cbm.RDTIM16()
-                diskio.f_close()
+        if diskio.f_open("benchmark.dat") {
+            cbm.SETTIM(0,0,0)
+            repeat 65536/255 {
+                if not diskio.f_read(buffer, 255)
+                    sys.exit(1)
             }
-            txt.chrout('.')
+            diskio.f_close()
+            print_speed(cbm.RDTIM16())
         }
-        print_speed(batchtotaltime)
-
-        txt.print("\nreading 64kb sequentially (x16 optimized)")
-        batchtotaltime = 0
-        repeat REPEATS {
-            if diskio.f_open("benchmark.dat") {
-                cbm.SETTIM(0,0,0)
-                repeat 65536/255 {
-                    if not diskio.f_read(buffer, 255)
-                        sys.exit(1)
-                }
-                batchtotaltime += cbm.RDTIM16()
-                diskio.f_close()
-            }
-            txt.chrout('.')
-        }
-        print_speed(batchtotaltime)
 
         txt.nl()
         txt.print(diskio.status())
         txt.print("\ndone.\n")
+
+        diskio.delete("benchmark.dat")
     }
 }
