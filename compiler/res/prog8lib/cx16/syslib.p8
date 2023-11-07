@@ -526,16 +526,12 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
         ; -- get a byte from VERA's video memory
         ;    note: inefficient when reading multiple sequential bytes!
         %asm {{
-                pha
-                lda  cx16.VERA_CTRL
-                ora  #1
-                sta  cx16.VERA_CTRL
-                pla
+                stz  cx16.VERA_CTRL
                 and  #1
                 sta  cx16.VERA_ADDR_H
                 sty  cx16.VERA_ADDR_M
                 stx  cx16.VERA_ADDR_L
-                lda  cx16.VERA_DATA1
+                lda  cx16.VERA_DATA0
                 rts
             }}
 }

@@ -6,6 +6,7 @@
 ; "unlimited sprites / bobs" demo effect.
 ; Note that everything is prog8, no inline assembly used/required.
 ; Note2: these aren't actual sprites, it's a bitmap backbuffer display trick.
+; TODO don't add bobs in pairs of 2 make them appear individually
 
 main {
     sub start() {
