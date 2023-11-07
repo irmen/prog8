@@ -793,4 +793,11 @@ asmsub height() clobbers(X, Y) -> ubyte @A {
     }}
 }
 
+asmsub waitkey() -> ubyte @A {
+    %asm {{
+-       jsr cbm.GETIN
+        beq -
+        rts
+    }}
+}
 }
