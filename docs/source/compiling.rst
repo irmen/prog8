@@ -11,12 +11,18 @@ Before you can compile Prog8 programs, you'll have to download or build the comp
 First make sure you have installed the :ref:`requirements`.
 Then you can choose a few ways to get a compiler:
 
-**Download a precompiled version from github:**
+**Download an official release version from Github:**
 
 #. download a recent "fat-jar" (called something like "prog8compiler-all.jar") from `the releases on Github <https://github.com/irmen/prog8/releases>`_
 #. run the compiler with "java -jar prog8compiler.jar" to see how you can use it (use the correct name and version of the jar file you've downloaded).
 
-**Using the Gradle build system to build it yourself:**
+**Or, download a bleeding edge development version from Github:**
+
+#. find the latest CI build on  `the actions page on Github <https://github.com/irmen/prog8/actions>`_
+#. download the zipped jar artifact from that build, and unzip it.
+#. run the compiler with "java -jar prog8compiler.jar"  (use the correct name and version of the jar file you've downloaded).
+
+**Or, use the Gradle build system to build it yourself from source:**
 
 The Gradle build system is used to build the compiler.
 The most interesting gradle commands to run are probably the ones listed below.

@@ -171,7 +171,7 @@ It's easy to compile yourself, but a recent precompiled .exe (only for Windows) 
 `the files section <https://sourceforge.net/projects/tass64/files/binaries/>`_ in the official project on sourceforge.
 *You need at least version 1.58.0 of this assembler.*
 If you are on a Debian based Linux, there's a "64tass" package in the repositories, which is a bit old, but it seems to work.
-It's possible to use old versions of 64tass, but it is likely that certain things will break.
+It might be possible to use old versions of 64tass, but it is likely that you'll run into assembler errors later.
 
 A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK or similar in their packages repository instead.

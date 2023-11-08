@@ -120,6 +120,9 @@ cx16 {
     &uword  RESET_VEC   = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
     &uword  IRQ_VEC     = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
 
+    &uword  edkeyvec    = $ac03     ; for intercepting BASIN/CHRIN key strokes. See set_basin_handler()
+    &uword  edkeybk     = $ac05     ; ...the RAM bank of this routine if not in low ram
+
 
 ; the sixteen virtual 16-bit registers in both normal unsigned mode and signed mode (s)
     &uword r0  = $0002
@@ -828,6 +831,24 @@ asmsub restore_vera_context() clobbers(A) {
     }}
 }
 
+
+    asmsub set_chrin_keyhandler(ubyte handlerbank @A, uword handler @XY) clobbers(A) {
+        ; Install a custom CHRIN (BASIN) key handler. Call this before each line you want to read.
+        ; See https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2002%20-%20Editor.md#custom-basin-petscii-code-override-handler
+        %asm {{
+            sei
+            sta  cx16.edkeybk
+            lda  $00
+            pha
+            stz  $00
+            stx  cx16.edkeyvec
+            sty  cx16.edkeyvec+1
+            pla
+            sta  $00
+            cli
+            rts
+        }}
+    }
 }
 
 sys {

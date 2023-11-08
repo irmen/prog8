@@ -1,5 +1,5 @@
 ; Emulator debug interface.
-; Docs: https://github.com/X16Community/x16-emulator#debug-io-registers
+; Docs: https://github.com/X16Community/x16-emulator#emulator-io-registers
 
 emudbg {
 
@@ -29,6 +29,7 @@ emudbg {
     }
 
     asmsub console_write(str isoString @R0) clobbers(Y) {
+        ; note: make sure the text is in Iso encoding.
         %asm {{
             ldy  #0
 -           lda  (cx16.r0),y
@@ -41,6 +42,7 @@ emudbg {
     }
 
     asmsub console_chrout(ubyte char @A) {
+        ; note: make sure the character is in Iso encoding.
         %asm {{
             sta  p8_EMU_CPUCLK_U
         }}
