@@ -2,10 +2,15 @@
 
 from PIL import Image
 
+
 def make_cx16_palette(palette: list[int]) -> bytes:
+    def to4bit(color: int) -> int:
+        return (color * 15 + 135) >> 8      # see https://threadlocalmutex.com/?p=48
     cx16palette = bytearray()
     for pi in range(0, len(palette), 3):
-        r, g, b = palette[pi] >> 4, palette[pi + 1] >> 4, palette[pi + 2] >> 4
+        r = to4bit(palette[pi])
+        g = to4bit(palette[pi+1])
+        b = to4bit(palette[pi+2])
         cx16palette.append(g << 4 | b)
         cx16palette.append(r)
     return cx16palette

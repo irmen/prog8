@@ -1,7 +1,6 @@
 TODO
 ====
 
-- integrate MCIOUT into diskio.f_write()
 - revisit the seek example to see if write-seeking now works?
 - remove unused interned strings in the resulting code (for example from removed if/else blocks)
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
