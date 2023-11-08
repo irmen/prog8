@@ -366,5 +366,18 @@ main {
         compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.single() shouldContain  "cannot use byte value"
     }
+
+    test("const eval of address-of a memory mapped variable") {
+        val src = """
+main {
+    sub start() {
+        &ubyte mappedvar = 1000
+        cx16.r0 = &mappedvar
+        &ubyte[8] array = &mappedvar
+        cx16.r0 = &array
+    }
+}"""
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
 })
 

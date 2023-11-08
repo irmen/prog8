@@ -251,7 +251,16 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
             return noModifications
         }
 
-        if(decl.type== VarDeclType.CONST || decl.type== VarDeclType.VAR) {
+        if(decl.isArray && decl.type==VarDeclType.MEMORY) {
+            val memaddr = decl.value?.constValue(program)
+            if(memaddr!=null && memaddr !== decl.value) {
+                return listOf(IAstModification.SetExpression(
+                    { decl.value = it }, memaddr, decl
+                ))
+            }
+        }
+
+        if(decl.type==VarDeclType.CONST || decl.type==VarDeclType.VAR) {
             if(decl.isArray){
                 val arraysize = decl.arraysize
                 if(arraysize==null) {
@@ -291,8 +300,11 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
     }
 
     private fun createConstArrayInitializerValue(decl: VarDecl): ArrayLiteral? {
-        // convert the initializer range expression from a range or int, to an actual array.
 
+        if(decl.type==VarDeclType.MEMORY)
+            return null     // memory mapped arrays can never have an initializer value other than the address where they're mapped.
+
+        // convert the initializer range expression from a range or int, to an actual array.
         when(decl.datatype) {
             DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_UW_SPLIT -> {
                 val rangeExpr = decl.value as? RangeExpression

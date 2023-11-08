@@ -395,7 +395,15 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
     }
 
     override fun copy() = AddressOf(identifier.copy(), arrayIndex?.copy(), position)
-    override fun constValue(program: Program): NumericLiteral? = null
+    override fun constValue(program: Program): NumericLiteral? {
+        val target = this.identifier.targetStatement(program) as? VarDecl
+        if(target?.type==VarDeclType.MEMORY) {
+            val address = target.value?.constValue(program)
+            if(address!=null)
+                return NumericLiteral(DataType.UWORD, address.number, position)
+        }
+        return null
+    }
     override fun referencesIdentifier(nameInSource: List<String>) = identifier.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true
     override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UWORD)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
