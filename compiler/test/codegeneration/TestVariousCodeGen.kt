@@ -319,4 +319,24 @@ main
         compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
         compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("inlining sub with 2 statements") {
+        val src="""
+main {
+    sub start() {
+        init()
+    }
+
+    sub init() {
+        init_handler()
+        return
+    }
+
+    sub init_handler() {
+        cx16.r0++
+    }
+}"""
+        compileText(VMTarget(), true, src, writeAssembly = false) shouldNotBe null
+        compileText(Cx16Target(), true, src, writeAssembly = false) shouldNotBe null
+    }
 })
