@@ -577,6 +577,34 @@ class AsmGen6502Internal (
     internal fun assignExpressionTo(value: PtExpression, target: AsmAssignTarget) {
         when (target.datatype) {
             in ByteDatatypes -> {
+                if (value.asConstInteger()==0) {
+                    when(target.kind) {
+                        TargetStorageKind.VARIABLE -> {
+                            if (isTargetCpu(CpuType.CPU6502))
+                                out("lda  #0 |  sta  ${target.asmVarname}")
+                            else
+                                out("stz  ${target.asmVarname}")
+                        }
+                        TargetStorageKind.MEMORY -> {
+                            val address = target.memory!!.address.asConstInteger()
+                            if(address!=null) {
+                                if (isTargetCpu(CpuType.CPU6502))
+                                    out("lda  #0 |  sta  ${address.toHex()}")
+                                else
+                                    out("  stz  ${address.toHex()}")
+                                return
+                            }
+                        }
+                        TargetStorageKind.REGISTER -> {
+                            val zero = PtNumber(DataType.UBYTE, 0.0, value.position)
+                            zero.parent = value
+                            assignExpressionToRegister(zero, target.register!!, false)
+                            return
+                        }
+                        else -> { }
+                    }
+                }
+
                 assignExpressionToRegister(value, RegisterOrPair.A)
                 assignRegister(RegisterOrPair.A, target)
             }

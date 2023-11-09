@@ -865,7 +865,8 @@ pokew (address, value)
     writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
 
 pokemon (address, value)
-    Doesn't do anything useful. Also doesn't have anything to do with a certain video game.
+    Like poke(), but also returns the previous value in the given address.
+    Also doesn't have anything to do with a certain video game.
 
 push (value)
     pushes a byte value on the CPU hardware stack. Low-level function that should normally not be used.

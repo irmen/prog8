@@ -1,14 +1,29 @@
-%zeropage basicsafe
-%option no_sysinit
 %import textio
-%import verafx
+%zeropage basicsafe
 
 main {
     sub start() {
-        uword lower16 = verafx.mult(11111,9988)
-        uword upper16 = cx16.r0
-        txt.print_uwhex(upper16, true)   ; $069d5e9c  = 110976668
-        txt.print_uwhex(lower16, false)
+        uword address = 1000
+
+        poke(1000, 99)
+        ubyte prev = pokemon(1000,123)
+        txt.print_ub(prev)
+        txt.nl()
+        prev = pokemon(1000,0)
+        txt.print_ub(prev)
+        txt.nl()
+        txt.print_ub(@(1000))
+        txt.nl()
+        txt.nl()
+
+        poke(address+3, 99)
+        prev = pokemon(address+3,123)
+        txt.print_ub(prev)
+        txt.nl()
+        prev = pokemon(address+3,0)
+        txt.print_ub(prev)
+        txt.nl()
+        txt.print_ub(@(address+3))
         txt.nl()
     }
 }

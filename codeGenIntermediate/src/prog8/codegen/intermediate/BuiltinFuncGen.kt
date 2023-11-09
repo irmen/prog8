@@ -33,7 +33,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "peekw" -> funcPeekW(call)
             "poke" -> funcPoke(call)
             "pokew" -> funcPokeW(call)
-            "pokemon" -> ExpressionCodeResult.EMPTY     // easter egg function
+            "pokemon" -> funcPokemon(call)
             "mkword" -> funcMkword(call)
             "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword" -> funcClamp(call)
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(call)
@@ -551,6 +551,59 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         }
     }
+
+    private fun funcPokemon(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val address = call.args[0]
+
+        fun pokeM(result: MutableList<IRCodeChunkBase>, address: Int, value: PtExpression) {
+            if(codeGen.isZero(value)) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, address = address)
+                }
+            } else {
+                val tr = exprGen.translateExpression(value)
+                addToResult(result, tr, tr.resultReg, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tr.resultReg, address = address)
+                }
+            }
+        }
+
+        fun pokeI(result: MutableList<IRCodeChunkBase>, register: Int, value: PtExpression) {
+            if(codeGen.isZero(value)) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = register)
+                }
+            } else {
+                val valueTr = exprGen.translateExpression(value)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = register)
+                }
+            }
+        }
+
+        return if(address is PtNumber) {
+            val resultRegister = codeGen.registers.nextFree()
+            val addressNum = address.number.toInt()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = resultRegister, address = addressNum)
+            }
+            pokeM(result, addressNum, call.args[1])
+            ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+        } else {
+            val addressTr = exprGen.translateExpression(address)
+            addToResult(result, addressTr, addressTr.resultReg, -1)
+            val resultReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = addressTr.resultReg)
+            }
+            pokeI(result, addressTr.resultReg, call.args[1])
+            ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+        }
+    }
+
 
     private fun funcMemory(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val name = (call.args[0] as PtString).value

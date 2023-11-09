@@ -49,7 +49,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "peekw" -> funcPeekW(fcall, resultRegister)
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
             "pokew" -> funcPokeW(fcall)
-            "pokemon" -> { /* meme function */ }
+            "pokemon" -> {
+                val memread = PtMemoryByte(fcall.position)
+                memread.add(fcall.args[0])
+                memread.parent = fcall
+                asmgen.assignExpressionToRegister(memread, RegisterOrPair.A, false)
+                asmgen.out("  pha")
+                val memtarget = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.position, memory=memread)
+                asmgen.assignExpressionTo(fcall.args[1], memtarget)
+                asmgen.out("  pla")
+            }
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
             "push" -> asmgen.pushCpuStack(DataType.UBYTE, fcall.args[0])
             "pushw" -> asmgen.pushCpuStack(DataType.UWORD, fcall.args[0])
