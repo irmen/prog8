@@ -146,11 +146,11 @@ _startloop	dey
 		iny
 		bne  -
 _notfound	lda  #0
-                clc
+        clc
 		rts
-_found		tya
-                sec
-                rts
+_found	tya
+        sec
+        rts
         }}
     }
 
@@ -165,6 +165,31 @@ _found		tya
 		lda  cx16.r0
 		ldy  cx16.r0+1
 		jmp  prog8_lib.strcpy
+        }}
+    }
+
+    asmsub append(uword target @R0, uword suffix @R1) clobbers(Y) -> ubyte @A {
+        ; Append the suffix string to the target. (make sure the buffer is large enough!)
+        ; Returns the length of the resulting string.
+        %asm {{
+            lda  cx16.r0
+            ldy  cx16.r0+1
+            jsr  length
+            sty  P8ZP_SCRATCH_B1
+            tya
+            clc
+            adc  cx16.r0
+            sta  P8ZP_SCRATCH_W1
+            lda  cx16.r0+1
+            adc  #0
+            sta  P8ZP_SCRATCH_W1+1
+            lda  cx16.r1
+            ldy  cx16.r1+1
+            jsr  prog8_lib.strcpy
+            tya
+            clc
+            adc  P8ZP_SCRATCH_B1
+            rts
         }}
     }
 

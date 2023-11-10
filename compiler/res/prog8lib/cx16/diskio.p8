@@ -91,7 +91,7 @@ io_error:
     sub diskname() -> uword {
         ; returns disk label name or 0 if error
         cbm.SETNAM(3, "$")
-        cbm.SETLFS(READ_IO_CHANNEL, diskio.drivenumber, 0)
+        cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         ubyte status = 1
         void cbm.OPEN()          ; open 12,8,0,"$=c"
         if_cs
@@ -104,12 +104,12 @@ io_error:
             ; skip up to entry name
         }
 
-        cx16.r0 = &diskio.list_filename
+        cx16.r0 = &list_filename
         repeat {
             @(cx16.r0) = cbm.CHRIN()
             if @(cx16.r0)=='"' {
                 @(cx16.r0) = ' '
-                while @(cx16.r0)==' ' and cx16.r0>=&diskio.list_filename {
+                while @(cx16.r0)==' ' and cx16.r0>=&list_filename {
                     @(cx16.r0) = 0
                     cx16.r0--
                 }
@@ -124,7 +124,7 @@ io_error:
         cbm.CLOSE(READ_IO_CHANNEL)
         if status and status & $40 == 0
             return 0
-        return diskio.list_filename
+        return list_filename
     }
 
     ; internal variables for the iterative file lister / loader
@@ -716,7 +716,7 @@ internal_vload:
         cx16.r12 = reversebuffer + MAX_PATH_LEN-1
         @(cx16.r12)=0
         cbm.SETNAM(3, "$=c")
-        cbm.SETLFS(READ_IO_CHANNEL, diskio.drivenumber, 0)
+        cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         void cbm.OPEN()          ; open 12,8,0,"$=c"
         if_cs
             goto io_error
@@ -805,14 +805,14 @@ io_error:
 
 
     ; NOTE: f_seek_w() doesn't work reliably right now. I only manage to corrupt the fat32 filesystem on the sdcard with it...
-;    sub f_seek_w(uword pos_hiword, uword pos_loword) {
-;        ; -- seek in the output file opened with f_open_w, to the given 32-bits position
-;        diskio.f_seek.command[1] = WRITE_IO_CHANNEL       ; f_open_w uses the write io channel
-;        diskio.f_seek.command[2] = lsb(pos_loword)
-;        diskio.f_seek.command[3] = msb(pos_loword)
-;        diskio.f_seek.command[4] = lsb(pos_hiword)
-;        diskio.f_seek.command[5] = msb(pos_hiword)
-;        goto diskio.f_seek.send_command
-;    }
+    sub f_seek_w(uword pos_hiword, uword pos_loword) {
+        ; -- seek in the output file opened with f_open_w, to the given 32-bits position
+        diskio.f_seek.command[1] = WRITE_IO_CHANNEL       ; f_open_w uses the write io channel
+        diskio.f_seek.command[2] = lsb(pos_loword)
+        diskio.f_seek.command[3] = msb(pos_loword)
+        diskio.f_seek.command[4] = lsb(pos_hiword)
+        diskio.f_seek.command[5] = msb(pos_hiword)
+        goto diskio.f_seek.send_command
+    }
 
 }

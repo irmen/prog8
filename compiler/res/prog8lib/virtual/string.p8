@@ -78,6 +78,13 @@ string {
         }
     }
 
+    sub append(str target, str suffix) -> ubyte {
+        ; Append the suffix string to the target. (make sure the buffer is large enough!)
+        ; Returns the length of the resulting string.
+        cx16.r0L = length(target)
+        return copy(suffix, target+cx16.r0L) + cx16.r0L
+    }
+
     sub compare(str st1, str st2) -> byte {
         ; Compares two strings for sorting.
         ; Returns -1 (255), 0 or 1 depending on wether string1 sorts before, equal or after string2.

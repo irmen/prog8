@@ -236,6 +236,10 @@ Provides string manipulation routines.
     Often you don't have to call this explicitly and can just write ``string1 = string2``
     but this function is useful if you're dealing with addresses for instance.
 
+``append (string, suffix) -> ubyte length``
+    Appends the suffix string to the other string (make sure the memory buffer is large enough!)
+    Returns the length of the combined string.
+
 ``lower (string)``
     Lowercases the PETSCII-string in place.
 

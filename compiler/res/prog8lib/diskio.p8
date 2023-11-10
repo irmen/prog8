@@ -107,7 +107,7 @@ io_error:
             @(cx16.r0) = cbm.CHRIN()
             if @(cx16.r0)=='"' {
                 @(cx16.r0) = ' '
-                while @(cx16.r0)==' ' and cx16.r0>=&diskio.list_filename {
+                while @(cx16.r0)==' ' and cx16.r0>=&list_filename {
                     @(cx16.r0) = 0
                     cx16.r0--
                 }
