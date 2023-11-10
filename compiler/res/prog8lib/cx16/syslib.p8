@@ -40,7 +40,7 @@ romsub $FFCC = CLRCHN() clobbers(A,X)                           ; (via 802 ($322
 romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A   ; (via 804 ($324)) input a character (for keyboard, read a whole line from the screen) A=byte read.
 romsub $FFD2 = CHROUT(ubyte character @ A)                           ; (via 806 ($326)) output a character
 romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> bool @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
-romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) clobbers (X, Y) -> bool @ Pc, ubyte @ A       ; (via 818 ($332)) save to a device
+romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) clobbers (X, Y) -> bool @ Pc, ubyte @ A       ; (via 818 ($332)) save to a device.  See also BSAVE
 romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
 romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
 romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)

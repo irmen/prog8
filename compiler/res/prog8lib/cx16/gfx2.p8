@@ -206,7 +206,7 @@ gfx2 {
         }
     }
 
-    sub safe_horizontal_line(uword xx, uword yy, uword length, bool draw) {
+    sub safe_horizontal_line(uword xx, uword yy, uword length, ubyte color) {
         ; does bounds checking and clipping
         if msb(yy)&$80!=0 or yy>=height
             return
@@ -221,7 +221,7 @@ gfx2 {
         if length>width
             return
 
-        horizontal_line(xx, yy, length, draw)
+        horizontal_line(xx, yy, length, color)
     }
 
     sub vertical_line(uword xx, uword yy, uword lheight, ubyte color) {
