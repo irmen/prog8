@@ -820,7 +820,6 @@ io_error:
     }
 
 
-    ; NOTE: f_seek_w() doesn't work reliably right now. I only manage to corrupt the fat32 filesystem on the sdcard with it...
     sub f_seek_w(uword pos_hiword, uword pos_loword) {
         ; -- seek in the output file opened with f_open_w, to the given 32-bits position
         diskio.f_seek.command[1] = WRITE_IO_CHANNEL       ; f_open_w uses this secondary address
