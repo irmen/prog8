@@ -19,7 +19,23 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                 errors.err("memory block '${slab.name}' already exists with a different size and/or alignment at ${other.position}", slab.position)
             }
         }
+
+        // remove unused strings from interned strings block
+        val internedBlock = program.allBlocks.singleOrNull { it.name== internedStringsModuleName }
+        internedBlock?.statements?.withIndex()?.reversed()?.forEach { (index, st) ->
+            if(st is VarDecl && st.scopedName !in allStringRefs) {
+                internedBlock.statements.removeAt(index)
+            }
+        }
     }
+
+    override fun visit(identifier: IdentifierReference) {
+        if(identifier.wasStringLiteral(program)) {
+            allStringRefs.add(identifier.nameInSource)
+        }
+    }
+
+    private val allStringRefs = mutableListOf<List<String>>()
 
     private class Slab(val name: String, val size: Int, val align: Int, val position: Position)
     private val memorySlabs = mutableListOf<Slab>()
