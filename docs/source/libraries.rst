@@ -182,7 +182,8 @@ On the Commander X16 it tries to use that machine's fast Kernal loading routines
 Routines to directly load data into video ram are also present (vload and vload_raw).
 Also contains a helper function to calculate the file size of a loaded file (although that is truncated
 to 16 bits, 64Kb)
-Als contains routines for operating on subdirectories (chdir, mkdir, rmdir) and to relabel the disk.
+Als contains routines for operating on subdirectories (chdir, mkdir, rmdir), to relabel the disk,
+and to seek in open files.
 
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/diskio.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)

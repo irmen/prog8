@@ -31,17 +31,16 @@ main {
 
         read_last_bytes()
 
-        ; NOTE: f_seek_w() doesn't work reliably right now. I only manage to corrupt the fat32 filesystem on the sdcard with it...
-;        txt.print("\nseeking to 1292 and writing a few bytes...\n")
-;        if diskio.f_open_w("seektestfile.bin,p,a") {
-;            diskio.f_seek_w(0, 1292)
-;            void diskio.f_write("123", 3)
-;            diskio.f_close_w()
-;        } else {
-;            txt.print("error: ")
-;            txt.print(diskio.status())
-;            sys.exit(1)
-;        }
+        txt.print("\nseeking to 1292 and writing a few bytes...\n")
+        if diskio.f_open_w("seektestfile.bin") {
+            diskio.f_seek_w(0, 1292)
+            void diskio.f_write("123", 3)
+            diskio.f_close_w()
+        } else {
+            txt.print("error: ")
+            txt.print(diskio.status())
+            sys.exit(1)
+        }
 
         read_last_bytes()
     }

@@ -4,6 +4,12 @@
 ; NOTE: If you experience weird behavior with these routines and you are using them
 ;       in the X16 emulator using HostFs, please try again with an SD-card image instead first.
 ;       It is possible that there are still small differences between HostFS and actual CBM DOS in the emulator.
+;
+; About the secondary addresses:
+; for writes (new files or overwrites), you can use 1 (without the mode string) or 2-14 (with the mode string)
+; for reads (existing files) you can use 0 or 2-14 (mode string is optional)
+; for modify mode (new files* or existing files), you must use 2-14, and the mode string ,s,m is required
+
 
 %import textio
 %import string
@@ -419,11 +425,21 @@ _end        rts
         ; -- open a file for iterative writing with f_write
         f_close_w()
 
-        cbm.SETNAM(string.length(filenameptr), filenameptr)
-        cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, 1)
-        void cbm.OPEN()             ; open 13,8,1,"filename"
-        if_cc
-            return not cbm.READST()
+        ; secondary 13 requires a mode suffix to signal we're writing/modifying
+        list_filename = filenameptr
+        cx16.r0L = string.append(list_filename, ",s,m")
+        cbm.SETNAM(cx16.r0L, list_filename)
+        cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, WRITE_IO_CHANNEL)
+        void cbm.OPEN()             ; open 13,8,13,"filename"
+        if_cc {
+            if cbm.READST()==0 {
+                ; check the drive status to see if it has actually succeeded
+                cx16.r0 = status()
+                reset_write_channel()
+                if @(cx16.r0)=='0'
+                    return true
+            }
+        }
         f_close_w()
         return false
     }
@@ -790,7 +806,7 @@ io_error:
     sub f_seek(uword pos_hiword, uword pos_loword) {
         ; -- seek in the reading file opened with f_open, to the given 32-bits position
         ubyte[6] command = ['p',0,0,0,0,0]
-        command[1] = READ_IO_CHANNEL       ; f_open uses the read io channel
+        command[1] = READ_IO_CHANNEL       ; f_open uses this secondary address
         command[2] = lsb(pos_loword)
         command[3] = msb(pos_loword)
         command[4] = lsb(pos_hiword)
@@ -807,12 +823,16 @@ io_error:
     ; NOTE: f_seek_w() doesn't work reliably right now. I only manage to corrupt the fat32 filesystem on the sdcard with it...
     sub f_seek_w(uword pos_hiword, uword pos_loword) {
         ; -- seek in the output file opened with f_open_w, to the given 32-bits position
-        diskio.f_seek.command[1] = WRITE_IO_CHANNEL       ; f_open_w uses the write io channel
+        diskio.f_seek.command[1] = WRITE_IO_CHANNEL       ; f_open_w uses this secondary address
         diskio.f_seek.command[2] = lsb(pos_loword)
         diskio.f_seek.command[3] = msb(pos_loword)
         diskio.f_seek.command[4] = lsb(pos_hiword)
         diskio.f_seek.command[5] = msb(pos_hiword)
-        goto diskio.f_seek.send_command
+        cbm.SETNAM(sizeof(diskio.f_seek.command), &diskio.f_seek.command)
+        cbm.SETLFS(15, drivenumber, 15)
+        void cbm.OPEN()
+        cbm.CLOSE(15)
+        reset_write_channel()    ; back to the write io channel
     }
 
 }
