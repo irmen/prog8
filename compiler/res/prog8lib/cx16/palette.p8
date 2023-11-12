@@ -79,15 +79,13 @@ palette {
 
     sub set_grayscale() {
         vera_palette_ptr = $fa00
+        cc=0
         repeat 16 {
-            cc=0
-            repeat 16 {
-                cx16.vpoke(1, vera_palette_ptr, cc)
-                vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, cc)
-                vera_palette_ptr++
-                cc += $11
-            }
+            cx16.vpoke(1, vera_palette_ptr, cc)
+            vera_palette_ptr++
+            cx16.vpoke(1, vera_palette_ptr, cc)
+            vera_palette_ptr++
+            cc += $11
         }
     }
 
@@ -150,40 +148,34 @@ palette {
 
     sub set_c64pepto() {
         vera_palette_ptr = $fa00
-        repeat 16 {
-            for cc in 0 to 15 {
-                uword ccp = C64_colorpalette_pepto[cc]
-                cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
-                vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
-                vera_palette_ptr++
-            }
+        for cc in 0 to 15 {
+            uword ccp = C64_colorpalette_pepto[cc]
+            cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
+            vera_palette_ptr++
+            cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
+            vera_palette_ptr++
         }
     }
 
     sub set_c64light() {
         vera_palette_ptr = $fa00
-        repeat 16 {
-            for cc in 0 to 15 {
-                uword ccp = C64_colorpalette_light[cc]
-                cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
-                vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
-                vera_palette_ptr++
-            }
+        for cc in 0 to 15 {
+            uword ccp = C64_colorpalette_light[cc]
+            cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
+            vera_palette_ptr++
+            cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
+            vera_palette_ptr++
         }
     }
 
     sub set_c64dark() {
         vera_palette_ptr = $fa00
-        repeat 16 {
-            for cc in 0 to 15 {
-                uword ccp = C64_colorpalette_dark[cc]
-                cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
-                vera_palette_ptr++
-                cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
-                vera_palette_ptr++
-            }
+        for cc in 0 to 15 {
+            uword ccp = C64_colorpalette_dark[cc]
+            cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
+            vera_palette_ptr++
+            cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
+            vera_palette_ptr++
         }
     }
 

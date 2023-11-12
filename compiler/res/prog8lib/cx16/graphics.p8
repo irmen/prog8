@@ -16,6 +16,8 @@
 graphics {
     %option no_symbol_prefixing
 
+    romsub $feff = FB_cursor_position2()  clobbers(A,X,Y)     ; alias for the normal FB_cursor_position() call but reuses existing r0 and r1
+
     const uword WIDTH = 320
     const ubyte HEIGHT = 240
 
@@ -91,31 +93,31 @@ graphics {
         while xx>=yy {
             cx16.r0 = xcenter + xx
             cx16.r1 = ycenter + yy
-            cx16.FB_cursor_position2()
+            FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter - xx
-            cx16.FB_cursor_position2()
+            FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter + xx
             cx16.r1 = ycenter - yy
-            cx16.FB_cursor_position2()
+            FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter - xx
-            cx16.FB_cursor_position2()
+            FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter + yy
             cx16.r1 = ycenter + xx
-            cx16.FB_cursor_position2()
+            FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter - yy
-            cx16.FB_cursor_position2()
+            FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter + yy
             cx16.r1 = ycenter - xx
-            cx16.FB_cursor_position2()
+            FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
             cx16.r0 = xcenter - yy
-            cx16.FB_cursor_position2()
+            FB_cursor_position2()
             cx16.FB_set_pixel(stroke_color)
 
             yy++
