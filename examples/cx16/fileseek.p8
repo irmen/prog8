@@ -32,7 +32,7 @@ main {
         read_last_bytes()
 
         txt.print("\nseeking to 1292 and writing a few bytes...\n")
-        if diskio.f_open_w("seektestfile.bin") {
+        if diskio.f_open_w_seek("seektestfile.bin") {
             diskio.f_seek_w(0, 1292)
             void diskio.f_write("123", 3)
             diskio.f_close_w()

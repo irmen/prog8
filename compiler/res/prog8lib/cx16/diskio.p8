@@ -280,9 +280,11 @@ close_end:
 
     ; ----- iterative file loader functions (uses the read io channel) -----
 
-    sub f_open(uword filenameptr) -> bool {
+    sub f_open(str filenameptr) -> bool {
         ; -- open a file for iterative reading with f_read
         ;    note: only a single iteration loop can be active at a time!
+        ;    Returns true if the file is successfully opened and readable.
+        ;    No need to check status(), unlike f_open_w() !
         f_close()
 
         cbm.SETNAM(string.length(filenameptr), filenameptr)
@@ -421,24 +423,34 @@ _end        rts
 
     ; ----- iterative file writing functions (uses write io channel) -----
 
-    sub f_open_w(uword filenameptr) -> bool {
-        ; -- open a file for iterative writing with f_write
-        f_close_w()
+    sub f_open_w(str filename) -> bool {
+        ; -- Open a file for iterative writing with f_write
+        ;    WARNING: returns true if the open command was received by the device,
+        ;    but this can still mean the file wasn't successfully opened for writing!
+        ;    (for example, if it already exists). This is different than f_open()!
+        ;    To be 100% sure if this call was successful, you have to use status()
+        ;    and check the drive's status message!
+        return internal_f_open_w(filename, false)
+    }
 
-        ; secondary 13 requires a mode suffix to signal we're writing/modifying
-        list_filename = filenameptr
-        cx16.r0L = string.append(list_filename, ",s,m")
+    sub f_open_w_seek(str filename) -> bool {
+        ; -- Open an existing file for iterative writing with f_write, and seeking with f_seek_w.
+        return internal_f_open_w(filename, true)
+    }
+
+    sub internal_f_open_w(str filename, bool open_for_seeks) -> bool {
+        f_close_w()
+        list_filename = filename
+        str modifier = ",s,?"
+        modifier[3] = 'w'
+        if open_for_seeks
+            modifier[3] = 'm'
+        cx16.r0L = string.append(list_filename, modifier)   ; secondary 13 requires a mode suffix to signal we're writing/modifying
         cbm.SETNAM(cx16.r0L, list_filename)
         cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, WRITE_IO_CHANNEL)
         void cbm.OPEN()             ; open 13,8,13,"filename"
         if_cc {
-            if cbm.READST()==0 {
-                ; check the drive status to see if it has actually succeeded
-                cx16.r0 = status()
-                reset_write_channel()
-                if @(cx16.r0)=='0'
-                    return true
-            }
+            return not cbm.READST()
         }
         f_close_w()
         return false
@@ -821,7 +833,7 @@ io_error:
 
 
     sub f_seek_w(uword pos_hiword, uword pos_loword) {
-        ; -- seek in the output file opened with f_open_w, to the given 32-bits position
+        ; -- seek in the output file opened with f_open_w_seek, to the given 32-bits position
         diskio.f_seek.command[1] = WRITE_IO_CHANNEL       ; f_open_w uses this secondary address
         diskio.f_seek.command[2] = lsb(pos_loword)
         diskio.f_seek.command[3] = msb(pos_loword)
