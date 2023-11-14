@@ -7,7 +7,7 @@
 - simple file format with few special cases.
 - no random access, only sequential reading/streaming.
 - simple user code that doesn't have to bother with the I/O at all.
-- a few chunk typs that can be handled automatically to load data into system ram, banked ram, or video ram.
+- a few chunk types that can be handled automatically to load data into system ram, banked ram, or video ram.
 - custom chunk types for flexibility or extensibility.
 
 Theoretical optimal chunk size is 512 bytes but actual size may be different. (In practice there seems to be no significant speed impact)

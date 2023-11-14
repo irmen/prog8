@@ -2,6 +2,11 @@
 TODO
 ====
 
+- palette: mnore accurate conversion to 4 bit colorspage in set_rgb8, by doing 	(x * 15 + 135) >> 8, see https://threadlocalmutex.com/?p=48
+- fix the compiler crash on s1[n+1] = s1[2] where s1 is a subroutine param (regular variable works)
+- improve the working of %option merge: should be able to merge your own stuff into say textio. , and improve the docs about it too.
+- give error when using %option merge in module scope.
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
 - IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? Bitwise operations, etc), but only after setting the status bits is verified!
