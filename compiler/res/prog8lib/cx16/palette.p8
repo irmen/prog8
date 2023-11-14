@@ -42,18 +42,29 @@ palette {
         ubyte red
         ubyte greenblue
         repeat num_colors {
-            red = @(palette_bytes_ptr) >> 4
-            palette_bytes_ptr++
-            greenblue = @(palette_bytes_ptr) & %11110000
-            palette_bytes_ptr++
-            greenblue |= @(palette_bytes_ptr) >> 4    ; add Blue
-            palette_bytes_ptr++
-            cx16.vpoke(1, vera_palette_ptr, greenblue)
+            cx16.r1 = color8to4(palette_bytes_ptr)
+            palette_bytes_ptr+=3
+            cx16.vpoke(1, vera_palette_ptr, cx16.r1H)       ; $GB
             vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, red)
+            cx16.vpoke(1, vera_palette_ptr, cx16.r1L)       ; $0R
             vera_palette_ptr++
         }
     }
+
+    sub color8to4(uword colorpointer) -> uword {
+        ; accurately convert 24 bits (3 bytes) RGB color, in that order in memory, to 16 bits $GB;$0R colorvalue
+        cx16.r1 = colorpointer
+        cx16.r0 = channel8to4(@(cx16.r1))         ; (red)   -> $00:0R
+        cx16.r0H = channel8to4(@(cx16.r1+1))<<4   ; (green) -> $G0:0R
+        cx16.r0H |= channel8to4(@(cx16.r1+2))     ; (blue)  -> $GB:0R
+        return cx16.r0
+    }
+
+    sub channel8to4(ubyte channelvalue) -> ubyte {
+        ; accurately convert a single 8 bit color channel value to 4 bits,  see https://threadlocalmutex.com/?p=48
+        return msb(channelvalue * $000f + 135)
+    }
+
 
     sub set_monochrome(uword screencolorRGB, uword drawcolorRGB) {
         vera_palette_ptr = $fa00
