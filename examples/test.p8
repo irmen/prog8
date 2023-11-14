@@ -1,18 +1,15 @@
-%import string
 %zeropage basicsafe
 
 main {
-
     sub start() {
-        cat("aaaaa")
+        str name = "thing"
+        modify(name)
+
+        sub modify(str arg) {
+            ubyte n=1
+            uword pointervar
+            arg[n+1] = arg[1]
+            pointervar[n+1] = pointervar[1]
+        }
     }
-
-sub cat(str s1) {
-    str s2 = "three"
-    ubyte n=2
-
-    ; s1[n+1] = s1[2]     ; TODO compiler crash
-    s2[n+1] = s2[2]     ; works fine
-}
-
 }

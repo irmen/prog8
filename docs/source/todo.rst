@@ -2,7 +2,6 @@
 TODO
 ====
 
-- fix the compiler crash on s1[n+1] = s1[2] where s1 is a subroutine param (regular variable works)
 - improve the working of %option merge: should be able to merge your own stuff into say textio. , and improve the docs about it too.
 - give error when using %option merge in module scope.
 
@@ -27,6 +26,7 @@ Compiler:
 - Currently "320*240/8/8" gives integer overflow, so: allow constant integer subexpressions to contain out of range integers (>65535 etc) as long as the final constant value is within byte/word range.
 - allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
 - allow 'chained' array indexing for assign targets:  ptrarray[0][0] = 42   this is just evaluating the lhs as a uword pointer expression
+- fix the other cases of "TODO index could also be a binexpr" (in AssignmentAsmGen), but these are for float arrays so rarely used.
 
 - [much work:] more support for (64tass) SEGMENTS ?
     - (What, how, isn't current BSS support enough?)

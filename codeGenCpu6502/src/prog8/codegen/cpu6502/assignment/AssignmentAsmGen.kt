@@ -2621,7 +2621,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(constIndex!=null) {
                     asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
+                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out("  jsr  floats.set_array_float_from_fac1")
@@ -2658,7 +2658,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(constIndex!=null) {
                     asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
+                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out(" jsr  floats.set_array_float")
@@ -2700,7 +2700,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(constIndex!=null) {
                     asmgen.out(" lda  #$constIndex")
                 } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
+                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
                     asmgen.out(" lda  $asmvarname")
                 }
                 asmgen.out(" jsr  floats.set_array_float")
@@ -3138,6 +3138,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             throw AssemblyError("cannot assign byte to split word array here ${target.position}")
 
         if(assignsIndexedPointerVar(target)) {
+            // assign byte to a byte array via an uword pointervariable instead of a regular array variable
             if (target.constArrayIndexValue!=null) {
                 when (register) {
                     CpuRegister.A -> {}
@@ -3162,17 +3163,33 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     CpuRegister.X -> asmgen.out(" txa")
                     CpuRegister.Y -> asmgen.out(" tya")
                 }
-                val indexVar = target.array.index as PtIdentifier
-                if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
-                    asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  (${target.asmVarname}),y")
+                val indexVar = target.array.index as? PtIdentifier
+                if(indexVar!=null) {
+                    if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
+                        asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  (${target.asmVarname}),y")
+                    } else {
+                        asmgen.out("""
+                                    ldy  ${target.asmVarname}
+                                    sty  P8ZP_SCRATCH_W1
+                                    ldy  ${target.asmVarname}+1
+                                    sty  P8ZP_SCRATCH_W1+1
+                                    ldy  ${asmgen.asmVariableName(indexVar)}
+                                    sta  (P8ZP_SCRATCH_W1),y""")
+                    }
                 } else {
-                    asmgen.out("""
-                                ldy  ${target.asmVarname}
-                                sty  P8ZP_SCRATCH_W1
-                                ldy  ${target.asmVarname}+1
-                                sty  P8ZP_SCRATCH_W1+1
-                                ldy  ${asmgen.asmVariableName(indexVar)}
-                                sta  (P8ZP_SCRATCH_W1),y""")
+                    asmgen.saveRegisterStack(register, false)
+                    asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.Y, false)
+                    asmgen.restoreRegisterStack(CpuRegister.A, false)
+                    if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
+                        asmgen.out("  sta  (${target.asmVarname}),y")
+                    } else {
+                        asmgen.out("""
+                            ldx  ${target.asmVarname}
+                            stx  P8ZP_SCRATCH_W1
+                            ldx  ${target.asmVarname}+1
+                            stx  P8ZP_SCRATCH_W1+1
+                            sta  (P8ZP_SCRATCH_W1),y""")
+                    }
                 }
             }
             return
@@ -3645,7 +3662,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 sta  ${target.asmVarname}+$indexValue+4
                             """)
                     } else {
-                        val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
+                        val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
                         asmgen.out("""
                             lda  #<${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
@@ -3694,7 +3711,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             ldy  #>($arrayVarName+$indexValue)
                             jsr  floats.copy_float""")
                     } else {
-                        val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)
+                        val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
                         asmgen.out("""
                             lda  #<${constFloat}
                             sta  P8ZP_SCRATCH_W1

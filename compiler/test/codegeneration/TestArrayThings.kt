@@ -175,5 +175,23 @@ main {
         assembly shouldContain "thearray_lsb"
         assembly shouldContain "thearray_msb"
     }
+
+    test("indexing str or pointervar with expression") {
+        val text = """
+main {
+    sub start() {
+        str name = "thing"
+        modify(name)
+
+        sub modify(str arg) {
+            ubyte n=1
+            uword pointervar
+            arg[n+1] = arg[1]
+            pointervar[n+1] = pointervar[1]
+        }
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+    }
 })
 
