@@ -7,7 +7,6 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.compiler.builtinFunctionReturnType
@@ -831,6 +830,10 @@ internal class AstChecker(private val program: Program,
                 if(directive.parent is Block) {
                     if(directive.args.any {it.name !in arrayOf("align_word", "align_page", "no_symbol_prefixing", "force_output", "merge", "splitarrays", "verafxmuls")})
                         err("using an option that is not valid for blocks")
+                }
+                if(directive.parent is Module) {
+                    if(directive.args.any {it.name !in arrayOf("enable_floats", "no_sysinit", "splitarrays")})
+                        err("using an option that is not valid for modules")
                 }
                 if(directive.args.any { it.name=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)
                     err("verafx option is only valid on cx16 target")

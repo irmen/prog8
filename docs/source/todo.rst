@@ -3,7 +3,6 @@ TODO
 ====
 
 - improve the working of %option merge: should be able to merge your own stuff into say textio. , and improve the docs about it too.
-- give error when using %option merge in module scope.
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - [on branch: ir-less-branch-opcodes] IR: reduce the number of branch instructions such as BEQ, BEQR, etc (gradually), replace with CMP(I) + status branch instruction
