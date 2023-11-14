@@ -3,10 +3,12 @@ package prog8tests
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldStartWith
 import prog8.code.core.ZeropageType
 import prog8.code.core.internedStringsModuleName
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseMainModule
 import prog8tests.helpers.ErrorReporterForTests
@@ -107,5 +109,30 @@ main {
             options.zeropage shouldBe ZeropageType.DONTUSE
         }
     }
+
+    test("merge option works on library modules") {
+        val src="""
+%zeropage basicsafe
+%import textio
+
+txt {
+    %option merge
+    sub println(uword string) {
+        txt.print(string)
+        txt.nl()
+    }
+}
+
+main {
+    sub start() {
+        txt.lowercase()
+        txt.println("Hello, world1")
+        txt.println("Hello, world2")
+        txt.println("Hello, world3")
+    }
+}"""
+        compileText(VMTarget(), optimize = false, src) shouldNotBe null
+    }
+
 
 })

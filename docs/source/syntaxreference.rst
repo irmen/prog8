@@ -143,7 +143,7 @@ Directives
       Warning: if you use this to align array variables in the block, these have to be initialized with a value to make them stay in the block and get aligned properly. Otherwise they'll end up at a random spot in the BSS section and the alignment doesn't apply there.
     - ``align_page`` (in a block) will make the assembler align the start address of this block on a page boundary in memory (so, the LSB of the address is 0).
       Warning: if you use this to align array variables in the block, these have to be initialized with a value to make them stay in the block and get aligned properly. Otherwise they'll end up at a random spot in the BSS section and the alignment doesn't apply there.
-    - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name. Useful in library scenarios.
+    - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name. Useful in library scenarios. Can result in a bunch of unused symbol warnings, this depends on the import order.
     - ``splitarrays`` (block or module) makes all word-arrays in this scope lsb/msb split arrays (as if they all have the @split tag). See Arrays.
     - ``no_symbol_prefixing`` (block) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
       Only use this if you know what you're doing because it could result in invalid assembly code being generated.

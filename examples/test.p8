@@ -1,15 +1,19 @@
 %zeropage basicsafe
+%import textio
+
+txt {
+    %option merge
+    sub println(uword string) {
+        txt.print(string)
+        txt.nl()
+    }
+}
 
 main {
     sub start() {
-        str name = "thing"
-        modify(name)
-
-        sub modify(str arg) {
-            ubyte n=1
-            uword pointervar
-            arg[n+1] = arg[1]
-            pointervar[n+1] = pointervar[1]
-        }
+        txt.lowercase()
+        txt.println("Hello, world1")
+        txt.println("Hello, world2")
+        txt.println("Hello, world3")
     }
 }

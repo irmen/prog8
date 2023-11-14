@@ -110,14 +110,18 @@ class ModuleImporter(private val program: Program,
         // their content has to be merged into already existing other block with the same name.
         val blocks = importedModule.statements.filterIsInstance<Block>()
         for(block in blocks) {
-            if("merge" in block.options()) {
-                val existingBlock = program.allBlocks.firstOrNull { it.name==block.name && it !== block}
-                if(existingBlock!=null) {
+            val blockHasMergeOption = "merge" in block.options()
+            val existingBlock = program.allBlocks.firstOrNull { it.name==block.name && it !== block}
+            if(existingBlock!=null) {
+                val existingBlockHasMergeOption = "merge" in existingBlock.options()
+                if (blockHasMergeOption || existingBlockHasMergeOption) {
+                    // transplant the contents
                     existingBlock.statements.addAll(block.statements.filter { it !is Directive })
                     importedModule.statements.remove(block)
-                } else {
-                    val merges = block.statements.filter { it is Directive && it.directive=="%option" && it.args.any { a->a.name=="merge" } }
-                    block.statements.removeAll(merges.toSet())
+
+                    if(blockHasMergeOption && !existingBlockHasMergeOption) {
+                        existingBlock.statements.add(0, Directive("%option", listOf(DirectiveArg(null, "merge", null, block.position)), block.position))
+                    }
                 }
             }
         }

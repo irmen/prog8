@@ -33,10 +33,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     override fun visit(block: Block) {
         val existing = blocks[block.name]
         if(existing!=null) {
-            if(block.isInLibrary)
-                nameError(existing.name, existing.position, block)
-            else
-                nameError(block.name, block.position, existing)
+            // we allow duplicates if at least one of them has %option merge
+            if("merge" !in existing.options() + block.options()) {
+                if (block.isInLibrary)
+                    nameError(existing.name, existing.position, block)
+                else
+                    nameError(block.name, block.position, existing)
+            }
         }
         else
             blocks[block.name] = block
