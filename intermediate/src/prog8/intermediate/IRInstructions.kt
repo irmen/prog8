@@ -83,19 +83,27 @@ bstpos                        address   - branch to location if Status bit Negat
 bstneg                        address   - branch to location if Status bit Negative is set
 bstvc                         address   - branch to location if Status bit Overflow is clear
 bstvs                         address   - branch to location if Status bit Overflow is set
+
+(unsigned comparison branches:)
 bgt         reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (unsigned)
-bgts        reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (signed)
-bgtr        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
-bgtsr       reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
 blt         reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (unsigned)
-blts        reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (signed)
+bgtr        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
+'bltr'      reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (unsigned) ==> use bgtr with swapped operands
 bge         reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (unsigned)
-bges        reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (signed)
-bger        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
-bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
+bger        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
+'bler'      reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (unsigned) ==> use bger with swapped operands
+
+(signed comparison branches:)
+bgts        reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (signed)
+blts        reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (signed)
+bgtsr       reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
+'bltsr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (signed) ==> use bgtsr with swapped operands
+bges        reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (signed)
 bles        reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (signed)
-( NOTE: there are no bltr/bler instructions because these are equivalent to bgtr/bger with the register operands swapped around.)
+bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
+'blesr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed) ==> use bgesr with swapped operands
+
 sz          reg1, reg2                  - set reg1=1 if reg2==0, else 0
 snz         reg1, reg2                  - set reg1=1 if reg2!=0, else 0
 seq         reg1, reg2, reg3            - set reg1=1 if reg2 == reg3, else 0
