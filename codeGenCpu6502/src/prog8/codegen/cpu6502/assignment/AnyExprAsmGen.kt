@@ -49,54 +49,24 @@ internal class AnyExprAsmGen(
 
     private fun assignWordBinExpr(expr: PtBinaryExpression): Boolean {
         when(expr.operator) {
-            "+" -> {
-                TODO("word + at ${expr.position}")
-            }
-            "-" -> {
-                TODO("word - at ${expr.position}")
-            }
-            "*" -> {
-                TODO("word * at ${expr.position}")
-            }
-            "/" -> {
-                TODO("word / at ${expr.position}")
-            }
-            "<<" -> {
-                TODO("word << at ${expr.position}")
-            }
-            ">>" -> {
-                TODO("word >> at ${expr.position}")
-            }
-            "%" -> {
-                TODO("word % at ${expr.position}")
-            }
-            "&", "and" -> {
-                TODO("word and at ${expr.position}")
-            }
-            "|", "or" -> {
-                TODO("word or at ${expr.position}")
-            }
-            "^", "xor" -> {
-                TODO("word xor at ${expr.position}")
-            }
-            "==" -> {
-                TODO("word == at ${expr.position}")
-            }
-            "!=" -> {
-                TODO("word != at ${expr.position}")
-            }
-            "<" -> {
-                TODO("word < at ${expr.position}")
-            }
-            "<=" -> {
-                TODO("word <= at ${expr.position}")
-            }
-            ">" -> {
-                TODO("word > at ${expr.position}")
-            }
-            ">=" -> {
-                TODO("word >= at ${expr.position}")
-            }
+            "+" -> TODO("word + at ${expr.position}")
+            "-" -> TODO("word - at ${expr.position}")
+            "*" -> TODO("word * at ${expr.position}")
+            "/" -> TODO("word / at ${expr.position}")
+            "<<" -> TODO("word << at ${expr.position}")
+            ">>" -> TODO("word >> at ${expr.position}")
+            "%" -> TODO("word % at ${expr.position}")
+            "and" -> TODO("word logical and (with optional shortcircuit) ${expr.position}")
+            "or" -> TODO("word logical or (with optional shortcircuit) ${expr.position}")
+            "&" -> TODO("word and at ${expr.position}")
+            "|" -> TODO("word or at ${expr.position}")
+            "^", "xor" -> TODO("word xor at ${expr.position}")
+            "==" -> TODO("word == at ${expr.position}")
+            "!=" -> TODO("word != at ${expr.position}")
+            "<" -> TODO("word < at ${expr.position}")
+            "<=" -> TODO("word <= at ${expr.position}")
+            ">" -> TODO("word > at ${expr.position}")
+            ">=" -> TODO("word >= at ${expr.position}")
             else -> return false
         }
     }
@@ -134,7 +104,9 @@ internal class AnyExprAsmGen(
             "%" -> {
                 TODO("byte % at ${expr.position}")
             }
-            "&", "and" -> {
+            "and" -> TODO("logical and (with optional shortcircuit) ${expr.position}")
+            "or" -> TODO("logical or (with optional shortcircuit) ${expr.position}")
+            "&" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
                 asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
@@ -142,7 +114,7 @@ internal class AnyExprAsmGen(
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
             }
-            "|", "or" -> {
+            "|" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
                 asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)

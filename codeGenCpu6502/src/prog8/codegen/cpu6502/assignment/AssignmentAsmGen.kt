@@ -427,7 +427,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         val translatedOk = when (expr.operator) {
             in ComparisonOperators -> optimizedComparison(expr, assign)
-            in setOf("&", "|", "^", "and", "or", "xor") -> optimizedLogicalOrBitwiseExpr(expr, assign.target)
+            in setOf("&", "|", "^", "xor") -> optimizedBitwiseExpr(expr, assign.target)
+            in setOf("and", "or") -> optimizedLogicalAndOrExpr(expr, assign.target)
             "+", "-" -> optimizedPlusMinExpr(expr, assign.target)
             "<<", ">>" -> optimizedBitshiftExpr(expr, assign.target)
             "*" -> optimizedMultiplyExpr(expr, assign.target)
@@ -988,15 +989,15 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun optimizedLogicalOrBitwiseExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
+    private fun optimizedBitwiseExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
         if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
             if (expr.right.isSimple()) {
                 if (expr.right is PtNumber || expr.right is PtIdentifier) {
-                    assignLogicalWithSimpleRightOperandByte(target, expr.left, expr.operator, expr.right)
+                    assignBitwiseWithSimpleRightOperandByte(target, expr.left, expr.operator, expr.right)
                     return true
                 }
                 else if (expr.left is PtNumber || expr.left is PtIdentifier) {
-                    assignLogicalWithSimpleRightOperandByte(target, expr.right, expr.operator, expr.left)
+                    assignBitwiseWithSimpleRightOperandByte(target, expr.right, expr.operator, expr.left)
                     return true
                 }
             }
@@ -1006,10 +1007,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
             asmgen.restoreRegisterStack(CpuRegister.A, false)
             when (expr.operator) {
-                "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
-                "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
+                "&" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
+                "|" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
                 "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
-                else -> throw AssemblyError("invalid operator")
+                else -> throw AssemblyError("invalid bitwise operator")
             }
             assignRegisterByte(target, CpuRegister.A, false, true)
             return true
@@ -1017,20 +1018,68 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         else if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
             if (expr.right.isSimple()) {
                 if (expr.right is PtNumber || expr.right is PtIdentifier) {
-                    assignLogicalWithSimpleRightOperandWord(target, expr.left, expr.operator, expr.right)
+                    assignBitwiseWithSimpleRightOperandWord(target, expr.left, expr.operator, expr.right)
                     return true
                 }
                 else if (expr.left is PtNumber || expr.left is PtIdentifier) {
-                    assignLogicalWithSimpleRightOperandWord(target, expr.right, expr.operator, expr.left)
+                    assignBitwiseWithSimpleRightOperandWord(target, expr.right, expr.operator, expr.left)
                     return true
                 }
             }
             asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
             when (expr.operator) {
-                "&", "and" -> asmgen.out("  and  P8ZP_SCRATCH_W1 |  tax |  tya |  and  P8ZP_SCRATCH_W1+1 |  tay |  txa")
-                "|", "or" -> asmgen.out("  ora  P8ZP_SCRATCH_W1 |  tax |  tya |  ora  P8ZP_SCRATCH_W1+1 |  tay |  txa")
+                "&" -> asmgen.out("  and  P8ZP_SCRATCH_W1 |  tax |  tya |  and  P8ZP_SCRATCH_W1+1 |  tay |  txa")
+                "|" -> asmgen.out("  ora  P8ZP_SCRATCH_W1 |  tax |  tya |  ora  P8ZP_SCRATCH_W1+1 |  tay |  txa")
                 "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_W1 |  tax |  tya |  eor  P8ZP_SCRATCH_W1+1 |  tay |  txa")
-                else -> throw AssemblyError("invalid operator")
+                else -> throw AssemblyError("invalid bitwise operator")
+            }
+            assignRegisterpairWord(target, RegisterOrPair.AY)
+            return true
+        }
+        return false
+    }
+
+    private fun optimizedLogicalAndOrExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
+        if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+            if (expr.right.isSimple()) {
+                if (expr.right is PtNumber || expr.right is PtIdentifier) {
+                    assignLogicalAndOrWithSimpleRightOperandByte(target, expr.left, expr.operator, expr.right)
+                    return true
+                }
+                else if (expr.left is PtNumber || expr.left is PtIdentifier) {
+                    assignLogicalAndOrWithSimpleRightOperandByte(target, expr.right, expr.operator, expr.left)
+                    return true
+                }
+            }
+
+            assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+            asmgen.saveRegisterStack(CpuRegister.A, false)
+            assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
+            when (expr.operator) {
+                "and" -> TODO("logical and (with optional shortcircuit) ${expr.position}")
+                "or" -> TODO("logical or (with optional shortcircuit) ${expr.position}")
+                else -> throw AssemblyError("invalid logical operator")
+            }
+            assignRegisterByte(target, CpuRegister.A, false, true)
+            return true
+        }
+        else if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+            if (expr.right.isSimple()) {
+                if (expr.right is PtNumber || expr.right is PtIdentifier) {
+                    assignLogicalAndOrWithSimpleRightOperandWord(target, expr.left, expr.operator, expr.right)
+                    return true
+                }
+                else if (expr.left is PtNumber || expr.left is PtIdentifier) {
+                    assignLogicalAndOrWithSimpleRightOperandWord(target, expr.right, expr.operator, expr.left)
+                    return true
+                }
+            }
+            asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
+            when (expr.operator) {
+                "and" -> TODO("logical and (with optional shortcircuit) ${expr.position}")
+                "or" -> TODO("logical or (with optional shortcircuit) ${expr.position}")
+                else -> throw AssemblyError("invalid logical operator")
             }
             assignRegisterpairWord(target, RegisterOrPair.AY)
             return true
@@ -1709,7 +1758,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return true
     }
 
-    private fun assignLogicalWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
+    private fun assignBitwiseWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
         assignExpressionToRegister(left, RegisterOrPair.A, false)
         val operand = when(right) {
             is PtNumber -> "#${right.number.toHex()}"
@@ -1717,38 +1766,66 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             else -> throw AssemblyError("wrong right operand type")
         }
         when (operator) {
-            "&", "and" -> asmgen.out("  and  $operand")
-            "|", "or" -> asmgen.out("  ora  $operand")
+            "&" -> asmgen.out("  and  $operand")
+            "|" -> asmgen.out("  ora  $operand")
             "^", "xor" -> asmgen.out("  eor  $operand")
             else -> throw AssemblyError("invalid operator")
         }
         assignRegisterByte(target, CpuRegister.A, false, true)
     }
 
-    private fun assignLogicalWithSimpleRightOperandWord(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
+    private fun assignLogicalAndOrWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
+        when (operator) {
+            "and" -> TODO("logical and (with optional shortcircuit) ${left.position}")
+            "or" -> TODO("logical or (with optional shortcircuit) ${left.position}")
+            else -> throw AssemblyError("invalid logical operator")
+        }
+    }
+
+    private fun assignBitwiseWithSimpleRightOperandWord(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
         assignExpressionToRegister(left, RegisterOrPair.AY, false)
         when(right) {
             is PtNumber -> {
                 val number = right.number.toHex()
                 when (operator) {
-                    "&", "and" -> asmgen.out("  and  #<$number |  tax |  tya |  and  #>$number |  tay |  txa")
-                    "|", "or" -> asmgen.out("  ora  #<$number |  tax |  tya |  ora  #>$number |  tay |  txa")
+                    "&" -> asmgen.out("  and  #<$number |  tax |  tya |  and  #>$number |  tay |  txa")
+                    "|" -> asmgen.out("  ora  #<$number |  tax |  tya |  ora  #>$number |  tay |  txa")
                     "^", "xor" -> asmgen.out("  eor  #<$number |  tax |  tya |  eor  #>$number |  tay |  txa")
-                    else -> throw AssemblyError("invalid operator")
+                    else -> throw AssemblyError("invalid bitwise operator")
                 }
             }
             is PtIdentifier -> {
                 val name = asmgen.asmSymbolName(right)
                 when (operator) {
-                    "&", "and" -> asmgen.out("  and  $name |  tax |  tya |  and  $name+1 |  tay |  txa")
-                    "|", "or" -> asmgen.out("  ora  $name |  tax |  tya |  ora  $name+1 |  tay |  txa")
+                    "&" -> asmgen.out("  and  $name |  tax |  tya |  and  $name+1 |  tay |  txa")
+                    "|" -> asmgen.out("  ora  $name |  tax |  tya |  ora  $name+1 |  tay |  txa")
                     "^", "xor" -> asmgen.out("  eor  $name |  tax |  tya |  eor  $name+1 |  tay |  txa")
-                    else -> throw AssemblyError("invalid operator")
+                    else -> throw AssemblyError("invalid bitwise operator")
                 }
             }
             else -> throw AssemblyError("wrong right operand type")
         }
         assignRegisterpairWord(target, RegisterOrPair.AY)
+    }
+
+    private fun assignLogicalAndOrWithSimpleRightOperandWord(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
+        when(right) {
+            is PtNumber -> {
+                when (operator) {
+                    "and" -> TODO("logical and (with optional shortcircuit) ${left.position}")
+                    "or" -> TODO("logical or (with optional shortcircuit) ${left.position}")
+                    else -> throw AssemblyError("invalid logical operator")
+                }
+            }
+            is PtIdentifier -> {
+                when (operator) {
+                    "and" -> TODO("logical and (with optional shortcircuit) ${left.position}")
+                    "or" -> TODO("logical or (with optional shortcircuit) ${left.position}")
+                    else -> throw AssemblyError("invalid logical operator")
+                }
+            }
+            else -> throw AssemblyError("wrong right operand type")
+        }
     }
 
     private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {

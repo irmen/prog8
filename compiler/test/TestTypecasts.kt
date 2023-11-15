@@ -60,7 +60,7 @@ class TestTypecasts: FunSpec({
         val stmts2 = result2.compilerAst.entrypoint.statements
         stmts2.size shouldBe 5
         val expr2 = (stmts2[3] as Assignment).value as BinaryExpression
-        expr2.operator shouldBe "&"
+        expr2.operator shouldBe "and"
         expr2.right shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
     }
 
@@ -93,18 +93,18 @@ main {
         ubyte ub3
         ub3 = 1
         ubyte @shared bvalue
-        bvalue = ub1 ^ ub2 ^ ub3 ^ true
-        bvalue = (((ub1^ub2)^ub3)^(ftrue(99)!=0))
-        bvalue = ((ub1&ub2)&(ftrue(99)!=0))
+        bvalue = ub1 xor ub2 xor ub3 xor true
+        bvalue = (((ub1 xor ub2)xor ub3) xor (ftrue(99)!=0))
+        bvalue = ((ub1 and ub2) and (ftrue(99)!=0))
         return
          */
         stmts.size shouldBe 11
         val assignValue1 = (stmts[7] as Assignment).value as BinaryExpression
         val assignValue2 = (stmts[8] as Assignment).value as BinaryExpression
         val assignValue3 = (stmts[9] as Assignment).value as BinaryExpression
-        assignValue1.operator shouldBe "^"
-        assignValue2.operator shouldBe "^"
-        assignValue3.operator shouldBe "&"
+        assignValue1.operator shouldBe "xor"
+        assignValue2.operator shouldBe "xor"
+        assignValue3.operator shouldBe "and"
         val right2 = assignValue2.right as BinaryExpression
         val right3 = assignValue3.right as BinaryExpression
         right2.operator shouldBe "!="
@@ -113,24 +113,6 @@ main {
         right2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         right3.left shouldBe instanceOf<IFunctionCall>()
         right3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-    }
-
-    test("simple logical with bool no typecast") {
-        val text="""
-main  {
-    bool bb
-
-    sub start() {
-        bb = bb and 123
-    }
-}"""
-        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 2
-        val assignValue = (stmts[0] as Assignment).value as BinaryExpression
-        assignValue.left shouldBe instanceOf<IdentifierReference>()
-        assignValue.operator shouldBe "&"
-        (assignValue.right as NumericLiteral).number shouldBe 1.0
     }
 
     test("simple logical with byte instead of bool ok with typecasting") {
@@ -147,7 +129,7 @@ main  {
         stmts.size shouldBe 2
         val assignValue = (stmts[0] as Assignment).value as BinaryExpression
         assignValue.left shouldBe instanceOf<BinaryExpression>()        // as a result of the cast to boolean
-        assignValue.operator shouldBe "&"
+        assignValue.operator shouldBe "and"
         (assignValue.right as NumericLiteral).number shouldBe 1.0
     }
 

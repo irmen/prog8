@@ -74,16 +74,8 @@ internal class BoolRemover(val program: Program) : AstWalker() {
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        // convert boolean and/or/xor/not operators to bitwise equivalents.
-        // so that codegen only has to work with bitwise boolean operations from now on.
-        // note: this has to be done here and not in BeforeAsmTypecastCleaner! (code size will increase if done there...)
         if(expr.operator in setOf("and", "or", "xor")) {
-            expr.operator = when(expr.operator) {
-                "and" -> "&"
-                "or" -> "|"
-                "xor" -> "^"
-                else -> "invalid"
-            }
+            // see if any of the arguments to a logical boolean expression need type casting to bool
             val mods = mutableListOf<IAstModification>()
             val newLeft = wrapWithBooleanCastIfNeeded(expr.left, program)
             val newRight = wrapWithBooleanCastIfNeeded(expr.right, program)

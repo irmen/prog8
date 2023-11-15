@@ -305,8 +305,8 @@ class TestOptimization: FunSpec({
                     ubyte a1
                     ubyte a2
                     a1 = not not a1             ; a1 = a1==0
-                    a1 = not a1 or not a2       ; a1 = a1==0 | a2==0
-                    a1 = not a1 and not a2      ; a1 = a1==0 & a2==0
+                    a1 = not a1 or not a2       ; a1 = a1==0 or a2==0
+                    a1 = not a1 and not a2      ; a1 = a1==0 and a2==0
                 }
             }
         """
@@ -319,8 +319,8 @@ class TestOptimization: FunSpec({
         val value3 = (stmts[6] as Assignment).value as BinaryExpression
         value1.operator shouldBe "=="
         value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value2.operator shouldBe "|"
-        value3.operator shouldBe "&"
+        value2.operator shouldBe "or"
+        value3.operator shouldBe "and"
     }
 
     test("asmgen correctly deals with float typecasting in augmented assignment") {

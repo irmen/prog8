@@ -47,6 +47,24 @@ main {
         txt.nl()
         @($4000) &= 22
 
+        txt.print("\n5a:\n")
+        result = bool_true() or bool_false()
+        txt.print("\n5b:\n")
+        result = bool_true() and bool_false()
+        txt.print("\n5c:\n")
+        result = bool_false() and bool_true()
+        txt.print("\n5d:\n")
+        result = bool_false() xor bool_true()
+
+
+        sub bool_true() -> bool {
+            txt.print("bool_true\n")
+            return true
+        }
+        sub bool_false() -> bool {
+            txt.print("bool_false\n")
+            return false
+        }
         sub calc_a1() -> ubyte {
             txt.print("calc_a1\n")
             return a1+zero

@@ -3,10 +3,9 @@ TODO
 ====
 
 - [on branch: shortcircuit] complete McCarthy evaluation. This may also reduce code size perhaps for things like if a>4 or a<2 ....
-    - vm ircodegen (DONE)
+    - note: shortcircuit only on logical boolean expressions (and,or) not on bitwise (&,|)
+    - vm ircodegen (DONE!)
     - in 6502 codegen (see vm's ExpressionGen operatorAnd / operatorOr)
-
-- IR: reduce amount of CMP/CMPI after instructions that set the status bits correctly (LOADs? INC? Bitwise operations, etc), but only after setting the status bits is verified!
 
 ...
 

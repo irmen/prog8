@@ -367,9 +367,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             "*" -> operatorMultiply(binExpr, vmDt)
             "/" -> operatorDivide(binExpr, vmDt, signed)
             "%" -> operatorModulo(binExpr, vmDt)
-            "|" -> operatorOr(binExpr, vmDt)
-            "&" -> operatorAnd(binExpr, vmDt)
-            "^" -> operatorXor(binExpr, vmDt)
+            "|" -> operatorOr(binExpr, vmDt, true)
+            "&" -> operatorAnd(binExpr, vmDt, true)
+            "^", "xor" -> operatorXor(binExpr, vmDt)
+            "or" -> operatorOr(binExpr, vmDt, false)
+            "and" -> operatorAnd(binExpr, vmDt, false)
             "<<" -> operatorShiftLeft(binExpr, vmDt)
             ">>" -> operatorShiftRight(binExpr, vmDt, signed)
             "==" -> operatorEquals(binExpr, vmDt, false)
@@ -695,9 +697,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorAnd(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorAnd(binExpr: PtBinaryExpression, vmDt: IRDataType, bitwise: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        if(codeGen.options.shortCircuit && (!binExpr.left.isSimple() && !binExpr.right.isSimple())) {
+        if(!bitwise && codeGen.options.shortCircuit && (!binExpr.left.isSimple() && !binExpr.right.isSimple())) {
             // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -724,9 +726,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorOr(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorOr(binExpr: PtBinaryExpression, vmDt: IRDataType, bitwise: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        if(codeGen.options.shortCircuit && (!binExpr.left.isSimple() && !binExpr.right.isSimple())) {
+        if(!bitwise && codeGen.options.shortCircuit && (!binExpr.left.isSimple() && !binExpr.right.isSimple())) {
             // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
