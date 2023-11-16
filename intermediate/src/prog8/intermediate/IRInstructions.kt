@@ -437,6 +437,7 @@ val OpcodesThatSetStatusbitsButNotCarry = setOf(
     Opcode.DEC,
     Opcode.DECM
 )
+val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThatSetStatusbitsIncludingCarry
 
 
 enum class IRDataType {
