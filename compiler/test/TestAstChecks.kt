@@ -110,7 +110,7 @@ class TestAstChecks: FunSpec({
         compileText(C64Target(), true, text, writeAssembly = true, errors=errors)
         errors.errors.size shouldBe 1
         errors.warnings.size shouldBe 0
-        errors.errors[0] shouldContain "const modifier can only be used"
+        errors.errors[0] shouldContain "const can only be used"
     }
 
     test("array indexing is not allowed on a memory mapped variable") {

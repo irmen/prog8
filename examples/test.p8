@@ -3,10 +3,10 @@
 
 main {
     sub start() {
-        ubyte xx=12
-
-        if xx==12
-            txt.print("gottem")
+        str name="irmen"
+        if name=="." {
+            cx16.r0++
+        }
         txt.nl()
     }
 }

@@ -1019,7 +1019,6 @@ class IRCodeGen(
         }
     }
 
-    // TODO use this everywhere a PtJump is used
     private fun branchInstr(goto: PtJump, branchOpcode: Opcode) = if (goto.address != null)
         IRInstruction(branchOpcode, address = goto.address?.toInt())
     else if (goto.generatedLabel != null)

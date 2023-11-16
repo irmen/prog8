@@ -593,7 +593,7 @@ internal class AstChecker(private val program: Program,
         // CONST can only occur on simple types (byte, word, float)
         if(decl.type== VarDeclType.CONST) {
             if (decl.datatype !in NumericDatatypes)
-                err("const modifier can only be used on numeric types (byte, word, float)")
+                err("const can only be used on numeric types (byte, word, float)")
         }
 
         // FLOATS enabled?
