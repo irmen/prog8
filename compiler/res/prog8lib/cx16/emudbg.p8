@@ -24,39 +24,34 @@ emudbg {
 
     sub is_emulator() -> bool {
         ; Test for emulator presence.
-        ; It is recommended to only use the other debug routines if this returns true.
+        ; It is recommended to only use the debug registers if this returns true.
         return EMU_EMU_DETECT1=='1' and EMU_EMU_DETECT2=='6'
     }
 
-    asmsub console_write(str isoString @R0) clobbers(Y) {
+    sub console_write(str isoString) {
         ; note: make sure the text is in Iso encoding.
-        %asm {{
-            ldy  #0
--           lda  (cx16.r0),y
-            beq  +
-            sta  p8_EMU_CPUCLK_U
-            iny
-            bne  -
-+
-        }}
+        if is_emulator() {
+            cx16.r1 = isoString
+            while @(cx16.r1) {
+                EMU_CPUCLK_U = @(cx16.r1)
+                cx16.r1++
+            }
+        }
     }
 
-    asmsub console_chrout(ubyte char @A) {
+    sub console_chrout(ubyte char) {
         ; note: make sure the character is in Iso encoding.
-        %asm {{
-            sta  p8_EMU_CPUCLK_U
-        }}
+        if is_emulator()
+            EMU_CPUCLK_U = char
     }
 
-    asmsub console_value1(ubyte value @A) {
-        %asm {{
-            sta  p8_EMU_CPUCLK_M
-        }}
+    sub console_value1(ubyte value) {
+        if is_emulator()
+            EMU_CPUCLK_M = value
     }
 
-    asmsub console_value2(ubyte value @A) {
-        %asm {{
-            sta  p8_EMU_CPUCLK_H
-        }}
+    sub console_value2(ubyte value) {
+        if is_emulator()
+            EMU_CPUCLK_H = value
     }
 }
