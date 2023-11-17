@@ -275,6 +275,9 @@ close_end:
     sub f_open(uword filenameptr) -> bool {
         ; -- open a file for iterative reading with f_read
         ;    note: only a single iteration loop can be active at a time!
+        ;    Returns true if the file is successfully opened and readable.
+        ;    No need to check status(), unlike f_open_w() !
+        ;    NOTE: the default input isn't yet set to this logical file, you can use reset_read_channel() to do this!
         f_close()
 
         cbm.SETNAM(string.length(filenameptr), filenameptr)
@@ -390,6 +393,11 @@ _end        rts
 
     sub f_open_w(uword filenameptr) -> bool {
         ; -- open a file for iterative writing with f_write
+        ;    WARNING: returns true if the open command was received by the device,
+        ;    but this can still mean the file wasn't successfully opened for writing!
+        ;    (for example, if it already exists). This is different than f_open()!
+        ;    To be 100% sure if this call was successful, you have to use status()
+        ;    and check the drive's status message!
         f_close_w()
 
         cbm.SETNAM(string.length(filenameptr), filenameptr)

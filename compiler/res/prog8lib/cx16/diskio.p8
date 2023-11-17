@@ -285,6 +285,7 @@ close_end:
         ;    note: only a single iteration loop can be active at a time!
         ;    Returns true if the file is successfully opened and readable.
         ;    No need to check status(), unlike f_open_w() !
+        ;    NOTE: the default input isn't yet set to this logical file, you can use reset_read_channel() to do this!
         f_close()
 
         cbm.SETNAM(string.length(filenameptr), filenameptr)

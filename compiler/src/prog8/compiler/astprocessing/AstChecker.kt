@@ -953,7 +953,7 @@ internal class AstChecker(private val program: Program,
 
         if(expr.operator=="+" || expr.operator=="-") {
             if(leftDt == DataType.STR || rightDt == DataType.STR || leftDt in ArrayDatatypes || rightDt in ArrayDatatypes) {
-                errors.err("missing & (address-of) on the string operand", expr.position)
+                errors.err("missing & (address-of) on the operand", expr.position)
                 return
             }
         }
