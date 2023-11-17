@@ -25,24 +25,22 @@ sub spc() {
     txt.chrout(' ')
 }
 
-const uword COLCRS = 85
-const uword ROWCRS = 84
 sub column(ubyte col) {
     ; ---- set the cursor on the given column (starting with 0) on the current line
-    pokew(COLCRS, col as uword)
+    atari.COLCRS = col
 }
 
 sub get_column() -> ubyte {
-    return peekw(COLCRS) as ubyte
+    return atari.COLCRS as ubyte
 }
 
 sub row(ubyte rownum) {
     ; ---- set the cursor on the given row (starting with 0) on the current line
-    @(ROWCRS) = rownum
+    atari.ROWCRS = rownum
 }
 
 sub get_row() -> ubyte {
-    return @(ROWCRS)
+    return atari.ROWCRS
 }
 
 asmsub  fill_screen (ubyte character @ A, ubyte color @ Y) clobbers(A)  {
@@ -127,9 +125,6 @@ asmsub  scroll_down  (bool alsocolors @ Pc) clobbers(A)  {
 }
 
 
-romsub $F2B0 = outchar(ubyte character @ A)
-romsub $F2Fd = waitkey()
-
 asmsub chrout(ubyte character @ A) {
 	%asm {{
 		sta  _tmp_outchar+1
@@ -139,7 +134,7 @@ asmsub chrout(ubyte character @ A) {
 		pha
 _tmp_outchar
 		lda  #0
-		jsr  outchar
+		jsr  atari.outchar
 		pla
 		tay
 		pla
@@ -386,13 +381,19 @@ sub  setcc  (ubyte col, ubyte row, ubyte char, ubyte charcolor)  {
 }
 
 sub  plot(ubyte col, ubyte rownum) {
-  column(col)
-  row(rownum)
+    column(col)
+    row(rownum)
 }
 
 sub get_cursor(uword colptr, uword rowptr) {
-  @(colptr) = get_column()
-  @(rowptr) = get_row()
+    @(colptr) = get_column()
+    @(rowptr) = get_row()
+}
+
+asmsub waitkey() -> ubyte @A {
+    %asm {{
+        jmp  atari.waitkey
+    }}
 }
 
 asmsub width() clobbers(X,Y) -> ubyte @A {

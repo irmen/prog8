@@ -8,6 +8,13 @@ atari {
         &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
         &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
 
+        &uword COLCRS = 85
+        &ubyte ROWCRS = 84
+
+    romsub $F24A = getchar() -> ubyte @A
+    romsub $F2B0 = outchar(ubyte character @ A)
+    romsub $F2FD = waitkey() -> ubyte @A
+
 }
 
 sys {
