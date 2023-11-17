@@ -45,11 +45,7 @@ class StatementOptimizer(private val program: Program,
                             mutableListOf(NumericLiteral(DataType.UBYTE, firstCharEncoded.toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
-                        val stringDecl = string.parent as VarDecl
-                        return listOf(
-                            IAstModification.ReplaceNode(functionCallStatement, chrout, parent),
-                            IAstModification.Remove(stringDecl, stringDecl.parent as IStatementContainer)
-                        )
+                        return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
                     } else if (string.value.length == 2) {
                         val firstTwoCharsEncoded = options.compTarget.encodeString(string.value.take(2), string.encoding)
                         val chrout1 = FunctionCallStatement(
@@ -62,11 +58,9 @@ class StatementOptimizer(private val program: Program,
                             mutableListOf(NumericLiteral(DataType.UBYTE, firstTwoCharsEncoded[1].toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
-                        val stringDecl = string.parent as VarDecl
                         return listOf(
                             IAstModification.InsertBefore(functionCallStatement, chrout1, parent as IStatementContainer),
-                            IAstModification.ReplaceNode(functionCallStatement, chrout2, parent),
-                            IAstModification.Remove(stringDecl, stringDecl.parent as IStatementContainer)
+                            IAstModification.ReplaceNode(functionCallStatement, chrout2, parent)
                         )
                     }
                 }

@@ -16,6 +16,7 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.*
 
 
@@ -757,5 +758,22 @@ main {
     }
 }"""
         compileText(C64Target(), true, text, writeAssembly = false) shouldNotBe null
+    }
+
+    test("replacing string print by chrout with referenced string elsewhere shouldn't give string symbol error") {
+        val text="""
+%import textio
+
+main {
+    sub start() {
+        str key = "test"
+        txt.print(":")
+        if key != ":" {
+            cx16.r0++
+        }
+    }
+}
+"""
+        compileText(VMTarget(), true, text, writeAssembly = false) shouldNotBe null
     }
 })
