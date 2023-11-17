@@ -567,7 +567,6 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
 
 asmsub vaddr_clone(ubyte port @A) clobbers (A,X,Y) {
     ; -- clones Vera addresses from the given source port to the other one.
-    ;    leaves CTRL on the destination port.
     %asm {{
         sta  VERA_CTRL
         ldx  VERA_ADDR_L
@@ -580,6 +579,8 @@ asmsub vaddr_clone(ubyte port @A) clobbers (A,X,Y) {
         sty  VERA_ADDR_M
         ply
         sty  VERA_ADDR_H
+        eor  #1
+        sta  VERA_CTRL
         rts
     }}
 }

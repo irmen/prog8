@@ -1,4 +1,5 @@
 ; Prog8 definitions for the Text I/O and Screen routines for the Atari 800XL
+; Reference:  https://www.atariarchives.org/mapping/appendix12.php
 
 %import syslib
 %import conv

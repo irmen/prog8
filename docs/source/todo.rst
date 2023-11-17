@@ -4,6 +4,8 @@ TODO
 
 - fix discord string bug for if key!="." : "ERROR undefined symbol: prog8_interned_strings.string_3"
 
+- txt.waitkey() should return the pressed key? Also on atari.
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
