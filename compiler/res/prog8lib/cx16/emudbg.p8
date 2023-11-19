@@ -31,10 +31,13 @@ emudbg {
     sub console_write(str isoString) {
         ; note: make sure the text is in Iso encoding.
         if is_emulator() {
-            cx16.r1 = isoString
-            while @(cx16.r1) {
-                EMU_CPUCLK_U = @(cx16.r1)
-                cx16.r1++
+            ubyte chr
+            repeat {
+                chr = @(isoString)
+                if_z
+                    break
+                EMU_CPUCLK_U = chr
+                isoString++
             }
         }
     }
