@@ -37,6 +37,7 @@ main {
 			when ch {
 				0 -> {
 					break
+                    continue
 				}
 				else -> {
 					temp[0] = ch

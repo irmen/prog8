@@ -99,6 +99,7 @@ abstract class AstWalker {
     open fun before(block: Block, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(continueStmt: Continue, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -142,6 +143,7 @@ abstract class AstWalker {
     open fun after(block: Block, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(continueStmt: Continue, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -372,6 +374,11 @@ abstract class AstWalker {
     fun visit(breakStmt: Break, parent: Node) {
         track(before(breakStmt, parent), breakStmt, parent)
         track(after(breakStmt, parent), breakStmt, parent)
+    }
+
+    fun visit(continueStmt: Continue, parent: Node) {
+        track(before(continueStmt, parent), continueStmt, parent)
+        track(after(continueStmt, parent), continueStmt, parent)
     }
 
     fun visit(forLoop: ForLoop, parent: Node) {

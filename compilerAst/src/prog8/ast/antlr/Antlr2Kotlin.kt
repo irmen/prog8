@@ -7,7 +7,6 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
-import prog8.parser.Prog8ANTLRParser
 import prog8.parser.Prog8ANTLRParser.*
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
@@ -145,11 +144,14 @@ private fun StatementContext.toAst() : Statement {
     val repeatloop = repeatloop()?.toAst()
     if(repeatloop!=null) return repeatloop
 
+    val whenstmt = whenstmt()?.toAst()
+    if(whenstmt!=null) return whenstmt
+
     val breakstmt = breakstmt()?.toAst()
     if(breakstmt!=null) return breakstmt
 
-    val whenstmt = whenstmt()?.toAst()
-    if(whenstmt!=null) return whenstmt
+    val continuestmt = continuestmt()?.toAst()
+    if(continuestmt!=null) return continuestmt
 
     val unrollstmt = unrollloop()?.toAst()
     if(unrollstmt!=null) return unrollstmt
@@ -572,6 +574,8 @@ private fun ForloopContext.toAst(): ForLoop {
 }
 
 private fun BreakstmtContext.toAst() = Break(toPosition())
+
+private fun ContinuestmtContext.toAst() = Continue(toPosition())
 
 private fun WhileloopContext.toAst(): WhileLoop {
     val condition = expression().toAst()

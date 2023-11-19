@@ -501,7 +501,9 @@ The *repeat* loop is used as a short notation of a for loop where the loop varia
 
 You can also create loops by using the ``goto`` statement, but this should usually be avoided.
 
-Breaking out of a loop prematurely is possible with the ``break`` statement.
+Breaking out of a loop prematurely is possible with the ``break`` statement,
+immediately continue into the next cycle of the loop with the ``continue`` statement.
+(These are just shorthands for a goto + a label)
 
 The *unroll* loop is not really a loop, but looks like one. It actually duplicates the statements in its block on the spot by
 the given number of times. It's meant to "unroll loops" - trade memory for speed by avoiding the actual repeat loop counting code.

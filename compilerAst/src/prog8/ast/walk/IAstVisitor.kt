@@ -115,6 +115,9 @@ interface IAstVisitor {
     fun visit(breakStmt: Break) {
     }
 
+    fun visit(continueStmt: Continue) {
+    }
+
     fun visit(forLoop: ForLoop) {
         forLoop.loopVar.accept(this)
         forLoop.iterable.accept(this)

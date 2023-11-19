@@ -19,7 +19,7 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // have been performed (because those could re-introduce nodes that have to be desugared)
     //
     // List of modifications:
-    // - replace 'break' statements by a goto + generated after label.
+    // - replace 'break' and 'continue' statements by a goto + generated after label.
     // - replace while and do-until loops by just jumps.
     // - replace peek() and poke() by direct memory accesses.
     // - repeat-forever loops replaced by label+jump.
@@ -47,6 +47,39 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
                 is RepeatLoop,
                 is UntilLoop,
                 is WhileLoop -> return jumpAfter(partof as Statement)
+                else -> partof = partof.parent
+            }
+        }
+    }
+
+    override fun before(continueStmt: Continue, parent: Node): Iterable<IAstModification> {
+        fun jumpToBottom(scope: IStatementContainer): Iterable<IAstModification> {
+            val label = program.makeLabel("cont", continueStmt.position)
+            return listOf(
+                IAstModification.ReplaceNode(continueStmt, program.jumpLabel(label), parent),
+                IAstModification.InsertLast(label, scope)
+            )
+        }
+
+        fun jumpToBefore(loop: WhileLoop): Iterable<IAstModification> {
+            val label = program.makeLabel("cont", continueStmt.position)
+            return listOf(
+                IAstModification.ReplaceNode(continueStmt, program.jumpLabel(label), parent),
+                IAstModification.InsertBefore(loop, label, loop.parent as IStatementContainer)
+            )
+        }
+
+        var partof = parent
+        while(true) {
+            when (partof) {
+                is Subroutine, is Block, is ParentSentinel -> {
+                    errors.err("continue in wrong scope", continueStmt.position)
+                    return noModifications
+                }
+                is ForLoop -> return jumpToBottom(partof.body)
+                is RepeatLoop -> return jumpToBottom(partof.body)
+                is UntilLoop -> return jumpToBottom(partof.body)
+                is WhileLoop -> return jumpToBefore(partof)
                 else -> partof = partof.parent
             }
         }

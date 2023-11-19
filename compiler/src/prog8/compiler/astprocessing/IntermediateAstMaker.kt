@@ -40,6 +40,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             is Assignment -> transform(statement)
             is Block -> transform(statement)
             is Break -> throw FatalAstException("break should have been replaced by Goto")
+            is Continue -> throw FatalAstException("continue should have been replaced by Goto")
             is BuiltinFunctionCallStatement -> transform(statement)
             is BuiltinFunctionPlaceholder -> throw FatalAstException("BuiltinFunctionPlaceholder should not occur in Ast here")
             is ConditionalBranch -> transform(statement)

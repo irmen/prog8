@@ -745,6 +745,7 @@ You can use a single statement, or a statement block like in the example below::
 	for <loopvar>  in  <expression>  [ step <amount> ]   {
 		; do something...
 		break		; break out of the loop
+		continue    ; immediately next iteration
 	}
 
 For example, this is a for loop using a byte variable ``i``, defined before, to loop over a certain range of numbers::
@@ -778,6 +779,7 @@ You can use a single statement, or a statement block like in the example below::
 	while  <condition>  {
 		; do something...
 		break		; break out of the loop
+		continue    ; immediately next iteration
 	}
 
 
@@ -790,6 +792,7 @@ You can use a single statement, or a statement block like in the example below::
 	do  {
 		; do something...
 		break		; break out of the loop
+		continue    ; immediately next iteration
 	} until  <condition>
 
 
@@ -802,6 +805,7 @@ It's a short hand for a for loop without an explicit loop variable::
     repeat 15 {
         ; do something...
         break		; you can break out of the loop
+        continue    ; immediately next iteration
     }
 
 If you omit the iteration count, it simply loops forever.
@@ -820,7 +824,7 @@ Also, only simple statements such as assignments and function calls can be insid
         cx16.VERA_DATA0 = 255
     }
 
-A `break` statement cannot occur in an unroll loop, as there is not really a loop to break out of.
+A `break` or `continue` statement cannot occur in an unroll loop, as there is no actual loop to break out of.
 
 
 Conditional Execution and Jumps

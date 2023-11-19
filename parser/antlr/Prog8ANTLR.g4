@@ -100,6 +100,7 @@ statement :
 	| unrollloop
 	| whenstmt
 	| breakstmt
+	| continuestmt
 	| labeldef
 	;
 
@@ -209,6 +210,8 @@ expression_list :
 returnstmt : 'return' expression? ;
 
 breakstmt : 'break';
+
+continuestmt: 'continue';
 
 identifier :  NAME ;
 
