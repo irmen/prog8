@@ -193,6 +193,10 @@ to see what's in there. (Note: slight variations for different compiler targets)
     routines, please first try again with an SD-card image instead of HostFs.
     It is possible that there are still small differences between HostFS and actual CBM DOS in the X16 emulator.
 
+.. note::
+    You can set the active disk drive number so it supports multiple drives,
+    but it does not support multiple open files at the same time.
+
 .. attention::
     Error handling is peculiar on CBM dos systems (C64, C128, cx16, PET). Read the
     descriptions for the various methods in this library for details and tips.

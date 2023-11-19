@@ -154,7 +154,9 @@ They take care of saving and restoring the Vera state of the interrupted main pr
 will corrupt any Vera operations that were going on in the main program. The routines are::
 
     cx16.save_vera_context()
-    ; ... do your work that uses vera here...
+    ; perhaps also cx16.save_virtual_registers() here...
+    ; ... do your work that uses vera here!...
+    ; perhaps also cx16.restore_virtual_registers() here...
     cx16.restore_vera_context()
 
 .. caution::
@@ -162,6 +164,7 @@ will corrupt any Vera operations that were going on in the main program. The rou
     So you should make sure that the handler routine does NOT use these registers, or do some sort of saving/restoring yourself
     of the ones that you do need in the IRQ handler.
     There are two utility routines in cx16 that save and restore *all* 16 registers so it's a bit inefficient but safe.
+    (these are ``save_virtual_registers()`` and ``restore_virtual_registers()``)
 
     It is also advised to not use floating point calculations inside IRQ handler routines.
     Beside them being very slow, there are intricate requirements such as having the

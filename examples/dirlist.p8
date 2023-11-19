@@ -8,15 +8,13 @@
 
 main {
     sub start() {
-        diskio.set_drive(8)
-        txt.print("showing the full directory of drive ")
-        txt.print_ub(diskio.drivenumber)
-        txt.print(":\n")
+        diskio.drivenumber = 8
+        txt.print("showing the full directory of drive 8:\n")
         void diskio.directory()
         txt.nl()
 
-        if diskio.lf_start_list("cub*") {
-            txt.print("\nfiles starting with 'cub':\n")
+        if diskio.lf_start_list("test*") {
+            txt.print("\nfiles starting with 'test':\n")
             while diskio.lf_next_entry() {
                 txt.print(diskio.list_filename)
                 txt.print("  ")
@@ -28,8 +26,8 @@ main {
             txt.print("error\n")
         }
 
-        if diskio.lf_start_list("*gfx") {
-            txt.print("\nfiles ending with 'gfx':\n")
+        if diskio.lf_start_list("*bin") {
+            txt.print("\nfiles ending with 'bin':\n")
             while diskio.lf_next_entry() {
                 txt.print(diskio.list_filename)
                 txt.print("  ")
