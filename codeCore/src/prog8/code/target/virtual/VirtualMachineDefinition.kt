@@ -12,7 +12,7 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override val FLOAT_MAX_POSITIVE = Float.MAX_VALUE.toDouble()
     override val FLOAT_MAX_NEGATIVE = -Float.MAX_VALUE.toDouble()
-    override val FLOAT_MEM_SIZE = 4             // 32-bits floating point
+    override val FLOAT_MEM_SIZE = 8             // 64-bits double
     override val PROGRAM_LOAD_ADDRESS = 0u      // not actually used
 
     override val BSSHIGHRAM_START = 0u          // not actually used
@@ -22,8 +22,8 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override fun getFloatAsmBytes(num: Number): String {
         // little endian binary representation
-        val bits = num.toFloat().toBits().toUInt()
-        val hexStr = bits.toString(16).padStart(8, '0')
+        val bits = num.toDouble().toBits().toULong()
+        val hexStr = bits.toString(16).padStart(16, '0')
         val parts = hexStr.chunked(2).map { "\$" + it }
         return parts.joinToString(", ")
     }

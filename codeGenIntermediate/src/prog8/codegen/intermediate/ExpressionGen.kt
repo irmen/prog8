@@ -33,7 +33,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val code = IRCodeChunk(null, null)
                 if(vmDt==IRDataType.FLOAT) {
                     val resultFpRegister = codeGen.registers.nextFreeFloat()
-                    code += IRInstruction(Opcode.LOAD, vmDt, fpReg1 = resultFpRegister, immediateFp = expr.number.toFloat())
+                    code += IRInstruction(Opcode.LOAD, vmDt, fpReg1 = resultFpRegister, immediateFp = expr.number)
                     ExpressionCodeResult(code, vmDt,-1, resultFpRegister)
                 }
                 else {
@@ -713,7 +713,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val tr = translateExpression(binExpr.left)
                 addToResult(result, tr, -1, tr.resultFpReg)
-                val factor = constFactorRight.number.toFloat()
+                val factor = constFactorRight.number
                 result += codeGen.divideByConstFloat(tr.resultFpReg, factor)
                 return ExpressionCodeResult(result, vmDt, -1, tr.resultFpReg)
             } else {
@@ -769,13 +769,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             return if(constFactorLeft!=null) {
                 val tr = translateExpression(binExpr.right)
                 addToResult(result, tr, -1, tr.resultFpReg)
-                val factor = constFactorLeft.number.toFloat()
+                val factor = constFactorLeft.number
                 result += codeGen.multiplyByConstFloat(tr.resultFpReg, factor)
                 ExpressionCodeResult(result, vmDt, -1, tr.resultFpReg)
             } else if(constFactorRight!=null) {
                 val tr = translateExpression(binExpr.left)
                 addToResult(result, tr, -1, tr.resultFpReg)
-                val factor = constFactorRight.number.toFloat()
+                val factor = constFactorRight.number
                 result += codeGen.multiplyByConstFloat(tr.resultFpReg, factor)
                 ExpressionCodeResult(result, vmDt, -1, tr.resultFpReg)
             } else {
@@ -823,7 +823,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return if(binExpr.right is PtNumber) {
                     val tr = translateExpression(binExpr.left)
                     addToResult(result, tr, -1, tr.resultFpReg)
-                    addInstr(result, IRInstruction(Opcode.SUB, vmDt, fpReg1 = tr.resultFpReg, immediateFp = (binExpr.right as PtNumber).number.toFloat()), null)
+                    addInstr(result, IRInstruction(Opcode.SUB, vmDt, fpReg1 = tr.resultFpReg, immediateFp = (binExpr.right as PtNumber).number), null)
                     ExpressionCodeResult(result, vmDt, -1, tr.resultFpReg)
                 } else {
                     val leftTr = translateExpression(binExpr.left)
@@ -878,7 +878,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return if(binExpr.right is PtNumber) {
                     val tr = translateExpression(binExpr.left)
                     addToResult(result, tr, -1, tr.resultFpReg)
-                    addInstr(result, IRInstruction(Opcode.ADD, vmDt, fpReg1 = tr.resultFpReg, immediateFp = (binExpr.right as PtNumber).number.toFloat()), null)
+                    addInstr(result, IRInstruction(Opcode.ADD, vmDt, fpReg1 = tr.resultFpReg, immediateFp = (binExpr.right as PtNumber).number), null)
                     ExpressionCodeResult(result, vmDt, -1, tr.resultFpReg)
                 } else {
                     val leftTr = translateExpression(binExpr.left)
@@ -950,7 +950,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val constFactorRight = operand as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
-                val factor = constFactorRight.number.toFloat()
+                val factor = constFactorRight.number
                 result += codeGen.divideByConstFloatInplace(knownAddress, symbol, factor)
             } else {
                 val tr = translateExpression(operand)
@@ -999,7 +999,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val constFactorRight = operand as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
             if(constFactorRight!=null) {
-                val factor = constFactorRight.number.toFloat()
+                val factor = constFactorRight.number
                 result += codeGen.multiplyByConstFloatInplace(knownAddress, symbol, factor)
             } else {
                 val tr = translateExpression(operand)
@@ -1324,7 +1324,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 // in-place modify a memory location
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1 = valueReg, address = knownAddress)
-                    it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = numberReg, immediateFp = operand.number.toFloat())
+                    it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = numberReg, immediateFp = operand.number)
                     it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=cmpReg, fpReg1 = valueReg, fpReg2 = numberReg)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=zeroReg, immediate = 0)
                     it += IRInstruction(compareAndSetOpcode, IRDataType.BYTE, reg1=cmpResultReg, reg2=cmpReg, reg3=zeroReg)
@@ -1335,7 +1335,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 // in-place modify a symbol (variable)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1 = valueReg, labelSymbol = symbol)
-                    it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = numberReg, immediateFp = operand.number.toFloat())
+                    it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = numberReg, immediateFp = operand.number)
                     it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=cmpReg, fpReg1 = valueReg, fpReg2 = numberReg)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=zeroReg, immediate = 0)
                     it += IRInstruction(compareAndSetOpcode, IRDataType.BYTE, reg1=cmpResultReg, reg2=cmpReg, reg3=zeroReg)

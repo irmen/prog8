@@ -128,6 +128,6 @@ class TestVm: FunSpec( {
         c64machine.getFloatAsmBytes(Math.PI) shouldBe "\$82, \$49, \$0f, \$da, \$a2"
 
         val vm = VirtualMachineDefinition()
-        vm.getFloatAsmBytes(Math.PI) shouldBe "\$40, \$49, \$0f, \$db"
+        vm.getFloatAsmBytes(Math.PI) shouldBe "\$40, \$09, \$21, \$fb, \$54, \$44, \$2d, \$18"
     }
 })

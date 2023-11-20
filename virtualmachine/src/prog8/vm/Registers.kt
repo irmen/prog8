@@ -7,14 +7,14 @@ package prog8.vm
  */
 class Registers {
     private val registers = Array<UShort>(65536) { 0u }
-    private val floatRegisters = Array(65536) { 0f }
+    private val floatRegisters = Array(65536) { 0.0 }
     var cpuA: UByte = 0u
     var cpuX: UByte = 0u
     var cpuY: UByte = 0u
 
     fun reset() {
         registers.fill(0u)
-        floatRegisters.fill(0f)
+        floatRegisters.fill(0.0)
         cpuA = 0u
         cpuX = 0u
         cpuY = 0u
@@ -46,7 +46,7 @@ class Registers {
 
     fun getFloat(reg:Int) = floatRegisters[reg]
 
-    fun setFloat(reg:Int, value: Float) {
+    fun setFloat(reg:Int, value: Double) {
         floatRegisters[reg] = value
     }
 }

@@ -11,7 +11,7 @@ Intermediate Representation instructions for the IR Virtual machine.
 Specs of the virtual machine this will run on:
 Program to execute is not stored in the system memory, it's just a separate list of instructions.
 65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
-65536 virtual floating point registers (32 bits single precision floats)  fr0-fr65535
+65536 virtual floating point registers (64 bits double precision)  fr0-fr65535
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
 Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC!!!
@@ -21,7 +21,7 @@ Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by t
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
-Value types: integers (.b=byte=8 bits, .w=word=16 bits) and float (.f=32 bits). Omitting it defaults to b if the instruction requires a type.
+Value types: integers (.b=byte=8 bits, .w=word=16 bits) and float (.f=64 bits). Omitting it defaults to b if the instruction requires a type.
 Currently ther is NO support for 24 or 32 bits integers.
 There is no distinction between signed and unsigned integers.
 Instead, a different instruction is used if a distinction should be made (for example div and divs).
@@ -691,7 +691,7 @@ data class IRInstruction(
     val fpReg1: Int?=null,      // 0-$ffff
     val fpReg2: Int?=null,      // 0-$ffff
     val immediate: Int?=null,   // 0-$ff or $ffff if word
-    val immediateFp: Float?=null,
+    val immediateFp: Double?=null,
     val address: Int?=null,       // 0-$ffff
     val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
     var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.

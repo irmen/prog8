@@ -23,8 +23,7 @@ Future Things and Ideas
 Compiler:
 
 - Currently "320*240/8/8" gives integer overflow, so: allow constant integer subexpressions to contain out of range integers (>65535 etc) as long as the final constant value is within byte/word range.
-- allow 'chained' array indexing for expressions:  value = ptrarray[0][0]
-- allow 'chained' array indexing for assign targets:  ptrarray[0][0] = 42   this is just evaluating the lhs as a uword pointer expression
+- Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
 - fix the other cases of "TODO index could also be a binexpr" (in AssignmentAsmGen), but these are for float arrays so rarely used.
 
 - [much work:] more support for (64tass) SEGMENTS ?
@@ -68,6 +67,7 @@ Libraries:
 
 Optimizations:
 
+- give a warning for variables that could be a const - or even make them a const (if not @shared)?
 - treat every scalar variable decl with initialization value, as const by default, unless the variable gets assigned to somewhere (or has its address taken, or is @shared)
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest

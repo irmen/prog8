@@ -62,15 +62,15 @@ fun convertIRType(typestr: String): IRDataType? {
     }
 }
 
-fun parseIRValue(value: String): Float {
+fun parseIRValue(value: String): Double {
     return if(value.startsWith("-"))
         -parseIRValue(value.substring(1))
     else if(value.startsWith('$'))
-        value.substring(1).toInt(16).toFloat()
+        value.substring(1).toInt(16).toDouble()
     else if(value.startsWith('%'))
-        value.substring(1).toInt(2).toFloat()
+        value.substring(1).toInt(2).toDouble()
     else if(value.startsWith("0x"))
-        value.substring(2).toInt(16).toFloat()
+        value.substring(2).toInt(16).toDouble()
     else if(value.startsWith('_'))
         throw IRParseException("attempt to parse a label as numeric value")
     else if(value.startsWith('&'))
@@ -78,7 +78,7 @@ fun parseIRValue(value: String): Float {
     else if(value.startsWith('@'))
         throw IRParseException("address-of @ should have been handled earlier")
     else
-        return value.toFloat()
+        return value.toDouble()
 }
 
 
@@ -119,11 +119,11 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     var fpReg1: Int? = null
     var fpReg2: Int? = null
     var immediateInt: Int? = null
-    var immediateFp: Float? = null
+    var immediateFp: Double? = null
     var address: Int? = null
     var labelSymbol: String? = null
 
-    fun parseValueOrPlaceholder(operand: String): Float? {
+    fun parseValueOrPlaceholder(operand: String): Double? {
         return if(operand[0].isLetter()) {
             null
         } else {

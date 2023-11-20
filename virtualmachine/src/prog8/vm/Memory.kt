@@ -47,7 +47,7 @@ class Memory {
         mem[address] = uv.toUByte()
     }
 
-    fun setFloat(address: Int, value: Float) {
+    fun setFloat(address: Int, value: Double) {
         var bits = value.toBits()
         mem[address] = bits.toUByte()
         bits = bits ushr 8
@@ -56,11 +56,26 @@ class Memory {
         mem[address+2] = bits.toUByte()
         bits = bits ushr 8
         mem[address+3] = bits.toUByte()
+        bits = bits ushr 8
+        mem[address+4] = bits.toUByte()
+        bits = bits ushr 8
+        mem[address+5] = bits.toUByte()
+        bits = bits ushr 8
+        mem[address+6] = bits.toUByte()
+        bits = bits ushr 8
+        mem[address+7] = bits.toUByte()
     }
 
-    fun getFloat(address: Int): Float {
-        val bits = mem[address] + 256u*mem[address+1] + 65536u*mem[address+2] + 16777216u*mem[address+3]
-        return Float.fromBits(bits.toInt())
+    fun getFloat(address: Int): Double {
+        val bits = mem[address].toLong() +
+            (1L shl 8)*mem[address+1].toLong() +
+            (1L shl 16)*mem[address+2].toLong() +
+            (1L shl 24)*mem[address+3].toLong() +
+            (1L shl 32)*mem[address+4].toLong() +
+            (1L shl 40)*mem[address+5].toLong() +
+            (1L shl 48)*mem[address+6].toLong() +
+            (1L shl 56)*mem[address+7].toLong()
+        return Double.fromBits(bits)
     }
 
     // for now, no LONG 32-bits and no FLOAT support.

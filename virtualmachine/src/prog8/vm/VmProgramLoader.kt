@@ -217,7 +217,7 @@ class VmProgramLoader {
                                 addr += 2
                             }
                             DataType.ARRAY_F -> {
-                                memory.setFloat(addr, 0.0f)
+                                memory.setFloat(addr, 0.0)
                                 addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }
                             in SplitWordArrayTypes -> {
@@ -238,7 +238,7 @@ class VmProgramLoader {
                     DataType.BYTE -> memory.setSB(addr, it.toInt().toByte())
                     DataType.UWORD -> memory.setUW(addr, it.toInt().toUShort())
                     DataType.WORD -> memory.setSW(addr, it.toInt().toShort())
-                    DataType.FLOAT -> memory.setFloat(addr, it.toFloat())
+                    DataType.FLOAT -> memory.setFloat(addr, it)
                     else -> throw IRParseException("invalid dt")
                 }
             }
@@ -314,7 +314,7 @@ class VmProgramLoader {
 
             DataType.ARRAY_F -> {
                 for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toFloat()
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toDouble()
                     memory.setFloat(address, value)
                     address += program.options.compTarget.machine.FLOAT_MEM_SIZE
                 }
@@ -378,7 +378,7 @@ class VmProgramLoader {
             }
 
             DataType.ARRAY_F -> {
-                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toFloat()
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toDouble()
                 repeat(variable.length!!) {
                     memory.setFloat(address, value)
                     address += program.options.compTarget.machine.FLOAT_MEM_SIZE

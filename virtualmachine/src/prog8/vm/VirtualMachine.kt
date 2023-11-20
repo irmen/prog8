@@ -357,7 +357,7 @@ class VirtualMachine(irProgram: IRProgram) {
             when(value.dt!!) {
                 IRDataType.BYTE -> valueStack.push(value.value as UByte)
                 IRDataType.WORD -> valueStack.pushw(value.value as UShort)
-                IRDataType.FLOAT -> valueStack.pushf(value.value as Float)
+                IRDataType.FLOAT -> valueStack.pushf(value.value as Double)
             }
             value.dt=null
         }
@@ -531,7 +531,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> memory.setUB(i.address!!, 0u)
             IRDataType.WORD -> memory.setUW(i.address!!, 0u)
-            IRDataType.FLOAT -> memory.setFloat(i.address!!, 0f)
+            IRDataType.FLOAT -> memory.setFloat(i.address!!, 0.0)
         }
         nextPc()
     }
@@ -540,7 +540,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when (i.type!!) {
             IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toInt(), 0u)
             IRDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toInt(), 0u)
-            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt(), 0f)
+            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt(), 0.0)
         }
         nextPc()
     }
@@ -549,7 +549,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when (i.type!!) {
             IRDataType.BYTE -> memory.setUB(i.address!! + registers.getUB(i.reg1!!).toInt(), 0u)
             IRDataType.WORD -> memory.setUW(i.address!! + registers.getUB(i.reg1!!).toInt(), 0u)
-            IRDataType.FLOAT -> memory.setFloat(i.address!! + registers.getUB(i.reg1!!).toInt(), 0f)
+            IRDataType.FLOAT -> memory.setFloat(i.address!! + registers.getUB(i.reg1!!).toInt(), 0.0)
         }
         nextPc()
     }
@@ -1592,16 +1592,16 @@ class VirtualMachine(irProgram: IRProgram) {
         memory.setSW(address, result.toShort())
     }
 
-    private fun arithFloat(left: Float, operator: String, right: Float): Float = when(operator) {
+    private fun arithFloat(left: Double, operator: String, right: Double): Double = when(operator) {
         "+" -> left + right
         "-" -> left - right
         "*" -> left * right
         "/" -> {
-            if(right==0f) Float.MAX_VALUE
+            if(right==0.0) Double.MAX_VALUE
             else left / right
         }
         "%" -> {
-            if(right==0f) Float.MAX_VALUE
+            if(right==0.0) Double.MAX_VALUE
             else left % right
         }
         else -> throw IllegalArgumentException("operator word $operator")
@@ -2108,22 +2108,22 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsFFROMUB(i: IRInstruction) {
-        registers.setFloat(i.fpReg1!!, registers.getUB(i.reg1!!).toFloat())
+        registers.setFloat(i.fpReg1!!, registers.getUB(i.reg1!!).toDouble())
         nextPc()
     }
 
     private fun InsFFROMSB(i: IRInstruction) {
-        registers.setFloat(i.fpReg1!!, registers.getSB(i.reg1!!).toFloat())
+        registers.setFloat(i.fpReg1!!, registers.getSB(i.reg1!!).toDouble())
         nextPc()
     }
 
     private fun InsFFROMUW(i: IRInstruction) {
-        registers.setFloat(i.fpReg1!!, registers.getUW(i.reg1!!).toFloat())
+        registers.setFloat(i.fpReg1!!, registers.getUW(i.reg1!!).toDouble())
         nextPc()
     }
 
     private fun InsFFROMSW(i: IRInstruction) {
-        registers.setFloat(i.fpReg1!!, registers.getSW(i.reg1!!).toFloat())
+        registers.setFloat(i.fpReg1!!, registers.getSW(i.reg1!!).toDouble())
         nextPc()
     }
 
@@ -2356,7 +2356,7 @@ class VirtualMachine(irProgram: IRProgram) {
         randomGenerator = Random(((seed1.toUInt() shl 16) or seed2.toUInt()).toInt())
     }
 
-    fun randomSeedFloat(seed: Float) {
+    fun randomSeedFloat(seed: Double) {
         randomGeneratorFloats = Random(seed.toBits())
     }
 }
@@ -2366,9 +2366,17 @@ internal fun Stack<UByte>.pushw(value: UShort) {
     push((value.toInt() ushr 8).toUByte())
 }
 
-internal fun Stack<UByte>.pushf(value: Float) {
+internal fun Stack<UByte>.pushf(value: Double) {
     // push float; lsb first, msb last
     var bits = value.toBits()
+    push(bits.toUByte())
+    bits = bits ushr 8
+    push(bits.toUByte())
+    bits = bits ushr 8
+    push(bits.toUByte())
+    bits = bits ushr 8
+    push(bits.toUByte())
+    bits = bits ushr 8
     push(bits.toUByte())
     bits = bits ushr 8
     push(bits.toUByte())
@@ -2384,14 +2392,25 @@ internal fun Stack<UByte>.popw(): UShort {
     return ((msb.toInt() shl 8) + lsb.toInt()).toUShort()
 }
 
-internal fun Stack<UByte>.popf(): Float {
+internal fun Stack<UByte>.popf(): Double {
     // pop float; lsb is on bottom, msb on top
-    val b0 = pop()
-    val b1 = pop()
-    val b2 = pop()
-    val b3 = pop()
-    val bits = b3 + 256u*b2 + 65536u*b1 + 16777216u*b0
-    return Float.fromBits(bits.toInt())
+    val b0 = pop().toLong()
+    val b1 = pop().toLong()
+    val b2 = pop().toLong()
+    val b3 = pop().toLong()
+    val b4 = pop().toLong()
+    val b5 = pop().toLong()
+    val b6 = pop().toLong()
+    val b7 = pop().toLong()
+    val bits = b7 +
+            (1L shl 8)*b6 +
+            (1L shl 16)*b5 +
+            (1L shl 24)*b4
+            (1L shl 32)*b3
+            (1L shl 40)*b2
+            (1L shl 48)*b1
+            (1L shl 56)*b0
+    return Double.fromBits(bits)
 }
 
 // probably called via reflection

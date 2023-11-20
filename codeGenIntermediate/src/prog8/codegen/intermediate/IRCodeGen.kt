@@ -710,23 +710,23 @@ class IRCodeGen(
         return code
     }
 
-    internal fun multiplyByConstFloat(fpReg: Int, factor: Float): IRCodeChunk {
+    internal fun multiplyByConstFloat(fpReg: Int, factor: Double): IRCodeChunk {
         val code = IRCodeChunk(null, null)
-        if(factor==1f)
+        if(factor==1.0)
             return code
-        code += if(factor==0f) {
-            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = 0f)
+        code += if(factor==0.0) {
+            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = 0.0)
         } else {
             IRInstruction(Opcode.MUL, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = factor)
         }
         return code
     }
 
-    internal fun multiplyByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Float): IRCodeChunk {
+    internal fun multiplyByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Double): IRCodeChunk {
         val code = IRCodeChunk(null, null)
-        if(factor==1f)
+        if(factor==1.0)
             return code
-        if(factor==0f) {
+        if(factor==0.0) {
             code += if(knownAddress!=null)
                 IRInstruction(Opcode.STOREZM, IRDataType.FLOAT, address = knownAddress)
             else
@@ -807,25 +807,25 @@ class IRCodeGen(
         return code
     }
 
-    internal fun divideByConstFloat(fpReg: Int, factor: Float): IRCodeChunk {
+    internal fun divideByConstFloat(fpReg: Int, factor: Double): IRCodeChunk {
         val code = IRCodeChunk(null, null)
-        if(factor==1f)
+        if(factor==1.0)
             return code
-        code += if(factor==0f) {
-            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = Float.MAX_VALUE)
+        code += if(factor==0.0) {
+            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = Double.MAX_VALUE)
         } else {
             IRInstruction(Opcode.DIVS, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = factor)
         }
         return code
     }
 
-    internal fun divideByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Float): IRCodeChunk {
+    internal fun divideByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Double): IRCodeChunk {
         val code = IRCodeChunk(null, null)
-        if(factor==1f)
+        if(factor==1.0)
             return code
-        if(factor==0f) {
+        if(factor==0.0) {
             val maxvalueReg = registers.nextFreeFloat()
-            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = maxvalueReg, immediateFp = Float.MAX_VALUE)
+            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = maxvalueReg, immediateFp = Double.MAX_VALUE)
             code += if(knownAddress!=null)
                 IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = maxvalueReg, address = knownAddress)
             else
@@ -1189,7 +1189,7 @@ class IRCodeGen(
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             result += IRCodeChunk(null, null).also {
                 val rightFpReg = registers.nextFreeFloat()
-                it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = rightFpReg, immediateFp = 0f)
+                it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = rightFpReg, immediateFp = 0.0)
                 it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightFpReg)
             }
             when (condition.operator) {

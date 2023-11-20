@@ -124,15 +124,16 @@ object SysCalls {
     }
 
     private fun returnValue(returns: FunctionCallArgs.RegSpec, value: Comparable<Nothing>, vm: VirtualMachine) {
-        val vv: Float = when(value) {
-            is UByte -> value.toFloat()
-            is UShort -> value.toFloat()
-            is UInt -> value.toFloat()
-            is Byte -> value.toFloat()
-            is Short -> value.toFloat()
-            is Int -> value.toFloat()
-            is Float -> value
-            else -> (value as Number).toFloat()
+        val vv: Double = when(value) {
+            is UByte -> value.toDouble()
+            is UShort -> value.toDouble()
+            is UInt -> value.toDouble()
+            is Byte -> value.toDouble()
+            is Short -> value.toDouble()
+            is Int -> value.toDouble()
+            is Float -> value.toDouble()
+            is Double -> value
+            else -> (value as Number).toDouble()
         }
         when(returns.dt) {
             IRDataType.BYTE -> vm.registers.setUB(returns.registerNum, vv.toInt().toUByte())
@@ -346,8 +347,11 @@ object SysCalls {
                     returnValue(callspec.returns!!, 0, vm)
             }
             Syscall.PRINT_F -> {
-                val value = getArgValues(callspec.arguments, vm).single() as Float
-                print(value)
+                val value = getArgValues(callspec.arguments, vm).single() as Double
+                if(value==0.0)
+                    print("0")
+                else
+                    print(value)
             }
             Syscall.STR_TO_UWORD -> {
                 val stringAddr = getArgValues(callspec.arguments, vm).single() as UShort
@@ -373,7 +377,7 @@ object SysCalls {
             Syscall.STR_TO_FLOAT -> {
                 val stringAddr = getArgValues(callspec.arguments, vm).single() as UShort
                 val memstring = vm.memory.getString(stringAddr.toInt())
-                returnValue(callspec.returns!!, memstring.toFloat(), vm)
+                returnValue(callspec.returns!!, memstring.toDouble(), vm)
             }
             Syscall.COMPARE_STRINGS -> {
                 val (firstV, secondV) = getArgValues(callspec.arguments, vm)
@@ -390,7 +394,7 @@ object SysCalls {
                     returnValue(callspec.returns!!, 1, vm)
             }
             Syscall.RNDFSEED -> {
-                val seed = getArgValues(callspec.arguments, vm).single() as Float
+                val seed = getArgValues(callspec.arguments, vm).single() as Double
                 if(seed>0)  // always use negative seed, this mimics the behavior on CBM machines
                     vm.randomSeedFloat(-seed)
                 else
@@ -474,9 +478,9 @@ object SysCalls {
             }
             Syscall.CLAMP_FLOAT -> {
                 val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
-                val value = valueU as Float
-                val minimum = minimumU as Float
-                val maximum = maximumU as Float
+                val value = valueU as Double
+                val minimum = minimumU as Double
+                val maximum = maximumU as Double
                 val result = min(max(value, minimum), maximum)
                 returnValue(callspec.returns!!, result, vm)
             }
