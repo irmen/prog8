@@ -1,10 +1,21 @@
+%import palette
 %import textio
+%import syslib
 %zeropage basicsafe
 
 main {
     sub start() {
-        sys.save_prog8_internals()
-        txt.print("ok\n")
-        sys.restore_prog8_internals()
+        sys.set_rasterirq(&handler, 200)
+        txt.print("installed\n")
+    }
+
+    sub handler() -> bool {
+        palette.set_color(0, $f00)
+        repeat 1000 {
+            cx16.r0++
+        }
+        palette.set_color(0, $000)
+
+        return true
     }
 }

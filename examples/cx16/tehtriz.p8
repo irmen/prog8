@@ -679,7 +679,7 @@ sound {
     sub init() {
         cx16.vpoke(1, $f9c2, %00111111)     ; volume max, no channels
         psg.silent()
-        sys.set_irq(&psg.envelopes_irq, true)
+        sys.set_irq(&psg.envelopes_irq)
     }
 
     sub blockrotate() {

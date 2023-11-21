@@ -6,7 +6,7 @@ main {
 
     sub start() {
         txt.print("playing the music from boulderdash,\nmade in 1984 by peter liepa.\n\n")
-        sys.set_rasterirq(&irq.irqhandler, 60, true)     ; enable playback via raster irq
+        sys.set_rasterirq(&irq.irqhandler, 60)     ; enable playback via raster irq
     }
 }
 
@@ -15,7 +15,7 @@ irq {
     ubyte note_index = 0
     ubyte delay = 0
 
-    sub irqhandler() {
+    sub irqhandler() -> bool {
         c64.EXTCOL++
         delay++
         if delay >= 8 {
@@ -41,6 +41,7 @@ irq {
         }
 
         c64.EXTCOL--
+        return true
     }
 
     ; details about the boulderdash music can be found here:

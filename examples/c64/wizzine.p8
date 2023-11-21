@@ -38,7 +38,7 @@ main {
             c64.set_sprite_ptr(i, $0a00)           ; alternatively, set directly:  c64.SPRPTR[i] = $0a00 / 64
         }
         c64.SPENA = 255                 ; enable all sprites
-        sys.set_rasterirq(&irq.irqhandler, 230, true)     ; enable animation
+        sys.set_rasterirq(&irq.irqhandler, 230)     ; enable animation
     }
 }
 
@@ -47,7 +47,7 @@ irq {
     ubyte angle1=200
     ubyte angle2=0
 
-    sub irqhandler() {
+    sub irqhandler() -> bool {
         angle1 += 2
         angle2 += 3
         c64.MSIGX=0
@@ -61,5 +61,6 @@ irq {
             if msb(x) c64.MSIGX++
         }
         c64.EXTCOL-=8
+        return true
     }
 }

@@ -59,7 +59,7 @@ zsound_lib:
 
         pcm_init()
         pcm_trigger_digi(digi_bank, digi_address)
-        sys.set_irq(&zsm_playroutine_irq, true)
+        sys.set_irq(&zsm_playroutine_irq)
 
         txt.print("\nstreaming from file, playback in irq!\n")
         uword size = 1
@@ -79,7 +79,8 @@ zsound_lib:
         pcm_stop()  ;unreached
     }
 
-    sub zsm_playroutine_irq() {
+    sub zsm_playroutine_irq() -> bool {
         pcm_play()
+        return true
     }
 }

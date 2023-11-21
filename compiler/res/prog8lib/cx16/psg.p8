@@ -104,11 +104,11 @@ psg {
         }
     }
 
-    sub envelopes_irq() {
+    sub envelopes_irq() -> bool {
         ; If you want to use real-time volume envelopes (Attack-Sustain-Release),
         ; you have to call this routine every 1/60th second, for example from your vsync irq handler,
         ; or just install this routine as the only irq handler if you don't have to do other things there.
-        ; Example: cx16.set_irq(&psg.envelopes_irq, true)
+        ; Example: cx16.set_irq(&psg.envelopes_irq)
         ; NOTE: this routine calls save/restore_vera_context() for you, don't nest this or call it yourself!
 
         ; cx16.r0 = the volume word (volume scaled by 256)
@@ -170,6 +170,7 @@ psg {
         pop(cx16.r2L)
         pop(cx16.r1L)
         popw(cx16.r0)
+        return true     ; run the system IRQ handler afterwards
     }
 
     ubyte[16] envelope_states

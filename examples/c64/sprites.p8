@@ -46,14 +46,14 @@ main {
         }
 
         c64.SPENA = 255                ; enable all sprites
-        sys.set_rasterirq(&irq.irqhandler, 255, true)     ; enable animation
+        sys.set_rasterirq(&irq.irqhandler, 255)     ; enable animation
     }
 }
 
 
 irq {
 
-    sub irqhandler() {
+    sub irqhandler() -> bool {
         c64.EXTCOL--
 
         ; float up & wobble horizontally
@@ -68,6 +68,7 @@ irq {
         }
 
         c64.EXTCOL++
+        return true
     }
 
 }

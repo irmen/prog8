@@ -7,7 +7,7 @@ main {
     sub explosion() {
         ; this subroutine is not used but it is an example of how to make a sound effect using the psg library!
         psg.silent()
-        sys.set_irq(&psg.envelopes_irq, true)
+        sys.set_irq(&psg.envelopes_irq)
         psg.voice(0, psg.LEFT, 0, psg.NOISE, 0)
         psg.voice(1, psg.RIGHT, 0, psg.NOISE, 0)
         psg.freq(0, 1000)
@@ -59,7 +59,7 @@ main {
         psg.silent()
         psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
         psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
-        sys.set_irq(&psg.envelopes_irq, true)
+        sys.set_irq(&psg.envelopes_irq)
 
         repeat {
             uword note

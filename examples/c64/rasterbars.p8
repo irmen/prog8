@@ -5,7 +5,7 @@ main {
 
     sub start() {
         c64.SCROLY &= %11101111                    ; blank the screen
-        sys.set_rasterirq(&irq.irqhandler, 40, false)     ; register exclusive raster irq handler
+        sys.set_rasterirq(&irq.irqhandler, 40)     ; register exclusive raster irq handler
 
         repeat {
             ; enjoy the moving bars :)
@@ -22,7 +22,7 @@ irq {
     ubyte color = 0
     ubyte yanim = 0
 
-    sub irqhandler() {
+    sub irqhandler() -> bool {
         if color!=len(colors) {
             c64.EXTCOL = colors[color]
             c64.RASTER += barheight         ; next raster Irq for next color
@@ -35,5 +35,6 @@ irq {
             c64.RASTER = math.sin8u(yanim)/2+30  ; new start of raster Irq
         }
         c64.SCROLY &= $7f    ; set high bit of the raster pos to zero
+        return false
     }
 }

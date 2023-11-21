@@ -431,13 +431,10 @@ save_SCRATCH_ZPWORD2	.word  0
         }}
     }
 
-asmsub  set_irq(uword handler @AY, bool useKernal @Pc) clobbers(A)  {
+asmsub  set_irq(uword handler @AY) clobbers(A)  {
 	%asm {{
         sta  _modified+1
         sty  _modified+2
-        lda  #0
-        rol  a
-        sta  _use_kernal
 		sei
 		lda  #<_irq_handler
 		sta  cbm.CINV
@@ -450,20 +447,20 @@ _irq_handler
         cld
 _modified
         jsr  $ffff                      ; modified
+        pha
         jsr  sys.restore_prog8_internals
-		lda  _use_kernal
-		bne  +
-		lda  #$ff
+        pla
+        beq  +
+		jmp  cbm.IRQDFRT		; continue with normal kernal irq routine
++		lda  #$ff
 		sta  c64.VICIRQ			; acknowledge raster irq
 		lda  c64.CIA1ICR		; acknowledge CIA1 interrupt
-		; end irq processing - don't use kernal's irq handling
 		pla
 		tay
 		pla
 		tax
 		pla
 		rti
-+		jmp  cbm.IRQDFRT		; continue with normal kernal irq routine
 
 _use_kernal     .byte  0
 		}}
@@ -485,13 +482,10 @@ asmsub  restore_irq() clobbers(A) {
 	}}
 }
 
-asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0, bool useKernal @Pc) clobbers(A) {
+asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
 	%asm {{
         sta  _modified+1
         sty  _modified+2
-        lda  #0
-        rol  a
-        sta  set_irq._use_kernal
         lda  cx16.r0
         ldy  cx16.r0+1
         sei
@@ -508,19 +502,19 @@ _raster_irq_handler
 		cld
 _modified
         jsr  $ffff              ; modified
+        pha
 		jsr  sys.restore_prog8_internals
         lda  #$ff
         sta  c64.VICIRQ			; acknowledge raster irq
-		lda  set_irq._use_kernal
-		bne  +
-		; end irq processing - don't use kernal's irq handling
 		pla
+		beq  +
+		jmp  cbm.IRQDFRT        ; continue with kernal irq routine
++		pla
 		tay
 		pla
 		tax
 		pla
 		rti
-+		jmp  cbm.IRQDFRT                ; continue with kernal irq routine
 
 _setup_raster_irq
 		pha

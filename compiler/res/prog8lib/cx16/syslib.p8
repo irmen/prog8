@@ -930,13 +930,10 @@ asmsub  cleanup_at_exit() {
     }}
 }
 
-asmsub  set_irq(uword handler @AY, bool useKernal @Pc) clobbers(A)  {
+asmsub  set_irq(uword handler @AY) clobbers(A)  {
 	%asm {{
         sta  _modified+1
         sty  _modified+2
-        lda  #0
-        rol  a
-        sta  _use_kernal
         sei
         lda  #<_irq_handler
         sta  cx16.CINV
@@ -953,17 +950,17 @@ _irq_handler
         cld
 _modified
         jsr  $ffff                      ; modified
+        pha
 		jsr  sys.restore_prog8_internals
-		lda  _use_kernal
-		bne  +
-		; end irq processing - don't use kernal's irq handling
-		lda  #1
+		pla
+		beq  +
+		jmp  (restore_irq._orig_irqvec)   ; continue with normal kernal irq routine
++		lda  #1
 		sta  cx16.VERA_ISR      ; clear Vera Vsync irq status
 		ply
 		plx
 		pla
 		rti
-+		jmp  (restore_irq._orig_irqvec)   ; continue with normal kernal irq routine
 
 _use_kernal     .byte  0
 		}}
