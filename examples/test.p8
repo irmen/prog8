@@ -3,12 +3,8 @@
 
 main {
     sub start() {
-        %asm{{
-            jsr p8_test
-        }}
-    }
-
-    sub test() {
-        cx16.r0++
+        sys.save_prog8_internals()
+        txt.print("ok\n")
+        sys.restore_prog8_internals()
     }
 }

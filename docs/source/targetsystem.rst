@@ -142,9 +142,11 @@ There are a few library routines available to make setting up C64 60hz IRQs and 
 
 These routines are::
 
-    sys.set_irq(uword handler_address, boolean useKernal)
+    sys.set_irq(uword handler_address, bool useKernal)
     sys.set_rasterirq(uword handler_address, uword rasterline, boolean useKernal)
     sys.restore_irq()     ; set everything back to the systems default irq handler
+
+**CommanderX16 specific notes**
 
 Note that for the CommanderX16 the "useKernal" parameter doesn't exists for the set_rasterirq() routine;
 it will always disable the system IRQ handler (which also means the default sys.wait() routine won't work anymore)

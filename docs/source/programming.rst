@@ -772,7 +772,7 @@ Math
 ^^^^
 
 abs (x)
-    Returns the absolute value of a number.
+    Returns the absolute value of a number (integer or floating point).
 
 min (x, y)
     Returns the smallest of x and y. Supported for integer types only, for floats use ``floats.minf()`` instead.
@@ -785,7 +785,8 @@ clamp (value, minimum, maximum)
     Supported for integer types only, for floats use ``floats.clampf()`` instead.
 
 sgn (x)
-    Get the sign of the value. Result is -1, 0 or 1 (negative, zero, positive).
+    Get the sign of the value (integer or floating point).
+    The result is a byte: -1, 0 or 1 (negative, zero, positive).
 
 sqrt (w)
     Returns the square root of the number.

@@ -932,25 +932,28 @@ asmsub  cleanup_at_exit() {
 
 asmsub  set_irq(uword handler @AY, bool useKernal @Pc) clobbers(A)  {
 	%asm {{
-	        sta  _modified+1
-	        sty  _modified+2
-	        lda  #0
-	        rol  a
-	        sta  _use_kernal
-		sei
-		lda  #<_irq_handler
-		sta  cx16.CINV
-		lda  #>_irq_handler
-		sta  cx16.CINV+1
-                lda  cx16.VERA_IEN
-                ora  #%00000001     ; enable the vsync irq
-                sta  cx16.VERA_IEN
-		cli
-		rts
+        sta  _modified+1
+        sty  _modified+2
+        lda  #0
+        rol  a
+        sta  _use_kernal
+        sei
+        lda  #<_irq_handler
+        sta  cx16.CINV
+        lda  #>_irq_handler
+        sta  cx16.CINV+1
+        lda  cx16.VERA_IEN
+        ora  #%00000001     ; enable the vsync irq
+        sta  cx16.VERA_IEN
+        cli
+        rts
 
-_irq_handler    jsr  _irq_handler_init
-_modified	jsr  $ffff                      ; modified
-		jsr  _irq_handler_end
+_irq_handler
+        jsr  sys.save_prog8_internals
+        cld
+_modified
+        jsr  $ffff                      ; modified
+		jsr  sys.restore_prog8_internals
 		lda  _use_kernal
 		bne  +
 		; end irq processing - don't use kernal's irq handling
@@ -963,45 +966,6 @@ _modified	jsr  $ffff                      ; modified
 +		jmp  (restore_irq._orig_irqvec)   ; continue with normal kernal irq routine
 
 _use_kernal     .byte  0
-
-_irq_handler_init
-		; save all zp scratch registers as these might be clobbered by the irq routine
-		lda  P8ZP_SCRATCH_B1
-		sta  IRQ_SCRATCH_ZPB1
-		lda  P8ZP_SCRATCH_REG
-		sta  IRQ_SCRATCH_ZPREG
-		lda  P8ZP_SCRATCH_W1
-		sta  IRQ_SCRATCH_ZPWORD1
-		lda  P8ZP_SCRATCH_W1+1
-		sta  IRQ_SCRATCH_ZPWORD1+1
-		lda  P8ZP_SCRATCH_W2
-		sta  IRQ_SCRATCH_ZPWORD2
-		lda  P8ZP_SCRATCH_W2+1
-		sta  IRQ_SCRATCH_ZPWORD2+1
-		cld
-		rts
-
-_irq_handler_end
-		; restore all zp scratch registers
-		lda  IRQ_SCRATCH_ZPB1
-		sta  P8ZP_SCRATCH_B1
-		lda  IRQ_SCRATCH_ZPREG
-		sta  P8ZP_SCRATCH_REG
-		lda  IRQ_SCRATCH_ZPWORD1
-		sta  P8ZP_SCRATCH_W1
-		lda  IRQ_SCRATCH_ZPWORD1+1
-		sta  P8ZP_SCRATCH_W1+1
-		lda  IRQ_SCRATCH_ZPWORD2
-		sta  P8ZP_SCRATCH_W2
-		lda  IRQ_SCRATCH_ZPWORD2+1
-		sta  P8ZP_SCRATCH_W2+1
-		rts
-
-IRQ_SCRATCH_ZPB1	.byte  0
-IRQ_SCRATCH_ZPREG	.byte  0
-IRQ_SCRATCH_ZPWORD1	.word  0
-IRQ_SCRATCH_ZPWORD2	.word  0
-
 		}}
 }
 
@@ -1044,9 +1008,10 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
             rts
 
 _raster_irq_handler
-            jsr  set_irq._irq_handler_init
-_modified   jsr  $ffff                      ; modified
-            jsr  set_irq._irq_handler_end
+            jsr  sys.save_prog8_internals
+            cld
+_modified   jsr  $ffff    ; modified
+            jsr  sys.restore_prog8_internals
             ; end irq processing - don't use kernal's irq handling
             lda  cx16.VERA_ISR
             ora  #%00000010
@@ -1280,6 +1245,46 @@ _longcopy
         %asm {{
             lda  #9
             jsr  cbm.CHROUT
+        }}
+    }
+
+    asmsub save_prog8_internals() {
+        %asm {{
+            lda  P8ZP_SCRATCH_B1
+            sta  save_SCRATCH_ZPB1
+            lda  P8ZP_SCRATCH_REG
+            sta  save_SCRATCH_ZPREG
+            lda  P8ZP_SCRATCH_W1
+            sta  save_SCRATCH_ZPWORD1
+            lda  P8ZP_SCRATCH_W1+1
+            sta  save_SCRATCH_ZPWORD1+1
+            lda  P8ZP_SCRATCH_W2
+            sta  save_SCRATCH_ZPWORD2
+            lda  P8ZP_SCRATCH_W2+1
+            sta  save_SCRATCH_ZPWORD2+1
+            rts
+save_SCRATCH_ZPB1	.byte  0
+save_SCRATCH_ZPREG	.byte  0
+save_SCRATCH_ZPWORD1	.word  0
+save_SCRATCH_ZPWORD2	.word  0
+        }}
+    }
+
+    asmsub restore_prog8_internals() {
+        %asm {{
+            lda  save_prog8_internals.save_SCRATCH_ZPB1
+            sta  P8ZP_SCRATCH_B1
+            lda  save_prog8_internals.save_SCRATCH_ZPREG
+            sta  P8ZP_SCRATCH_REG
+            lda  save_prog8_internals.save_SCRATCH_ZPWORD1
+            sta  P8ZP_SCRATCH_W1
+            lda  save_prog8_internals.save_SCRATCH_ZPWORD1+1
+            sta  P8ZP_SCRATCH_W1+1
+            lda  save_prog8_internals.save_SCRATCH_ZPWORD2
+            sta  P8ZP_SCRATCH_W2
+            lda  save_prog8_internals.save_SCRATCH_ZPWORD2+1
+            sta  P8ZP_SCRATCH_W2+1
+            rts
         }}
     }
 

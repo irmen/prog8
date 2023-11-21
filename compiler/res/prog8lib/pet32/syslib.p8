@@ -305,6 +305,46 @@ _longcopy
         ; PET doesn't have a key to swap case, so no-op
     }
 
+    asmsub save_prog8_internals() {
+        %asm {{
+            lda  P8ZP_SCRATCH_B1
+            sta  save_SCRATCH_ZPB1
+            lda  P8ZP_SCRATCH_REG
+            sta  save_SCRATCH_ZPREG
+            lda  P8ZP_SCRATCH_W1
+            sta  save_SCRATCH_ZPWORD1
+            lda  P8ZP_SCRATCH_W1+1
+            sta  save_SCRATCH_ZPWORD1+1
+            lda  P8ZP_SCRATCH_W2
+            sta  save_SCRATCH_ZPWORD2
+            lda  P8ZP_SCRATCH_W2+1
+            sta  save_SCRATCH_ZPWORD2+1
+            rts
+save_SCRATCH_ZPB1	.byte  0
+save_SCRATCH_ZPREG	.byte  0
+save_SCRATCH_ZPWORD1	.word  0
+save_SCRATCH_ZPWORD2	.word  0
+        }}
+    }
+
+    asmsub restore_prog8_internals() {
+        %asm {{
+            lda  save_prog8_internals.save_SCRATCH_ZPB1
+            sta  P8ZP_SCRATCH_B1
+            lda  save_prog8_internals.save_SCRATCH_ZPREG
+            sta  P8ZP_SCRATCH_REG
+            lda  save_prog8_internals.save_SCRATCH_ZPWORD1
+            sta  P8ZP_SCRATCH_W1
+            lda  save_prog8_internals.save_SCRATCH_ZPWORD1+1
+            sta  P8ZP_SCRATCH_W1+1
+            lda  save_prog8_internals.save_SCRATCH_ZPWORD2
+            sta  P8ZP_SCRATCH_W2
+            lda  save_prog8_internals.save_SCRATCH_ZPWORD2+1
+            sta  P8ZP_SCRATCH_W2+1
+            rts
+        }}
+    }
+
     inline asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{

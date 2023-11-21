@@ -87,6 +87,14 @@ sys {
         ; no-op
     }
 
+    sub save_prog8_internals() {
+        ; no-op
+    }
+
+    sub restore_prog8_internals() {
+        ; no-op
+    }
+
     sub gfx_enable(ubyte mode) {
         %ir {{
             loadm.b r65535,sys.gfx_enable.mode

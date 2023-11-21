@@ -135,6 +135,11 @@ sys (part of syslib)
 ``disable_caseswitch()`` and ``enable_caseswitch()``
     Disable or enable the ability to switch character set case using a keyboard combination.
 
+``save_prog8_internals()`` and ``restore_prog8_internals()``
+    Normally not used in user code, the compiler utilizes these for the internal interrupt logic.
+    It stores and restores the values of the internal prog8 variables.
+    This allows other code to run that might clobber these values temporarily.
+
 
 conv
 ----
