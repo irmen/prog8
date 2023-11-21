@@ -776,4 +776,20 @@ main {
 """
         compileText(VMTarget(), true, text, writeAssembly = false) shouldNotBe null
     }
+
+    test("sub only called by asm should not be optimized away") {
+        val src="""
+main {
+    sub start() {
+        %asm{{
+            jsr p8_test
+        }}
+    }
+
+    sub test() {
+        cx16.r0++
+    }
+}"""
+        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
 })

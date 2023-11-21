@@ -4,8 +4,6 @@ TODO
 
 - IRQ callback should return boolean to tell Prog8 to call the kernal ISR or not.
 
-- Is there a way to tell prog8 not to optimize out a function that is only called from within %asm{{}}? like a @shared but for subs?
-
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
