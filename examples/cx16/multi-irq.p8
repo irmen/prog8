@@ -3,11 +3,14 @@
 %import syslib
 %zeropage basicsafe
 
+; Example that shows a way to handle multiple IRQ sources on the X16.
+; Currently only Vera interrupts are supported.
+
 main {
     sub start() {
         sys.set_rasterline(150)
-        sys.set_irq(&irq.master_handler)
-        cx16.VERA_IEN |= 2      ; also enable line irq
+        sys.set_irq(&irq.master_handler)        ; ..will just enable vsync..
+        cx16.VERA_IEN |= 2                      ; .. so also enable line irq here.
 
         txt.print("\n\n\nisr installed\n")
         txt.print("red = vsync\n")

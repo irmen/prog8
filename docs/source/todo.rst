@@ -2,7 +2,8 @@
 TODO
 ====
 
-- use TRB/TSB instructions more on the x16 such as when ack vera irq bits
+- use TRB/TSB instructions more on the x16 such as when ack vera irq bits  cx16.VERA_ISR |= 4
+    xx |= %0001000,   xx &= %1110111
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
@@ -23,6 +24,8 @@ Compiler:
 - Currently "320*240/8/8" gives integer overflow, so: allow constant integer subexpressions to contain out of range integers (>65535 etc) as long as the final constant value is within byte/word range.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
 - fix the other cases of "TODO index could also be a binexpr" (in AssignmentAsmGen), but these are for float arrays so rarely used.
+- make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
+  (this is already done hardcoded for several of the builtin functions)
 
 - [much work:] more support for (64tass) SEGMENTS ?
     - (What, how, isn't current BSS support enough?)

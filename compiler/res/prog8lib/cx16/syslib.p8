@@ -238,7 +238,8 @@ cx16 {
     &ubyte  VERA_CTRL           = VERA_BASE + $0005
     &ubyte  VERA_IEN            = VERA_BASE + $0006
     &ubyte  VERA_ISR            = VERA_BASE + $0007
-    &ubyte  VERA_IRQ_LINE_L     = VERA_BASE + $0008
+    &ubyte  VERA_IRQLINE_L      = VERA_BASE + $0008 ; write only
+    &ubyte  VERA_SCANLINE_L     = VERA_BASE + $0008 ; read only
     &ubyte  VERA_DC_VIDEO       = VERA_BASE + $0009 ; DCSEL= 0
     &ubyte  VERA_DC_HSCALE      = VERA_BASE + $000A ; DCSEL= 0
     &ubyte  VERA_DC_VSCALE      = VERA_BASE + $000B ; DCSEL= 0
@@ -931,6 +932,7 @@ asmsub  cleanup_at_exit() {
 }
 
 asmsub  set_irq(uword handler @AY) clobbers(A)  {
+    ; Sets the handler for the VSYNC interrupt, and enable that interrupt.
 	%asm {{
         sta  _modified+1
         sty  _modified+2
@@ -939,9 +941,8 @@ asmsub  set_irq(uword handler @AY) clobbers(A)  {
         sta  cx16.CINV
         lda  #>_irq_handler
         sta  cx16.CINV+1
-        lda  cx16.VERA_IEN
-        ora  #%00000001     ; enable the vsync irq
-        sta  cx16.VERA_IEN
+        lda  #1
+        tsb  cx16.VERA_IEN      ; enable the vsync irq
         cli
         rts
 
@@ -974,8 +975,8 @@ asmsub  restore_irq() clobbers(A) {
 	    lda  _orig_irqvec+1
 	    sta  cx16.CINV+1
 	    lda  cx16.VERA_IEN
-	    and  #%11110000     ; disable all Vera IRQs
-	    ora  #%00000001     ; enable only the vsync Irq
+	    and  #%11110000     ; disable all Vera IRQs but the vsync
+	    ora  #%00000001
 	    sta  cx16.VERA_IEN
 	    cli
 	    rts
@@ -984,6 +985,7 @@ _orig_irqvec    .word  0
 }
 
 asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
+    ; Sets the handler for the LINE interrupt, and enable (only) that interrupt.
 	%asm {{
             sta  _modified+1
             sty  _modified+2
@@ -991,8 +993,8 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
             ldy  cx16.r0+1
             sei
             lda  cx16.VERA_IEN
-            and  #%11110000     ; clear other IRQs
-            ora  #%00000010     ; enable the line (raster) irq
+            and  #%11110000     ; disable all irqs but the line(raster) one
+            ora  #%00000010
             sta  cx16.VERA_IEN
             lda  cx16.r0
             ldy  cx16.r0+1
@@ -1010,9 +1012,8 @@ _raster_irq_handler
 _modified   jsr  $ffff    ; modified
             jsr  sys.restore_prog8_internals
             ; end irq processing - don't use kernal's irq handling
-            lda  cx16.VERA_ISR
-            ora  #%00000010
-            sta  cx16.VERA_ISR      ; clear Vera line irq status
+            lda  #2
+            tsb  cx16.VERA_ISR      ; clear Vera line irq status
             ply
             plx
             pla
@@ -1022,7 +1023,7 @@ _modified   jsr  $ffff    ; modified
 
 asmsub  set_rasterline(uword line @AY) {
     %asm {{
-        sta  cx16.VERA_IRQ_LINE_L
+        sta  cx16.VERA_IRQLINE_L
         lda  cx16.VERA_IEN
         and  #%01111111
         sta  cx16.VERA_IEN

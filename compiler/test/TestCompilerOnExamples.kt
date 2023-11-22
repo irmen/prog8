@@ -117,6 +117,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "kefrenbars",
             "keyboardhandler",
             "mandelbrot",
+            "multi-irq",
             "plasma",
             "rasterbars",
             "snow",
