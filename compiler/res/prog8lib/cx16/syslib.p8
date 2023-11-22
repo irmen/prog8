@@ -850,7 +850,148 @@ asmsub restore_vera_context() clobbers(A) {
             rts
         }}
     }
+
+
+    ; Commander X16 IRQ dispatcher routines
+
+asmsub  enable_irq_handlers() clobbers(A,Y)  {
+    ; Install the "master IRQ handler" that will dispatch IRQs.
+    ; to the registered handler for each type.  (Only Vera IRQs supported for now).
+    ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A:
+    ; where 1 means: continue with the system IRQ handler, 0 means: don't call that.
+	%asm {{
+        php
+        sei
+        lda  #<_irq_dispatcher
+        ldy  #>_irq_dispatcher
+        sta  cx16.CINV
+        sty  cx16.CINV+1
+        plp
+        rts
+
+_irq_dispatcher
+        jsr  sys.save_prog8_internals
+        cld
+        lda  cx16.VERA_ISR
+        lsr  a
+        bcc  +
+_mod_vsync_jump
+        jsr  _default_vsync_handler      ; modified
+        cmp  #0
+        bne  _dispatch_end
+        lda  #1
+        sta  cx16.VERA_ISR
+        bra  _return_irq
++       lsr  a
+        bcc  +
+_mod_line_jump
+        jsr  _default_line_handler      ; modified
+        ldy  #2
+        sty  cx16.VERA_ISR
+        bra  _dispatch_end
++       lsr  a
+        bcc  +
+_mod_sprcol_jump
+        jsr  _default_sprcol_handler      ; modified
+        ldy  #4
+        sty  cx16.VERA_ISR
+        bra  _dispatch_end
++       lsr  a
+        bcc  +
+_mod_aflow_jump
+        jsr  _default_aflow_handler      ; modified
+        ; note: AFLOW can only be cleared by filling the audio FIFO for at least 1/4. Not via the ISR bit.
+        bra  _dispatch_end
++       lda  #0
+_dispatch_end
+        cmp  #0
+        beq  _return_irq
+        jsr  sys.restore_prog8_internals
+		jmp  (sys.restore_irq._orig_irqvec)   ; continue with normal kernal irq routine
+_return_irq
+        jsr  sys.restore_prog8_internals
+		ply
+		plx
+		pla
+		rti
+
+_default_vsync_handler
+        lda  #1
+        rts
+_default_line_handler
+        lda  #0
+        rts
+_default_sprcol_handler
+        lda  #0
+        rts
+_default_aflow_handler
+        lda  #0
+        rts
+    }}
 }
+
+asmsub set_vsync_irq_handler(uword address @AY) clobbers(A) {
+    ; Sets the VSYNC irq handler to use with enable_irq_handlers().  Also enables VSYNC irqs.
+    ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
+    %asm {{
+        sta  enable_irq_handlers._mod_vsync_jump+1
+        sty  enable_irq_handlers._mod_vsync_jump+2
+        lda  #1
+        tsb  cx16.VERA_IEN
+        rts
+    }}
+}
+
+asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,Y) {
+    ; Sets the LINE irq handler to use with enable_irq_handlers(), for the given rasterline.  Also enables LINE irqs.
+    ; You can use sys.set_rasterline() later to adjust the rasterline on which to trigger.
+    ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
+    %asm {{
+        sta  enable_irq_handlers._mod_line_jump+1
+        sty  enable_irq_handlers._mod_line_jump+2
+        lda  cx16.r0
+        ldy  cx16.r0+1
+        jsr  sys.set_rasterline
+        lda  #2
+        tsb  cx16.VERA_IEN
+        rts
+    }}
+}
+
+asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
+    ; Sets the SPRCOL irq handler to use with enable_irq_handlers().  Also enables SPRCOL irqs.
+    ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
+    %asm {{
+        sta  enable_irq_handlers._mod_sprcol_jump+1
+        sty  enable_irq_handlers._mod_sprcol_jump+2
+        lda  #4
+        tsb  cx16.VERA_IEN
+        rts
+    }}
+}
+
+asmsub set_aflow_irq_handler(uword address @AY) clobbers(A) {
+    ; Sets the AFLOW irq handler to use with enable_irq_handlers().  Also enables AFLOW irqs.
+    ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
+    %asm {{
+        sta  enable_irq_handlers._mod_aflow_jump+1
+        sty  enable_irq_handlers._mod_aflow_jump+2
+        lda  #8
+        tsb  cx16.VERA_IEN
+        rts
+    }}
+}
+
+
+asmsub  disable_irq_handlers() {
+    ; back to the system default IRQ handler.
+    %asm {{
+        jmp  sys.restore_irq
+    }}
+}
+
+}
+
 
 sys {
     ; ------- lowlevel system routines --------
@@ -962,9 +1103,7 @@ _modified
 		plx
 		pla
 		rti
-
-_use_kernal     .byte  0
-		}}
+    }}
 }
 
 asmsub  restore_irq() clobbers(A) {

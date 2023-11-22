@@ -4,7 +4,9 @@
 %zeropage basicsafe
 
 ; Example that shows a way to handle multiple IRQ sources on the X16.
-; Currently only Vera interrupts are supported.
+; This uses the "OLD" way using the interrupt handler routines in sys.
+; (see multi-irq-new example to do it the "new" way)
+; Currently only Vera interrupts are supported.   VIA irqs are an exercise for the reader.
 
 main {
     sub start() {
@@ -12,8 +14,8 @@ main {
         sys.set_irq(&irq.master_handler)        ; ..will just enable vsync..
         cx16.VERA_IEN |= 2                      ; .. so also enable line irq here.
 
-        txt.print("\n\n\nisr installed\n")
-        txt.print("red = vsync\n")
+        txt.print("\n\n\nx16 irq handlers installed (old style)\n")
+        txt.print("red = vsync irq\n")
         txt.print("green = first line irq\n")
         txt.print("blue = second line irq\n")
     }

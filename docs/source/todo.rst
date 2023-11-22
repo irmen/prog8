@@ -2,6 +2,10 @@
 TODO
 ====
 
+- move x16 irq examples over to new style handler
+- optimize sys.set_rasterline on X16
+- document new x16 irq handling stuff in docs
+
 - use TRB/TSB instructions more on the x16 such as when ack vera irq bits  cx16.VERA_ISR |= 4
     xx |= %0001000,   xx &= %1110111
 
