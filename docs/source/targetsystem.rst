@@ -190,13 +190,13 @@ will corrupt any Vera operations that were going on in the main program. The rou
 Commander X16 specific IRQ handling
 ===================================
 
-Instead of using the routines in `sys` as mentioned above (that are more or less portable
+Instead of using the routines in ``sys`` as mentioned above (that are more or less portable
 across the C64,C128 and cx16), you can also use the special routines made for the Commander X16,
-in `cx16`. The idea is to let Prog8 do the irq dispatching and housekeeping for you, and that
+in ``cx16``. The idea is to let Prog8 do the irq dispatching and housekeeping for you, and that
 your program only has to register the specific handlers for the specific IRQ sources that you want to handle.
 
 Look at the examples/cx16/multi-irq-new.p8 example to see how these routines can be used.
-Here they are, all available in `cx16`:
+Here they are, all available in ``cx16``:
 
 ``disable_irqs ()``
     Disables all Vera IRQ sources. Note that the CPU irq disable flag is not changed by this routine.
@@ -205,6 +205,8 @@ Here they are, all available in `cx16`:
 ``enable_irq_handlers (bool disable_all_irq_sources)``
     Install the "master IRQ handler" that will dispatch IRQs to the registered handler for each type.
     Only Vera IRQs supported for now.
+    Pass true to initially disable all Vera interrupt sources (they will be enabled individually again
+    by setting the various handlers), or pass false to not touch this.
     The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     where 1 means: continue with the system IRQ handler, 0 means: don't call that.
 
