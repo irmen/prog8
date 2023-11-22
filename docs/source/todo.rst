@@ -2,7 +2,6 @@
 TODO
 ====
 
-- move x16 irq examples over to new style handler
 - optimize sys.set_rasterline on X16
 - document new x16 irq handling stuff in docs
 

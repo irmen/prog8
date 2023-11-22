@@ -21,7 +21,8 @@ main {
         txt.print("random gradients")
 
         irq.make_new_gradient()
-        sys.set_rasterirq(&irq.irqhandler, irq.top_scanline)
+        cx16.enable_irq_handlers(true)
+        cx16.set_line_irq_handler(irq.top_scanline, &irq.irqhandler)
 
         repeat {
         }
@@ -41,7 +42,7 @@ irq {
     ubyte[32+32+16] blinds_lines_blues
 
 
-    sub irqhandler() {
+    sub irqhandler() -> bool {
         set_scanline_color(color_ix)
         color_ix++
 
@@ -66,6 +67,7 @@ irq {
         }
 
         sys.set_rasterline(next_irq_line)
+        return false
     }
 
     sub make_new_gradient() {

@@ -24,7 +24,8 @@ main {
         palette.set_rgb(&colors, len(colors))
         gfx2.screen_mode(1)       ; lores 256 colors
         cx16.VERA_DC_VSCALE = 0   ; display trick spoiler.......: stretch 1 line of display all the way to the bottom
-        sys.set_rasterirq(&irq.irqhandler, 0)
+        cx16.enable_irq_handlers(true)
+        cx16.set_line_irq_handler(0, &irq.irqhandler)
 
         repeat {
             ; don't exit
@@ -34,7 +35,7 @@ main {
 
 
 irq {
-    const ubyte BAR_Y_OFFSET = 5
+    const ubyte BAR_Y_OFFSET = 6
     uword next_irq_line = 0
     ubyte anim1 = 0
     ubyte av1 = 0
@@ -42,7 +43,7 @@ irq {
     ubyte av2 = 0
     ubyte[32] pixels = 0 to 31
 
-    sub irqhandler() {
+    sub irqhandler() -> bool {
         next_irq_line += BAR_Y_OFFSET
         anim1 += 7
         anim2 += 4
@@ -61,5 +62,6 @@ irq {
         }
 
         sys.set_rasterline(next_irq_line)
+        return false
     }
 }

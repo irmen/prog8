@@ -59,7 +59,8 @@ zsound_lib:
 
         pcm_init()
         pcm_trigger_digi(digi_bank, digi_address)
-        sys.set_irq(&zsm_playroutine_irq)
+        cx16.enable_irq_handlers(true)
+        cx16.set_vsync_irq_handler(&zsm_playroutine_irq)
 
         txt.print("\nstreaming from file, playback in irq!\n")
         uword size = 1
@@ -77,6 +78,7 @@ zsound_lib:
         }
 
         pcm_stop()  ;unreached
+        cx16.disable_irq_handlers()
     }
 
     sub zsm_playroutine_irq() -> bool {

@@ -16,7 +16,8 @@ main {
         txt.plot(14,14)
         txt.print("raster bars!")
 
-        sys.set_rasterirq(&irq.irqhandler, 0)
+        cx16.enable_irq_handlers(true)
+        cx16.set_line_irq_handler(0, &irq.irqhandler)
 
         repeat {
             ; don't exit
@@ -42,7 +43,7 @@ irq {
     ubyte yanim = 0
     const ubyte barheight = 4
 
-    sub irqhandler() {
+    sub irqhandler() -> bool {
         uword c = colors[color_idx]
         color_idx++
         color_idx &= 31
@@ -57,5 +58,6 @@ irq {
         palette.set_color(0, c)
 
         sys.set_rasterline(next_irq_line)
+        return false
     }
 }

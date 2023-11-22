@@ -435,9 +435,9 @@ save_SCRATCH_ZPWORD2	.word  0
 
 asmsub  set_irq(uword handler @AY) clobbers(A)  {
 	%asm {{
+	    sei
         sta  _modified+1
         sty  _modified+2
-		sei
 		lda  #<_irq_handler
 		sta  cbm.CINV
 		lda  #>_irq_handler
@@ -484,11 +484,11 @@ asmsub  restore_irq() clobbers(A) {
 
 asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
 	%asm {{
+	    sei
         sta  _modified+1
         sty  _modified+2
         lda  cx16.r0
         ldy  cx16.r0+1
-        sei
         jsr  _setup_raster_irq
         lda  #<_raster_irq_handler
         sta  cbm.CINV

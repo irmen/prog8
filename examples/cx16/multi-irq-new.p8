@@ -9,7 +9,7 @@
 
 main {
     sub start() {
-        cx16.enable_irq_handlers()
+        cx16.enable_irq_handlers(true)
         cx16.set_line_irq_handler(150, &irq.line_irq)
         cx16.set_vsync_irq_handler(&irq.vsync_irq)
 

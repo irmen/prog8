@@ -23,7 +23,7 @@ main {
 
 irq {
     sub master_handler() -> bool {
-        ubyte irqsrc = cx16.VERA_ISR
+        ubyte irqsrc = cx16.VERA_ISR & cx16.VERA_IEN        ; only consider sources that are enabled
         ror(irqsrc)
         if_cs {
             vsync_irq()

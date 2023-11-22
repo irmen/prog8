@@ -854,7 +854,15 @@ asmsub restore_vera_context() clobbers(A) {
 
     ; Commander X16 IRQ dispatcher routines
 
-asmsub  enable_irq_handlers() clobbers(A,Y)  {
+inline asmsub  disable_vera_irqs() clobbers(A) {
+    ; Disable all Vera IRQ sources. Note that it does NOT set the CPU IRQ disabled status bit!
+    %asm {{
+        lda  #%00001111
+        trb  cx16.VERA_IEN
+    }}
+}
+
+asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
     ; Install the "master IRQ handler" that will dispatch IRQs.
     ; to the registered handler for each type.  (Only Vera IRQs supported for now).
     ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A:
@@ -862,7 +870,10 @@ asmsub  enable_irq_handlers() clobbers(A,Y)  {
 	%asm {{
         php
         sei
-        lda  #<_irq_dispatcher
+        bcc  +
+        lda  #%00001111
+        trb  cx16.VERA_IEN      ; disable all IRQ sources
++       lda  #<_irq_dispatcher
         ldy  #>_irq_dispatcher
         sta  cx16.CINV
         sty  cx16.CINV+1
@@ -873,14 +884,15 @@ _irq_dispatcher
         jsr  sys.save_prog8_internals
         cld
         lda  cx16.VERA_ISR
+        and  cx16.VERA_IEN          ; only consider the bits for sources that can actually raise the IRQ
         lsr  a
         bcc  +
 _mod_vsync_jump
         jsr  _default_vsync_handler      ; modified
         cmp  #0
         bne  _dispatch_end
-        lda  #1
-        sta  cx16.VERA_ISR
+        ldy  #1
+        sty  cx16.VERA_ISR
         bra  _return_irq
 +       lsr  a
         bcc  +
@@ -934,10 +946,13 @@ asmsub set_vsync_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the VSYNC irq handler to use with enable_irq_handlers().  Also enables VSYNC irqs.
     ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
     %asm {{
+        php
+        sei
         sta  enable_irq_handlers._mod_vsync_jump+1
         sty  enable_irq_handlers._mod_vsync_jump+2
         lda  #1
         tsb  cx16.VERA_IEN
+        plp
         rts
     }}
 }
@@ -947,6 +962,8 @@ asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,
     ; You can use sys.set_rasterline() later to adjust the rasterline on which to trigger.
     ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
     %asm {{
+        php
+        sei
         sta  enable_irq_handlers._mod_line_jump+1
         sty  enable_irq_handlers._mod_line_jump+2
         lda  cx16.r0
@@ -954,6 +971,7 @@ asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,
         jsr  sys.set_rasterline
         lda  #2
         tsb  cx16.VERA_IEN
+        plp
         rts
     }}
 }
@@ -962,10 +980,13 @@ asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the SPRCOL irq handler to use with enable_irq_handlers().  Also enables SPRCOL irqs.
     ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
     %asm {{
+        php
+        sei
         sta  enable_irq_handlers._mod_sprcol_jump+1
         sty  enable_irq_handlers._mod_sprcol_jump+2
         lda  #4
         tsb  cx16.VERA_IEN
+        plp
         rts
     }}
 }
@@ -974,10 +995,13 @@ asmsub set_aflow_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the AFLOW irq handler to use with enable_irq_handlers().  Also enables AFLOW irqs.
     ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
     %asm {{
+        php
+        sei
         sta  enable_irq_handlers._mod_aflow_jump+1
         sty  enable_irq_handlers._mod_aflow_jump+2
         lda  #8
         tsb  cx16.VERA_IEN
+        plp
         rts
     }}
 }
@@ -1075,9 +1099,9 @@ asmsub  cleanup_at_exit() {
 asmsub  set_irq(uword handler @AY) clobbers(A)  {
     ; Sets the handler for the VSYNC interrupt, and enable that interrupt.
 	%asm {{
+        sei
         sta  _modified+1
         sty  _modified+2
-        sei
         lda  #<_irq_handler
         sta  cx16.CINV
         lda  #>_irq_handler
@@ -1126,11 +1150,11 @@ _orig_irqvec    .word  0
 asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
     ; Sets the handler for the LINE interrupt, and enable (only) that interrupt.
 	%asm {{
+            sei
             sta  _modified+1
             sty  _modified+2
             lda  cx16.r0
             ldy  cx16.r0+1
-            sei
             lda  cx16.VERA_IEN
             and  #%11110000     ; disable all irqs but the line(raster) one
             ora  #%00000010
@@ -1162,6 +1186,8 @@ _modified   jsr  $ffff    ; modified
 
 asmsub  set_rasterline(uword line @AY) {
     %asm {{
+        php
+        sei
         sta  cx16.VERA_IRQLINE_L
         lda  cx16.VERA_IEN
         and  #%01111111
@@ -1172,6 +1198,7 @@ asmsub  set_rasterline(uword line @AY) {
         and  #%10000000
         ora  cx16.VERA_IEN
         sta  cx16.VERA_IEN
+        plp
         rts
     }}
 }

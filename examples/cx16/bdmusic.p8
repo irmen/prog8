@@ -7,7 +7,8 @@ main {
     sub explosion() {
         ; this subroutine is not used but it is an example of how to make a sound effect using the psg library!
         psg.silent()
-        sys.set_irq(&psg.envelopes_irq)
+        cx16.enable_irq_handlers(true)
+        cx16.set_vsync_irq_handler(&psg.envelopes_irq)
         psg.voice(0, psg.LEFT, 0, psg.NOISE, 0)
         psg.voice(1, psg.RIGHT, 0, psg.NOISE, 0)
         psg.freq(0, 1000)
@@ -16,7 +17,7 @@ main {
         psg.envelope(1, 63, 80, 0, 6)
         sys.wait(100)
         psg.silent()
-        sys.restore_irq()
+        cx16.disable_irq_handlers()
     }
 
     sub sweeping() {
@@ -59,7 +60,9 @@ main {
         psg.silent()
         psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
         psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
-        sys.set_irq(&psg.envelopes_irq)
+
+        cx16.enable_irq_handlers(true)
+        cx16.set_vsync_irq_handler(&psg.envelopes_irq)
 
         repeat {
             uword note
@@ -76,6 +79,7 @@ main {
         }
 
         psg.silent()
+        cx16.disable_irq_handlers()
     }
 
     sub print_notes(ubyte n1, ubyte n2) {

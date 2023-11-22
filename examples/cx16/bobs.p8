@@ -39,7 +39,8 @@ main {
         palette.set_color(0, $000)
         palette.set_color(1, $af8)
 
-        sys.set_rasterirq(&irq, 340)           ; time it so that the page flip at the end occurs near the bottom of the screen to avoid tearing
+        cx16.enable_irq_handlers(true)
+        cx16.set_line_irq_handler(340, &irq)  ; time it so that the page flip at the end occurs near the bottom of the screen to avoid tearing
 
         repeat {
             ; don't exit
@@ -55,7 +56,7 @@ main {
     uword anim3 = $e321
     uword anim4 = $7500
 
-    sub irq() {
+    sub irq() -> bool {
 
         ; palette.set_color(0, $f00)          ; debug rastertime
 
@@ -82,6 +83,7 @@ main {
         cx16.VERA_L1_TILEBASE = vmembase << 2       ; flip to next backbuffer
 
         ; palette.set_color(0, $000)
+        return false
     }
 
     sub init_buffers() {
