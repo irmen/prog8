@@ -138,7 +138,7 @@ IRQ Handling
 
 Normally, the system's default IRQ handling is not interfered with.
 You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).
-There are a few library routines available to make setting up C64 60hz IRQs and Raster IRQs a lot easier (no assembly code required).
+There are a few library routines available to make setting up 60hz/vsync IRQs and raster/line IRQs a lot easier (no assembly code required).
 
 These routines are::
 
@@ -146,7 +146,7 @@ These routines are::
     sys.set_rasterirq(uword handler_address, uword rasterline)
     sys.restore_irq()     ; set everything back to the systems default irq handler
 
-The IRQ handler routine must return a boolean value (0 or 1) in the A register.
+The IRQ handler routine must return a boolean value (0 or 1) in the A register:
 0 means do *not* run the system IRQ handler routine afterwards, 1 means run the system IRQ handler routine afterwards.
 
 
@@ -158,9 +158,10 @@ when using this handler.
 
 These two helper routines are not particularly suited to handle multiple IRQ sources on the Commander X16.
 It's possible but it requires correct fiddling with IRQ enable bits, acknowledging the IRQs, and properly calling
-or not calling the system IRQ handler routine.
+or not calling the system IRQ handler routine. See the section below for perhaps a better and easier solution that
+is tailored to this system.
 
-The Commander X16 syslib provides two additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
+The Commander X16 syslib provides some additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
 They take care of saving and restoring the Vera state of the interrupted main program, otherwise the IRQ handler's manipulation
 will corrupt any Vera operations that were going on in the main program. The routines are::
 
@@ -184,3 +185,42 @@ will corrupt any Vera operations that were going on in the main program. The rou
     of corrupting variables and floating point calculations that are being executed
     in the interrupted main program. These memory locations should be backed up
     and restored at the end of the handler, further increasing its execution time...
+
+
+Commander X16 specific IRQ handling
+===================================
+
+Instead of using the routines in `sys` as mentioned above (that are more or less portable
+across the C64,C128 and cx16), you can also use the special routines made for the Commander X16,
+in `cx16`. The idea is to let Prog8 do the irq dispatching and housekeeping for you, and that
+your program only has to register the specific handlers for the specific IRQ sources that you want to handle.
+
+Look at the examples/cx16/multi-irq-new.p8 example to see how these routines can be used.
+Here they are, all available in `cx16`:
+
+``disable_irqs ()``
+    Disables all Vera IRQ sources. Note that the CPU irq disable flag is not changed by this routine.
+    you can manipulate that via ``sys.set_irqd()`` and ``sys.clear_irqd()`` as usual.
+
+``enable_irq_handlers (bool disable_all_irq_sources)``
+    Install the "master IRQ handler" that will dispatch IRQs to the registered handler for each type.
+    Only Vera IRQs supported for now.
+    The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
+    where 1 means: continue with the system IRQ handler, 0 means: don't call that.
+
+``set_vsync_irq_handler (uword address)``
+    Sets the verical sync interrupt handler routine.  Also enables VSYNC interrupts.
+
+``set_line_irq_handler (uword rasterline, uword address)``
+    Sets the rasterline interrupt handler routine to trigger on the specified raster line.
+    Also enables LINE interrupts.
+    You can use ``sys.set_rasterline()`` later to adjust the rasterline on which to trigger.
+
+``set_sprcol_irq_handler (uword address)``
+    Sets the sprite collision interrupt handler routine.  Also enables SPRCOL interrupts.
+
+``set_aflow_irq_handler (uword address)``
+    Sets the audio buffer underrun interrupt handler routine.  Also enables AFLOW interrupts.
+
+``disable_irq_handlers ()``
+    Hand control back to the system default IRQ handler.

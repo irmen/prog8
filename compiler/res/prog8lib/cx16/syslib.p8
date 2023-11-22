@@ -854,7 +854,7 @@ asmsub restore_vera_context() clobbers(A) {
 
     ; Commander X16 IRQ dispatcher routines
 
-inline asmsub  disable_vera_irqs() clobbers(A) {
+inline asmsub  disable_irqs() clobbers(A) {
     ; Disable all Vera IRQ sources. Note that it does NOT set the CPU IRQ disabled status bit!
     %asm {{
         lda  #%00001111
@@ -863,9 +863,9 @@ inline asmsub  disable_vera_irqs() clobbers(A) {
 }
 
 asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
-    ; Install the "master IRQ handler" that will dispatch IRQs.
+    ; Install the "master IRQ handler" that will dispatch IRQs
     ; to the registered handler for each type.  (Only Vera IRQs supported for now).
-    ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A:
+    ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     ; where 1 means: continue with the system IRQ handler, 0 means: don't call that.
 	%asm {{
         php
@@ -1007,10 +1007,10 @@ asmsub set_aflow_irq_handler(uword address @AY) clobbers(A) {
 }
 
 
-asmsub  disable_irq_handlers() {
+inline asmsub  disable_irq_handlers() {
     ; back to the system default IRQ handler.
     %asm {{
-        jmp  sys.restore_irq
+        jsr  sys.restore_irq
     }}
 }
 
@@ -1189,15 +1189,15 @@ asmsub  set_rasterline(uword line @AY) {
         php
         sei
         sta  cx16.VERA_IRQLINE_L
-        lda  cx16.VERA_IEN
-        and  #%01111111
-        sta  cx16.VERA_IEN
         tya
         lsr  a
-        ror  a
-        and  #%10000000
-        ora  cx16.VERA_IEN
-        sta  cx16.VERA_IEN
+        bcs  +
+        lda  #%10000000
+        trb  cx16.VERA_IEN
+        plp
+        rts
++       lda  #%10000000
+        tsb  cx16.VERA_IEN
         plp
         rts
     }}
