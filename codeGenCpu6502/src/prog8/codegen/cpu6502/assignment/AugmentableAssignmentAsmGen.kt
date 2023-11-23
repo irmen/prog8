@@ -1192,8 +1192,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                 }
             }
-            "&" -> asmgen.out(" lda  $name |  and  #$value |  sta  $name")
-            "|" -> asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
+            "&" -> immediateAndInplace(name, value)
+            "|" -> immediateOrInplace(name, value)
             "^" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
             "==" -> {
                 asmgen.out("""
@@ -1311,6 +1311,22 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
+    private fun immediateAndInplace(name: String, value: Int) {
+        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+            asmgen.out(" lda  #${value xor 255} |  trb  $name")     // reset bit
+        } else  {
+            asmgen.out(" lda  $name |  and  #$value |  sta  $name")
+        }
+    }
+
+    private fun immediateOrInplace(name: String, value: Int) {
+        if(asmgen.isTargetCpu(CpuType.CPU65c02) && ((value and (value-1))==0)) {
+            asmgen.out(" lda  #$value |  tsb  $name")       // set bit
+        } else  {
+            asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
         }
     }
 
@@ -1611,7 +1627,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  $name+1 |  and  #>$value |  sta  $name+1")
                     }
                     value < 0x0100 -> {
-                        asmgen.out("  lda  $name |  and  #$value |  sta  $name")
+                        immediateAndInplace(name, value)
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("  stz  $name+1")
                         else
@@ -1624,7 +1640,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 when {
                     value == 0 -> {}
                     value and 255 == 0 -> asmgen.out("  lda  $name+1 |  ora  #>$value |  sta  $name+1")
-                    value < 0x0100 -> asmgen.out("  lda  $name |  ora  #$value |  sta  $name")
+                    value < 0x0100 -> immediateOrInplace(name, value)
                     else -> asmgen.out("  lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
                 }
             }
