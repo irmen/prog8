@@ -1,3 +1,7 @@
+
+; viewer program for BMX image files.
+; see https://cx16forum.com/forum/viewtopic.php?t=6945
+
 %import textio
 %import bmx
 %option no_sysinit

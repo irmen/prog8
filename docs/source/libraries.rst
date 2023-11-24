@@ -477,6 +477,29 @@ On the other targets, it only contains the definition of the 16 memory mapped vi
 ``restore_virtual_registers()``
     restore the values of all 16 virtual registers r0 - r15 from the buffer. Might be useful in an IRQ handler to avoid clobbering them.
 
+bmx  (cx16 only)
+----------------
+Routines to load and save "BMX" files, the CommanderX16 bitmap file format.
+Specification available here: https://cx16forum.com/forum/viewtopic.php?t=6945
+Only *uncompressed* bitmaps are supported in this library.
+
+The routines are designed to be fast and bulk load/save the data directly into or from vram,
+without the need to buffer something in main memory.
+
+Here is the load routine:
+
+``load(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screen_width)``
+    Loads a BMX bitmap image and palette into vram. (and Header info into the bmx.* variables)
+    Parameters:
+    the drive number and filename to load,
+    the vram bank and address where the bitmap data should go,
+    and the width of the current screen mode (can be 0 if you know no padding is needed).
+    You can set the ``bmx.max_width`` and ``bmx.max_height`` variables first, if you want this routine to check those.
+    Returns: success status. If false, ``bmx.error_message`` points to the error message string.
+
+For details about the other routines such as ``save``, have a look at
+the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/bmx.p8>`_ .
+
 
 emudbg  (cx16 only)
 -------------------

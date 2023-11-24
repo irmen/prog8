@@ -121,6 +121,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "multi-irq-new",
             "plasma",
             "rasterbars",
+            "showbmx",
             "snow",
             "spotlight",
             "tehtriz",

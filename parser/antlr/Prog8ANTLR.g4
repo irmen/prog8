@@ -188,7 +188,6 @@ expression :
 
 arrayindexed:
     scoped_identifier arrayindex
-    // TODO to allow chained/multidimensional array indexing:  | arrayindexed arrayindex
     ;
 
 
