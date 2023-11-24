@@ -2,10 +2,6 @@
 TODO
 ====
 
-- new cx16 master irq handler:
-    - describe the order in which irq sources are handled, should they occur at the same time
-    - change the order?   line, vsync, sprcol, aflow?
-
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
