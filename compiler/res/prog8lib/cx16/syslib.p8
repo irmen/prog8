@@ -881,12 +881,37 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
         rts
 
 _irq_dispatcher
+        ; order of handling: LINE, SPRCOL, AFLOW, VSYNC.
         jsr  sys.save_prog8_internals
         cld
         lda  cx16.VERA_ISR
         and  cx16.VERA_IEN          ; only consider the bits for sources that can actually raise the IRQ
-        lsr  a
-        bcc  +
+
+        bit  #2
+        beq  +
+_mod_line_jump
+        jsr  _default_line_handler      ; modified
+        ldy  #2
+        sty  cx16.VERA_ISR
+        bra  _dispatch_end
++
+        bit  #4
+        beq  +
+_mod_sprcol_jump
+        jsr  _default_sprcol_handler      ; modified
+        ldy  #4
+        sty  cx16.VERA_ISR
+        bra  _dispatch_end
++
+        bit  #8
+        beq  +
+_mod_aflow_jump
+        jsr  _default_aflow_handler      ; modified
+        ; note: AFLOW can only be cleared by filling the audio FIFO for at least 1/4. Not via the ISR bit.
+        bra  _dispatch_end
++
+        bit  #1
+        beq  +
 _mod_vsync_jump
         jsr  _default_vsync_handler      ; modified
         cmp  #0
@@ -894,27 +919,8 @@ _mod_vsync_jump
         ldy  #1
         sty  cx16.VERA_ISR
         bra  _return_irq
-+       lsr  a
-        bcc  +
-_mod_line_jump
-        jsr  _default_line_handler      ; modified
-        ldy  #2
-        sty  cx16.VERA_ISR
-        bra  _dispatch_end
-+       lsr  a
-        bcc  +
-_mod_sprcol_jump
-        jsr  _default_sprcol_handler      ; modified
-        ldy  #4
-        sty  cx16.VERA_ISR
-        bra  _dispatch_end
-+       lsr  a
-        bcc  +
-_mod_aflow_jump
-        jsr  _default_aflow_handler      ; modified
-        ; note: AFLOW can only be cleared by filling the audio FIFO for at least 1/4. Not via the ISR bit.
-        bra  _dispatch_end
-+       lda  #0
++
+        lda  #0
 _dispatch_end
         cmp  #0
         beq  _return_irq

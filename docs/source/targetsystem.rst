@@ -209,6 +209,7 @@ Here they are, all available in ``cx16``:
     by setting the various handlers), or pass false to not touch this.
     The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     where 1 means: continue with the system IRQ handler, 0 means: don't call that.
+    The order in which the handlers are invoked if multiple interrupts occur simultaneously is: LINE, SPRCOL, AFLOW, VSYNC.
 
 ``set_vsync_irq_handler (uword address)``
     Sets the verical sync interrupt handler routine.  Also enables VSYNC interrupts.
