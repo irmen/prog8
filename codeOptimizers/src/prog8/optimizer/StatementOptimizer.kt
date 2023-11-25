@@ -168,6 +168,52 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
+        val loopvarDt = forLoop.loopVarDt(program)
+        if(loopvarDt.istype(DataType.UWORD) || loopvarDt.istype(DataType.UBYTE)) {
+            if (range != null && range.from.constValue(program)?.number == 0.0 && range.step.constValue(program)?.number==1.0) {
+                val toBinExpr = range.to as? BinaryExpression
+                if(toBinExpr!=null && toBinExpr.operator=="-" && toBinExpr.right.constValue(program)?.number==1.0) {
+                    // FOR var IN 0 TO X-1 .... ---> var=0, DO {... , var++} UNTIL var==X
+                    val pos = forLoop.position
+                    val condition = BinaryExpression(forLoop.loopVar.copy(), "==", toBinExpr.left, pos)
+                    val incOne = PostIncrDecr(AssignTarget(forLoop.loopVar.copy(), null, null, pos), "++", pos)
+                    forLoop.body.statements.add(incOne)
+                    val replacement = AnonymousScope(mutableListOf(
+                        Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, pos),
+                            NumericLiteral.optimalNumeric(0.0, pos),
+                            AssignmentOrigin.OPTIMIZER, pos),
+                        UntilLoop(forLoop.body, condition, pos)
+                    ), pos)
+                    return listOf(IAstModification.ReplaceNode(forLoop, replacement, parent))
+                }
+
+                if(options.compTarget.name!=VMTarget.NAME) {
+                    // this optimization is not effective for the VM target.
+                    val toConst = range.to.constValue(program)
+                    if (toConst == null) {
+                        // FOR var in 0 TO X ... --->  var=0, REPEAT { ... , IF var==X break , var++ }
+                        val pos = forLoop.position
+                        val incOne = PostIncrDecr(AssignTarget(forLoop.loopVar.copy(), null, null, pos), "++", pos)
+                        val breakCondition = IfElse(
+                            BinaryExpression(forLoop.loopVar, "==", range.to, pos),
+                            AnonymousScope(mutableListOf(Break(pos)), pos),
+                            AnonymousScope(mutableListOf(), pos),
+                            pos
+                        )
+                        forLoop.body.statements.add(breakCondition)
+                        forLoop.body.statements.add(incOne)
+                        val replacement = AnonymousScope(mutableListOf(
+                            Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, pos),
+                                NumericLiteral.optimalNumeric(0.0, pos),
+                                AssignmentOrigin.OPTIMIZER, pos),
+                            RepeatLoop(null, forLoop.body, pos)
+                        ), pos)
+                        return listOf(IAstModification.ReplaceNode(forLoop, replacement, parent))
+                    }
+                }
+            }
+        }
+
         return noModifications
     }
 
