@@ -1,7 +1,6 @@
 ; Routines to load and save "BMX" files (commander X16 bitmap format) Version 1.
 ; Only uncompressed images are supported for now.
 ; BMX Specification: https://cx16forum.com/forum/viewtopic.php?t=6945
-; TODO: make read_palette() and write_palette() use an optional palette_buffer_ptr to store palette into system ram instead of directly into vram.
 
 %import diskio
 
@@ -19,9 +18,10 @@ bmx {
     ubyte palette_start
     ubyte compression
 
-    uword error_message         ; pointer to error message, or 0 if all ok
-    uword max_width = 0         ; should you want load() to check for this
-    uword max_height = 0        ; should you want load() to check for this
+    uword error_message             ; pointer to error message, or 0 if all ok
+    uword max_width = 0             ; should you want load() to check for this
+    uword max_height = 0            ; should you want load() to check for this
+    uword palette_buffer_ptr = 0    ; should you want to load the palette into main memory instead of directly into vram
 
     sub load(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screen_width) -> bool {
         ; Loads a BMX bitmap image and palette into vram. (and Header info into the bmx.* variables)
@@ -189,11 +189,21 @@ save_end:
 
     sub read_palette() -> bool {
         ; load palette data from the currently active input file
+        ; if palette_buffer_ptr is not 0, the palette data is read into that memory buffer,
+        ; otherwise it is read directly into the palette in vram.
         cx16.vaddr(1, $fa00+palette_start*2, 0, 1)
+        cx16.r1 = palette_buffer_ptr
         cx16.r0L = palette_entries
         do {
-            cx16.VERA_DATA0 = cbm.CHRIN()
-            cx16.VERA_DATA0 = cbm.CHRIN()
+            cx16.r2L = cbm.CHRIN()
+            cx16.r2H = cbm.CHRIN()
+            if cx16.r1 {
+                pokew(cx16.r1, cx16.r2)             ; into memory
+                cx16.r1+=2
+            } else {
+                cx16.VERA_DATA0 = cx16.r2L          ; into vram
+                cx16.VERA_DATA0 = cx16.r2H
+            }
             cx16.r0L--
         } until cx16.r0L==0
         return not cbm.READST()

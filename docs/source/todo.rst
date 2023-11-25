@@ -2,6 +2,8 @@
 TODO
 ====
 
+- optimize 6502 codegen: "for 0 to end" into repeat loops. (only for ubyte and uword, 6502 cpu)
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
