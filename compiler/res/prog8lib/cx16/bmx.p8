@@ -1,7 +1,7 @@
 ; Routines to load and save "BMX" files (commander X16 bitmap format) Version 1.
 ; Only uncompressed images are supported for now.
 ; BMX Specification: https://cx16forum.com/forum/viewtopic.php?t=6945
-; TODO: make read_palette() and write_palette() use a palette_buffer_ptr to store palette into system ram instead of directly into vram.
+; TODO: make read_palette() and write_palette() use an optional palette_buffer_ptr to store palette into system ram instead of directly into vram.
 
 %import diskio
 

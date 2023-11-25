@@ -87,7 +87,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         /*
         Empty Code chunk with label ->
             If next chunk has no label -> move label to next chunk, remove original
-            If next chunk has label -> label name should be the same, remove original. Otherwise FOR NOW leave it in place. (TODO: merge both labels into 1)
+            If next chunk has label -> label name should be the same, remove original. Otherwise merge both labels into 1.
             If is last chunk -> keep chunk in place because of the label.
         Empty Code chunk without label ->
             should not have been generated! ERROR.
@@ -96,6 +96,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
 
         val relabelChunks = mutableListOf<Pair<Int, String>>()
         val removeChunks = mutableListOf<Int>()
+        val replaceLabels = mutableMapOf<String, String>()
 
         sub.chunks.withIndex().forEach { (index, chunk) ->
             if(chunk is IRCodeChunk && chunk.instructions.isEmpty()) {
@@ -109,10 +110,18 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                             relabelChunks += Pair(index + 1, chunk.label!!)
                             removeChunks += index
                         } else {
-                            if (chunk.label == nextchunk.label)
-                                removeChunks += index
-                            else {
-                                // TODO: merge labels on same chunk
+                            // merge both labels into 1 except if this is the label chunk at the start of the subroutine
+                            if(index>0) {
+                                if (chunk.label == nextchunk.label)
+                                    removeChunks += index
+                                else {
+                                    removeChunks += index
+                                    replaceLabels[chunk.label!!] = nextchunk.label!!
+                                    replaceLabels.entries.forEach { (key, value) ->
+                                        if (value == chunk.label)
+                                            replaceLabels[key] = nextchunk.label!!
+                                    }
+                                }
                             }
                         }
                     }
@@ -129,6 +138,25 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             sub.chunks[index] = chunk
         }
         removeChunks.reversed().forEach { index -> sub.chunks.removeAt(index) }
+
+        sub.chunks.forEach { chunk ->
+            chunk.instructions.withIndex().forEach { (idx, instr) ->
+                instr.labelSymbol?.let {
+                    if(instr.opcode in OpcodesThatBranch) {
+                        replaceLabels.forEach { (from, to) ->
+                            if (it == from) {
+                                chunk.instructions[idx] = instr.copy(labelSymbol = to)
+                            }
+                            else {
+                                val actualPrefix = "$from."
+                                if (it.startsWith(actualPrefix))
+                                    chunk.instructions[idx] = instr.copy(labelSymbol = "$to.")
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun joinChunks(sub: IRSubroutine) {

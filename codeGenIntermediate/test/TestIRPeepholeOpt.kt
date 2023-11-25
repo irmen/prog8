@@ -53,9 +53,9 @@ class TestIRPeepholeOpt: FunSpec({
 
     test("remove jmp to label below") {
         val c1 = IRCodeChunk("main.start", null)
-        c1 += IRInstruction(Opcode.JUMP, labelSymbol = "label")  // removed, but chunk stays because of label
+        c1 += IRInstruction(Opcode.JUMP, labelSymbol = "label")
         val c2 = IRCodeChunk("label", null)
-        c2 += IRInstruction(Opcode.JUMP, labelSymbol = "label2") // removed, but chunk stays because of label
+        c2 += IRInstruction(Opcode.JUMP, labelSymbol = "label2")
         c2 += IRInstruction(Opcode.NOP)  // removed
         val c3 = IRCodeChunk("label2", null)
         c3 += IRInstruction(Opcode.JUMP, labelSymbol = "label3")
@@ -67,15 +67,13 @@ class TestIRPeepholeOpt: FunSpec({
         irProg.chunks().flatMap { it.instructions }.size shouldBe 5
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize(true, ErrorReporterForTests())
-        irProg.chunks().size shouldBe 4
+        irProg.chunks().size shouldBe 3
         irProg.chunks()[0].label shouldBe "main.start"
-        irProg.chunks()[1].label shouldBe "label"
-        irProg.chunks()[2].label shouldBe "label2"
-        irProg.chunks()[3].label shouldBe "label3"
+        irProg.chunks()[1].label shouldBe "label2"
+        irProg.chunks()[2].label shouldBe "label3"
         irProg.chunks()[0].isEmpty() shouldBe true
-        irProg.chunks()[1].isEmpty() shouldBe true
-        irProg.chunks()[2].isEmpty() shouldBe false
-        irProg.chunks()[3].isEmpty() shouldBe true
+        irProg.chunks()[1].isEmpty() shouldBe false
+        irProg.chunks()[2].isEmpty() shouldBe true
         val instr = irProg.chunks().flatMap { it.instructions }
         instr.size shouldBe 2
         instr[0].opcode shouldBe Opcode.JUMP
