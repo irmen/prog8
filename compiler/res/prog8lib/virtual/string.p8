@@ -157,4 +157,20 @@ string {
             return false
         return compare(st + str_len - suffix_len, suffix) == 0
     }
+
+    sub hash(str st) -> ubyte {
+        ; experimental 8 bit hashing function.
+        ; hash(-1)=179;  hash(i) = ROL hash(i-1)  XOR  string[i]
+        ; (experimental because the quality of the resulting hash value still has to be determined)
+        ubyte hashcode = 179
+        ubyte ix
+        repeat {
+            if st[ix] {
+                rol(hashcode)
+                hashcode ^= st[ix]
+                ix++
+            } else
+                return hashcode
+        }
+    }
 }

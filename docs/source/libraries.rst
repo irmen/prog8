@@ -276,6 +276,10 @@ Provides string manipulation routines.
     Returns 1 (true) if the string matches the pattern, 0 (false) if not.
     '?' in the pattern matches any one character. '*' in the pattern matches any substring.
 
+``hash (string) -> ubyte``
+    Returns a simple 8 bit hash value for the given string.
+    *Experimental.* The quality of the resulting hash value still has to be determined.
+
 
 floats
 ------

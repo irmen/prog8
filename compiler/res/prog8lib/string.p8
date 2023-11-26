@@ -361,4 +361,26 @@ fail    clc             ; yes, no match found, return with c=0
 	rts
 		}}
 	}
+
+
+    asmsub hash(str string @R0) -> ubyte @A {
+        ; experimental 8 bit hashing function.
+        ; hash(-1)=179;  hash(i) = ROL hash(i-1)  XOR  string[i]
+        ; (experimental because the quality of the resulting hash value still has to be determined)
+        %asm {{
+            lda  #179
+            sta  P8ZP_SCRATCH_REG
+            ldy  #0
+            clc
+-           lda  (cx16.r0),y
+            beq  +
+            rol  P8ZP_SCRATCH_REG
+            eor  P8ZP_SCRATCH_REG
+            sta  P8ZP_SCRATCH_REG
+            iny
+            bne  -
++           lda  P8ZP_SCRATCH_REG
+            rts
+        }}
+    }
 }
