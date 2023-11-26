@@ -2,15 +2,6 @@
 TODO
 ====
 
-- fix wrong result of:
-        ubyte b = 4
-        float c
-        %asm {{
-            nop
-        }}
-        c += b*b
-  which works if c is a uword instead...
-
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...

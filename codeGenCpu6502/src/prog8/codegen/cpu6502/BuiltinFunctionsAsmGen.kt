@@ -81,26 +81,32 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "rsave" -> funcRsave()
             "rrestore" -> funcRrestore()
             "cmp" -> funcCmp(fcall)
-            "callfar" -> funcCallFar(fcall)
-            "prog8_lib_stringcompare" -> funcStringCompare(fcall)
-            "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE)
-            "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD)
+            "callfar" -> funcCallFar(fcall, resultRegister)
+            "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
+            "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE, resultRegister)
+            "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD, resultRegister)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
     }
 
-    private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataType) {
+    private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataType, resultRegister: RegisterOrPair?) {
         // square of word value is faster with dedicated routine, square of byte just use the regular multiplication routine.
         when (resultType) {
             DataType.UBYTE -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
                 asmgen.out("  tay  |  jsr  math.multiply_bytes")
+                if(resultRegister!=null)  {
+                    assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), CpuRegister.A, false, false)
+                }
             }
             DataType.UWORD -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
                 asmgen.out("  jsr  math.square")
+                if(resultRegister!=null)  {
+                    assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), RegisterOrPair.AY)
+                }
             }
             else -> {
                 throw AssemblyError("optimized square only for integer types")
@@ -140,9 +146,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             sty  $remainderVar+1""")
     }
 
-    private fun funcStringCompare(fcall: PtBuiltinFunctionCall) {
+    private fun funcStringCompare(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         asmgen.assignWordOperandsToAYAndVar(fcall.args[0], fcall.args[1], "P8ZP_SCRATCH_W2")
         asmgen.out("  jsr  prog8_lib.strcmp_mem")
+        if(resultRegister!=null)  {
+            assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), CpuRegister.A, false, false)
+        }
     }
 
     private fun funcRsave() {
@@ -182,7 +191,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 plp""")
     }
 
-    private fun funcCallFar(fcall: PtBuiltinFunctionCall) {
+    private fun funcCallFar(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         if(asmgen.options.compTarget.name != "cx16")
             throw AssemblyError("callfar only works on cx16 target at this time")
 
@@ -196,6 +205,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 +           .word  0
 +           .byte  0""")
         // note that by convention the values in A+Y registers are now the return value of the call.
+        if(resultRegister!=null)  {
+            assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), RegisterOrPair.AY)
+        }
     }
 
     private fun funcCmp(fcall: PtBuiltinFunctionCall) {
