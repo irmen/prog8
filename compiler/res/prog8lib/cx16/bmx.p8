@@ -21,7 +21,7 @@ bmx {
     uword error_message             ; pointer to error message, or 0 if all ok
     uword max_width = 0             ; should you want load() to check for this
     uword max_height = 0            ; should you want load() to check for this
-    uword palette_buffer_ptr = 0    ; should you want to load the palette into main memory instead of directly into vram
+    uword palette_buffer_ptr = 0    ; should you want to load or save the palette into main memory instead of directly into vram
 
     sub load(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screen_width) -> bool {
         ; Loads a BMX bitmap image and palette into vram. (and Header info into the bmx.* variables)
@@ -97,7 +97,8 @@ load_end:
     }
 
     sub load_palette(ubyte drivenumber, str filename) -> bool {
-        ; Loads just the palette from a BMX bitmap image into vram. (and Header info into the bmx.* variables)
+        ; Loads just the palette from a BMX bitmap image into vram or the palette buffer.
+        ; (and Header info into the bmx.* variables).
         ; Parameters: the drive number and filename to load.
         ; Returns: success status. If false, error_message points to the error message string.
         error_message = 0
@@ -192,21 +193,21 @@ save_end:
         ; if palette_buffer_ptr is not 0, the palette data is read into that memory buffer,
         ; otherwise it is read directly into the palette in vram.
         cx16.vaddr(1, $fa00+palette_start*2, 0, 1)
-        cx16.r1 = palette_buffer_ptr
-        cx16.r0L = palette_entries
+        cx16.r3 = palette_buffer_ptr
+        cx16.r2L = palette_entries
         do {
-            cx16.r2L = cbm.CHRIN()
-            cx16.r2H = cbm.CHRIN()
-            if cx16.r1 {
-                pokew(cx16.r1, cx16.r2)             ; into memory
-                cx16.r1+=2
+            cx16.r4L = cbm.CHRIN()
+            cx16.r4H = cbm.CHRIN()
+            if cx16.r3 {
+                pokew(cx16.r3, cx16.r4)             ; into memory
+                cx16.r3+=2
             } else {
-                cx16.VERA_DATA0 = cx16.r2L          ; into vram
-                cx16.VERA_DATA0 = cx16.r2H
+                cx16.VERA_DATA0 = cx16.r4L          ; into vram
+                cx16.VERA_DATA0 = cx16.r4H
             }
-            cx16.r0L--
-        } until cx16.r0L==0
-        return not cbm.READST()
+            cx16.r2L--
+        } until cx16.r2L==0
+        return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
     }
 
     sub read_bitmap(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
@@ -221,7 +222,7 @@ save_end:
             repeat cx16.r2
                 cx16.VERA_DATA0 = 0     ; pad out if image width < screen width
         }
-        return cbm.READST()==0 or cbm.READST()&$40    ; eof?
+        return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
 
         sub read_scanline(uword size) {
             while size {
@@ -248,14 +249,24 @@ save_end:
     }
 
     sub write_palette() -> bool {
-        ; save full palette straight out of vram to the currently active output file
+        ; write palette data to the currently active input file
+        ; if palette_buffer_ptr is not 0, the palette data is read from that memory buffer,
+        ; otherwise it is read directly from the palette in vram.
+        cx16.r3 = palette_buffer_ptr
+        cx16.r2L = palette_entries
         cx16.vaddr(1, $fa00+palette_start*2, 0, 1)
-        cx16.r0L = palette_entries
         do {
-            cbm.CHROUT(cx16.VERA_DATA0)
-            cbm.CHROUT(cx16.VERA_DATA0)
-            cx16.r0L--
-        } until cx16.r0L==0
+            if cx16.r3 {
+                cbm.CHROUT(@(cx16.r3))      ; from memory
+                cx16.r3++
+                cbm.CHROUT(@(cx16.r3))
+                cx16.r3++
+            } else {
+                cbm.CHROUT(cx16.VERA_DATA0) ; from vram
+                cbm.CHROUT(cx16.VERA_DATA0)
+            }
+            cx16.r2L--
+        } until cx16.r2L==0
         return not cbm.READST()
     }
 
