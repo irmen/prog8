@@ -212,6 +212,24 @@ class StatementOptimizer(private val program: Program,
                     }
                 }
             }
+
+            if (range != null && range.to.constValue(program)?.number == 0.0 && range.step.constValue(program)?.number==-1.0) {
+                val fromExpr = range.from
+                if(fromExpr.constValue(program)==null) {
+                    // FOR X = something DOWNTO 0 {...} -->  X=something,  DO { ... , X-- } UNTIL X=255 (or 65535 if uword)
+                    val pos = forLoop.position
+                    val checkValue = NumericLiteral(loopvarDt.getOr(DataType.UNDEFINED), if(loopvarDt.istype(DataType.UBYTE)) 255.0 else 65535.0, pos)
+                    val condition = BinaryExpression(forLoop.loopVar.copy(), "==", checkValue, pos)
+                    val decOne = PostIncrDecr(AssignTarget(forLoop.loopVar.copy(), null, null, pos), "--", pos)
+                    forLoop.body.statements.add(decOne)
+                    val replacement = AnonymousScope(mutableListOf(
+                        Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, pos),
+                            fromExpr, AssignmentOrigin.OPTIMIZER, pos),
+                        UntilLoop(forLoop.body, condition, pos)
+                    ), pos)
+                    return listOf(IAstModification.ReplaceNode(forLoop, replacement, parent))
+                }
+            }
         }
 
         return noModifications
