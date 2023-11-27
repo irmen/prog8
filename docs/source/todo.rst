@@ -20,7 +20,6 @@ Compiler:
 
 - Currently "320*240/8/8" gives integer overflow, so: allow constant integer subexpressions to contain out of range integers (>65535 etc) as long as the final constant value is within byte/word range.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
-- fix the other cases of "TODO index could also be a binexpr" (in AssignmentAsmGen), but these are for float arrays so rarely used.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
 

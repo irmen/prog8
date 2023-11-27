@@ -2612,19 +2612,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 """)
             }
             TargetStorageKind.ARRAY -> {
+                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
                 asmgen.out("""
-                    lda  #<${target.asmVarname} 
+                    ldy  #<${target.asmVarname} 
+                    sty  P8ZP_SCRATCH_W1
                     ldy  #>${target.asmVarname}
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1""")
-                val constIndex = target.array!!.index.asConstInteger()
-                if(constIndex!=null) {
-                    asmgen.out(" lda  #$constIndex")
-                } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
-                    asmgen.out(" lda  $asmvarname")
-                }
-                asmgen.out("  jsr  floats.set_array_float_from_fac1")
+                    sty  P8ZP_SCRATCH_W1+1
+                    jsr  floats.set_array_float_from_fac1""")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> {
@@ -2647,21 +2641,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     jsr  floats.copy_float""")
             }
             TargetStorageKind.ARRAY -> {
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.saveRegisterStack(CpuRegister.Y, false)
+                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
                     lda  #<${target.asmVarname} 
                     ldy  #>${target.asmVarname}
                     sta  P8ZP_SCRATCH_W2
-                    sty  P8ZP_SCRATCH_W2+1""")
-                val constIndex = target.array!!.index.asConstInteger()
-                if(constIndex!=null) {
-                    asmgen.out(" lda  #$constIndex")
-                } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
-                    asmgen.out(" lda  $asmvarname")
-                }
-                asmgen.out(" jsr  floats.set_array_float")
+                    sty  P8ZP_SCRATCH_W2+1
+                    jsr  floats.set_array_float""")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> {
@@ -2687,23 +2679,17 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     jsr  floats.copy_float""")
             }
             TargetStorageKind.ARRAY -> {
+                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
                 asmgen.out("""
-                    lda  #<$sourceName
+                    ldy  #<$sourceName
+                    sty  P8ZP_SCRATCH_W1
                     ldy  #>$sourceName
-                    sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
-                    lda  #<${target.asmVarname} 
+                    ldy  #<${target.asmVarname} 
+                    sty  P8ZP_SCRATCH_W2
                     ldy  #>${target.asmVarname}
-                    sta  P8ZP_SCRATCH_W2
-                    sty  P8ZP_SCRATCH_W2+1""")
-                val constIndex = target.array!!.index.asConstInteger()
-                if(constIndex!=null) {
-                    asmgen.out(" lda  #$constIndex")
-                } else {
-                    val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
-                    asmgen.out(" lda  $asmvarname")
-                }
-                asmgen.out(" jsr  floats.set_array_float")
+                    sty  P8ZP_SCRATCH_W2+1
+                    jsr  floats.set_array_float""")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
             TargetStorageKind.REGISTER -> {
@@ -3641,37 +3627,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         """)
                 }
                 TargetStorageKind.ARRAY -> {
-                    val constIndex = target.array!!.index.asConstInteger()
-                    if (constIndex!=null) {
-                        val indexValue = constIndex * program.memsizer.memorySize(DataType.FLOAT)
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("""
-                                stz  ${target.asmVarname}+$indexValue
-                                stz  ${target.asmVarname}+$indexValue+1
-                                stz  ${target.asmVarname}+$indexValue+2
-                                stz  ${target.asmVarname}+$indexValue+3
-                                stz  ${target.asmVarname}+$indexValue+4
-                            """)
-                        else
-                            asmgen.out("""
-                                lda  #0
-                                sta  ${target.asmVarname}+$indexValue
-                                sta  ${target.asmVarname}+$indexValue+1
-                                sta  ${target.asmVarname}+$indexValue+2
-                                sta  ${target.asmVarname}+$indexValue+3
-                                sta  ${target.asmVarname}+$indexValue+4
-                            """)
-                    } else {
-                        val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
-                        asmgen.out("""
-                            lda  #<${target.asmVarname}
-                            sta  P8ZP_SCRATCH_W1
-                            lda  #>${target.asmVarname}
-                            sta  P8ZP_SCRATCH_W1+1
-                            lda  $asmvarname  
-                            jsr  floats.set_0_array_float
-                        """)
-                    }
+                    asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
+                    asmgen.out("""
+                        ldy  #<${target.asmVarname}
+                        sty  P8ZP_SCRATCH_W1
+                        ldy  #>${target.asmVarname}
+                        sty  P8ZP_SCRATCH_W1+1
+                        jsr  floats.set_0_array_float""")
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> {
@@ -3698,33 +3660,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         jsr  floats.copy_float""")
                 }
                 TargetStorageKind.ARRAY -> {
-                    val arrayVarName = target.asmVarname
-                    val constIndex = target.array!!.index.asConstInteger()
-                    if (constIndex!=null) {
-                        val indexValue = constIndex * program.memsizer.memorySize(DataType.FLOAT)
-                        asmgen.out("""
-                            lda  #<$constFloat
-                            ldy  #>$constFloat
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  #<($arrayVarName+$indexValue)
-                            ldy  #>($arrayVarName+$indexValue)
-                            jsr  floats.copy_float""")
-                    } else {
-                        val asmvarname = asmgen.asmVariableName(target.array.index as PtIdentifier)     // TODO index could also be a binexpr
-                        asmgen.out("""
-                            lda  #<${constFloat}
-                            sta  P8ZP_SCRATCH_W1
-                            lda  #>${constFloat}
-                            sta  P8ZP_SCRATCH_W1+1
-                            lda  #<${arrayVarName}
-                            sta  P8ZP_SCRATCH_W2
-                            lda  #>${arrayVarName}
-                            sta  P8ZP_SCRATCH_W2+1
-                            lda  $asmvarname
-                            jsr  floats.set_array_float
-                        """)
-                    }
+                    asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
+                    asmgen.out("""
+                        ldy  #<${constFloat}
+                        sty  P8ZP_SCRATCH_W1
+                        ldy  #>${constFloat}
+                        sty  P8ZP_SCRATCH_W1+1
+                        ldy  #<${target.asmVarname}
+                        sty  P8ZP_SCRATCH_W2
+                        ldy  #>${target.asmVarname}
+                        sty  P8ZP_SCRATCH_W2+1
+                        jsr  floats.set_array_float
+                    """)
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> {
