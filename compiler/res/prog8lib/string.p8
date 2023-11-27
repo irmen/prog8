@@ -365,8 +365,8 @@ fail    clc             ; yes, no match found, return with c=0
 
     asmsub hash(str string @R0) -> ubyte @A {
         ; experimental 8 bit hashing function.
-        ; hash(-1)=179;  hash(i) = ROL hash(i-1)  XOR  string[i]
-        ; (experimental because the quality of the resulting hash value still has to be determined)
+        ; hash(-1)=179;  clear carry;  hash(i) = ROL hash(i-1)  XOR  string[i]
+        ; On the English word list in /usr/share/dict/words it seems to have a pretty even distribution
         %asm {{
             lda  #179
             sta  P8ZP_SCRATCH_REG

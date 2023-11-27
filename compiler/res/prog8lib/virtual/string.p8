@@ -164,6 +164,7 @@ string {
         ; (experimental because the quality of the resulting hash value still has to be determined)
         ubyte hashcode = 179
         ubyte ix
+        sys.clear_carry()
         repeat {
             if st[ix] {
                 rol(hashcode)

@@ -11,7 +11,7 @@ Need help with
 ^^^^^^^^^^^^^^
 - getting the IR in shape for code generation
 - atari target: more details details about the machine, fixing library routines. I have no clue whatsoever.
-- see the :ref:`portingguide` for details on what information is needed.
+  See the :ref:`portingguide` for details on what information is needed.
 
 
 Future Things and Ideas
@@ -35,12 +35,12 @@ Compiler:
     - (need separate step in codegen and IR to write the "golden" variables)
 
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
-- ir: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
+- ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
 - ir: add more optimizations in IRPeepholeOptimizer
-- ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (simple form of common subexpression elimination)
+- ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (this is a form of common subexpression elimination)
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
 - PtAst/IR: more complex common subexpression eliminations

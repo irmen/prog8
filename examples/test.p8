@@ -1,26 +1,17 @@
 %import textio
-%import floats
+%import string
 %zeropage basicsafe
 
 main {
     sub start() {
-        ubyte b = 4
-        ubyte b2 = 4
-        uword w = 4
-        uword w2 = 4
-        float c
-        %asm {{
-            nop
-        }}
-        c += b*b
-        floats.print_f(c)
-        txt.nl()
-        c=0
-        %asm {{
-            nop
-        }}
-        c += w*w
-        floats.print_f(c)
-        txt.nl()
+        str[] names = ["a", "aa", "harry", "the Quick Brown Fox jumps Over the LAZY dog!"]
+
+        uword name
+        for name in names {
+            txt.print_ub(string.hash(name))
+            txt.spc()
+            txt.print(name)
+            txt.nl()
+        }
     }
 }

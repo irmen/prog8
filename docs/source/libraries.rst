@@ -278,7 +278,9 @@ Provides string manipulation routines.
 
 ``hash (string) -> ubyte``
     Returns a simple 8 bit hash value for the given string.
-    *Experimental.* The quality of the resulting hash value still has to be determined.
+    The formula is: hash(-1)=179; clear carry; hash(i) = ROL hash(i-1) XOR string[i]
+    (where ROL is the cpu ROL instruction)
+    On the English word list in /usr/share/dict/words it seems to have a pretty even distribution.
 
 
 floats
