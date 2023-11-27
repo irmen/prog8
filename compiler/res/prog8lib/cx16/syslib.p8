@@ -1458,7 +1458,7 @@ save_SCRATCH_ZPWORD2	.word  0
         }}
     }
 
-    inline asmsub exit(ubyte returnvalue @A) {
+    asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
             jsr  cbm.CLRCHN		; reset i/o channels
