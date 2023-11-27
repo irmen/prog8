@@ -1216,6 +1216,13 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkFunctionCall(target: Statement, args: List<Expression>, position: Position) {
+        if(target is BuiltinFunctionPlaceholder) {
+            if(!compilerOptions.floats) {
+                if (target.name == "peekf" || target.name == "pokef")
+                    errors.err("floating point used, but that is not enabled via options", position)
+            }
+        }
+
         if(target is Label && args.isNotEmpty())
             errors.err("cannot use arguments when calling a label", position)
 

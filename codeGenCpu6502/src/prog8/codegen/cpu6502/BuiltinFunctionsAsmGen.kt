@@ -47,8 +47,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "reverse" -> funcReverse(fcall)
             "memory" -> funcMemory(fcall, discardResult, resultRegister)
             "peekw" -> funcPeekW(fcall, resultRegister)
+            "peekf" -> funcPeekF(fcall, resultRegister)
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
             "pokew" -> funcPokeW(fcall)
+            "pokef" -> funcPokeF(fcall)
             "pokemon" -> {
                 val memread = PtMemoryByte(fcall.position)
                 memread.add(fcall.args[0])
@@ -764,6 +766,21 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun funcPokeF(fcall: PtBuiltinFunctionCall) {
+        val tempvar = asmgen.getTempVarName(DataType.FLOAT)
+        asmgen.assignExpressionTo(fcall.args[1],
+            AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position, tempvar, null, null, null, null))
+        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+        asmgen.out("""
+            pha
+            lda  #<$tempvar
+            sta  P8ZP_SCRATCH_W1
+            lda  #>$tempvar
+            sta  P8ZP_SCRATCH_W1+1
+            pla
+            jsr  floats.copy_float""")
+    }
+
     private fun funcPokeW(fcall: PtBuiltinFunctionCall) {
         when(val addrExpr = fcall.args[0]) {
             is PtNumber -> {
@@ -818,6 +835,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         // fall through method:
         asmgen.assignWordOperandsToAYAndVar(fcall.args[1], fcall.args[0], "P8ZP_SCRATCH_W1")
         asmgen.out("  jsr  prog8_lib.func_pokew")
+    }
+
+    private fun funcPeekF(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+        asmgen.out("  jsr  floats.MOVFM")
+        if(resultRegister!=null) {
+            assignAsmGen.assignFAC1float(
+                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position, null, null, null, resultRegister, null))
+        }
     }
 
     private fun funcPeekW(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {

@@ -861,11 +861,17 @@ peek (address)
 peekw (address)
     reads the word value at the given address in memory. Word is read as usual little-endian lsb/msb byte order.
 
+peekf (address)
+    reads the float value at the given address in memory. On CBM machines, this reads 5 bytes.
+
 poke (address, value)
     same as @(address)=value - writes the byte value at the given address in memory.
 
 pokew (address, value)
     writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
+
+pokef (address, value)
+    writes the float value at the given address in memory. On CBM machines, this writes 5 bytes.
 
 pokemon (address, value)
     Like poke(), but also returns the previous value in the given address.
@@ -919,8 +925,9 @@ setlsb (x, value)
 setmsb (x, value)
     Sets the most significant byte of word variable x to a new value. Leaves the LSB untouched.
 
-sizeof (name)
-    Number of bytes that the object 'name' occupies in memory. This is a constant determined by the data type of
+sizeof (name)  ;  sizeof (number)
+    Number of bytes that the object 'name', or the number 'number' occupies in memory.
+    This is a constant determined by the data type of
     the object. For instance, for a variable of type uword, the sizeof is 2.
     For an 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.

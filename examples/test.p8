@@ -4,37 +4,39 @@
 
 main {
     sub start() {
-        float[51] p1
-        float[51] p2
-        float[51] p3
-        float[51] p4
+        ubyte[100] storage = 0
 
-        ubyte idx = 2
-        float fl = 3.455
-        p1[idx+1] = fl
-        floats.print_f(p1[idx+1])
-        p1[idx+1] = 0.0
-        floats.print_f(p1[idx+1])
-
-        store_prime(1, 2.987654321)
-        store_prime(52, 3.14159)
-
-        floats.print_f(p1[1])
-        txt.nl()
-        floats.print_f(p2[2])
+        txt.print("sizeof float = ")
+        txt.print_ub(sizeof(0.0))
+        txt.print("\nsizeof word = ")
+        txt.print_ub(sizeof($0000))
+        txt.print("\nsizeof byte = ")
+        txt.print_ub(sizeof($00))
+        txt.print("\nsizeof bool = ")
+        txt.print_ub(sizeof(true))
         txt.nl()
 
+        poke(&storage+10, 123)
+        pokew(&storage+11, 54321)
+        txt.print_ub(peek(&storage+10))
+        txt.spc()
+        txt.print_uw(peekw(&storage+11))
+        txt.nl()
 
-        sub store_prime(ubyte idx, float pr) {
-            if idx >= 150 {
-                p4[idx - 150] = pr
-            } else if idx >= 100 {
-                p3[idx - 100] = pr
-            } else if idx >= 50 {
-                p2[idx - 50] = pr
-            } else {
-                p1[idx] = pr
-            }
+        pokef(&storage+10, 3.14)
+        pokef($4000, 123.456)
+        floats.print_f(peekf(&storage+10))
+        txt.nl()
+        floats.print_f(peekf($4000))
+        txt.nl()
+        pokef(&storage+10, 3.1415927)
+        floats.print_f(peekf(&storage+10))
+        txt.nl()
+
+        for cx16.r2L in 0 to 20 {
+            txt.print_ubhex(storage[cx16.r2L], false)
+            txt.spc()
         }
+        txt.nl()
     }
 }

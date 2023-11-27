@@ -105,14 +105,17 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
 }
 
 private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
-    // 1 arg, type = anything, result type = ubyte
+    // 1 arg, type = anything, result type = ubyte or uword
     if(args.size!=1)
         throw SyntaxError("sizeof requires one argument", position)
-    if(args[0] !is IdentifierReference)
-        throw SyntaxError("sizeof argument should be an identifier", position)
+    if(args[0] !is IdentifierReference && args[0] !is NumericLiteral)
+        throw SyntaxError("sizeof argument should be an identifier or number", position)
 
     val dt = args[0].inferType(program)
     if(dt.isKnown) {
+        if(args[0] is NumericLiteral)
+            return NumericLiteral.optimalInteger(program.memsizer.memorySize(dt.getOr(DataType.UNDEFINED)), position)
+
         val target = (args[0] as IdentifierReference).targetStatement(program)
             ?: throw CannotEvaluateException("sizeof", "no target")
 

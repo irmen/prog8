@@ -2,6 +2,10 @@
 TODO
 ====
 
+- fix floats.parse_f -  did the routine move in kernal rom?
+    VAL at $ddef. Looks like it's now $deb3  (see basic.sym from x16-rom)
+    so assuming its internals hasen't changed you need to change the $ddf2 to $deb6?
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
