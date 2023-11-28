@@ -28,8 +28,7 @@ romsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 100-101 
 romsub $fe03 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 
 romsub $fe06 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
-; romsub $fe09 = VAL_1() clobbers(A,X,Y)                     ; convert ASCII string to floating point [not yet implemented!!!] see parse_f() instead.
-;        once it is supported it works like this: call with "index" zp var ($a9/$aa) contains pointer to string, A = length of string. Float returned in FAC1.
+romsub $fe09 = VAL_1(uword string @XY, ubyte length @A) clobbers(A,X,Y) -> float @FAC1      ; convert ASCII string in XY and length in A, to floating point in FAC1. WARNING: not implemented in the ROM yet!
 
 ; GETADR: fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
@@ -141,7 +140,7 @@ asmsub parse_f(str value @AY) -> float @FAC1 {
     ; -- parse a string value of a number to float in FAC1
     ;    warning: uses an internal BASIC routine that may be rom version dependent
     ;    ($deb6 is inside the routine for VAL at $deb3)  See basic.sym from x16-rom
-    ;    If at any time in the future the official VAL_1() routine from the kernal starts working, we should use that instead!
+    ;    If at any time in the future the official VAL_1() routine from the kernal starts working, we should use that here!
     %asm {{
         sta  $a9
         sty  $aa

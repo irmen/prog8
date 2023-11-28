@@ -1,18 +1,22 @@
 %import textio
 %import floats
+%import string
 %zeropage basicsafe
+%option no_sysinit
 
 main {
     sub start() {
-        poke($4000,123)
-        txt.print_ub(peek($4000))
-        txt.nl()
-        pokew($4002, 55555)
-        txt.print_uw(peekw($4002))
-        txt.nl()
-        float value=123.45678
-        pokef($4004, value)
-        floats.print_f(peekf($4004))
-        txt.nl()
+        str buffer = "???????????????????????????"
+        repeat {
+            txt.print("enter number: ")
+            void txt.input_chars(buffer)
+            txt.print("\nprog8's parse_f: ")
+            float value = floats.parse_f(buffer)
+            floats.print_f(value)
+            txt.print("\nrom val_1: ")
+            value = floats.VAL_1(buffer, string.length(buffer))
+            floats.print_f(value)
+            txt.nl()
+        }
     }
 }
