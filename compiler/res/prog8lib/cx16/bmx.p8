@@ -1,5 +1,5 @@
 ; Routines to load and save "BMX" files (commander X16 bitmap format) Version 1.
-; Only uncompressed images are supported for now.
+; Only uncompressed images, of width 320 or 640, are supported for now.
 ; BMX Specification: https://cx16forum.com/forum/viewtopic.php?t=6945
 
 %import diskio
@@ -23,12 +23,11 @@ bmx {
     uword max_height = 0            ; should you want load() to check for this
     uword palette_buffer_ptr = 0    ; should you want to load or save the palette into main memory instead of directly into vram
 
-    sub load(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screen_width) -> bool {
+    sub load(ubyte drivenumber, str filename, ubyte vbank, uword vaddr) -> bool {
         ; Loads a BMX bitmap image and palette into vram. (and Header info into the bmx.* variables)
         ; Parameters:
         ; the drive number and filename to load,
-        ; the vram bank and address where the bitmap data should go,
-        ; and the width of the current screen mode (can be 0 if you know no padding is needed).
+        ; and the vram bank and address where the bitmap data should go,
         ; You can set the max_width and max_height variables first, if you want this routine to check those.
         ; Note: does not change vera screen mode or colordepth! You have to do that yourself!
         ; Returns: success status. If false, error_message points to the error message string.
@@ -43,12 +42,12 @@ bmx {
                         error_message = "image too large"
                         goto load_end
                     }
-                    if screen_width and width>screen_width {
+                    if max_height and height>max_height {
                         error_message = "image too large"
                         goto load_end
                     }
-                    if max_height and height>max_height {
-                        error_message = "image too large"
+                    if width!=320 and width!=640 {
+                        error_message = "width not 320 or 640"      ; TODO: deal with other widths
                         goto load_end
                     }
                     if compression {
@@ -56,7 +55,7 @@ bmx {
                         goto load_end
                     }
                     if read_palette() {
-                        if not read_bitmap(vbank, vaddr, screen_width)
+                        if not read_bitmap(vbank, vaddr)
                             error_message = "bitmap error"
                     } else
                         error_message = "palette error"
@@ -123,19 +122,23 @@ load_end:
         return error_message==0
     }
 
-    sub save(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screen_width) -> bool {
+    sub save(ubyte drivenumber, str filename, ubyte vbank, uword vaddr) -> bool {
         ; Save bitmap and palette data from vram into a BMX file.
         ; First you must have set all bmx.* variables to the correct values! (like width, height..)
         ; Parameters:
         ; drive number and filename to save to,
-        ; vram bank and address of the bitmap data to save,
-        ; and the width of the current screen mode (or 0 if you know no padding is needed).
+        ; vram bank and address of the bitmap data to save.
         ; Returns: success status. If false, error_message points to the error message string.
+        ; TODO: how to save bitmaps that are not the full visible screen width (non-contiguous scanlines)
         if compression {
             error_message = "compression not supported"
             return false
         }
         error_message = 0
+        if width!=320 and width!=640 {
+            error_message = "width not 320 or 640"      ; TODO: deal with other widths
+            goto save_end
+        }
         ubyte old_drivenumber = diskio.drivenumber
         diskio.drivenumber = drivenumber
         if diskio.f_open_w(filename) {
@@ -145,11 +148,9 @@ load_end:
                 goto save_end
             }
             diskio.reset_write_channel()
-            if screen_width
-                width = min(width, screen_width)
             if write_header() {
                 if write_palette() {
-                    if not write_bitmap(vbank, vaddr, screen_width)
+                    if not write_bitmap(vbank, vaddr)
                         error_message = "bitmap error"
                 } else
                     error_message = "palette error"
@@ -210,18 +211,13 @@ save_end:
         return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
     }
 
-    sub read_bitmap(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
+    sub read_bitmap(ubyte vbank, uword vaddr) -> bool {
         ; load contiguous bitmap into vram from the currently active input file
+        ; TODO how to deal with bitmaps that are smaller than the screen?
         cx16.vaddr(vbank, vaddr, 0, 1)
-        cx16.r1 = bytes_per_scanline(width)
-        cx16.r2 = 0
-        if width<screenwidth
-            cx16.r2 = bytes_per_scanline(screenwidth-width)     ; padding per scanline
-        repeat height {
-            read_scanline(cx16.r1)
-            repeat cx16.r2
-                cx16.VERA_DATA0 = 0     ; pad out if image width < screen width
-        }
+        cx16.r3 = bytes_per_scanline(width)
+        repeat height
+            read_scanline(cx16.r3)
         return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
 
         sub read_scanline(uword size) {
@@ -270,21 +266,13 @@ save_end:
         return not cbm.READST()
     }
 
-    sub write_bitmap(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
+    sub write_bitmap(ubyte vbank, uword vaddr) -> bool {
         ; save contiguous bitmap from vram to the currently active output file
+        ; TODO how to deal with bitmaps that are smaller than the screen
         cx16.vaddr(vbank, vaddr, 0, 1)
-        cx16.r1 = bytes_per_scanline(width)
-        cx16.r2 = 0
-        if width<screenwidth
-            cx16.r2 = bytes_per_scanline(screenwidth-width)     ; padding per scanline
-        repeat height {
-            write_scanline(cx16.r1)
-            repeat cx16.r2 {
-                %asm {{
-                    lda  cx16.VERA_DATA0        ; just read away padding bytes
-                }}
-            }
-        }
+        cx16.r3 = bytes_per_scanline(width)
+        repeat height
+            write_scanline(cx16.r3)
         return not cbm.READST()
 
         sub write_scanline(uword size) {
@@ -324,7 +312,7 @@ save_end:
                 height = peekw(&header+8)
                 palette_entries = header[10]
                 palette_start = header[11]
-                ; Data start is not needed
+                ; the data offset is not needed:  data_offset = peekw(&header+12)
                 compression = header[14]
                 border = header[15]
                 return true
@@ -337,7 +325,10 @@ save_end:
         ; build the internal BMX header structure
         ; normally you don't have to call this yourself
         sys.memset(header, sizeof(header), 0)
-        uword data_offset = sizeof(header) + palette_entries*2
+        uword data_offset = 512     ; full palette of 256 entries
+        if palette_entries
+            data_offset = palette_entries*$0002
+        data_offset += sizeof(header)
         header[0] = FILEID[0]
         header[1] = FILEID[1]
         header[2] = FILEID[2]

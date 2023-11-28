@@ -494,12 +494,11 @@ without the need to buffer something in main memory.
 
 Here is the load routine:
 
-``load(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screen_width)``
+``load(ubyte drivenumber, str filename, ubyte vbank, uword vaddr)``
     Loads a BMX bitmap image and palette into vram. (and Header info into the bmx.* variables)
     Parameters:
     the drive number and filename to load,
-    the vram bank and address where the bitmap data should go,
-    and the width of the current screen mode (can be 0 if you know no padding is needed).
+    and the vram bank and address where the bitmap data should go.
     You can set the ``bmx.max_width`` and ``bmx.max_height`` variables first, if you want this routine to check those.
     Returns: success status. If false, ``bmx.error_message`` points to the error message string.
 

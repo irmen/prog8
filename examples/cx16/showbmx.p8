@@ -40,7 +40,7 @@ main {
                     cx16.VERA_L0_CONFIG = cx16.VERA_L0_CONFIG & %11111100 | bmx.vera_colordepth
 
                     ; now load the image
-                    if bmx.load(8, filename, 0, 0, 320) {
+                    if bmx.load(8, filename, 0, 0) {
                         activate_palette()
                         void txt.waitkey()
                     }
