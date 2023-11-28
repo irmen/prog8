@@ -3107,6 +3107,17 @@ $repeatLabel""")
         return "prog8_label_asm_${generatedLabelSequenceNumber}_$postfix"
     }
 
+    fun assignConstFloatToPointerAY(number: PtNumber) {
+        val floatConst = allocator.getFloatAsmConst(number.number)
+        out("""
+            pha
+            lda  #<$floatConst
+            sta  P8ZP_SCRATCH_W1
+            lda  #>$floatConst
+            sta  P8ZP_SCRATCH_W1+1
+            pla
+            jsr  floats.copy_float""")
+    }
 }
 
 /**

@@ -767,18 +767,38 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcPokeF(fcall: PtBuiltinFunctionCall) {
-        val tempvar = asmgen.getTempVarName(DataType.FLOAT)
-        asmgen.assignExpressionTo(fcall.args[1],
-            AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position, tempvar, null, null, null, null))
-        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-        asmgen.out("""
-            pha
-            lda  #<$tempvar
-            sta  P8ZP_SCRATCH_W1
-            lda  #>$tempvar
-            sta  P8ZP_SCRATCH_W1+1
-            pla
-            jsr  floats.copy_float""")
+        when(val number = fcall.args[1]) {
+            is PtIdentifier -> {
+                val varName = asmgen.asmVariableName(number)
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                asmgen.out("""
+                    pha
+                    lda  #<$varName
+                    sta  P8ZP_SCRATCH_W1
+                    lda  #>$varName
+                    sta  P8ZP_SCRATCH_W1+1
+                    pla
+                    jsr  floats.copy_float""")
+            }
+            is PtNumber -> {
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                asmgen.assignConstFloatToPointerAY(number)
+            }
+            else -> {
+                val tempvar = asmgen.getTempVarName(DataType.FLOAT)
+                asmgen.assignExpressionTo(fcall.args[1],
+                    AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position, tempvar, null, null, null, null))
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+                asmgen.out("""
+                    pha
+                    lda  #<$tempvar
+                    sta  P8ZP_SCRATCH_W1
+                    lda  #>$tempvar
+                    sta  P8ZP_SCRATCH_W1+1
+                    pla
+                    jsr  floats.copy_float""")
+            }
+        }
     }
 
     private fun funcPokeW(fcall: PtBuiltinFunctionCall) {

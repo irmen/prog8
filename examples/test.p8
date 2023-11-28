@@ -1,18 +1,18 @@
 %import textio
+%import floats
+%zeropage basicsafe
 
 main {
     sub start() {
-        uword size1 = sizeof(22222)
-        txt.print_uw(size1)
+        poke($4000,123)
+        txt.print_ub(peek($4000))
         txt.nl()
-        uword size2 = sizeof(2.2)
-        txt.print_uw(size2)
+        pokew($4002, 55555)
+        txt.print_uw(peekw($4002))
         txt.nl()
-        cx16.r0 = sizeof(22222)
-        txt.print_uw(cx16.r0)
-        txt.nl()
-        cx16.r0 = sizeof(2.2)
-        txt.print_uw(cx16.r0)
+        float value=123.45678
+        pokef($4004, value)
+        floats.print_f(peekf($4004))
         txt.nl()
     }
 }
