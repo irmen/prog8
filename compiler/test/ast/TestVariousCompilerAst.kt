@@ -379,5 +379,16 @@ main {
 }"""
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
+
+    test("sizeof number const evaluation in vardecl") {
+        val src="""
+main {
+    sub start() {
+        uword @shared size1 = sizeof(22222)
+        uword @shared size2 = sizeof(2.2)
+    }
+}"""
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
 })
 

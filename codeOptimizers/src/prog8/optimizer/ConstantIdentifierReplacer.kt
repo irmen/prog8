@@ -28,6 +28,7 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
                     errors.err("refused rounding of float to avoid loss of precision", decl.value!!.position)
                 } else {
                     // cast the numeric literal to the appropriate datatype of the variable
+                    declConstValue.linkParents(decl)
                     val cast = declConstValue.cast(decl.datatype)
                     if (cast.isValid)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))

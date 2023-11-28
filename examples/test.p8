@@ -1,15 +1,18 @@
 %import textio
-%import floats
-%zeropage basicsafe
 
 main {
     sub start() {
-        txt.print("enter number: ")
-        str buffer = "???????????????????????????"
-        void txt.input_chars(buffer)
-        float value = floats.parse_f(buffer)
+        uword size1 = sizeof(22222)
+        txt.print_uw(size1)
         txt.nl()
-        floats.print_f(value)
+        uword size2 = sizeof(2.2)
+        txt.print_uw(size2)
+        txt.nl()
+        cx16.r0 = sizeof(22222)
+        txt.print_uw(cx16.r0)
+        txt.nl()
+        cx16.r0 = sizeof(2.2)
+        txt.print_uw(cx16.r0)
         txt.nl()
     }
 }
