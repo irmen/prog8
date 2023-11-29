@@ -1,12 +1,9 @@
 ; Routines to load and save "BMX" files (commander X16 bitmap format) Version 1.
-; Only uncompressed images, of width 320 or 640, are supported for now.
+; Only uncompressed images are supported for now.
 ; BMX Specification: https://cx16forum.com/forum/viewtopic.php?t=6945
 
-
-; TODO:  refactor loading:   bmx.open() - reads header .   bmx.continue_load() - reads the palette+bitmap.   bmx.close()  -cleanup  bmx.save() stays the same
 ; TODO: ability to save "stamps" , bitmaps that are only a region of the screen.
-; TODO: load 4bpp/2bpp/1bpp images
-; TODO: save 4bpp/2bpp/1bpp images
+; TODO: ability to just load the palette from a BMX file
 
 %import diskio
 
@@ -20,52 +17,31 @@ bmx {
     uword width
     uword height
     ubyte border
-    ubyte palette_entries       ; 0 means 256, all of them
+    uword palette_entries       ; 1-256
     ubyte palette_start
     ubyte compression
-
-    uword error_message             ; pointer to error message, or 0 if all ok
-    uword max_width = 0             ; should you want load() to check for this
-    uword max_height = 0            ; should you want load() to check for this
     uword palette_buffer_ptr = 0    ; should you want to load or save the palette into main memory instead of directly into vram
 
-    sub load(ubyte drivenumber, str filename, ubyte vbank, uword vaddr) -> bool {
-        ; Loads a BMX bitmap image and palette into vram. (and Header info into the bmx.* variables)
-        ; Parameters:
-        ; the drive number and filename to load,
-        ; and the vram bank and address where the bitmap data should go,
-        ; You can set the max_width and max_height variables first, if you want this routine to check those.
-        ; Note: does not change vera screen mode or colordepth! You have to do that yourself!
-        ; Returns: success status. If false, error_message points to the error message string.
+    uword error_message             ; pointer to error message, or 0 if all ok
+    ubyte old_drivenumber
+
+    sub open(ubyte drivenumber, str filename) -> bool {
+        ; Open a BMX bitmap file and reads the header information.
+        ; Returns true if all is ok, false otherwise + error_message will be set.
         error_message = 0
-        ubyte old_drivenumber = diskio.drivenumber
+        old_drivenumber = diskio.drivenumber
         diskio.drivenumber = drivenumber
         if diskio.f_open(filename) {
             diskio.reset_read_channel()
             if read_header() {
                 if parse_header() {
-                    if max_width and width>max_width {
-                        error_message = "image too large"
-                        goto load_end
-                    }
-                    if max_height and height>max_height {
-                        error_message = "image too large"
-                        goto load_end
-                    }
-                    if width!=320 and width!=640 {
-                        ; note: use load_stamp() to read other sizes
-                        error_message = "width not 320 or 640"
-                        goto load_end
-                    }
-                    if compression {
-                        error_message = "compression not supported"
-                        goto load_end
-                    }
-                    if read_palette() {
-                        if not read_bitmap(vbank, vaddr)
-                            error_message = "bitmap error"
+                    if palette_entries>0 {
+                        if width<=640 {
+                            return true
+                        } else
+                            error_message = "image too large"
                     } else
-                        error_message = "palette error"
+                        error_message = "invalid bmx file"
                 } else
                     error_message = "invalid bmx file"
             } else
@@ -73,110 +49,60 @@ bmx {
         } else
             error_message = diskio.status()
 
-load_end:
+        close()
+        return false
+    }
+
+    sub close() {
+        ; if you want to close the file before actually loading palette or bitmap data.
         diskio.f_close()
         diskio.drivenumber = old_drivenumber
+    }
+
+    sub continue_load(ubyte vbank, uword vaddr) -> bool {
+        ; Continues loading the palette and bitmap data from the opened BMX file.
+        ; Parameters: the vram bank and address where the bitmap data should go.
+        ; You can set palette_buffer_ptr if you want the palette buffered rather than directly into vram.
+        ; Note: does not change vera screen mode or colordepth! You have to do that yourself!
+        ; Returns true if all is ok, false otherwise + error_message will be set.
+        error_message = 0
+        diskio.reset_read_channel()
+        if width==320 or width==640 {
+            if compression==0 {
+                if read_palette() {
+                    if not read_bitmap(vbank, vaddr)
+                        error_message = "bitmap error"
+                } else
+                    error_message = "palette error"
+            } else
+                error_message = "compression not supported"
+        } else
+            error_message = "width not 320 or 640"      ; note: use continue_load_stamp() to read other sizes
+
+        close()
         return error_message==0
     }
 
-    sub load_stamp(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool {
-        ; Loads a BMX bitmap "stamp" image and palette into vram. (and Header info into the bmx.* variables)
+    sub continue_load_stamp(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
+        ; Continues loading the palette and bitmap "stamp" data from the opened BMX file.
         ; "Stamp" means: load an image that is smaller than the screen (so we need to pad around it)
-        ; Parameters:
-        ; the drive number and filename to load,
-        ; and the vram bank and address where the bitmap data should go,
-        ; finally the screen width that the stamp image is loaded into.
-        ; You can set the max_width and max_height variables first, if you want this routine to check those.
+        ; Parameters:the vram bank and address where the bitmap data should go,
+        ; and the screen width that the stamp image is loaded into.
+        ; You can set palette_buffer_ptr if you want the palette buffered rather than directly into vram.
         ; Note: does not change vera screen mode or colordepth! You have to do that yourself!
-        ; Returns: success status. If false, error_message points to the error message string.
+        ; Returns true if all is ok, false otherwise + error_message will be set.
         error_message = 0
-        ubyte old_drivenumber = diskio.drivenumber
-        diskio.drivenumber = drivenumber
-        if diskio.f_open(filename) {
-            diskio.reset_read_channel()
-            if read_header() {
-                if parse_header() {
-                    if max_width and width>max_width {
-                        error_message = "image too large"
-                        goto load_end
-                    }
-                    if max_height and height>max_height {
-                        error_message = "image too large"
-                        goto load_end
-                    }
-                    if width>screenwidth {
-                        error_message = "image too large"
-                        goto load_end
-                    }
-                    if compression {
-                        error_message = "compression not supported"
-                        goto load_end
-                    }
-                    if read_palette() {
-                        if not read_bitmap_padded(vbank, vaddr, screenwidth)
-                            error_message = "bitmap error"
-                    } else
-                        error_message = "palette error"
-                } else
-                    error_message = "invalid bmx file"
+        diskio.reset_read_channel()
+        if compression==0 {
+            if read_palette() {
+                if not read_bitmap_padded(vbank, vaddr, screenwidth)
+                    error_message = "bitmap error"
             } else
-                error_message = "invalid bmx file"
+                error_message = "palette error"
         } else
-            error_message = diskio.status()
+            error_message = "compression not supported"
 
-load_end:
-        diskio.f_close()
-        diskio.drivenumber = old_drivenumber
-        return error_message==0
-    }
-
-    sub load_header(ubyte drivenumber, str filename) -> bool {
-        ; Loads just the header data from a BMX bitmap image into the bmx.* variables.
-        ; Parameters: the drive number and filename to load.
-        ; Returns: success status. If false, error_message points to the error message string.
-        error_message = 0
-        ubyte old_drivenumber = diskio.drivenumber
-        diskio.drivenumber = drivenumber
-        if diskio.f_open(filename) {
-            diskio.reset_read_channel()
-            if read_header() {
-                if not parse_header()
-                    error_message = "invalid bmx file"
-            } else
-                error_message = "invalid bmx file"
-        } else
-            error_message = diskio.status()
-
-load_end:
-        diskio.f_close()
-        diskio.drivenumber = old_drivenumber
-        return error_message==0
-    }
-
-    sub load_palette(ubyte drivenumber, str filename) -> bool {
-        ; Loads just the palette from a BMX bitmap image into vram or the palette buffer.
-        ; (and Header info into the bmx.* variables).
-        ; Parameters: the drive number and filename to load.
-        ; Returns: success status. If false, error_message points to the error message string.
-        error_message = 0
-        ubyte old_drivenumber = diskio.drivenumber
-        diskio.drivenumber = drivenumber
-        if diskio.f_open(filename) {
-            diskio.reset_read_channel()
-            if read_header() {
-                if parse_header() {
-                    if not read_palette()
-                        error_message = "palette error"
-                } else
-                    error_message = "invalid bmx file"
-            } else
-                error_message = "invalid bmx file"
-        } else
-            error_message = diskio.status()
-
-load_end:
-        diskio.f_close()
-        diskio.drivenumber = old_drivenumber
+        close()
         return error_message==0
     }
 
@@ -197,7 +123,7 @@ load_end:
             error_message = "width not 320 or 640"
             goto save_end
         }
-        ubyte old_drivenumber = diskio.drivenumber
+        old_drivenumber = diskio.drivenumber
         diskio.drivenumber = drivenumber
         if diskio.f_open_w(filename) {
             cx16.r0 = diskio.status()
@@ -223,13 +149,8 @@ save_end:
     }
 
     sub set_bpp(ubyte bpp) {
-        bitsperpixel = bpp
-        vera_colordepth = 0
-        when bpp {
-            2 -> vera_colordepth = 1
-            4 -> vera_colordepth = 2
-            8 -> vera_colordepth = 3
-        }
+        ubyte[8] depths = [0,1,1,2,2,2,2,3]
+        vera_colordepth = depths[bpp-1]
     }
 
     sub set_vera_colordepth(ubyte depth) {
@@ -253,7 +174,7 @@ save_end:
         ; otherwise it is read directly into the palette in vram.
         cx16.vaddr(1, $fa00+palette_start*2, 0, 1)
         cx16.r3 = palette_buffer_ptr
-        cx16.r2L = palette_entries
+        cx16.r2L = lsb(palette_entries)
         do {
             cx16.r4L = cbm.CHRIN()
             cx16.r4H = cbm.CHRIN()
@@ -319,7 +240,7 @@ save_end:
         ; if palette_buffer_ptr is not 0, the palette data is read from that memory buffer,
         ; otherwise it is read directly from the palette in vram.
         cx16.r3 = palette_buffer_ptr
-        cx16.r2L = palette_entries
+        cx16.r2L = lsb(palette_entries)
         cx16.vaddr(1, $fa00+palette_start*2, 0, 1)
         do {
             if cx16.r3 {
@@ -374,6 +295,8 @@ save_end:
                 width = peekw(&header+6)
                 height = peekw(&header+8)
                 palette_entries = header[10]
+                if palette_entries==0
+                    palette_entries=256
                 palette_start = header[11]
                 ; the data offset is not needed:  data_offset = peekw(&header+12)
                 compression = header[14]
@@ -388,9 +311,7 @@ save_end:
         ; build the internal BMX header structure
         ; normally you don't have to call this yourself
         sys.memset(header, sizeof(header), 0)
-        uword data_offset = 512     ; full palette of 256 entries
-        if palette_entries
-            data_offset = palette_entries*$0002
+        uword data_offset = palette_entries*$0002
         data_offset += sizeof(header)
         header[0] = FILEID[0]
         header[1] = FILEID[1]
@@ -402,7 +323,7 @@ save_end:
         header[7] = msb(width)
         header[8] = lsb(height)
         header[9] = msb(height)
-        header[10] = palette_entries
+        header[10] = lsb(palette_entries)
         header[11] = palette_start
         header[12] = lsb(data_offset)
         header[13] = msb(data_offset)

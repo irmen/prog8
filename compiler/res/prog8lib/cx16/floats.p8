@@ -138,9 +138,9 @@ asmsub  FREADUY (ubyte value @Y) {
 
 asmsub parse_f(str value @AY) -> float @FAC1 {
     ; -- parse a string value of a number to float in FAC1
-    ;    warning: uses an internal BASIC routine that may be rom version dependent
+    ;    warning: on older <R47 kernals it uses an internal BASIC routine that is ROM version dependent,
     ;    ($deb6 is inside the routine for VAL at $deb3)  See basic.sym from x16-rom
-    ;    If at any time in the future the official VAL_1() routine from the kernal starts working, we should use that here!
+    ;    TODO add a check to see if the VAL_1 kernal jump entry is valid if so, then use that instead
     %asm {{
         sta  $a9
         sty  $aa
