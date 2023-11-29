@@ -2,6 +2,12 @@
 ; Only uncompressed images, of width 320 or 640, are supported for now.
 ; BMX Specification: https://cx16forum.com/forum/viewtopic.php?t=6945
 
+
+; TODO:  refactor loading:   bmx.open() - reads header .   bmx.continue_load() - reads the palette+bitmap.   bmx.close()  -cleanup  bmx.save() stays the same
+; TODO: ability to save "stamps" , bitmaps that are only a region of the screen.
+; TODO: load 4bpp/2bpp/1bpp images
+; TODO: save 4bpp/2bpp/1bpp images
+
 %import diskio
 
 bmx {
@@ -47,7 +53,8 @@ bmx {
                         goto load_end
                     }
                     if width!=320 and width!=640 {
-                        error_message = "width not 320 or 640"      ; TODO: deal with other widths
+                        ; note: use load_stamp() to read other sizes
+                        error_message = "width not 320 or 640"
                         goto load_end
                     }
                     if compression {
@@ -56,6 +63,57 @@ bmx {
                     }
                     if read_palette() {
                         if not read_bitmap(vbank, vaddr)
+                            error_message = "bitmap error"
+                    } else
+                        error_message = "palette error"
+                } else
+                    error_message = "invalid bmx file"
+            } else
+                error_message = "invalid bmx file"
+        } else
+            error_message = diskio.status()
+
+load_end:
+        diskio.f_close()
+        diskio.drivenumber = old_drivenumber
+        return error_message==0
+    }
+
+    sub load_stamp(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool {
+        ; Loads a BMX bitmap "stamp" image and palette into vram. (and Header info into the bmx.* variables)
+        ; "Stamp" means: load an image that is smaller than the screen (so we need to pad around it)
+        ; Parameters:
+        ; the drive number and filename to load,
+        ; and the vram bank and address where the bitmap data should go,
+        ; finally the screen width that the stamp image is loaded into.
+        ; You can set the max_width and max_height variables first, if you want this routine to check those.
+        ; Note: does not change vera screen mode or colordepth! You have to do that yourself!
+        ; Returns: success status. If false, error_message points to the error message string.
+        error_message = 0
+        ubyte old_drivenumber = diskio.drivenumber
+        diskio.drivenumber = drivenumber
+        if diskio.f_open(filename) {
+            diskio.reset_read_channel()
+            if read_header() {
+                if parse_header() {
+                    if max_width and width>max_width {
+                        error_message = "image too large"
+                        goto load_end
+                    }
+                    if max_height and height>max_height {
+                        error_message = "image too large"
+                        goto load_end
+                    }
+                    if width>screenwidth {
+                        error_message = "image too large"
+                        goto load_end
+                    }
+                    if compression {
+                        error_message = "compression not supported"
+                        goto load_end
+                    }
+                    if read_palette() {
+                        if not read_bitmap_padded(vbank, vaddr, screenwidth)
                             error_message = "bitmap error"
                     } else
                         error_message = "palette error"
@@ -129,14 +187,14 @@ load_end:
         ; drive number and filename to save to,
         ; vram bank and address of the bitmap data to save.
         ; Returns: success status. If false, error_message points to the error message string.
-        ; TODO: how to save bitmaps that are not the full visible screen width (non-contiguous scanlines)
+        ; TODO: how to save bitmaps that are not the full visible screen width (non-contiguous scanlines)?
         if compression {
             error_message = "compression not supported"
             return false
         }
         error_message = 0
         if width!=320 and width!=640 {
-            error_message = "width not 320 or 640"      ; TODO: deal with other widths
+            error_message = "width not 320 or 640"
             goto save_end
         }
         ubyte old_drivenumber = diskio.drivenumber
@@ -211,27 +269,39 @@ save_end:
         return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
     }
 
+    sub read_bitmap_padded(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
+        ; load bitmap "stamp" into vram from the currently active input file
+        cx16.r3 = bytes_per_scanline(width)         ; num bytes per image scanline
+        cx16.r2 = bytes_per_scanline(screenwidth)   ; num bytes per screen scanline
+        repeat height {
+            cx16.vaddr(vbank, vaddr, 0, 1)
+            read_scanline(cx16.r3)
+            vaddr += cx16.r2
+            if_cs
+                vbank++
+        }
+        return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
+    }
+
     sub read_bitmap(ubyte vbank, uword vaddr) -> bool {
         ; load contiguous bitmap into vram from the currently active input file
-        ; TODO how to deal with bitmaps that are smaller than the screen?
-        cx16.vaddr(vbank, vaddr, 0, 1)
         cx16.r3 = bytes_per_scanline(width)
+        cx16.vaddr(vbank, vaddr, 0, 1)
         repeat height
             read_scanline(cx16.r3)
         return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
+    }
 
-        sub read_scanline(uword size) {
-            while size {
-                cx16.r0 = cx16.MACPTR(min(255, size) as ubyte, &cx16.VERA_DATA0, true)
-                if_cs {
-                    ; no MACPTR support
-                    repeat size
-                        cx16.VERA_DATA0 = cbm.CHRIN()
-                    return
-                }
-                size -= cx16.r0
+    sub read_scanline(uword size) {
+        while size {
+            cx16.r0 = cx16.MACPTR(min(255, size) as ubyte, &cx16.VERA_DATA0, true)
+            if_cs {
+                ; no MACPTR support
+                repeat size
+                    cx16.VERA_DATA0 = cbm.CHRIN()
+                return
             }
-            return
+            size -= cx16.r0
         }
     }
 
@@ -268,7 +338,6 @@ save_end:
 
     sub write_bitmap(ubyte vbank, uword vaddr) -> bool {
         ; save contiguous bitmap from vram to the currently active output file
-        ; TODO how to deal with bitmaps that are smaller than the screen
         cx16.vaddr(vbank, vaddr, 0, 1)
         cx16.r3 = bytes_per_scanline(width)
         repeat height
@@ -293,14 +362,8 @@ save_end:
     }
 
     sub bytes_per_scanline(uword w) -> uword {
-        when bitsperpixel {
-            1 -> cx16.r0L = 3
-            2 -> cx16.r0L = 2
-            4 -> cx16.r0L = 1
-            8 -> return w
-            else -> return 0
-        }
-        return w >> cx16.r0L
+        ubyte[4] shifts = [3,2,1,0]
+        return w >> shifts[vera_colordepth]
     }
 
     sub parse_header() -> bool {

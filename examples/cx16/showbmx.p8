@@ -18,6 +18,7 @@ main {
         repeat {
             txt.print("\nenter bmx image filename: ")
             if txt.input_chars(&filename) {
+
                 if bmx.load_header(8, filename) {
                     txt.print("\nsize: ")
                     txt.print_uw(bmx.width)
@@ -34,15 +35,36 @@ main {
                     bmx.palette_buffer_ptr = memory("palette", 512, 0)
                     sys.memset(bmx.palette_buffer_ptr, 512, 0)
                     palette.set_rgb(bmx.palette_buffer_ptr, 256)
+                    bmx.max_width = 320
+                    bmx.max_height = 240
 
-                    ; switch to correct screen mode and color depth
-                    void cx16.screen_mode($80, false)
+                    ; switch to bitmap screen mode and color depth:  320*240
+                    void cx16.screen_mode($80, false)       ; we're lazy and just use a kernal routine to set up the basics
                     cx16.VERA_L0_CONFIG = cx16.VERA_L0_CONFIG & %11111100 | bmx.vera_colordepth
 
                     ; now load the image
-                    if bmx.load(8, filename, 0, 0) {
-                        activate_palette()
-                        void txt.waitkey()
+                    if bmx.width==320 {
+                        ; can use the fast, full-screen load routine
+                        if bmx.load(8, filename, 0, 0) {
+                            if bmx.height<240 {
+                                ; fill the remaining bottom part of the screen
+                                cx16.GRAPH_set_colors(bmx.border, bmx.border, 99)
+                                cx16.GRAPH_draw_rect(0, bmx.height, 320, 240-bmx.height, 0, true)
+                            }
+                            activate_palette()
+                            void txt.waitkey()
+                        }
+                    } else {
+                        ; clear the screen with the border color
+                        cx16.GRAPH_set_colors(0, 0, bmx.border)
+                        cx16.GRAPH_clear()
+                        ; need to use the slower load routine that does padding
+                        ; center the image on the screen nicely
+                        uword offset = (320-bmx.width)/2 + (240-bmx.height)/2*320
+                        if bmx.load_stamp(8, filename, 0, offset, 320) {
+                            activate_palette()
+                            void txt.waitkey()
+                        }
                     }
                 }
 
@@ -60,6 +82,7 @@ main {
 
     sub activate_palette() {
         ; copies the pallette data from the memory buffer into vram
+        cx16.VERA_DC_BORDER = bmx.border
         cx16.r1 = bmx.palette_buffer_ptr
         cx16.r2L = bmx.palette_start
         cx16.r3L = bmx.palette_entries
