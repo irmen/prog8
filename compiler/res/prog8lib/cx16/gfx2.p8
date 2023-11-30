@@ -936,6 +936,8 @@ skip:
     }
 
     asmsub cs_innerloop640(ubyte color @A) clobbers(Y) {
+        ; using verafx 32 bits writes here would make this faster but it's safer to
+        ; use verafx only explicitly when you know what you're doing.
         %asm {{
             ldy  #80
 -           sta  cx16.VERA_DATA0

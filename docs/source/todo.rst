@@ -3,15 +3,9 @@ TODO
 ====
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
+- once VAL_1 is merged into the kernal properly, remove all the workarounds in cx16 floats.parse_f()
 
 ...
-
-
-Need help with
-^^^^^^^^^^^^^^
-- getting the IR in shape for code generation
-- atari target: more details details about the machine, fixing library routines. I have no clue whatsoever.
-  See the :ref:`portingguide` for details on what information is needed.
 
 
 Future Things and Ideas
@@ -34,6 +28,7 @@ Compiler:
     - (need separate step in codegen and IR to write the "golden" variables)
 
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
+- ir: getting it in shape for code generation
 - ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
@@ -49,14 +44,10 @@ Compiler:
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit or my binaryen kotlin library?
-
+- add Vic20 target
 
 Libraries:
 
-- gfx2 cs_innerloop640() extend number of bytes cleared, and use vera fx cached writes (speed up screen clear)
-- gfx2 horizontal_line and vertical_line: use vera fx cached writes
-- use verafx transparent writes to speed up pixel plotting in gfx2 and monogfx modules (avoids read/mask/write)
-- port gfx2 to the vm?  First add colors to the vm?
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?
