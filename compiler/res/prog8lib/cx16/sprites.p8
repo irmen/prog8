@@ -81,6 +81,33 @@ sprites {
         cx16.vpoke(1, sprite_reg+1, msb(ypos))
     }
 
+    sub move(ubyte spritenum, word dx, word dy) {
+        ; move a sprite based on its current position
+        sprite_reg = VERA_SPRITEREGS + 2 + spritenum*$0008
+        cx16.r1 = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dx
+        cx16.r2 = mkword(cx16.vpeek(1, sprite_reg+3), cx16.vpeek(1, sprite_reg+2)) as word + dy
+        cx16.vpoke(1, sprite_reg, cx16.r1L)
+        cx16.vpoke(1, sprite_reg+1, cx16.r1H)
+        cx16.vpoke(1, sprite_reg+2, cx16.r2L)
+        cx16.vpoke(1, sprite_reg+3, cx16.r2H)
+    }
+
+    sub movex(ubyte spritenum, word dx) {
+        ; move a sprite horizontally based on its current position
+        sprite_reg = VERA_SPRITEREGS + 2 + spritenum*$0008
+        cx16.r1 = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dx
+        cx16.vpoke(1, sprite_reg, cx16.r1L)
+        cx16.vpoke(1, sprite_reg+1, cx16.r1H)
+    }
+
+    sub movey(ubyte spritenum, word dy) {
+        ; move a sprite vertically based on its current position
+        sprite_reg = VERA_SPRITEREGS + 4 + spritenum*$0008
+        cx16.r1 = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dy
+        cx16.vpoke(1, sprite_reg, cx16.r1L)
+        cx16.vpoke(1, sprite_reg+1, cx16.r1H)
+    }
+
     sub getx(ubyte spritenum) -> word {
         sprite_reg = VERA_SPRITEREGS + 2 + spritenum*$0008
         return mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word

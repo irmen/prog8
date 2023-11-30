@@ -29,6 +29,9 @@ main {
         word ypos
         bool flippedx = false
 
+        sprites.pos(1, 0, 100)
+        sprites.pos(2, 100, 300)
+
         repeat {
             if flippedx
                 xpos -= 2
@@ -49,6 +52,7 @@ main {
             txt.print("   ")
 
             sys.waitvsync()
+            ; we set absolute sprite position, rather than the relative move() routines
             sprites.pos(1, xpos, ypos)
             sprites.pos(2, xpos, ypos+64)
             sprites.flipx(1, flippedx)
