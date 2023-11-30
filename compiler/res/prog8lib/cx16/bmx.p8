@@ -2,9 +2,6 @@
 ; Only uncompressed images are supported for now.
 ; BMX Specification: https://cx16forum.com/forum/viewtopic.php?t=6945
 
-; TODO: ability to save "stamps" , bitmaps that are only a region of the screen.
-; TODO: ability to just load the palette from a BMX file
-
 %import diskio
 
 bmx {
@@ -106,23 +103,45 @@ bmx {
         return error_message==0
     }
 
-    sub save(ubyte drivenumber, str filename, ubyte vbank, uword vaddr) -> bool {
+    sub continue_load_only_palette() -> bool {
+        ; Continues loading the palette but not the bitmap data from the opened BMX file.
+        ; You can set palette_buffer_ptr if you want the palette buffered rather than directly into vram.
+        ; Returns true if all is ok, false otherwise + error_message will be set.
+        ; Afterwards the file is closed and you can no longer read additional data from it!
+        error_message = 0
+        diskio.reset_read_channel()
+        if not read_palette()
+            error_message = "palette error"
+        close()
+        return error_message==0
+    }
+
+    sub save(ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool {
         ; Save bitmap and palette data from vram into a BMX file.
         ; First you must have set all bmx.* variables to the correct values! (like width, height..)
         ; Parameters:
         ; drive number and filename to save to,
-        ; vram bank and address of the bitmap data to save.
+        ; vram bank and address of the bitmap data to save,
+        ; and optionally the screen width if you want to save a "stamp" that's smaller than the screen.
+        ; If you're saving the whole screen width, you can leave screenwidth at 0.
         ; Returns: success status. If false, error_message points to the error message string.
-        ; TODO: how to save bitmaps that are not the full visible screen width (non-contiguous scanlines)?
+        error_message = 0
         if compression {
             error_message = "compression not supported"
             return false
         }
-        error_message = 0
-        if width!=320 and width!=640 {
-            error_message = "width not 320 or 640"
-            goto save_end
+        if screenwidth==0 {
+            if width!=320 and width!=640 {
+                error_message = "width not 320 or 640"
+                return false
+            }
+        } else {
+            if width>screenwidth {
+                error_message = "image too large"
+                return false
+            }
         }
+
         old_drivenumber = diskio.drivenumber
         diskio.drivenumber = drivenumber
         if diskio.f_open_w(filename) {
@@ -134,7 +153,7 @@ bmx {
             diskio.reset_write_channel()
             if write_header() {
                 if write_palette() {
-                    if not write_bitmap(vbank, vaddr)
+                    if not write_bitmap(vbank, vaddr, screenwidth)
                         error_message = "bitmap error"
                 } else
                     error_message = "palette error"
@@ -257,12 +276,19 @@ save_end:
         return not cbm.READST()
     }
 
-    sub write_bitmap(ubyte vbank, uword vaddr) -> bool {
-        ; save contiguous bitmap from vram to the currently active output file
+    sub write_bitmap(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
+        ; screenwidth=0: save contiguous bitmap from vram to the currently active output file
+        ; screenwidth>0: save "stamp" bitmap from vram to the currently active output file
         cx16.vaddr(vbank, vaddr, 0, 1)
-        cx16.r3 = bytes_per_scanline(width)
-        repeat height
+        cx16.r3 = bytes_per_scanline(width)         ; num bytes per image scanline
+        cx16.r2 = 0
+        if screenwidth
+            cx16.r2 = bytes_per_scanline(screenwidth-width)   ; num bytes padding per screen scanline
+        repeat height {
             write_scanline(cx16.r3)
+            repeat cx16.r2
+                cx16.r0L = cx16.VERA_DATA0
+        }
         return not cbm.READST()
 
         sub write_scanline(uword size) {

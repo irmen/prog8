@@ -1,25 +1,24 @@
 %import textio
-%import floats
-%import string
+%import bmx
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        str buffer = "???????????????????????????"
-        repeat {
-            txt.print("enter number: ")
-            void txt.input_chars(buffer)
-            txt.print("\nprog8's parse_f: ")
-            float value = floats.parse_f(buffer)
-            floats.print_f(value)
-
-            ; floats.VAL_1 is defined as:
-            ; romsub $fe09 = VAL_1(uword string @XY, ubyte length @A) clobbers(A,X,Y) -> float @FAC1
-            txt.print("\nrom val_1: ")
-            value = floats.VAL_1(buffer, string.length(buffer))
-            floats.print_f(value)
-            txt.nl()
+        bmx.palette_buffer_ptr = memory("palette", 512, 0)
+        if bmx.open(8, "desertfish.bmx") {
+            if bmx.continue_load(0,0) {
+                uword offset = 10*320 + 100
+                bmx.width = 100
+                bmx.height = 150
+                if bmx.save(8, "@:stamp.bmx", 0, offset, 320) {
+                    txt.print("save stamp ok\n")
+                    return
+                }
+            }
         }
+        txt.print("error: ")
+        txt.print(bmx.error_message)
+        txt.nl()
     }
 }
