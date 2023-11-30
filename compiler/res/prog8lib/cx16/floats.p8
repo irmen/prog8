@@ -140,16 +140,26 @@ asmsub parse_f(str value @AY) -> float @FAC1 {
     ; -- parse a string value of a number to float in FAC1
     ;    warning: on older <R47 kernals it uses an internal BASIC routine that is ROM version dependent,
     ;    ($deb6 is inside the routine for VAL at $deb3)  See basic.sym from x16-rom
-    ;    TODO add a check to see if the VAL_1 kernal jump entry is valid if so, then use that instead
+    ;    TODO once VAL_1 is merged into the kernal properly, remove all the workarounds here
     %asm {{
-        sta  $a9
+        ldx  VAL_1
+        cpx  #$4c       ; is there an implementation in VAL_1? (test for JMP)
+        bne  +          ; no, do it ourselves
+        pha             ; yes, count the length and call rom VAL_1.
+        phy
+        jsr  prog8_lib.strlen
+        tya
+        ply
+        plx
+        jmp  VAL_1
++       sta  $a9    ; 'index' variable
         sty  $aa
         jsr  prog8_lib.strlen
         lda  $deb6
         cmp  #$d0   ; sanity check for kernal routine correct
-        bne  +      ;
+        bne  +
         tya
-        jmp  $deb6   ; kernal version dependent :(
+        jmp  $deb6   ; kernal version dependent...
 +       ; print error message if routine is borked in kernal, and exit program
         ldy  #0
 -       lda  _msg,y

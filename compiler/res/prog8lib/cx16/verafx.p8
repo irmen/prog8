@@ -39,19 +39,19 @@ verafx {
 
         if (amountof32bits & %1111110000000011) == 0 {
             repeat lsb(amountof32bits >> 2)
-                unroll 4 cx16.VERA_DATA0=0       ; write 4 bytes at a time, unrolled
+                unroll 4 cx16.VERA_DATA0=0       ; write 4*4 bytes at a time, unrolled
         }
         else if (amountof32bits & %1111111000000001) == 0 {
             repeat lsb(amountof32bits >> 1)
-                unroll 2 cx16.VERA_DATA0=0       ; write 4 bytes at a time, unrolled
+                unroll 2 cx16.VERA_DATA0=0       ; write 2*4 bytes at a time, unrolled
         }
         else if (lsb(amountof32bits) & 3) == 0 {
             repeat amountof32bits >> 2
-                unroll 4 cx16.VERA_DATA0=0       ; write 4 bytes at a time, unrolled
+                unroll 4 cx16.VERA_DATA0=0       ; write 4*4 bytes at a time, unrolled
         }
         else if (lsb(amountof32bits) & 1) == 0 {
             repeat amountof32bits >> 1
-                unroll 2 cx16.VERA_DATA0=0       ; write 4 bytes at a time, unrolled
+                unroll 2 cx16.VERA_DATA0=0       ; write 2*4 bytes at a time, unrolled
         }
         else {
             repeat amountof32bits

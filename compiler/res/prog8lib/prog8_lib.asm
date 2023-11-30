@@ -441,7 +441,7 @@ _return_minusone
 
 
 strlen          .proc
-        ; -- returns the number of bytes in the string in AY, in Y.
+        ; -- returns the number of bytes in the string in AY, in Y. Clobbers A.
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0
