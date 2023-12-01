@@ -283,15 +283,10 @@ class IRCodeGen(
             else -> TODO("missing codegen for $node")
         }
 
-        chunks.forEach { chunk ->
-            require(chunk.isNotEmpty() || chunk.label != null) {
-                "chunk should have instructions and/or a label"
-            }
-        }
+        val nonEmptyChunks = chunks.filter { it.isNotEmpty() || it.label != null }
+        nonEmptyChunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(node.position)
 
-        chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(node.position)
-
-        return chunks
+        return nonEmptyChunks
     }
 
     private fun readBinaryData(node: PtIncludeBinary): Collection<UByte> {

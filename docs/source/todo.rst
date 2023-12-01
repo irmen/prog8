@@ -2,6 +2,9 @@
 TODO
 ====
 
+- 10 * (uw/10)  is correct, (uw/10) * 10 fails with -noopt    10 * (uw/10) needs -noopt to work correctly
+- don't print the leading space in print_f()
+- uword scanline_buf = memory("scanline", 320, 0)   different result when inside a sub or outside a sub??! (imageviewer iff module)
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 - once VAL_1 is merged into the kernal properly, remove all the workarounds in cx16 floats.parse_f()
 
