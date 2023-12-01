@@ -151,7 +151,66 @@ class TestOptimization: FunSpec({
         binexpr7.right shouldBe NumericLiteral(DataType.UWORD, 99.0, Position.DUMMY)
     }
 
-    test("const folding multiple scenarios * and /") {
+    test("const folding multiple scenarios * and / (floats)") {
+        val source = """
+            %option enable_floats
+            main {
+                sub start() {
+                    float llw = 300.0
+                    float result
+                    result = 9 * 2 * 10 * llw
+                    result++
+                    result = llw * 9 * 2 * 10
+                    result++
+                    result = llw / 30 / 3
+                    result++
+                    result = llw / 2 * 10
+                    result++
+                    result = llw * 90 / 5
+                }
+            }"""
+        val result = compileText(C64Target(), true, source, writeAssembly = false)!!
+        // expected:
+//        float llw
+//        llw = 300.0
+//        float result
+//        result = llw * 180.0
+//        result++
+//        result = llw * 180.0
+//        result++
+//        result = llw / 90.0
+//        result++
+//        result = llw * 5.0
+//        result++
+//        result = llw * 18.0
+        val stmts = result.compilerAst.entrypoint.statements
+        stmts.size shouldBe 12
+
+        val mulR0Value = (stmts[3] as Assignment).value
+        val binexpr0 = mulR0Value as BinaryExpression
+        binexpr0.operator shouldBe "*"
+        binexpr0.right shouldBe NumericLiteral(DataType.FLOAT, 180.0, Position.DUMMY)
+        val mulR1Value = (stmts[5] as Assignment).value
+        val binexpr1 = mulR1Value as BinaryExpression
+        binexpr1.operator shouldBe "*"
+        binexpr1.right shouldBe NumericLiteral(DataType.FLOAT, 180.0, Position.DUMMY)
+        val divR2Value = (stmts[7] as Assignment).value
+        val binexpr2 = divR2Value as BinaryExpression
+        binexpr2.operator shouldBe "/"
+        binexpr2.right shouldBe NumericLiteral(DataType.FLOAT, 90.0, Position.DUMMY)
+        val mulR3Value = (stmts[9] as Assignment).value
+        val binexpr3 = mulR3Value as BinaryExpression
+        binexpr3.operator shouldBe "*"
+        binexpr3.right shouldBe NumericLiteral(DataType.FLOAT, 5.0, Position.DUMMY)
+        binexpr3.left shouldBe instanceOf<IdentifierReference>()
+        val mulR4Value = (stmts[11] as Assignment).value
+        val binexpr4 = mulR4Value as BinaryExpression
+        binexpr4.operator shouldBe "*"
+        binexpr4.right shouldBe NumericLiteral(DataType.FLOAT, 18.0, Position.DUMMY)
+        binexpr4.left shouldBe instanceOf<IdentifierReference>()
+    }
+
+    test("const folding multiple scenarios * and / (integers)") {
         val source = """
             main {
                 sub start() {
@@ -170,8 +229,8 @@ class TestOptimization: FunSpec({
 //        cx16.r0s = llw * 180
 //        cx16.r1s = llw * 180
 //        cx16.r2s = llw / 90
-//        cx16.r3s = llw * 5
-//        cx16.r4s = llw * 90 / 5
+//        cx16.r3s = llw /2 *10
+//        cx16.r4s = llw *90 /5
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 7
 
@@ -190,11 +249,13 @@ class TestOptimization: FunSpec({
         val mulR3Value = (stmts[5] as Assignment).value
         val binexpr3 = mulR3Value as BinaryExpression
         binexpr3.operator shouldBe "*"
-        binexpr3.right shouldBe NumericLiteral(DataType.UWORD, 5.0, Position.DUMMY)
+        binexpr3.right shouldBe NumericLiteral(DataType.UWORD, 10.0, Position.DUMMY)
+        binexpr3.left shouldBe instanceOf<BinaryExpression>()
         val mulR4Value = (stmts[6] as Assignment).value
         val binexpr4 = mulR4Value as BinaryExpression
         binexpr4.operator shouldBe "/"
         binexpr4.right shouldBe NumericLiteral(DataType.UWORD, 5.0, Position.DUMMY)
+        binexpr4.left shouldBe instanceOf<BinaryExpression>()
     }
 
     test("constantfolded and silently typecasted for initializervalues") {

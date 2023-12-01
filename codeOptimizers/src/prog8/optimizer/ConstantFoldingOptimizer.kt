@@ -185,10 +185,12 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                         val newExpr = BinaryExpression(leftBinExpr.left, "*", constants, expr.position)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     } else if (leftBinExpr.operator=="/") {
-                        //  (X / C2) * rightConst   -->  X * (rightConst/C2)
-                        val constants = BinaryExpression(rightconst, "/", c2, c2.position)
-                        val newExpr = BinaryExpression(leftBinExpr.left, "*", constants, expr.position)
-                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        if(expr.inferType(program).istype(DataType.FLOAT)) {
+                            //  (X / C2) * rightConst   -->  X * (rightConst/C2)    only valid for floating point
+                            val constants = BinaryExpression(rightconst, "/", c2, c2.position)
+                            val newExpr = BinaryExpression(leftBinExpr.left, "*", constants, expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        }
                     }
                 }
             }
@@ -196,7 +198,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                 val c2 = leftBinExpr.right.constValue(program)
                 if(c2!=null && leftBinExpr.operator=="/") {
                     // (X / C1) / C2   -->  X / (C1*C2)
-                    // NOTE: do not optimize  (X * C1) / C2   -->  X * (C1/C2)  because this causes precision loss on integers
+                    // NOTE: do not optimize  (X * C1) / C2  for integers,  -->  X * (C1/C2)  because this causes precision loss on integers
                     val constants = BinaryExpression(c2, "*", rightconst, c2.position)
                     val newExpr = BinaryExpression(leftBinExpr.left, "/", constants, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
@@ -527,7 +529,8 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                     return IAstModification.ReplaceNode(expr, change, expr.parent)
                 }
             }
-            else if(expr.operator=="*" && subExpr.operator=="/") {
+            else if(expr.operator=="*" && subExpr.operator=="/" && subExpr.inferType(program).istype(DataType.FLOAT)) {
+                // division optimizations only valid for floats
                 if(leftIsConst) {
                     val change = if(subleftIsConst) {
                         // C1*(C2/V) -> (C1*C2)/V
