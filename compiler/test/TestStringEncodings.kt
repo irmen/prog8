@@ -7,7 +7,6 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.string.shouldContain
 import prog8.code.core.Encoding
 import prog8.code.core.unescape
 import prog8.code.target.C64Target
@@ -260,7 +259,7 @@ class TestStringEncodings: FunSpec({
         errors.errors.size shouldBe 0
     }
 
-    test("unsupported string encoding iso for C64 compilationtarget") {
+    test("iso string encoding also on C64 compilationtarget") {
         val source="""
             main {
                 str string1 = "default"
@@ -271,12 +270,11 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, source, errors, writeAssembly = false) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "text encoding"
+        compileText(C64Target(), false, source, errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
     }
 
-    test("unsupported char encoding iso for C64 compilationtarget") {
+    test("iso char encoding also on C64 compilationtarget") {
         val source="""
             main {
                 ubyte char1 = 'd'
@@ -287,9 +285,8 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, source, errors, writeAssembly = false) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "text encoding"
+        compileText(C64Target(), false, source, errors, writeAssembly = false) shouldNotBe null
+        errors.errors.size shouldBe 0
     }
 
     test("all encodings supported for Cx16 target") {

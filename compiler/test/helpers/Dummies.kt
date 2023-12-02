@@ -55,7 +55,6 @@ internal object AsciiStringEncoder : IStringEncoding {
 internal object DummyCompilationTarget : ICompilationTarget {
     override val name: String = "dummy"
     override val machine: IMachineDefinition = VirtualMachineDefinition()  // not really true but I don't want to implement a full dummy machinedef
-    override val supportedEncodings = setOf(Encoding.PETSCII, Encoding.SCREENCODES, Encoding.ISO)
     override val defaultEncoding = Encoding.PETSCII
 
     override fun encodeString(str: String, encoding: Encoding): List<UByte> {

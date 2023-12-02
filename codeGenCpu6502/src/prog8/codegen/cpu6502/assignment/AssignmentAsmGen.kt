@@ -2952,9 +2952,21 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                if(assignAsWord)
-                    TODO("assign register byte as word into Array not yet supported")
-                assignRegisterByteToByteArray(target, register)
+                if(assignAsWord) {
+                    when(register) {
+                        CpuRegister.A -> {}
+                        CpuRegister.X -> asmgen.out("  txa")
+                        CpuRegister.Y -> asmgen.out("  tya")
+                    }
+                    if(extendWord) {
+                        asmgen.signExtendAYlsb(if(target.datatype in SignedDatatypes) DataType.BYTE else DataType.UBYTE)
+                    } else {
+                        asmgen.out("  ldy  #0")
+                    }
+                    assignRegisterpairWord(target, RegisterOrPair.AY)
+                } else {
+                    assignRegisterByteToByteArray(target, register)
+                }
             }
             TargetStorageKind.REGISTER -> {
                 when(register) {
