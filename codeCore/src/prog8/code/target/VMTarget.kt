@@ -6,7 +6,6 @@ import prog8.code.target.virtual.VirtualMachineDefinition
 class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
     override val name = NAME
     override val machine = VirtualMachineDefinition()
-    override val supportedEncodings = setOf(Encoding.ISO)
     override val defaultEncoding = Encoding.ISO
 
     companion object {

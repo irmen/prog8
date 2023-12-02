@@ -7,7 +7,6 @@ import prog8.code.target.atari.AtariMachineDefinition
 class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
     override val name = NAME
     override val machine = AtariMachineDefinition()
-    override val supportedEncodings = setOf(Encoding.ATASCII)
     override val defaultEncoding = Encoding.ATASCII
 
     companion object {

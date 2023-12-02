@@ -160,7 +160,8 @@ Directives
     The file is located relative to the current working directory!
     The optional offset and length can be used to select a particular piece of the file.
     To reference the contents of the included binary data, you can put a label in your prog8 code
-    just before the %asmbinary. An example program for this can be found below at the description of %asminclude.
+    just before the %asmbinary.  To find out where the included binary data ends, add another label directly after it.
+    An example program for this can be found below at the description of %asminclude.
 
 
 .. data:: %asminclude "<filename>"

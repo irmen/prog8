@@ -12,7 +12,10 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.DataType
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.IErrorReporter
+import prog8.code.core.SplitWordArrayTypes
 
 
 internal class LiteralsToAutoVars(private val program: Program,
@@ -21,10 +24,6 @@ internal class LiteralsToAutoVars(private val program: Program,
 ) : AstWalker() {
 
     override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
-        if(string.encoding != Encoding.DEFAULT && string.encoding !in target.supportedEncodings) {
-            errors.err("compilation target doesn't support this text encoding", string.position)
-            return noModifications
-        }
         if(string.parent !is VarDecl && string.parent !is WhenChoice) {
             val binExpr = string.parent as? BinaryExpression
             if(binExpr!=null &&(binExpr.operator=="+" || binExpr.operator=="*"))
