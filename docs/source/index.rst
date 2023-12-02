@@ -20,10 +20,11 @@ The language aims to provide many conveniences over raw assembly code (even when
 while still being low level enough to create high performance programs.
 You can compile programs for various machines with this CPU:
 
-* Commodore 64
 * Commander X16
-* Commodore 128 (limited support for now)
-* Atari 800 XL (limited support for now)
+* Commodore 64
+* Commodore 128 (limited support)
+* Commodore PET (limited support)
+* Atari 800 XL (limited support)
 
 
 Prog8 is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).

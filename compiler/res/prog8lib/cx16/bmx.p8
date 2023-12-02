@@ -39,8 +39,7 @@ bmx {
                             error_message = "image too large"
                     } else
                         error_message = "invalid bmx file"
-                } else
-                    error_message = "invalid bmx file"
+                } ; note: parse_header sets the error message by itself
             } else
                 error_message = "invalid bmx file"
         } else
@@ -328,8 +327,11 @@ save_end:
                 compression = header[14]
                 border = header[15]
                 return true
-            }
-        }
+            } else
+                error_message = "unsupported bmx file version"
+        } else
+            error_message = "invalid bmx file"
+
         return false
     }
 

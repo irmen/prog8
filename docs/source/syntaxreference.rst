@@ -213,6 +213,7 @@ Directives
 
         included_bin:
                 %asmbinary "inc.bin"
+        end_of_included_bin:
 
             }
         }
