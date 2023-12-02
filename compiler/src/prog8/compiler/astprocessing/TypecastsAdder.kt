@@ -364,34 +364,17 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
     override fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> {
         val conditionDt = (whenChoice.parent as When).condition.inferType(program)
-        if((parent as When).condition.inferType(program).isWords) {
-            val values = whenChoice.values
-            values?.toTypedArray()?.withIndex()?.forEach { (index, value) ->
-                val valueDt = value.inferType(program)
-                if(valueDt!=conditionDt) {
-                    val castedValue = (value as NumericLiteral).cast(conditionDt.getOr(DataType.UNDEFINED))
-                    if(castedValue.isValid) {
-                        values[index] = castedValue.valueOrZero()
-                    } else {
-                        errors.err("choice value datatype differs from condition value", value.position)
-                    }
-                }
-            }
-        } else {
-            val values = whenChoice.values
-            values?.toTypedArray()?.withIndex()?.forEach { (index, value) ->
-                val valueDt = value.inferType(program)
-                if(valueDt!=conditionDt) {
-                    val castedValue = (value as NumericLiteral).cast(conditionDt.getOr(DataType.UNDEFINED))
-                    if(castedValue.isValid) {
-                        values[index] = castedValue.valueOrZero()
-                    } else {
-                        errors.err("choice value datatype differs from condition value", value.position)
-                    }
+        val values = whenChoice.values
+        values?.toTypedArray()?.withIndex()?.forEach { (index, value) ->
+            val valueDt = value.inferType(program)
+            if(valueDt!=conditionDt) {
+                val castedValue = value.typecastTo(conditionDt.getOr(DataType.UNDEFINED), valueDt.getOr(DataType.UNDEFINED), true)
+                if(castedValue.first) {
+                    castedValue.second.linkParents(whenChoice)
+                    values[index] = castedValue.second
                 }
             }
         }
-
         return noModifications
     }
 

@@ -1,21 +1,40 @@
-%import textio
-%import floats
 %zeropage basicsafe
+%import floats
+%import textio
 %option no_sysinit
 
 main {
     sub start() {
-        ubyte uw = 97
-        txt.print_ub( 10 * (uw/10) )    ; 90
+        floats.print_f(0.0)
         txt.nl()
-        txt.print_ub( (uw/10) * 10 )    ; 90
+        floats.print_f(1.0)
+        txt.nl()
+        floats.print_f(11111.0)
+        txt.nl()
+        floats.print_f(1e10)
+        txt.nl()
+        floats.print_f(1.234)
+        txt.nl()
+        floats.print_f(111.234)
+        txt.nl()
+        floats.print_f(-111.234)
+        txt.nl()
+        floats.print_f(-111.234)
         txt.nl()
 
-        float fl = 999.876
-        floats.print_f( 10 * (fl/10) )    ; 999.876
-        txt.nl()
-        floats.print_f( (fl/10) * 10 )    ; 999.876
-        txt.nl()
+        uword zz
+        const ubyte check = 99
 
+        when zz {
+            1,2,check -> {
+                cx16.r0++
+            }
+            9999 -> {
+                cx16.r0++
+            }
+            else -> {
+                cx16.r0++
+            }
+        }
     }
 }

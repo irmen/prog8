@@ -191,11 +191,6 @@ internal class StatementReorderer(
                 errors.err("else choice must be the last one", whenStmt.choices[elseChoice].position)
         }
 
-        val choices = whenStmt.choiceValues(program).sortedBy {
-            it.first?.first() ?: Int.MAX_VALUE
-        }
-        whenStmt.choices.clear()
-        choices.mapTo(whenStmt.choices) { it.second }
         return noModifications
     }
 

@@ -3,7 +3,7 @@ floats {
     %option merge, no_symbol_prefixing
 
 sub print_f(float value) {
-	; ---- prints the floating point value (without a newline).
+	; ---- prints the floating point value (without a newline). No leading space (unlike BASIC)!
 	%asm {{
 		lda  #<value
 		ldy  #>value
@@ -12,10 +12,13 @@ sub print_f(float value) {
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0
--		lda  (P8ZP_SCRATCH_W1),y
+		lda  (P8ZP_SCRATCH_W1),y
+		cmp  #' '
 		beq  +
+-		lda  (P8ZP_SCRATCH_W1),y
+		beq  ++
 		jsr  cbm.CHROUT
-		iny
++		iny
 		bne  -
 +		rts
 	}}

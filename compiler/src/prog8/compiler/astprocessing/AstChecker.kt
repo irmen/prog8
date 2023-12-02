@@ -1348,7 +1348,7 @@ internal class AstChecker(private val program: Program,
             if(choices!=null) {
                 for (c in choices) {
                     if(c in tally)
-                        errors.err("choice value already occurs earlier", choiceNode.position)
+                        errors.err("choice value already occurs elsewhere", choiceNode.position)
                     else
                         tally.add(c)
                 }
@@ -1368,18 +1368,18 @@ internal class AstChecker(private val program: Program,
         val whenStmt = whenChoice.parent as When
         if(whenChoice.values!=null) {
             val conditionType = whenStmt.condition.inferType(program)
-            val constvalues = whenChoice.values!!.map { it.constValue(program) }
-            for(constvalue in constvalues) {
+            val constvalues = whenChoice.values!!.map { it.constValue(program) to it.position }
+            for((constvalue, pos) in constvalues) {
                 when {
-                    constvalue == null -> errors.err("choice value must be a constant", whenChoice.position)
-                    constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", whenChoice.position)
+                    constvalue == null -> errors.err("choice value must be a constant", pos)
+                    constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", pos)
                     conditionType isnot constvalue.type -> {
                         if(conditionType.isKnown) {
                             if(conditionType.istype(DataType.BOOL)) {
                                 if(constvalue.number!=0.0 && constvalue.number!=1.0)
-                                    errors.err("choice value datatype differs from condition value", whenChoice.position)
+                                    errors.err("choice value datatype differs from condition value", pos)
                             } else {
-                                errors.err("choice value datatype differs from condition value", whenChoice.position)
+                                errors.err("choice value datatype differs from condition value", pos)
                             }
                         }
                     }

@@ -348,8 +348,8 @@ object SysCalls {
             }
             Syscall.PRINT_F -> {
                 val value = getArgValues(callspec.arguments, vm).single() as Double
-                if(value==0.0)
-                    print("0")
+                if(value.toInt().toDouble()==value)
+                    print(value.toInt())
                 else
                     print(value)
             }

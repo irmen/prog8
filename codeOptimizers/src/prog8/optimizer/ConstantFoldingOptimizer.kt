@@ -2,7 +2,6 @@ package prog8.optimizer
 
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.ForLoop
@@ -389,7 +388,7 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
                         return listOf(IAstModification.ReplaceNode(forLoop.iterable, newIter, forLoop))
                 }
             }
-            else -> throw FatalAstException("invalid loopvar datatype $loopvar")
+            else -> { /* nothing for floats, these are not allowed in for loops and will give an error elsewhere */ }
         }
 
         return noModifications
