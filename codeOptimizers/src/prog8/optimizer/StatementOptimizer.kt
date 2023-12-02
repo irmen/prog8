@@ -71,6 +71,11 @@ class StatementOptimizer(private val program: Program,
     }
 
     override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+        val constvalue = ifElse.condition.constValue(program)
+        if(constvalue!=null) {
+            errors.warn("condition is always ${constvalue.asBooleanValue}", ifElse.condition.position)
+        }
+
         // remove empty if statements
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isEmpty())
             return listOf(IAstModification.Remove(ifElse, parent as IStatementContainer))
@@ -87,17 +92,12 @@ class StatementOptimizer(private val program: Program,
             )
         }
 
-        val constvalue = ifElse.condition.constValue(program)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
-                if(!ifElse.definingModule.isLibrary)
-                    errors.warn("condition is always true", ifElse.condition.position)
                 listOf(IAstModification.ReplaceNode(ifElse, ifElse.truepart, parent))
             } else {
                 // always false -> keep only else-part
-                if(!ifElse.definingModule.isLibrary)
-                    errors.warn("condition is always false", ifElse.condition.position)
                 listOf(IAstModification.ReplaceNode(ifElse, ifElse.elsepart, parent))
             }
         }

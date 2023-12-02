@@ -111,6 +111,22 @@ if CONDITION==0
 
     override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
         /*
+        while true -> repeat
+        while false -> discard
+         */
+
+        val constCondition = whileLoop.condition.constValue(program)?.asBooleanValue
+        if(constCondition==true) {
+            errors.warn("condition is always true", whileLoop.condition.position)
+            val repeat = RepeatLoop(null, whileLoop.body, whileLoop.position)
+            return listOf(IAstModification.ReplaceNode(whileLoop, repeat, parent))
+        } else if(constCondition==false) {
+            errors.warn("condition is always false", whileLoop.condition.position)
+            return listOf(IAstModification.Remove(whileLoop, parent as IStatementContainer))
+        }
+
+
+        /*
 while CONDITION { STUFF }
     ==>
 _whileloop:
