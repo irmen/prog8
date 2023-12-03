@@ -272,14 +272,29 @@ cx16 {
     &ubyte  VERA_SPI_DATA       = VERA_BASE + $001E
     &ubyte  VERA_SPI_CTRL       = VERA_BASE + $001F
 
-    ; experimental Vera FX registers: (depends on particular value set in VERA_CTRL!!!)
+    ; Vera FX registers: (accessing depends on particular DCSEL value set in VERA_CTRL!)
     &ubyte VERA_FX_CTRL         = VERA_BASE + $0009
-    &ubyte VERA_FX_MULT         = VERA_BASE + $000C
+    &ubyte VERA_FX_TILEBASE     = VERA_BASE + $000a
+    &ubyte VERA_FX_MAPBASE      = VERA_BASE + $000b
+    &ubyte VERA_FX_MULT         = VERA_BASE + $000c
+    &ubyte VERA_FX_X_INCR_L     = VERA_BASE + $0009
+    &ubyte VERA_FX_X_INCR_H     = VERA_BASE + $000a
+    &ubyte VERA_FX_Y_INCR_L     = VERA_BASE + $000b
+    &ubyte VERA_FX_Y_INCR_H     = VERA_BASE + $000c
+    &ubyte VERA_FX_X_POS_L      = VERA_BASE + $0009
+    &ubyte VERA_FX_X_POS_H      = VERA_BASE + $000a
+    &ubyte VERA_FX_Y_POS_L      = VERA_BASE + $000b
+    &ubyte VERA_FX_Y_POS_H      = VERA_BASE + $000c
+    &ubyte VERA_FX_X_POS_S      = VERA_BASE + $0009
+    &ubyte VERA_FX_Y_POS_S      = VERA_BASE + $000a
+    &ubyte VERA_FX_POLY_FILL_L  = VERA_BASE + $000b
+    &ubyte VERA_FX_POLY_FILL_H  = VERA_BASE + $000c
     &ubyte VERA_FX_CACHE_L      = VERA_BASE + $0009
-    &ubyte VERA_FX_CACHE_M      = VERA_BASE + $000A
-    &ubyte VERA_FX_CACHE_H      = VERA_BASE + $000B
-    &ubyte VERA_FX_CACHE_U      = VERA_BASE + $000C
-    &ubyte VERA_FX_ACCUM_RESET  = VERA_BASE + $0009     ; (DCSEL=6)
+    &ubyte VERA_FX_CACHE_M      = VERA_BASE + $000a
+    &ubyte VERA_FX_CACHE_H      = VERA_BASE + $000b
+    &ubyte VERA_FX_CACHE_U      = VERA_BASE + $000c
+    &ubyte VERA_FX_ACCUM        = VERA_BASE + $000a
+    &ubyte VERA_FX_ACCUM_RESET  = VERA_BASE + $0009
 
 
 ; VERA_PSG_BASE     = $1F9C0
