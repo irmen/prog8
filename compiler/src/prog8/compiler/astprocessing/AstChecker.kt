@@ -62,6 +62,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(identifier: IdentifierReference) {
+        checkLongType(identifier)
         val stmt = identifier.targetStatement(program)
         if(stmt==null)
             errors.undefined(identifier.nameInSource, identifier.position)
@@ -277,6 +278,10 @@ internal class AstChecker(private val program: Program,
             errors.err("Labels can only be defined in the scope of a block, a loop body, or within another subroutine", label.position)
         }
         super.visit(label)
+    }
+
+    override fun visit(numLiteral: NumericLiteral) {
+        checkLongType(numLiteral)
     }
 
     private fun hasReturnOrJumpOrRts(scope: IStatementContainer): Boolean {
@@ -528,6 +533,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignTarget: AssignTarget) {
+        if(assignTarget.inferType(program).istype(DataType.LONG))
+            errors.err("integer overflow", assignTarget.position)
+
         super.visit(assignTarget)
 
         val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
@@ -577,6 +585,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(addressOf: AddressOf) {
+        checkLongType(addressOf)
         val variable=addressOf.identifier.targetVarDecl(program)
         if(variable!=null && variable.type==VarDeclType.CONST)
             errors.err("invalid pointer-of operand type", addressOf.position)
@@ -584,6 +593,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(decl: VarDecl) {
+        if(decl.datatype==DataType.LONG)
+            errors.err("integer overflow", decl.position)
+
         fun err(msg: String) = errors.err(msg, decl.position)
 
         // the initializer value can't refer to the variable itself (recursive definition)
@@ -915,6 +927,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(expr: PrefixExpression) {
+        checkLongType(expr)
         val dt = expr.expression.inferType(program).getOr(DataType.UNDEFINED)
         if(dt==DataType.UNDEFINED)
             return  // any error should be reported elsewhere
@@ -935,6 +948,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(expr: BinaryExpression) {
         super.visit(expr)
+        checkLongType(expr)
 
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
@@ -1036,6 +1050,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(typecast: TypecastExpression) {
+        checkLongType(typecast)
         if(typecast.type in IterableDatatypes)
             errors.err("cannot type cast to string or array type", typecast.position)
 
@@ -1082,6 +1097,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(functionCallExpr: FunctionCallExpression) {
+        checkLongType(functionCallExpr)
         // this function call is (part of) an expression, which should be in a statement somewhere.
         val stmtOfExpression = findParentNode<Statement>(functionCallExpr)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")
@@ -1135,6 +1151,11 @@ internal class AstChecker(private val program: Program,
         }
 
         super.visit(functionCallExpr)
+    }
+
+    override fun visit(bfc: BuiltinFunctionCall) {
+        checkLongType(bfc)
+        super.visit(bfc)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
@@ -1273,6 +1294,10 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
+
+        args.forEach{
+            checkLongType(it)
+        }
     }
 
     override fun visit(postIncrDecr: PostIncrDecr) {
@@ -1310,6 +1335,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
+        checkLongType(arrayIndexedExpression)
         val target = arrayIndexedExpression.arrayvar.targetStatement(program)
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes && target.datatype!=DataType.UWORD)
@@ -1452,6 +1478,12 @@ internal class AstChecker(private val program: Program,
     override fun visit(inlineAssembly: InlineAssembly) {
         if(inlineAssembly.isIR && compilerOptions.compTarget.name != VMTarget.NAME)
             errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
+    }
+
+    private fun checkLongType(expression: Expression) {
+        if(expression.inferType(program).istype(DataType.LONG)) {
+            errors.err("integer overflow", expression.position)
+        }
     }
 
     private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteral) : Boolean {

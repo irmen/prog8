@@ -67,6 +67,7 @@ object InferredTypes {
             DataType.BYTE to InferredType.known(DataType.BYTE),
             DataType.UWORD to InferredType.known(DataType.UWORD),
             DataType.WORD to InferredType.known(DataType.WORD),
+            DataType.LONG to InferredType.known(DataType.LONG),
             DataType.FLOAT to InferredType.known(DataType.FLOAT),
             DataType.BOOL to InferredType.known(DataType.BOOL),
             DataType.STR to InferredType.known(DataType.STR),

@@ -1043,4 +1043,27 @@ main {
         errors.errors.single() shouldContain "doesn't match"
     }
 
+    test("long type okay in const expr but otherwise overflow") {
+        val src="""
+main {
+    sub start() {
+        const ubyte HEIGHT=240
+        uword large = 320*240/8/8
+        thing(large)
+        thing(320*240/8/8)
+        thing(320*HEIGHT/8/8)
+        thing(320*HEIGHT)        ; overflow
+    }
+
+    sub thing(uword value) {
+        value++
+    }
+}"""
+        val errors=ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "can't cast"
+        errors.errors[1] shouldContain "overflow"
+    }
+
 })

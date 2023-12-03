@@ -1,12 +1,14 @@
-%zeropage basicsafe
-%import textio
-%option no_sysinit
-
 main {
     sub start() {
-        txt.print(iso:"This is ISO text.\n")
+        const ubyte HEIGHT=240
+        uword large = 320*240/8/8
+        thing(large)
+        thing(320*240/8/8)
+        thing(320*HEIGHT/8/8)
+        thing(320*HEIGHT)        ; overflow
+    }
 
-        repeat {
-        }
+    sub thing(uword value) {
+        value++
     }
 }

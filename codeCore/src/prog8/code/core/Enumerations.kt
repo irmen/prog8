@@ -1,12 +1,13 @@
 package prog8.code.core
 
 enum class DataType {
-    UBYTE,              // pass by value
-    BYTE,               // pass by value
-    UWORD,              // pass by value
-    WORD,               // pass by value
-    FLOAT,              // pass by value
-    BOOL,               // pass by value
+    UBYTE,              // pass by value            8 bits unsigned
+    BYTE,               // pass by value            8 bits signed
+    UWORD,              // pass by value            16 bits unsigned
+    WORD,               // pass by value            16 bits signed
+    LONG,               // pass by value            32 bits signed
+    FLOAT,              // pass by value            machine dependent
+    BOOL,               // pass by value            bit 0 of a 8 bit byte
     STR,                // pass by reference
     ARRAY_UB,           // pass by reference
     ARRAY_B,            // pass by reference
@@ -23,11 +24,12 @@ enum class DataType {
      */
     infix fun isAssignableTo(targetType: DataType) =
         when(this) {
-            BOOL -> targetType.oneOf(BOOL, BYTE, UBYTE, WORD, UWORD, FLOAT)
-            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, FLOAT, BOOL)
-            BYTE -> targetType.oneOf(BYTE, WORD, FLOAT)
-            UWORD -> targetType.oneOf(UWORD, FLOAT)
-            WORD -> targetType.oneOf(WORD, FLOAT)
+            BOOL -> targetType.oneOf(BOOL, BYTE, UBYTE, WORD, UWORD, LONG, FLOAT)
+            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, LONG, FLOAT, BOOL)
+            BYTE -> targetType.oneOf(BYTE, WORD, LONG, FLOAT)
+            UWORD -> targetType.oneOf(UWORD, LONG, FLOAT)
+            WORD -> targetType.oneOf(WORD, LONG, FLOAT)
+            LONG -> targetType.oneOf(LONG, FLOAT)
             FLOAT -> targetType.oneOf(FLOAT)
             STR -> targetType.oneOf(STR, UWORD)
             in ArrayDatatypes -> targetType == this
@@ -41,7 +43,8 @@ enum class DataType {
             this == other -> false
             this in ByteDatatypes -> false
             this in WordDatatypes -> other in ByteDatatypes
-            this== STR && other== UWORD || this== UWORD && other== STR -> false
+            this == LONG -> other in ByteDatatypes+WordDatatypes
+            this == STR && other == UWORD || this == UWORD && other == STR -> false
             else -> true
         }
 
@@ -123,11 +126,11 @@ enum class BranchCondition {
 
 val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.BOOL)
 val WordDatatypes = arrayOf(DataType.UWORD, DataType.WORD)
-val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.BOOL)
-val IntegerDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD)
-val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT, DataType.BOOL)
-val NumericDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.FLOAT)
-val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.FLOAT)
+val IntegerDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG)
+val IntegerDatatypes = IntegerDatatypesNoBool + DataType.BOOL
+val NumericDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG, DataType.FLOAT)
+val NumericDatatypes = NumericDatatypesNoBool + DataType.BOOL
+val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.LONG, DataType.FLOAT)
 val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_F, DataType.ARRAY_BOOL)
 val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
 val SplitWordArrayTypes = arrayOf(DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT)

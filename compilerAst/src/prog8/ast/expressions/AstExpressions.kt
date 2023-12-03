@@ -484,6 +484,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 in -128..127 -> NumericLiteral(DataType.BYTE, dvalue, position)
                 in 0..65535 -> NumericLiteral(DataType.UWORD, dvalue, position)
                 in -32768..32767 -> NumericLiteral(DataType.WORD, dvalue, position)
+                in -2147483647..2147483647 -> NumericLiteral(DataType.LONG, dvalue, position)
                 else -> throw FatalAstException("integer overflow: $dvalue")
             }
         }
@@ -492,6 +493,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
             return when (value) {
                 in 0u..255u -> NumericLiteral(DataType.UBYTE, value.toDouble(), position)
                 in 0u..65535u -> NumericLiteral(DataType.UWORD, value.toDouble(), position)
+                in 0u..2147483647u -> NumericLiteral(DataType.LONG, value.toDouble(), position)
                 else -> throw FatalAstException("unsigned integer overflow: $value")
             }
         }
@@ -634,6 +636,9 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
             }
             DataType.BOOL -> {
                 return CastValue(true, NumericLiteral(targettype, number, position))
+            }
+            DataType.LONG -> {
+                /* ignore this cast, LONG can't be used. Error will be given elsewhere */
             }
             else -> {
                 throw FatalAstException("type cast of weird type $type")
