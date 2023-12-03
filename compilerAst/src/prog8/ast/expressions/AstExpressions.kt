@@ -472,6 +472,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     in -128..127 -> NumericLiteral(DataType.BYTE, dvalue, position)
                     in 0..65535 -> NumericLiteral(DataType.UWORD, dvalue, position)
                     in -32768..32767 -> NumericLiteral(DataType.WORD, dvalue, position)
+                    in -2147483647..2147483647 -> NumericLiteral(DataType.LONG, dvalue, position)
                     else -> NumericLiteral(DataType.FLOAT, dvalue, position)
                 }
             }

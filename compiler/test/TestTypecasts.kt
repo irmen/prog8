@@ -1053,6 +1053,7 @@ main {
         thing(320*240/8/8)
         thing(320*HEIGHT/8/8)
         thing(320*HEIGHT)        ; overflow
+        large = 12345678         ; overflow
     }
 
     sub thing(uword value) {
@@ -1061,9 +1062,12 @@ main {
 }"""
         val errors=ErrorReporterForTests()
         compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
+        errors.errors.size shouldBe 5
         errors.errors[0] shouldContain "can't cast"
         errors.errors[1] shouldContain "overflow"
+        errors.errors[2] shouldContain "LONG doesn't match"
+        errors.errors[3] shouldContain "out of range"
+        errors.errors[4] shouldContain "overflow"
     }
 
 })

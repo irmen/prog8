@@ -369,6 +369,7 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
                     in -128..127 -> DataType.BYTE
                     in 0..65535 -> DataType.UWORD
                     in -32768..32767 -> DataType.WORD
+                    in -2147483647..2147483647 -> DataType.LONG
                     else -> DataType.FLOAT
                 }
             }
@@ -420,6 +421,7 @@ private fun ExpressionContext.toAst() : Expression {
                     DataType.BYTE -> NumericLiteral(DataType.BYTE, intLit.number, litval.toPosition())
                     DataType.UWORD -> NumericLiteral(DataType.UWORD, intLit.number, litval.toPosition())
                     DataType.WORD -> NumericLiteral(DataType.WORD, intLit.number, litval.toPosition())
+                    DataType.LONG -> NumericLiteral(DataType.LONG, intLit.number, litval.toPosition())
                     DataType.FLOAT -> NumericLiteral(DataType.FLOAT, intLit.number, litval.toPosition())
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }

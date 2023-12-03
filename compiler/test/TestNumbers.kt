@@ -123,7 +123,7 @@ class TestNumbers: FunSpec({
                     uword xx = 10
                     if xx+99 == 1.23456
                         xx++
-                    if xx+99 == 1234567
+                    if xx+99 == 1234567.8
                         xx++
                 }
             }
@@ -143,7 +143,7 @@ class TestNumbers: FunSpec({
                     uword xx = 10
                     if xx+99 == 1.23456
                         xx++
-                    if xx+99 == 1234567
+                    if xx+99 == 1234567.8
                         xx++
                 }
             }
