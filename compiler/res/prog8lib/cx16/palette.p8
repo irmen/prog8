@@ -1,11 +1,11 @@
 ; Manipulate the Commander X16's display color palette.
-; Should you want to restore the default palette, you have to reinitialize the Vera yourself.
+; Should you want to restore the full default palette, you can call cbm.CINT()
+; The first 16 colors can be restored to their default with set_default16()
 
 palette {
     %option no_symbol_prefixing
 
     uword vera_palette_ptr
-    ubyte cc
 
     sub set_color(ubyte index, uword color) {
         vera_palette_ptr = $fa00+(index as uword * 2)
@@ -89,105 +89,84 @@ palette {
     }
 
     sub set_grayscale() {
+        ; set first 16 colors to a grayscale gradient from black to white
         vera_palette_ptr = $fa00
-        cc=0
+        cx16.r2L=0
         repeat 16 {
-            cx16.vpoke(1, vera_palette_ptr, cc)
+            cx16.vpoke(1, vera_palette_ptr, cx16.r2L)
             vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, cc)
+            cx16.vpoke(1, vera_palette_ptr, cx16.r2L)
             vera_palette_ptr++
-            cc += $11
+            cx16.r2L += $11
         }
     }
-
-    uword[] C64_colorpalette_dark = [   ; this is a darker palette with more contrast
-        $000,  ; 0 = black
-        $FFF,  ; 1 = white
-        $632,  ; 2 = red
-        $7AB,  ; 3 = cyan
-        $638,  ; 4 = purple
-        $584,  ; 5 = green
-        $327,  ; 6 = blue
-        $BC6,  ; 7 = yellow
-        $642,  ; 8 = orange
-        $430,  ; 9 = brown
-        $965,  ; 10 = light red
-        $444,  ; 11 = dark grey
-        $666,  ; 12 = medium grey
-        $9D8,  ; 13 = light green
-        $65B,  ; 14 = light blue
-        $999   ; 15 = light grey
-    ]
-
-    uword[] C64_colorpalette_pepto = [  ; # this is Pepto's Commodore-64 palette  http://www.pepto.de/projects/colorvic/
-        $000,  ; 0 = black
-        $FFF,  ; 1 = white
-        $833,  ; 2 = red
-        $7cc,  ; 3 = cyan
-        $839,  ; 4 = purple
-        $5a4,  ; 5 = green
-        $229,  ; 6 = blue
-        $ef7,  ; 7 = yellow
-        $852,  ; 8 = orange
-        $530,  ; 9 = brown
-        $c67,  ; 10 = light red
-        $444,  ; 11 = dark grey
-        $777,  ; 12 = medium grey
-        $af9,  ; 13 = light green
-        $76e,  ; 14 = light blue
-        $bbb   ; 15 = light grey
-    ]
-
-    uword[] C64_colorpalette_light = [  ; this is a lighter palette
-        $000,  ; 0 = black
-        $FFF,  ; 1 = white
-        $944,  ; 2 = red
-        $7CC,  ; 3 = cyan
-        $95A,  ; 4 = purple
-        $6A5,  ; 5 = green
-        $549,  ; 6 = blue
-        $CD8,  ; 7 = yellow
-        $963,  ; 8 = orange
-        $650,  ; 9 = brown
-        $C77,  ; 10 = light red
-        $666,  ; 11 = dark grey
-        $888,  ; 12 = medium grey
-        $AE9,  ; 13 = light green
-        $87C,  ; 14 = light blue
-        $AAA   ; 15 = light grey
-    ]
 
     sub set_c64pepto() {
-        vera_palette_ptr = $fa00
-        for cc in 0 to 15 {
-            uword ccp = C64_colorpalette_pepto[cc]
-            cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
-            vera_palette_ptr++
-        }
+        ; set first 16 colors to the "Pepto" PAL commodore-64 palette  http://www.pepto.de/projects/colorvic/
+        uword[] colors = [
+            $000,  ; 0 = black
+            $FFF,  ; 1 = white
+            $833,  ; 2 = red
+            $7cc,  ; 3 = cyan
+            $839,  ; 4 = purple
+            $5a4,  ; 5 = green
+            $229,  ; 6 = blue
+            $ef7,  ; 7 = yellow
+            $852,  ; 8 = orange
+            $530,  ; 9 = brown
+            $c67,  ; 10 = light red
+            $444,  ; 11 = dark grey
+            $777,  ; 12 = medium grey
+            $af9,  ; 13 = light green
+            $76e,  ; 14 = light blue
+            $bbb   ; 15 = light grey
+        ]
+        set_rgb(colors, len(colors))
     }
 
-    sub set_c64light() {
-        vera_palette_ptr = $fa00
-        for cc in 0 to 15 {
-            uword ccp = C64_colorpalette_light[cc]
-            cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
-            vera_palette_ptr++
-        }
+    sub set_c64ntsc() {
+        ; set first 16 colors to a NTSC commodore-64 palette
+        uword[] colors = [
+            $000,   ; 0 = black
+            $FFF,   ; 1 = white
+            $934,   ; 2 = red
+            $9ff,   ; 3 = cyan
+            $73f,   ; 4 = purple
+            $4b1,   ; 5 = green
+            $20c,   ; 6 = blue
+            $ee6,   ; 7 = yellow
+            $b53,   ; 8 = orange
+            $830,   ; 9 = brown
+            $f8a,   ; 10 = light red
+            $444,   ; 11 = dark grey
+            $999,   ; 12 = medium grey
+            $9f9,   ; 13 = light green
+            $36f,   ; 14 = light blue
+            $ccc    ; 15 = light grey
+        ]
+        set_rgb(colors, len(colors))
     }
 
-    sub set_c64dark() {
-        vera_palette_ptr = $fa00
-        for cc in 0 to 15 {
-            uword ccp = C64_colorpalette_dark[cc]
-            cx16.vpoke(1, vera_palette_ptr, lsb(ccp))     ; G, B
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, msb(ccp))     ; R
-            vera_palette_ptr++
-        }
+    sub set_default16() {
+        ; set first 16 colors to the defaults on the X16
+        uword[] colors = [
+            $000,   ; 0 = black
+            $fff,   ; 1 = white
+            $800,   ; 2 = red
+            $afe,   ; 3 = cyan
+            $c4c,   ; 4 = purple
+            $0c5,   ; 5 = green
+            $00a,   ; 6 = blue
+            $ee7,   ; 7 = yellow
+            $d85,   ; 8 = orange
+            $640,   ; 9 = brown
+            $f77,   ; 10 = light red
+            $333,   ; 11 = dark grey
+            $777,   ; 12 = medium grey
+            $af6,   ; 13 = light green
+            $08f,   ; 14 = light blue
+            $bbb    ; 15 = light grey
+        ]
+        set_rgb(colors, len(colors))
     }
-
 }

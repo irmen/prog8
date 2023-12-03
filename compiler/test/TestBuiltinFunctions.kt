@@ -5,6 +5,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.FunctionCallStatement
 import prog8.code.core.BuiltinFunctions
 import prog8.code.core.DataType
 import prog8.code.core.NumericDatatypesNoBool
@@ -85,26 +86,31 @@ class TestBuiltinFunctions: FunSpec({
         val src="""
 main {
     sub start() {
-
         uword[] array = [1,2,3]
         str name = "hello"
         cx16.r0L = len(array)
-        cx16.r0L = len(name)
-        cx16.r0L = sizeof(array)
-        cx16.r0 = mkword(200,100)
+        cx16.r1L = len(name)
+        cx16.r2L = sizeof(array)
+        cx16.r4 = mkword(200,100)
+        test(sizeof(array))
+    }
+    sub test(uword value) {
+        value++
     }
 }"""
         val result = compileText(Cx16Target(), false, src, writeAssembly = false)
         val statements = result!!.compilerAst.entrypoint.statements
-        statements.size shouldBe 6
+        statements.size shouldBe 7
         val a1 = statements[2] as Assignment
         val a2 = statements[3] as Assignment
         val a3 = statements[4] as Assignment
         val a4 = statements[5] as Assignment
+        val a5 = statements[6] as FunctionCallStatement
         (a1.value as NumericLiteral).number shouldBe 3.0
         (a2.value as NumericLiteral).number shouldBe 5.0
         (a3.value as NumericLiteral).number shouldBe 6.0
         (a4.value as NumericLiteral).number shouldBe 200*256+100
+        (a5.args[0] as NumericLiteral).number shouldBe 6.0
     }
 })
 

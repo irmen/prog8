@@ -121,7 +121,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
 
         return when {
             dt.isArray -> {
-                val length = (target as VarDecl).arraysize!!.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
+                val length = (target as VarDecl).arraysize?.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
                 val elementDt = ArrayToElementTypes.getValue(dt.getOr(DataType.UNDEFINED))
                 NumericLiteral.optimalInteger(program.memsizer.memorySize(elementDt) * length, position)
             }

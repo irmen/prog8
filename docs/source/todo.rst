@@ -3,7 +3,6 @@ TODO
 ====
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
-- once VAL_1 is merged into the kernal properly, remove all the workarounds in cx16 floats.parse_f()
 
 ...
 
@@ -47,6 +46,7 @@ Compiler:
 
 Libraries:
 
+- once a VAL_1 implementation is merged into the X16 kernal properly, remove all the workarounds in cx16 floats.parse_f()
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?
