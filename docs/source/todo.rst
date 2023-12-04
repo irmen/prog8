@@ -73,3 +73,14 @@ What if we were to re-introduce Structs in prog8? Some thoughts:
 - need to introduce typed pointer datatype in prog8
 - str is then syntactic sugar for pointer to character/byte?
 - arrays are then syntactic sugar for pointer to byte/word/float?
+
+
+Other language/syntax features to think about
+---------------------------------------------
+
+- allow Unicode letters in identifiers à la Python.  Don't forget to normalize all identifiers. See https://github.com/antlr/grammars-v4/blob/master/python/python3_12_0/PythonLexer.g4#L348C10-L348C21
+- chained assignments   `x=y=z=99`
+- declare multiple variables    `ubyte x,y,z`    (if init value present, all get that init value)
+- chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`)
+- postincrdecr as expression, preincrdecr expression   (`y = x++`,   `y = ++x`)    .... is this even possible, expression with side effects like this?
+- negative array index to refer to an element from the end of the array.  Python `[-1]` or Raku syntax `[\*-1]`  , `[\*/2]` .... \*=size of the array

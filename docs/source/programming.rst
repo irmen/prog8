@@ -61,11 +61,9 @@ Code
 Subroutine
     Defines a piece of code that can be called by its name from different locations in your code.
     It accepts parameters and can return a value (optional).
-    It can define its own variables, and it is even possible to define subroutines nested inside other subroutines.
-    Their contents is scoped accordingly.
-    Nested subroutines can access the variables from outer scopes.
-    This removes the need and overhead to pass everything via parameters.
-    Subroutines do not have to be declared before they can be called.
+    It can define its own variables, and it is also possible to define subroutines within other subroutines.
+    Nested subroutines can access the variables from outer scopes easily, which removes the need and overhead to pass everything via parameters all the time.
+    Subroutines do not have to be declared in the source code before they can be called.
 
 Label
     This is a named position in your code where you can jump to from another place.
@@ -79,14 +77,15 @@ Scope
     Anything *inside* the scope can refer to symbols in the same scope without using a prefix.
     There are three scope levels in Prog8:
 
-    - global (no prefix)
-    - code block
-    - subroutine
+    - global (no prefix), everything in a module file goes in here;
+    - block;
+    - subroutine, can be nested in another subroutine.
 
-    While Modules are separate files, they are *not* separate scopes!
+    Even though modules are separate files, they are *not* separate scopes!
     Everything defined in a module is merged into the global scope.
     This is different from most other languages that have modules.
     The global scope can only contain blocks and some directives, while the others can contain variables and subroutines too.
+    Some more details about how to deal with scopes and names is discussed below.
 
 
 .. _blocks:
@@ -110,16 +109,6 @@ The name of a block must be unique in your entire program.
 Be careful when importing other modules; blocks in your own code cannot have
 the same name as a block defined in an imported module or library.
 
-The address can be used to place a block at a specific location in memory.
-Usually it is omitted, and the compiler will automatically choose the location (usually immediately after
-the previous block in memory).
-It must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$1ff`` is the cpu stack).
-
-
-.. _scopes:
-
-**Scoping rules**
-
 .. sidebar::
     Use qualified names ("dotted names") to reference symbols defined elsewhere
 
@@ -127,29 +116,41 @@ It must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$1ff
     So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
     can be done from anywhere by using ``main.worker.counter``.
 
+The address can be used to place a block at a specific location in memory.
+Usually it is omitted, and the compiler will automatically choose the location (usually immediately after
+the previous block in memory).
+It must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$1ff`` is the cpu stack).
+
 *Symbols* are names defined in a certain *scope*. Inside the same scope, you can refer
 to them by their 'short' name directly.  If the symbol is not found in the same scope,
 the enclosing scope is searched for it, and so on, up to the top level block, until the symbol is found.
 If the symbol was not found the compiler will issue an error message.
 
+**Subroutines** create a new scope. All variables inside a subroutine are hoisted up to the
+scope of the subroutine they are declared in. Note that you can define **nested subroutines** in Prog8,
+and such a nested subroutine has its own scope!  This also means that you have to use a fully qualified name
+to access a variable from a nested subroutine::
 
-Scopes are created using either of these two statements:
+    main {
+        sub start() {
+            sub nested() {
+                ubyte counter
+                ...
+            }
+            ...
+            txt.print_ub(counter)                       ; Error: undefined symbol
+            txt.print_ub(main.start.nested.counter)     ; OK
+        }
+    }
 
-- blocks  (top-level named scope)
-- subroutines   (nested named scope)
+
 
 .. important::
-    Unlike most other programming languages, a new scope is *not* created inside
+    Emphasizing this once more: unlike most other programming languages, a new scope is *not* created inside
     for, while, repeat, and do-until statements, the if statement, and the branching conditionals.
     These all share the same scope from the subroutine they're defined in.
     You can define variables in these blocks, but these will be treated as if they
     were defined in the subroutine instead.
-    This can seem a bit restrictive because you have to think harder about what variables you
-    want to use inside the subroutine, to avoid clashes.
-    But this decision was made for a good reason: memory in prog8's
-    target systems is usually very limited and it would be a waste to allocate a lot of variables.
-    The prog8 compiler is not yet advanced enough to be able to share or overlap
-    variables intelligently. So for now that is something you have to think about yourself.
 
 
 Program Start and Entry Point
@@ -181,7 +182,7 @@ Variables and values
 --------------------
 
 Variables are named values that can change during the execution of the program.
-They can be defined inside any scope (blocks, subroutines etc.) See :ref:`Scopes <scopes>`.
+They can be defined inside any scope (blocks, subroutines etc.) See :ref:`blocks`.
 When declaring a numeric variable it is possible to specify the initial value, if you don't want it to be zero.
 For other data types it is required to specify that initial value it should get.
 Values will usually be part of an expression or assignment statement::

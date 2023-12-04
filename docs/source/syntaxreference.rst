@@ -247,7 +247,8 @@ Identifiers
 -----------
 
 Naming things in Prog8 is done via valid *identifiers*. They start with a letter,
-and after that, a combination of letters, numbers, or underscores. Examples of valid identifiers::
+and after that, a combination of letters, numbers, or underscores. Letters are from the 7-bit ASCII alphabet only.
+Examples of valid identifiers::
 
 	a
 	A

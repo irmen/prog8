@@ -594,7 +594,7 @@ the emulators already support it).
     by calls to verafx.muls/mult, but be careful with it because it may interfere with other Vera operations or IRQs.
 
     Note: the lower 16 bits of the 32 bits result is returned as the normal subroutine's returnvalue,
-    but the upper 16 bits is returned in `cx16.r0` so you can still access those separately.
+    but the upper 16 bits is returned in cx16.r0 so you can still access those separately.
 
 ``clear``
     Very quickly clear a piece of vram to a given byte value (it writes 4 bytes at a time).

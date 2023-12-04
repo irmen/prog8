@@ -853,4 +853,28 @@ main {
 }"""
         compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("no crash for making var in removed/inlined subroutine fully scoped") {
+        val src="""
+main {
+    sub start() {
+        test()
+    }
+
+    sub test() {
+        sub nested() {
+            ubyte counter
+            counter++
+        }
+        test2(main.test.nested.counter)      ; shouldn't crash but just give nice error
+    }
+
+    sub test2(ubyte value) {
+        value++
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), true, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.single() shouldContain  "undefined symbol"
+    }
 })
