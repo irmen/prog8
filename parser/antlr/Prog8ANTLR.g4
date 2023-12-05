@@ -24,7 +24,7 @@ BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | . )*? '*/'  -> skip ;
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
-NAME :  [a-zA-Z][a-zA-Z0-9_]* ;
+NAME :  [\p{Letter}][\p{Letter}\p{Digit}_]* ;           // match unicode properties
 DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
 HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
 BIN_INTEGER :  '%' ('0' | '1')+ ;

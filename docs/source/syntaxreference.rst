@@ -8,7 +8,7 @@ Module file
 -----------
 
 This is a file with the ``.p8`` suffix, containing *directives* and *code blocks*, described below.
-The file is a text file which can also contain:
+The file is a text file, saved in UTF-8 encoding, which can also contain:
 
 Lines, whitespace, indentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -247,7 +247,8 @@ Identifiers
 -----------
 
 Naming things in Prog8 is done via valid *identifiers*. They start with a letter,
-and after that, a combination of letters, numbers, or underscores. Letters are from the 7-bit ASCII alphabet only.
+and after that, a combination of letters, numbers, or underscores.
+Note that any Unicode Letter symbol is accepted as a letter!
 Examples of valid identifiers::
 
 	a
@@ -256,6 +257,9 @@ Examples of valid identifiers::
 	COUNTER
 	Better_Name_2
 	something_strange__
+	knäckebröd
+	приблизительно
+	π
 
 
 Code blocks

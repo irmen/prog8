@@ -292,6 +292,13 @@ floats
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating
 point variables.  This includes ``print_f``, the routine used to print floating point numbers.
 
+
+``π`` and ``PI``
+    float const for the number Pi, 3.141592653589793...
+
+``TWOPI``
+    float const for the number 2 times Pi
+
 ``atan (x)``
     Arctangent.
 

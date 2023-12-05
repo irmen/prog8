@@ -4,8 +4,10 @@
 
 floats {
 
-    const float  PI     = 3.141592653589793
-    const float  TWOPI  = 6.283185307179586
+        const float  π      = 3.141592653589793
+        const float  PI     = π
+        const float  TWOPI  = 2*π
+
 
 sub print_f(float value) {
     ; ---- prints the floating point value (without a newline).

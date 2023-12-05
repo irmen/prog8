@@ -7,8 +7,9 @@ floats {
 	; ---- this block contains C-64 floating point related functions ----
     %option no_symbol_prefixing
 
-        const float  PI     = 3.141592653589793
-        const float  TWOPI  = 6.283185307179586
+        const float  π      = 3.141592653589793
+        const float  PI     = π
+        const float  TWOPI  = 2*π
 
 
 ; ---- C64 basic and kernal ROM float constants and functions ----

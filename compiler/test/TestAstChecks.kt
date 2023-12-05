@@ -5,6 +5,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -144,5 +146,31 @@ class TestAstChecks: FunSpec({
         compileText(C64Target(), true, text, writeAssembly = true, errors=errors)  shouldNotBe null
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
+    }
+
+    test("unicode in identifier names is working") {
+        val text = """
+%import floats
+
+main {
+    ubyte приблизительно = 99
+    
+    sub start() {
+        str knäckebröd = "crunchy"
+        prt(knäckebröd)
+        printf(2*floats.π)
+    }
+
+    sub prt(str message) {
+        приблизительно++
+    }
+
+    sub printf(float fl) {
+        приблизительно++
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = true)  shouldNotBe null
+        compileText(Cx16Target(), false, text, writeAssembly = true)  shouldNotBe null
+        compileText(VMTarget(), false, text, writeAssembly = true)  shouldNotBe null
     }
 })

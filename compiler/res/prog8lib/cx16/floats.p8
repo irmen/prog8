@@ -8,8 +8,9 @@ floats {
 
     %option no_symbol_prefixing
 
-        const float  PI     = 3.141592653589793
-        const float  TWOPI  = 6.283185307179586
+        const float  π      = 3.141592653589793
+        const float  PI     = π
+        const float  TWOPI  = 2*π
 
 
 ; ---- ROM float functions (same as on C128 except base page) ----

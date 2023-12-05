@@ -18,6 +18,7 @@ Module
     A file on disk with the ``.p8`` suffix. It can contain *directives* and *code blocks*.
     Whitespace and indentation in the source code are arbitrary and can be mixed tabs or spaces.
     A module file can *import* other modules, including *library modules*.
+    It should be saved in UTF-8 encoding.
 
 Comments
     Everything on the line after a semicolon ``;`` is a comment and is ignored by the compiler.
