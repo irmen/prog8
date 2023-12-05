@@ -72,10 +72,10 @@ romsub $fe6c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2 
 ; X16 additions
 romsub $fe6f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for rounding- call this before INT
 romsub $fe72 = ZEROFC() clobbers(A,X,Y)                     ; fac1 = 0
-romsub $fe75 = NORMAL() clobbers(A,X,Y)                     ; normalize fac1 (?)
-romsub $fe78 = NEGFAC() clobbers(A)                         ; switch the sign of fac1 (fac1 = -fac1) (juse use NEGOP() instead!)
+romsub $fe75 = NORMAL() clobbers(A,X,Y)                     ; normalize fac1
+romsub $fe78 = NEGFAC() clobbers(A)                         ; switch the sign of fac1 (fac1 = -fac1) (doesn't work, juse use NEGOP() instead!)
 romsub $fe7b = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
-romsub $fe7e = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive!
+romsub $fe7e = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive! Have to restore sign manually!
 romsub $fe81 = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
 romsub $fe84 = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
 romsub $fe87 = FLOAT() clobbers(A,X,Y)                      ; FAC = (s8).A
@@ -181,6 +181,12 @@ sub rndf() -> float {
     %asm {{
         lda  #1
         jmp  RND_0
+    }}
+}
+
+asmsub normalize(float value @FAC1) -> float @ FAC1 {
+    %asm {{
+        jmp  floats.NORMAL
     }}
 }
 

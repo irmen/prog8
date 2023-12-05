@@ -157,4 +157,8 @@ sub clampf(float value, float minimum, float maximum) -> float {
     return maximum
 }
 
+sub normalize(float value) -> float {
+    return value
+}
+
 }

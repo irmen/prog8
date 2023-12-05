@@ -78,6 +78,7 @@ romsub $bf71 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
 romsub $bf74 = SQRA() clobbers(A,X,Y)                       ; fac1 = SQRT(fac2)
 romsub $bfed = EXP() clobbers(A,X,Y)                        ; fac1 = EXP(fac1)  (e ** fac1)
 romsub $bfb4 = NEGOP() clobbers(A)                          ; switch the sign of fac1 (fac1 = -fac1)
+romsub $b8d7 = NORMAL() clobbers(A)                         ; normalize FAC1
 romsub $e097 = RND() clobbers(A,X,Y)                        ; fac1 = RND(fac1) float random number generator
 romsub $e264 = COS() clobbers(A,X,Y)                        ; fac1 = COS(fac1)
 romsub $e26b = SIN() clobbers(A,X,Y)                        ; fac1 = SIN(fac1)
@@ -173,6 +174,12 @@ asmsub parse_f(str value @AY) -> float @FAC1 {
         jsr  prog8_lib.strlen
         tya
         jmp  FREADSTR
+    }}
+}
+
+asmsub normalize(float value @FAC1) -> float @ FAC1 {
+    %asm {{
+        jmp  floats.NORMAL
     }}
 }
 
