@@ -174,4 +174,20 @@ string {
                 return hashcode
         }
     }
-}
+
+    sub isdigit(ubyte character) -> bool {
+        return character>='0' and character<='9'
+    }
+
+    sub isupper(ubyte character) -> bool {
+        return character>='A' and character<='Z'
+    }
+
+    sub islower(ubyte character) -> bool {
+        return character>='a' and character<='z'
+    }
+
+    sub isletter(ubyte character) -> bool {
+        return islower(character) or isupper(character)
+    }
+ }

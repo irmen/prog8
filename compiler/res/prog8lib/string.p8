@@ -383,4 +383,55 @@ fail    clc             ; yes, no match found, return with c=0
             rts
         }}
     }
+
+    asmsub isdigit(ubyte character @A) -> bool @Pc {
+        %asm {{
+            cmp  #'0'
+            bcs  +
+            rts
++           cmp  #'9'+1
+            bcc  +
+            clc
+            rts
++           sec
+            rts
+        }}
+    }
+
+    asmsub isupper(ubyte character @A) -> bool @Pc {
+        %asm {{
+            cmp  #'A'
+            bcs  +
+            rts
++           cmp  #'Z'+1
+            bcc  +
+            clc
+            rts
++           sec
+            rts
+        }}
+    }
+
+    asmsub islower(ubyte character @A) -> bool @Pc {
+        %asm {{
+            cmp  #'a'
+            bcs  +
+            rts
++           cmp  #'z'+1
+            bcc  +
+            clc
+            rts
++           sec
+            rts
+        }}
+    }
+
+    asmsub isletter(ubyte character @A) -> bool @Pc {
+        %asm {{
+            jsr  islower
+            bcs  +
+            jmp  isupper
++           rts
+        }}
+    }
 }
