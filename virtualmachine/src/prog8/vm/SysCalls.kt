@@ -376,8 +376,18 @@ object SysCalls {
             }
             Syscall.STR_TO_FLOAT -> {
                 val stringAddr = getArgValues(callspec.arguments, vm).single() as UShort
-                val memstring = vm.memory.getString(stringAddr.toInt())
-                returnValue(callspec.returns!!, memstring.toDouble(), vm)
+                val memstring = vm.memory.getString(stringAddr.toInt()).replace(" ", "")
+                val result = if(memstring.isEmpty())
+                    0.0
+                else {
+                    val trimmed = memstring.takeWhile { it in " +-0123456789.eE" }
+                    try {
+                        trimmed.toDouble()
+                    } catch(x: NumberFormatException) {
+                        0.0
+                    }
+                }
+                returnValue(callspec.returns!!, result, vm)
             }
             Syscall.COMPARE_STRINGS -> {
                 val (firstV, secondV) = getArgValues(callspec.arguments, vm)
