@@ -1,10 +1,10 @@
 %import textio
-%zeropage basicsafe
 
 main {
     sub start() {
-        const ubyte HEIGHT=240
-        uword zz = 823423
-        txt.print_uw(320*HEIGHT/8/8)
+        ubyte knäckebröt = 99
+        cx16.r0L = knäckebröt
+        ubyte นี่คือตัวอักษรภาษาไท = 3
+        cx16.r0L = นี่คือตัวอักษรภาษาไท
     }
 }

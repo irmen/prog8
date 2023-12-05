@@ -154,10 +154,11 @@ class TestAstChecks: FunSpec({
 
 main {
     ubyte приблизительно = 99
+    ubyte นี่คือตัวอักษรภาษาไท = 42
     
     sub start() {
-        str knäckebröd = "crunchy"
-        prt(knäckebröd)
+        str knäckebröd = "crunchy"  ; with composed form
+        prt(knäckebröd)             ; with decomposed form
         printf(2*floats.π)
     }
 
@@ -166,7 +167,7 @@ main {
     }
 
     sub printf(float fl) {
-        приблизительно++
+        นี่คือตัวอักษรภาษาไท++
     }
 }"""
         compileText(C64Target(), false, text, writeAssembly = true)  shouldNotBe null

@@ -3,6 +3,7 @@ package prog8.code.core
 import java.io.File
 import java.io.IOException
 import java.nio.file.Path
+import java.text.Normalizer
 import kotlin.io.path.Path
 import kotlin.io.path.readText
 
@@ -94,7 +95,7 @@ sealed class SourceCode {
             val normalized = path.normalize()
             origin = relative(normalized).toString()
             try {
-                text = normalized.readText()
+                text = Normalizer.normalize(normalized.readText(), Normalizer.Form.NFC)
                 name = normalized.toFile().nameWithoutExtension
             } catch (nfx: java.nio.file.NoSuchFileException) {
                 throw NoSuchFileException(normalized.toFile()).also { it.initCause(nfx) }
@@ -126,7 +127,7 @@ sealed class SourceCode {
                 )
             }
             val stream = object {}.javaClass.getResourceAsStream(normalized)
-            text = stream!!.reader().use { it.readText() }
+            text = stream!!.reader().use { Normalizer.normalize(it.readText(), Normalizer.Form.NFC) }
             name = Path(pathString).toFile().nameWithoutExtension
         }
     }
