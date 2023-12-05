@@ -399,15 +399,21 @@ fail    clc             ; yes, no match found, return with c=0
     }
 
     asmsub isupper(ubyte character @A) -> bool @Pc {
+        ; shifted petscii has 2 ranges that contain the upper case letters...
         %asm {{
-            cmp  #'A'
+            cmp  #97
             bcs  +
             rts
-+           cmp  #'Z'+1
-            bcc  +
++           cmp  #122+1
+            bcc  _yes
+            cmp  #193
+            bcs  +
+            rts
++           cmp  #218+1
+            bcc  _yes
             clc
             rts
-+           sec
+_yes        sec
             rts
         }}
     }

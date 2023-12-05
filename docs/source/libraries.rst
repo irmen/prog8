@@ -261,13 +261,16 @@ Provides string manipulation routines.
     Uppercases the PETSCII-string in place.
 
 ``lowerchar (char)``
-    Returns lowercased character.
+    Returns lowercased PETSCII character.
 
 ``upperchar (char)``
-    Returns uppercased character.
+    Returns uppercased PETSCII character.
 
-``isdigit (char)``, ``islower (char)``, ``isupper (char)``, ``isletter (char)``
-    Returns boolean if the character is a numerical digit 0-0, lowercase letter, uppercase letter, or any letter.
+``isdigit (char)``
+    Returns boolean if the character is a numerical digit 0-9
+
+``islower (char)``, ``isupper (char)``, ``isletter (char)``
+    Returns boolean if the character is a shifted-PETSCII lowercase letter, uppercase letter, or any letter.
 
 ``startswith (string, prefix) -> bool``
     Returns true if string starts with prefix, otherwise false
