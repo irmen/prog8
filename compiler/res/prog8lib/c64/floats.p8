@@ -53,7 +53,7 @@ romsub $bddd = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, ad
 
 romsub $b849 = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for rounding- call this before INT
 romsub $bae2 = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
-romsub $bafe = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive!
+romsub $bafe = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive! You have to fix sign manually!
 romsub $bc5b = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 
 romsub $b86a = FADDT() clobbers(A,X,Y)                      ; fac1 += fac2

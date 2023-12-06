@@ -15,7 +15,10 @@ there are also larger pieces of software written using Prog8. Here's a list.
 
 `Image viewer <https://github.com/irmen/cx16imageviewer>`_
     Multi-format image viewer for the Commander X16.
-    Can display C64 Koala, BMP, PCX and Amiga IFF images, including color cycling.
+    Can display cx16 BMX, C64 Koala, C64 Doodle, BMP, PCX and Amiga IFF images, including color cycling.
+
+`Paint program <https://github.com/irmen/x16paint>`_
+    Bitmap image paint program for the Commander X16, work in progress.
 
 `Petaxian <https://github.com/cyborgar/Petaxian>`_
     Galaga type shoot em up game using only petscii graphics. Runs on C64 and Commander X16.

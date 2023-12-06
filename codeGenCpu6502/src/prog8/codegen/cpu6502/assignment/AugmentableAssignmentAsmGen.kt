@@ -2744,16 +2744,23 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         val constValueName = allocator.getFloatAsmConst(value)
         when (operator) {
             "+" -> {
-                if (value == 0.0)
-                    return
-                asmgen.out("""
-                    lda  #<$name
-                    ldy  #>$name
-                    jsr  floats.MOVFM
-                    lda  #<$constValueName
-                    ldy  #>$constValueName
-                    jsr  floats.FADD
-                """)
+                when (value) {
+                    0.0 -> return
+                    0.5 -> asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.MOVFM
+                        jsr  floats.FADDH
+                    """)
+                    else -> asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.MOVFM
+                        lda  #<$constValueName
+                        ldy  #>$constValueName
+                        jsr  floats.FADD
+                    """)
+                }
             }
             "-" -> {
                 if (value == 0.0)
@@ -2769,14 +2776,23 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "*" -> {
                 // assume that code optimization is already done on the AST level for special cases such as 0, 1, 2...
-                asmgen.out("""
-                    lda  #<$name
-                    ldy  #>$name
-                    jsr  floats.MOVFM
-                    lda  #<$constValueName
-                    ldy  #>$constValueName
-                    jsr  floats.FMULT
-                """)
+                if(value==10.0) {
+                    asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.MOVFM
+                        jsr  floats.MUL10
+                    """)
+                } else {
+                    asmgen.out("""
+                        lda  #<$name
+                        ldy  #>$name
+                        jsr  floats.MOVFM
+                        lda  #<$constValueName
+                        ldy  #>$constValueName
+                        jsr  floats.FMULT
+                    """)
+                }
             }
             "/" -> {
                 if (value == 0.0)
