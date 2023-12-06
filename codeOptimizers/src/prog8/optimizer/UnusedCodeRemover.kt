@@ -99,7 +99,7 @@ class UnusedCodeRemover(private val program: Program,
                     }
                     return removals
                 }
-                if(!subroutine.definingModule.isLibrary && !subroutine.hasBeenInlined) {
+                if(!subroutine.hasBeenInlined && subroutine.definingModule===program.toplevelModule) {
                     errors.warn("unused subroutine '${subroutine.name}'", subroutine.position)
                 }
                 if(!subroutine.inline) {

@@ -37,9 +37,9 @@ class IRUnusedCodeRemover(
                 }
             }
 
-            irprog.st.allVariables().forEach { stVar->
-                val initValue = stVar.onetimeInitializationArrayValue
-                if(initValue!=null && !initValue.isEmpty()) {
+            irprog.st.allVariables().forEach { variable ->
+                val initValue = variable.onetimeInitializationArrayValue
+                if(!initValue.isNullOrEmpty()) {
                     if(initValue.any {
                         it.addressOfSymbol?.startsWith(blockLabel)==true
                     })
@@ -61,9 +61,6 @@ class IRUnusedCodeRemover(
         irprog.blocks.forEach { block ->
             block.children.filterIsInstance<IRSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
-                    if(!sub.position.file.startsWith(LIBRARYFILEPREFIX)) {
-                        errors.warn("unused subroutine ${sub.label}", sub.position)
-                    }
                     block.children.remove(sub)
                     irprog.st.removeTree(sub.label)
                     numRemoved++
