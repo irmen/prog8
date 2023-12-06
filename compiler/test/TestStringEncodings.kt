@@ -7,6 +7,10 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.ast.expressions.NumericLiteral
+import prog8.ast.expressions.StringLiteral
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.VarDecl
 import prog8.code.core.Encoding
 import prog8.code.core.unescape
 import prog8.code.target.C64Target
@@ -306,6 +310,61 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         compileText(Cx16Target(), false, source, writeAssembly = false) shouldNotBe null
+    }
+
+    test("module level no default encoding thus petscii") {
+        val source="""
+            main {
+                str string1 = "default"
+                str string2 = petscii:"petscii"
+            
+                ubyte char1 = 'd'
+                ubyte char2 = petscii:'p'
+            
+                sub start() {
+                }
+            }"""
+        val result = compileText(Cx16Target(), false, source, writeAssembly = false)!!
+        val main = result.compilerAst.entrypoint.definingBlock
+        main.statements.size shouldBe 7
+        val string1 = (main.statements[0] as VarDecl).value as StringLiteral
+        string1.encoding shouldBe Encoding.PETSCII
+        string1.value shouldBe "default"
+        val string2 = (main.statements[1] as VarDecl).value as StringLiteral
+        string2.encoding shouldBe Encoding.PETSCII
+        string2.value shouldBe "petscii"
+        val char1 = (main.statements[3] as Assignment).value as NumericLiteral
+        char1.number shouldBe 68.0
+        val char2 = (main.statements[5] as Assignment).value as NumericLiteral
+        char2.number shouldBe 80.0
+    }
+
+    test("module level default encoding iso") {
+        val source="""
+            %encoding iso
+            main {
+                str string1 = "default"
+                str string2 = petscii:"petscii"
+            
+                ubyte char1 = 'd'
+                ubyte char2 = petscii:'p'
+            
+                sub start() {
+                }
+            }"""
+        val result = compileText(Cx16Target(), false, source, writeAssembly = false)!!
+        val main = result.compilerAst.entrypoint.definingBlock
+        main.statements.size shouldBe 7
+        val string1 = (main.statements[0] as VarDecl).value as StringLiteral
+        string1.encoding shouldBe Encoding.ISO
+        string1.value shouldBe "default"
+        val string2 = (main.statements[1] as VarDecl).value as StringLiteral
+        string2.encoding shouldBe Encoding.PETSCII
+        string2.value shouldBe "petscii"
+        val char1 = (main.statements[3] as Assignment).value as NumericLiteral
+        char1.number shouldBe 100.0
+        val char2 = (main.statements[5] as Assignment).value as NumericLiteral
+        char2.number shouldBe 80.0
     }
 })
 
