@@ -46,7 +46,7 @@ Compiler:
 
 Libraries:
 
-- once a VAL_1 implementation is merged into the X16 kernal properly, remove all the workarounds in cx16 floats.parse_f()
+- once a VAL_1 implementation is merged into the X16 kernal properly, remove all the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?

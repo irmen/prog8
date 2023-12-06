@@ -408,6 +408,9 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
     }
 
     private fun removeDoubleLoadsAndStores(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        return false
+
+/*
         var changed = false
         indexedInstructions.forEach { (idx, ins) ->
 
@@ -421,5 +424,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // ...
         }
         return changed
+*/
     }
 }
