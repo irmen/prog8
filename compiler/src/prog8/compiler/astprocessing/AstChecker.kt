@@ -55,7 +55,7 @@ internal class AstChecker(private val program: Program,
         val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
-                "%output", "%launcher", "%zeropage", "%address" ->
+                "%output", "%launcher", "%zeropage", "%address", "%encoding" ->
                     entry.value.forEach { errors.err("directive can just occur once", it.position) }
             }
         }
@@ -849,6 +849,13 @@ internal class AstChecker(private val program: Program,
                 }
                 if(directive.args.any { it.name=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)
                     err("verafx option is only valid on cx16 target")
+            }
+            "%encoding" -> {
+                if(directive.parent !is Module)
+                    err("this directive may only occur at module level")
+                val allowedEncodings = Encoding.entries.map {it.prefix}
+                if(directive.args.size!=1 || directive.args[0].name !in allowedEncodings)
+                    err("invalid encoding directive, expected one of ${allowedEncodings}")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }

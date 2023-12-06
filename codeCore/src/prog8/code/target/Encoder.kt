@@ -10,6 +10,8 @@ import prog8.code.target.cbm.PetsciiEncoding
 
 
 object Encoder: IStringEncoding {
+    override val defaultEncoding: Encoding = Encoding.ISO
+
     override fun encodeString(str: String, encoding: Encoding): List<UByte> {
         val coded = when(encoding) {
             Encoding.PETSCII -> PetsciiEncoding.encodePetscii(str, true)

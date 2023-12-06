@@ -8,6 +8,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.DataType
+import prog8.code.core.Encoding
 import prog8.code.core.Position
 import prog8.code.core.SourceCode
 
@@ -316,6 +317,14 @@ open class Module(final override var statements: MutableList<Statement>,
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+
+    val textEncoding: Encoding by lazy {
+        val encoding = (statements.singleOrNull { it is Directive && it.directive == "%encoding" } as? Directive)
+        if(encoding!=null)
+            Encoding.entries.first { it.prefix==encoding.args[0].name }
+        else
+            program.encoding.defaultEncoding
+    }
 
     val isLibrary get() = source.isFromResources
 }

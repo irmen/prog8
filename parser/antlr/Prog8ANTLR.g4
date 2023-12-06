@@ -126,7 +126,7 @@ unconditionaljump :  'goto'  (integerliteral | scoped_identifier) ;
 
 directive :
 	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%import' |
-                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' )
+                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' )
         (directivearg? | directivearg (',' directivearg)*)
         ;
 

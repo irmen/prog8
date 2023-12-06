@@ -177,7 +177,8 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                             else
                                 '_'
                         }.joinToString("")
-                        call.args[0] = StringLiteral(processed, compTarget.defaultEncoding, name.position)
+                        val textEncoding = (call as Node).definingModule.textEncoding
+                        call.args[0] = StringLiteral(processed, textEncoding, name.position)
                         call.args[0].linkParents(call as Node)
                     }
                 }

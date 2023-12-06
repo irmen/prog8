@@ -149,6 +149,12 @@ Directives
       Only use this if you know what you're doing because it could result in invalid assembly code being generated.
     - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
 
+.. data:: %encoding <encodingname>
+
+    Overrides, in the module file it occurs in,
+    the default text encoding to use for strings and characters that have no explicit encoding prefix.
+    You can use one of the recognised encoding names, see :ref:`encodings`.
+
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
 
     Level: not at module scope.
@@ -501,6 +507,8 @@ Note: you can also use array indexing on a 'pointer variable', which is basicall
 containing a memory address. Currently this is equivalent to directly referencing the bytes in
 memory at the given index (and allows index values of word size). See :ref:`pointervars`
 
+.. _encodings:
+
 String
 ^^^^^^
 A string literal can occur with or without an encoding prefix (encoding followed by ':' followed by the string itself).
@@ -509,10 +517,11 @@ You can choose to store the string in other encodings such as ``sc`` (screencode
 String length is limited to 255 characters.
 Here are several examples:
 
-    - ``"hello"``   a string translated into the default character encoding (PETSCII)
-    - ``petscii:"hello"``   same as the above, on CBM machines.
-    - ``sc:"my name is Alice"``      string with screencode encoding (new syntax)
-    - ``iso:"Ich heiße François"``   string in iso encoding
+    - ``"hello"``   a string translated into the default character encoding (PETSCII on the CBM machines)
+    - ``petscii:"hello"``            string in CBM PETSCII encoding
+    - ``sc:"my name is Alice"``      string in CBM screencode encoding
+    - ``iso:"Ich heiße François"``   string in iso-8859-15 encoding
+    - ``atascii:"I am Atari!"``      string in "atascii" encoding (Atari 8-bit)
 
 
 There are several escape sequences available to put special characters into your string value:

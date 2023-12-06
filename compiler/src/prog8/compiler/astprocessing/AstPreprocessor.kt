@@ -58,13 +58,13 @@ class AstPreprocessor(val program: Program,
 
     override fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> {
         if(char.encoding== Encoding.DEFAULT)
-            char.encoding = options.compTarget.defaultEncoding
+            char.encoding = char.definingModule.textEncoding
         return noModifications
     }
 
     override fun before(string: StringLiteral, parent: Node): Iterable<IAstModification> {
         if(string.encoding==Encoding.DEFAULT)
-            string.encoding = options.compTarget.defaultEncoding
+            string.encoding = string.definingModule.textEncoding
         return super.before(string, parent)
     }
 

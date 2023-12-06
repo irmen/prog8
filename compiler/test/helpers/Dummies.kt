@@ -35,6 +35,8 @@ internal object DummyMemsizer : IMemSizer {
 }
 
 internal object DummyStringEncoder : IStringEncoding {
+    override val defaultEncoding: Encoding = Encoding.ISO
+
     override fun encodeString(str: String, encoding: Encoding): List<UByte> {
         return emptyList()
     }
@@ -45,6 +47,8 @@ internal object DummyStringEncoder : IStringEncoding {
 }
 
 internal object AsciiStringEncoder : IStringEncoding {
+    override val defaultEncoding: Encoding = Encoding.ISO
+
     override fun encodeString(str: String, encoding: Encoding): List<UByte> = str.map { it.code.toUByte() }
 
     override fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String {

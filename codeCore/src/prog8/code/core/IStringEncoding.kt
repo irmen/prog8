@@ -9,6 +9,8 @@ enum class Encoding(val prefix: String) {
 }
 
 interface IStringEncoding {
+    val defaultEncoding: Encoding
+
     fun encodeString(str: String, encoding: Encoding): List<UByte>
     fun decodeString(bytes: Iterable<UByte>, encoding: Encoding): String
 }

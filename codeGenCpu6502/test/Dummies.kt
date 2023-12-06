@@ -18,6 +18,8 @@ internal object DummyMemsizer : IMemSizer {
 }
 
 internal object DummyStringEncoder : IStringEncoding {
+    override val defaultEncoding: Encoding = Encoding.ISO
+
     override fun encodeString(str: String, encoding: Encoding): List<UByte> {
         return emptyList()
     }

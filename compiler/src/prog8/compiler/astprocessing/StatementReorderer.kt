@@ -22,7 +22,7 @@ internal class StatementReorderer(
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc.).
 
-    private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%option")
+    private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%option", "%encoding")
 
     override fun after(module: Module, parent: Node): Iterable<IAstModification> {
         val (blocks, other) = module.statements.partition { it is Block }

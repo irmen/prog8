@@ -78,7 +78,6 @@ What if we were to re-introduce Structs in prog8? Some thoughts:
 Other language/syntax features to think about
 ---------------------------------------------
 
-- module directive to set the text encoding for that whole file (iso, petscii, etc.)
 - chained assignments   `x=y=z=99`
 - declare multiple variables    `ubyte x,y,z`    (if init value present, all get that init value)
 - chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`)
