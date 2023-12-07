@@ -25,7 +25,7 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - repeat-forever loops replaced by label+jump.
     // - pointer[word] replaced by @(pointer+word)
     // - @(&var) and @(&var+1) replaced by lsb(var) and msb(var) if var is a word
-
+    // - flatten chained assignments
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {
@@ -287,4 +287,21 @@ _after:
         return noModifications
     }
 
+    override fun after(chainedAssignment: ChainedAssignment, parent: Node): Iterable<IAstModification> {
+        val assign = chainedAssignment.nested as? Assignment
+        if(assign!=null) {
+            // unpack starting from last in the chain
+            val assigns = mutableListOf<Statement>(assign)
+            var lastChained: ChainedAssignment = chainedAssignment
+            var pc: ChainedAssignment? = chainedAssignment
+            while(pc!=null) {
+                lastChained = pc
+                assigns.add(0, Assignment(pc.target.copy(), assign.value.copy(), assign.origin, pc.position))
+                pc = pc.parent as? ChainedAssignment
+            }
+            return listOf(IAstModification.ReplaceNode(lastChained,
+                AnonymousScope(assigns, chainedAssignment.position), lastChained.parent))
+        }
+        return noModifications
+    }
 }

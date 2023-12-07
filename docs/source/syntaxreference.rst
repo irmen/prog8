@@ -555,6 +555,7 @@ bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``
 assignment: ``=``
     Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
     Note that an assignment sometimes is not possible or supported.
+    It's possible to chain assignments like ``x = y = z = 42`` as a shorthand for the three assignments with the same value.
 
 augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
     This is syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``

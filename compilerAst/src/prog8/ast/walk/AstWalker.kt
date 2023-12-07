@@ -96,6 +96,7 @@ abstract class AstWalker {
     open fun before(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(chainedAssignment: ChainedAssignment, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(block: Block, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
@@ -140,6 +141,7 @@ abstract class AstWalker {
     open fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(chainedAssignment: ChainedAssignment, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(block: Block, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
@@ -486,6 +488,13 @@ abstract class AstWalker {
         whenChoice.values?.forEach { it.accept(this, whenChoice) }
         whenChoice.statements.accept(this, whenChoice)
         track(after(whenChoice, parent), whenChoice, parent)
+    }
+
+    fun visit(chainedAssignment: ChainedAssignment, parent: Node) {
+        track(before(chainedAssignment, parent), chainedAssignment, parent)
+        chainedAssignment.target.accept(this, chainedAssignment)
+        chainedAssignment.nested.accept(this, chainedAssignment)
+        track(after(chainedAssignment, parent), chainedAssignment, parent)
     }
 }
 

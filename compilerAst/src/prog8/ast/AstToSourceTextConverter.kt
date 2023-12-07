@@ -343,6 +343,12 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
+    override fun visit(chainedAssignment: ChainedAssignment) {
+        chainedAssignment.target.accept(this)
+        output(" = ")
+        chainedAssignment.nested.accept(this)
+    }
+
     override fun visit(postIncrDecr: PostIncrDecr) {
         postIncrDecr.target.accept(this)
         output(postIncrDecr.operator)

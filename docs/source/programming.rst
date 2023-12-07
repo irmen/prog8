@@ -624,6 +624,9 @@ Only variables of type byte, word and float can be assigned a new value.
 It's not possible to set a new value to string or array variables etc, because they get allocated
 a fixed amount of memory which will not change.  (You *can* change the value of elements in a string or array though).
 
+It is possible to "chain" assignments: ``x = y = z = 42``, this is just a shorthand
+for the three individual assignments with the same value 42.
+
 .. attention::
     **Data type conversion (in assignments):**
     When assigning a value with a 'smaller' datatype to variable with a 'larger' datatype,

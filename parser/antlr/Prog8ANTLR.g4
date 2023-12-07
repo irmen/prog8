@@ -146,7 +146,7 @@ datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'bool' ;
 
 arrayindex:  '[' expression ']' ;
 
-assignment :  assign_target '=' expression ;
+assignment :  (assign_target '=' expression) | (assign_target '=' assignment);
 
 augassignment :
 	assign_target operator=('+=' | '-=' | '/=' | '*=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression

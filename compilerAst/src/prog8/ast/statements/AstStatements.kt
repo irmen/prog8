@@ -354,12 +354,39 @@ enum class AssignmentOrigin {
     ASMGEN
 }
 
+
+class ChainedAssignment(var target: AssignTarget, var nested: Statement, override val position: Position): Statement() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        target.linkParents(this)
+        nested.linkParents(this)
+    }
+
+    override fun copy() = throw FatalAstException("you're not supposed to copy a ChainedAssignment")
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        when {
+            node===target -> target = replacement as AssignTarget
+            node===nested -> nested = replacement as Statement
+            else -> throw FatalAstException("invalid replace")
+        }
+        replacement.parent = this
+    }
+
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun toString() = "ChainedAssignment(target: $target, nested: $nested, pos=$position)"
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || nested.referencesIdentifier(nameInSource)
+}
+
 class Assignment(var target: AssignTarget, var value: Expression, var origin: AssignmentOrigin, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        this.target.linkParents(this)
+        target.linkParents(this)
         value.linkParents(this)
     }
 

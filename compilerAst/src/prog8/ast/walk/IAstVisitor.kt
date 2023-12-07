@@ -191,4 +191,9 @@ interface IAstVisitor {
         whenChoice.values?.forEach { it.accept(this) }
         whenChoice.statements.accept(this)
     }
+
+    fun visit(chainedAssignment: ChainedAssignment) {
+        chainedAssignment.target.accept(this)
+        chainedAssignment.nested.accept(this)
+    }
 }

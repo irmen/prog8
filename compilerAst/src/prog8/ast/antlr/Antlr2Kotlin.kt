@@ -86,17 +86,11 @@ private fun StatementContext.toAst() : Statement {
     val vardecl = variabledeclaration()?.toAst()
     if(vardecl!=null) return vardecl
 
-    assignment()?.let {
-        return Assignment(it.assign_target().toAst(), it.expression().toAst(), AssignmentOrigin.USERCODE, it.toPosition())
-    }
+    val assignment = assignment()?.toAst()
+    if(assignment!=null) return assignment
 
-    augassignment()?.let {
-        // replace A += X  with  A = A + X
-        val target = it.assign_target().toAst()
-        val oper = it.operator.text.substringBefore('=')
-        val expression = BinaryExpression(target.toExpression(), oper, it.expression().toAst(), it.expression().toPosition())
-        return Assignment(it.assign_target().toAst(), expression, AssignmentOrigin.USERCODE, it.toPosition())
-    }
+    val augassign = augassignment()?.toAst()
+    if(augassign!=null) return augassign
 
     postincrdecr()?.let {
         return PostIncrDecr(it.assign_target().toAst(), it.operator.text, it.toPosition())
@@ -336,6 +330,22 @@ private fun ClobberContext.toAst() : Set<CpuRegister> {
     } catch(ax: IllegalArgumentException) {
         throw SyntaxError("invalid cpu register", toPosition())
     }
+}
+
+private fun AssignmentContext.toAst(): Statement {
+    val nestedAssign = assignment()
+    if(nestedAssign==null)
+        return Assignment(assign_target().toAst(), expression().toAst(), AssignmentOrigin.USERCODE, toPosition())
+    else
+        return ChainedAssignment(assign_target().toAst(), nestedAssign.toAst(), toPosition())
+}
+
+private fun AugassignmentContext.toAst(): Assignment {
+    // replace A += X  with  A = A + X
+    val target = assign_target().toAst()
+    val oper = operator.text.substringBefore('=')
+    val expression = BinaryExpression(target.toExpression(), oper, expression().toAst(), expression().toPosition())
+    return Assignment(assign_target().toAst(), expression, AssignmentOrigin.USERCODE, toPosition())
 }
 
 private fun DatatypeContext.toAst() = DataType.valueOf(text.uppercase())

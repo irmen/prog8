@@ -37,6 +37,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transformStatement(statement: Statement): PtNode {
         return when (statement) {
             is AnonymousScope -> throw FatalAstException("AnonymousScopes should have been flattened")
+            is ChainedAssignment -> throw FatalAstException("ChainedAssignment should have been flattened")
             is Assignment -> transform(statement)
             is Block -> transform(statement)
             is Break -> throw FatalAstException("break should have been replaced by Goto")
