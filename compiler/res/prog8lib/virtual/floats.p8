@@ -10,11 +10,23 @@ floats {
 
 
 sub print_f(float value) {
-    ; ---- prints the floating point value (without a newline).
+    ; ---- prints the floating point value (without a newline and no leading spaces).
     %ir {{
         loadm.f fr65535,floats.print_f.value
         syscall 25 (fr65535.f)
         return
+    }}
+}
+
+sub str_f(float value) -> str {
+    ; ---- converts the floating point value to a string (no leading spaces)
+    str @shared buffer=" "*20
+    %ir {{
+        load.w r65535,floats.str_f.buffer
+        loadm.f fr65535,floats.str_f.value
+        syscall 47 (r65535.w, fr65535.f)
+        load.w r0,floats.str_f.buffer
+        returnr.w r0
     }}
 }
 

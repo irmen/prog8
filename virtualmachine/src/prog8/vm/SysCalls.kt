@@ -52,8 +52,9 @@ SYSCALLS:
 42 = CLAMP_UWORD
 43 = CLAMP_FLOAT
 44 = ATAN
-45 = STR_TO_FLOAT
+45 = str to float
 46 = MUL16_LAST_UPPER
+47 = float to str
 */
 
 enum class Syscall {
@@ -103,7 +104,8 @@ enum class Syscall {
     CLAMP_FLOAT,
     ATAN,
     STR_TO_FLOAT,
-    MUL16_LAST_UPPER
+    MUL16_LAST_UPPER,
+    FLOAT_TO_STR
     ;
 
     companion object {
@@ -508,6 +510,13 @@ object SysCalls {
             }
             Syscall.MUL16_LAST_UPPER -> {
                 returnValue(callspec.returns!!, vm.mul16_last_upper, vm)
+            }
+            Syscall.FLOAT_TO_STR -> {
+                val (buffer, number) = getArgValues(callspec.arguments, vm)
+                val bufferAddr = (buffer as UShort).toShort().toInt()
+                val numf = number as Double
+                val numStr = if(numf.toInt().toDouble()==numf) numf.toInt().toString() else numf.toString()
+                vm.memory.setString(bufferAddr, numStr, true)
             }
         }
     }
