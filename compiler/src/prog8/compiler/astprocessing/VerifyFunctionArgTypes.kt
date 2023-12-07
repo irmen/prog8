@@ -47,9 +47,14 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
         else {
             if(functionCallExpr.target.nameInSource==listOf("memory")) {
                 val name = (functionCallExpr.args[0] as StringLiteral).value
-                val size = (functionCallExpr.args[1] as NumericLiteral).number.toInt()
-                val align = (functionCallExpr.args[2] as NumericLiteral).number.toInt()
-                memorySlabs.add(Slab(name, size, align, functionCallExpr.position))
+                val size = (functionCallExpr.args[1] as? NumericLiteral)?.number?.toInt()
+                val align = (functionCallExpr.args[2] as? NumericLiteral)?.number?.toInt()
+                if(size==null)
+                    errors.err("argument must be a constant", functionCallExpr.args[1].position)
+                if(align==null)
+                    errors.err("argument must be a constant", functionCallExpr.args[2].position)
+                if(size!=null && align!=null)
+                    memorySlabs.add(Slab(name, size, align, functionCallExpr.position))
             }
         }
 

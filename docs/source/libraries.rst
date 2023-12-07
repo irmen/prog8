@@ -338,7 +338,12 @@ point variables.  This includes ``print_f``, the routine used to print floating 
     returns the value restricted to the given minimum and maximum.
 
 ``print_f (x)``
-    prints the floating point number x as a string.
+    Prints the floating point number x as a string.
+    There's no leading whitespace (unlike cbm BASIC when printing a floating point number)
+
+``str_f (x)``
+    Converts the floating point number x to a string (returns address of the string buffer)
+    There's no leading whitespace.
 
 ``rad (x)``
     Degrees to radians.
