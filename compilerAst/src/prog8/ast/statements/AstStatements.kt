@@ -300,7 +300,7 @@ class VarDecl(val type: VarDeclType,
     override fun copy(): VarDecl {
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
-        val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, emptyList(), value?.copy(),
+        val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, names, value?.copy(),
             isArray, sharedWithAsm, splitArray, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy

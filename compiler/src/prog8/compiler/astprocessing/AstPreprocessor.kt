@@ -113,19 +113,24 @@ class AstPreprocessor(val program: Program,
                     movements.add(IAstModification.InsertFirst(decl, parentscope))
                     replacements.add(IAstModification.Remove(decl, scope))
                 } else {
-                    val declToInsert: VarDecl
-                    if(decl.value!=null && decl.datatype in NumericDatatypes) {
-                        val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
-                        val assign = Assignment(target, decl.value!!, AssignmentOrigin.VARINIT, decl.position)
-                        replacements.add(IAstModification.ReplaceNode(decl, assign, scope))
-                        decl.value = null
-                        decl.allowInitializeWithZero = false
-                        declToInsert = decl.copy()
+                    if(decl.names.size>1) {
+                        // we need to handle multi-decl here too, the desugarer maybe has not processed it here yet...
+                        TODO("handle multi-decl movement")
                     } else {
-                        replacements.add(IAstModification.Remove(decl, scope))
-                        declToInsert = decl
+                        val declToInsert: VarDecl
+                        if(decl.value!=null && decl.datatype in NumericDatatypes) {
+                            val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
+                            val assign = Assignment(target, decl.value!!, AssignmentOrigin.VARINIT, decl.position)
+                            replacements.add(IAstModification.ReplaceNode(decl, assign, scope))
+                            decl.value = null
+                            decl.allowInitializeWithZero = false
+                            declToInsert = decl.copy()
+                        } else {
+                            replacements.add(IAstModification.Remove(decl, scope))
+                            declToInsert = decl
+                        }
+                        movements.add(IAstModification.InsertFirst(declToInsert, parentscope))
                     }
-                    movements.add(IAstModification.InsertFirst(declToInsert, parentscope))
                 }
             }
             return movements + replacements
@@ -150,14 +155,15 @@ class AstPreprocessor(val program: Program,
         if(decl.names.size>1) {
             // note: the desugaring of a multi-variable vardecl has to be done here
             // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
-            if(decl.datatype !in IntegerDatatypes)
-                errors.err("can only multi declare integer variables", decl.position)
-            if(errors.noErrors()) {
+            if(decl.datatype !in NumericDatatypes)
+                errors.err("can only multi declare numeric variables", decl.position)
+            return if(errors.noErrors()) {
                 // desugar into individual vardecl per name.
-                return decl.desugarMultiDecl().map {
+                decl.desugarMultiDecl().map {
                     IAstModification.InsertAfter(decl, it, parent as IStatementContainer)
                 } + IAstModification.Remove(decl, parent as IStatementContainer)
-            }
+            } else
+                noModifications
         }
 
         val nextAssignment = decl.nextSibling() as? Assignment

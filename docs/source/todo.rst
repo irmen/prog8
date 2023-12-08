@@ -2,6 +2,8 @@
 TODO
 ====
 
+- fix multi-decl in for loops, see AstPreprocessor TODO("handle multi-decl movement")
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
