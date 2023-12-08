@@ -1,12 +1,9 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
-import prog8.ast.findParentNode
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -150,6 +147,19 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        if(decl.names.size>1) {
+            // note: the desugaring of a multi-variable vardecl has to be done here
+            // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
+            if(decl.datatype !in IntegerDatatypes)
+                errors.err("can only multi declare integer variables", decl.position)
+            if(errors.noErrors()) {
+                // desugar into individual vardecl per name.
+                return decl.desugarMultiDecl().map {
+                    IAstModification.InsertAfter(decl, it, parent as IStatementContainer)
+                } + IAstModification.Remove(decl, parent as IStatementContainer)
+            }
+        }
+
         val nextAssignment = decl.nextSibling() as? Assignment
         if(nextAssignment!=null && nextAssignment.origin!=AssignmentOrigin.VARINIT) {
             // check if it's a proper initializer assignment for the variable
@@ -177,7 +187,7 @@ class AstPreprocessor(val program: Program,
     private fun makeSplitArray(decl: VarDecl): Iterable<IAstModification> {
         val splitDt = ArrayToElementTypes.getValue(decl.datatype)
         val newDecl = VarDecl(
-            decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name,
+            decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name, emptyList(),
             decl.value, true, decl.sharedWithAsm, true, decl.position
         )
         return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))

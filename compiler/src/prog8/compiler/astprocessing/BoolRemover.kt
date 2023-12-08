@@ -29,7 +29,7 @@ internal class BoolRemover(val program: Program) : AstWalker() {
                 if(newvalue.number!=0.0)
                     newvalue = NumericLiteral(DataType.UBYTE, 1.0, newvalue.position)
             }
-            val ubyteDecl = VarDecl(decl.type, decl.origin, DataType.UBYTE, decl.zeropage, decl.arraysize, decl.name,
+            val ubyteDecl = VarDecl(decl.type, decl.origin, DataType.UBYTE, decl.zeropage, decl.arraysize, decl.name, emptyList(),
                 newvalue, decl.isArray, decl.sharedWithAsm, decl.splitArray, decl.position)
             return listOf(IAstModification.ReplaceNode(decl, ubyteDecl, parent))
         }
@@ -46,7 +46,7 @@ internal class BoolRemover(val program: Program) : AstWalker() {
                 }.toTypedArray()
                 newarray = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), convertedArray, decl.position)
             }
-            val ubyteArrayDecl = VarDecl(decl.type, decl.origin, DataType.ARRAY_UB, decl.zeropage, decl.arraysize, decl.name,
+            val ubyteArrayDecl = VarDecl(decl.type, decl.origin, DataType.ARRAY_UB, decl.zeropage, decl.arraysize, decl.name, emptyList(),
                 newarray, true, decl.sharedWithAsm, decl.splitArray, decl.position)
             return listOf(IAstModification.ReplaceNode(decl, ubyteArrayDecl, parent))
         }

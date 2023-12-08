@@ -333,12 +333,17 @@ The syntax is::
 	<datatype>  [ @type-tag ]  <variable name>   [ = <initial value> ]
 
 where type-tag is one of the tags mentioned earlier.
+
+For boolean and numeric variables, you can actually declare them in one go by listing the names in a comma separated list.
+Type tags, and the optional initialization value, are applied equally to all variables in such a list.
+
 Various examples::
 
     word        thing   = 0
     byte        counter = len([1, 2, 3]) * 20
     byte        age     = 2018 - 1974
     float       wallet  = 55.25
+    ubyte       x,y,z                   ; declare three ubyte variables x y and z
     str         name    = "my name is Alice"
     uword       address = &counter
     byte[]      values  = [11, 22, 33, 44, 55]

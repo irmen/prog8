@@ -155,6 +155,7 @@ internal class StatementReorderer(
                                 it.zeropage,
                                 null,
                                 it.name,
+                                emptyList(),
                                 null,
                                 false,
                                 it.sharedWithAsm,

@@ -132,7 +132,7 @@ directive :
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype (arrayindex | ARRAYSIG)? decloptions varname=identifier ;
+vardecl: datatype (arrayindex | ARRAYSIG)? decloptions identifier (',' identifier)* ;
 
 decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | SPLIT)* ;
 

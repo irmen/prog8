@@ -5,11 +5,8 @@ main {
     const ubyte VAL = 11
     sub start() {
         uword w
-        ubyte x
-        ubyte y
-        ubyte z
+        ubyte @zp x,y,z = 99
 
-        w = x = y = z = 99+VAL
         txt.print_ub(x)
         txt.spc()
         txt.print_ub(y)
@@ -18,5 +15,7 @@ main {
         txt.spc()
         txt.print_uw(w)
         txt.nl()
+        if x==y==z
+            x++
     }
 }

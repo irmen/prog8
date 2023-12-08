@@ -593,6 +593,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(decl: VarDecl) {
+        if(decl.names.size>1)
+            throw InternalCompilerException("vardecls with multiple names should have been converted into individual vardecls")
+
         if(decl.datatype==DataType.LONG)
             errors.err("integer overflow", decl.position)
 

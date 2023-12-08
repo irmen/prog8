@@ -208,6 +208,7 @@ class VarDecl(val type: VarDeclType,
               var zeropage: ZeropageWish,
               var arraysize: ArrayIndex?,
               override val name: String,
+              val names: List<String>,
               var value: Expression?,
               val isArray: Boolean,
               val sharedWithAsm: Boolean,
@@ -222,7 +223,7 @@ class VarDecl(val type: VarDeclType,
         private var autoHeapValueSequenceNumber = 0
 
         fun fromParameter(param: SubroutineParameter): VarDecl {
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, param.type, ZeropageWish.DONTCARE, null, param.name, null,
+            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, param.type, ZeropageWish.DONTCARE, null, param.name, emptyList(), null,
                 isArray = false,
                 sharedWithAsm = false,
                 splitArray = false,
@@ -235,7 +236,7 @@ class VarDecl(val type: VarDeclType,
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val declaredType = ArrayToElementTypes.getValue(arrayDt)
             val arraysize = ArrayIndex.forArray(array)
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, array,
+            return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, emptyList(), array,
                     isArray = true, sharedWithAsm = false, splitArray = splitArray, position = array.position)
         }
     }
@@ -297,7 +298,9 @@ class VarDecl(val type: VarDeclType,
     }
 
     override fun copy(): VarDecl {
-        val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, value?.copy(),
+        if(names.size>1)
+            throw FatalAstException("should not copy a vardecl that still has multiple names")
+        val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, emptyList(), value?.copy(),
             isArray, sharedWithAsm, splitArray, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
@@ -312,6 +315,15 @@ class VarDecl(val type: VarDeclType,
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         value?.referencesIdentifier(nameInSource)==true ||
                 this.arraysize?.referencesIdentifier(nameInSource)==true
+
+    fun desugarMultiDecl(): List<VarDecl> {
+        return names.map {
+            val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),
+                isArray, sharedWithAsm, splitArray, position)
+            copy.allowInitializeWithZero = this.allowInitializeWithZero
+            copy
+        }
+    }
 }
 
 class ArrayIndex(var indexExpr: Expression,
@@ -350,8 +362,7 @@ class ArrayIndex(var indexExpr: Expression,
 enum class AssignmentOrigin {
     USERCODE,
     VARINIT,
-    OPTIMIZER,
-    ASMGEN
+    OPTIMIZER
 }
 
 

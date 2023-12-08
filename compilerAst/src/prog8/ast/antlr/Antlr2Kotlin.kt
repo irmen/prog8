@@ -237,7 +237,10 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
             }
         }
     }
-    AsmSubroutineParameter(vardecl.varname.text, datatype, registerorpair, statusregister, toPosition())
+    val identifiers = vardecl.identifier()
+    if(identifiers.size>1)
+        throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
+    AsmSubroutineParameter(identifiers[0].NAME().text, datatype, registerorpair, statusregister, toPosition())
 }
 
 private fun Functioncall_stmtContext.toAst(): Statement {
@@ -303,7 +306,11 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             var datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
             if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
                 datatype = ElementToArrayTypes.getValue(datatype)
-            SubroutineParameter(it.varname.text, datatype, it.toPosition())
+
+            val identifiers = it.identifier()
+            if(identifiers.size>1)
+                throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
+            SubroutineParameter(identifiers[0].NAME().text, datatype, it.toPosition())
         }
 
 private fun Assign_targetContext.toAst() : AssignTarget {
@@ -644,12 +651,16 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
         options.ZEROPAGE().isNotEmpty() -> ZeropageWish.PREFER_ZEROPAGE
         else -> ZeropageWish.DONTCARE
     }
+    val identifiers = identifier()
+    val name = if(identifiers.size==1) identifiers[0].NAME().text else "<multiple>"
+
     return VarDecl(
             type, VarDeclOrigin.USERCODE,
             datatype()?.toAst() ?: DataType.UNDEFINED,
             zp,
             arrayindex()?.toAst(),
-            varname.text,
+            name,
+            identifiers.map { it.NAME().text },
             value,
             ARRAYSIG() != null || arrayindex() != null,
             options.SHARED().isNotEmpty(),
