@@ -8,6 +8,7 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.ForLoop
 import prog8.ast.statements.InlineAssembly
 import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
@@ -389,6 +390,55 @@ main {
     }
 }"""
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
+
+    test("multi-var decls in scope with initializer") {
+        val src="""
+main {
+    sub start() {
+        ubyte w
+
+        for w in 0 to 20 {
+            ubyte @zp x,y,z=13
+            ubyte q,r,s
+            x++
+            y++
+            z++
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), optimize = false, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        /*
+    sub start () {
+        ubyte s
+        s = 0
+        ubyte r
+        r = 0
+        ubyte q
+        q = 0
+        ubyte @zp z
+        ubyte @zp y
+        ubyte @zp x
+        ubyte w
+        for w in 0 to 20 step 1  {
+            z = 13
+            y = 13
+            x = 13
+            x++
+            y++
+            z++
+        }
+    }
+         */
+        val vars = st.filterIsInstance<VarDecl>()
+        vars.size shouldBe 7
+        vars.all { it.names.size<=1 } shouldBe true
+        vars.map { it.name } shouldBe listOf("s","r","q","z","y","x","w")
+        val forloop = st.single { it is ForLoop } as ForLoop
+        forloop.body.statements[0] shouldBe instanceOf<Assignment>()
+        forloop.body.statements[1] shouldBe instanceOf<Assignment>()
+        forloop.body.statements[2] shouldBe instanceOf<Assignment>()
     }
 })
 

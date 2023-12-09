@@ -660,7 +660,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             zp,
             arrayindex()?.toAst(),
             name,
-            identifiers.map { it.NAME().text },
+            if(identifiers.size==1) emptyList() else identifiers.map { it.NAME().text },
             value,
             ARRAYSIG() != null || arrayindex() != null,
             options.SHARED().isNotEmpty(),

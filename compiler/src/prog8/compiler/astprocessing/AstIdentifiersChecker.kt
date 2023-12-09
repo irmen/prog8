@@ -53,16 +53,18 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         if(decl.name in BuiltinFunctions)
             errors.err("builtin function cannot be redefined", decl.position)
 
-        val existingInSameScope = decl.definingScope.lookup(listOf(decl.name))
-        if(existingInSameScope!=null && existingInSameScope!==decl)
-            nameError(decl.name, decl.position, existingInSameScope)
+        if(decl.names.size<2) {
+            val existingInSameScope = decl.definingScope.lookup(listOf(decl.name))
+            if (existingInSameScope != null && existingInSameScope !== decl)
+                nameError(decl.name, decl.position, existingInSameScope)
 
-        val existingOuter = decl.parent.definingScope.lookup(listOf(decl.name))
-        if (existingOuter != null && existingOuter !== decl && existingOuter is VarDecl) {
-            if(existingOuter.parent!==decl.parent)
-                nameShadowWarning(decl.name, decl.position, existingOuter)
-            else
-                nameError(decl.name, decl.position, existingOuter)
+            val existingOuter = decl.parent.definingScope.lookup(listOf(decl.name))
+            if (existingOuter != null && existingOuter !== decl && existingOuter is VarDecl) {
+                if (existingOuter.parent !== decl.parent)
+                    nameShadowWarning(decl.name, decl.position, existingOuter)
+                else
+                    nameError(decl.name, decl.position, existingOuter)
+            }
         }
 
         if(decl.definingBlock.name==decl.name)
