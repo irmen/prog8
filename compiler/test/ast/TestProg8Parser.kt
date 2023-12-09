@@ -1025,4 +1025,25 @@ main {
         compileText(VMTarget(),  false, src, writeAssembly = false) shouldNotBe null
     }
 
+    test("underscores for numeric groupings") {
+        val src="""
+%option enable_floats
+main {
+    sub start() {
+        uword w1 = 000_1234_5__
+        uword w2 = ${'$'}ff_ee
+        uword w3 = %11_0000_111111__0000
+        float fl = 3_000_001.141_592_654
+    }
+}"""
+        val result = compileText(VMTarget(),  false, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 8
+        val assigns = st.filterIsInstance<Assignment>()
+        (assigns[0].value as NumericLiteral).number shouldBe 12345
+        (assigns[1].value as NumericLiteral).number shouldBe 0xffee
+        (assigns[2].value as NumericLiteral).number shouldBe 0b1100001111110000
+        (assigns[3].value as NumericLiteral).number shouldBe 3000001.141592654
+    }
+
 })

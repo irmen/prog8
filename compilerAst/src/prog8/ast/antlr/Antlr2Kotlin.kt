@@ -371,13 +371,14 @@ private fun DirectiveargContext.toAst() : DirectiveArg {
 }
 
 private fun IntegerliteralContext.toAst(): NumericLiteralNode {
-    fun makeLiteral(text: String, radix: Int): NumericLiteralNode {
+    fun makeLiteral(literalTextWithGrouping: String, radix: Int): NumericLiteralNode {
+        val literalText = literalTextWithGrouping.replace("_", "")
         val integer: Int
         var datatype = DataType.UBYTE
         when (radix) {
             10 -> {
                 integer = try {
-                    text.toInt()
+                    literalText.toInt()
                 } catch(x: NumberFormatException) {
                     throw SyntaxError("invalid decimal literal ${x.message}", toPosition())
                 }
@@ -391,19 +392,19 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
                 }
             }
             2 -> {
-                if(text.length>8)
+                if(literalText.length>8)
                     datatype = DataType.UWORD
                 try {
-                    integer = text.toInt(2)
+                    integer = literalText.toInt(2)
                 } catch(x: NumberFormatException) {
                     throw SyntaxError("invalid binary literal ${x.message}", toPosition())
                 }
             }
             16 -> {
-                if(text.length>2)
+                if(literalText.length>2)
                     datatype = DataType.UWORD
                 try {
-                    integer = text.toInt(16)
+                    integer = literalText.toInt(16)
                 } catch(x: NumberFormatException) {
                     throw SyntaxError("invalid hexadecimal literal ${x.message}", toPosition())
                 }
@@ -542,7 +543,7 @@ private fun Expression_listContext.toAst() = expression().map{ it.toAst() }
 private fun Scoped_identifierContext.toAst() : IdentifierReference =
         IdentifierReference(NAME().map { it.text }, toPosition())
 
-private fun FloatliteralContext.toAst() = text.toDouble()
+private fun FloatliteralContext.toAst() = text.replace("_","").toDouble()
 
 private fun BooleanliteralContext.toAst() = when(text) {
     "true" -> true

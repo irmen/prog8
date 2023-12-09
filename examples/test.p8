@@ -1,25 +1,9 @@
-%import textio
-%zeropage basicsafe
-
+%option enable_floats
 main {
-    const ubyte VAL = 11
     sub start() {
-        uword w
-
-        for w in 0 to 20 {
-            ubyte x,y,z=13
-
-            txt.print_ub(x)
-            txt.spc()
-            txt.print_ub(y)
-            txt.spc()
-            txt.print_ub(z)
-            txt.spc()
-            txt.print_uw(w)
-            txt.nl()
-            x++
-            y++
-            z++
-        }
+        uword w1 = 000_1234_5__
+        uword w2 = $ff_ee
+        uword w3 = %11_0000_111111__0000
+        float fl = 3_000_001.141_592_654
     }
 }

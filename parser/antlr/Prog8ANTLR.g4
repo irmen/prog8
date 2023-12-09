@@ -25,16 +25,20 @@ WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
 NAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
-DEC_INTEGER :  ('0'..'9') | (('1'..'9')('0'..'9')+);
-HEX_INTEGER :  '$' (('a'..'f') | ('A'..'F') | ('0'..'9'))+ ;
-BIN_INTEGER :  '%' ('0' | '1')+ ;
+DEC_INTEGER :  DEC_DIGIT (DEC_DIGIT | '_')* ;
+HEX_INTEGER :  '$' HEX_DIGIT (HEX_DIGIT | '_')* ;
+BIN_INTEGER :  '%' BIN_DIGIT (BIN_DIGIT | '_')* ;
 ADDRESS_OF: '&' ;
 INVALID_AND_COMPOSITE: '&&' ;
 
+fragment HEX_DIGIT: ('a'..'f') | ('A'..'F') | ('0'..'9') ;
+fragment BIN_DIGIT: ('0' | '1') ;
+fragment DEC_DIGIT: ('0'..'9') ;
+
 FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? DEC_INTEGER)? ;	// sign comes later from unary expression
 FNUMBER : FDOTNUMBER |  FNUMDOTNUMBER ;
-FDOTNUMBER : '.' ('0'..'9')+ ;
-FNUMDOTNUMBER : ('0'..'9')+ ('.' ('0'..'9')+ )? ;
+FDOTNUMBER : '.' (DEC_DIGIT | '_')+ ;
+FNUMDOTNUMBER : DEC_DIGIT (DEC_DIGIT | '_')* FDOTNUMBER? ;
 
 STRING_ESCAPE_SEQ :  '\\' . | '\\x' . . | '\\u' . . . .;
 STRING :
