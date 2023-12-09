@@ -139,13 +139,20 @@ class UnusedCodeRemover(private val program: Program,
                                     )
                                 } else if(assignment.value is IFunctionCall) {
                                     // replace the unused variable's initializer function call by a void
-                                    errors.warn("replaced unused variable '${decl.name}' with void call, maybe this can be removed altogether", decl.position)
-                                    val fcall = assignment.value as IFunctionCall
-                                    val voidCall = FunctionCallStatement(fcall.target, fcall.args, true, fcall.position)
-                                    return listOf(
-                                        IAstModification.ReplaceNode(decl, voidCall, parent),
-                                        IAstModification.Remove(assignment, assignment.parent as IStatementContainer)
-                                    )
+                                    // but only if the vardecl immediately precedes it!
+                                    if(singleUse.parent.parent === parent) {
+                                        val declIndex = (parent as IStatementContainer).statements.indexOf(decl)
+                                        val singleUseIndex = (parent as IStatementContainer).statements.indexOf(singleUse.parent)
+                                        if(declIndex==singleUseIndex-1) {
+                                            errors.warn("replaced unused variable '${decl.name}' with void call, maybe this can be removed altogether", decl.position)
+                                            val fcall = assignment.value as IFunctionCall
+                                            val voidCall = FunctionCallStatement(fcall.target, fcall.args, true, fcall.position)
+                                            return listOf(
+                                                IAstModification.ReplaceNode(decl, voidCall, parent),
+                                                IAstModification.Remove(assignment, assignment.parent as IStatementContainer)
+                                            )
+                                        }
+                                    }
                                 } else {
                                     errors.warn("variable '${decl.name}' is unused but has non-trivial initialization assignment. Leaving this in but maybe it can be removed altogether", decl.position)
                                 }
