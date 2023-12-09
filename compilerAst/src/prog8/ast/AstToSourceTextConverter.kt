@@ -131,7 +131,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output(" @zp")
         if(decl.sharedWithAsm)
             output(" @shared")
-        output(" ${decl.name} ")
+        if(decl.names.size>1)
+            output(decl.names.joinToString(prefix=" "))
+        else
+            output(" ${decl.name} ")
         if(decl.value!=null) {
             output("= ")
             decl.value?.accept(this)

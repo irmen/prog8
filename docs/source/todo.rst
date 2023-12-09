@@ -2,8 +2,6 @@
 TODO
 ====
 
-- fix multi-decl in for loops, see AstPreprocessor TODO("handle multi-decl movement")
-
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
@@ -80,6 +78,7 @@ What if we were to re-introduce Structs in prog8? Some thoughts:
 Other language/syntax features to think about
 ---------------------------------------------
 
+- underscores in numeric literals for grouping
 - chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`) BUT this changes the semantics of what it is right now ! (x==(y==z) 0> x==true)
 - postincrdecr as expression, preincrdecr expression   (`y = x++`,   `y = ++x`)    .... is this even possible, expression with side effects like this?
 - negative array index to refer to an element from the end of the array.  Python `[-1]` or Raku syntax `[\*-1]`  , `[\*/2]` .... \*=size of the array

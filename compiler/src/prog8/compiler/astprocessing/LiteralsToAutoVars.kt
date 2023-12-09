@@ -1,6 +1,7 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
+import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.ArrayLiteral
@@ -12,10 +13,7 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.DataType
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.SplitWordArrayTypes
+import prog8.code.core.*
 
 
 internal class LiteralsToAutoVars(private val program: Program,
@@ -69,6 +67,22 @@ internal class LiteralsToAutoVars(private val program: Program,
                         IAstModification.InsertFirst(vardecl2, array.definingScope)
                     )
                 }
+            }
+        }
+        return noModifications
+    }
+
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        if(decl.names.size>1) {
+            // note: the desugaring of a multi-variable vardecl has to be done here
+            // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
+            if(decl.datatype !in NumericDatatypes)
+                errors.err("can only multi declare numeric variables", decl.position)
+            if(errors.noErrors()) {
+                // desugar into individual vardecl per name.
+                return decl.desugarMultiDecl().map {
+                    IAstModification.InsertAfter(decl, it, parent as IStatementContainer)
+                } + IAstModification.Remove(decl, parent as IStatementContainer)
             }
         }
         return noModifications

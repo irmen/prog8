@@ -1,9 +1,12 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.*
+import prog8.ast.IFunctionCall
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
+import prog8.ast.findParentNode
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -113,11 +116,26 @@ class AstPreprocessor(val program: Program,
                     movements.add(IAstModification.InsertFirst(decl, parentscope))
                     replacements.add(IAstModification.Remove(decl, scope))
                 } else {
+                    val declToInsert: VarDecl
                     if(decl.names.size>1) {
                         // we need to handle multi-decl here too, the desugarer maybe has not processed it here yet...
-                        TODO("handle multi-decl movement")
+                        if(decl.value!=null) {
+                            decl.names.forEach { name ->
+                                val target = AssignTarget(IdentifierReference(listOf(name), decl.position), null, null, decl.position)
+                                val assign = Assignment(target.copy(), decl.value!!.copy(), AssignmentOrigin.VARINIT, decl.position)
+                                replacements.add(IAstModification.InsertAfter(decl, assign, scope))
+                            }
+                            replacements.add(IAstModification.Remove(decl, scope))
+                            decl.value = null
+                            decl.allowInitializeWithZero = false
+                            declToInsert = decl
+                        } else {
+                            // just move it to the defining scope
+                            replacements.add(IAstModification.Remove(decl, scope))
+                            declToInsert = decl
+                        }
                     } else {
-                        val declToInsert: VarDecl
+                        // handle declaration of a single variable
                         if(decl.value!=null && decl.datatype in NumericDatatypes) {
                             val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
                             val assign = Assignment(target, decl.value!!, AssignmentOrigin.VARINIT, decl.position)
@@ -129,8 +147,8 @@ class AstPreprocessor(val program: Program,
                             replacements.add(IAstModification.Remove(decl, scope))
                             declToInsert = decl
                         }
-                        movements.add(IAstModification.InsertFirst(declToInsert, parentscope))
                     }
+                    movements.add(IAstModification.InsertFirst(declToInsert, parentscope))
                 }
             }
             return movements + replacements
@@ -152,20 +170,6 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if(decl.names.size>1) {
-            // note: the desugaring of a multi-variable vardecl has to be done here
-            // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
-            if(decl.datatype !in NumericDatatypes)
-                errors.err("can only multi declare numeric variables", decl.position)
-            return if(errors.noErrors()) {
-                // desugar into individual vardecl per name.
-                decl.desugarMultiDecl().map {
-                    IAstModification.InsertAfter(decl, it, parent as IStatementContainer)
-                } + IAstModification.Remove(decl, parent as IStatementContainer)
-            } else
-                noModifications
-        }
-
         val nextAssignment = decl.nextSibling() as? Assignment
         if(nextAssignment!=null && nextAssignment.origin!=AssignmentOrigin.VARINIT) {
             // check if it's a proper initializer assignment for the variable
