@@ -120,8 +120,8 @@ cx16 {
     &uword  RESET_VEC   = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
     &uword  IRQ_VEC     = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
 
-    &uword  edkeyvec    = $ac03     ; for intercepting BASIN/CHRIN key strokes. See set_basin_handler()
-    &uword  edkeybk     = $ac05     ; ...the RAM bank of this routine if not in low ram
+    &uword  edkeyvec    = $ac03     ; (ram bank 0): for intercepting BASIN/CHRIN key strokes. See set_chrin_keyhandler()
+    &ubyte  edkeybk     = $ac05     ; ...the RAM bank of the handler routine, if not in low ram
 
 
 ; the sixteen virtual 16-bit registers in both normal unsigned mode and signed mode (s)
@@ -415,8 +415,8 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
 romsub $ff44 = MACPTR(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
 romsub $feb1 = MCIOUT(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
 romsub $ff47 = enter_basic(bool cold_or_warm @Pc)  clobbers(A,X,Y)
-romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, ubyte jiffies @R3)  clobbers(A, X, Y)
-romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, ubyte @R3   ; result registers see clock_set_date_time()
+romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, uword jiffiesweekday @R3)  clobbers(A, X, Y)
+romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, uword @R3   ; result registers see clock_set_date_time()
 
 ; keyboard, mouse, joystick
 ; note: also see the kbdbuf_clear() helper routine below!
@@ -849,16 +849,38 @@ asmsub restore_vera_context() clobbers(A) {
 
 
     asmsub set_chrin_keyhandler(ubyte handlerbank @A, uword handler @XY) clobbers(A) {
-        ; Install a custom CHRIN (BASIN) key handler. Call this before each line you want to read.
+        ; Install a custom CHRIN (BASIN) key handler in a safe manner. Call this before each line you want to read.
         ; See https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2002%20-%20Editor.md#custom-basin-petscii-code-override-handler
         %asm {{
             sei
-            sta  cx16.edkeybk
+            sta  P8ZP_SCRATCH_REG
             lda  $00
             pha
             stz  $00
+            lda  P8ZP_SCRATCH_REG
+            sta  cx16.edkeybk
             stx  cx16.edkeyvec
             sty  cx16.edkeyvec+1
+            pla
+            sta  $00
+            cli
+            rts
+        }}
+    }
+
+    asmsub get_chrin_keyhandler() -> ubyte @R0, uword @R1 {
+        ; --- retrieve the currently set CHRIN keyhandler in a safe manner, bank in r0L, handler address in R1.
+        %asm {{
+            sei
+            lda  $00
+            pha
+            stz  $00
+            lda  cx16.edkeybk
+            sta  cx16.r0L
+            lda  cx16.edkeyvec
+            ldy  cx16.edkeyvec+1
+            sta  cx16.r1
+            sty  cx16.r1+1
             pla
             sta  $00
             cli

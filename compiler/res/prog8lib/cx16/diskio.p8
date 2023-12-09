@@ -147,6 +147,7 @@ io_error:
         ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
+        filenames_buffer[0]=0
         if lf_start_list(pattern_ptr) {
             while lf_next_entry() {
                 if list_filetype!="dir" {
