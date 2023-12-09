@@ -5,7 +5,7 @@
       <option name="COMMENT_START" value="/*" />
       <option name="COMMENT_END" value="*/" />
       <option name="HEX_PREFIX" value="$" />
-      <option name="NUM_POSTFIXES" value="" />
+      <option name="NUM_POSTFIXES" value="_" />
       <option name="HAS_BRACES" value="true" />
       <option name="HAS_BRACKETS" value="true" />
       <option name="HAS_PARENS" value="true" />
@@ -17,7 +17,7 @@
     <keywords4 keywords="abs;all;any;callfar;callram;callrom;clamp;cmp;divmod;len;lsb;max;memory;min;mkword;msb;peek;peekf;peekw;poke;pokef;pokew;pop;popw;push;pushw;reverse;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;setlsb;setmsb;sgn;sizeof;sort;sqrt;swap;|&gt;" />
   </highlighting>
   <extensionMap>
-    <mapping ext="prog8" />
     <mapping ext="p8" />
+    <mapping ext="prog8" />
   </extensionMap>
 </filetype>

@@ -399,6 +399,10 @@ Note that ``%`` is also the remainder operator so be careful: if you want to tak
 of something with an operand starting with 1 or 0, you'll have to add a space in between.
 Otherwise the parser thinks you've typed an invalid binary number.
 
+**digit grouping:** for any number you can use underscores to group the digits to make the
+number more readable. Any underscores in the number are ignored by the compiler.
+For instance ``%1001_0001`` is a valid binary number and ``3_000_000.99`` is a valid floating point number.
+
 **character values:** you can use a single character in quotes like this ``'a'`` for the PETSCII byte value of that character.
 
 

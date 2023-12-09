@@ -229,7 +229,7 @@ Integers
 ^^^^^^^^
 
 Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
-in hexadecimal and in binary notation.
+in hexadecimal and in binary notation.  You can use underscores to group digits to make long numbers more readable.
 A single character in single quotes such as ``'a'`` is translated into a byte integer,
 which is the PETSCII value for that character.
 
@@ -259,6 +259,8 @@ This saves a lot of memory and may be faster as well.
 
 Floating point numbers
 ^^^^^^^^^^^^^^^^^^^^^^
+
+You can use underscores to group digits to make long numbers more readable.
 
 Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines.
 Floating point support is available on the c64 and cx16 (and virtual) compiler targets.
