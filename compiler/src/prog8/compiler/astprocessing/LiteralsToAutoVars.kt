@@ -81,7 +81,7 @@ internal class LiteralsToAutoVars(private val program: Program,
             if(errors.noErrors()) {
                 // desugar into individual vardecl per name.
                 return decl.desugarMultiDecl().map {
-                    IAstModification.InsertAfter(decl, it, parent as IStatementContainer)
+                    IAstModification.InsertBefore(decl, it, parent as IStatementContainer)
                 } + IAstModification.Remove(decl, parent as IStatementContainer)
             }
         }

@@ -317,12 +317,33 @@ class VarDecl(val type: VarDeclType,
                 this.arraysize?.referencesIdentifier(nameInSource)==true
 
     fun desugarMultiDecl(): List<VarDecl> {
-        return names.map {
-            val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),
+        if(value?.isSimple==true) {
+            // just copy the initialization value to a separata vardecl for each component
+            return names.map {
+                val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),
+                    isArray, sharedWithAsm, splitArray, position)
+                copy.allowInitializeWithZero = this.allowInitializeWithZero
+                copy
+            }
+        } else {
+            // evaluate the value once in the vardecl for the first component, and set the other components to the first
+            val first = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), names[0], emptyList(), value?.copy(),
                 isArray, sharedWithAsm, splitArray, position)
-            copy.allowInitializeWithZero = this.allowInitializeWithZero
-            copy
+            first.allowInitializeWithZero = this.allowInitializeWithZero
+            val firstVar = firstVarAsValue(first)
+            return listOf(first) + names.drop(1 ).map {
+                val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), it, emptyList(), firstVar.copy(),
+                    isArray, sharedWithAsm, splitArray, position)
+                copy.allowInitializeWithZero = this.allowInitializeWithZero
+                copy
+            }
         }
+    }
+
+    private fun firstVarAsValue(first: VarDecl): Expression {
+        if(first.isArray || first.type!=VarDeclType.VAR)
+            throw FatalAstException("invalid multi decl type $first")
+        return IdentifierReference(listOf(first.name), first.position)
     }
 }
 

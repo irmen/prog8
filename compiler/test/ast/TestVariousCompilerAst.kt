@@ -434,7 +434,7 @@ main {
         val vars = st.filterIsInstance<VarDecl>()
         vars.size shouldBe 7
         vars.all { it.names.size<=1 } shouldBe true
-        vars.map { it.name } shouldBe listOf("s","r","q","z","y","x","w")
+        vars.map { it.name }.toSet() shouldBe setOf("s","r","q","z","y","x","w")
         val forloop = st.single { it is ForLoop } as ForLoop
         forloop.body.statements[0] shouldBe instanceOf<Assignment>()
         forloop.body.statements[1] shouldBe instanceOf<Assignment>()

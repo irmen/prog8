@@ -294,10 +294,22 @@ _after:
             val assigns = mutableListOf<Statement>(assign)
             var lastChained: ChainedAssignment = chainedAssignment
             var pc: ChainedAssignment? = chainedAssignment
-            while(pc!=null) {
-                lastChained = pc
-                assigns.add(0, Assignment(pc.target.copy(), assign.value.copy(), assign.origin, pc.position))
-                pc = pc.parent as? ChainedAssignment
+
+            if(assign.value.isSimple) {
+                // simply copy the RHS value to each component's assignment
+                while (pc != null) {
+                    lastChained = pc
+                    assigns.add(Assignment(pc.target.copy(), assign.value.copy(), assign.origin, pc.position))
+                    pc = pc.parent as? ChainedAssignment
+                }
+            } else if(pc!=null) {
+                // need to evaluate RHS once and reuse that in each component's assignment
+                val firstComponentAsValue = assign.target.toExpression()
+                while (pc != null) {
+                    lastChained = pc
+                    assigns.add(Assignment(pc.target.copy(), firstComponentAsValue.copy(), assign.origin, pc.position))
+                    pc = pc.parent as? ChainedAssignment
+                }
             }
             return listOf(IAstModification.ReplaceNode(lastChained,
                 AnonymousScope(assigns, chainedAssignment.position), lastChained.parent))
