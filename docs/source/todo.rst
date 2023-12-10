@@ -11,9 +11,6 @@ Assuming your writes are aligned to 32-bit boundaries, do four reads from the in
 (ex: lda DATA1 ; 4 times) and then stz the other one (stz DATA0).
 The cache is loaded by the DATA1 reads, and the contents are written out with the DATA0 write, 4 bytes at once.
 
-- [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
-   modify programs (shell, paint) that now use callfar
-
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...

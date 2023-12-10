@@ -26,7 +26,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
         val symbol = asmgen.symbolTable.lookup(call.name)
-        val sub = symbol!!.astNode as IPtSubroutine
+        val sub = symbol?.astNode as IPtSubroutine
         val subAsmName = asmgen.asmSymbolName(call.name)
 
         if(sub is PtAsmSub) {

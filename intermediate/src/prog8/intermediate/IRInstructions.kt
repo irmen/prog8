@@ -54,6 +54,7 @@ CONTROL FLOW
 jump                    location      - continue running at instruction at 'location' (label/memory address)
 jumpi       reg1                      - continue running at memory address in reg1 (indirect jump)
 preparecall numparams                 - indicator that the next instructions are the param setup and function call/syscall with <numparams> parameters
+calli       reg1                      - calls a subroutine (without arguments and without return valus) at memory addres in reg1 (indirect jsr)
 call   label(argument register list) [: resultreg.type]
                                       - calls a subroutine with the given arguments and return value (optional).
                                         save current instruction location+1, continue execution at instruction nr of the label.
@@ -252,6 +253,7 @@ enum class Opcode {
     JUMP,
     JUMPI,
     PREPARECALL,
+    CALLI,
     CALL,
     SYSCALL,
     RETURN,
@@ -397,6 +399,7 @@ val OpcodesThatBranch = setOf(
     Opcode.JUMPI,
     Opcode.RETURN,
     Opcode.RETURNR,
+    Opcode.CALLI,
     Opcode.CALL,
     Opcode.SYSCALL,
     Opcode.BSTCC,
@@ -543,6 +546,7 @@ val instructionFormats = mutableMapOf(
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
     Opcode.PREPARECALL to InstructionFormat.from("N,<i"),
+    Opcode.CALLI      to InstructionFormat.from("N,<r1"),
     Opcode.CALL       to InstructionFormat.from("N,call"),
     Opcode.SYSCALL    to InstructionFormat.from("N,syscall"),
     Opcode.RETURN     to InstructionFormat.from("N"),

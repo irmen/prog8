@@ -181,6 +181,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZI -> InsSTOREZI(ins)
             Opcode.JUMP, Opcode.JUMPI -> InsJUMP(ins)
             Opcode.PREPARECALL -> nextPc()
+            Opcode.CALLI -> throw IllegalArgumentException("VM cannot run code from memory")
             Opcode.CALL -> InsCALL(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()

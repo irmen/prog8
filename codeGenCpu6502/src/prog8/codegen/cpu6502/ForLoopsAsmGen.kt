@@ -436,7 +436,6 @@ $loopLabel          sty  $indexVar
                 asmgen.out(endLabel)
             }
             DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT -> {
-                numElements!!
                 val indexVar = asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""

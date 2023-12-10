@@ -1254,6 +1254,15 @@ internal class AstChecker(private val program: Program,
 
     private fun checkFunctionCall(target: Statement, args: List<Expression>, position: Position) {
         if(target is BuiltinFunctionPlaceholder) {
+            if(target.name=="call") {
+                if(args[0] is AddressOf)
+                    errors.err("can't call this indirectly, just use normal function call syntax", args[0].position)
+                if(args[0] is IdentifierReference) {
+                    val callTarget = (args[0] as IdentifierReference).targetStatement(program)
+                    if(callTarget !is VarDecl)
+                        errors.err("can't call this indirectly, just use normal function call syntax", args[0].position)
+                }
+            }
             if(!compilerOptions.floats) {
                 if (target.name == "peekf" || target.name == "pokef")
                     errors.err("floating point used, but that is not enabled via options", position)

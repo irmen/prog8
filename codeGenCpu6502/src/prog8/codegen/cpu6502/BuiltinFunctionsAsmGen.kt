@@ -85,6 +85,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "rrestore" -> funcRrestore()
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall, resultRegister)
+            "call" -> funcCall(fcall)
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
             "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE, resultRegister)
             "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD, resultRegister)
@@ -192,6 +193,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 tax
                 pla
                 plp""")
+    }
+
+    private fun funcCall(fcall: PtBuiltinFunctionCall) {
+        val constAddr = fcall.args[0].asConstInteger()
+        if(constAddr!=null) {
+            asmgen.out("  jsr  ${constAddr.toHex()}")
+        } else {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)     // jump address
+            asmgen.out("""
+              sta  (+)+1
+              sty  (+)+2
++             jsr  0       ; modified""")
+        }
     }
 
     private fun funcCallFar(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {

@@ -26,6 +26,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "pushw" -> funcPushw(call)
             "rsave", "rrestore" -> ExpressionCodeResult.EMPTY  // vm doesn't have registers to save/restore
             "callfar" -> funcCallfar(call)
+            "call" -> funcCall(call)
             "msb" -> funcMsb(call)
             "lsb" -> funcLsb(call)
             "memory" -> funcMemory(call)
@@ -69,6 +70,14 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             addInstr(result, IRInstruction(Opcode.SQUARE, resultType, reg1 = resultReg, reg2 = valueTr.resultReg), null)
             ExpressionCodeResult(result, resultType, resultReg, -1)
         }
+    }
+
+    private fun funcCall(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val addressTr = exprGen.translateExpression(call.args[0])
+        addToResult(result, addressTr, addressTr.resultReg, -1)
+        addInstr(result, IRInstruction(Opcode.CALLI, reg1 = addressTr.resultReg), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
     private fun funcCallfar(call: PtBuiltinFunctionCall): ExpressionCodeResult {

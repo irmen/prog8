@@ -1,18 +1,21 @@
 package prog8tests.ast
 
-import io.kotest.core.spec.style.AnnotationSpec
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.code.core.DataType
 import prog8.code.core.SourceCode
+import prog8.code.target.Cx16Target
 import prog8.parser.Prog8Parser.parseModule
+import prog8tests.helpers.ErrorReporterForTests
+import prog8tests.helpers.compileText
 
 
-class TestSubroutines: AnnotationSpec() {
+class TestSubroutines: FunSpec({
 
-    @Test
-    fun stringParameterAcceptedInParser() {
+    test("stringParameter AcceptedInParser") {
         // note: the *parser* should accept this as it is valid *syntax*,
         // however, the compiler itself may or may not complain about it later.
         val text = """
@@ -37,8 +40,7 @@ class TestSubroutines: AnnotationSpec() {
         func.statements.isEmpty() shouldBe true
     }
 
-    @Test
-    fun arrayParameterAcceptedInParser() {
+    test("arrayParameter AcceptedInParser") {
         // note: the *parser* should accept this as it is valid *syntax*,
         // however, the compiler itself may or may not complain about it later.
         val text = """
@@ -62,4 +64,42 @@ class TestSubroutines: AnnotationSpec() {
         func.parameters.single().type shouldBe DataType.ARRAY_UB
         func.statements.isEmpty() shouldBe true
     }
-}
+
+    test("cannot call a subroutine via pointer") {
+        val src="""
+main {
+    sub start() {
+        uword func = 12345
+        func()              ; error
+        func(1,2,3)         ; error
+        cx16.r0 = func()    ; error
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, errors, false) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "cannot call that"
+        errors.errors[1] shouldContain "cannot call that"
+        errors.errors[2] shouldContain "cannot call that"
+    }
+
+    test("can call a subroutine pointer using call") {
+        val src="""
+main {
+    sub start() {
+        uword func = 12345
+        call(func)          ; ok
+        call(12345)         ; ok
+        cx16.r0 = call(func)    ; error
+        call(&start)      ; error
+        call(start)       ; error
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, errors, false) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain ":7:19: assignment right hand side doesn't result in a value"
+        errors.errors[1] shouldContain "can't call this indirectly"
+        errors.errors[2] shouldContain "can't call this indirectly"
+    }
+})

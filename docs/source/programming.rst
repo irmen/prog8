@@ -966,13 +966,20 @@ memory (name, size, alignment)
     The return value is just a simple uword address so it cannot be used as an array in your program.
     You can only treat it as a pointer or use it in inline assembly.
 
+call (address)
+    Calls a subroutine given by its memory address. You cannot pass arguments and result values
+    directly, although it is ofcourse possible to do this via the global ``cx16.r0...`` registers for example.
+    This function effectively creates an "indirect JSR" if you use it on a ``uword`` pointer variable.
+    But because it doesn't handle bank switching
+    etcetera by itself, it is a lot faster than ``callfar``. And it works on other systems than just the Commander X16.
+
 callfar (bank, address, argumentword) -> uword     ; NOTE: specific to cx16 target for now
     Calls an assembly routine in another bank on the Commander X16 (using its ``JSRFAR`` routine)
     Be aware that ram OR rom bank may be changed depending on the address it jumps to!
     The argumentword will be loaded into the A+Y registers before calling the routine.
     The uword value that the routine returns in the A+Y registers, will be returned.
     NOTE: this routine is very inefficient, so don't use it to call often. Set the bank yourself
-    or even write a custom tailored trampoline routine if you need to.
+    or even write a custom tailored trampoline routine if you need to. Or use ``call`` if you can.
 
 syscall (callnr), syscall1 (callnr, arg), syscall2 (callnr, arg1, arg2), syscall3 (callnr, arg1, arg2, arg3)
     Functions for doing a system call on targets that support this. Currently no actual target
