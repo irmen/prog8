@@ -44,3 +44,7 @@ Various things:
 
 `Prog8 code for ZSMkit <https://github.com/mooinglemur/zsmkit/tree/main/p8demo>`_
     ZSMkit is an advanced music and sound effects engine for the Commander X16.
+
+.. image:: _static/curious.png
+    :align: center
+    :alt: Curious

@@ -2,6 +2,9 @@
 TODO
 ====
 
+- [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
+   modify programs (shell, paint) that now use callfar
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
@@ -24,6 +27,11 @@ Compiler:
     - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
+
+- [on branch: no-vardecls]
+    remove astNode from StNode in the symboltable
+    remove IPtVariable and the 3 derived types (var, constant, memmapped) in the codegen ast
+    remove VarDecls in compiler ast
 
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
 - ir: getting it in shape for code generation
@@ -78,6 +86,5 @@ What if we were to re-introduce Structs in prog8? Some thoughts:
 Other language/syntax features to think about
 ---------------------------------------------
 
-- chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`) BUT this changes the semantics of what it is right now ! (x==(y==z) 0> x==true)
-- postincrdecr as expression, preincrdecr expression   (`y = x++`,   `y = ++x`)    .... is this even possible, expression with side effects like this?
+- chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`) BUT this changes the semantics of what it is right now ! (x==(y==z) --> x==true)
 - negative array index to refer to an element from the end of the array.  Python `[-1]` or Raku syntax `[\*-1]`  , `[\*/2]` .... \*=size of the array

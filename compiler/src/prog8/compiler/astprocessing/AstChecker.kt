@@ -928,7 +928,7 @@ internal class AstChecker(private val program: Program,
         try {  // just *try* if it can be encoded, don't actually do it
             val bytes = compilerOptions.compTarget.encodeString(string.value, string.encoding)
             if(0u in bytes)
-                errors.warn("a character in the string encodes into the 0-byte, which will terminate the string prematurely", string.position)
+                errors.warn("a character in the string encodes as 0-byte, which will terminate the string prematurely", string.position)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode string", string.position)
         }

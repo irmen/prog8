@@ -238,6 +238,11 @@ Provides string manipulation routines.
 ``find (string, char) -> ubyte index + carry bit``
     Locates the first position of the given character in the string, returns carry bit set if found
     and the index in the string. Or 0+carry bit clear if the character was not found.
+    You can consider this a safer way of checking if a character occurs
+    in a string than using an `in` containment check - because the find routine
+    properly stops at the first 0-byte string terminator it encounters.
+    Simply call this and only act on the carry status with ``if_cc`` for example.
+    Much like the difference between len(str) and length(str).
 
 ``compare (string1, string2) -> ubyte result``
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.

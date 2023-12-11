@@ -12,10 +12,11 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.AssociativeOperators
 import prog8.code.core.DataType
+import prog8.code.core.IErrorReporter
 import kotlin.math.floor
 
 
-class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
+class ConstantFoldingOptimizer(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
         // @( &thing )  -->  thing  (but only if thing is a byte type!)
@@ -79,6 +80,8 @@ class ConstantFoldingOptimizer(private val program: Program) : AstWalker() {
             else if(expr.operator=="*" && rightconst!=null && expr.left is StringLiteral) {
                 // mutiply a string.
                 val part = expr.left as StringLiteral
+                if(part.value.isEmpty())
+                    errors.warn("resulting string has length zero", part.position)
                 val newStr = StringLiteral(part.value.repeat(rightconst.number.toInt()), part.encoding, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, newStr, parent))
             }

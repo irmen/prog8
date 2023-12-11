@@ -125,7 +125,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 val elementDt = ArrayToElementTypes.getValue(dt.getOr(DataType.UNDEFINED))
                 NumericLiteral.optimalInteger(program.memsizer.memorySize(elementDt) * length, position)
             }
-            dt istype DataType.STR -> throw SyntaxError("sizeof str is undefined, did you mean len?", position)
+            dt istype DataType.STR -> throw SyntaxError("sizeof(str) is undefined, did you mean len, or perhaps string.length?", position)
             else -> NumericLiteral(DataType.UBYTE, program.memsizer.memorySize(dt.getOr(DataType.UNDEFINED)).toDouble(), position)
         }
     } else {

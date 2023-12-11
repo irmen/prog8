@@ -348,5 +348,5 @@ to compile and run the Commodore 64 rasterbars example program, use this command
 
 or::
 
-    $ ./p8compile.sh -target c64 -emu examples/rasterbars.p8
+    $ /path/to/p8compile -target c64 -emu examples/rasterbars.p8
 
