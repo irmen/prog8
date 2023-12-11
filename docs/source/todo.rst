@@ -2,6 +2,10 @@
 TODO
 ====
 
+- [on branch: no-vardecls]
+    remove IPtVariable and the 3 derived types (var, constant, memmapped) in the codegen ast
+    remove VarDecls in compiler ast?
+
 - [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
    modify programs (shell, paint) that now use callfar
 
@@ -27,11 +31,6 @@ Compiler:
     - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
-
-- [on branch: no-vardecls]
-    remove astNode from StNode in the symboltable
-    remove IPtVariable and the 3 derived types (var, constant, memmapped) in the codegen ast
-    remove VarDecls in compiler ast
 
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
 - ir: getting it in shape for code generation

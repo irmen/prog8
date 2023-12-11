@@ -1,6 +1,7 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
+import prog8.code.StNode
 import prog8.code.StNodeType
 import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
@@ -291,6 +292,18 @@ class AsmGen6502Internal (
         // see if we're inside a subroutine, if so, remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)
         val subName = identifier.definingSub()?.scopedName
         return if (subName != null && name.length>subName.length && name.startsWith(subName) && name[subName.length] == '.')
+            name.drop(subName.length+1)
+        else
+            name
+    }
+
+    fun asmVariableName(st: StNode, scope: PtSub?): String {
+        val name = asmVariableName(st.scopedName)
+        if(scope==null)
+            return name
+        // remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)
+        val subName = scope.scopedName
+        return if (name.length>subName.length && name.startsWith(subName) && name[subName.length] == '.')
             name.drop(subName.length+1)
         else
             name

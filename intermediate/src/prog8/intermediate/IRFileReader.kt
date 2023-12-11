@@ -56,7 +56,7 @@ class IRFileReader {
         val initGlobals = parseInitGlobals(reader)
         val blocks = parseBlocksUntilProgramEnd(reader)
 
-        val st = IRSymbolTable(null)
+        val st = IRSymbolTable()
         asmsymbols.forEach { (name, value) -> st.addAsmSymbol(name, value)}
         varsWithoutInit.forEach { st.add(it) }
         variables.forEach { st.add(it) }

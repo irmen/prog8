@@ -18,7 +18,6 @@ class IRCodeGen(
     private val expressionEval = ExpressionGen(this)
     private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
     private val assignmentGen = AssignmentGen(this, expressionEval)
-    private var irSymbolTable: IRSymbolTable = IRSymbolTable(null)
     internal val registers = RegisterPool()
 
     fun generate(): IRProgram {
@@ -26,7 +25,7 @@ class IRCodeGen(
         moveAllNestedSubroutinesToBlockScope()
         verifyNameScoping(program, symbolTable)
 
-        irSymbolTable = IRSymbolTable(symbolTable)
+        val irSymbolTable = IRSymbolTable.fromStDuringCodegen(symbolTable)
         val irProg = IRProgram(program.name, irSymbolTable, options, program.encoding)
 
         // collect global variables initializers

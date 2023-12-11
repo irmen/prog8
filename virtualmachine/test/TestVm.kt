@@ -29,7 +29,7 @@ class TestVm: FunSpec( {
     }
 
     test("vm execution: empty program") {
-        val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
         val vm = VirtualMachine(program)
         vm.callStack.shouldBeEmpty()
         vm.valueStack.shouldBeEmpty()
@@ -43,7 +43,7 @@ class TestVm: FunSpec( {
     }
 
     test("vm execution: modify memory") {
-        val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
         val block = IRBlock("testmain", null, false, false, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
@@ -72,7 +72,7 @@ class TestVm: FunSpec( {
     }
 
     test("asmsub not supported in vm even with IR") {
-        val program = IRProgram("test", IRSymbolTable(null), getTestOptions(), VMTarget())
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
         val block = IRBlock("main", null, false, false, IRBlock.BlockAlignment.NONE, Position.DUMMY)
         val startSub = IRAsmSubroutine(
             "main.asmstart",

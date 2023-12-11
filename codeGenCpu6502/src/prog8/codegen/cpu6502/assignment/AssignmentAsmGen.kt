@@ -1,5 +1,7 @@
 package prog8.codegen.cpu6502.assignment
 
+import prog8.code.StMemVar
+import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
@@ -1814,23 +1816,21 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun containmentCheckIntoA(containment: PtContainmentCheck) {
         val elementDt = containment.element.type
-        val symbol = asmgen.symbolTable.lookup(containment.iterable.name)
-        val variable = symbol!!.astNode as IPtVariable
-        val varname = asmgen.asmVariableName(containment.iterable)
-        val numElements = when(variable) {
-            is PtConstant -> null
-            is PtMemMapped -> variable.arraySize
-            is PtVariable -> variable.arraySize
+        val symbol = asmgen.symbolTable.lookup(containment.iterable.name)!!
+        val symbolName = asmgen.asmVariableName(symbol, containment.definingSub())
+        val (dt, numElements) = when(symbol) {
+            is StStaticVariable  -> symbol.dt to symbol.length!!
+            is StMemVar -> symbol.dt to symbol.length!!
+            else -> DataType.UNDEFINED to 0
         }
-        when(variable.type) {
+        when(dt) {
             DataType.STR -> {
                 // use subroutine
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.saveRegisterStack(CpuRegister.A, true)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position,"P8ZP_SCRATCH_W1"), varname, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
-                val stringVal = (variable as PtVariable).value as PtString
-                asmgen.out("  ldy  #${stringVal.value.length}")
+                asmgen.out("  ldy  #${numElements-1}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
             }
@@ -1840,7 +1840,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.saveRegisterStack(CpuRegister.A, true)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W1"), varname, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.restoreRegisterStack(CpuRegister.A, false)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
@@ -1848,7 +1848,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), symbol.astNode.position, "P8ZP_SCRATCH_W2"), varname, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
                 return
