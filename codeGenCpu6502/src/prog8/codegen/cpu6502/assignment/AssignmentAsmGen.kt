@@ -1870,7 +1870,22 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 +                   lda  #1
 +""")
             }
-            else -> throw AssemblyError("can't use Z or N flags as return 'values'")
+            Statusflag.Pz -> {
+                asmgen.out("""
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            Statusflag.Pn -> {
+                asmgen.out("""
+                    bmi  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
         }
         assignRegisterByte(target, CpuRegister.A, false, true)
     }

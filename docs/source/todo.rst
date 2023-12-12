@@ -3,7 +3,6 @@ TODO
 ====
 
 - optimize if-else expressions whose condition returns the boolean status in a status register to use a branch opcode instead of a comparison against 0
-- fix "can't use Z or N flags as return 'values'" in 6502 codegen?
 
 - merge branch optimize-st  for some optimizations regardign SymbolTable use
 
@@ -11,6 +10,8 @@ TODO
    modify programs (shell, paint) that now use callfar
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
+
+- IR (expericodegen): fix code for calling routines that return a boolean in a status register such as Carry flag, it has to store the flag value somewhere
 
 ...
 
