@@ -2,10 +2,6 @@
 TODO
 ====
 
-- [on branch: no-vardecls]
-    remove IPtVariable and the 3 derived types (var, constant, memmapped) in the codegen ast
-    remove VarDecls in compiler ast?
-
 - [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
    modify programs (shell, paint) that now use callfar
 

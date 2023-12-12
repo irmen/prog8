@@ -1,5 +1,6 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.StMemVar
 import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -311,106 +312,97 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcReverse(fcall: PtBuiltinFunctionCall) {
-        val variable = fcall.args.single()
-        if (variable is PtIdentifier) {
-            val symbol = asmgen.symbolTable.lookup(variable.name)
-            val decl = symbol!!.astNode as IPtVariable
-            val numElements = when(decl) {
-                is PtConstant -> throw AssemblyError("cannot reverse a constant")
-                is PtMemMapped -> decl.arraySize
-                is PtVariable -> decl.arraySize
+        val variable = fcall.args.single() as PtIdentifier
+        val symbol = asmgen.symbolTable.lookup(variable.name)
+        val (dt, numElements) = when(symbol) {
+            is StStaticVariable  -> symbol.dt to symbol.length!!
+            is StMemVar -> symbol.dt to symbol.length!!
+            else -> DataType.UNDEFINED to 0
+        }
+        val varName = asmgen.asmVariableName(variable)
+        when (dt) {
+            DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                asmgen.out("""
+                    lda  #<$varName
+                    ldy  #>$varName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #$numElements
+                    jsr  prog8_lib.func_reverse_b""")
             }
-            val varName = asmgen.asmVariableName(variable)
-            when (decl.type) {
-                DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                    asmgen.out("""
-                        lda  #<$varName
-                        ldy  #>$varName
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #$numElements
-                        jsr  prog8_lib.func_reverse_b""")
-                }
-                DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                    asmgen.out("""
-                        lda  #<$varName
-                        ldy  #>$varName
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #$numElements
-                        jsr  prog8_lib.func_reverse_w""")
-                }
-                DataType.STR -> {
-                    val stringLength = (symbol as StStaticVariable).length!!-1
-                    asmgen.out("""
-                        lda  #<$varName
-                        ldy  #>$varName
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #$stringLength
-                        jsr  prog8_lib.func_reverse_b""")
-                }
-                DataType.ARRAY_F -> {
-                    asmgen.out("""
-                        lda  #<$varName
-                        ldy  #>$varName
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #$numElements
-                        jsr  floats.func_reverse_f""")
-                }
-                in SplitWordArrayTypes -> TODO("split word reverse")
-                else -> throw AssemblyError("weird type")
+            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                asmgen.out("""
+                    lda  #<$varName
+                    ldy  #>$varName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #$numElements
+                    jsr  prog8_lib.func_reverse_w""")
             }
+            DataType.STR -> {
+                asmgen.out("""
+                    lda  #<$varName
+                    ldy  #>$varName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #${numElements-1}
+                    jsr  prog8_lib.func_reverse_b""")
+            }
+            DataType.ARRAY_F -> {
+                asmgen.out("""
+                    lda  #<$varName
+                    ldy  #>$varName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #$numElements
+                    jsr  floats.func_reverse_f""")
+            }
+            in SplitWordArrayTypes -> TODO("split word reverse")
+            else -> throw AssemblyError("weird type")
         }
     }
 
     private fun funcSort(fcall: PtBuiltinFunctionCall) {
-        val variable = fcall.args.single()
-        if (variable is PtIdentifier) {
-            val symbol = asmgen.symbolTable.lookup(variable.name)
-            val decl = symbol!!.astNode as IPtVariable
-            val varName = asmgen.asmVariableName(variable)
-            val numElements = when(decl) {
-                is PtConstant -> throw AssemblyError("cannot sort a constant")
-                is PtMemMapped -> decl.arraySize
-                is PtVariable -> decl.arraySize
+        val variable = fcall.args.single() as PtIdentifier
+        val symbol = asmgen.symbolTable.lookup(variable.name)
+        val varName = asmgen.asmVariableName(variable)
+        val (dt, numElements) = when(symbol) {
+            is StStaticVariable  -> symbol.dt to symbol.length!!
+            is StMemVar -> symbol.dt to symbol.length!!
+            else -> DataType.UNDEFINED to 0
+        }
+        when (dt) {
+            DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                asmgen.out("""
+                    lda  #<$varName
+                    ldy  #>$varName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #$numElements""")
+                asmgen.out(if (dt == DataType.ARRAY_UB) "  jsr  prog8_lib.func_sort_ub" else "  jsr  prog8_lib.func_sort_b")
             }
-            when (decl.type) {
-                DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                    asmgen.out("""
-                        lda  #<$varName
-                        ldy  #>$varName
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #$numElements""")
-                    asmgen.out(if (decl.type == DataType.ARRAY_UB) "  jsr  prog8_lib.func_sort_ub" else "  jsr  prog8_lib.func_sort_b")
-                }
-                DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                    asmgen.out("""
-                        lda  #<$varName
-                        ldy  #>$varName
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #$numElements""")
-                    asmgen.out(if (decl.type == DataType.ARRAY_UW) "  jsr  prog8_lib.func_sort_uw" else "  jsr  prog8_lib.func_sort_w")
-                }
-                DataType.STR -> {
-                    val stringLength = (symbol as StStaticVariable).length!!-1
-                    asmgen.out("""
-                        lda  #<$varName
-                        ldy  #>$varName
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #$stringLength
-                        jsr  prog8_lib.func_sort_ub""")
-                }
-                DataType.ARRAY_F -> throw AssemblyError("sorting of floating point array is not supported")
-                in SplitWordArrayTypes -> TODO("split word sort")
-                else -> throw AssemblyError("weird type")
+            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                asmgen.out("""
+                    lda  #<$varName
+                    ldy  #>$varName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #$numElements""")
+                asmgen.out(if (dt == DataType.ARRAY_UW) "  jsr  prog8_lib.func_sort_uw" else "  jsr  prog8_lib.func_sort_w")
             }
-        } else
-            throw AssemblyError("weird type")
+            DataType.STR -> {
+                asmgen.out("""
+                    lda  #<$varName
+                    ldy  #>$varName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #${numElements-1}
+                    jsr  prog8_lib.func_sort_ub""")
+            }
+            DataType.ARRAY_F -> throw AssemblyError("sorting of floating point array is not supported")
+            in SplitWordArrayTypes -> TODO("split word sort")
+            else -> throw AssemblyError("weird type")
+        }
     }
 
     private fun funcRor2(fcall: PtBuiltinFunctionCall) {
@@ -1245,12 +1237,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         // address in P8ZP_SCRATCH_W1,  number of elements in A
         arg as PtIdentifier
         val symbol = asmgen.symbolTable.lookup(arg.name)
-        val arrayVar = symbol!!.astNode as IPtVariable
-        val numElements = when(arrayVar) {
-            is PtConstant -> null
-            is PtMemMapped -> arrayVar.arraySize
-            is PtVariable -> arrayVar.arraySize
-        } ?: throw AssemblyError("length of non-array requested")
+        val numElements = when(symbol) {
+            is StStaticVariable -> symbol.length!!
+            is StMemVar -> symbol.length!!
+            else -> 0
+        }
         val identifierName = asmgen.asmVariableName(arg)
         asmgen.out("""
                     lda  #<$identifierName

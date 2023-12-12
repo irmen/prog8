@@ -1,7 +1,11 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import prog8.code.ast.*
+import prog8.code.StMemVar
+import prog8.code.StStaticVariable
+import prog8.code.ast.PtForLoop
+import prog8.code.ast.PtIdentifier
+import prog8.code.ast.PtRange
 import prog8.code.core.*
 import kotlin.math.absoluteValue
 
@@ -332,11 +336,10 @@ $endLabel""")
         asmgen.loopEndLabels.push(endLabel)
         val iterableName = asmgen.asmVariableName(ident)
         val symbol = asmgen.symbolTable.lookup(ident.name)
-        val decl = symbol!!.astNode as IPtVariable
-        val numElements = when(decl) {
-            is PtConstant -> throw AssemblyError("length of non-array requested")
-            is PtMemMapped -> decl.arraySize
-            is PtVariable -> decl.arraySize
+        val numElements = when(symbol) {
+            is StStaticVariable -> symbol.length!!
+            is StMemVar -> symbol.length!!
+            else -> 0
         }
         when(iterableDt) {
             DataType.STR -> {
@@ -364,7 +367,7 @@ $loopLabel          sty  $indexVar
                     lda  $iterableName,y
                     sta  ${asmgen.asmVariableName(stmt.variable)}""")
                 asmgen.translate(stmt.statements)
-                if(numElements!!<=255u) {
+                if(numElements<=255) {
                     asmgen.out("""
                         ldy  $indexVar
                         iny
@@ -379,7 +382,7 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(numElements>=16u) {
+                if(numElements>=16) {
                     // allocate index var on ZP if possible
                     val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
@@ -392,7 +395,7 @@ $loopLabel          sty  $indexVar
                 asmgen.out(endLabel)
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                val length = numElements!! * 2u
+                val length = numElements * 2
                 val indexVar = asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""
@@ -403,7 +406,7 @@ $loopLabel          sty  $indexVar
                     lda  $iterableName+1,y
                     sta  $loopvarName+1""")
                 asmgen.translate(stmt.statements)
-                if(length<=127u) {
+                if(length<=127) {
                     asmgen.out("""
                         ldy  $indexVar
                         iny
@@ -420,7 +423,7 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(length>=16u) {
+                if(length>=16) {
                     // allocate index var on ZP if possible
                     val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
@@ -444,7 +447,7 @@ $loopLabel          sty  $indexVar
                     lda  ${iterableName}_msb,y
                     sta  $loopvarName+1""")
                 asmgen.translate(stmt.statements)
-                if(numElements<=255u) {
+                if(numElements<=255) {
                     asmgen.out("""
                         ldy  $indexVar
                         iny
@@ -459,7 +462,7 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(numElements>=16u) {
+                if(numElements>=16) {
                     // allocate index var on ZP if possible
                     val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
                     result.fold(
