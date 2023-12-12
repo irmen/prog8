@@ -2,6 +2,11 @@
 TODO
 ====
 
+- optimize if-else expressions whose condition returns the boolean status in a status register to use a branch opcode instead of a comparison against 0
+- fix "can't use Z or N flags as return 'values'" in 6502 codegen?
+
+- merge branch optimize-st  for some optimizations regardign SymbolTable use
+
 - [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
    modify programs (shell, paint) that now use callfar
 

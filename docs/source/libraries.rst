@@ -275,7 +275,13 @@ Provides string manipulation routines.
     Returns boolean if the character is a numerical digit 0-9
 
 ``islower (char)``, ``isupper (char)``, ``isletter (char)``
-    Returns boolean if the character is a shifted-PETSCII lowercase letter, uppercase letter, or any letter.
+    Returns true if the character is a shifted-PETSCII lowercase letter, uppercase letter, or any letter, respectively.
+
+``isspace (char)``
+    Returns true if the PETSCII character is a whitespace (tab, space, return, and shifted versions)
+
+``isprint (char)``
+    Returns true if the PETSCII character is a "printable" character (space or any visible symbol)
 
 ``startswith (string, prefix) -> bool``
     Returns true if string starts with prefix, otherwise false

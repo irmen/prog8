@@ -190,4 +190,12 @@ string {
     sub isletter(ubyte character) -> bool {
         return islower(character) or isupper(character)
     }
- }
+
+    sub isspace(ubyte character) -> bool {
+        return character in [32, 13, 9, 10, 141, 160]
+    }
+
+    sub isprint(ubyte character) -> bool {
+        return character>=32 and character<=127 or character>=160
+    }
+}

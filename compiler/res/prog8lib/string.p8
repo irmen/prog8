@@ -384,7 +384,7 @@ fail    clc             ; yes, no match found, return with c=0
         }}
     }
 
-    asmsub isdigit(ubyte character @A) -> bool @Pc {
+    asmsub isdigit(ubyte petsciichar @A) -> bool @Pc {
         %asm {{
             cmp  #'0'
             bcs  +
@@ -398,7 +398,7 @@ fail    clc             ; yes, no match found, return with c=0
         }}
     }
 
-    asmsub isupper(ubyte character @A) -> bool @Pc {
+    asmsub isupper(ubyte petsciichar @A) -> bool @Pc {
         ; shifted petscii has 2 ranges that contain the upper case letters...
         %asm {{
             cmp  #97
@@ -418,7 +418,7 @@ _yes        sec
         }}
     }
 
-    asmsub islower(ubyte character @A) -> bool @Pc {
+    asmsub islower(ubyte petsciichar @A) -> bool @Pc {
         %asm {{
             cmp  #'a'
             bcs  +
@@ -432,12 +432,50 @@ _yes        sec
         }}
     }
 
-    asmsub isletter(ubyte character @A) -> bool @Pc {
+    asmsub isletter(ubyte petsciichar @A) -> bool @Pc {
         %asm {{
             jsr  islower
             bcs  +
             jmp  isupper
 +           rts
+        }}
+    }
+
+    asmsub isspace(ubyte petsciichar @A) -> bool @Pc {
+        %asm {{
+            cmp  #32
+            beq  +
+            cmp  #13
+            beq  +
+            cmp  #9
+            beq  +
+            cmp  #10
+            beq  +
+            cmp  #141
+            beq  +
+            cmp  #160
+            beq  +
+            clc
+            rts
++           sec
+            rts
+        }}
+    }
+
+    asmsub isprint(ubyte petsciichar @A) -> bool @Pc {
+        %asm {{
+            cmp  #160
+            bcc  +
+            rts
++           cmp  #32
+            bcs  +
+            rts
++           cmp  #128
+            bcc  +
+            clc
+            rts
++           sec
+            rts
         }}
     }
 }
