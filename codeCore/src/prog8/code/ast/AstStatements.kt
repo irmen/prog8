@@ -101,9 +101,8 @@ class PtIfElse(position: Position) : PtNode(position) {
 }
 
 
-class PtJump(val identifier: PtIdentifier?,
+class PtJump(val identifier: PtIdentifier?,     // note: even ad-hoc labels are wrapped as an Identifier to simplify code. Just use dummy type and position.
              val address: UInt?,
-             val generatedLabel: String?,           // TODO remove this ? always uses identifier...
              position: Position) : PtNode(position) {
     init {
         identifier?.let {it.parent = this }

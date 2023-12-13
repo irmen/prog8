@@ -281,7 +281,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcIf: IfElse): PtNode {
 
-        fun codeForStatusflag(fcall: FunctionCallExpression, flag: Statusflag, equalToZero: Boolean): PtNodeGroup? {
+        fun codeForStatusflag(fcall: FunctionCallExpression, flag: Statusflag, equalToZero: Boolean): PtNodeGroup {
             // if the condition is a call to something that returns a boolean in a status register (C, Z, V, N),
             // a smarter branch is possible using a conditional branch node.
             val (branchTrue, branchFalse) = if(equalToZero) {
@@ -326,7 +326,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 val scopedEndLabel = (srcIf.definingScope.scopedName + endLabel).joinToString(".")
                 val elseLbl = PtIdentifier(scopedElseLabel, DataType.UNDEFINED, srcIf.position)
                 val endLbl = PtIdentifier(scopedEndLabel, DataType.UNDEFINED, srcIf.position)
-                ifScope.add(PtJump(elseLbl, null, null, srcIf.position))
+                ifScope.add(PtJump(elseLbl, null, srcIf.position))
                 val elseScope = PtNodeGroup()
                 branch.add(ifScope)
                 branch.add(elseScope)
@@ -334,7 +334,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 for (stmt in srcIf.truepart.statements)
                     nodes.add(transformStatement(stmt))
                 if(srcIf.elsepart.isNotEmpty())
-                    nodes.add(PtJump(endLbl, null, null, srcIf.position))
+                    nodes.add(PtJump(endLbl, null, srcIf.position))
                 nodes.add(PtLabel(elseLabel, srcIf.position))
                 if(srcIf.elsepart.isNotEmpty()) {
                     for (stmt in srcIf.elsepart.statements)
@@ -353,9 +353,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 if(fcall!=null) {
                     val returnRegs = fcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
                     if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
-                        val translated = codeForStatusflag(fcall, returnRegs[0].statusflag!!, binexpr.operator == "==")
-                        if(translated!=null)
-                            return translated
+                        return codeForStatusflag(fcall, returnRegs[0].statusflag!!, binexpr.operator == "==")
                     }
                 }
             }
@@ -364,9 +362,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             if (fcall != null) {
                 val returnRegs = fcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
                 if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
-                    val translated = codeForStatusflag(fcall, returnRegs[0].statusflag!!, false)
-                    if(translated!=null)
-                        return translated
+                    return codeForStatusflag(fcall, returnRegs[0].statusflag!!, false)
                 }
             }
         }
@@ -391,10 +387,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcJump: Jump): PtJump {
         val identifier = if(srcJump.identifier!=null) transform(srcJump.identifier!!) else null
-        return PtJump(identifier,
-            srcJump.address,
-            srcJump.generatedLabel,
-            srcJump.position)
+        return PtJump(identifier, srcJump.address, srcJump.position)
     }
 
     private fun transform(label: Label): PtLabel =

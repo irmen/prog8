@@ -3,7 +3,6 @@ TODO
 ====
 
 - optimize: flip if true/else blocks if the else block only contains a jump (invert condition!)
-- remove PtJump generatedLabel (always seems to use identifier)
 
 - merge branch optimize-st  for some optimizations regardign SymbolTable use
 

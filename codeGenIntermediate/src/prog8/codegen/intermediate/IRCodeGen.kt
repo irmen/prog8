@@ -316,7 +316,7 @@ class IRCodeGen(
                 }
                 addInstr(result, branchIns, null)
             } else {
-                val label = if(goto.generatedLabel!=null) goto.generatedLabel else goto.identifier!!.name
+                val label = goto.identifier!!.name
                 val branchIns = when(branch.condition) {
                     BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
                     BranchCondition.CC -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
@@ -994,8 +994,6 @@ class IRCodeGen(
                             }
                             it += if (goto.address != null)
                                 IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, address = goto.address?.toInt())
-                            else if (goto.generatedLabel != null)
-                                IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = goto.generatedLabel)
                             else
                                 IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = goto.identifier!!.name)
                         }
@@ -1016,8 +1014,6 @@ class IRCodeGen(
 
     private fun branchInstr(goto: PtJump, branchOpcode: Opcode) = if (goto.address != null)
         IRInstruction(branchOpcode, address = goto.address?.toInt())
-    else if (goto.generatedLabel != null)
-        IRInstruction(branchOpcode, labelSymbol = goto.generatedLabel)
     else
         IRInstruction(branchOpcode, labelSymbol = goto.identifier!!.name)
 
@@ -1053,8 +1049,6 @@ class IRCodeGen(
                 }
                 if (goto.address != null)
                     addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = leftTr.resultReg, immediate = 0, address = goto.address?.toInt()), null)
-                else if (goto.generatedLabel != null)
-                    addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = leftTr.resultReg, immediate = 0, labelSymbol = goto.generatedLabel), null)
                 else
                     addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = leftTr.resultReg, immediate = 0, labelSymbol = goto.identifier!!.name), null)
             }
@@ -1102,8 +1096,6 @@ class IRCodeGen(
                         }
                         if (goto.address != null)
                             addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, immediate = number, address = goto.address?.toInt()), null)
-                        else if (goto.generatedLabel != null)
-                            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, immediate = number, labelSymbol = goto.generatedLabel), null)
                         else
                             addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, immediate = number, labelSymbol = goto.identifier!!.name), null)
                     }
@@ -1161,8 +1153,6 @@ class IRCodeGen(
                 } else {
                     if (goto.address != null)
                         addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, address = goto.address?.toInt()), null)
-                    else if (goto.generatedLabel != null)
-                        addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.generatedLabel), null)
                     else
                         addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.identifier!!.name), null)
                 }
@@ -1628,9 +1618,7 @@ class IRCodeGen(
         if(jump.address!=null) {
             chunk += IRInstruction(Opcode.JUMP, address = jump.address!!.toInt())
         } else {
-            if (jump.generatedLabel != null)
-                chunk += IRInstruction(Opcode.JUMP, labelSymbol = jump.generatedLabel!!)
-            else if (jump.identifier != null) {
+            if (jump.identifier != null) {
                 val symbol = symbolTable.lookup(jump.identifier!!.name)
                 if(symbol?.type==StNodeType.MEMVAR || symbol?.type==StNodeType.STATICVAR) {
                     val jumpReg = registers.nextFree()

@@ -53,8 +53,6 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     "goto ${node.identifier.name}"
                 else if(node.address!=null)
                     "goto ${node.address.toHex()}"
-                else if(node.generatedLabel!=null)
-                    "goto ${node.generatedLabel}"
                 else
                     "???"
             }

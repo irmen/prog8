@@ -64,23 +64,10 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                     }
                 }
                 is PtJump -> {
-                    if(node.identifier!=null) {
-                        val stNode = st.lookup(node.identifier!!.name)
-                        if(stNode==null)
-                            throw AssemblyError("name not found ${node.identifier}")
-                        if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
-                            val index = node.parent.children.indexOf(node)
-                            nodesToPrefix += node.parent to index
-                        }
-                    }
-                    else if(node.generatedLabel!=null) {
-                        val stNode = st.lookup(node.generatedLabel!!)
-                        if(stNode==null)
-                            throw AssemblyError("name not found ${node.generatedLabel}")
-                        if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
-                            val index = node.parent.children.indexOf(node)
-                            nodesToPrefix += node.parent to index
-                        }
+                    val stNode = st.lookup(node.identifier!!.name) ?: throw AssemblyError("name not found ${node.identifier}")
+                    if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
+                        val index = node.parent.children.indexOf(node)
+                        nodesToPrefix += node.parent to index
                     }
                 }
                 is PtBlock -> prefixNamedNode(node)
@@ -159,13 +146,8 @@ private fun PtVariable.prefix(st: SymbolTable): PtVariable {
 }
 
 private fun PtJump.prefix(parent: PtNode, st: SymbolTable): PtJump {
-    val jump = if(identifier!=null) {
-        val prefixedIdent = identifier!!.prefix(this, st)
-        PtJump(prefixedIdent, address, generatedLabel, position)
-    } else {
-        val prefixedLabel = generatedLabel!!.split('.').map {"p8_$it" }.joinToString(".")
-        PtJump(null, address, prefixedLabel, position)
-    }
+    val prefixedIdent = identifier!!.prefix(this, st)
+    val jump = PtJump(prefixedIdent, address, position)
     jump.parent = parent
     return jump
 }
@@ -688,7 +670,6 @@ class AsmGen6502Internal (
                 if (jump is PtJump) {
                     // jump somewhere if X!=0
                     val label = when {
-                        jump.generatedLabel!=null -> jump.generatedLabel!!
                         jump.identifier!=null -> asmSymbolName(jump.identifier!!)
                         jump.address!=null -> jump.address!!.toHex()
                         else -> throw AssemblyError("weird jump")
@@ -988,7 +969,6 @@ $repeatLabel""")
 
     private fun getJumpTarget(jump: PtJump): Pair<String, Boolean> {
         val ident = jump.identifier
-        val label = jump.generatedLabel
         val addr = jump.address
         return when {
             ident!=null -> {
@@ -999,7 +979,6 @@ $repeatLabel""")
                 else
                     Pair(asmSymbolName(ident), false)
             }
-            label!=null -> Pair(label, false)
             addr!=null -> Pair(addr.toHex(), false)
             else -> Pair("????", false)
         }
@@ -1249,7 +1228,6 @@ $repeatLabel""")
         val rightConstVal = right as? PtNumber
 
         val label = when {
-            jump.generatedLabel!=null -> jump.generatedLabel!!
             jump.identifier!=null -> asmSymbolName(jump.identifier!!)
             jump.address!=null -> jump.address!!.toHex()
             else -> throw AssemblyError("weird jump")
