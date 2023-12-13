@@ -279,7 +279,98 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         return call
     }
 
-    private fun transform(srcIf: IfElse): PtIfElse {
+    private fun transform(srcIf: IfElse): PtNode {
+
+        fun codeForStatusflag(fcall: FunctionCallExpression, flag: Statusflag, equalToZero: Boolean): PtNodeGroup? {
+            // if the condition is a call to something that returns a boolean in a status register (C, Z, V, N),
+            // a smarter branch is possible using a conditional branch node.
+            val (branchTrue, branchFalse) = if(equalToZero) {
+                when (flag) {
+                    Statusflag.Pc -> BranchCondition.CC to BranchCondition.CS
+                    Statusflag.Pz -> BranchCondition.NZ to BranchCondition.Z
+                    Statusflag.Pv -> BranchCondition.VC to BranchCondition.VS
+                    Statusflag.Pn -> BranchCondition.POS to BranchCondition.NEG
+                }
+            } else {
+                when (flag) {
+                    Statusflag.Pc -> BranchCondition.CS to BranchCondition.CC
+                    Statusflag.Pz -> BranchCondition.Z to BranchCondition.NZ
+                    Statusflag.Pv -> BranchCondition.VS to BranchCondition.VC
+                    Statusflag.Pn -> BranchCondition.NEG to BranchCondition.POS
+                }
+            }
+            val jump = srcIf.truepart.statements.firstOrNull() as? Jump
+            if (jump!=null) {
+                // only a jump, use a conditional branch to the jump target.
+                val nodes = PtNodeGroup()
+                nodes.add(transformExpression(fcall))
+                val branch = PtConditionalBranch(branchTrue, srcIf.position)
+                val ifScope = PtNodeGroup()
+                ifScope.add(transform(jump))
+                val elseScope = PtNodeGroup()
+                if(srcIf.elsepart.isNotEmpty())
+                    throw FatalAstException("if-else with only a goto should no longer have statements in the else part")
+                branch.add(ifScope)
+                branch.add(elseScope)
+                nodes.add(branch)
+                return nodes
+            } else {
+                // skip over the true part if the condition is false
+                val nodes = PtNodeGroup()
+                nodes.add(transformExpression(fcall))
+                val branch = PtConditionalBranch(branchFalse, srcIf.position)
+                val ifScope = PtNodeGroup()
+                val elseLabel = program.makeLabel("celse")
+                val endLabel = program.makeLabel("cend")
+                val scopedElseLabel = (srcIf.definingScope.scopedName + elseLabel).joinToString(".")
+                val scopedEndLabel = (srcIf.definingScope.scopedName + endLabel).joinToString(".")
+                val elseLbl = PtIdentifier(scopedElseLabel, DataType.UNDEFINED, srcIf.position)
+                val endLbl = PtIdentifier(scopedEndLabel, DataType.UNDEFINED, srcIf.position)
+                ifScope.add(PtJump(elseLbl, null, null, srcIf.position))
+                val elseScope = PtNodeGroup()
+                branch.add(ifScope)
+                branch.add(elseScope)
+                nodes.add(branch)
+                for (stmt in srcIf.truepart.statements)
+                    nodes.add(transformStatement(stmt))
+                if(srcIf.elsepart.isNotEmpty())
+                    nodes.add(PtJump(endLbl, null, null, srcIf.position))
+                nodes.add(PtLabel(elseLabel, srcIf.position))
+                if(srcIf.elsepart.isNotEmpty()) {
+                    for (stmt in srcIf.elsepart.statements)
+                        nodes.add(transformStatement(stmt))
+                }
+                if(srcIf.elsepart.isNotEmpty())
+                    nodes.add(PtLabel(endLabel, srcIf.position))
+                return nodes
+            }
+        }
+
+        val binexpr = srcIf.condition as? BinaryExpression
+        if(binexpr!=null && binexpr.right.constValue(program)?.number==0.0) {
+            if(binexpr.operator=="==" || binexpr.operator=="!=") {
+                val fcall = binexpr.left as? FunctionCallExpression
+                if(fcall!=null) {
+                    val returnRegs = fcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
+                    if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
+                        val translated = codeForStatusflag(fcall, returnRegs[0].statusflag!!, binexpr.operator == "==")
+                        if(translated!=null)
+                            return translated
+                    }
+                }
+            }
+        } else {
+            val fcall = srcIf.condition as? FunctionCallExpression
+            if (fcall != null) {
+                val returnRegs = fcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
+                if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
+                    val translated = codeForStatusflag(fcall, returnRegs[0].statusflag!!, false)
+                    if(translated!=null)
+                        return translated
+                }
+            }
+        }
+
         val ifelse = PtIfElse(srcIf.position)
         ifelse.add(transformExpression(srcIf.condition))
         val ifScope = PtNodeGroup()

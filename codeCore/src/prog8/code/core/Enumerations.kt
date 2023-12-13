@@ -120,7 +120,7 @@ enum class BranchCondition {
     PL,     // PL == POS
     POS,
     VS,
-    VC,
+    VC
 }
 
 

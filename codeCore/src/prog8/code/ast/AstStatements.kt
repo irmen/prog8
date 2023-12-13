@@ -103,7 +103,7 @@ class PtIfElse(position: Position) : PtNode(position) {
 
 class PtJump(val identifier: PtIdentifier?,
              val address: UInt?,
-             val generatedLabel: String?,
+             val generatedLabel: String?,           // TODO remove this ? always uses identifier...
              position: Position) : PtNode(position) {
     init {
         identifier?.let {it.parent = this }

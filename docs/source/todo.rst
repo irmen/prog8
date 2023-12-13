@@ -2,7 +2,8 @@
 TODO
 ====
 
-- optimize if-else expressions whose condition returns the boolean status in a status register to use a branch opcode instead of a comparison against 0
+- optimize: flip if true/else blocks if the else block only contains a jump (invert condition!)
+- remove PtJump generatedLabel (always seems to use identifier)
 
 - merge branch optimize-st  for some optimizations regardign SymbolTable use
 

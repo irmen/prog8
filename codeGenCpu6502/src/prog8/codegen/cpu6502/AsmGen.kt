@@ -65,14 +65,18 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                 }
                 is PtJump -> {
                     if(node.identifier!=null) {
-                        val stNode = st.lookup(node.identifier!!.name)!!
+                        val stNode = st.lookup(node.identifier!!.name)
+                        if(stNode==null)
+                            throw AssemblyError("name not found ${node.identifier}")
                         if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
                             val index = node.parent.children.indexOf(node)
                             nodesToPrefix += node.parent to index
                         }
                     }
                     else if(node.generatedLabel!=null) {
-                        val stNode = st.lookup(node.generatedLabel!!)!!
+                        val stNode = st.lookup(node.generatedLabel!!)
+                        if(stNode==null)
+                            throw AssemblyError("name not found ${node.generatedLabel}")
                         if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
                             val index = node.parent.children.indexOf(node)
                             nodesToPrefix += node.parent to index
