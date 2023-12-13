@@ -2,16 +2,14 @@
 TODO
 ====
 
-- optimize: flip if true/else blocks if the else block only contains a jump (invert condition!)
+- IR (expericodegen): fix code for calling routines that return a boolean in a status register such as Carry flag, it has to store the flag value somewhere
 
-- merge branch optimize-st  for some optimizations regardign SymbolTable use
+- merge branch optimize-st  for some optimizations regarding SymbolTable use
 
 - [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
    modify programs (shell, paint) that now use callfar
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
-
-- IR (expericodegen): fix code for calling routines that return a boolean in a status register such as Carry flag, it has to store the flag value somewhere
 
 ...
 

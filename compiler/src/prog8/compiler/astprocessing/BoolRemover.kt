@@ -95,6 +95,16 @@ internal class BoolRemover(val program: Program) : AstWalker() {
         }
         return noModifications
     }
+
+    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator=="not") {
+            val exprDt = expr.expression.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+            val nonBoolDt = if(exprDt==DataType.BOOL) DataType.UBYTE else exprDt
+            val equalZero = BinaryExpression(expr.expression, "==", NumericLiteral(nonBoolDt, 0.0, expr.expression.position), expr.expression.position)
+            return listOf(IAstModification.ReplaceNode(expr, equalZero, parent))
+        }
+        return noModifications
+    }
 }
 
 internal fun wrapWithBooleanCastIfNeeded(expr: Expression, program: Program): Expression? {

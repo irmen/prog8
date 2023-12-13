@@ -110,6 +110,22 @@ class StatementOptimizer(private val program: Program,
                 IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
             )
         }
+
+        // switch if/else around if the else is just a jump or branch
+        if(ifElse.elsepart.isNotEmpty() && ifElse.elsepart.statements.size==1) {
+            val jump = ifElse.elsepart.statements[0]
+            if(jump is Jump) {
+                val newTruePart = AnonymousScope(mutableListOf(jump), ifElse.elsepart.position)
+                val newElsePart = AnonymousScope(ifElse.truepart.statements, ifElse.truepart.position)
+                val invertedCondition = PrefixExpression("not", ifElse.condition, ifElse.condition.position)
+                return listOf(
+                    IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
+                    IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
+                    IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse)
+                )
+            }
+        }
+
         return noModifications
     }
 
@@ -460,7 +476,7 @@ class StatementOptimizer(private val program: Program,
         if(whenStmt.condition.inferType(program).isBool) {
             if(whenStmt.choices.all { it.values?.size==1 }) {
                 if (whenStmt.choices.all { it.values!!.single().constValue(program)!!.number in arrayOf(0.0, 1.0) }) {
-                    // it's a when statement on booleans that can just be replaced by an if or if..else.
+                    // it's a when statement on booleans that can just be replaced by an if or if-else.
                     if (whenStmt.choices.size == 1) {
                         return if(whenStmt.choices[0].values!![0].constValue(program)!!.number==1.0) {
                             replaceWithIf(whenStmt.condition, whenStmt.choices[0].statements, null)
