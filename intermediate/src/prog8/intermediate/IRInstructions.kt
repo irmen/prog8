@@ -928,18 +928,27 @@ data class IRInstruction(
             val returns = fcallArgs.returns
             if(returns!=null) {
                 result.add(":")
-                when (returns.dt) {
-                    IRDataType.BYTE -> result.add("r${returns.registerNum}.b")
-                    IRDataType.WORD -> result.add("r${returns.registerNum}.w")
-                    IRDataType.FLOAT -> result.add("fr${returns.registerNum}.f")
+                val cpuReg = if(returns.cpuRegister==null) "" else {
+                    if(returns.cpuRegister.registerOrPair!=null)
+                        returns.cpuRegister.registerOrPair.toString()
+                    else
+                        returns.cpuRegister.statusflag.toString()
                 }
-                if(returns.cpuRegister!=null) {
-                    val cpuReg =
-                        if(returns.cpuRegister.registerOrPair!=null)
-                            returns.cpuRegister.registerOrPair.toString()
-                        else
-                            returns.cpuRegister.statusflag.toString()
-                    result.add("@"+cpuReg)
+                if(cpuReg.isEmpty()) {
+                    when (returns.dt) {
+                        IRDataType.BYTE -> result.add("r${returns.registerNum}.b")
+                        IRDataType.WORD -> result.add("r${returns.registerNum}.w")
+                        IRDataType.FLOAT -> result.add("fr${returns.registerNum}.f")
+                    }
+                } else {
+                    result.add("@" + cpuReg)
+                    if(returns.cpuRegister?.statusflag==null) {
+                        when (returns.dt) {
+                            IRDataType.BYTE -> result.add(".b")
+                            IRDataType.WORD -> result.add(".w")
+                            IRDataType.FLOAT -> result.add(".f")
+                        }
+                    }
                 }
             }
         } else {

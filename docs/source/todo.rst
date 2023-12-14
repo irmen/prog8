@@ -2,8 +2,6 @@
 TODO
 ====
 
-- IR (expericodegen): fix code for calling routines that return a boolean in a status register such as Carry flag, it has to store the flag value somewhere
-
 - merge branch optimize-st  for some optimizations regarding SymbolTable use
 
 - [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
@@ -18,6 +16,8 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- What happens when subs return a boolean not in A, but in Carry flag?
+- What happens when we keep the BOOL type around until in codegen? (so, get rid of Boolean->ubyte and boolean remover)
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)

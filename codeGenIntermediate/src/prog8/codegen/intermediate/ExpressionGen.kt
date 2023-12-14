@@ -430,6 +430,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     result += tr.chunks
                 }
                 // return value
+                var statusFlagResult: Statusflag? = null
                 val returnRegSpec = if(fcall.void) null else {
                     if(callTarget.returns.isEmpty())
                         null
@@ -438,8 +439,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         val returnIrType = irType(returns.type)
                         if(returnIrType==IRDataType.FLOAT)
                             FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
-                        else
-                            FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFree(), returns.register)
+                        else {
+                            statusFlagResult = returns.register.statusflag
+                            val returnRegister = if(statusFlagResult==null) codeGen.registers.nextFree() else -1
+                            FunctionCallArgs.RegSpec(returnIrType, returnRegister, returns.register)
+                        }
                     } else {
                         // multiple return values: take the first *register* (not status flag) return value and ignore the rest.
                         val returns = callTarget.returns.first { it.register.registerOrPair!=null }
@@ -457,12 +461,49 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else
                         IRInstruction(Opcode.CALL, address = callTarget.address!!.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec))
                 addInstr(result, call, null)
+
+                var finalReturnRegister = returnRegSpec?.registerNum ?: -1
+
+                if(fcall.parent is PtAssignment) {
+                    // look if the status flag bit should actually be returned as a 0/1 byte value in a result register (so it can be assigned)
+                    if(statusFlagResult!=null && returnRegSpec!=null) {
+                        // assign status flag bit to the return value register
+                        finalReturnRegister = codeGen.registers.nextFree()
+                        when(statusFlagResult) {
+                            Statusflag.Pc -> {
+                                result += IRCodeChunk(null, null).also {
+                                    it += IRInstruction(Opcode.LOAD, returnRegSpec.dt, reg1=finalReturnRegister, immediate = 0)
+                                    it += IRInstruction(Opcode.ROXL, returnRegSpec.dt, reg1=finalReturnRegister)
+                                }
+                            }
+                            else -> {
+                                val branchOpcode = when(statusFlagResult) {
+                                    Statusflag.Pc -> Opcode.BSTCS
+                                    Statusflag.Pz -> Opcode.BSTEQ
+                                    Statusflag.Pv -> Opcode.BSTVS
+                                    Statusflag.Pn -> Opcode.BSTNEG
+                                }
+                                val setLabel = codeGen.createLabelName()
+                                val endLabel = codeGen.createLabelName()
+                                result += IRCodeChunk(null, null).also {
+                                    it += IRInstruction(branchOpcode, labelSymbol = setLabel)
+                                    it += IRInstruction(Opcode.LOAD, returnRegSpec.dt, reg1=finalReturnRegister, immediate = 0)
+                                    it += IRInstruction(Opcode.JUMP, labelSymbol = endLabel)
+                                }
+                                result += IRCodeChunk(setLabel, null).also {
+                                    it += IRInstruction(Opcode.LOAD, returnRegSpec.dt, reg1=finalReturnRegister, immediate = 1)
+                                }
+                                result += IRCodeChunk(endLabel, null)
+                            }
+                        }
+                    }
+                }
                 return if(fcall.void)
                     ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
                 else if(fcall.type==DataType.FLOAT)
-                    ExpressionCodeResult(result, returnRegSpec!!.dt, -1, returnRegSpec.registerNum)
+                    ExpressionCodeResult(result, returnRegSpec!!.dt, -1, finalReturnRegister)
                 else
-                    ExpressionCodeResult(result, returnRegSpec!!.dt, returnRegSpec.registerNum, -1)
+                    ExpressionCodeResult(result, returnRegSpec!!.dt, finalReturnRegister, -1)
             }
             else -> throw AssemblyError("invalid node type")
         }

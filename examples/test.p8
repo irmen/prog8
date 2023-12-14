@@ -4,54 +4,33 @@
 
 main {
     sub start() {
-        if test_c_set()
-            txt.print("yes1\n")
-        else
-            goto skip1
+        bool @shared statusc = test_carry_set()
+        bool @shared statusv = test_v_set()
+        bool @shared statusz = test_z_set()
+        bool @shared statusn = test_n_set()
 
-        txt.print("no1\n")
-
-skip1:
-        if test_c_clear()
-            txt.print("yes2\n")
-        else
-            goto skip2
-
-        txt.print("no1\n")
-
-skip2:
-        txt.print("done\n")
+        if test_carry_set() {
+            txt.print("set!\n")
+        }
+        if test_v_set() {
+            txt.print("set!\n")
+        }
+        if test_z_set() {
+            txt.print("set!\n")
+        }
+        if test_n_set() {
+            txt.print("set!\n")
+        }
     }
 
-    asmsub test_c_clear() -> bool @Pc {
+    asmsub test_carry_set() -> bool @Pc {
         %asm {{
-            clc
+            sec
             rts
         }}
     }
 
-    asmsub test_z_clear() -> bool @Pz {
-        %asm {{
-            lda  #1
-            rts
-        }}
-    }
-
-    asmsub test_n_clear() -> bool @Pn {
-        %asm {{
-            lda  #1
-            rts
-        }}
-    }
-
-    asmsub test_v_clear() -> bool @Pv {
-        %asm {{
-            clv
-            rts
-        }}
-    }
-
-    asmsub test_c_set() -> bool @Pc {
+    asmsub test_v_set() -> bool @Pv {
         %asm {{
             sec
             rts
@@ -60,22 +39,15 @@ skip2:
 
     asmsub test_z_set() -> bool @Pz {
         %asm {{
-            lda  #0
+            sec
             rts
         }}
     }
 
     asmsub test_n_set() -> bool @Pn {
         %asm {{
-            lda  #-1
+            sec
             rts
-        }}
-    }
-
-    asmsub test_v_set() -> bool @Pv {
-        %asm {{
-            bit  +
-+           rts
         }}
     }
 }

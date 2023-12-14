@@ -254,6 +254,14 @@ private fun parseCall(rest: String): ParsedCall {
         return FunctionCallArgs.RegSpec(type, num, cpuRegister)
     }
 
+    fun parseReturnRegspec(reg: String): FunctionCallArgs.RegSpec {
+        return if(reg.startsWith('@')) {
+            FunctionCallArgs.RegSpec(IRDataType.BYTE, -1, parseRegisterOrStatusflag(reg.drop(1)))
+        } else {
+            parseRegspec(reg)
+        }
+    }
+
     fun parseArgs(args: String): List<FunctionCallArgs.ArgumentSpec> {
         if(args.isBlank())
             return emptyList()
@@ -285,7 +293,7 @@ private fun parseCall(rest: String): ParsedCall {
         actualTarget,
         address,
         arguments,
-        if(returns==null) null else parseRegspec(returns)
+        if(returns==null) null else parseReturnRegspec(returns)
     )
 }
 
