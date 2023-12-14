@@ -611,16 +611,11 @@ containment check:  ``in``
             txt.print("cc is one of the values")
         }
 
-        str  email_address = "?????????"
+        str  email_address = "name@test.com"
         if '@' in email_address {
             txt.print("email address seems ok")
         }
 
-    .. caution::
-        This check compares the needle against *all* elements in the haystack.
-        For byte arrays and strings(!), this means it considers *all* elements in the array or string with the length as it was declared.
-        Even when a string was changed and is terminated early with a 0-byte early.
-        Consider using ``string.find`` followed by ``if_cs`` (for instance) to do a "safer" containment check in such strings.
 
 address of:  ``&``
     This is a prefix operator that can be applied to a string or array variable or literal value.

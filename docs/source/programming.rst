@@ -391,6 +391,13 @@ Using the ``in`` operator you can easily check if a character is present in a st
 example: ``if '@' in email_address {....}`` (however this gives no clue about the location
 in the string where the character is present, if you need that, use the ``string.find()``
 library function instead)
+**Caution:**
+This checks *all* elements in the string with the length as it was initially declared.
+Even when a string was changed and is terminated early with a 0-byte early,
+the containment check with ``in`` will still look at all character positions in the initial string.
+Consider using ``string.find`` followed by ``if_cs`` (for instance) to do a "safer" search
+for a character in such strings (one that stops at the first 0 byte)
+
 
 .. hint::
     Strings/arrays and uwords (=memory address) can often be interchanged.

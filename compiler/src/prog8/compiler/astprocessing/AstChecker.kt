@@ -124,6 +124,8 @@ internal class AstChecker(private val program: Program,
                         }
                     } else if(valueDt.isIterable && expectedReturnValues[0]==DataType.UWORD) {
                         // you can return a string or array when an uword (pointer) is returned
+                    } else if(valueDt istype DataType.UWORD && expectedReturnValues[0]==DataType.STR) {
+                        // you can return a uword pointer when the return type is a string
                     }
                     else {
                         errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}",returnStmt.value!!.position)
