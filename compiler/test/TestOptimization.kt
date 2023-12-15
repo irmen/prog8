@@ -541,7 +541,7 @@ class TestOptimization: FunSpec({
         val errors = ErrorReporterForTests()
         compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain  "can't cast"
+        errors.errors[0] shouldContain  "no cast"
     }
 
     test("test augmented expression asmgen") {

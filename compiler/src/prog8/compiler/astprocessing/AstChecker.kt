@@ -652,7 +652,7 @@ internal class AstChecker(private val program: Program,
                     }
                     else -> {
                         if(decl.type==VarDeclType.CONST) {
-                            err("const declaration needs a compile-time constant initializer value, or range")
+                            err("const declaration needs a compile-time constant initializer value")
                             super.visit(decl)
                             return
                         }
@@ -1069,8 +1069,12 @@ internal class AstChecker(private val program: Program,
         if(!typecast.expression.inferType(program).isKnown)
             errors.err("this expression doesn't return a value", typecast.expression.position)
 
-        if(typecast.expression is NumericLiteral)
-            errors.err("can't cast the value to the requested target type", typecast.expression.position)
+        if(typecast.expression is NumericLiteral) {
+            val castResult = (typecast.expression as NumericLiteral).cast(typecast.type)
+            if(castResult.isValid)
+                throw FatalAstException("cast should have been performed in const eval already")
+            errors.err(castResult.whyFailed!!, typecast.expression.position)
+        }
 
         super.visit(typecast)
     }

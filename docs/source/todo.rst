@@ -4,6 +4,8 @@ TODO
 
 - merge branch optimize-st  for some optimizations regarding SymbolTable use
 
+- fix that pesky unit test that puts temp files in the compiler directory
+
 - [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
    modify programs (shell, paint) that now use callfar
 

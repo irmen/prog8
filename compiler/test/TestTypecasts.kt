@@ -762,11 +762,11 @@ main  {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "can't cast"
-        errors.errors[1] shouldContain "can't cast"
+        errors.errors[0] shouldContain "no cast"
+        errors.errors[1] shouldContain "no cast"
     }
 
-    test("refuse to round float literal 1") {
+    test("refuse to truncate float literal 1") {
         val text = """
             %option enable_floats
             main {
@@ -778,11 +778,11 @@ main  {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "can't cast"
-        errors.errors[1] shouldContain "can't cast"
+        errors.errors[0] shouldContain "refused"
+        errors.errors[1] shouldContain "refused"
     }
 
-    test("refuse to round float literal 2") {
+    test("refuse to truncate float literal 2") {
         val text = """
             %option enable_floats
             main {
@@ -798,7 +798,7 @@ main  {
         errors.errors[0] shouldContain "in-place makes no sense"
     }
 
-    test("refuse to round float literal 3") {
+    test("refuse to truncate float literal 3") {
         val text = """
             %option enable_floats
             main {
@@ -811,8 +811,8 @@ main  {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "can't cast"
-        errors.errors[1] shouldContain "can't cast"
+        errors.errors[0] shouldContain "refused"
+        errors.errors[1] shouldContain "refused"
     }
 
     test("correct implicit casts of signed number comparison and logical expressions") {
@@ -1063,7 +1063,7 @@ main {
         val errors=ErrorReporterForTests()
         compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 5
-        errors.errors[0] shouldContain "can't cast"
+        errors.errors[0] shouldContain "no cast"
         errors.errors[1] shouldContain "overflow"
         errors.errors[2] shouldContain "LONG doesn't match"
         errors.errors[3] shouldContain "out of range"

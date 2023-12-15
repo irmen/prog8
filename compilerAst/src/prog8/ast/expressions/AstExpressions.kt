@@ -13,7 +13,7 @@ import prog8.code.core.*
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.floor
-import kotlin.math.round
+import kotlin.math.truncate
 
 
 sealed class Expression: Node {
@@ -447,10 +447,10 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         if(type==DataType.FLOAT)
             numbervalue
         else {
-            val rounded = round(numbervalue)
-            if(rounded != numbervalue)
-                throw ExpressionError("refused rounding of float to avoid loss of precision", position)
-            rounded
+            val trunc = truncate(numbervalue)
+            if(trunc != numbervalue)
+                throw ExpressionError("refused truncating of float to avoid loss of precision", position)
+            trunc
         }
     }
 
@@ -540,7 +540,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     operator fun compareTo(other: NumericLiteral): Int = number.compareTo(other.number)
 
-    class CastValue(val isValid: Boolean, private val value: NumericLiteral?) {
+    class CastValue(val isValid: Boolean, val whyFailed: String?, private val value: NumericLiteral?) {
         fun valueOrZero() = if(isValid) value!! else NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         fun linkParent(parent: Node) {
             value?.linkParents(parent)
@@ -555,122 +555,122 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     private fun internalCast(targettype: DataType): CastValue {
         if(type==targettype)
-            return CastValue(true, this)
+            return CastValue(true, null, this)
         when(type) {
             DataType.UBYTE -> {
                 if(targettype== DataType.BYTE && number <= 127)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.WORD || targettype== DataType.UWORD)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.LONG)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.BOOL)
-                    return CastValue(true, fromBoolean(number!=0.0, position))
+                    return CastValue(true, null, fromBoolean(number!=0.0, position))
             }
             DataType.BYTE -> {
                 if(targettype== DataType.UBYTE) {
                     if(number in -128.0..0.0)
-                        return CastValue(true, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
+                        return CastValue(true, null, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
                     else if(number in 0.0..255.0)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                 }
                 if(targettype== DataType.UWORD) {
                     if(number in -32768.0..0.0)
-                        return CastValue(true, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
+                        return CastValue(true, null, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
                     else if(number in 0.0..65535.0)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                 }
                 if(targettype== DataType.WORD)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.BOOL)
-                    return CastValue(true, fromBoolean(number!=0.0, position))
+                    return CastValue(true, null, fromBoolean(number!=0.0, position))
                 if(targettype==DataType.LONG)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
             }
             DataType.UWORD -> {
                 if(targettype== DataType.BYTE && number <= 127)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.UBYTE && number <= 255)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.WORD && number <= 32767)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.BOOL)
-                    return CastValue(true, fromBoolean(number!=0.0, position))
+                    return CastValue(true, null, fromBoolean(number!=0.0, position))
                 if(targettype==DataType.LONG)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
             }
             DataType.WORD -> {
                 if(targettype== DataType.BYTE && number >= -128 && number <=127)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype== DataType.UBYTE) {
                     if(number in -128.0..0.0)
-                        return CastValue(true, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
+                        return CastValue(true, null, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
                     else if(number in 0.0..255.0)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                 }
                 if(targettype== DataType.UWORD) {
                     if(number in -32768.0 .. 0.0)
-                        return CastValue(true, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
+                        return CastValue(true, null, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
                     else if(number in 0.0..65535.0)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                 }
                 if(targettype== DataType.FLOAT)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.BOOL)
-                    return CastValue(true, fromBoolean(number!=0.0, position))
+                    return CastValue(true, null, fromBoolean(number!=0.0, position))
                 if(targettype==DataType.LONG)
-                    return CastValue(true, NumericLiteral(targettype, number, position))
+                    return CastValue(true, null, NumericLiteral(targettype, number, position))
             }
             DataType.FLOAT -> {
                 try {
                     if (targettype == DataType.BYTE && number >= -128 && number <= 127)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UBYTE && number >= 0 && number <= 255)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.WORD && number >= -32768 && number <= 32767)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if(targettype==DataType.LONG && number >=0 && number <= 2147483647)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if(targettype==DataType.BOOL)
-                        return CastValue(true, fromBoolean(number!=0.0, position))
+                        return CastValue(true, null, fromBoolean(number!=0.0, position))
                 } catch (x: ExpressionError) {
-                    return CastValue(false, null)
+                    return CastValue(false, x.message,null)
                 }
             }
             DataType.BOOL -> {
-                return CastValue(true, NumericLiteral(targettype, number, position))
+                return CastValue(true, null, NumericLiteral(targettype, number, position))
             }
             DataType.LONG -> {
                 try {
                     if (targettype == DataType.BYTE && number >= -128 && number <= 127)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UBYTE && number >= 0 && number <= 255)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.WORD && number >= -32768 && number <= 32767)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                     if(targettype==DataType.BOOL)
-                        return CastValue(true, fromBoolean(number!=0.0, position))
+                        return CastValue(true, null, fromBoolean(number!=0.0, position))
                     if(targettype== DataType.FLOAT)
-                        return CastValue(true, NumericLiteral(targettype, number, position))
+                        return CastValue(true, null, NumericLiteral(targettype, number, position))
                 } catch (x: ExpressionError) {
-                    return CastValue(false, null)
+                    return CastValue(false, x.message, null)
                 }
             }
             else -> {
                 throw FatalAstException("type cast of weird type $type")
             }
         }
-        return CastValue(false, null)
+        return CastValue(false, "no cast available between these types", null)
     }
 }
 

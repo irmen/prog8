@@ -3,7 +3,7 @@ package prog8.code.ast
 import prog8.code.core.*
 import java.util.*
 import kotlin.math.abs
-import kotlin.math.round
+import kotlin.math.truncate
 
 
 sealed class PtExpression(val type: DataType, position: Position) : PtNode(position) {
@@ -227,9 +227,9 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
         if(type==DataType.BOOL)
             throw IllegalArgumentException("bool should have become ubyte @$position")
         if(type!=DataType.FLOAT) {
-            val rounded = round(number)
-            if (rounded != number)
-                throw IllegalArgumentException("refused rounding of float to avoid loss of precision @$position")
+            val trunc = truncate(number)
+            if (trunc != number)
+                throw IllegalArgumentException("refused truncating of float to avoid loss of precision @$position")
         }
     }
 

@@ -419,7 +419,7 @@ For instance ``%1001_0001`` is a valid binary number and ``3_000_000.99`` is a v
 Data type conversion
 ^^^^^^^^^^^^^^^^^^^^
 Many type conversions are possible by just writing ``as <type>`` at the end of an expression,
-for example ``ubyte ub = floatvalue as ubyte`` will convert the floating point value to an unsigned byte.
+for example ``word ww = bytevalue as word`` will convert the byte value to a signed word.
 
 
 Memory mapped variables
