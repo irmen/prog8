@@ -1,16 +1,12 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import prog8.code.StStaticVariable
 import prog8.code.core.CbmPrgLauncherType
 import prog8.code.core.CompilationOptions
 import prog8.code.core.OutputType
 import prog8.code.core.ZeropageType
 import prog8.code.target.Cx16Target
-import prog8.intermediate.IRFileReader
-import prog8.intermediate.IRFileWriter
-import prog8.intermediate.IRProgram
-import prog8.intermediate.IRSymbolTable
+import prog8.intermediate.*
 import kotlin.io.path.*
 
 class TestIRFileInOut: FunSpec({
@@ -29,7 +25,7 @@ class TestIRFileInOut: FunSpec({
             loadAddress = target.machine.PROGRAM_LOAD_ADDRESS,
             outputDir = tempdir
         )
-        val program = IRProgram("unittest-irwriter", IRSymbolTable(null), options, target)
+        val program = IRProgram("unittest-irwriter", IRSymbolTable(), options, target)
         val writer = IRFileWriter(program, null)
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
@@ -107,9 +103,9 @@ return
         program.name shouldBe "test-ir-reader"
         program.blocks.size shouldBe 2
         program.st.allVariables().count() shouldBe 3
-        val var1 = program.st.lookup("sys.wait.jiffies") as StStaticVariable
-        val var2 = program.st.lookup("sys.bssvar") as StStaticVariable
-        val var3 = program.st.lookup("sys.emptystring") as StStaticVariable
+        val var1 = program.st.lookup("sys.wait.jiffies") as IRStStaticVariable
+        val var2 = program.st.lookup("sys.bssvar") as IRStStaticVariable
+        val var3 = program.st.lookup("sys.emptystring") as IRStStaticVariable
         var1.uninitialized shouldBe false
         var2.uninitialized shouldBe true
         var3.uninitialized shouldBe true

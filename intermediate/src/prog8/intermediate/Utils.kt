@@ -1,7 +1,9 @@
 package prog8.intermediate
 
-import prog8.code.*
+import prog8.code.Either
 import prog8.code.core.*
+import prog8.code.left
+import prog8.code.right
 
 
 fun getTypeString(dt : DataType): String = when(dt) {
@@ -16,38 +18,6 @@ fun getTypeString(dt : DataType): String = when(dt) {
     DataType.ARRAY_UW -> "uword[]"
     DataType.ARRAY_W -> "word[]"
     DataType.ARRAY_F -> "float[]"
-    in SplitWordArrayTypes ->  throw InternalCompilerException("split array should have been converted to 2 ubyte arrays")
-    else -> throw InternalCompilerException("weird dt")
-}
-
-fun getTypeString(memvar: StMemVar): String = when(memvar.dt) {
-    DataType.UBYTE -> "ubyte"
-    DataType.BYTE -> "byte"
-    DataType.UWORD -> "uword"
-    DataType.WORD -> "word"
-    DataType.FLOAT -> "float"
-    DataType.BOOL, DataType.ARRAY_BOOL -> throw InternalCompilerException("bool should have been converted to ubyte")
-    DataType.ARRAY_UB, DataType.STR -> "ubyte[${memvar.length}]"
-    DataType.ARRAY_B -> "byte[${memvar.length}]"
-    DataType.ARRAY_UW -> "uword[${memvar.length}]"
-    DataType.ARRAY_W -> "word[${memvar.length}]"
-    DataType.ARRAY_F -> "float[${memvar.length}]"
-    in SplitWordArrayTypes -> throw InternalCompilerException("@split can't be used on memory mapped arrays")
-    else -> throw InternalCompilerException("weird dt")
-}
-
-fun getTypeString(variable : StStaticVariable): String = when(variable.dt) {
-    DataType.UBYTE -> "ubyte"
-    DataType.BYTE -> "byte"
-    DataType.UWORD -> "uword"
-    DataType.WORD -> "word"
-    DataType.FLOAT -> "float"
-    DataType.BOOL, DataType.ARRAY_BOOL -> throw InternalCompilerException("bool should have been converted to ubyte")
-    DataType.ARRAY_UB, DataType.STR -> "ubyte[${variable.length}]"
-    DataType.ARRAY_B -> "byte[${variable.length}]"
-    DataType.ARRAY_UW -> "uword[${variable.length}]"
-    DataType.ARRAY_W -> "word[${variable.length}]"
-    DataType.ARRAY_F -> "float[${variable.length}]"
     in SplitWordArrayTypes ->  throw InternalCompilerException("split array should have been converted to 2 ubyte arrays")
     else -> throw InternalCompilerException("weird dt")
 }

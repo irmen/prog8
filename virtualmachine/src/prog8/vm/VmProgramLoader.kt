@@ -1,8 +1,5 @@
 package prog8.vm
 
-import prog8.code.StArray
-import prog8.code.StArrayElement
-import prog8.code.StStaticVariable
 import prog8.code.core.ArrayDatatypes
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
@@ -247,7 +244,7 @@ class VmProgramLoader {
                 if(iElts.isEmpty() || iElts.size==1) {
                     val iElt = if(iElts.isEmpty()) {
                         require(variable.uninitialized)
-                        StArrayElement(0.0, null)
+                        IRStArrayElement(0.0, null)
                     } else {
                         require(!variable.uninitialized)
                         iElts[0]
@@ -262,8 +259,8 @@ class VmProgramLoader {
     }
 
     private fun initializeWithValues(
-        variable: StStaticVariable,
-        iElts: StArray,
+        variable: IRStStaticVariable,
+        iElts: IRStArray,
         startAddress: Int,
         symbolAddresses: MutableMap<String, Int>,
         memory: Memory,
@@ -325,8 +322,8 @@ class VmProgramLoader {
     }
 
     private fun initializeWithOneValue(
-        variable: StStaticVariable,
-        iElt: StArrayElement,
+        variable: IRStStaticVariable,
+        iElt: IRStArrayElement,
         startAddress: Int,
         symbolAddresses: MutableMap<String, Int>,
         memory: Memory,
@@ -389,7 +386,7 @@ class VmProgramLoader {
         }
     }
 
-    private fun getInitializerValue(arrayDt: DataType, elt: StArrayElement, symbolAddresses: MutableMap<String, Int>): Double {
+    private fun getInitializerValue(arrayDt: DataType, elt: IRStArrayElement, symbolAddresses: MutableMap<String, Int>): Double {
         if(elt.addressOfSymbol!=null) {
             when(arrayDt) {
                 DataType.ARRAY_UB, DataType.STR, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {

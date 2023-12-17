@@ -24,7 +24,7 @@ class TestIRPeepholeOpt: FunSpec({
             compTarget = target,
             loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
         )
-        val prog = IRProgram("test", IRSymbolTable(null), options, target)
+        val prog = IRProgram("test", IRSymbolTable(), options, target)
         prog.addBlock(block)
         prog.linkChunks()
         prog.validate()
