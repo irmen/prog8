@@ -289,7 +289,7 @@ Here are some examples of arrays::
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
     ubyte[99] array = 255             ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
-    str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to uword)
+    str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to array of uwords)
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
@@ -349,7 +349,7 @@ Note that the maximum length of a split word array is 256! (regular word arrays 
 Strings
 ^^^^^^^
 
-Strings are a sequence of characters enclosed in ``"`` quotes. The length is limited to 255 characters.
+Strings are a sequence of characters enclosed in double quotes. The length is limited to 255 characters.
 They're stored and treated much the same as a byte array,
 but they have some special properties because they are considered to be *text*.
 Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the
@@ -406,6 +406,11 @@ for a character in such strings (one that stops at the first 0 byte)
     that require a string as an argument.
     For regular assignments you still need to use an explicit ``&`` (address-of) to take
     the address of the string or array.
+
+.. hint::
+    You can declare parameters and return values of subroutines as ``str``,
+    but in this case that is equivalent to declaring them as ``uword`` (because
+    in this case, the address of the string is passed as argument or returned as value).
 
 .. note:: Strings and their (im)mutability
 

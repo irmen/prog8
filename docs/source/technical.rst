@@ -52,12 +52,11 @@ Subroutine Calling Convention
 
 Calling a subroutine requires three steps:
 
-#. preparing the arguments (if any) and passing them to the routine
-#. calling the routine
+#. preparing the arguments (if any) and passing them to the routine.
+   Numeric types are passed by value (bytes, words, booleans, floats),
+   but array types and strings are passed by reference which means as ``uword`` being a pointer to their address in memory.
+#. calling the subroutine
 #. preparing the return value (if any) and returning that from the call.
-
-
-Calling the routine is just a simple JSR instruction, but the other two work like this:
 
 
 ``asmsub`` routines
