@@ -3,7 +3,8 @@ TODO
 ====
 
 - 'audio' or 'kaudio' or 'romutils' to contain prog8 definitions for the rom bank 10 audio routines
-   and a wrapper to call x16edit with costomization
+   or just fold it all into cx16 syslib?
+   including a wrapper to call x16edit with and without customization
 
 - verafx vram-vram copy routine?
 set the cache fill and cache write bits in fx ctrl, set one data port's increment to 1 and the other one to 4,
@@ -21,7 +22,6 @@ Future Things and Ideas
 Compiler:
 
 - (after shortcircuit is in:) What happens when we make all subs return a boolean not as ubyte in A, but in the cpu's Carry flag?
-- What happens when we keep the BOOL type around until in codegen? (so, get rid of Boolean->ubyte and boolean remover)
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)

@@ -12,6 +12,7 @@
 
 
 %import textio
+%import conv
 %import string
 %import syslib
 
@@ -41,8 +42,6 @@ diskio {
         if_cs
             goto io_error
         reset_read_channel()
-        if_cs
-            goto io_error
 
         repeat 4 {
             void cbm.CHRIN()     ; skip the 4 prologue bytes
@@ -99,8 +98,6 @@ io_error:
         if_cs
             goto io_error
         reset_read_channel()
-        if_cs
-            goto io_error
 
         while cbm.CHRIN()!='"' {
             ; skip up to entry name
@@ -184,8 +181,6 @@ io_error:
         if_cs
             goto io_error
         reset_read_channel()
-        if_cs
-            goto io_error
 
         repeat 4 {
             void cbm.CHRIN()     ; skip the 4 prologue bytes
@@ -195,6 +190,7 @@ io_error:
             return true
 
 io_error:
+        cbm.CLOSE(READ_IO_CHANNEL)
         lf_end_list()
         return false
     }
@@ -290,21 +286,20 @@ close_end:
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, READ_IO_CHANNEL)     ; note: has to be Channel,x,Channel because otherwise f_seek doesn't work
         void cbm.OPEN()          ; open 12,8,12,"filename"
         if_cc {
+            reset_read_channel()
             if cbm.READST()==0 {
                 iteration_in_progress = true
-                reset_read_channel()
-                if_cc {
-                    void cbm.CHRIN()        ; read first byte to test for file not found
-                    if not cbm.READST() {
-                        cbm.CLOSE(READ_IO_CHANNEL)           ; close file because we already consumed first byte
-                        void cbm.OPEN()         ; re-open the file
-                        cbm.CLRCHN()            ; reset default i/o channels
-                        return true
-                    }
+                void cbm.CHRIN()        ; read first byte to test for file not found
+                if cbm.READST()==0 {
+                    cbm.CLOSE(READ_IO_CHANNEL)    ; close file because we already consumed first byte
+                    void cbm.OPEN()         ; re-open the file
+                    cbm.CLRCHN()            ; reset default i/o channels
+                    return true
                 }
             }
         }
         f_close()
+        cbm.CLOSE(READ_IO_CHANNEL)
         return false
     }
 
@@ -451,6 +446,7 @@ _end        rts
         if_cc {
             return not cbm.READST()
         }
+        cbm.CLOSE(WRITE_IO_CHANNEL)
         f_close_w()
         return false
     }
@@ -494,6 +490,14 @@ no_mciout:
 
     sub status() -> uword {
         ; -- retrieve the disk drive's current status message
+        str device_not_present_error = "device not present #xx"
+        if cbm.READST()==128 {
+            device_not_present_error[len(device_not_present_error)-2] = 0
+            conv.str_ub(drivenumber)
+            void string.copy(conv.string_out, &device_not_present_error+len(device_not_present_error)-2)
+            return device_not_present_error
+        }
+
         uword messageptr = &list_filename
         cbm.SETNAM(0, list_filename)
         cbm.SETLFS(15, drivenumber, 15)
@@ -501,8 +505,6 @@ no_mciout:
         if_cs
             goto io_error
         void cbm.CHKIN(15)        ; use #15 as input channel
-        if_cs
-            goto io_error
 
         while not cbm.READST() {
             cx16.r5L = cbm.CHRIN()
@@ -519,7 +521,8 @@ done:
         return list_filename
 
 io_error:
-        list_filename = "?disk error"
+        cbm.CLOSE(15)
+        list_filename = "io error"
         goto done
     }
 
@@ -748,8 +751,6 @@ internal_vload:
         if_cs
             goto io_error
         reset_read_channel()
-        if_cs
-            goto io_error
 
         repeat 6 {
             void cbm.CHRIN()
