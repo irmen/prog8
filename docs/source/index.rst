@@ -172,21 +172,21 @@ Required additional tools
 It's easy to compile yourself, but a recent precompiled .exe (only for Windows) can be obtained from
 `the files section <https://sourceforge.net/projects/tass64/files/binaries/>`_ in the official project on sourceforge.
 *You need at least version 1.58.0 of this assembler.*
-If you are on a Debian based Linux, there's a "64tass" package in the repositories, which is a bit old, but it seems to work.
-It might be possible to use old versions of 64tass, but it is likely that you'll run into assembler errors later.
+If you are on Linux, there's probably a "64tass" package in the repositories, but check if it is a recent enough version.
 
 A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
-If you're scared of Oracle's licensing terms, most Linux distributions ship OpenJDK or similar in their packages repository instead.
-For Windows it's possible to get that as well; check out `Adoptium <https://adoptium.net/temurin/releases/?version=11>`_ .
-For MacOS you can use the Homebrew system to install a recent version of OpenJDK.
+If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
+Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases/?version=11>`_ .
+For MacOS you can also use the Homebrew system to install a recent version of OpenJDK.
 
 Finally: an **emulator** (or a real machine of course) to test and run your programs on.
-In C64 mode, the compiler assumes the presence of the `VICE emulator <http://vice-emu.sourceforge.net/>`_.
+For the PET, C64 and C128 targets, the compiler assumes the presence of the `VICE emulator <http://vice-emu.sourceforge.net/>`_.
 If you're targeting the Commander X16 instead,
 download a recent emulator version for the CommanderX16, such as `x16emu <https://cx16forum.com/forum/viewforum.php?f=30>`_
 (preferred, this is the official emulator. If required, source code is `here <https://github.com/X16Community/x16-emulator/>`_.
 There is also `Box16 <https://github.com/indigodarkwolf/box16>`_ which has powerful debugging features.
-You can select which one you want to launch using the ``-emu`` or ``-emu2`` command line options.
+For the Atari target, it assumes the "atari800" or "altirra" emulator.
+If multiple options are listed above, you can select which one you want to launch using the ``-emu`` or ``-emu2`` command line options.
 
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
 Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-files>`_ directory in the github repository to find them.

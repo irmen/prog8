@@ -2,6 +2,15 @@
 TODO
 ====
 
+- 'audio' or 'kaudio' or 'romutils' to contain prog8 definitions for the rom bank 10 audio routines
+   and a wrapper to call x16edit with costomization
+
+- verafx vram-vram copy routine?
+set the cache fill and cache write bits in fx ctrl, set one data port's increment to 1 and the other one to 4,
+Assuming your writes are aligned to 32-bit boundaries, do four reads from the increment-1 port
+(ex: lda DATA1 ; 4 times) and then stz the other one (stz DATA0).
+The cache is loaded by the DATA1 reads, and the contents are written out with the DATA0 write, 4 bytes at once.
+
 - [on branch: call-pointers] allow calling a subroutine via a pointer variable (indirect JSR, optimized form of callfar())
    modify programs (shell, paint) that now use callfar
 
