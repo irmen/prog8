@@ -861,13 +861,15 @@ Unconditional jump: goto
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 To jump to another part of the program, you use a ``goto`` statement with an address or the name
-of a label or subroutine::
+of a label or subroutine. Referencing labels or subroutines outside of their defined scope requires
+using qualified "dotted names"::
 
-    goto  $c000     ; address
-    goto  name      ; label or subroutine
+    goto  $c000           ; address
+    goto  name            ; label or subroutine
+    goto  main.mysub.name ; qualified dotted name; see, "Blocks, Scopes, and accessing Symbols"
 
     uword address = $4000
-    goto  address   ; jump via address variable
+    goto  address         ; jump via address variable
 
 Notice that this is a valid way to end a subroutine (you can either ``return`` from it, or jump
 to another piece of code that eventually returns).
