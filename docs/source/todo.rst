@@ -2,10 +2,6 @@
 TODO
 ====
 
-- 'audio' or 'kaudio' or 'romutils' to contain prog8 definitions for the rom bank 10 audio routines
-   or just fold it all into cx16 syslib?
-   including a wrapper to call x16edit with and without customization
-
 - verafx vram-vram copy routine?
 set the cache fill and cache write bits in fx ctrl, set one data port's increment to 1 and the other one to 4,
 Assuming your writes are aligned to 32-bit boundaries, do four reads from the increment-1 port

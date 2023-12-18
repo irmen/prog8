@@ -441,12 +441,70 @@ romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
 romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to above to not have the hassle to deal with multiple return values
 
-; Audio (rom bank 10)
-romsub $C04B = psg_init() clobbers(A,X,Y)                              ; (re)init Vera PSG
-romsub $C063 = ym_init() clobbers(A,X,Y) -> bool @Pc                   ; (re)init YM chip
-romsub $C066 = ym_loaddefpatches() clobbers(A,X,Y) -> bool @Pc         ; load default YM patches
-romsub $C09F = audio_init() clobbers(A,X,Y) -> bool @Pc                ; (re)initialize both vera PSG and YM audio chips
-; TODO: add more of the audio routines?
+; X16Edit (rom bank 13/14 but you ideally should use the routine search_x16edit() to search for the correct bank)
+romsub $C000 = x16edit_default() clobbers(A,X,Y)
+romsub $C003 = x16edit_loadfile(ubyte firstbank @X, ubyte lastbank @Y, str filename @R0, ubyte filenameLength @R1) clobbers(A,X,Y)
+romsub $C006 = x16edit_loadfile_options(ubyte firstbank @X, ubyte lastbank @Y, str filename @R0,
+                uword filenameLengthAndOptions @R1, uword tabstopAndWordwrap @R2,
+                uword disknumberAndColors @R3, uword headerAndStatusColors @R4) clobbers(A,X,Y)
+
+; Audio (rom bank 10 - you have to activate this bank manually first! Or use callfar/JSRFAR.)
+romsub $C09F = audio_init() clobbers(A,X,Y) -> bool @Pc     ; (re)initialize both vera PSG and YM audio chips
+romsub $C000 = bas_fmfreq(ubyte channel @A, uword freq @XY, bool noretrigger @Pc) clobbers(A,X,Y) -> bool @Pc
+romsub $C003 = bas_fmnote(ubyte channel @A, ubyte note @X, ubyte fracsemitone @Y, bool noretrigger @Pc) clobbers(A,X,Y) -> bool @Pc
+romsub $C006 = bas_fmplaystring(ubyte length @A, str string @XY) clobbers(A,X,Y)
+romsub $C009 = bas_fmvib(ubyte speed @A, ubyte depth @X) clobbers(A,X,Y) -> bool @Pc
+romsub $C00C = bas_playstringvoice(ubyte channel @A) clobbers(Y)
+romsub $C00F = bas_psgfreq(ubyte voice @A, uword freq @XY) clobbers(A,X,Y) -> bool @Pc
+romsub $C012 = bas_psgnote(ubyte voice @A, ubyte note @X, ubyte fracsemitone @Y) clobbers(A,X,Y) -> bool @Pc
+romsub $C015 = bas_psgwav(ubyte voice @A, ubyte waveform @X) clobbers(A,X,Y) -> bool @Pc
+romsub $C018 = bas_psgplaystring(ubyte length @A, str string @XY) clobbers(A,X,Y)
+romsub $C08D = bas_fmchordstring(ubyte length @A, str string @XY) clobbers(A,X,Y)
+romsub $C090 = bas_psgchordstring(ubyte length @A, str string @XY) clobbers(A,X,Y)
+romsub $C01B = notecon_bas2fm(ubyte note @X) clobbers(A) -> ubyte @X, bool @Pc
+romsub $C01E = notecon_bas2midi(ubyte note @X) clobbers(A) -> ubyte @X, bool @Pc
+romsub $C021 = notecon_bas2psg(ubyte note @X, ubyte fracsemitone @Y) clobbers(A) -> uword @XY, bool @Pc
+romsub $C024 = notecon_fm2bas(ubyte note @X) clobbers(A) -> ubyte @X, bool @Pc
+romsub $C027 = notecon_fm2midi(ubyte note @X) clobbers(A) -> ubyte @X, bool @Pc
+romsub $C02A = notecon_fm2psg(ubyte note @X, ubyte fracsemitone @Y) clobbers(A) -> uword @XY, bool @Pc
+romsub $C02D = notecon_freq2bas(uword freqHz @XY) clobbers(A) -> ubyte @X, ubyte @Y, bool @Pc
+romsub $C030 = notecon_freq2fm(uword freqHz @XY) clobbers(A) -> ubyte @X, ubyte @Y, bool @Pc
+romsub $C033 = notecon_freq2midi(uword freqHz @XY) clobbers(A) -> ubyte @X, ubyte @Y, bool @Pc
+romsub $C036 = notecon_freq2psg(uword freqHz @XY) clobbers(A) -> uword @XY, bool @Pc
+romsub $C039 = notecon_midi2bas(ubyte note @X) clobbers(A) -> ubyte @X, bool @Pc
+romsub $C03C = notecon_midi2fm(ubyte note @X) clobbers(A) -> ubyte @X, bool @Pc
+romsub $C03F = notecon_midi2psg(ubyte note @X, ubyte fracsemitone @Y) clobbers(A) -> uword @XY, bool @Pc
+romsub $C042 = notecon_psg2bas(uword freq @XY) clobbers(A) -> ubyte @X, ubyte @Y, bool @Pc
+romsub $C045 = notecon_psg2fm(uword freq @XY) clobbers(A) -> ubyte @X, ubyte @Y, bool @Pc
+romsub $C048 = notecon_psg2midi(uword freq @XY) clobbers(A) -> ubyte @X, ubyte @Y, bool @Pc
+romsub $C04B = psg_init() clobbers(A,X,Y)               ; (re)init Vera PSG
+romsub $C04E = psg_playfreq(ubyte voice @A, uword freq @XY) clobbers(A,X,Y)
+romsub $C051 = psg_read(ubyte offset @X, bool cookedVol @Pc) clobbers(Y) -> ubyte @A
+romsub $C054 = psg_setatten(ubyte voice @A, ubyte attenuation @X) clobbers(A,X,Y)
+romsub $C057 = psg_setfreq(ubyte voice @A, uword freq @XY) clobbers(A,X,Y)
+romsub $C05A = psg_setpan(ubyte voice @A, ubyte panning @X) clobbers(A,X,Y)
+romsub $C05D = psg_setvol(ubyte voice @A, ubyte volume @X) clobbers(A,X,Y)
+romsub $C060 = psg_write(ubyte value @A, ubyte offset @X) clobbers(Y)
+romsub $C0A2 = psg_write_fast(ubyte value @A, ubyte offset @X) clobbers(Y)
+romsub $C093 = psg_getatten(ubyte voice @A) clobbers(Y) -> ubyte @X
+romsub $C096 = psg_getpan(ubyte voice @A) clobbers(Y) -> ubyte @X
+romsub $C063 = ym_init() clobbers(A,X,Y) -> bool @Pc              ; (re)init YM chip
+romsub $C066 = ym_loaddefpatches() clobbers(A,X,Y) -> bool @Pc    ; load default YM patches
+romsub $C069 = ym_loadpatch(ubyte channel @A, uword patchOrAddress @XY, bool what @Pc) clobbers(A,X,Y)
+romsub $C06C = ym_loadpatchlfn(ubyte channel @A, ubyte lfn @X) clobbers(X,Y) -> ubyte @A, bool @Pc
+romsub $C06F = ym_playdrum(ubyte channel @A, ubyte note @X) clobbers(A,X,Y) -> bool @Pc
+romsub $C072 = ym_playnote(ubyte channel @A, ubyte kc @X, ubyte kf @Y, bool notrigger @Pc) clobbers(A,X,Y) -> bool @Pc
+romsub $C075 = ym_setatten(ubyte channel @A, ubyte attenuation @X) clobbers(Y) -> bool @Pc
+romsub $C078 = ym_setdrum(ubyte channel @A, ubyte note @X) clobbers(A,X,Y) -> bool @Pc
+romsub $C07B = ym_setnote(ubyte channel @A, ubyte kc @X, ubyte kf @Y) clobbers(A,X,Y) -> bool @Pc
+romsub $C07E = ym_setpan(ubyte channel @A, ubyte panning @X) clobbers(A,X,Y) -> bool @Pc
+romsub $C081 = ym_read(ubyte register @X, bool cooked @Pc) clobbers(Y) -> ubyte @A, bool @Pc
+romsub $C084 = ym_release(ubyte channel @A) clobbers(A,X,Y) -> bool @Pc
+romsub $C087 = ym_trigger(ubyte channel @A, bool noRelease @Pc) clobbers(A,X,Y) -> bool @Pc
+romsub $C08A = ym_write(ubyte value @A, ubyte register @X) clobbers(Y) -> bool @Pc
+romsub $C099 = ym_getatten(ubyte channel @A) clobbers(Y) -> ubyte @X
+romsub $C09C = ym_getpan(ubyte channel @A) clobbers(Y) -> ubyte @X
+romsub $C0A5 = ym_get_chip_type() clobbers(X) -> ubyte @A
 
 
 asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) -> bool @Pc {
@@ -1064,6 +1122,38 @@ inline asmsub  disable_irq_handlers() {
     %asm {{
         jsr  sys.restore_irq
     }}
+}
+
+
+sub search_x16edit() -> ubyte {
+    ; -- Search the rom bank that contains x16edit. Returns bank number, or 255 if not found.
+    cx16.r0L = cx16.getrombank()
+    sys.set_irqd()
+    str @shared signature = petscii:"x16edit"
+    for cx16.r1L in 31 downto 0  {
+        cx16.rombank(cx16.r1L)
+        cx16.r2 = $fff0
+        %asm {{
+            ldy  #0
+-           lda  signature,y
+            cmp  (cx16.r2),y
+            bne  +
+            iny
+            cpy #7
+            bne  -
+            sec
+            bcs  ++
++           clc
++
+        }}
+        if_cs {
+            cx16.rombank(cx16.r0L)
+            sys.clear_irqd()
+            return cx16.r1L
+        }
+    }
+    sys.clear_irqd()
+    return 255
 }
 
 }
