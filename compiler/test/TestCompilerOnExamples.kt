@@ -103,6 +103,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "sprites/dragon",
             "sprites/dragons",
             "amiga",
+            "audio",
             "bdmusic",
             "bobs",
             "bubbleuniverse",
