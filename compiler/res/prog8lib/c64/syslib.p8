@@ -82,7 +82,7 @@ romsub $FFAB = UNTLK() clobbers(A)                              ; command serial
 romsub $FFAE = UNLSN() clobbers(A)                              ; command serial bus device to UNLISTEN
 romsub $FFB1 = LISTEN(ubyte device @ A) clobbers(A)             ; command serial bus device to LISTEN
 romsub $FFB4 = TALK(ubyte device @ A) clobbers(A)               ; command serial bus device to TALK
-romsub $FFB7 = READST() -> ubyte @ A                            ; read I/O status word
+romsub $FFB7 = READST() -> ubyte @ A                            ; read I/O status word  (use CLEARST to reset it to 0)
 romsub $FFBA = SETLFS(ubyte logical @ A, ubyte device @ X, ubyte secondary @ Y)   ; set logical file parameters
 romsub $FFBD = SETNAM(ubyte namelen @ A, str filename @ XY)     ; set filename parameters
 romsub $FFC0 = OPEN() clobbers(X,Y) -> bool @Pc, ubyte @A      ; (via 794 ($31A)) open a logical file
@@ -126,6 +126,15 @@ asmsub RDTIM16() clobbers(X) -> uword @AY {
         pla
         rts
     }}
+}
+
+sub CLEARST() {
+    ; -- Set the ST status variable back to 0. (there's no direct kernal call for this)
+    ;    Note: a drive error state (blinking led) isn't cleared! You can use diskio.status() to clear that.
+    SETNAM(0, $0000)
+    SETLFS(15, 3, 15)
+    void OPEN()
+    CLOSE(15)
 }
 
 }
