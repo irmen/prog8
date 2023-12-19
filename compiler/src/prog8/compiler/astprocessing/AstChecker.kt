@@ -75,6 +75,13 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
+
+        if(identifier.nameInSource.size>1) {
+            val lookupModule = identifier.definingScope.lookup(identifier.nameInSource.take(1))
+            if(lookupModule is VarDecl) {
+                errors.err("ambiguous symbol name, block name expected but found variable", identifier.position)
+            }
+        }
     }
 
     override fun visit(unrollLoop: UnrollLoop) {
@@ -1340,9 +1347,10 @@ internal class AstChecker(private val program: Program,
                 }
             }
         } else if(postIncrDecr.target.arrayindexed != null) {
-            val target = postIncrDecr.target.arrayindexed?.arrayvar?.targetStatement(program)
+            val indexed = postIncrDecr.target.arrayindexed!!
+            val target = indexed.arrayvar.targetStatement(program)
             if(target==null) {
-                errors.err("undefined symbol", postIncrDecr.position)
+                errors.undefined(indexed.arrayvar.nameInSource, indexed.arrayvar.position)
             }
             else {
                 val dt = (target as VarDecl).datatype

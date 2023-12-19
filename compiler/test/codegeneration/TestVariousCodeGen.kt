@@ -7,7 +7,6 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
-import prog8.code.ast.PtArrayIndexer
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtBinaryExpression
 import prog8.code.ast.PtVariable
@@ -283,8 +282,28 @@ derp {
     }
 }"""
 
-        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
-        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("ambiguous symbol name variable vs block") {
+        val src = """
+main {
+    sub start() {
+        uword module
+        module++
+        module.test++
+    }
+}
+
+module {
+    ubyte @shared test
+}
+"""
+        val errors=ErrorReporterForTests()
+        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "ambiguous symbol"
     }
 
     test("prefix expressions with typecasting") {

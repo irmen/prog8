@@ -3,9 +3,9 @@
 
 main {
     sub start() {
-        uword module        ; TODO shadow warning
+        uword module
         module++
-        module.test++       ; TODO compiler error
+        module.test++
     }
 }
 

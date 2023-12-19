@@ -24,7 +24,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     private fun nameShadowWarning(name: String, position: Position, existing: Statement) {
-        errors.warn("name '$name' shadows occurrence at ${existing.position.file} line ${existing.position.line}", position)
+        errors.warn("name '$name' shadows the definition at ${existing.position.file} line ${existing.position.line}", position)
     }
 
     override fun visit(block: Block) {
@@ -56,11 +56,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 nameError(decl.name, decl.position, existingInSameScope)
 
             val existingOuter = decl.parent.definingScope.lookup(listOf(decl.name))
-            if (existingOuter != null && existingOuter !== decl && existingOuter is VarDecl) {
-                if (existingOuter.parent !== decl.parent)
-                    nameShadowWarning(decl.name, decl.position, existingOuter)
-                else
-                    nameError(decl.name, decl.position, existingOuter)
+            if (existingOuter != null && existingOuter !== decl) {
+                if (existingOuter is VarDecl) {
+                    if (existingOuter.parent !== decl.parent)
+                        nameShadowWarning(decl.name, decl.position, existingOuter)
+                    else
+                        nameError(decl.name, decl.position, existingOuter)
+                }
             }
         }
 

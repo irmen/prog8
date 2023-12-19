@@ -2,7 +2,7 @@
 TODO
 ====
 
-- fix the 'message' github compiler error (github)
+- also change asm subroutine and variable prefixes from `p8_` to `p8s_` / `p8v_` and be done with it once and for all.
 
 
 - verafx vram-vram copy routine?
