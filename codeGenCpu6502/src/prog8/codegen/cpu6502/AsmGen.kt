@@ -33,7 +33,11 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
         val functionCallsToPrefix = mutableListOf<Pair<PtNode, Int>>()      // parent + index
 
         fun prefixNamedNode(node: PtNamedNode) {
-            node.name = "p8_${node.name}"
+            when(node) {
+                is PtBlock -> node.name = "p8b_${node.name}"
+                else -> node.name = "p8_${node.name}"
+                // TODO: more special prefixes for the other node types?
+            }
         }
 
         fun prefixSymbols(node: PtNode) {
@@ -116,8 +120,16 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
     }
 }
 
+private fun prefixScopedName(name: String): String {
+    if('.' !in name) return "p8_$name"
+    // fully scoped, first part is block
+    val parts = name.split('.')
+    val prefixed = listOf("p8b_${parts[0]}") + parts.drop(1).map{"p8_$it"}
+    return prefixed.joinToString(".")
+}
+
 private fun PtVariable.prefix(st: SymbolTable): PtVariable {
-    name = name.split('.').map {"p8_$it" }.joinToString(".")
+    name = prefixScopedName(name)
     if(value==null)
         return this
 
@@ -154,7 +166,7 @@ private fun PtJump.prefix(parent: PtNode, st: SymbolTable): PtJump {
 }
 
 private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {
-    val newName = name.split('.').map {"p8_$it" }.joinToString(".")
+    val newName = prefixScopedName(name)
     val call = PtFunctionCall(newName, void, type, position)
     call.children.addAll(children)
     call.children.forEach { it.parent = call }
@@ -167,7 +179,7 @@ private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
     if(target?.astNode?.definingBlock()?.noSymbolPrefixing==true)
         return this
 
-    val newName = name.split('.').map { "p8_$it" }.joinToString(".")
+    val newName = prefixScopedName(name)
     val node = PtIdentifier(newName, type, position)
     node.parent = parent
     return node

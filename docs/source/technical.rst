@@ -30,12 +30,18 @@ so that more system ram is available for the program code itself.
 Symbol prefixing in generated Assembly code
 -------------------------------------------
 
-*All* symbols in the prog8 program will be prefixed with ``p8_`` in the generated assembly code.
+*All* symbols in the prog8 program will be prefixed in the generated assembly code:
+
+Block names
+    will be prefixed with ``p8b_``
+All other names
+    will be prefixed with ``p8_``
+
 This is to avoid naming conflicts with CPU registers, assembly instructions, etc.
 So if you're referencing symbols from the prog8 program in inlined assembly code, you have to take
-this into account. Stick a ``p8_`` in front of everything that you want to reference that is coming
+this into account. Stick a ``p8_`` in front of everything (``p8b_`` for block names) that you want to reference that is coming
 from a prog8 source file.
-All elements in scoped names such as ``main.routine.var1`` are prefixed so this becomes ``p8_main.p8_routine.p8_var1``.
+All elements in scoped names such as ``main.routine.var1`` are prefixed so this becomes ``p8b_main.p8_routine.p8_var1``.
 
 .. attention::
     Symbols from library modules are *not* prefixed and can be used

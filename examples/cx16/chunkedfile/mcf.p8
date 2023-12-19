@@ -41,12 +41,12 @@ mcf {
         %asm {{
             lda  cx16.r0
             ldy  cx16.r0+1
-            sta  p8_mcf.p8_stream.getbuffer_call+1
-            sty  p8_mcf.p8_stream.getbuffer_call+2
+            sta  p8b_mcf.p8_stream.getbuffer_call+1
+            sty  p8b_mcf.p8_stream.getbuffer_call+2
             lda  cx16.r1
             ldy  cx16.r1+1
-            sta  p8_mcf.p8_stream.processchunk_call+1
-            sty  p8_mcf.p8_stream.processchunk_call+2
+            sta  p8b_mcf.p8_stream.processchunk_call+1
+            sty  p8b_mcf.p8_stream.processchunk_call+2
             rts
         }}
     }
@@ -113,7 +113,7 @@ mcf {
                         ; custom chunk
                         uword @shared chunksize = peekw(loadlist_ptr+1)
                         %asm {{
-                            lda  (p8_mcf.p8_loadlist_ptr)
+                            lda  (p8b_mcf.p8_loadlist_ptr)
                             ldx  p8_chunksize
                             ldy  p8_chunksize+1
 getbuffer_call              jsr  $ffff          ; modified
