@@ -468,7 +468,7 @@ private fun ExpressionContext.toAst() : Expression {
         return scoped_identifier().toAst()
 
     if(bop!=null)
-        return BinaryExpression(left.toAst(), bop.text, right.toAst(), toPosition())
+        return BinaryExpression(left.toAst(), bop.text.trim(), right.toAst(), toPosition())
 
     if(prefix!=null)
         return PrefixExpression(prefix.text, expression(0).toAst(), toPosition())

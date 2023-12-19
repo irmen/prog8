@@ -219,7 +219,7 @@ class BinaryExpression(var left: Expression, var operator: String, var right: Ex
             "and", "or", "xor", "not" -> InferredTypes.knownFor(DataType.BOOL)
             "<", ">",
             "<=", ">=",
-            "==", "!=", "in" -> InferredTypes.knownFor(DataType.BOOL)
+            "==", "!=", "in", "not in" -> InferredTypes.knownFor(DataType.BOOL)
             "<<", ">>" -> leftDt
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }

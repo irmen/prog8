@@ -2,6 +2,9 @@
 TODO
 ====
 
+- fix the 'message' github compiler error (github)
+
+
 - verafx vram-vram copy routine?
 set the cache fill and cache write bits in fx ctrl, set one data port's increment to 1 and the other one to 4,
 Assuming your writes are aligned to 32-bit boundaries, do four reads from the increment-1 port
@@ -87,5 +90,6 @@ Other language/syntax features to think about
 
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
+  How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
 - chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`) BUT this changes the semantics of what it is right now ! (x==(y==z) --> x==true)
 - negative array index to refer to an element from the end of the array.  Python `[-1]` or Raku syntax `[\*-1]`  , `[\*/2]` .... \*=size of the array

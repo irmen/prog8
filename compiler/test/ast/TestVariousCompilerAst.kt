@@ -440,5 +440,20 @@ main {
         forloop.body.statements[1] shouldBe instanceOf<Assignment>()
         forloop.body.statements[2] shouldBe instanceOf<Assignment>()
     }
+
+    test("'not in' operator parsing") {
+        val src="""
+main {
+    sub start() {
+        str test = "test"
+        ubyte insync
+        if not insync
+            insync++
+        if insync not in test
+            insync++
+    }
+}"""
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
 })
 
