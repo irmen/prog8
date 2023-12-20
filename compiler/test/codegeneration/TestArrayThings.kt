@@ -122,11 +122,11 @@ main {
 
   sub start() {
     %asm {{
-        lda  p8_normal
-        lda  p8_uw_lsb
-        lda  p8_uw_msb
-        lda  p8_sw_lsb
-        lda  p8_sw_msb
+        lda  p8v_normal
+        lda  p8v_uw_lsb
+        lda  p8v_uw_msb
+        lda  p8v_sw_lsb
+        lda  p8v_sw_msb
     }}
   }
 }"""

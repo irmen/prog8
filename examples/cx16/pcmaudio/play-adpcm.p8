@@ -268,13 +268,13 @@ stereo {
         %asm {{
             ; copy to vera PSG fifo buffer
             ldy  #0
--           lda  p8_left,y
+-           lda  p8v_left,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8_left+1,y
+            lda  p8v_left+1,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8_right,y
+            lda  p8v_right,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8_right+1,y
+            lda  p8v_right+1,y
             sta  cx16.VERA_AUDIO_DATA
             iny
             iny

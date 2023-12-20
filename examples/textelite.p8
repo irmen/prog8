@@ -990,9 +990,9 @@ planet {
             sbc  #$81
             asl  a
             tay
-            lda  p8_wordlists,y
+            lda  p8v_wordlists,y
             sta  P8ZP_SCRATCH_W1
-            lda  p8_wordlists+1,y
+            lda  p8v_wordlists+1,y
             sta  P8ZP_SCRATCH_W1+1
             lda  P8ZP_SCRATCH_REG
             asl  a

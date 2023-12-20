@@ -94,11 +94,11 @@ main {
                 ; @(screen+x) = xbuf[x] + yvalue
 ; max optimized asm is this: (achieving ~21 fps on the C64):
                 %asm {{
-                     lda  p8_yvalue
-                     ldy  p8_x
+                     lda  p8v_yvalue
+                     ldy  p8v_x
                      clc
-                     adc  p8_xbuf,y
-                     sta  (p8_screen),y
+                     adc  p8v_xbuf,y
+                     sta  (p8v_screen),y
                  }}
             }
             screen += 40

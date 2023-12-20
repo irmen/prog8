@@ -1733,7 +1733,7 @@ class IRCodeGen(
     private var labelSequenceNumber = 0
     internal fun createLabelName(): String {
         labelSequenceNumber++
-        return "prog8_label_gen_$labelSequenceNumber"
+        return "label_gen_$labelSequenceNumber"
     }
 
     internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall): ExpressionCodeResult

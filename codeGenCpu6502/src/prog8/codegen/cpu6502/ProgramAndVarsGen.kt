@@ -138,24 +138,24 @@ internal class ProgramAndVarsGen(
             "cx16" -> {
                 if(options.floats)
                     asmgen.out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
-                asmgen.out("  jsr  p8b_main.p8_start")
+                asmgen.out("  jsr  p8b_main.p8s_start")
                 asmgen.out("  jmp  sys.cleanup_at_exit")
             }
             "c64" -> {
-                asmgen.out("  jsr  p8b_main.p8_start |  lda  #31 |  sta  $01")
+                asmgen.out("  jsr  p8b_main.p8s_start |  lda  #31 |  sta  $01")
                 if(!options.noSysInit)
                     asmgen.out("  jmp  sys.cleanup_at_exit")
                 else
                     asmgen.out("  rts")
             }
             "c128" -> {
-                asmgen.out("  jsr  p8b_main.p8_start |  lda  #0 |  sta ${"$"}ff00")
+                asmgen.out("  jsr  p8b_main.p8s_start |  lda  #0 |  sta ${"$"}ff00")
                 if(!options.noSysInit)
                     asmgen.out("  jmp  sys.cleanup_at_exit")
                 else
                     asmgen.out("  rts")
             }
-            else -> asmgen.jmp("p8b_main.p8_start")
+            else -> asmgen.jmp("p8b_main.p8s_start")
         }
     }
 
@@ -331,7 +331,7 @@ internal class ProgramAndVarsGen(
         asmsubs2asm(sub.children)
 
         // the main.start subroutine is the program's entrypoint and should perform some initialization logic
-        if((sub.name=="start" || sub.name=="p8_start") && (sub.definingBlock()!!.name=="main" || sub.definingBlock()!!.name=="p8b_main"))
+        if((sub.name=="start" || sub.name=="p8s_start") && (sub.definingBlock()!!.name=="main" || sub.definingBlock()!!.name=="p8b_main"))
             entrypointInitialization()
 
         if(functioncallAsmGen.optimizeIntArgsViaRegisters(sub)) {

@@ -163,7 +163,12 @@ class CallGraph(private val program: Program) : IAstVisitor {
         return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key }
     }
 
-    private fun nameInAssemblyCode(name: String) = allAssemblyNodes.any { "p8_$name" in it.names || "p8b_$name" in it.names || name in it.names }
+    private val prefixes = listOf("p8_", "p8b_", "p8v_", "p8s_", "p8l_", "")
+    private fun nameInAssemblyCode(name: String): Boolean {
+        return allAssemblyNodes.any {
+            prefixes.any { prefix -> prefix+name in it.names }
+        }
+    }
 
     inline fun unused(label: Label) = false   // just always output labels
 

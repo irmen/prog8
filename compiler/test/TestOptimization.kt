@@ -843,7 +843,7 @@ main {
 main {
     sub start() {
         %asm{{
-            jsr p8_test
+            jsr p8s_test
         }}
     }
 

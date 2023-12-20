@@ -235,9 +235,9 @@ music {
         ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
         ; converting unsigned wav 8 bit samples to signed 8 bit on the fly
         %asm {{
-            lda  p8_buffer
+            lda  p8v_buffer
             sta  cx16.r0L
-            lda  p8_buffer+1
+            lda  p8v_buffer+1
             sta  cx16.r0H
             ldx  #4
 -           ldy  #0
@@ -265,9 +265,9 @@ music {
     asmsub uncompressed_block_16() {
         ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
         %asm {{
-            lda  p8_buffer
+            lda  p8v_buffer
             sta  cx16.r0L
-            lda  p8_buffer+1
+            lda  p8v_buffer+1
             sta  cx16.r0H
             ldx  #4
 -           ldy  #0
@@ -373,13 +373,13 @@ music {
         %asm {{
             ; copy to vera PSG fifo buffer
             ldy  #0
--           lda  p8_left,y
+-           lda  p8v_left,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8_left+1,y
+            lda  p8v_left+1,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8_right,y
+            lda  p8v_right,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8_right+1,y
+            lda  p8v_right+1,y
             sta  cx16.VERA_AUDIO_DATA
             iny
             iny

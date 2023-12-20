@@ -85,10 +85,10 @@ main {
         result.codegenAst!!.name shouldBe result.compilerAst.name
         result.codegenAst!!.children.size shouldBeGreaterThan 2
         val start = result.codegenAst!!.entrypoint()!!
-        start.name shouldBe "p8_start"
+        start.name shouldBe "p8s_start"
         start.children.size shouldBeGreaterThan 2
         val seed = start.children[0] as PtVariable
-        seed.name shouldBe "p8_seed"
+        seed.name shouldBe "p8v_seed"
         seed.value shouldBe null
         seed.type shouldBe DataType.ARRAY_UW
         val assign = start.children[1] as PtAssignment

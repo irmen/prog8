@@ -34,9 +34,10 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
 
         fun prefixNamedNode(node: PtNamedNode) {
             when(node) {
+                is PtAsmSub, is PtSub -> node.name = "p8s_${node.name}"
                 is PtBlock -> node.name = "p8b_${node.name}"
-                else -> node.name = "p8_${node.name}"
-                // TODO: more special prefixes for the other node types?
+                is PtLabel -> node.name = "p8l_${node.name}"
+                is PtVariable, is PtConstant, is PtMemMapped, is PtSubroutineParameter -> node.name = "p8v_${node.name}"
             }
         }
 
@@ -120,16 +121,20 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
     }
 }
 
-private fun prefixScopedName(name: String): String {
-    if('.' !in name) return "p8_$name"
-    // fully scoped, first part is block
+private fun prefixScopedName(name: String, type: Char): String {
+    if('.' !in name)
+        return "p8${type}_$name"
     val parts = name.split('.')
-    val prefixed = listOf("p8b_${parts[0]}") + parts.drop(1).map{"p8_$it"}
+    val firstPrefixed = "p8b_${parts[0]}"
+    val lastPrefixed = "p8${type}_${parts.last()}"
+    // the parts in between are assumed to be subroutine scopes.
+    val inbetweenPrefixed = parts.drop(1).dropLast(1).map{ "p8s_$it" }
+    val prefixed = listOf(firstPrefixed) + inbetweenPrefixed + listOf(lastPrefixed)
     return prefixed.joinToString(".")
 }
 
 private fun PtVariable.prefix(st: SymbolTable): PtVariable {
-    name = prefixScopedName(name)
+    name = prefixScopedName(name, 'v')
     if(value==null)
         return this
 
@@ -166,7 +171,7 @@ private fun PtJump.prefix(parent: PtNode, st: SymbolTable): PtJump {
 }
 
 private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {
-    val newName = prefixScopedName(name)
+    val newName = prefixScopedName(name, 's')
     val call = PtFunctionCall(newName, void, type, position)
     call.children.addAll(children)
     call.children.forEach { it.parent = call }
@@ -175,11 +180,28 @@ private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {
 }
 
 private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
-    val target = st.lookup(name)
+    var target = st.lookup(name)
     if(target?.astNode?.definingBlock()?.noSymbolPrefixing==true)
         return this
 
-    val newName = prefixScopedName(name)
+    if(target==null) {
+        if(name.endsWith("_lsb") || name.endsWith("_msb")) {
+            target = st.lookup(name.dropLast(4))
+            if(target?.astNode?.definingBlock()?.noSymbolPrefixing==true)
+                return this
+        }
+    }
+
+    val prefixType = when(target!!.type) {
+        StNodeType.BLOCK -> 'b'
+        StNodeType.SUBROUTINE, StNodeType.ROMSUB -> 's'
+        StNodeType.LABEL -> 'l'
+        StNodeType.STATICVAR, StNodeType.MEMVAR, StNodeType.CONSTANT -> 'v'
+        StNodeType.BUILTINFUNC -> 's'
+        StNodeType.MEMORYSLAB -> 'v'
+        else -> '?'
+    }
+    val newName = prefixScopedName(name, prefixType)
     val node = PtIdentifier(newName, type, position)
     node.parent = parent
     return node
@@ -3111,7 +3133,7 @@ $repeatLabel""")
 
     internal fun makeLabel(postfix: String): String {
         generatedLabelSequenceNumber++
-        return "prog8_label_asm_${generatedLabelSequenceNumber}_$postfix"
+        return "label_asm_${generatedLabelSequenceNumber}_$postfix"
     }
 
     fun assignConstFloatToPointerAY(number: PtNumber) {

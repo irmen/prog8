@@ -66,7 +66,7 @@ class PtProgram(
     fun entrypoint(): PtSub? =
         allBlocks().firstOrNull { it.name == "main" || it.name=="p8b_main" }
             ?.children
-            ?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="main.start" || it.name=="p8_start" || it.name=="p8b_main.p8_start") } as PtSub?
+            ?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="main.start" || it.name=="p8s_start" || it.name=="p8b_main.p8s_start") } as PtSub?
 }
 
 

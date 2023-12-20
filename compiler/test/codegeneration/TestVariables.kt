@@ -17,9 +17,9 @@ class TestVariables: FunSpec({
                     ubyte @shared bytevar = 0
             
                     %asm {{
-                        lda  p8_arrayvar
-                        lda  p8_stringvar
-                        lda  p8_bytevar
+                        lda  p8v_arrayvar
+                        lda  p8v_stringvar
+                        lda  p8v_bytevar
                     }}
                 }
             }
