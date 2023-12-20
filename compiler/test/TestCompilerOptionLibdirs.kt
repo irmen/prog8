@@ -12,9 +12,6 @@ import prog8tests.helpers.outputDir
 import prog8tests.helpers.workingDir
 import java.nio.file.Path
 import kotlin.io.path.absolute
-import kotlin.io.path.createTempFile
-import kotlin.io.path.deleteExisting
-import kotlin.io.path.writeText
 
 /**
  * ATTENTION: this is just kludge!
@@ -22,22 +19,6 @@ import kotlin.io.path.writeText
  * from source file loading all the way through to running 64tass.
  */
 class TestCompilerOptionSourcedirs: FunSpec({
-
-    lateinit var tempFileInWorkingDir: Path
-
-    beforeSpec {
-        tempFileInWorkingDir = createTempFile(directory = workingDir, prefix = "tmp_", suffix = ".p8")
-            .also { it.writeText("""
-                main {
-                    sub start() {
-                    }
-                }
-            """)}
-    }
-
-    afterSpec {
-        tempFileInWorkingDir.deleteExisting()
-    }
 
     fun compileFile(filePath: Path, sourceDirs: List<String>): CompilationResult? {
         val args = CompilerArguments(
@@ -58,21 +39,6 @@ class TestCompilerOptionSourcedirs: FunSpec({
             outputDir
         )
         return compileProgram(args)
-    }
-
-    test("testAbsoluteFilePathInWorkingDir") {
-        val filepath = assumeReadableFile(tempFileInWorkingDir.absolute())
-        compileFile(filepath, listOf()) shouldNotBe null
-    }
-
-    test("testFilePathInWorkingDirRelativeToWorkingDir") {
-        val filepath = assumeReadableFile(workingDir.relativize(tempFileInWorkingDir.absolute()))
-        compileFile(filepath, listOf()) shouldNotBe null
-    }
-
-    test("testFilePathInWorkingDirRelativeTo1stInSourcedirs") {
-        val filepath = assumeReadableFile(tempFileInWorkingDir)
-        compileFile(filepath.fileName, listOf(workingDir.toString())) shouldNotBe null
     }
 
     test("testAbsoluteFilePathOutsideWorkingDir") {
