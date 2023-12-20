@@ -8,13 +8,16 @@
 main {
     sub start() {
         vtui.initialize()
-        store_logo()
+        store_logo()            ; capture logo before boxes are drawn
 
         txt.lowercase()
         vtui.screen_set(0)
         vtui.clr_scr('%', $50)
         vtui.gotoxy(5,5)
         vtui.fill_box(':', 70, 50, $c6)
+
+        store_where_logo_was()  ; after vtui draws boxes, initialize replacement screen values as logo moves
+
         vtui.gotoxy(10,10)
         vtui.border(1, 40, 6, $47)
         vtui.gotoxy(12,12)
@@ -45,6 +48,9 @@ main {
     sub store_logo() {
         vtui.gotoxy(0, 0)
         vtui.save_rect($80, 1, $0000, 7, 7)
+    }
+
+    sub store_where_logo_was() {
         vtui.gotoxy(0, 0)
         vtui.save_rect($80, 1, $0100, 7, 7)
     }
