@@ -38,6 +38,7 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                 is PtBlock -> node.name = "p8b_${node.name}"
                 is PtLabel -> node.name = "p8l_${node.name}"
                 is PtVariable, is PtConstant, is PtMemMapped, is PtSubroutineParameter -> node.name = "p8v_${node.name}"
+                else -> node.name = "p8_${node.name}"
             }
         }
 

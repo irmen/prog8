@@ -163,7 +163,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key }
     }
 
-    private val prefixes = listOf("p8_", "p8b_", "p8v_", "p8s_", "p8l_", "")
+    private val prefixes = listOf("p8b_", "p8v_", "p8s_", "p8l_", "p8_", "")
     private fun nameInAssemblyCode(name: String): Boolean {
         return allAssemblyNodes.any {
             prefixes.any { prefix -> prefix+name in it.names }

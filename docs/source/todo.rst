@@ -2,9 +2,6 @@
 TODO
 ====
 
-- also change asm subroutine and variable prefixes from `p8_` to `p8s_` / `p8v_` and be done with it once and for all.
-
-
 - verafx vram-vram copy routine?
 set the cache fill and cache write bits in fx ctrl, set one data port's increment to 1 and the other one to 4,
 Assuming your writes are aligned to 32-bit boundaries, do four reads from the increment-1 port
