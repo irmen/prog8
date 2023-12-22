@@ -64,7 +64,7 @@ verafx {
 
     sub copy(ubyte srcbank, uword srcaddr, ubyte tgtbank, uword tgtaddr, uword num_longwords) {
         ; use cached 4-byte writes to quickly copy a portion of the video memory to somewhere else
-        ; this routine is around 40-50% faster as a plain byte-by-byte copy
+        ; this routine is about 50% faster as a plain byte-by-byte copy
         cx16.VERA_CTRL = 1
         cx16.VERA_ADDR_H = srcbank | %00010000       ; source: 1-byte increment
         cx16.VERA_ADDR_M = msb(srcaddr)

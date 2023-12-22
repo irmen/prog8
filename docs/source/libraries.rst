@@ -628,7 +628,7 @@ the emulators already support it).
 ``copy``
     Very quickly copy a portion of the video memory to somewhere else in vram (4 bytes at a time)
     Sometimes this is also called "blitting".
-    This routine is around 40-50% faster as a regular byte-by-byte copy.
+    This routine is about 50% faster as a regular byte-by-byte copy.
 
 ``transparency``
     Enable or disable transparent writes (color 0 will be transparent if enabled).

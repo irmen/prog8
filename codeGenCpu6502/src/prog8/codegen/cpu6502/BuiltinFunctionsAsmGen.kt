@@ -206,6 +206,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
               sty  (+)+2
 +             jsr  0       ; modified""")
         }
+
+        // note: the routine can return a word value (in AY)
     }
 
     private fun funcCallFar(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {

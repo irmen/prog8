@@ -88,18 +88,17 @@ main {
 main {
     sub start() {
         uword func = 12345
-        call(func)          ; ok
-        call(12345)         ; ok
-        cx16.r0 = call(func)    ; error
-        call(&start)      ; error
-        call(start)       ; error
+        void call(func)        ; ok
+        void call(12345)       ; ok
+        cx16.r0 = call(func)   ; ok
+        void call(&start)      ; error
+        void call(start)       ; error
     }
 }"""
         val errors = ErrorReporterForTests()
         compileText(Cx16Target(), false, src, errors, false) shouldBe null
-        errors.errors.size shouldBe 3
-        errors.errors[0] shouldContain ":7:19: assignment right hand side doesn't result in a value"
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "can't call this indirectly"
         errors.errors[1] shouldContain "can't call this indirectly"
-        errors.errors[2] shouldContain "can't call this indirectly"
     }
 })

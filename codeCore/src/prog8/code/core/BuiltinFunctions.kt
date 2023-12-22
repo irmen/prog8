@@ -133,7 +133,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "rrestore"  to FSignature(false, emptyList(), null),
     "memory"    to FSignature(true, listOf(FParam("name", arrayOf(DataType.STR)), FParam("size", arrayOf(DataType.UWORD)), FParam("alignment", arrayOf(DataType.UWORD))), DataType.UWORD),
     "callfar"   to FSignature(false, listOf(FParam("bank", arrayOf(DataType.UBYTE)), FParam("address", arrayOf(DataType.UWORD)), FParam("arg", arrayOf(DataType.UWORD))), DataType.UWORD),
-    "call"      to FSignature(false, listOf(FParam("address", arrayOf(DataType.UWORD))), null),
+    "call"      to FSignature(false, listOf(FParam("address", arrayOf(DataType.UWORD))), DataType.UWORD),
 )
 
 val InplaceModifyingBuiltinFunctions = setOf("setlsb", "setmsb", "rol", "ror", "rol2", "ror2", "sort", "reverse")

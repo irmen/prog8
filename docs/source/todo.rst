@@ -27,6 +27,7 @@ Compiler:
     - (need separate step in codegen and IR to write the "golden" variables)
 
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
+- ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: getting it in shape for code generation
 - ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
