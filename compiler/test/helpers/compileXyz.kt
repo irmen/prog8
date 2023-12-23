@@ -31,6 +31,8 @@ internal fun compileFile(
         experimentalCodegen = false,
         varsHighBank = null,
         varsGolden = false,
+        slabsHighBank = null,
+        slabsGolden = false,
         platform.name,
         symbolDefs = emptyMap(),
         outputDir = outputDir,

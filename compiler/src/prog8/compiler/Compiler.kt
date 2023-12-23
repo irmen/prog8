@@ -37,6 +37,8 @@ class CompilerArguments(val filepath: Path,
                         val experimentalCodegen: Boolean,
                         val varsHighBank: Int?,
                         val varsGolden: Boolean,
+                        val slabsHighBank: Int?,
+                        val slabsGolden: Boolean,
                         val compilationTarget: String,
                         val splitWordArrays: Boolean,
                         val breakpointCpuInstruction: Boolean,
@@ -79,6 +81,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 breakpointCpuInstruction = args.breakpointCpuInstruction
                 varsHighBank = args.varsHighBank
                 varsGolden = args.varsGolden
+                slabsHighBank = args.slabsHighBank
+                slabsGolden = args.slabsGolden
                 splitWordArrays = args.splitWordArrays
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs

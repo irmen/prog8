@@ -34,6 +34,8 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         experimentalCodegen = false,
         varsHighBank = null,
         varsGolden = false,
+        slabsHighBank = null,
+        slabsGolden = false,
         compilationTarget = target.name,
         splitWordArrays = false,
         breakpointCpuInstruction = false,

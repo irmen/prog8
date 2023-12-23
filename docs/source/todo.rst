@@ -2,7 +2,6 @@
 TODO
 ====
 
-- add -slabshigh and -slabsgold to also put the memory() slabs into these memory areas (they're now still always part of the prg itself)
 - add -nowarnunused, or %option ignore_unused (module scope), to suppress all warnings about unused symbols. Useful in libraries.
    put this in all library code, like %option no_symbol_prefixing, and get rid of the "trick" it uses currently to suppress unused symbol warnings for library modules.
 

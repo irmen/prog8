@@ -174,6 +174,7 @@ internal class ProgramAndVarsGen(
 
     private fun footer() {
         var relocateBssVars = false
+        var relocateBssSlabs = false
         var relocatedBssStart = 0u
         var relocatedBssEnd = 0u
 
@@ -193,7 +194,32 @@ internal class ProgramAndVarsGen(
                 options.compTarget.machine.BSSHIGHRAM_END <= options.compTarget.machine.BSSHIGHRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
             }
+            if(options.slabsHighBank!=null && options.varsHighBank!=options.slabsHighBank)
+                throw AssemblyError("slabs and vars high bank must be the same")
             relocateBssVars = true
+            relocatedBssStart = options.compTarget.machine.BSSHIGHRAM_START
+            relocatedBssEnd = options.compTarget.machine.BSSHIGHRAM_END
+        }
+
+        if(options.slabsGolden) {
+            if(options.compTarget.machine.BSSGOLDENRAM_START == 0u ||
+                options.compTarget.machine.BSSGOLDENRAM_END == 0u ||
+                options.compTarget.machine.BSSGOLDENRAM_END <= options.compTarget.machine.BSSGOLDENRAM_START) {
+                throw AssemblyError("current compilation target hasn't got the golden ram area properly defined or it is simply not available")
+            }
+            relocateBssSlabs = true
+            relocatedBssStart = options.compTarget.machine.BSSGOLDENRAM_START
+            relocatedBssEnd = options.compTarget.machine.BSSGOLDENRAM_END
+        }
+        else if(options.slabsHighBank!=null) {
+            if(options.compTarget.machine.BSSHIGHRAM_START == 0u ||
+                options.compTarget.machine.BSSHIGHRAM_END == 0u ||
+                options.compTarget.machine.BSSHIGHRAM_END <= options.compTarget.machine.BSSHIGHRAM_START) {
+                throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
+            }
+            if(options.varsHighBank!=null && options.varsHighBank!=options.slabsHighBank)
+                throw AssemblyError("slabs and vars high bank must be the same")
+            relocateBssSlabs = true
             relocatedBssStart = options.compTarget.machine.BSSHIGHRAM_START
             relocatedBssEnd = options.compTarget.machine.BSSHIGHRAM_END
         }
@@ -201,25 +227,28 @@ internal class ProgramAndVarsGen(
         asmgen.out("; bss sections")
         asmgen.out("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
         if(relocateBssVars) {
-            // BSS vars in another ram area, memory() slabs just concatenated at the end of the program.
-            if(symboltable.allMemorySlabs.isNotEmpty()) {
+            if(!relocateBssSlabs)
                 asmgen.out("  .dsection slabs_BSS")
-            }
             asmgen.out("prog8_program_end\t; end of program label for progend()")
             asmgen.out("  * = ${relocatedBssStart.toHex()}")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
-            asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many variables for BSS section\"")
+            if(relocateBssSlabs)
+                asmgen.out("  .dsection slabs_BSS")
+            asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many variables/data for BSS section\"")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
-            // just append BSS vars followed by memory() slabs, concatenated at the end of the program.
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
-            if(symboltable.allMemorySlabs.isNotEmpty()) {
+            if(!relocateBssSlabs)
                 asmgen.out("  .dsection slabs_BSS")
-            }
             asmgen.out("prog8_program_end\t; end of program label for progend()")
+            if(relocateBssSlabs) {
+                asmgen.out("  * = ${relocatedBssStart.toHex()}")
+                asmgen.out("  .dsection slabs_BSS")
+                asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many data for slabs_BSS section\"")
+            }
         }
     }
 

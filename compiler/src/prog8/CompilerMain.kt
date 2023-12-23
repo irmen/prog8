@@ -55,6 +55,8 @@ private fun compileMain(args: Array<String>): Boolean {
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val varsGolden by cli.option(ArgType.Boolean, fullName = "varsgolden", description = "put uninitialized variables in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
     val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.")
+    val slabsGolden by cli.option(ArgType.Boolean, fullName = "slabsgolden", description = "put memory() slabs in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
+    val slabsHighBank by cli.option(ArgType.Int, fullName = "slabshigh", description = "put memory() slabs in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
     try {
@@ -102,10 +104,25 @@ private fun compileMain(args: Array<String>): Boolean {
             System.err.println("Golden Ram is only available on the Commander X16 target.")
             return false
         }
-        if (varsHighBank!=null) {
-            System.err.println("Either use varsgolden or varshigh, not both.")
+        if (varsHighBank!=null || slabsHighBank!=null) {
+            System.err.println("Either use varsgolden or varshigh (and slabsgolden or slabshigh), not both or mixed.")
             return false
         }
+    }
+    if (slabsGolden==true) {
+        if (compilationTarget != Cx16Target.NAME) {
+            System.err.println("Golden Ram is only available on the Commander X16 target.")
+            return false
+        }
+        if (varsHighBank!=null || slabsHighBank!=null) {
+            System.err.println("Either use golden or high ram, not both.")
+            return false
+        }
+    }
+
+    if(varsHighBank!=null && slabsHighBank!=null && varsHighBank!=slabsHighBank) {
+        System.err.println("Vars and slabs high memory bank must be the same.")
+        return false
     }
 
     if(startVm==true) {
@@ -134,6 +151,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     experimentalCodegen == true,
                     varsHighBank,
                     varsGolden == true,
+                    slabsHighBank,
+                    slabsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
                     breakpointCpuInstruction = false,
@@ -204,6 +223,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     experimentalCodegen == true,
                     varsHighBank,
                     varsGolden == true,
+                    slabsHighBank,
+                    slabsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
                     breakpointCpuInstruction == true,

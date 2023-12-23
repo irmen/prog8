@@ -44,7 +44,9 @@ class RequestParser : Take {
             splitWordArrays = false,
             breakpointCpuInstruction = false,
             varsHighBank = null,
-            varsGolden = false
+            varsGolden = false,
+            slabsHighBank = null,
+            slabsGolden = false
         )
         compileProgram(args)
         return RsJson(Jsonding())
