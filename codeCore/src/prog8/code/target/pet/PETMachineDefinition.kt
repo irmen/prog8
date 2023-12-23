@@ -15,8 +15,8 @@ class PETMachineDefinition: IMachineDefinition {
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val PROGRAM_LOAD_ADDRESS = 0x0401u
 
-    override val BSSHIGHRAM_START = 0xffffu
-    override val BSSHIGHRAM_END = 0xffffu
+    override val BSSHIGHRAM_START = 0u
+    override val BSSHIGHRAM_END = 0u
 
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam

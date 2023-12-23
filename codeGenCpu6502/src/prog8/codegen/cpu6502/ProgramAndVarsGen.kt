@@ -176,8 +176,10 @@ internal class ProgramAndVarsGen(
         asmgen.out("; bss sections")
         asmgen.out("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
         if(options.varsHighBank!=null) {
-            if(options.compTarget.machine.BSSHIGHRAM_START == 0u || options.compTarget.machine.BSSHIGHRAM_END==0u) {
-                throw AssemblyError("current compilation target hasn't got the high ram area properly defined")
+            if(options.compTarget.machine.BSSHIGHRAM_START == 0u ||
+                options.compTarget.machine.BSSHIGHRAM_END == 0u ||
+                options.compTarget.machine.BSSHIGHRAM_END <= options.compTarget.machine.BSSHIGHRAM_START) {
+                throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
             }
             // BSS vars in high ram area, memory() slabs just concatenated at the end of the program.
             if(symboltable.allMemorySlabs.isNotEmpty()) {
@@ -187,7 +189,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("  * = ${options.compTarget.machine.BSSHIGHRAM_START.toHex()}")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
-            asmgen.out("  .cerror * >= ${options.compTarget.machine.BSSHIGHRAM_END.toHex()}, \"too many variables for BSS section\"")
+            asmgen.out("  .cerror * > ${options.compTarget.machine.BSSHIGHRAM_END.toHex()}, \"too many variables for BSS section\"")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
             // BSS vars followed by memory() slabs, concatenated at the end of the program.
