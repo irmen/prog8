@@ -262,5 +262,20 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
         return noModifications
     }
+
+    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        val index = arrayIndexedExpression.indexer.constIndex()
+        if(index!=null && index<0) {
+            val target = arrayIndexedExpression.arrayvar.targetVarDecl(program)
+            val arraysize = target?.arraysize?.constIndex()
+            if(arraysize!=null) {
+                // replace the negative index by the normal index
+                val newIndex = NumericLiteral.optimalNumeric(arraysize+index, arrayIndexedExpression.indexer.position)
+                arrayIndexedExpression.indexer.indexExpr = newIndex
+                newIndex.linkParents(arrayIndexedExpression.indexer)
+            }
+        }
+        return noModifications
+    }
 }
 

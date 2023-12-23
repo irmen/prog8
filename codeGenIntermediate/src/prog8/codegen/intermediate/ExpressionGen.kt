@@ -170,7 +170,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(arrayIx.usesPointerVariable) {
             if(eltSize!=1)
                 throw AssemblyError("non-array var indexing requires bytes dt")
-            if(arrayIx.index.type!=DataType.UBYTE)
+            if(arrayIx.index.type !in ByteDatatypes)
                 throw AssemblyError("non-array var indexing requires bytes index")
             val tr = translateExpression(arrayIx.index)
             addToResult(result, tr, tr.resultReg, -1)

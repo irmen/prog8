@@ -1374,11 +1374,10 @@ internal class AstChecker(private val program: Program,
             if(target.datatype !in IterableDatatypes && target.datatype!=DataType.UWORD)
                 errors.err("indexing requires an iterable or address uword variable", arrayIndexedExpression.position)
             val arraysize = target.arraysize?.constIndex()
+            val index = arrayIndexedExpression.indexer.constIndex()
             if(arraysize!=null) {
-                // check out of bounds
-                val index = arrayIndexedExpression.indexer.constIndex()
                 if(index!=null && (index<0 || index>=arraysize))
-                    errors.err("array index out of bounds", arrayIndexedExpression.indexer.position)
+                    errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
             } else if(target.datatype == DataType.STR) {
                 if(target.value is StringLiteral) {
                     // check string lengths for non-memory mapped strings
@@ -1387,6 +1386,8 @@ internal class AstChecker(private val program: Program,
                     if (index != null && (index < 0 || index >= stringLen))
                         errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
                 }
+            } else if(index!=null && index<0) {
+                errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
             }
         } else
             errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)

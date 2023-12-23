@@ -294,6 +294,7 @@ Here are some examples of arrays::
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
     char = string[4]            ; the fifth character (=byte) in the string
+    char = string[-2]           ; the second-to-last character in the string (Python-style indexing from the end)
 
 .. note::
     Right now, the array should be small enough to be indexable by a single byte index.
@@ -329,6 +330,7 @@ An uword variable can be used in limited scenarios as a 'pointer' to a byte in m
 dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
 a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
 memory at the given index. In contrast to a real array variable, the index value can be the size of a word.
+Unlike array variables, you cannot use a negative index to count from the end, because the size of the array is unknown.
 See also :ref:`pointervars_programming`
 
 **LSB/MSB split word arrays:**

@@ -507,10 +507,13 @@ Array indexing
 ^^^^^^^^^^^^^^
 
 Strings and arrays are a sequence of values. You can access the individual values by indexing.
-Syntax is familiar with brackets:  ``arrayvar[x]`` ::
+Negative index means counted from the end of the array rather than the beginning, where -1 means
+the last element in the array, -2 the second-to-last, etc. (Python uses this same scheme)
+Use brackets to index into an array:  ``arrayvar[x]`` ::
 
     array[2]        ; the third byte in the array (index is 0-based)
     string[4]       ; the fifth character (=byte) in the string
+    array[-2]       ; the second-to-last element
 
 Note: you can also use array indexing on a 'pointer variable', which is basically an uword variable
 containing a memory address. Currently this is equivalent to directly referencing the bytes in
