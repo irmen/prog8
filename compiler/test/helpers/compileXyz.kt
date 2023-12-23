@@ -30,6 +30,7 @@ internal fun compileFile(
         includeSourcelines = false,
         experimentalCodegen = false,
         varsHighBank = null,
+        varsGolden = false,
         platform.name,
         symbolDefs = emptyMap(),
         outputDir = outputDir,

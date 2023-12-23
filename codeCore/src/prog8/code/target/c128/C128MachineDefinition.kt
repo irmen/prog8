@@ -17,6 +17,8 @@ class C128MachineDefinition: IMachineDefinition {
 
     override val BSSHIGHRAM_START = 0u    // TODO
     override val BSSHIGHRAM_END = 0u      // TODO
+    override val BSSGOLDENRAM_START = 0u  // TODO
+    override val BSSGOLDENRAM_END = 0u    // TODO
 
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam

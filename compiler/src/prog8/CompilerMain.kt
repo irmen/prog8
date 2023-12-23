@@ -53,6 +53,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${PETTarget.NAME}', '${VMTarget.NAME}') (required)")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
+    val varsGolden by cli.option(ArgType.Boolean, fullName = "varsgolden", description = "put uninitialized variables in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
     val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
 
@@ -96,6 +97,17 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
+    if (varsGolden==true) {
+        if (compilationTarget != Cx16Target.NAME) {
+            System.err.println("Golden Ram is only available on the Commander X16 target.")
+            return false
+        }
+        if (varsHighBank!=null) {
+            System.err.println("Either use varsgolden or varshigh, not both.")
+            return false
+        }
+    }
+
     if(startVm==true) {
         return runVm(moduleFiles.first())
     }
@@ -121,6 +133,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     includeSourcelines == true,
                     experimentalCodegen == true,
                     varsHighBank,
+                    varsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
                     breakpointCpuInstruction = false,
@@ -190,6 +203,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     includeSourcelines == true,
                     experimentalCodegen == true,
                     varsHighBank,
+                    varsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
                     breakpointCpuInstruction == true,

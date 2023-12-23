@@ -16,6 +16,8 @@ interface IMachineDefinition {
     val PROGRAM_LOAD_ADDRESS : UInt
     val BSSHIGHRAM_START: UInt
     val BSSHIGHRAM_END: UInt
+    val BSSGOLDENRAM_START: UInt
+    val BSSGOLDENRAM_END: UInt
 
     val cpu: CpuType
     var zeropage: Zeropage

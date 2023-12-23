@@ -215,6 +215,11 @@ One or more .p8 module files
     (it's called 'BSS' section or Gap at the address mentioned above).
     Assembling the program will fail if there are too many variables to fit in a single high ram bank.
 
+``-varsgolden``
+    Like ``-varshigh``, but places the variables in the $0400-$07FF "golden ram" area instead.
+    Because this is in normal system memory, there are no bank switching issues.
+    This mode is only available on the Commander X16.
+
 
 Module source code files
 ------------------------

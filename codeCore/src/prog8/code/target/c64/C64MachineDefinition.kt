@@ -18,6 +18,8 @@ class C64MachineDefinition: IMachineDefinition {
 
     override val BSSHIGHRAM_START = 0xc000u
     override val BSSHIGHRAM_END = 0xcfffu
+    override val BSSGOLDENRAM_START = 0u
+    override val BSSGOLDENRAM_END = 0u
 
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam

@@ -173,26 +173,46 @@ internal class ProgramAndVarsGen(
     }
 
     private fun footer() {
-        asmgen.out("; bss sections")
-        asmgen.out("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
-        if(options.varsHighBank!=null) {
+        var relocateBssVars = false
+        var relocatedBssStart = 0u
+        var relocatedBssEnd = 0u
+
+        if(options.varsGolden) {
+            if(options.compTarget.machine.BSSGOLDENRAM_START == 0u ||
+                options.compTarget.machine.BSSGOLDENRAM_END == 0u ||
+                options.compTarget.machine.BSSGOLDENRAM_END <= options.compTarget.machine.BSSGOLDENRAM_START) {
+                throw AssemblyError("current compilation target hasn't got the golden ram area properly defined or it is simply not available")
+            }
+            relocateBssVars = true
+            relocatedBssStart = options.compTarget.machine.BSSGOLDENRAM_START
+            relocatedBssEnd = options.compTarget.machine.BSSGOLDENRAM_END
+        }
+        else if(options.varsHighBank!=null) {
             if(options.compTarget.machine.BSSHIGHRAM_START == 0u ||
                 options.compTarget.machine.BSSHIGHRAM_END == 0u ||
                 options.compTarget.machine.BSSHIGHRAM_END <= options.compTarget.machine.BSSHIGHRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
             }
-            // BSS vars in high ram area, memory() slabs just concatenated at the end of the program.
+            relocateBssVars = true
+            relocatedBssStart = options.compTarget.machine.BSSHIGHRAM_START
+            relocatedBssEnd = options.compTarget.machine.BSSHIGHRAM_END
+        }
+
+        asmgen.out("; bss sections")
+        asmgen.out("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
+        if(relocateBssVars) {
+            // BSS vars in another ram area, memory() slabs just concatenated at the end of the program.
             if(symboltable.allMemorySlabs.isNotEmpty()) {
                 asmgen.out("  .dsection slabs_BSS")
             }
             asmgen.out("prog8_program_end\t; end of program label for progend()")
-            asmgen.out("  * = ${options.compTarget.machine.BSSHIGHRAM_START.toHex()}")
+            asmgen.out("  * = ${relocatedBssStart.toHex()}")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
-            asmgen.out("  .cerror * > ${options.compTarget.machine.BSSHIGHRAM_END.toHex()}, \"too many variables for BSS section\"")
+            asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many variables for BSS section\"")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
-            // BSS vars followed by memory() slabs, concatenated at the end of the program.
+            // just append BSS vars followed by memory() slabs, concatenated at the end of the program.
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")

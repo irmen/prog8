@@ -17,6 +17,8 @@ class CX16MachineDefinition: IMachineDefinition {
 
     override val BSSHIGHRAM_START = 0xa000u     // hiram bank 1, 8Kb, assumed to be active
     override val BSSHIGHRAM_END = 0xbfffu       // Rom starts at $c000
+    override val BSSGOLDENRAM_START = 0x0400u
+    override val BSSGOLDENRAM_END = 0x07ffu
 
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam

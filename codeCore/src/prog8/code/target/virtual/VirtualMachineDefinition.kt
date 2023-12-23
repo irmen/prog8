@@ -17,6 +17,8 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override val BSSHIGHRAM_START = 0u          // not actually used
     override val BSSHIGHRAM_END = 0u            // not actually used
+    override val BSSGOLDENRAM_START = 0u        // not actually used
+    override val BSSGOLDENRAM_END = 0u          // not actually used
     override lateinit var zeropage: Zeropage    // not actually used
     override lateinit var golden: GoldenRam     // not actually used
 
