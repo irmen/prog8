@@ -2406,10 +2406,10 @@ internal fun Stack<UByte>.popf(): Double {
     val bits = b7 +
             (1L shl 8)*b6 +
             (1L shl 16)*b5 +
-            (1L shl 24)*b4
-            (1L shl 32)*b3
-            (1L shl 40)*b2
-            (1L shl 48)*b1
+            (1L shl 24)*b4 +
+            (1L shl 32)*b3 +
+            (1L shl 40)*b2 +
+            (1L shl 48)*b1 +
             (1L shl 56)*b0
     return Double.fromBits(bits)
 }

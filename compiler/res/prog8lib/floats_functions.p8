@@ -215,4 +215,17 @@ sub clampf(float value, float minimum, float maximum) -> float {
     return minimum
 }
 
+inline asmsub push(float value @FAC1) {
+    %asm {{
+        jsr  floats.pushFAC1
+    }}
+}
+
+inline asmsub pop() -> float @FAC1 {
+    %asm {{
+        clc
+        jsr  floats.popFAC
+    }}
+}
+
 }

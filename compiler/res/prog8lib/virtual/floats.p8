@@ -173,4 +173,19 @@ sub normalize(float value) -> float {
     return value
 }
 
+sub push(float value) {
+    %ir {{
+        loadm.f  fr65535,floats.push.value
+        push.f  fr65535
+        return
+    }}
+}
+
+sub pop() -> float {
+    %ir {{
+        pop.f  fr65535
+        returnr.f fr65535
+    }}
+}
+
 }
