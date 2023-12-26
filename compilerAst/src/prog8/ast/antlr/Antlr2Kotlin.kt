@@ -676,7 +676,6 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             name,
             if(identifiers.size==1) emptyList() else identifiers.map { it.NAME().text },
             value,
-            isArray,
             options.SHARED().isNotEmpty(),
             split,
             toPosition()

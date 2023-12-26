@@ -25,7 +25,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if(valueDt isnot decl.datatype) {
 
                 // don't add a typecast on an array initializer value, unless booleans
-                if(valueDt.isInteger && decl.datatype in ArrayDatatypes) {
+                if(valueDt.isInteger && decl.isArray) {
                     if(decl.datatype == DataType.ARRAY_BOOL) {
                         val integer = declValue.constValue(program)?.number
                         if(integer!=null) {

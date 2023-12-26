@@ -174,7 +174,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
 //                }
 //                VarDeclType.MEMORY -> {
 //                    val numElements =
-//                        if(decl.datatype in ArrayDatatypes)
+//                        if(decl.isArray)
 //                            decl.arraysize!!.constIndex()
 //                        else null
 //                    val astNode = PtVariable(decl.name, decl.datatype, null, null, decl.position)

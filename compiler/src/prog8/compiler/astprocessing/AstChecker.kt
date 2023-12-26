@@ -697,7 +697,7 @@ internal class AstChecker(private val program: Program,
         if(declValue!=null && decl.type==VarDeclType.VAR) {
             val iDt = declValue.inferType(program)
             if (iDt isnot decl.datatype) {
-                if(decl.datatype in ArrayDatatypes) {
+                if(decl.isArray) {
                     val eltDt = ArrayToElementTypes.getValue(decl.datatype)
                     if(iDt isnot eltDt) {
                         if(!(iDt.isBool && eltDt==DataType.UBYTE || iDt.istype(DataType.UBYTE) && eltDt==DataType.BOOL))

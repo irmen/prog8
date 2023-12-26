@@ -167,7 +167,7 @@ class StatementOptimizer(private val program: Program,
                     return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
                 }
             }
-            else if(iterable.datatype in ArrayDatatypes) {
+            else if(iterable.isArray) {
                 val size = iterable.arraysize!!.constIndex()
                 if(size==1) {
                     // loop over array of length 1 -> just assign the single value

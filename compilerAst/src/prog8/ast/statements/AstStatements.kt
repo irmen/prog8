@@ -209,7 +209,6 @@ class VarDecl(val type: VarDeclType,
               override val name: String,
               val names: List<String>,
               var value: Expression?,
-              val isArray: Boolean,
               val sharedWithAsm: Boolean,
               val splitArray: Boolean,
               override val position: Position) : Statement(), INamedStatement {
@@ -217,10 +216,8 @@ class VarDecl(val type: VarDeclType,
     var allowInitializeWithZero = true
 
     init {
-        if(isArray)
+        if(splitArray)
             require(datatype in ArrayDatatypes) { "array dt mismatch" }
-        else
-            require(datatype !in ArrayDatatypes) { "array dt mismatch" }
     }
 
     companion object {
@@ -229,7 +226,6 @@ class VarDecl(val type: VarDeclType,
         fun fromParameter(param: SubroutineParameter): VarDecl {
             val dt = if(param.type in ArrayDatatypes) DataType.UWORD else param.type
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, ZeropageWish.DONTCARE, null, param.name, emptyList(), null,
-                isArray = false,
                 sharedWithAsm = false,
                 splitArray = false,
                 position = param.position
@@ -241,9 +237,12 @@ class VarDecl(val type: VarDeclType,
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, emptyList(), array,
-                    isArray = true, sharedWithAsm = false, splitArray = splitArray, position = array.position)
+                    sharedWithAsm = false, splitArray = splitArray, position = array.position)
         }
     }
+
+    val isArray: Boolean
+        get() = datatype in ArrayDatatypes
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -264,7 +263,7 @@ class VarDecl(val type: VarDeclType,
 
     fun zeroElementValue(): NumericLiteral {
         if(allowInitializeWithZero) {
-            return if(isArray) defaultZero(ArrayToElementTypes.getValue(datatype), position)
+            return if(datatype in ArrayDatatypes) defaultZero(ArrayToElementTypes.getValue(datatype), position)
             else defaultZero(datatype, position)
         }
         else
@@ -275,7 +274,7 @@ class VarDecl(val type: VarDeclType,
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
         val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), name, names, value?.copy(),
-            isArray, sharedWithAsm, splitArray, position)
+            sharedWithAsm, splitArray, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
@@ -295,19 +294,19 @@ class VarDecl(val type: VarDeclType,
             // just copy the initialization value to a separata vardecl for each component
             return names.map {
                 val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),
-                    isArray, sharedWithAsm, splitArray, position)
+                    sharedWithAsm, splitArray, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
         } else {
             // evaluate the value once in the vardecl for the first component, and set the other components to the first
             val first = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), names[0], emptyList(), value?.copy(),
-                isArray, sharedWithAsm, splitArray, position)
+                sharedWithAsm, splitArray, position)
             first.allowInitializeWithZero = this.allowInitializeWithZero
             val firstVar = firstVarAsValue(first)
             return listOf(first) + names.drop(1 ).map {
                 val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), firstVar.copy(),
-                    isArray, sharedWithAsm, splitArray, position)
+                    sharedWithAsm, splitArray, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }

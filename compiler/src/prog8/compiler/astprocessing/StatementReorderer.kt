@@ -80,7 +80,7 @@ internal class StatementReorderer(
                     }
                 }
             }
-            else if(decl.datatype in ArrayDatatypes) {
+            else if(decl.isArray) {
                 // only if the initializer expression is a reference to another array, split it into a separate assignment.
                 // this is so that it later can be changed into a memcopy.
                 // (that code only triggers on regular assignment, not on variable initializers)
@@ -157,7 +157,6 @@ internal class StatementReorderer(
                                 it.name,
                                 emptyList(),
                                 null,
-                                false,
                                 it.sharedWithAsm,
                                 it.splitArray,
                                 it.position

@@ -489,7 +489,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         when(srcVar.type) {
             VarDeclType.VAR -> {
                 val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
-                if(srcVar.datatype in ArrayDatatypes) {
+                if(srcVar.isArray) {
                     if(value==null) {
                         val blockOptions = srcVar.definingBlock.options()
                         if("align_page" in blockOptions || "align_word" in blockOptions) {
