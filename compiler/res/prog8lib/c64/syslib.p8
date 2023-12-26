@@ -772,6 +772,33 @@ _longcopy
         }}
     }
 
+    inline asmsub push(ubyte value @A) {
+        %asm {{
+            pha
+        }}
+    }
+
+    inline asmsub pushw(uword value @AY) {
+        %asm {{
+            pha
+            tya
+            pha
+        }}
+    }
+
+    inline asmsub pop() -> ubyte @A {
+        %asm {{
+            pla
+        }}
+    }
+
+    inline asmsub popw() -> uword @AY {
+        %asm {{
+            pla
+            tay
+            pla
+        }}
+    }
 }
 
 cx16 {

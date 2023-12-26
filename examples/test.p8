@@ -1,14 +1,25 @@
 %import textio
-%zeropage dontuse
+;;%import floats
+%zeropage basicsafe
 
 main {
     sub start() {
-        uword empty
-        uword block = memory("block", 500, 0)
+        sys.push(11)
+        sys.pushw(2222)
+        ;;floats.pushf(floats.π)
+        cx16.r2++
 
-        txt.print_uwhex(&empty, true)
+        ;;float pi = floats.popf()
+        ;;floats.print_f(pi)
+        ;;txt.nl()
+
+        cx16.r1 = sys.popw()
+        cx16.r0L = sys.pop()
+
+        txt.print_ub(cx16.r0L)
         txt.nl()
-        txt.print_uwhex(block, true)
+        txt.print_uw(cx16.r1)
         txt.nl()
+
     }
 }

@@ -2,7 +2,6 @@ package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
@@ -67,19 +66,6 @@ class TestBuiltinFunctions: FunSpec({
         conv.returns.dt shouldBe null
         conv.returns.floatFac1 shouldBe false
         conv.returns.reg shouldBe null
-    }
-
-    test("push pop") {
-        val src="""
-            main  {
-                sub start () { 
-                    pushw(cx16.r0)
-                    push(cx16.r1L)
-                    pop(cx16.r1L)
-                    popw(cx16.r0)
-                }
-            }"""
-        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
     }
 
     test("certain builtin functions should be compile time evaluated") {

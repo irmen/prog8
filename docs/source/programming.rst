@@ -898,20 +898,6 @@ pokemon (address, value)
     Like poke(), but also returns the previous value in the given address.
     Also doesn't have anything to do with a certain video game.
 
-push (value)
-    pushes a byte value on the CPU hardware stack. Low-level function that should normally not be used.
-
-pushw (value)
-    pushes a 16-bit word value on the CPU hardware stack. Low-level function that should normally not be used.
-
-pop (variable)
-    pops a byte value off the CPU hardware stack into the given variable. Only variables can be used.
-    Low-level function that should normally not be used.
-
-popw (value)
-    pops a 16-bit word value off the CPU hardware stack into the given variable. Only variables can be used.
-    Low-level function that should normally not be used.
-
 rol (x)
     Rotate the bits in x (byte or word) one position to the left.
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,

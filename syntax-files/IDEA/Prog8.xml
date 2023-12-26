@@ -1,4 +1,4 @@
-<filetype binary="false" default_extension="prog8" description="Prog8 source file" name="Prog8">
+<filetype binary="false" default_extension="p8" description="Prog8 source file" name="Prog8">
   <highlighting>
     <options>
       <option name="LINE_COMMENT" value=";" />
@@ -14,10 +14,10 @@
     <keywords keywords="&amp;;-&gt;;@;and;as;asmsub;break;clobbers;continue;do;downto;else;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;romsub;step;sub;to;true;unroll;until;when;while;xor;~" ignore_case="false" />
     <keywords2 keywords="%address;%asm;%asmbinary;%asminclude;%breakpoint;%encoding;%import;%ir;%launcher;%option;%output;%zeropage;%zpallowed;%zpreserved;atascii:;default:;iso:;petscii:;sc:" />
     <keywords3 keywords="@requirezp;@shared;@split;@zp;bool;byte;const;float;str;ubyte;uword;void;word" />
-    <keywords4 keywords="abs;all;any;call;callfar;clamp;cmp;divmod;len;lsb;max;memory;min;mkword;msb;peek;peekf;peekw;poke;pokef;pokew;pop;popw;push;pushw;reverse;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;setlsb;setmsb;sgn;sizeof;sort;sqrt;swap;|&gt;" />
+    <keywords4 keywords="abs;all;any;call;callfar;clamp;cmp;divmod;len;lsb;max;memory;min;mkword;msb;peek;peekf;peekw;poke;pokef;pokew;reverse;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;setlsb;setmsb;sgn;sizeof;sort;sqrt;swap;|&gt;" />
   </highlighting>
   <extensionMap>
-    <mapping ext="prog8" />
     <mapping ext="p8" />
+    <mapping ext="prog8" />
   </extensionMap>
 </filetype>

@@ -126,6 +126,38 @@ sys {
             returnr.b r0
         }}
     }
+
+    sub push(ubyte b) {
+        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
+        %ir {{
+            loadm.b r65535,sys.push.b
+            push.b r65535
+        }}
+    }
+
+    sub pushw(uword w) {
+        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
+        %ir {{
+            loadm.w r65535,sys.pushw.w
+            push.w r65535
+        }}
+    }
+
+    sub pop() -> ubyte {
+        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
+        %ir {{
+            pop.b r65535
+            returnr.b r65535
+        }}
+    }
+
+    sub popw() -> uword {
+        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
+        %ir {{
+            pop.w r65535
+            returnr.w r65535
+        }}
+    }
 }
 
 cx16 {

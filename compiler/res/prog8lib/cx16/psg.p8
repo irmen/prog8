@@ -114,10 +114,10 @@ psg {
         ; cx16.r0 = the volume word (volume scaled by 256)
         ; cx16.r1L = the voice number
         ; cx16.r2L = attack value
-        pushw(cx16.r0)
-        push(cx16.r1L)
-        push(cx16.r2L)
-        pushw(cx16.r9)
+        sys.pushw(cx16.r0)
+        sys.push(cx16.r1L)
+        sys.push(cx16.r2L)
+        sys.pushw(cx16.r9)
         ; calculate new volumes
         for cx16.r1L in 0 to 15 {
             when envelope_states[cx16.r1L] {
@@ -166,10 +166,10 @@ psg {
             cx16.VERA_DATA0 = cx16.VERA_DATA1 & %11000000 | msb(envelope_volumes[cx16.r1L])
         }
         cx16.restore_vera_context()
-        popw(cx16.r9)
-        pop(cx16.r2L)
-        pop(cx16.r1L)
-        popw(cx16.r0)
+        cx16.r9 = sys.popw()
+        cx16.r2L = sys.pop()
+        cx16.r1L = sys.pop()
+        cx16.r0 = sys.popw()
         return true     ; run the system IRQ handler afterwards
     }
 

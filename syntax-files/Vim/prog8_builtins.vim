@@ -13,7 +13,7 @@ syn keyword prog8BuiltInFunc sgn sqrtw
 syn keyword prog8BuiltInFunc any all len reverse sort
 
 " Miscellaneous functions
-syn keyword prog8BuiltInFunc cmp divmod lsb msb mkword min max peek peekw peekf poke pokew pokef push pushw pop popw rsave rsavex rrestore rrestorex
+syn keyword prog8BuiltInFunc cmp divmod lsb msb mkword min max peek peekw peekf poke pokew pokef rsave rsavex rrestore rrestorex
 syn keyword prog8BuiltInFunc rol rol2 ror ror2 sizeof setlsb setmsb
 syn keyword prog8BuiltInFunc swap memory call callfar clamp
 

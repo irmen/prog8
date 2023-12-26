@@ -1615,4 +1615,31 @@ save_SCRATCH_ZPWORD2	.word  0
             ldy  #>prog8_program_end
         }}
     }
+
+    inline asmsub push(ubyte value @A) {
+        %asm {{
+            pha
+        }}
+    }
+
+    inline asmsub pushw(uword value @AY) {
+        %asm {{
+            pha
+            phy
+        }}
+    }
+
+    inline asmsub pop() -> ubyte @A {
+        %asm {{
+            pla
+        }}
+    }
+
+    inline asmsub popw() -> uword @AY {
+        %asm {{
+            ply
+            pla
+        }}
+    }
+
 }

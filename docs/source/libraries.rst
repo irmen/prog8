@@ -140,6 +140,20 @@ sys (part of syslib)
     It stores and restores the values of the internal prog8 variables.
     This allows other code to run that might clobber these values temporarily.
 
+``push (value)``
+    pushes a byte value on the CPU hardware stack. Low-level function that should normally not be used.
+
+``pushw (value)``
+    pushes a 16-bit word value on the CPU hardware stack. Low-level function that should normally not be used.
+
+``pop ()``
+    pops a byte value off the CPU hardware stack and returns it.
+    Low-level function that should normally not be used.
+
+``popw ()``
+    pops a 16-bit word value off the CPU hardware stack and returns it.
+    Low-level function that should normally not be used.
+
 
 conv
 ----

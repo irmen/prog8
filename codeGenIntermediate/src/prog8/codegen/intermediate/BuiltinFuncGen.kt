@@ -20,10 +20,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "sqrt__ubyte", "sqrt__uword", "sqrt__float" -> funcSqrt(call)
             "divmod__ubyte" -> funcDivmod(call, IRDataType.BYTE)
             "divmod__uword" -> funcDivmod(call, IRDataType.WORD)
-            "pop" -> funcPop(call)
-            "popw" -> funcPopw(call)
-            "push" -> funcPush(call)
-            "pushw" -> funcPushw(call)
             "rsave", "rrestore" -> ExpressionCodeResult.EMPTY  // vm doesn't have registers to save/restore
             "callfar" -> funcCallfar(call)
             "call" -> funcCall(call)
@@ -276,44 +272,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             }
             else -> throw AssemblyError("invalid dt for sqrt")
         }
-    }
-
-    private fun funcPop(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val code = IRCodeChunk(null, null)
-        val reg = codeGen.registers.nextFree()
-        code += IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=reg)
-        val result = mutableListOf<IRCodeChunkBase>(code)
-        result += assignRegisterTo(call.args.single(), reg)
-        return ExpressionCodeResult(result, IRDataType.BYTE, reg, -1)
-    }
-
-    private fun funcPopw(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val code = IRCodeChunk(null, null)
-        val reg = codeGen.registers.nextFree()
-        code += IRInstruction(Opcode.POP, IRDataType.WORD, reg1=reg)
-        val result = mutableListOf<IRCodeChunkBase>(code)
-        result += assignRegisterTo(call.args.single(), reg)
-        return ExpressionCodeResult(result, IRDataType.WORD, reg, -1)
-    }
-
-    private fun funcPush(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val tr = exprGen.translateExpression(call.args.single())
-        addToResult(result, tr, tr.resultReg, -1)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1=tr.resultReg)
-        }
-        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
-    }
-
-    private fun funcPushw(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val tr = exprGen.translateExpression(call.args.single())
-        addToResult(result, tr, tr.resultReg, -1)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1 = tr.resultReg)
-        }
-        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
     private fun funcReverse(call: PtBuiltinFunctionCall): ExpressionCodeResult {

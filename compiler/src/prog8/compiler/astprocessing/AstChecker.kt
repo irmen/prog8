@@ -1216,19 +1216,6 @@ internal class AstChecker(private val program: Program,
                     errors.err("sorting a floating point array is not supported", functionCallStatement.args.first().position)
                 }
             }
-            else if(funcName[0] in arrayOf("pop", "popw")) {
-                // can only pop into a variable, that has to have the correct type
-                val idref = functionCallStatement.args[0]
-                if(idref !is IdentifierReference) {
-                    if(idref is TypecastExpression) {
-                        val passByRef = idref.expression.inferType(program).isPassByReference
-                        if(idref.type!=DataType.UWORD || !passByRef)
-                            errors.err("invalid argument to pop, must be a variable with the correct type: ${functionCallStatement.args.first()}", functionCallStatement.args.first().position)
-                    } else {
-                        errors.err("invalid argument to pop, must be a variable with the correct type: ${functionCallStatement.args.first()}", functionCallStatement.args.first().position)
-                    }
-                }
-            }
             else if(funcName[0].startsWith("divmod")) {
                 if(functionCallStatement.args[2] is TypecastExpression || functionCallStatement.args[3] is TypecastExpression) {
                     errors.err("arguments must be all ubyte or all uword", functionCallStatement.position)

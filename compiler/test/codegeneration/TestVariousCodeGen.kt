@@ -16,6 +16,7 @@ import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import kotlin.io.path.readText
 
 class TestVariousCodeGen: FunSpec({
     test("bool to byte cast in expression is correct") {
@@ -357,5 +358,25 @@ main {
 }"""
         compileText(VMTarget(), true, src, writeAssembly = false) shouldNotBe null
         compileText(Cx16Target(), true, src, writeAssembly = false) shouldNotBe null
+    }
+
+    test("push pop are inlined also with noopt") {
+        val text = """
+main {
+    sub start() {
+        sys.push(11)
+        sys.pushw(2222)
+        cx16.r2++
+        cx16.r1 = sys.popw()
+        cx16.r0L = sys.pop()
+    } 
+}"""
+        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+        assembly shouldContain "inlined routine follows: push"
+        assembly shouldContain "inlined routine follows: pushw"
+        assembly shouldContain "inlined routine follows: pop"
+        assembly shouldContain "inlined routine follows: popw"
     }
 })

@@ -85,7 +85,7 @@ class TestVm: FunSpec( {
         )
         block += startSub
         program.addBlock(block)
-        shouldThrowWithMessage<IRParseException>("vm does not support asmsubs (use normal sub): main.asmstart") {
+        shouldThrowWithMessage<IRParseException>("vm does not support non-inlined asmsubs (use normal sub): main.asmstart") {
             VirtualMachine(program)
         }
     }

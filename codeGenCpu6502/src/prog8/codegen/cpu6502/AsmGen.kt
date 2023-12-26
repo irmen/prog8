@@ -3059,30 +3059,16 @@ $repeatLabel""")
         }
     }
 
-    internal fun popCpuStack(dt: DataType, target: IPtVariable, scope: IPtSubroutine?) {
-        // note: because A is pushed first so popped last, saving A is often not required here.
-        val targetAsmSub = (target as PtNode).definingAsmSub()
-        if(targetAsmSub != null) {
-            val parameter = targetAsmSub.parameters.first { it.second.name==target.name }
-            popCpuStack(targetAsmSub, parameter.second, parameter.first)
-            return
-        }
-        val scopedName = when(target) {
-            is PtConstant -> target.scopedName
-            is PtMemMapped -> target.scopedName
-            is PtVariable -> target.scopedName
-            else -> throw AssemblyError("weird target var")
-        }
-        val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, this, target.type, scope, target.position, variableAsmName = asmVariableName(scopedName))
+    internal fun popCpuStack(dt: DataType) {
         if (dt in ByteDatatypes) {
             out("  pla")
-            assignRegister(RegisterOrPair.A, tgt)
-        } else {
+        } else if (dt in WordDatatypes) {
             if (isTargetCpu(CpuType.CPU65c02))
                 out("  ply |  pla")
             else
                 out("  pla |  tay |  pla")
-            assignRegister(RegisterOrPair.AY, tgt)
+        } else {
+            throw AssemblyError("can't pop type $dt")
         }
     }
 

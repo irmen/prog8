@@ -63,24 +63,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 asmgen.out("  pla")
             }
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
-            "push" -> asmgen.pushCpuStack(DataType.UBYTE, fcall.args[0])
-            "pushw" -> asmgen.pushCpuStack(DataType.UWORD, fcall.args[0])
-            "pop" -> {
-                require(fcall.args[0] is PtIdentifier) {
-                    "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
-                }
-                val symbol = asmgen.symbolTable.lookup((fcall.args[0] as PtIdentifier).name)
-                val target = symbol!!.astNode as IPtVariable
-                asmgen.popCpuStack(DataType.UBYTE, target, fcall.definingISub())
-            }
-            "popw" -> {
-                require(fcall.args[0] is PtIdentifier) {
-                    "attempt to pop a value into a differently typed variable, or in something else that isn't supported ${fcall.position}"
-                }
-                val symbol = asmgen.symbolTable.lookup((fcall.args[0] as PtIdentifier).name)
-                val target = symbol!!.astNode as IPtVariable
-                asmgen.popCpuStack(DataType.UWORD, target, fcall.definingISub())
-            }
             "rsave" -> funcRsave()
             "rrestore" -> funcRrestore()
             "cmp" -> funcCmp(fcall)
