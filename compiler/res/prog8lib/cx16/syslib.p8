@@ -1,11 +1,11 @@
 ; Prog8 definitions for the CommanderX16
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
 
-cbm {
+%option no_symbol_prefixing
 
+cbm {
     ; Commodore (CBM) common variables, vectors and kernal routines
 
-    %option no_symbol_prefixing
 
 ; STROUT --> use txt.print
 ; CLEARSCR -> use txt.clear_screen
@@ -93,8 +93,6 @@ sub CLEARST() {
 }
 
 cx16 {
-
-    %option no_symbol_prefixing
 
 ; irq, system and hardware vectors:
     &uword  IERROR      = $0300
@@ -1168,11 +1166,8 @@ sub search_x16edit() -> ubyte {
 
 }
 
-
 sys {
     ; ------- lowlevel system routines --------
-
-    %option no_symbol_prefixing
 
     const ubyte target = 16         ;  compilation target specifier.  64 = C64,  128 = C128,  16 = CommanderX16.
 

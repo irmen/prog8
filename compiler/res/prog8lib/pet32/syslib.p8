@@ -2,9 +2,10 @@
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
 ; see: https://www.pagetable.com/?p=926  ,  http://www.zimmers.net/cbmpics/cbm/PETx/petmem.txt
 
+%option no_symbol_prefixing
+
 cbm {
     ; Commodore (CBM) common variables, vectors and kernal routines
-    %option no_symbol_prefixing
 
         &ubyte  TIME_HI         = $8d       ; software jiffy clock, hi byte
         &ubyte  TIME_MID        = $8e       ;  .. mid byte
@@ -79,7 +80,6 @@ asmsub RDTIM16() clobbers(X) -> uword @AY {
 
 sys {
     ; ------- lowlevel system routines --------
-    %option no_symbol_prefixing
 
     const ubyte target = 32         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 32=PET
 
@@ -364,8 +364,6 @@ save_SCRATCH_ZPWORD2	.word  0
 }
 
 cx16 {
-    %option no_symbol_prefixing
-
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
     ; they are simulated on the PET as well but their location in memory is different
     ; (because there's no room for them in the zeropage)

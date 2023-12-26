@@ -164,7 +164,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         var alignment = PtBlock.BlockAlignment.NONE
         var forceOutput = false
         var veraFxMuls = false
-        var noSymbolPrefixing = false
+        var noSymbolPrefixing = "no_symbol_prefixing" in srcBlock.definingModule.options()
         val directives = srcBlock.statements.filterIsInstance<Directive>()
         for (directive in directives.filter { it.directive == "%option" }) {
             for (arg in directive.args) {

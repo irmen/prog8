@@ -1,12 +1,10 @@
 ; Prog8 definitions for floating point handling on the Commodore-64
 
-%option enable_floats
+%option enable_floats, no_symbol_prefixing
 %import floats_functions
 
 floats {
 	; ---- this block contains C-64 floating point related functions ----
-    %option no_symbol_prefixing
-
         const float  π      = 3.141592653589793
         const float  PI     = π
         const float  TWOPI  = 2*π

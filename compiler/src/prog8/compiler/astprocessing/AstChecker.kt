@@ -856,7 +856,7 @@ internal class AstChecker(private val program: Program,
                         err("using an option that is not valid for blocks")
                 }
                 if(directive.parent is Module) {
-                    if(directive.args.any {it.name !in arrayOf("enable_floats", "no_sysinit", "splitarrays")})
+                    if(directive.args.any {it.name !in arrayOf("enable_floats", "no_sysinit", "splitarrays", "no_symbol_prefixing")})
                         err("using an option that is not valid for modules")
                 }
                 if(directive.args.any { it.name=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)

@@ -1,8 +1,9 @@
 ; Prog8 definitions for the Atari800XL
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
 
+%option no_symbol_prefixing
+
 atari {
-    %option no_symbol_prefixing
 
         &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
         &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
@@ -19,8 +20,6 @@ atari {
 
 sys {
     ; ------- lowlevel system routines --------
-
-    %option no_symbol_prefixing
 
     const ubyte target = 8         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 8 = atari800XL
 
@@ -273,8 +272,6 @@ save_SCRATCH_ZPWORD2	.word  0
 }
 
 cx16 {
-    %option no_symbol_prefixing
-
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
     ; they are simulated on the Atari as well but their location in memory is different
     ; TODO
