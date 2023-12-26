@@ -160,7 +160,8 @@ val ElementToArrayTypes = mapOf(
     DataType.WORD to DataType.ARRAY_W,
     DataType.UWORD to DataType.ARRAY_UW,
     DataType.FLOAT to DataType.ARRAY_F,
-    DataType.BOOL to DataType.ARRAY_BOOL
+    DataType.BOOL to DataType.ARRAY_BOOL,
+    DataType.STR to DataType.UWORD          // array of str is just an array of pointers
 )
 
 val Cx16VirtualRegisters = arrayOf(

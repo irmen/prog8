@@ -1062,12 +1062,11 @@ main {
 }"""
         val errors=ErrorReporterForTests()
         compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 5
+        errors.errors.size shouldBe 4
         errors.errors[0] shouldContain "no cast"
         errors.errors[1] shouldContain "overflow"
-        errors.errors[2] shouldContain "LONG doesn't match"
-        errors.errors[3] shouldContain "out of range"
-        errors.errors[4] shouldContain "overflow"
+        errors.errors[2] shouldContain "out of range"
+        errors.errors[3] shouldContain "overflow"
     }
 
 })

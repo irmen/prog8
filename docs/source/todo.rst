@@ -2,6 +2,7 @@
 TODO
 ====
 
+- get rid of vardecl.declareddatatype
 - get rid of memory mapped variables: treat them as syntactic sugar for a poke/peek to the symbol.
 
 - add -nowarnunused, or %option ignore_unused (module and block scope), to suppress all warnings about unused symbols. Useful in libraries.

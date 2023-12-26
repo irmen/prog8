@@ -6,7 +6,6 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
-import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
@@ -94,23 +93,33 @@ main {
     }
 
     test("split only for word arrays") {
-        val text = """
+        val srcGood = """
 main {
-  ubyte[10] @split sb
   uword[10] @split sw
   word[10] @split sw2
+
+  sub start() {
+  }
+}"""
+        compileText(C64Target(), false, srcGood, writeAssembly = false) shouldNotBe null
+
+        val srcWrong1 = """
+main {
+  ubyte[10] @split sb
+
+  sub start() {
+  }
+}"""
+        compileText(C64Target(), false, srcWrong1, writeAssembly = false) shouldBe null
+
+        val srcWrong2 = """
+main {
   float[10] @split sf
 
   sub start() {
   }
 }"""
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors.forEach {
-            it shouldContain "split"
-            it shouldContain "word arrays"
-        }
+        compileText(C64Target(), false, srcWrong2, writeAssembly = false) shouldBe null
     }
 
     test("split word arrays in asm as lsb/msb") {
@@ -141,8 +150,9 @@ main {
         str name1 = "name1"
         str name2 = "name2"
         uword[] @split names = [name1, name2, "name3"]
-        cx16.r0++
+        uword[] addresses = [0,0,0]
         names = [1111,2222,3333]
+        addresses = names
     } 
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null

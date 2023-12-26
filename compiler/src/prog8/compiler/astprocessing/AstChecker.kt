@@ -514,10 +514,6 @@ internal class AstChecker(private val program: Program,
                     if(assignment.target.identifier?.targetStatement(program)!=null)
                         errors.err("target datatype is unknown", assignment.target.position)
                     // otherwise, another error about missing symbol is already reported.
-                } else {
-                    // allow bitwise operations on different types as long as the size is the same
-                    if (!((assignment.value as? BinaryExpression)?.operator in BitwiseOperators && targetDt.isBytes && valueDt.isBytes || targetDt.isWords && valueDt.isWords))
-                        errors.err("type of value $valueDt doesn't match target $targetDt", assignment.value.position)
                 }
             }
         }
@@ -1369,7 +1365,6 @@ internal class AstChecker(private val program: Program,
                 if(target.value is StringLiteral) {
                     // check string lengths for non-memory mapped strings
                     val stringLen = (target.value as StringLiteral).value.length
-                    val index = arrayIndexedExpression.indexer.constIndex()
                     if (index != null && (index < 0 || index >= stringLen))
                         errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
                 }

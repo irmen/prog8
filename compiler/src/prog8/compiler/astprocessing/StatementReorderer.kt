@@ -283,9 +283,10 @@ internal class StatementReorderer(
         } else {
             if (sourceVar.arraysize!!.constIndex() != targetVar.arraysize!!.constIndex())
                 errors.err("element count mismatch", assign.position)
-            if (sourceVar.datatype != targetVar.datatype) {
-                if(!targetVar.splitArray || (sourceVar.datatype!=DataType.ARRAY_W && sourceVar.datatype!=DataType.ARRAY_UW))
-                    errors.err("element type mismatch", assign.position)
+            val sourceEltDt = ArrayToElementTypes.getValue(sourceVar.datatype)
+            val targetEltDt = ArrayToElementTypes.getValue(targetVar.datatype)
+            if (!sourceEltDt.equalsSize(targetEltDt)) {
+                errors.err("element size mismatch", assign.position)
             }
         }
 
