@@ -28,7 +28,7 @@ object ParentSentinel : Node {
 
 interface IFunctionCall {
     var target: IdentifierReference
-    var args: MutableList<Expression>
+    val args: MutableList<Expression>
     val position: Position
     var parent: Node             // will be linked correctly later (late init)
 }

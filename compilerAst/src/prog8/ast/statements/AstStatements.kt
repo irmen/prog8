@@ -663,7 +663,7 @@ class Jump(var address: UInt?,
 }
 
 class FunctionCallStatement(override var target: IdentifierReference,
-                            override var args: MutableList<Expression>,
+                            override val args: MutableList<Expression>,
                             val void: Boolean,
                             override val position: Position) : Statement(), IFunctionCall {
     override lateinit var parent: Node
@@ -1134,7 +1134,7 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 // this is meant to eventually (?) be able to not have any FunctionCallStatement nodes to worry about anymore
 // However, if/when the codegen is moved over to use the new CodeAst (PtProgram etc. etc.) this is all moot.
 class BuiltinFunctionCallStatement(override var target: IdentifierReference,
-                                   override var args: MutableList<Expression>,
+                                   override val args: MutableList<Expression>,
                                    override val position: Position) : Statement(), IFunctionCall {
     val name: String = target.nameInSource.single()
 

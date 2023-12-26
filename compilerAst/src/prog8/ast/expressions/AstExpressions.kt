@@ -1047,7 +1047,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 }
 
 class FunctionCallExpression(override var target: IdentifierReference,
-                             override var args: MutableList<Expression>,
+                             override val args: MutableList<Expression>,
                              override val position: Position) : Expression(), IFunctionCall {
     override lateinit var parent: Node
 
@@ -1204,7 +1204,7 @@ class ContainmentCheck(var element: Expression,
 }
 
 class BuiltinFunctionCall(override var target: IdentifierReference,
-                          override var args: MutableList<Expression>,
+                          override val args: MutableList<Expression>,
                           override val position: Position) : Expression(), IFunctionCall {
 
     val name = target.nameInSource.single()
