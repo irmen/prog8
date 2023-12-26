@@ -361,7 +361,7 @@ private fun ArrayindexContext.toAst() : ArrayIndex =
         ArrayIndex(expression().toAst(), toPosition())
 
 internal fun DirectiveContext.toAst() : Directive =
-        Directive(directivename.text, directivearg().map { it.toAst() }, toPosition())
+        Directive(DIRECTIVE().text, directivearg().map { it.toAst() }, toPosition())
 
 private fun DirectiveargContext.toAst() : DirectiveArg {
     val str = stringliteral()

@@ -2,7 +2,7 @@
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
 ; see: https://www.pagetable.com/?p=926  ,  http://www.zimmers.net/cbmpics/cbm/PETx/petmem.txt
 
-%option no_symbol_prefixing
+%option no_symbol_prefixing, ignore_unused
 
 cbm {
     ; Commodore (CBM) common variables, vectors and kernal routines

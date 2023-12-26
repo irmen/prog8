@@ -24,7 +24,7 @@
 
 gfx2 {
 
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     ; read-only control variables:
     ubyte active_mode = 0

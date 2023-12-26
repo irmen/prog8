@@ -1,7 +1,7 @@
 ; 0-terminated string manipulation routines.
 
 string {
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     asmsub length(uword string @AY) clobbers(A) -> ubyte @Y {
         ; Returns the number of bytes in the string.

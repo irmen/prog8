@@ -361,6 +361,7 @@ class IRBlock(
                   val forceOutput: Boolean = false,
                   val noSymbolPrefixing: Boolean = false,
                   val veraFxMuls: Boolean = false,
+                  val ignoreUnused: Boolean = false,
                   val alignment: BlockAlignment = BlockAlignment.NONE)
 
     operator fun plusAssign(sub: IRSubroutine) { children += sub }

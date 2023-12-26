@@ -164,7 +164,8 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         var alignment = PtBlock.BlockAlignment.NONE
         var forceOutput = false
         var veraFxMuls = false
-        var noSymbolPrefixing = "no_symbol_prefixing" in srcBlock.definingModule.options()
+        var noSymbolPrefixing = false
+        var ignoreUnused = false
         val directives = srcBlock.statements.filterIsInstance<Directive>()
         for (directive in directives.filter { it.directive == "%option" }) {
             for (arg in directive.args) {
@@ -172,6 +173,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                     "align_word" -> alignment = PtBlock.BlockAlignment.WORD
                     "align_page" -> alignment = PtBlock.BlockAlignment.PAGE
                     "no_symbol_prefixing" -> noSymbolPrefixing = true
+                    "ignore_unused" -> ignoreUnused = true
                     "force_output" -> forceOutput = true
                     "merge", "splitarrays"  -> { /* ignore this one */ }
                     "verafxmuls" -> veraFxMuls = true
@@ -182,7 +184,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
         val src = srcBlock.definingModule.source
         val block = PtBlock(srcBlock.name, srcBlock.isInLibrary, src,
-            PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, alignment),
+            PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, ignoreUnused, alignment),
             srcBlock.position)
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements)

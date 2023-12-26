@@ -2,7 +2,7 @@
 
 conv {
 
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
 ; ----- number conversions to decimal strings ----
 

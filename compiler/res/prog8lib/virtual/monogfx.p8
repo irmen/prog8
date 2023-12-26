@@ -7,7 +7,7 @@
 
 monogfx {
 
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     ; read-only control variables:
     uword width = 0

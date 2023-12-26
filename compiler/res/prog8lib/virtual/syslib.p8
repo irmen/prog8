@@ -1,5 +1,7 @@
 ; Prog8 definitions for the Virtual Machine
 
+%option ignore_unused
+
 sys {
     ; ------- lowlevel system routines --------
 

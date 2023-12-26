@@ -4,6 +4,8 @@ conv {
 
 ; ----- number conversions to decimal strings ----
 
+    %option ignore_unused
+
     str  string_out = "????????????????"       ; result buffer for the string conversion routines
 
 sub  str_ub0(ubyte value)   {

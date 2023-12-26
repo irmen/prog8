@@ -3,7 +3,7 @@
 %import textio
 
 cx16logo {
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     sub logo_at(ubyte column, ubyte row) {
         uword strptr

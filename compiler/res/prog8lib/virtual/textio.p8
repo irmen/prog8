@@ -1,6 +1,7 @@
 ; Prog8 definitions for the Text I/O console routines for the Virtual Machine
 
 %import conv
+%option ignore_unused
 
 txt {
 

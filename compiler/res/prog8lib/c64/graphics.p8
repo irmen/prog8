@@ -8,7 +8,7 @@
 ; so that the program itself can be larger without starting to overwrite the graphics memory.
 
 graphics {
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     const uword WIDTH = 320
     const ubyte HEIGHT = 200

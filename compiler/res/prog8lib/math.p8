@@ -3,7 +3,7 @@
 ;       such as abs, sqrt, clamp, min, max for example.
 
 math {
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
 	%asminclude "library:math.asm"
 

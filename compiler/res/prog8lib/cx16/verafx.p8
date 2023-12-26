@@ -4,7 +4,7 @@
 ; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg/edit
 
 verafx {
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     sub available() -> bool {
         ; returns true if Vera FX is available (Vera V0.3.1 or later), false if not.

@@ -14,7 +14,7 @@
 
 
 graphics {
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     romsub $feff = FB_cursor_position2()  clobbers(A,X,Y)     ; alias for the normal FB_cursor_position() call but reuses existing r0 and r1
 

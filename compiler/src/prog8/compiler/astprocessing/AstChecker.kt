@@ -843,16 +843,16 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page", "merge", "splitarrays", "no_symbol_prefixing", "verafxmuls")}.any { !it })
+                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "align_word", "align_page", "merge", "verafxmuls", "splitarrays", "no_symbol_prefixing", "ignore_unused")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.args.any {it.name=="align_word"} && directive.args.any { it.name=="align_page"})
                     err("conflicting alignment options")
                 if(directive.parent is Block) {
-                    if(directive.args.any {it.name !in arrayOf("align_word", "align_page", "no_symbol_prefixing", "force_output", "merge", "splitarrays", "verafxmuls")})
+                    if(directive.args.any {it.name !in arrayOf("align_word", "align_page", "force_output", "merge", "verafxmuls", "splitarrays", "no_symbol_prefixing", "ignore_unused")})
                         err("using an option that is not valid for blocks")
                 }
                 if(directive.parent is Module) {
-                    if(directive.args.any {it.name !in arrayOf("enable_floats", "no_sysinit", "splitarrays", "no_symbol_prefixing")})
+                    if(directive.args.any {it.name !in arrayOf("enable_floats", "no_sysinit", "splitarrays", "no_symbol_prefixing", "ignore_unused")})
                         err("using an option that is not valid for modules")
                 }
                 if(directive.args.any { it.name=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)

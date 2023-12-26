@@ -17,7 +17,7 @@
 %import syslib
 
 diskio {
-    %option no_symbol_prefixing
+    %option no_symbol_prefixing, ignore_unused
 
     const ubyte READ_IO_CHANNEL=12
     const ubyte WRITE_IO_CHANNEL=13

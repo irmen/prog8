@@ -1,6 +1,6 @@
 ; Prog8 definitions for floating point handling on the Commodore-64
 
-%option enable_floats, no_symbol_prefixing
+%option enable_floats, no_symbol_prefixing, ignore_unused
 %import floats_functions
 
 floats {

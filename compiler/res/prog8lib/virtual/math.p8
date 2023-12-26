@@ -3,6 +3,7 @@
 ;       such as abs, sqrt, clamp, min, max for example.
 
 math {
+    %option ignore_unused
 
     sub sin8u(ubyte angle) -> ubyte {
         ubyte[256] sintab = [$80, $83, $86, $89, $8c, $8f, $92, $95, $98, $9b, $9e, $a2, $a5, $a7, $aa, $ad, $b0, $b3, $b6, $b9,

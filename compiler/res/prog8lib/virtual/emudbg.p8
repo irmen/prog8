@@ -4,6 +4,7 @@
 %import textio
 
 emudbg {
+    %option ignore_unused
 
     sub is_emulator() -> bool {
         ; Test for emulator presence.

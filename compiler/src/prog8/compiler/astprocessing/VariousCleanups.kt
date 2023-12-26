@@ -14,6 +14,16 @@ import prog8.code.core.*
 
 internal class VariousCleanups(val program: Program, val errors: IErrorReporter, val options: CompilationOptions): AstWalker() {
 
+    override fun after(block: Block, parent: Node): Iterable<IAstModification> {
+        val inheritOptions = block.definingModule.options() intersect setOf("splitarrays", "no_symbol_prefixing", "ignore_unused") subtract block.options()
+        if(inheritOptions.isNotEmpty()) {
+            val directive = Directive("%option", inheritOptions.map{ DirectiveArg(null, it, null, block.position) }, block.position)
+            return listOf(IAstModification.InsertFirst(directive, block))
+        }
+
+        return noModifications
+    }
+
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         return if(parent is IStatementContainer)
             listOf(ScopeFlatten(scope, parent as IStatementContainer))

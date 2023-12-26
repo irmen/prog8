@@ -99,6 +99,23 @@ class Block(override val name: String,
 data class Directive(val directive: String, val args: List<DirectiveArg>, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
+//    init {
+//        require(directive in arrayOf(
+//            "%address",
+//            "%asmbinary",
+//            "%asminclude",
+//            "%breakpoint",
+//            "%encoding",
+//            "%import",
+//            "%launcher",
+//            "%option",
+//            "%output",
+//            "%zeropage",
+//            "%zpallowed",
+//            "%zpreserved",
+//        )) { "invalid directive" }
+//    }
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         args.forEach{it.linkParents(this)}

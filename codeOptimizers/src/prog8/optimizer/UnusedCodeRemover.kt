@@ -90,7 +90,7 @@ class UnusedCodeRemover(private val program: Program,
         if (subroutine !== program.entrypoint && !forceOutput && !subroutine.isAsmSubroutine) {
             if(callgraph.unused(subroutine)) {
                 if(subroutine.containsNoCodeNorVars) {
-                    if(!subroutine.definingModule.isLibrary)
+                    if("ignore_unused" !in subroutine.definingBlock.options())
                         errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
                     val removals = mutableListOf(IAstModification.Remove(subroutine, parent as IStatementContainer))
                     callgraph.calledBy[subroutine]?.let {
@@ -99,7 +99,7 @@ class UnusedCodeRemover(private val program: Program,
                     }
                     return removals
                 }
-                if(!subroutine.hasBeenInlined && !subroutine.definingModule.isLibrary) {
+                if(!subroutine.hasBeenInlined && "ignore_unused" !in subroutine.definingBlock.options()) {
                     errors.warn("unused subroutine '${subroutine.name}'", subroutine.position)
                 }
                 if(!subroutine.inline) {
@@ -119,7 +119,7 @@ class UnusedCodeRemover(private val program: Program,
             if (!forceOutput && decl.origin==VarDeclOrigin.USERCODE && !decl.sharedWithAsm) {
                 val usages = callgraph.usages(decl)
                 if (usages.isEmpty()) {
-                    if(!decl.definingModule.isLibrary)
+                    if("ignore_unused" !in decl.definingBlock.options())
                         errors.warn("removing unused variable '${decl.name}'", decl.position)
                     return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
                 }
@@ -131,7 +131,7 @@ class UnusedCodeRemover(private val program: Program,
                             if(assignment!=null && assignment.origin==AssignmentOrigin.VARINIT) {
                                 if(assignment.value.isSimple) {
                                     // remove the vardecl
-                                    if(!decl.definingModule.isLibrary)
+                                    if("ignore_unused" !in decl.definingBlock.options())
                                         errors.warn("removing unused variable '${decl.name}'", decl.position)
                                     return listOf(
                                         IAstModification.Remove(decl, parent as IStatementContainer),

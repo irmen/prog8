@@ -1,6 +1,6 @@
 ; Prog8 definitions for floating point handling on the VirtualMachine
 
-%option enable_floats
+%option enable_floats, ignore_unused
 
 floats {
 

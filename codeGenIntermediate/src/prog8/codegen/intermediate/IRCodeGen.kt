@@ -1667,6 +1667,7 @@ class IRCodeGen(
                 block.options.forceOutput,
                 block.options.noSymbolPrefixing,
                 block.options.veraFxMuls,
+                block.options.ignoreUnused,
                 translate(block.options.alignment)
             ), block.position)
         for (child in block.children) {

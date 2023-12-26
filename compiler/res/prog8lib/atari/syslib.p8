@@ -1,7 +1,7 @@
 ; Prog8 definitions for the Atari800XL
 ; Including memory registers, I/O registers, Basic and Kernal subroutines.
 
-%option no_symbol_prefixing
+%option no_symbol_prefixing, ignore_unused
 
 atari {
 

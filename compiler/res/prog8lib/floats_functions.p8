@@ -1,6 +1,6 @@
 floats {
     ; the floating point functions shared across compiler targets
-    %option merge, no_symbol_prefixing
+    %option merge, no_symbol_prefixing, ignore_unused
 
 asmsub print_f(float value @FAC1) clobbers(A,X,Y) {
 	; ---- prints the floating point value (without a newline). No leading space (unlike BASIC)!

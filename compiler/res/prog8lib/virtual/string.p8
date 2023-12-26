@@ -1,6 +1,8 @@
 ; 0-terminated string manipulation routines. For the Virtual Machine target.
 
 string {
+    %option ignore_unused
+
     sub length(str st) -> ubyte {
         ; Returns the number of bytes in the string.
         ; This value is determined during runtime and counts upto the first terminating 0 byte in the string,
