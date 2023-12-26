@@ -195,9 +195,8 @@ class AstPreprocessor(val program: Program,
     }
 
     private fun makeSplitArray(decl: VarDecl): Iterable<IAstModification> {
-        val splitDt = ArrayToElementTypes.getValue(decl.datatype)
         val newDecl = VarDecl(
-            decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name, emptyList(),
+            decl.type, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, emptyList(),
             decl.value, true, decl.sharedWithAsm, true, decl.position
         )
         return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))

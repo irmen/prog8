@@ -29,8 +29,8 @@ internal class BoolRemover(val program: Program) : AstWalker() {
                 if(newvalue.number!=0.0)
                     newvalue = NumericLiteral(DataType.UBYTE, 1.0, newvalue.position)
             }
-            val ubyteDecl = VarDecl(decl.type, decl.origin, DataType.UBYTE, decl.zeropage, decl.arraysize, decl.name, emptyList(),
-                newvalue, decl.isArray, decl.sharedWithAsm, decl.splitArray, decl.position)
+            val ubyteDecl = VarDecl(decl.type, decl.origin, DataType.UBYTE, decl.zeropage, null, decl.name, emptyList(),
+                newvalue, false, decl.sharedWithAsm, false, decl.position)
             return listOf(IAstModification.ReplaceNode(decl, ubyteDecl, parent))
         }
 

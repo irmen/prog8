@@ -45,8 +45,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     override fun visit(decl: VarDecl) {
-        decl.datatypeErrors.forEach { errors.err(it.message, it.position) }
-
         if(decl.name in BuiltinFunctions)
             errors.err("builtin function cannot be redefined", decl.position)
 

@@ -654,18 +654,31 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     }
     val identifiers = identifier()
     val name = if(identifiers.size==1) identifiers[0].NAME().text else "<multiple>"
+    val isArray = ARRAYSIG() != null || arrayindex() != null
+    val split = options.SPLIT().isNotEmpty()
+    val origDt = datatype()?.toAst() ?: DataType.UNDEFINED
+    val dt = if(isArray) {
+        val arrayDt = ElementToArrayTypes.getValue(origDt)
+        if(split) {
+            when(arrayDt) {
+                DataType.ARRAY_UW -> DataType.ARRAY_UW_SPLIT
+                DataType.ARRAY_W -> DataType.ARRAY_W_SPLIT
+                else -> throw SyntaxError("split can only be used on word arrays", toPosition())
+            }
+        } else arrayDt
+    } else origDt
 
     return VarDecl(
             type, VarDeclOrigin.USERCODE,
-            datatype()?.toAst() ?: DataType.UNDEFINED,
+            dt,
             zp,
             arrayindex()?.toAst(),
             name,
             if(identifiers.size==1) emptyList() else identifiers.map { it.NAME().text },
             value,
-            ARRAYSIG() != null || arrayindex() != null,
+            isArray,
             options.SHARED().isNotEmpty(),
-            options.SPLIT().isNotEmpty(),
+            split,
             toPosition()
     )
 }

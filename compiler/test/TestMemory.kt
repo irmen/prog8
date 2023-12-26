@@ -185,7 +185,7 @@ class TestMemory: FunSpec({
     }
 
     test("array not in mapped IO ram") {
-        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), null, false, false, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), null, true, false, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -198,7 +198,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped array not in mapped IO ram") {
         val address = 0x1000u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), true, false, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -211,7 +211,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped array in mapped IO ram") {
         val address = 0xd800u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), true, false, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)

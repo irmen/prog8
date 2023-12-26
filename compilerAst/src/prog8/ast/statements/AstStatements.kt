@@ -2,7 +2,6 @@ package prog8.ast.statements
 
 import prog8.ast.*
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
@@ -204,7 +203,7 @@ enum class VarDeclType {
 
 class VarDecl(val type: VarDeclType,
               val origin: VarDeclOrigin,
-              private val declaredDatatype: DataType,
+              val datatype: DataType,
               var zeropage: ZeropageWish,
               var arraysize: ArrayIndex?,
               override val name: String,
@@ -217,13 +216,19 @@ class VarDecl(val type: VarDeclType,
     override lateinit var parent: Node
     var allowInitializeWithZero = true
 
-    // prefix for literal values that are turned into a variable on the heap
+    init {
+        if(isArray)
+            require(datatype in ArrayDatatypes) { "array dt mismatch" }
+        else
+            require(datatype !in ArrayDatatypes) { "array dt mismatch" }
+    }
 
     companion object {
         private var autoHeapValueSequenceNumber = 0
 
         fun fromParameter(param: SubroutineParameter): VarDecl {
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, param.type, ZeropageWish.DONTCARE, null, param.name, emptyList(), null,
+            val dt = if(param.type in ArrayDatatypes) DataType.UWORD else param.type
+            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, ZeropageWish.DONTCARE, null, param.name, emptyList(), null,
                 isArray = false,
                 sharedWithAsm = false,
                 splitArray = false,
@@ -234,43 +239,10 @@ class VarDecl(val type: VarDeclType,
         fun createAuto(array: ArrayLiteral, splitArray: Boolean): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
-            val declaredType = ArrayToElementTypes.getValue(arrayDt)
             val arraysize = ArrayIndex.forArray(array)
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, declaredType, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, emptyList(), array,
+            return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, emptyList(), array,
                     isArray = true, sharedWithAsm = false, splitArray = splitArray, position = array.position)
         }
-    }
-
-    val datatypeErrors = mutableListOf<SyntaxError>()       // don't crash at init time, report them in the AstChecker
-    val datatype: DataType
-
-    init {
-        val dt =
-            if (!isArray) declaredDatatype
-            else when (declaredDatatype) {
-                DataType.UBYTE -> DataType.ARRAY_UB
-                DataType.BYTE -> DataType.ARRAY_B
-                DataType.UWORD -> DataType.ARRAY_UW
-                DataType.WORD -> DataType.ARRAY_W
-                DataType.FLOAT -> DataType.ARRAY_F
-                DataType.BOOL -> DataType.ARRAY_BOOL
-                DataType.STR -> DataType.ARRAY_UW       // use memory address of the string instead
-                else -> {
-                    datatypeErrors.add(SyntaxError("array can only contain bytes/words/floats/strings(ptrs)", position))
-                    DataType.ARRAY_UB
-                }
-            }
-
-        datatype = if(splitArray) {
-            when(dt) {
-                DataType.ARRAY_UW -> DataType.ARRAY_UW_SPLIT
-                DataType.ARRAY_W -> DataType.ARRAY_W_SPLIT
-                else -> {
-                    datatypeErrors.add(SyntaxError("split can only be used on word arrays", position))
-                    DataType.UNDEFINED
-                }
-            }
-        } else dt
     }
 
     override fun linkParents(parent: Node) {
@@ -291,8 +263,10 @@ class VarDecl(val type: VarDeclType,
         "VarDecl(name=$name, vartype=$type, datatype=$datatype, value=$value, pos=$position)"
 
     fun zeroElementValue(): NumericLiteral {
-        if(allowInitializeWithZero)
-            return defaultZero(declaredDatatype, position)
+        if(allowInitializeWithZero) {
+            return if(isArray) defaultZero(ArrayToElementTypes.getValue(datatype), position)
+            else defaultZero(datatype, position)
+        }
         else
             throw IllegalArgumentException("attempt to get zero value for vardecl that shouldn't get it")
     }
@@ -300,7 +274,7 @@ class VarDecl(val type: VarDeclType,
     override fun copy(): VarDecl {
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
-        val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), name, names, value?.copy(),
+        val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), name, names, value?.copy(),
             isArray, sharedWithAsm, splitArray, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
@@ -320,19 +294,19 @@ class VarDecl(val type: VarDeclType,
         if(value?.isSimple==true) {
             // just copy the initialization value to a separata vardecl for each component
             return names.map {
-                val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),
+                val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),
                     isArray, sharedWithAsm, splitArray, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
         } else {
             // evaluate the value once in the vardecl for the first component, and set the other components to the first
-            val first = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), names[0], emptyList(), value?.copy(),
+            val first = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), names[0], emptyList(), value?.copy(),
                 isArray, sharedWithAsm, splitArray, position)
             first.allowInitializeWithZero = this.allowInitializeWithZero
             val firstVar = firstVarAsValue(first)
             return listOf(first) + names.drop(1 ).map {
-                val copy = VarDecl(type, origin, declaredDatatype, zeropage, arraysize?.copy(), it, emptyList(), firstVar.copy(),
+                val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), firstVar.copy(),
                     isArray, sharedWithAsm, splitArray, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
