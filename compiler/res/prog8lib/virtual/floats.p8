@@ -174,6 +174,7 @@ sub normalize(float value) -> float {
 }
 
 sub push(float value) {
+    ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
     %ir {{
         loadm.f  fr65535,floats.push.value
         push.f  fr65535
@@ -182,6 +183,7 @@ sub push(float value) {
 }
 
 sub pop() -> float {
+    ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
     %ir {{
         pop.f  fr65535
         returnr.f fr65535

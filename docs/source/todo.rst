@@ -2,7 +2,7 @@
 TODO
 ====
 
-- add -nowarnunused, or %option ignore_unused (module scope), to suppress all warnings about unused symbols. Useful in libraries.
+- add -nowarnunused, or %option ignore_unused (module and block scope), to suppress all warnings about unused symbols. Useful in libraries.
    put this in all library code, like %option no_symbol_prefixing, and get rid of the "trick" it uses currently to suppress unused symbol warnings for library modules.
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....

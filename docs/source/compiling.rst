@@ -172,6 +172,9 @@ One or more .p8 module files
 ``-asmlist``
     Generate an assembler listing file as well.
 
+``-check``
+    Quickly check the program for errors. No output will be produced.
+
 ``-breakinstr``
     Also output a CPU instruction for a ``%breakpoint``, as well as the entry in the vice monitor list file.
     This can be useful on emulators/systems that don't parse the breakpoint information in the list file,

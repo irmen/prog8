@@ -37,6 +37,7 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 private fun compileMain(args: Array<String>): Boolean {
     val cli = ArgParser("prog8compiler", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
     val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
+    val checkSource by cli.option(ArgType.Boolean, fullName = "check", description = "quickly check program for errors, no output will be produced")
     val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
     val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
@@ -142,8 +143,8 @@ private fun compileMain(args: Array<String>): Boolean {
                 val filepath = pathFrom(filepathRaw).normalize()
                 val compilerArgs = CompilerArguments(
                     filepath,
-                    dontOptimize != true,
-                    dontWriteAssembly != true,
+                    if(checkSource==true) false else dontOptimize != true,
+                    if(checkSource==true) false else dontWriteAssembly != true,
                     warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
@@ -161,6 +162,10 @@ private fun compileMain(args: Array<String>): Boolean {
                     outputPath
                 )
                 val compilationResult = compileProgram(compilerArgs)
+
+                if(checkSource==true)
+                    println("No output produced.")
+
                 if(compilationResult!=null)
                     results.add(compilationResult)
             }
@@ -214,8 +219,8 @@ private fun compileMain(args: Array<String>): Boolean {
             try {
                 val compilerArgs = CompilerArguments(
                     filepath,
-                    dontOptimize != true,
-                    dontWriteAssembly != true,
+                    if(checkSource==true) false else dontOptimize != true,
+                    if(checkSource==true) false else dontWriteAssembly != true,
                     warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
@@ -233,6 +238,10 @@ private fun compileMain(args: Array<String>): Boolean {
                     outputPath
                 )
                 val result = compileProgram(compilerArgs)
+
+                if(checkSource==true)
+                    println("No output produced.")
+
                 if(result==null)
                     return false
                 else
