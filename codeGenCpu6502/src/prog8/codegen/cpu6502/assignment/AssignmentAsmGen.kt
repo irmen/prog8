@@ -555,7 +555,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
                 in WordDatatypes -> {
-                    if(expr.definingBlock()!!.veraFxMuls) {
+                    if(expr.definingBlock()!!.options.veraFxMuls) {
                         // cx16 verafx hardware mul
                         if(expr.right.isSimple()) {
                             asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R0, expr.left.type in SignedDatatypes)
@@ -598,7 +598,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  jsr  math.mul_word_${value}")
                     }
                     else {
-                        if(expr.definingBlock()!!.veraFxMuls){
+                        if(expr.definingBlock()!!.options.veraFxMuls){
                             // cx16 verafx hardware mul
                             asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "cx16.r1")
                             asmgen.out("""

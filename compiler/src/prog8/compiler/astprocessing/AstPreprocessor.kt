@@ -187,7 +187,7 @@ class AstPreprocessor(val program: Program,
         if(decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW) {
             if ("splitarrays" in decl.definingBlock.options())
                 return makeSplitArray(decl)
-            if("splitarrays" in decl.definingModule.options())
+            if ("splitarrays" in decl.definingModule.options())
                 return makeSplitArray(decl)
         }
 

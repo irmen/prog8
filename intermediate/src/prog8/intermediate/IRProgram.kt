@@ -345,10 +345,8 @@ class IRProgram(val name: String,
 
 class IRBlock(
     val label: String,
-    val address: UInt?,
     val library: Boolean,
-    val forceOutput: Boolean,
-    val alignment: BlockAlignment,
+    val options: Options,
     val position: Position
 ) {
     val children = mutableListOf<IIRBlockElement>()
@@ -358,6 +356,12 @@ class IRBlock(
         WORD,
         PAGE
     }
+
+    class Options(val address: UInt? = null,
+                  val forceOutput: Boolean = false,
+                  val noSymbolPrefixing: Boolean = false,
+                  val veraFxMuls: Boolean = false,
+                  val alignment: BlockAlignment = BlockAlignment.NONE)
 
     operator fun plusAssign(sub: IRSubroutine) { children += sub }
     operator fun plusAssign(sub: IRAsmSubroutine) { children += sub }

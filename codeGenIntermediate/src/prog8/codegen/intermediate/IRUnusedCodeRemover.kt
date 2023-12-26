@@ -61,6 +61,9 @@ class IRUnusedCodeRemover(
         irprog.blocks.forEach { block ->
             block.children.filterIsInstance<IRSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
+                    if(!sub.position.file.startsWith(LIBRARYFILEPREFIX)) {
+                        errors.warn("unused subroutine '${sub.label}'", sub.position)
+                    }
                     block.children.remove(sub)
                     irprog.st.removeTree(sub.label)
                     numRemoved++
@@ -80,7 +83,7 @@ class IRUnusedCodeRemover(
             block.children.filterIsInstance<IRAsmSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
                     if(!sub.position.file.startsWith(LIBRARYFILEPREFIX)) {
-                        errors.warn("unused asmsubroutine ${sub.label}", sub.position)
+                        errors.warn("unused subroutine '${sub.label}'", sub.position)
                     }
                     block.children.remove(sub)
                     irprog.st.removeTree(sub.label)
@@ -100,7 +103,7 @@ class IRUnusedCodeRemover(
         // check if asmsub is called from another asmsub
         irprog.blocks.asSequence().forEach { block ->
             block.children.filterIsInstance<IRAsmSubroutine>().forEach { sub ->
-                if (block.forceOutput || block.library)
+                if (block.options.forceOutput || block.library)
                     linkedAsmSubs += sub
                 if (sub.asmChunk.isNotEmpty()) {
                     allSubs.forEach { (label, asmsub) ->

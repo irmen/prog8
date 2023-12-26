@@ -71,7 +71,7 @@ load.b r1,42
 </CODE>
 </INITGLOBALS>
 
-<BLOCK NAME="main" ADDRESS="" LIBRARY="false" FORCEOUTPUT="false" ALIGN="NONE" POS="[examples/test.p8: line 2 col 2-5]">
+<BLOCK NAME="main" ADDRESS="" LIBRARY="false" FORCEOUTPUT="false" NOPREFIXING="false" VERAFXMULS="false" ALIGN="NONE" POS="[examples/test.p8: line 2 col 2-5]">
 <SUB NAME="main.start" RETURNTYPE="" POS="[examples/test.p8: line 4 col 6-8]">
 <PARAMS>
 </PARAMS>

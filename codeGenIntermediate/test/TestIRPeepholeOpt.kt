@@ -8,7 +8,7 @@ import prog8.intermediate.*
 class TestIRPeepholeOpt: FunSpec({
     fun makeIRProgram(chunks: List<IRCodeChunkBase>): IRProgram {
         require(chunks.first().label=="main.start")
-        val block = IRBlock("main", null, false, false, IRBlock.BlockAlignment.NONE, Position.DUMMY)
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
         val sub = IRSubroutine("main.start", emptyList(), null, Position.DUMMY)
         chunks.forEach { sub += it }
         block += sub

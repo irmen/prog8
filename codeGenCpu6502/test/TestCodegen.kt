@@ -45,7 +45,7 @@ class TestCodegen: FunSpec({
 //}
         val codegen = AsmGen6502(prefixSymbols = false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
-        val block = PtBlock("main", null, false, false, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val block = PtBlock("main",false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         sub.add(PtVariable("pi", DataType.UBYTE, ZeropageWish.DONTCARE, PtNumber(DataType.UBYTE, 0.0, Position.DUMMY), null, Position.DUMMY))
         sub.add(PtVariable("particleX", DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, 3u, Position.DUMMY))
@@ -95,7 +95,7 @@ class TestCodegen: FunSpec({
         program.add(block)
 
         // define the "cx16.r0" virtual register
-        val cx16block = PtBlock("cx16", null, false, false, false, false, PtBlock.BlockAlignment.NONE, SourceCode.Generated("test"), Position.DUMMY)
+        val cx16block = PtBlock("cx16", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         cx16block.add(PtMemMapped("r0", DataType.UWORD, 100u, null, Position.DUMMY))
         program.add(cx16block)
 

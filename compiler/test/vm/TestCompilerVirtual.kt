@@ -394,7 +394,7 @@ main {
         start.children.size shouldBe 11
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUW(vm.cx16virtualregsBaseAddress) shouldBe 3837u
+            vm.memory.getUW(0xff02) shouldBe 3837u      // $ff02 = cx16.r0
         }
     }
 
@@ -447,7 +447,7 @@ main {
         start.children.size shouldBe 22
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUW(vm.cx16virtualregsBaseAddress) shouldBe 3837u
+            vm.memory.getUW(0xff02) shouldBe 3837u      // $ff02 = cx16.r0
         }
     }
 

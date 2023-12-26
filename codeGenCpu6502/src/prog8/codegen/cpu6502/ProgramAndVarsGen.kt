@@ -255,16 +255,16 @@ internal class ProgramAndVarsGen(
     private fun block2asm(block: PtBlock) {
         asmgen.out("")
         asmgen.out("; ---- block: '${block.name}' ----")
-        if(block.address!=null)
-            asmgen.out("* = ${block.address!!.toHex()}")
+        if(block.options.address!=null)
+            asmgen.out("* = ${block.options.address!!.toHex()}")
         else {
-            if(block.alignment==PtBlock.BlockAlignment.WORD)
+            if(block.options.alignment==PtBlock.BlockAlignment.WORD)
                 asmgen.out("\t.align 2")
-            else if(block.alignment==PtBlock.BlockAlignment.PAGE)
+            else if(block.options.alignment==PtBlock.BlockAlignment.PAGE)
                 asmgen.out("\t.align $100")
         }
 
-        asmgen.out("${block.name}\t" + (if(block.forceOutput) ".block" else ".proc"))
+        asmgen.out("${block.name}\t" + (if(block.options.forceOutput) ".block" else ".proc"))
         asmgen.outputSourceLine(block)
 
         createBlockVariables(block)
@@ -287,7 +287,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("  rts\n  .bend")
         }
 
-        asmgen.out(if(block.forceOutput) "\n\t.bend" else "\n\t.pend")
+        asmgen.out(if(block.options.forceOutput) "\n\t.bend" else "\n\t.pend")
     }
 
     private fun getVars(scope: StNode): Map<String, StNode> =
@@ -327,7 +327,7 @@ internal class ProgramAndVarsGen(
 
         val asmStartScope: String
         val asmEndScope: String
-        if(sub.definingBlock()!!.forceOutput) {
+        if(sub.definingBlock()!!.options.forceOutput) {
             asmStartScope = ".block"
             asmEndScope = ".bend"
         } else {
@@ -350,7 +350,7 @@ internal class ProgramAndVarsGen(
 
         val asmStartScope: String
         val asmEndScope: String
-        if(sub.definingBlock()!!.forceOutput) {
+        if(sub.definingBlock()!!.options.forceOutput) {
             asmStartScope = ".block"
             asmEndScope = ".bend"
         } else {

@@ -54,7 +54,7 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                 }
                 is PtFunctionCall -> {
                     val stNode = st.lookup(node.name)!!
-                    if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
+                    if(stNode.astNode.definingBlock()?.options?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
                         functionCallsToPrefix += node.parent to index
                     }
@@ -65,14 +65,14 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                         lookupName = lookupName.dropLast(4)
                     }
                     val stNode = st.lookup(lookupName)!!
-                    if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
+                    if(stNode.astNode.definingBlock()?.options?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
                         nodesToPrefix += node.parent to index
                     }
                 }
                 is PtJump -> {
                     val stNode = st.lookup(node.identifier!!.name) ?: throw AssemblyError("name not found ${node.identifier}")
-                    if(stNode.astNode.definingBlock()?.noSymbolPrefixing!=true) {
+                    if(stNode.astNode.definingBlock()?.options?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
                         nodesToPrefix += node.parent to index
                     }
@@ -92,7 +92,7 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
         }
 
         program.allBlocks().forEach { block ->
-            if (!block.noSymbolPrefixing) {
+            if (!block.options.noSymbolPrefixing) {
                 prefixSymbols(block)
             }
         }
@@ -147,7 +147,7 @@ private fun PtVariable.prefix(st: SymbolTable): PtVariable {
                 is PtIdentifier -> newValue.add(elt.prefix(arrayValue, st))
                 is PtNumber -> newValue.add(elt)
                 is PtAddressOf -> {
-                    if(elt.definingBlock()?.noSymbolPrefixing==true)
+                    if(elt.definingBlock()?.options?.noSymbolPrefixing==true)
                         newValue.add(elt)
                     else {
                         val newAddr = PtAddressOf(elt.position)
@@ -182,13 +182,13 @@ private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {
 
 private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
     var target = st.lookup(name)
-    if(target?.astNode?.definingBlock()?.noSymbolPrefixing==true)
+    if(target?.astNode?.definingBlock()?.options?.noSymbolPrefixing==true)
         return this
 
     if(target==null) {
         if(name.endsWith("_lsb") || name.endsWith("_msb")) {
             target = st.lookup(name.dropLast(4))
-            if(target?.astNode?.definingBlock()?.noSymbolPrefixing==true)
+            if(target?.astNode?.definingBlock()?.options?.noSymbolPrefixing==true)
                 return this
         }
     }

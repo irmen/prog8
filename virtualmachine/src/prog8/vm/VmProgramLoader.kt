@@ -38,7 +38,7 @@ class VmProgramLoader {
         // load rest of the program into the list
         val chunkReplacements = mutableListOf<Pair<IRCodeChunkBase, IRCodeChunk>>()
         irProgram.blocks.forEach { block ->
-            if(block.address!=null)
+            if(block.options.address!=null)
                 throw IRParseException("blocks cannot have a load address for vm: ${block.label}")
 
             block.children.forEach { child ->

@@ -57,10 +57,12 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         irProgram.blocks.forEach { block ->
             xml.writeStartElement("BLOCK")
             xml.writeAttribute("NAME", block.label)
-            xml.writeAttribute("ADDRESS", block.address?.toHex() ?: "")
+            xml.writeAttribute("ADDRESS", block.options.address?.toHex() ?: "")
             xml.writeAttribute("LIBRARY", block.library.toString())
-            xml.writeAttribute("FORCEOUTPUT", block.forceOutput.toString())
-            xml.writeAttribute("ALIGN", block.alignment.toString())
+            xml.writeAttribute("FORCEOUTPUT", block.options.forceOutput.toString())
+            xml.writeAttribute("NOPREFIXING", block.options.noSymbolPrefixing.toString())
+            xml.writeAttribute("VERAFXMULS", block.options.veraFxMuls.toString())
+            xml.writeAttribute("ALIGN", block.options.alignment.toString())
             xml.writeAttribute("POS", block.position.toString())
             xml.writeCharacters("\n")
             block.children.forEach { child ->

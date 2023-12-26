@@ -1440,7 +1440,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 if(value in asmgen.optimizedWordMultiplications) {
                     asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
                 } else {
-                    if(block?.veraFxMuls==true)
+                    if(block?.options?.veraFxMuls==true)
                         // cx16 verafx hardware mul
                         asmgen.out("""
                             lda  $name
@@ -1907,7 +1907,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 sta  $name+1""")
                     }
                     "*" -> {
-                        if(block?.veraFxMuls==true) {
+                        if(block?.options?.veraFxMuls==true) {
                             // cx16 verafx hardware muls
                             if(valueDt==DataType.UBYTE) {
                                 asmgen.out("  lda  $otherName |  sta  cx16.r1")
@@ -2075,7 +2075,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
                     "-" -> asmgen.out("  lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
                     "*" -> {
-                        if(block?.veraFxMuls==true)
+                        if(block?.options?.veraFxMuls==true)
                             // cx16 verafx hardware muls
                             asmgen.out("""
                                 lda  $name
@@ -2279,7 +2279,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
     private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression, block: PtBlock?) {
         fun multiplyVarByWordInAY() {
-            if(block?.veraFxMuls==true)
+            if(block?.options?.veraFxMuls==true)
                 // cx16 verafx hardware muls
                 asmgen.out("""
                     sta  cx16.r1

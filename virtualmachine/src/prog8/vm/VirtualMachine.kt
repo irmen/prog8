@@ -1,6 +1,5 @@
 package prog8.vm
 
-import prog8.code.StMemVar
 import prog8.code.core.toHex
 import prog8.code.target.virtual.IVirtualMachineRunner
 import prog8.intermediate.*
@@ -48,12 +47,10 @@ class VirtualMachine(irProgram: IRProgram) {
     internal var randomGenerator = Random(0xa55a7653)
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
     internal var mul16_last_upper = 0u
-    val cx16virtualregsBaseAddress: Int
 
     init {
         program = VmProgramLoader().load(irProgram, memory)
         require(irProgram.st.getAsmSymbols().isEmpty()) { "virtual machine can't yet process asmsymbols defined on command line" }
-        cx16virtualregsBaseAddress = (irProgram.st.lookup("cx16.r0") as? StMemVar)?.address?.toInt() ?: 0xff02
         reset(false)
     }
 

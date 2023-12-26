@@ -71,13 +71,9 @@ class PtProgram(
 
 
 class PtBlock(name: String,
-              val address: UInt?,
               val library: Boolean,
-              val forceOutput: Boolean,
-              val noSymbolPrefixing: Boolean,
-              val veraFxMuls: Boolean,
-              val alignment: BlockAlignment,
               val source: SourceCode,       // taken from the module the block is defined in.
+              val options: Options,
               position: Position
 ) : PtNamedNode(name, position) {
     enum class BlockAlignment {
@@ -85,6 +81,12 @@ class PtBlock(name: String,
         WORD,
         PAGE
     }
+
+    class Options(val address: UInt? = null,
+                  val forceOutput: Boolean = false,
+                  val noSymbolPrefixing: Boolean = false,
+                  val veraFxMuls: Boolean = false,
+                  val alignment: BlockAlignment = BlockAlignment.NONE)
 }
 
 

@@ -68,8 +68,8 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 }
             }
             is PtBlock -> {
-                val addr = if(node.address==null) "" else "@${node.address.toHex()}"
-                val align = if(node.alignment==PtBlock.BlockAlignment.NONE) "" else "align=${node.alignment}"
+                val addr = if(node.options.address==null) "" else "@${node.options.address.toHex()}"
+                val align = if(node.options.alignment==PtBlock.BlockAlignment.NONE) "" else "align=${node.options.alignment}"
                 "\nblock '${node.name}' $addr $align"
             }
             is PtConstant -> {

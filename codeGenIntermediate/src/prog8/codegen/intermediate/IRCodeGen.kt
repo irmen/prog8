@@ -1661,7 +1661,14 @@ class IRCodeGen(
     }
 
     private fun translate(block: PtBlock): IRBlock {
-        val irBlock = IRBlock(block.name, block.address, block.library, block.forceOutput, translate(block.alignment), block.position)   // no use for other attributes yet?
+        val irBlock = IRBlock(block.name, block.library,
+            IRBlock.Options(
+                block.options.address,
+                block.options.forceOutput,
+                block.options.noSymbolPrefixing,
+                block.options.veraFxMuls,
+                translate(block.options.alignment)
+            ), block.position)
         for (child in block.children) {
             when(child) {
                 is PtNop -> { /* nothing */ }

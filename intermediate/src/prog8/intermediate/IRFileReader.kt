@@ -344,10 +344,14 @@ class IRFileReader {
         val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
         val block = IRBlock(
             attrs.getValue("NAME"),
-            if(attrs.getValue("ADDRESS")=="") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
             if(attrs.getValue("LIBRARY")=="") false else attrs.getValue("LIBRARY").toBoolean(),
-            if(attrs.getValue("FORCEOUTPUT")=="") false else attrs.getValue("FORCEOUTPUT").toBoolean(),
-            IRBlock.BlockAlignment.valueOf(attrs.getValue("ALIGN")),
+            IRBlock.Options(
+                if(attrs.getOrDefault("ADDRESS", "")=="") null else parseIRValue(attrs.getValue("ADDRESS")).toUInt(),
+                attrs.getOrDefault("FORCEOUTPUT", "false").toBoolean(),
+                attrs.getOrDefault("NOPREFIXING", "false").toBoolean(),
+                attrs.getOrDefault("VERAFXMULS", "false").toBoolean(),
+                IRBlock.BlockAlignment.valueOf(attrs.getValue("ALIGN"))
+            ),
             parsePosition(attrs.getValue("POS")))
         skipText(reader)
         while(reader.peek().isStartElement) {
