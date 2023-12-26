@@ -2,6 +2,8 @@
 TODO
 ====
 
+- get rid of memory mapped variables: treat them as syntactic sugar for a poke/peek to the symbol.
+
 - add -nowarnunused, or %option ignore_unused (module and block scope), to suppress all warnings about unused symbols. Useful in libraries.
    put this in all library code, like %option no_symbol_prefixing, and get rid of the "trick" it uses currently to suppress unused symbol warnings for library modules.
 

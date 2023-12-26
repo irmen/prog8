@@ -18,12 +18,12 @@ PROGRAM:
             CODE-LINE       (assignment to initialize a variable)
             ...
     BLOCK
-        INLINEASM
-        INLINEASM
+        ASM
+        ASM
         SUB
             PARAMS
-            INLINEASM
-            INLINEASM
+            ASM
+            ASM
             C (CODE)
                 CODE-LINE  (label, instruction, comment, inlinebinary)
                 CODE-LINE
@@ -36,10 +36,10 @@ PROGRAM:
         SUB
         ASMSUB
             PARAMS
-            INLINEASM
+            ASM
         ASMSUB
             PARAMS
-            INLINEASM
+            ASM
         ...
     BLOCK
     BLOCK

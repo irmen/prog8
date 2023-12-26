@@ -354,7 +354,7 @@ class IRFileReader {
             when(reader.peek().asStartElement().name.localPart) {
                 "SUB" -> block += parseSubroutine(reader)
                 "ASMSUB" -> block += parseAsmSubroutine(reader)
-                "INLINEASM" -> block += parseInlineAssembly(reader)
+                "ASM" -> block += parseInlineAssembly(reader)
                 "BYTES" -> block += parseBinaryBytes(reader)
                 "CODE" -> {
                     val chunk = parseCodeChunk(reader)
@@ -387,7 +387,7 @@ class IRFileReader {
             when(reader.peek().asStartElement().name.localPart) {
                 "CODE" -> sub += parseCodeChunk(reader)
                 "BYTES" -> sub += parseBinaryBytes(reader)
-                "INLINEASM" -> sub += parseInlineAssembly(reader)
+                "ASM" -> sub += parseInlineAssembly(reader)
                 else -> throw IRParseException("invalid line in SUB: ${reader.peek()}")
             }
             skipText(reader)
@@ -479,7 +479,7 @@ class IRFileReader {
     private fun parseInlineAssembly(reader: XMLEventReader): IRInlineAsmChunk {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="INLINEASM") { "missing INLINEASM" }
+        require(start.name.localPart=="ASM") { "missing ASM" }
         val label = start.attributes.asSequence().single { it.name.localPart == "LABEL" }.value.ifBlank { null }
         val isIr = start.attributes.asSequence().single { it.name.localPart == "IR" }.value.toBoolean()
         val text = readText(reader).trim()

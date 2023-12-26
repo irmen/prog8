@@ -258,7 +258,7 @@ main {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSrc = virtfile.readText()
         irSrc.shouldContain("incm.b $2000")
-        irSrc.shouldNotContain("INLINEASM")
+        irSrc.shouldNotContain("</ASM>")
         VmRunner().runProgram(irSrc)
     }
 

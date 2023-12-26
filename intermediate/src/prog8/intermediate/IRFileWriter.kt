@@ -168,7 +168,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeInlineAsm(chunk: IRInlineAsmChunk) {
-        xml.writeStartElement("INLINEASM")
+        xml.writeStartElement("ASM")
         xml.writeAttribute("LABEL", chunk.label ?: "")
         xml.writeAttribute("IR", chunk.isIR.toString())
         xml.writeCharacters("\n")
