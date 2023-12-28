@@ -37,7 +37,8 @@ sealed class Expression: Node {
             is BinaryExpression ->
                 (other is BinaryExpression && other.operator==operator
                         && other.left isSameAs left
-                        && other.right isSameAs right)
+                        && other.right isSameAs right
+                        && other.isChainedComparison() == isChainedComparison())
             is ArrayIndexedExpression -> {
                 (other is ArrayIndexedExpression && other.arrayvar.nameInSource == arrayvar.nameInSource
                         && other.indexer isSameAs indexer)
