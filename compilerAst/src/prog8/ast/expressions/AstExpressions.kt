@@ -173,7 +173,7 @@ class BinaryExpression(
         replacement.parent = this
     }
 
-    override fun copy() = BinaryExpression(left.copy(), operator, right.copy(), position)
+    override fun copy() = BinaryExpression(left.copy(), operator, right.copy(), position, insideParentheses)
     override fun toString() = "[$left $operator $right]"
 
     override val isSimple = false

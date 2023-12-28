@@ -96,10 +96,11 @@ internal fun Program.addTypecasts(errors: IErrorReporter, options: CompilationOp
     caster.applyModifications()
 }
 
-fun Program.desugaring(errors: IErrorReporter): Int {
+fun Program.desugaring(errors: IErrorReporter) {
     val desugar = CodeDesugarer(this, errors)
     desugar.visit(this)
-    return desugar.applyModifications()
+    while(errors.noErrors() && desugar.applyModifications()>0)
+        desugar.visit(this)
 }
 
 internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter) {
@@ -110,9 +111,8 @@ internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter) {
 internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationOptions) {
     val transforms = AstPreprocessor(this, errors, options)
     transforms.visit(this)
-    var mods = transforms.applyModifications()
-    while(mods>0)
-        mods = transforms.applyModifications()
+    while(errors.noErrors() && transforms.applyModifications()>0)
+        transforms.visit(this)
 }
 
 internal fun Program.checkIdentifiers(errors: IErrorReporter, options: CompilationOptions) {
