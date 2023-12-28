@@ -171,6 +171,30 @@ internal class StatementReorderer(
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        // desugar chained comparisons:  i < x < j  --->  i<x and x<j
+        // only if  i<x  or x<j  was not written in parentheses!   (i<x) < y,  i < (x<y)  -> leave untouched
+        if(expr.operator in ComparisonOperators) {
+            val leftBinExpr = expr.left as? BinaryExpression
+            val rightBinExpr = expr.right as? BinaryExpression
+            if(leftBinExpr!=null && !leftBinExpr.insideParentheses && leftBinExpr.operator in ComparisonOperators) {
+                if(!leftBinExpr.right.isSimple) {
+                    errors.warn("possible multiple evaluation of subexpression in chained comparison, consider using a temporary variable", leftBinExpr.right.position)
+                }
+                val right = BinaryExpression(leftBinExpr.right.copy(), expr.operator, expr.right, leftBinExpr.right.position)
+                val desugar = BinaryExpression(leftBinExpr, "and", right, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, desugar, parent))
+            }
+            else if(rightBinExpr!=null && !rightBinExpr.insideParentheses && rightBinExpr.operator in ComparisonOperators) {
+                if(!rightBinExpr.left.isSimple) {
+                    errors.warn("possible multiple evaluation of subexpression in chained comparison, consider using a temporary variable", rightBinExpr.left.position)
+                }
+                val left = BinaryExpression(expr.left, expr.operator, rightBinExpr.left.copy(), rightBinExpr.left.position)
+                val desugar = BinaryExpression(left, "and", rightBinExpr, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, desugar, parent))
+            }
+        }
+
+
         // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
         // (this should be done by the ExpressionSimplifier when optimizing is enabled,
         //  but the current assembly code generator for IF statements now also depends on it, so we do it here regardless of optimization.)

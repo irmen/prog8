@@ -3,19 +3,15 @@
 
 main {
     sub start() {
-        cx16.r0++
-        str[] names = ["irmen", "de", "jong"]
-        uword zz = names[1]
-        txt.print(names[1])
-    }
-
-    sub derp() {
-        cx16.r0++
-    }
-
-    asmsub hurrah() {
-        %ir {{
-            nop
-        }}
+        ubyte x = 10
+        ubyte y = 2
+        txt.print_ub(5<x and x<=20)
+        txt.nl()
+        txt.print_ub(5<x and x<=9)
+        txt.nl()
+        txt.print_ub(5<x<=9)
+        txt.nl()
+        txt.print_ub(5<(x-y)<=9<y)
+        txt.nl()
     }
 }

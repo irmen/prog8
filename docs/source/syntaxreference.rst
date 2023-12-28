@@ -579,9 +579,10 @@ postfix increment and decrement: ``++``  ``--``
     Syntactic sugar; ``aa++`` is equivalent to ``aa = aa + 1``, and ``aa--`` is equivalent to ``aa = aa - 1``.
     Because these operations are so common, we have these short forms.
 
-comparison: ``!=``  ``<``  ``>``  ``<=``  ``>=``
+comparison: ``==``  ``!=``  ``<``  ``>``  ``<=``  ``>=``
     Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
-    The result is a 'boolean' value 'true' or 'false' (which in reality is just a byte value of 1 or 0).
+    The result is a boolean value 'true' or 'false' (1 or 0).
+    Note that you can chain comparisons like so: ``i < x < j``, which is the same as ``i<x and x<j``.
 
 logical:  ``not``  ``and``  ``or``  ``xor``
 	These operators are the usual logical operations that are part of a logical expression to reason

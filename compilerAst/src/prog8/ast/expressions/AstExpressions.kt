@@ -148,7 +148,13 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
     }
 }
 
-class BinaryExpression(var left: Expression, var operator: String, var right: Expression, override val position: Position) : Expression() {
+class BinaryExpression(
+    var left: Expression,
+    var operator: String,
+    var right: Expression,
+    override val position: Position,
+    val insideParentheses: Boolean = false      // used in very few places to check priorities
+) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

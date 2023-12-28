@@ -423,7 +423,7 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
     }
 }
 
-private fun ExpressionContext.toAst() : Expression {
+private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expression {
 
     val litval = literalvalue()
     if(litval!=null) {
@@ -468,7 +468,7 @@ private fun ExpressionContext.toAst() : Expression {
         return scoped_identifier().toAst()
 
     if(bop!=null)
-        return BinaryExpression(left.toAst(), bop.text.trim(), right.toAst(), toPosition())
+        return BinaryExpression(left.toAst(), bop.text.trim(), right.toAst(), toPosition(), insideParentheses=insideParentheses)
 
     if(prefix!=null)
         return PrefixExpression(prefix.text, expression(0).toAst(), toPosition())
@@ -483,7 +483,7 @@ private fun ExpressionContext.toAst() : Expression {
     }
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
-        return expression(0).toAst()        // expression within ( )
+        return expression(0).toAst(insideParentheses=true)        // expression within ( )
 
     if(typecast()!=null)
         return TypecastExpression(expression(0).toAst(), typecast().datatype().toAst(), false, toPosition())
