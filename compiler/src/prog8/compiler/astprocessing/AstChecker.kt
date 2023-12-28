@@ -122,7 +122,7 @@ internal class AstChecker(private val program: Program,
                 if (expectedReturnValues[0] != valueDt.getOr(DataType.UNDEFINED)) {
                     if(valueDt istype DataType.BOOL && expectedReturnValues[0] == DataType.UBYTE) {
                         // if the return value is a bool and the return type is ubyte, allow this. But give a warning.
-                        errors.warn("return type of the subroutine should probably be bool instead of ubyte", returnStmt.position)
+                        errors.info("return type of the subroutine should probably be bool instead of ubyte", returnStmt.position)
                     } else if(valueDt istype DataType.UBYTE && expectedReturnValues[0] == DataType.BOOL) {
                         // if the return value is ubyte and the return type is bool, allow this only if value is 0 or 1
                         val returnValue = returnStmt.value as? NumericLiteral
@@ -933,7 +933,7 @@ internal class AstChecker(private val program: Program,
         try {  // just *try* if it can be encoded, don't actually do it
             val bytes = compilerOptions.compTarget.encodeString(string.value, string.encoding)
             if(0u in bytes)
-                errors.warn("a character in the string encodes as 0-byte, which will terminate the string prematurely", string.position)
+                errors.info("a character in the string encodes as 0-byte, which will terminate the string prematurely", string.position)
         } catch (cx: CharConversionException) {
             errors.err(cx.message ?: "can't encode string", string.position)
         }
@@ -1187,14 +1187,14 @@ internal class AstChecker(private val program: Program,
                 when(targetStatement) {
                     is BuiltinFunctionPlaceholder -> {
                         if(!builtinFunctionReturnType(targetStatement.name).isKnown)
-                            errors.warn("redundant void", functionCallStatement.position)
+                            errors.info("redundant void", functionCallStatement.position)
                     }
                     is Label -> {
-                        errors.warn("redundant void", functionCallStatement.position)
+                        errors.info("redundant void", functionCallStatement.position)
                     }
                     is Subroutine -> {
                         if(targetStatement.returntypes.isEmpty())
-                            errors.warn("redundant void", functionCallStatement.position)
+                            errors.info("redundant void", functionCallStatement.position)
                     }
                     else -> {}
                 }
@@ -1745,13 +1745,13 @@ internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statem
         // check for unused return values
         if (target is Subroutine && target.returntypes.isNotEmpty()) {
             if (target.returntypes.size == 1)
-                errors.warn("result value of subroutine call is discarded (use void?)", call.position)
+                errors.info("result value of subroutine call is discarded (use void?)", call.position)
             else
-                errors.warn("result values of subroutine call are discarded (use void?)", call.position)
+                errors.info("result values of subroutine call are discarded (use void?)", call.position)
         } else if (target is BuiltinFunctionPlaceholder) {
             val rt = builtinFunctionReturnType(target.name)
             if (rt.isKnown)
-                errors.warn("result value of a function call is discarded (use void?)", call.position)
+                errors.info("result value of a function call is discarded (use void?)", call.position)
         }
     }
 }

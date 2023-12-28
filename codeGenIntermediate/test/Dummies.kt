@@ -27,11 +27,11 @@ internal object DummyStringEncoder : IStringEncoding {
     }
 }
 
-internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true, private val keepMessagesAfterReporting: Boolean=false):
-    IErrorReporter {
+internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true, private val keepMessagesAfterReporting: Boolean=false): IErrorReporter {
 
     val errors = mutableListOf<String>()
     val warnings = mutableListOf<String>()
+    val infos = mutableListOf<String>()
 
     override fun err(msg: String, position: Position) {
         val text = "${position.toClickableStr()} $msg"
@@ -45,6 +45,12 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
             warnings.add(text)
     }
 
+    override fun info(msg: String, position: Position) {
+        val text = "${position.toClickableStr()} $msg"
+        if(text !in infos)
+            infos.add(text)
+    }
+
     override fun undefined(symbol: List<String>, position: Position) {
         err("undefined symbol: ${symbol.joinToString(".")}", position)
     }
@@ -52,10 +58,11 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
     override fun noErrors(): Boolean  = errors.isEmpty()
 
     override fun report() {
+        infos.forEach { println("UNITTEST COMPILATION REPORT: INFO: $it") }
         warnings.forEach { println("UNITTEST COMPILATION REPORT: WARNING: $it") }
         errors.forEach { println("UNITTEST COMPILATION REPORT: ERROR: $it") }
         if(throwExceptionAtReportIfErrors)
-            finalizeNumErrors(errors.size, warnings.size)
+            finalizeNumErrors(errors.size, warnings.size, infos.size)
         if(!keepMessagesAfterReporting) {
             clear()
         }
@@ -64,5 +71,6 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
     fun clear() {
         errors.clear()
         warnings.clear()
+        infos.clear()
     }
 }

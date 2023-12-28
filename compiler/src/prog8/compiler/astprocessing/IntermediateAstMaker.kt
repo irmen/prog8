@@ -497,7 +497,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                     if(value==null) {
                         val blockOptions = srcVar.definingBlock.options()
                         if("align_page" in blockOptions || "align_word" in blockOptions) {
-                            errors.warn("converting uninitialized array to explicit zeros because of block alignment option", srcVar.position)
+                            errors.info("converting uninitialized array to explicit zeros because of block alignment option", srcVar.position)
                             val zeros = PtArray(srcVar.datatype, srcVar.position)
                             repeat(srcVar.arraysize!!.constIndex()!!) {
                                 zeros.children.add(PtNumber(ArrayToElementTypes.getValue(srcVar.datatype), 0.0, srcVar.position))

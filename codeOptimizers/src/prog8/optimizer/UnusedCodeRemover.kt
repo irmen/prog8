@@ -60,14 +60,14 @@ class UnusedCodeRemover(private val program: Program,
             if (block.containsNoCodeNorVars) {
                 if(block.name != internedStringsModuleName) {
                     if(!block.statements.any { it is Subroutine && it.hasBeenInlined })
-                        errors.warn("removing unused block '${block.name}'", block.position)
+                        errors.info("removing unused block '${block.name}'", block.position)
                 }
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
             if(callgraph.unused(block)) {
                 if(block.statements.any{ it !is VarDecl || it.type== VarDeclType.VAR}) {
                     if(!block.statements.any { it is Subroutine && it.hasBeenInlined })
-                        errors.warn("removing unused block '${block.name}'", block.position)
+                        errors.info("removing unused block '${block.name}'", block.position)
                 }
                 if(!block.statements.any { it is Subroutine && it.hasBeenInlined }) {
                     program.removeInternedStringsFromRemovedBlock(block)
@@ -85,7 +85,7 @@ class UnusedCodeRemover(private val program: Program,
             if(callgraph.unused(subroutine)) {
                 if(subroutine.containsNoCodeNorVars) {
                     if("ignore_unused" !in subroutine.definingBlock.options())
-                        errors.warn("removing empty subroutine '${subroutine.name}'", subroutine.position)
+                        errors.info("removing empty subroutine '${subroutine.name}'", subroutine.position)
                     val removals = mutableListOf(IAstModification.Remove(subroutine, parent as IStatementContainer))
                     callgraph.calledBy[subroutine]?.let {
                         for(node in it)
@@ -94,7 +94,7 @@ class UnusedCodeRemover(private val program: Program,
                     return removals
                 }
                 if(!subroutine.hasBeenInlined && "ignore_unused" !in subroutine.definingBlock.options()) {
-                    errors.warn("unused subroutine '${subroutine.name}'", subroutine.position)
+                    errors.info("unused subroutine '${subroutine.name}'", subroutine.position)
                 }
                 if(!subroutine.inline) {
                     program.removeInternedStringsFromRemovedSubroutine(subroutine)
@@ -114,7 +114,7 @@ class UnusedCodeRemover(private val program: Program,
                 val usages = callgraph.usages(decl)
                 if (usages.isEmpty()) {
                     if("ignore_unused" !in decl.definingBlock.options())
-                        errors.warn("removing unused variable '${decl.name}'", decl.position)
+                        errors.info("removing unused variable '${decl.name}'", decl.position)
                     return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
                 }
                 else {
@@ -130,7 +130,7 @@ class UnusedCodeRemover(private val program: Program,
                     if (singleAssignment!=null && reads.isNotEmpty()) {
                         if (singleAssignment.origin == AssignmentOrigin.VARINIT && singleAssignment.value.constValue(program) != null) {
                             // variable only has a single write and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
-                            errors.warn("variable is never written to and was replaced by a constant", decl.position)
+                            errors.info("variable is never written to and was replaced by a constant", decl.position)
                             val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.position)
                             return listOf(
                                 IAstModification.ReplaceNode(decl, const, parent),
@@ -156,7 +156,7 @@ class UnusedCodeRemover(private val program: Program,
                                 if(assignment.value.isSimple) {
                                     // remove the vardecl
                                     if("ignore_unused" !in decl.definingBlock.options())
-                                        errors.warn("removing unused variable '${decl.name}'", decl.position)
+                                        errors.info("removing unused variable '${decl.name}'", decl.position)
                                     return listOf(
                                         IAstModification.Remove(decl, parent as IStatementContainer),
                                         IAstModification.Remove(assignment, assignment.parent as IStatementContainer)
@@ -168,7 +168,7 @@ class UnusedCodeRemover(private val program: Program,
                                         val declIndex = (parent as IStatementContainer).statements.indexOf(decl)
                                         val singleUseIndex = (parent as IStatementContainer).statements.indexOf(singleUse.parent)
                                         if(declIndex==singleUseIndex-1) {
-                                            errors.warn("replaced unused variable '${decl.name}' with void call, maybe this can be removed altogether", decl.position)
+                                            errors.info("replaced unused variable '${decl.name}' with void call, maybe this can be removed altogether", decl.position)
                                             val fcall = assignment.value as IFunctionCall
                                             val voidCall = FunctionCallStatement(fcall.target, fcall.args, true, fcall.position)
                                             return listOf(
@@ -178,7 +178,7 @@ class UnusedCodeRemover(private val program: Program,
                                         }
                                     }
                                 } else {
-                                    errors.warn("variable '${decl.name}' is unused but has non-trivial initialization assignment. Leaving this in but maybe it can be removed altogether", decl.position)
+                                    errors.info("variable '${decl.name}' is unused but has non-trivial initialization assignment. Leaving this in but maybe it can be removed altogether", decl.position)
                                 }
                             }
                         }

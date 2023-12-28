@@ -61,7 +61,7 @@ class IRUnusedCodeRemover(
             block.children.filterIsInstance<IRSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
                     if(!block.options.ignoreUnused) {
-                        errors.warn("unused subroutine '${sub.label}'", sub.position)
+                        errors.info("unused subroutine '${sub.label}'", sub.position)
                     }
                     block.children.remove(sub)
                     irprog.st.removeTree(sub.label)
@@ -82,7 +82,7 @@ class IRUnusedCodeRemover(
             block.children.filterIsInstance<IRAsmSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
                     if(!block.options.ignoreUnused) {
-                        errors.warn("unused subroutine '${sub.label}'", sub.position)
+                        errors.info("unused subroutine '${sub.label}'", sub.position)
                     }
                     block.children.remove(sub)
                     irprog.st.removeTree(sub.label)

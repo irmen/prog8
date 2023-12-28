@@ -2,9 +2,6 @@
 TODO
 ====
 
-- add INFO error level and move some warnings to info
-- add switch to enable INFO error messages (default is WARN and up)
-
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...

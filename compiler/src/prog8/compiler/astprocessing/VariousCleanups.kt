@@ -174,7 +174,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
         // replace trivial containment checks with just false or a single comparison
         fun replaceWithEquals(value: NumericLiteral): Iterable<IAstModification> {
-            errors.warn("containment could be written as just a single comparison", containment.position)
+            errors.info("containment could be written as just a single comparison", containment.position)
             val equals = BinaryExpression(containment.element, "==", value, containment.position)
             return listOf(IAstModification.ReplaceNode(containment, equals, parent))
         }
@@ -258,7 +258,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     override fun after(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> {
         if(branch.truepart.isEmpty() && branch.elsepart.isEmpty()) {
-            errors.warn("removing empty conditional branch", branch.position)
+            errors.info("removing empty conditional branch", branch.position)
             return listOf(IAstModification.Remove(branch, parent as IStatementContainer))
         }
 
@@ -267,7 +267,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isEmpty()) {
-            errors.warn("removing empty if-else statement", ifElse.position)
+            errors.info("removing empty if-else statement", ifElse.position)
             return listOf(IAstModification.Remove(ifElse, parent as IStatementContainer))
         }
         return noModifications
