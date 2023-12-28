@@ -270,6 +270,15 @@ Examples of valid identifiers::
 	приблизительно
 	π
 
+**Scoped names**
+
+Sometimes called "qualified names" or "dotted names", a scoped name is a sequence of identifiers separated by a dot.
+They are used to reference symbols in other scopes. Note that unlike many other programming languages,
+scoped names always need to be fully scoped (because they always start in the global scope). Also see :ref:`blocks`::
+
+    main.start              ; the entrypoint subroutine
+    main.start.variable     ; a variable in the entrypoint subroutine
+
 
 Code blocks
 -----------

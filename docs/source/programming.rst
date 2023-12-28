@@ -111,11 +111,14 @@ Be careful when importing other modules; blocks in your own code cannot have
 the same name as a block defined in an imported module or library.
 
 .. sidebar::
-    Use qualified names ("dotted names") to reference symbols defined elsewhere
+    Using qualified names ("dotted names") to reference symbols defined elsewhere
 
-    In prog8 every symbol is 'public' and can be accessed from anywhere else, given its *full* "dotted name".
+    Every symbol is 'public' and can be accessed from anywhere else, when given its *full* "dotted name".
     So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
     can be done from anywhere by using ``main.worker.counter``.
+    Unlike most other programming langues, as soon as a name is scoped,
+    Prog8 treats it as a name starting in the *global* namespace.
+    Relative name lookup is only performed for *non-scoped* names.
 
 The address can be used to place a block at a specific location in memory.
 Usually it is omitted, and the compiler will automatically choose the location (usually immediately after

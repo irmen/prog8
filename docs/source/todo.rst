@@ -2,6 +2,7 @@
 TODO
 ====
 
+- add functions to const eval that we know how to evaluate (math.*, etc)
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
