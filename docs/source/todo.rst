@@ -2,7 +2,6 @@
 TODO
 ====
 
-- add functions to const eval that we know how to evaluate (math.*, etc)
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
@@ -49,6 +48,7 @@ Compiler:
 
 Libraries:
 
+- get rid of the "f" suffix of several funtions in floats_functions (breaking change)
 - once a VAL_1 implementation is merged into the X16 kernal properly, remove all the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?

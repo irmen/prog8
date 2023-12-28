@@ -319,8 +319,13 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         val constvalue = functionCallExpr.constValue(program)
         return if(constvalue!=null)
             listOf(IAstModification.ReplaceNode(functionCallExpr, constvalue, parent))
-        else
-            noModifications
+        else {
+            val const2 = evaluator.evaluate(functionCallExpr, program)
+            return if(const2!=null)
+                listOf(IAstModification.ReplaceNode(functionCallExpr, const2, parent))
+            else
+                noModifications
+        }
     }
 
     override fun after(bfc: BuiltinFunctionCall, parent: Node): Iterable<IAstModification> {

@@ -467,7 +467,8 @@ Constants
 
 All variables can be assigned new values unless you use the ``const`` keyword.
 The initial value must be known at compile time (it must be a compile time constant expression).
-This is only valid for the simple numeric types (byte, word, float)::
+
+Only the simple numeric types (byte, word, float) can be defined as a constant::
 
 	const  byte  max_age = 99
 

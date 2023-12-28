@@ -11,5 +11,6 @@
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="compilerAst" />
+    <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
   </component>
 </module>

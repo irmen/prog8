@@ -72,7 +72,7 @@ Language features
 - Floating point math is supported on select compiler targets.
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
 - Identifiers can contain Unicode Letters, so ``knäckebröd``, ``приблизительно``, ``見せしめ`` and ``π`` are all valid identifiers.
-- High-level code optimizations, such as const-folding (zero-allocation constants that are optimized away in expressions), expression and statement simplifications/rewriting.
+- Advanced code optimizations, such as const-folding (zero-allocation constants that are optimized away in expressions), expression and statement simplifications/rewriting.
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - Supports the sixteen 'virtual' 16-bit registers R0 .. R15 as defined on the Commander X16, also on the other machines.
 - Support for low level system features such as Vera Fx hardware word multiplication on the Commander X16

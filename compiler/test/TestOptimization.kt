@@ -899,4 +899,27 @@ main {
         (expr.left as? IdentifierReference)?.nameInSource shouldBe listOf("yy")
         (expr.right as? NumericLiteral)?.number shouldBe 10.0
     }
+
+    test("advanced const folding of known library functions") {
+        val src="""
+%import floats
+%import math
+%import string
+
+main {
+    sub start() {
+        float fl = 1.2  ; no other assignments
+        cx16.r0L = string.isdigit(math.diff(119, floats.floor(floats.deg(fl)) as ubyte))
+        cx16.r1L = string.isletter(math.diff(119, floats.floor(floats.deg(1.2)) as ubyte))
+    }
+}"""
+        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 3
+        (st[0] as VarDecl).type shouldBe VarDeclType.CONST
+        val assignv1 = (st[1] as Assignment).value
+        val assignv2 = (st[2] as Assignment).value
+        (assignv1 as NumericLiteral).number shouldBe 1.0
+        (assignv2 as NumericLiteral).number shouldBe 0.0
+    }
 })
