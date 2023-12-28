@@ -262,10 +262,9 @@ _after:
 
         // desugar chained comparisons:  i < x < j  --->  i<x and x<j
         // only if  i<x  or x<j  was not written in parentheses!   (i<x) < y,  i < (x<y)  -> leave untouched
-        if(expr.operator in ComparisonOperators) {
+        if(expr.isChainedComparison()) {
             val leftBinExpr = expr.left as? BinaryExpression
-            val rightBinExpr = expr.right as? BinaryExpression
-            if(leftBinExpr!=null && !leftBinExpr.insideParentheses && leftBinExpr.operator in ComparisonOperators) {
+            if(leftBinExpr!=null) {
                 if(!leftBinExpr.right.isSimple) {
                     errors.warn("possible multiple evaluation of subexpression in chained comparison, consider using a temporary variable", leftBinExpr.right.position)
                 }
@@ -273,7 +272,8 @@ _after:
                 val desugar = BinaryExpression(leftBinExpr, "and", right, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, desugar, parent))
             }
-            else if(rightBinExpr!=null && !rightBinExpr.insideParentheses && rightBinExpr.operator in ComparisonOperators) {
+            val rightBinExpr = expr.right as? BinaryExpression
+            if(rightBinExpr!=null) {
                 if(!rightBinExpr.left.isSimple) {
                     errors.warn("possible multiple evaluation of subexpression in chained comparison, consider using a temporary variable", rightBinExpr.left.position)
                 }

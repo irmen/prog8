@@ -153,7 +153,7 @@ main {
         val text="""
 main {
     sub start() {
-        ubyte c = 1
+        ubyte @shared c = 1
         @(15000 + c<<${'$'}0003) = 42
         @(15000 + (c<<${'$'}0003)) = 42
         @(15000 + c*${'$'}0008) = 42       ; *8 becomes a shift after opt
@@ -247,7 +247,7 @@ main {
     sub start() {
 
 mylabel:
-        ubyte variable
+        ubyte @shared variable
         uword @shared pointer1 = &main.start
         uword @shared pointer2 = &start
         uword @shared pointer3 = &main.start.mylabel

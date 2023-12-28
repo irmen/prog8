@@ -2,6 +2,10 @@
 TODO
 ====
 
+- make constants have p8c_ prefix instead of p8v_
+- add INFO error level and move some warnings to info
+- add switch to enable INFO error messages (default is WARN and up)
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
@@ -56,8 +60,6 @@ Libraries:
 
 Optimizations:
 
-- give a warning for variables that could be a const - or even make them a const (if not @shared)?
-- treat every scalar variable decl with initialization value, as const by default, unless the variable gets assigned to somewhere (or has its address taken, or is @shared)
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,

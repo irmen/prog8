@@ -152,9 +152,9 @@ mylabel_inside:
         val src = """
 main {
     sub start() {
-        ubyte bytevar = 11      ; var at 0
-        ubyte byteVAR = 22      ; var at 1
-        ubyte ByteVar = 33      ; var at 2
+        ubyte @shared bytevar = 11      ; var at 0
+        ubyte @shared byteVAR = 22      ; var at 1
+        ubyte @shared ByteVar = 33      ; var at 2
         ubyte @shared total = bytevar+byteVAR+ByteVar   ; var at 3
         goto skipLABEL
 SkipLabel:

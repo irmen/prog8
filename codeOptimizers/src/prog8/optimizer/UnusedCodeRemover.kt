@@ -1,17 +1,11 @@
 package prog8.optimizer
 
 import prog8.ast.*
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.expressions.PrefixExpression
-import prog8.ast.expressions.TypecastExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.DataType
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.internedStringsModuleName
+import prog8.code.core.*
 import prog8.compiler.CallGraph
 
 
@@ -124,6 +118,36 @@ class UnusedCodeRemover(private val program: Program,
                     return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
                 }
                 else {
+                    val (writes, reads) = usages
+                        .partition{
+                            it is InlineAssembly  // can't really tell if it's written to or only read, assume the worst
+                                || it.parent is AssignTarget
+                                || it.parent is ForLoop
+                                || it.parent is AddressOf
+                                || (it.parent as? IFunctionCall)?.target?.nameInSource?.singleOrNull() in InplaceModifyingBuiltinFunctions
+                        }
+                    val singleAssignment = writes.singleOrNull()?.parent?.parent as? Assignment  ?:  writes.singleOrNull()?.parent as? Assignment
+                    if (singleAssignment!=null && reads.isNotEmpty()) {
+                        if (singleAssignment.origin == AssignmentOrigin.VARINIT && singleAssignment.value.constValue(program) != null) {
+                            // variable only has a single write and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
+                            errors.warn("variable is never written to and was replaced by a constant", decl.position)
+                            val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.position)
+                            return listOf(
+                                IAstModification.ReplaceNode(decl, const, parent),
+                                IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                            )
+                        }
+                    }
+                    /*
+                    TODO: need to check if there are no variable usages between the declaration and the assignment (because these rely on the original initialization value)
+                    if(writes.size==2) {
+                        val firstAssignment = writes[0].parent as? Assignment
+                        val secondAssignment = writes[1].parent as? Assignment
+                        if(firstAssignment?.origin==AssignmentOrigin.VARINIT && secondAssignment?.value?.constValue(program)!=null) {
+                            errors.warn("variable is only assigned once here, consider using this as the initialization value in the declaration instead", secondAssignment.position)
+                        }
+                    }
+                    */
                     if(usages.size==1) {
                         val singleUse = usages[0].parent
                         if(singleUse is AssignTarget) {

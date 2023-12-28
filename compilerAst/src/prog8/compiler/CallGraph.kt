@@ -141,30 +141,39 @@ class CallGraph(private val program: Program) : IAstVisitor {
     fun unused(module: Module) = module !in usedModules
 
     fun unused(sub: Subroutine): Boolean {
-        return sub !in usedSubroutines && !nameInAssemblyCode(sub.name)
+        return sub !in usedSubroutines && !nameInAssemblyCode(sub.name, listOf("p8s_", ""))
     }
 
     fun unused(block: Block): Boolean {
-        return block !in usedBlocks && !nameInAssemblyCode(block.name)
+        return block !in usedBlocks && !nameInAssemblyCode(block.name, listOf("p8b_", ""))
     }
 
     fun unused(decl: VarDecl): Boolean {
-        // Don't check assembly just for occurrences of variables, if they're not used in prog8 itself, just kill them
+        // Don't check assembly just for occurrences of variables, if they're not used in prog8 itself, just kill them.
+        // User should use @shared if they want to keep them.
         return usages(decl).isEmpty()
     }
 
-    fun usages(decl: VarDecl): List<IdentifierReference> {
+    fun usages(decl: VarDecl): List<Node> {
         if(decl.type!=VarDeclType.VAR)
             return emptyList()
 
         if(decl.definingBlock !in usedBlocks)
             return emptyList()
 
-        return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key }
+        val assemblyBlocks = allAssemblyNodes.filter {
+            decl.name in it.names || "p8v_" + decl.name in it.names
+        }
+        return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key } + assemblyBlocks
     }
 
     private val prefixes = listOf("p8b_", "p8v_", "p8s_", "p8l_", "p8_", "")
-    private fun nameInAssemblyCode(name: String): Boolean {
+    private fun nameInAssemblyCode(name: String, knownAsmPrefixes: List<String> = emptyList()): Boolean {
+        if(knownAsmPrefixes.isNotEmpty())
+            return allAssemblyNodes.any {
+                knownAsmPrefixes.any { prefix -> prefix+name in it.names }
+            }
+
         return allAssemblyNodes.any {
             prefixes.any { prefix -> prefix+name in it.names }
         }

@@ -17,6 +17,7 @@ mcf {
     ubyte file_channel
 
     sub open(str filename, ubyte drive, ubyte channel) -> bool {
+        file_channel = channel
         cbm.SETNAM(string.length(filename), filename)
         cbm.SETLFS(channel, drive, 2)
         void cbm.OPEN()

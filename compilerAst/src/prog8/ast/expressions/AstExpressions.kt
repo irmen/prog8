@@ -153,7 +153,7 @@ class BinaryExpression(
     var operator: String,
     var right: Expression,
     override val position: Position,
-    val insideParentheses: Boolean = false      // used in very few places to check priorities
+    private val insideParentheses: Boolean = false
 ) : Expression() {
     override lateinit var parent: Node
 
@@ -177,6 +177,18 @@ class BinaryExpression(
     override fun toString() = "[$left $operator $right]"
 
     override val isSimple = false
+
+    fun isChainedComparison(): Boolean {
+        if(operator in ComparisonOperators) {
+            val leftBinExpr = left as? BinaryExpression
+            if (leftBinExpr != null && !leftBinExpr.insideParentheses && leftBinExpr.operator in ComparisonOperators)
+                return true
+            val rightBinExpr = right as? BinaryExpression
+            if (rightBinExpr != null && !rightBinExpr.insideParentheses && rightBinExpr.operator in ComparisonOperators)
+                return true
+        }
+        return false
+    }
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
     override fun constValue(program: Program): NumericLiteral? = null
@@ -980,7 +992,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override val isSimple = true
 
     fun targetStatement(program: Program) =
-        if(nameInSource.size==1 && nameInSource[0] in program.builtinFunctions.names)
+        if(nameInSource.singleOrNull() in program.builtinFunctions.names)
             BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
         else
             definingScope.lookup(nameInSource)

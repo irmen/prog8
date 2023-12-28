@@ -22,7 +22,7 @@ diskio {
     const ubyte READ_IO_CHANNEL=12
     const ubyte WRITE_IO_CHANNEL=13
 
-    ubyte drivenumber = 8           ; user programs can set this to the drive number they want to load/save to!
+    ubyte @shared drivenumber = 8           ; user programs can set this to the drive number they want to load/save to!
 
     sub reset_read_channel() {
         void cbm.CHKIN(READ_IO_CHANNEL)

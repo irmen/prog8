@@ -19,9 +19,9 @@ class ConstExprEvaluator {
                 "*" -> multiply(left, right)
                 "/" -> divide(left, right)
                 "%" -> remainder(left, right)
-                "&" -> bitwiseand(left, right)
-                "|" -> bitwiseor(left, right)
-                "^" -> bitwisexor(left, right)
+                "&" -> bitwiseAnd(left, right)
+                "|" -> bitwiseOr(left, right)
+                "^" -> bitwiseXor(left, right)
                 "<" -> NumericLiteral.fromBoolean(left < right, left.position)
                 ">" -> NumericLiteral.fromBoolean(left > right, left.position)
                 "<=" -> NumericLiteral.fromBoolean(left <= right, left.position)
@@ -30,6 +30,9 @@ class ConstExprEvaluator {
                 "!=" -> NumericLiteral.fromBoolean(left != right, left.position)
                 "<<" -> shiftedleft(left, right)
                 ">>" -> shiftedright(left, right)
+                "and" -> logicalAnd(left, right)
+                "or" -> logicalOr(left, right)
+                "xor" -> logicalXor(left, right)
                 else -> throw FatalAstException("const evaluation for invalid operator $operator")
             }
         } catch (ax: FatalAstException) {
@@ -55,7 +58,7 @@ class ConstExprEvaluator {
         return NumericLiteral(left.type, result.toDouble(), left.position)
     }
 
-    private fun bitwisexor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
+    private fun bitwiseXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
         if(left.type== DataType.UBYTE) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() xor (right.number.toInt() and 255)).toDouble(), left.position)
@@ -68,7 +71,7 @@ class ConstExprEvaluator {
         throw ExpressionError("cannot calculate $left ^ $right", left.position)
     }
 
-    private fun bitwiseor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
+    private fun bitwiseOr(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
         if(left.type== DataType.UBYTE) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() or (right.number.toInt() and 255)).toDouble(), left.position)
@@ -81,7 +84,7 @@ class ConstExprEvaluator {
         throw ExpressionError("cannot calculate $left | $right", left.position)
     }
 
-    private fun bitwiseand(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
+    private fun bitwiseAnd(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
         if(left.type== DataType.UBYTE) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() and (right.number.toInt() and 255)).toDouble(), left.position)
@@ -93,6 +96,15 @@ class ConstExprEvaluator {
         }
         throw ExpressionError("cannot calculate $left & $right", left.position)
     }
+
+    private fun logicalAnd(left: NumericLiteral, right: NumericLiteral): NumericLiteral =
+        NumericLiteral.fromBoolean(left.asBooleanValue and right.asBooleanValue, left.position)
+
+    private fun logicalOr(left: NumericLiteral, right: NumericLiteral): NumericLiteral =
+        NumericLiteral.fromBoolean(left.asBooleanValue or right.asBooleanValue, left.position)
+
+    private fun logicalXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral =
+        NumericLiteral.fromBoolean(left.asBooleanValue xor right.asBooleanValue, left.position)
 
     private fun plus(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
         val error = "cannot add $left and $right"

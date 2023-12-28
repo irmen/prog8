@@ -44,7 +44,7 @@ class TestTypecasts: FunSpec({
             
             main {
                 sub start() {
-                    bool bb2=true
+                    bool @shared bb2=true
                     bool @shared bb = bb2 and true
                 }
             }"""
@@ -73,10 +73,9 @@ main {
     }
 
     sub start() {
-        bool ub1 = true
-        bool ub2 = true
-        bool ub3 = true
-        bool ub4 = 0
+        bool @shared ub1 = true
+        bool @shared ub2 = true
+        bool @shared ub3 = true
         bool @shared bvalue
 
         bvalue = ub1 xor ub2 xor ub3 xor true

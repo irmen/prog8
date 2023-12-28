@@ -81,8 +81,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
     // also convert calls to builtin functions to BuiltinFunctionCall nodes to make things easier for codegen
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        if(functionCallStatement.target.nameInSource.size==1
-            && functionCallStatement.target.nameInSource[0] in program.builtinFunctions.names) {
+        if(functionCallStatement.target.nameInSource.singleOrNull() in program.builtinFunctions.names) {
             return listOf(IAstModification.ReplaceNode(
                 functionCallStatement,
                 BuiltinFunctionCallStatement(functionCallStatement.target, functionCallStatement.args, functionCallStatement.position),
@@ -94,8 +93,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
     }
 
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        if(functionCallExpr.target.nameInSource.size==1
-            && functionCallExpr.target.nameInSource[0] in program.builtinFunctions.names) {
+        if(functionCallExpr.target.nameInSource.singleOrNull() in program.builtinFunctions.names) {
             return listOf(IAstModification.ReplaceNode(
                 functionCallExpr,
                 BuiltinFunctionCall(functionCallExpr.target, functionCallExpr.args, functionCallExpr.position),

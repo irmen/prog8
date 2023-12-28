@@ -24,8 +24,8 @@ main {
         for i in 0 to len(s2)-1
             txt.setchr(i, 1, s2[i])
 
-        ubyte c1 = 'z'
-        ubyte c2 = sc:'z'
+        const ubyte c1 = 'z'
+        const ubyte c2 = sc:'z'
 
         txt.print("\npetscii z=")
         txt.print_ub(c1)

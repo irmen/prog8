@@ -13,5 +13,7 @@ main {
         txt.nl()
         txt.print_ub(5<(x-y)<=9<y)
         txt.nl()
+        txt.print_ub(5<(x-y)<=9<(y+40))
+        txt.nl()
     }
 }

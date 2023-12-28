@@ -106,8 +106,8 @@ class TestOptimization: FunSpec({
                 const ubyte boardOffsetC = 3
 
                 sub start() {
-                    uword load_location = 12345
-                    word llw = 12345
+                    uword @shared load_location = 12345
+                    word @shared llw = 12345
                     cx16.r0 = load_location + 8000 + 1000 + 1000
                     cx16.r2 = 8000 + 1000 + 1000 + load_location
                     cx16.r4 = load_location + boardOffsetC + boardHeightC - 1
@@ -156,8 +156,8 @@ class TestOptimization: FunSpec({
             %option enable_floats
             main {
                 sub start() {
-                    float llw = 300.0
-                    float result
+                    float @shared llw = 300.0
+                    float @shared result
                     result = 9 * 2 * 10 * llw
                     result++
                     result = llw * 9 * 2 * 10
@@ -214,7 +214,7 @@ class TestOptimization: FunSpec({
         val source = """
             main {
                 sub start() {
-                    word llw = 300
+                    word @shared llw = 300
                     cx16.r0s = 9 * 2 * 10 * llw
                     cx16.r1s = llw * 9 * 2 * 10
                     cx16.r2s = llw / 30 / 3
@@ -483,8 +483,8 @@ class TestOptimization: FunSpec({
         val src="""
             main {
                 sub start() {
-                    uword aa
-                    ubyte zz
+                    uword @shared aa
+                    ubyte @shared zz
                     @(aa) = zz + 32   ; do not optimize this away!
                 }
             }
@@ -633,8 +633,8 @@ class TestOptimization: FunSpec({
         val src="""
         main {
             sub start() {
-                ubyte source=99
-                ubyte thingy=42
+                ubyte @shared source=99
+                ubyte @shared thingy=42
         
                 if source==3 or source==4 or source==99 or source==1
                     thingy++
@@ -673,8 +673,8 @@ class TestOptimization: FunSpec({
         val src="""
         main {
             sub start() {
-                ubyte source=99
-                ubyte thingy=42
+                ubyte @shared source=99
+                ubyte @shared thingy=42
         
                 if source==3 or source==4 or source!=99 or source==1
                     thingy++
@@ -691,8 +691,8 @@ class TestOptimization: FunSpec({
         val src="""
         main {
             sub start() {
-                ubyte source=99
-                ubyte thingy=42
+                ubyte @shared source=99
+                ubyte @shared thingy=42
         
                 if source==3 or source==4 or thingy==99 or source==1
                     thingy++
@@ -709,8 +709,8 @@ class TestOptimization: FunSpec({
         val src="""
         main {
             sub start() {
-                ubyte source=99
-                ubyte thingy=42
+                ubyte @shared source=99
+                ubyte @shared thingy=42
         
                 if source==3 or source==4 and source==99 or source==1
                     thingy++
@@ -727,7 +727,7 @@ class TestOptimization: FunSpec({
         val src="""
             main{
                 sub start () {
-                    uword eRef
+                    uword @shared eRef
                     if eRef[3] and 10  {
                       return
                     }
