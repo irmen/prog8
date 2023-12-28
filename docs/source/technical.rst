@@ -38,6 +38,7 @@ Element type prefix
 Block        ``p8b_``
 Subroutine   ``p8s_``
 Variable     ``p8v_``
+Constant     ``p8c_``
 Label        ``p8l_``
 other        ``p8_``
 ============ ========

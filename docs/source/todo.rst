@@ -2,7 +2,7 @@
 TODO
 ====
 
-- make constants have p8c_ prefix instead of p8v_
+- add unit tests for chained comparisons and for var -> const optimization
 - add INFO error level and move some warnings to info
 - add switch to enable INFO error messages (default is WARN and up)
 
