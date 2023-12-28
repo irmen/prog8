@@ -876,4 +876,27 @@ main {
         compileText(Cx16Target(), true, src, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.single() shouldContain  "undefined symbol"
     }
+
+    test("var to const") {
+        val src="""
+main {
+    sub start() {
+        ubyte xx=10         ; to const
+        ubyte @shared yy=20 ; remain var
+        cx16.r0L = xx+yy
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        val result = compileText(Cx16Target(), true, src, writeAssembly = false, errors = errors)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 4
+        val xxConst = st[0] as VarDecl
+        xxConst.type shouldBe VarDeclType.CONST
+        xxConst.name shouldBe "xx"
+        (xxConst.value as? NumericLiteral)?.number shouldBe 10.0
+        (st[1] as VarDecl).type shouldBe VarDeclType.VAR
+        val expr = (st[3] as Assignment).value as BinaryExpression
+        (expr.left as? IdentifierReference)?.nameInSource shouldBe listOf("yy")
+        (expr.right as? NumericLiteral)?.number shouldBe 10.0
+    }
 })

@@ -455,5 +455,43 @@ main {
 }"""
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
+
+    test("chained comparison") {
+        val src="""
+main {
+    sub start() {
+        ubyte @shared x = 1
+        ubyte @shared y = 2
+        ubyte @shared z = 3
+        x = x==y==z
+        y = 4<x<10
+    }
+}"""
+        val result=compileText(VMTarget(), optimize=false, src, writeAssembly=false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 8
+
+        val comparison1 = (st[6] as Assignment).value as BinaryExpression
+        comparison1.operator shouldBe "and"
+        val left1 = comparison1.left as BinaryExpression
+        val right1 = comparison1.right as BinaryExpression
+        left1.operator shouldBe "=="
+        right1.operator shouldBe "=="
+        (left1.left as? IdentifierReference)?.nameInSource shouldBe listOf("x")
+        (left1.right as? IdentifierReference)?.nameInSource shouldBe listOf("y")
+        (right1.left as? IdentifierReference)?.nameInSource shouldBe listOf("y")
+        (right1.right as? IdentifierReference)?.nameInSource shouldBe listOf("z")
+
+        val comparison2 = (st[7] as Assignment).value as BinaryExpression
+        comparison2.operator shouldBe "and"
+        val left2 = comparison2.left as BinaryExpression
+        val right2 = comparison2.right as BinaryExpression
+        left2.operator shouldBe ">"
+        right2.operator shouldBe "<"
+        (left2.left as? IdentifierReference)?.nameInSource shouldBe listOf("x")
+        (left2.right as? NumericLiteral)?.number shouldBe 4.0
+        (right2.left as? IdentifierReference)?.nameInSource shouldBe listOf("x")
+        (right2.right as? NumericLiteral)?.number shouldBe 10.0
+    }
 })
 

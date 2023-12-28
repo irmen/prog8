@@ -2,7 +2,6 @@
 TODO
 ====
 
-- add unit tests for chained comparisons and for var -> const optimization
 - add INFO error level and move some warnings to info
 - add switch to enable INFO error messages (default is WARN and up)
 
