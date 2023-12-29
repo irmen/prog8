@@ -120,7 +120,9 @@ class ModuleImporter(private val program: Program,
                     importedModule.statements.remove(block)
 
                     if(blockHasMergeOption && !existingBlockHasMergeOption) {
-                        existingBlock.statements.add(0, Directive("%option", listOf(DirectiveArg(null, "merge", null, block.position)), block.position))
+                        val directive = Directive("%option", listOf(DirectiveArg(null, "merge", null, block.position)), block.position)
+                        existingBlock.statements.add(0, directive)
+                        directive.linkParents(existingBlock)
                     }
                 }
             }

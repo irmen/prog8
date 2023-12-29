@@ -358,7 +358,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget, errors)
     errors.report()
-    program.constantFold(errors, compilerOptions.compTarget)
+    program.constantFold(errors, compilerOptions)
     errors.report()
     program.desugaring(errors)
     errors.report()
@@ -385,7 +385,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         val optsDone1 = program.simplifyExpressions(errors, compTarget)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
         val optsDone3 = program.inlineSubroutines(compilerOptions)
-        program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
+        program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
         if(!errors.noErrors()) {
             errors.report()
             break
@@ -397,7 +397,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     remover2.visit(program)
     remover2.applyModifications()
     if(errors.noErrors())
-        program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
+        program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
     errors.report()
 }
 

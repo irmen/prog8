@@ -7,13 +7,13 @@ import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 
 
-fun Program.constantFold(errors: IErrorReporter, compTarget: ICompilationTarget) {
-    val valuetypefixer = VarConstantValueTypeAdjuster(this, errors)
+fun Program.constantFold(errors: IErrorReporter, options: CompilationOptions) {
+    val valuetypefixer = VarConstantValueTypeAdjuster(this, options, errors)
     valuetypefixer.visit(this)
     if(errors.noErrors()) {
         valuetypefixer.applyModifications()
 
-        val replacer = ConstantIdentifierReplacer(this, errors, compTarget)
+        val replacer = ConstantIdentifierReplacer(this, errors, options.compTarget)
         replacer.visit(this)
         if (errors.noErrors()) {
             replacer.applyModifications()

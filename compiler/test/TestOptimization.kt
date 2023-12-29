@@ -465,8 +465,8 @@ class TestOptimization: FunSpec({
                 %option force_output
                 
                 sub start() {
-                    uword aa
-                    ubyte zz
+                    uword @shared aa
+                    ubyte @shared zz
                     @(aa) = zz + 32    
                 }
             }

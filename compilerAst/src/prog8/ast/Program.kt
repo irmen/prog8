@@ -26,6 +26,7 @@ class Program(val name: String,
         val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
         val directive = Directive("%option", listOf(DirectiveArg(null,"no_symbol_prefixing", null, Position.DUMMY)), Position.DUMMY)
         block.statements.add(directive)
+        directive.linkParents(block)
         internedStringsModule.statements.add(block)
 
         _modules.add(0, internedStringsModule)

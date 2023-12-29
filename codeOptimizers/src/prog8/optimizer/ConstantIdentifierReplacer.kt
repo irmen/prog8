@@ -1,5 +1,7 @@
 package prog8.optimizer
 
+import prog8.ast.IFunctionCall
+import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
@@ -9,10 +11,17 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
+import prog8.compiler.CallGraph
 
 // Fix up the literal value's type to match that of the vardecl
 //   (also check range literal operands types before they get expanded into arrays for instance)
-class VarConstantValueTypeAdjuster(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
+class VarConstantValueTypeAdjuster(
+    private val program: Program,
+    private val options: CompilationOptions,
+    private val errors: IErrorReporter
+) : AstWalker() {
+
+    private val callGraph by lazy { CallGraph(program) }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 
@@ -36,6 +45,73 @@ class VarConstantValueTypeAdjuster(private val program: Program, private val err
             }
         } catch (x: UndefinedSymbolError) {
             errors.err(x.message, x.position)
+        }
+
+        // replace variables by constants, if possible
+        if(options.optimize) {
+            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE || decl.datatype !in NumericDatatypes)
+                return noModifications
+            if (decl.value != null && decl.value!!.constValue(program) == null)
+                return noModifications
+            val usages = callGraph.usages(decl)
+            val (writes, reads) = usages
+                .partition {
+                    it is InlineAssembly  // can't really tell if it's written to or only read, assume the worst
+                            || it.parent is AssignTarget
+                            || it.parent is ForLoop
+                            || it.parent is AddressOf
+                            || (it.parent as? IFunctionCall)?.target?.nameInSource?.singleOrNull() in InplaceModifyingBuiltinFunctions
+                }
+            val singleAssignment =
+                writes.singleOrNull()?.parent?.parent as? Assignment ?: writes.singleOrNull()?.parent as? Assignment
+            if (singleAssignment == null) {
+                if (writes.isEmpty()) {
+                    if(reads.isEmpty()) {
+                        // variable is never used AT ALL so we just remove it altogether
+                        if("ignore_unused" !in decl.definingBlock.options())
+                            errors.info("removing unused variable '${decl.name}'", decl.position)
+                        return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
+                    }
+                    val declValue = decl.value?.constValue(program)
+                    if (declValue != null) {
+                        // variable is never written to, so it can be replaced with a constant, IF the value is a constant
+                        errors.info("variable is never written to and was replaced by a constant", decl.position)
+                        val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, declValue, decl.sharedWithAsm, decl.splitArray, decl.position)
+                        return listOf(
+                            IAstModification.ReplaceNode(decl, const, parent),
+                        )
+                    }
+                }
+            } else {
+                if (singleAssignment.origin == AssignmentOrigin.VARINIT && singleAssignment.value.constValue(program) != null) {
+                    if(reads.isEmpty()) {
+                        // variable is never used AT ALL so we just remove it altogether, including the single assignment
+                        if("ignore_unused" !in decl.definingBlock.options())
+                            errors.info("removing unused variable '${decl.name}'", decl.position)
+                        return listOf(
+                            IAstModification.Remove(decl, parent as IStatementContainer),
+                            IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                        )
+                    }
+                    // variable only has a single write and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
+                    errors.info("variable is never written to and was replaced by a constant", decl.position)
+                    val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.position)
+                    return listOf(
+                        IAstModification.ReplaceNode(decl, const, parent),
+                        IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                    )
+                }
+            }
+            /*
+        TODO: need to check if there are no variable usages between the declaration and the assignment (because these rely on the original initialization value)
+        if(writes.size==2) {
+            val firstAssignment = writes[0].parent as? Assignment
+            val secondAssignment = writes[1].parent as? Assignment
+            if(firstAssignment?.origin==AssignmentOrigin.VARINIT && secondAssignment?.value?.constValue(program)!=null) {
+                errors.warn("variable is only assigned once here, consider using this as the initialization value in the declaration instead", secondAssignment.position)
+            }
+        }
+        */
         }
 
         return noModifications

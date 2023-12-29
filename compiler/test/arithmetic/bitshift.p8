@@ -386,182 +386,182 @@ main {
     }
 
     sub shiftruw0() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q >> 0
     }
 
     sub shiftruw1() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q >> 1
     }
 
     sub shiftruw2() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q >> 2
     }
 
     sub shiftruw3() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q >> 3
     }
 
     sub shiftruw4() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q >> 4
     }
 
     sub shiftruw5() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q >> 5
     }
 
     sub shiftruw6() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q >> 6
     }
 
     sub shiftruw7() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q >> 7
     }
 
     sub shiftruw8() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 8)
     }
 
     sub shiftruw9() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 9)
     }
 
     sub shiftruw10() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 10)
     }
 
     sub shiftruw11() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 11)
     }
 
     sub shiftruw12() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 12)
     }
 
     sub shiftruw13() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 13)
     }
 
     sub shiftruw14() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 14)
     }
 
     sub shiftruw15() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 15)
     }
 
     sub shiftruw16() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 16)
     }
 
     sub shiftruw17() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return (q >> 17)
     }
 
     sub shiftrsw0() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q >> 0
     }
 
     sub shiftrsw1() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q >> 1
     }
 
     sub shiftrsw2() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q >> 2
     }
 
     sub shiftrsw3() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q >> 3
     }
 
     sub shiftrsw4() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q >> 4
     }
 
     sub shiftrsw5() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q >> 5
     }
 
     sub shiftrsw6() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q >> 6
     }
 
     sub shiftrsw7() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q >> 7
     }
 
     sub shiftrsw8() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 8)
     }
 
     sub shiftrsw9() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 9)
     }
 
     sub shiftrsw10() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 10)
     }
 
     sub shiftrsw11() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 11)
     }
 
     sub shiftrsw12() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 12)
     }
 
     sub shiftrsw13() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 13)
     }
 
     sub shiftrsw14() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 14)
     }
 
     sub shiftrsw15() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 15)
     }
 
     sub shiftrsw16() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 16)
     }
 
     sub shiftrsw17() -> word {
-        word q = -12345
+        word @shared q = -12345
         return (q >> 17)
     }
 
@@ -569,352 +569,352 @@ main {
 
 
     sub shiftluw0() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 0
     }
 
     sub shiftluw1() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 1
     }
 
     sub shiftluw2() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 2
     }
 
     sub shiftluw3() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 3
     }
 
     sub shiftluw4() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 4
     }
 
     sub shiftluw5() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 5
     }
 
     sub shiftluw6() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 6
     }
 
     sub shiftluw7() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 7
     }
 
     sub shiftluw8() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 8
     }
 
     sub shiftluw9() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 9
     }
 
     sub shiftluw10() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 10
     }
 
     sub shiftluw11() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 11
     }
 
     sub shiftluw12() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 12
     }
 
     sub shiftluw13() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 13
     }
 
     sub shiftluw14() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 14
     }
 
     sub shiftluw15() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 15
     }
 
     sub shiftluw16() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 16
     }
 
     sub shiftluw17() -> uword {
-        uword q = $a49f
+        uword @shared q = $a49f
         return q << 17
     }
 
 
 
     sub shiftlsw0() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 0
     }
 
     sub shiftlsw1() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 1
     }
 
     sub shiftlsw2() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 2
     }
 
     sub shiftlsw3() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 3
     }
 
     sub shiftlsw4() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 4
     }
 
     sub shiftlsw5() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 5
     }
 
     sub shiftlsw6() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 6
     }
 
     sub shiftlsw7() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 7
     }
 
     sub shiftlsw8() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 8
     }
 
     sub shiftlsw9() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 9
     }
 
     sub shiftlsw10() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 10
     }
 
     sub shiftlsw11() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 11
     }
 
     sub shiftlsw12() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 12
     }
 
     sub shiftlsw13() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 13
     }
 
     sub shiftlsw14() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 14
     }
 
     sub shiftlsw15() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 15
     }
 
     sub shiftlsw16() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 16
     }
 
     sub shiftlsw17() -> word {
-        word q = -12345
+        word @shared q = -12345
         return q << 17
     }
 
 
 
     sub shiftlb0() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 0
     }
     sub shiftlb1() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 1
     }
     sub shiftlb2() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 2
     }
     sub shiftlb3() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 3
     }
     sub shiftlb4() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 4
     }
     sub shiftlb5() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 5
     }
     sub shiftlb6() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 6
     }
     sub shiftlb7() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 7
     }
     sub shiftlb8() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 8
     }
     sub shiftlb9() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy << 9
     }
 
     sub shiftrb0() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 0
     }
     sub shiftrb1() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 1
     }
     sub shiftrb2() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 2
     }
     sub shiftrb3() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 3
     }
     sub shiftrb4() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 4
     }
     sub shiftrb5() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 5
     }
     sub shiftrb6() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 6
     }
     sub shiftrb7() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 7
     }
     sub shiftrb8() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 8
     }
     sub shiftrb9() -> ubyte {
-        ubyte yy=$ed
+        ubyte @shared yy=$ed
         return yy >> 9
     }
 
 
 
     sub shiftlsb0() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 0
     }
     sub shiftlsb1() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 1
     }
     sub shiftlsb2() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 2
     }
     sub shiftlsb3() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 3
     }
     sub shiftlsb4() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 4
     }
     sub shiftlsb5() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 5
     }
     sub shiftlsb6() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 6
     }
     sub shiftlsb7() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 7
     }
     sub shiftlsb8() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 8
     }
     sub shiftlsb9() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy << 9
     }
 
     sub shiftrsb0() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 0
     }
     sub shiftrsb1() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 1
     }
     sub shiftrsb2() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 2
     }
     sub shiftrsb3() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 3
     }
     sub shiftrsb4() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 4
     }
     sub shiftrsb5() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 5
     }
     sub shiftrsb6() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 6
     }
     sub shiftrsb7() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 7
     }
     sub shiftrsb8() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 8
     }
     sub shiftrsb9() -> byte {
-        byte yy=-123
+        byte @shared yy=-123
         return yy >> 9
     }
 }
