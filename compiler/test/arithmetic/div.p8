@@ -93,11 +93,11 @@ main {
             txt.print("err! ")
 
         txt.print("float ")
-        floats.print_f(a1)
+        floats.print(a1)
         txt.print(" / ")
-        floats.print_f(a2)
+        floats.print(a2)
         txt.print(" = ")
-        floats.print_f(r)
+        floats.print(r)
         cbm.CHROUT('\n')
     }
 }

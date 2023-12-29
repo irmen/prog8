@@ -9,31 +9,31 @@ floats {
         const float  TWOPI  = 2*π
 
 
-sub print_f(float value) {
+sub print(float value) {
     ; ---- prints the floating point value (without a newline and no leading spaces).
     %ir {{
-        loadm.f fr65535,floats.print_f.value
+        loadm.f fr65535,floats.print.value
         syscall 25 (fr65535.f)
         return
     }}
 }
 
-sub str_f(float value) -> str {
+sub tostr(float value) -> str {
     ; ---- converts the floating point value to a string (no leading spaces)
     str @shared buffer=" "*20
     %ir {{
-        load.w r65535,floats.str_f.buffer
-        loadm.f fr65535,floats.str_f.value
+        load.w r65535,floats.tostr.buffer
+        loadm.f fr65535,floats.tostr.value
         syscall 47 (r65535.w, fr65535.f)
-        load.w r0,floats.str_f.buffer
+        load.w r0,floats.tostr.buffer
         returnr.w r0
     }}
 }
 
-sub parse_f(str value) -> float {
+sub parse(str value) -> float {
     ; -- parse a string value of a number to float
     %ir {{
-        loadm.w  r65535,floats.parse_f.value
+        loadm.w  r65535,floats.parse.value
         syscall 45 (r65535.w): fr0.f
         returnr.f fr0
     }}
@@ -131,16 +131,16 @@ sub ceil(float value) -> float {
     }}
 }
 
-sub rndf() -> float {
+sub rnd() -> float {
     %ir {{
         syscall 35 () : fr0.f
         returnr.f fr0
     }}
 }
 
-sub rndseedf(float seed) {
+sub rndseed(float seed) {
     %ir {{
-        loadm.f  fr65535,floats.rndseedf.seed
+        loadm.f  fr65535,floats.rndseed.seed
         syscall 32 (fr65535.f)
         return
     }}

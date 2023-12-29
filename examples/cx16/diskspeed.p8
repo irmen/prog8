@@ -16,7 +16,7 @@ main {
         txt.nl()
         txt.print_uw(jiffies)
         txt.print(" jiffies = ")
-        floats.print_f(speed)
+        floats.print(speed)
         txt.print(" bytes/sec\n")
     }
 

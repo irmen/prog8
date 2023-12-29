@@ -41,7 +41,7 @@ main {
 
         float duration = (cbm.RDTIM16() as float) / 60
         txt.print("\nfinished in ")
-        floats.print_f(duration)
+        floats.print(duration)
         txt.print(" seconds!\n")
     }
 }

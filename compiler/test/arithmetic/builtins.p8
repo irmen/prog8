@@ -460,7 +460,7 @@ main {
 
         reverse(flarr)
         for ub in 0 to len(flarr)-1 {
-            floats.print_f(flarr[ub])
+            floats.print(flarr[ub])
             txt.chrout(',')
         }
         txt.nl()

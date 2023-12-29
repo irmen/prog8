@@ -76,7 +76,7 @@ main {
     sub decoding_report(float pcm_words_per_block) {
         const float REFRESH_RATE = 25.0e6/(525.0*800)       ; Vera VGA refresh rate is not precisely 60 hz!
         float duration_secs = (cbm.RDTIM16() as float) / REFRESH_RATE
-        floats.print_f(duration_secs)
+        floats.print(duration_secs)
         txt.print(" seconds (approx)\n")
         float src_per_second = adpcm_size as float / duration_secs
         txt.print_uw(src_per_second as uword)

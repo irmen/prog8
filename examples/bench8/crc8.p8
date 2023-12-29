@@ -19,12 +19,13 @@ main {
    }
 
     sub start() {
-        txt.print("calculating (expecting $a2)...")
+        txt.print("calculating (expecting $a2)...\n")
+        txt.print("  if mismatch: first check if kernal is maybe updated?\n")
         cbm.SETTIM(0,0,0)
         ubyte crc = crc8($e000, $2000)
         txt.print_ubhex(crc, true)
         txt.nl()
-        floats.print_f(cbm.RDTIM16() / 60.0)
+        floats.print(cbm.RDTIM16() / 60.0)
         txt.print(" seconds")
         sys.wait(9999)
     }

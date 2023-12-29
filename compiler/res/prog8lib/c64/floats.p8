@@ -45,7 +45,7 @@ romsub $b391 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 
 romsub $b3a2 = FREADUY(ubyte value @ Y) clobbers(A,X,Y)     ; 8 bit unsigned Y -> float in fac1
 romsub $bc3c = FREADSA(byte value @ A) clobbers(A,X,Y)      ; 8 bit signed A -> float in fac1
-romsub $b7b5 = FREADSTR(ubyte length @ A) clobbers(A,X,Y)   ; str -> fac1, $22/23 must point to string, A=string length.  Also see parse_f()
+romsub $b7b5 = FREADSTR(ubyte length @ A) clobbers(A,X,Y)   ; str -> fac1, $22/23 must point to string, A=string length.  Also see parse()
 romsub $aabc = FPRINTLN() clobbers(A,X,Y)                   ; print string of fac1, on one line (= with newline) destroys fac1.  (consider FOUT + STROUT as well)
 romsub $bddd = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY ($0100)
 
@@ -157,7 +157,7 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 
 &uword AYINT_facmo = $64      ; $64/$65 contain result of AYINT
 
-sub rndf() -> float {
+sub rnd() -> float {
     %asm {{
         lda  #1
         jsr  FREADSA
@@ -165,7 +165,7 @@ sub rndf() -> float {
     }}
 }
 
-asmsub parse_f(str value @AY) -> float @FAC1 {
+asmsub parse(str value @AY) -> float @FAC1 {
     %asm {{
         sta  $22
         sty  $23

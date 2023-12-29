@@ -132,9 +132,9 @@ main {
         else
             txt.print("err! ")
         txt.print(" float ")
-        floats.print_f(value)
+        floats.print(value)
         cbm.CHROUT(',')
-        floats.print_f(expected)
+        floats.print(expected)
         cbm.CHROUT('\n')
     }
 }

@@ -22,9 +22,9 @@ main {
         txt.print(" primes\n")
 
         float time = cbm.RDTIM16() as float / 60.0
-        floats.print_f(time)
+        floats.print(time)
         txt.print(" sec total = ")
-        floats.print_f(time/N_ITER)
+        floats.print(time/N_ITER)
         txt.print(" sec per iteration\n")
         sys.wait(9999)
     }

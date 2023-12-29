@@ -135,7 +135,7 @@ asmsub  FREADUY (ubyte value @Y) {
     }}
 }
 
-asmsub parse_f(str value @AY) -> float @FAC1 {
+asmsub parse(str value @AY) -> float @FAC1 {
     ; -- parse a string value of a number to float in FAC1
     ;    warning: on older <R47 kernals it uses an internal BASIC routine that is ROM version dependent,
     ;    ($deb6 is inside the routine for VAL at $deb3)  See basic.sym from x16-rom
@@ -175,7 +175,7 @@ _msg    .text 13,"?val kaputt",13,0
 
 &uword AYINT_facmo = $c6      ; $c6/$c7 contain result of AYINT
 
-sub rndf() -> float {
+sub rnd() -> float {
     %asm {{
         lda  #1
         jmp  RND_0

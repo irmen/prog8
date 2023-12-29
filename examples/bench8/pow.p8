@@ -33,9 +33,9 @@ main {
             res += array[j]
         }
 
-        floats.print_f(res)
+        floats.print(res)
         txt.nl()
-        floats.print_f(cbm.RDTIM16() / 60.0)
+        floats.print(cbm.RDTIM16() / 60.0)
         txt.print(" seconds")
         sys.wait(9999)
     }

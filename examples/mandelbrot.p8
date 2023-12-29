@@ -43,7 +43,7 @@ main {
         float duration = (cbm.RDTIM16() as float) / 60
         txt.plot(0, 21)
         txt.print("finished in ")
-        floats.print_f(duration)
+        floats.print(duration)
         txt.print(" seconds!\n")
 
         ; test_stack.test()

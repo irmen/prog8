@@ -27,7 +27,7 @@ class TestTypecasts: FunSpec({
             main {
                 sub start() {
                     float fl
-                    floats.print_f(lsb(fl))
+                    floats.print(lsb(fl))
                 }
             }"""
         val errors = ErrorReporterForTests()

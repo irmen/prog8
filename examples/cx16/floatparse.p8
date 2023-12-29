@@ -41,7 +41,7 @@ main {
     sub f(str string) {
         cbm.SETTIM(0,0,0)
         repeat 100
-            float value1 = floats.parse_f(string)
+            float value1 = floats.parse(string)
         txt.print("1=")
         txt.print_uw(cbm.RDTIM16())
         txt.spc()
@@ -53,10 +53,10 @@ main {
         txt.print_uw(cbm.RDTIM16())
         txt.nl()
 
-        floats.print_f(value1)
+        floats.print(value1)
         txt.spc()
         txt.spc()
-        floats.print_f(value2)
+        floats.print(value2)
         txt.nl()
     }
 

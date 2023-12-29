@@ -2,10 +2,10 @@ floats {
     ; the floating point functions shared across compiler targets
     %option merge, no_symbol_prefixing, ignore_unused
 
-asmsub print_f(float value @FAC1) clobbers(A,X,Y) {
+asmsub print(float value @FAC1) clobbers(A,X,Y) {
 	; ---- prints the floating point value (without a newline). No leading space (unlike BASIC)!
 	%asm {{
-	    jsr  str_f
+	    jsr  tostr
 		ldy  #0
 -		lda  (P8ZP_SCRATCH_W1),y
 		beq  +
@@ -16,7 +16,7 @@ asmsub print_f(float value @FAC1) clobbers(A,X,Y) {
 	}}
 }
 
-asmsub str_f(float value @FAC1) clobbers(X) -> str @AY {
+asmsub tostr(float value @FAC1) clobbers(X) -> str @AY {
     ; ---- converts the floating point value to a string. No leading space!
     %asm {{
         jsr  FOUT
@@ -179,7 +179,7 @@ sub ceil(float value) -> float {
     }}
 }
 
-sub rndseedf(float seed) {
+sub rndseed(float seed) {
     if seed>0
         seed = -seed    ; make sure fp seed is always negative
 

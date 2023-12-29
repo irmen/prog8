@@ -2,6 +2,12 @@
 TODO
 ====
 
+- fix "txy" and "tyx" non-existing instructions (assembler/experiment/* causes them to be used)
+- fix a1%a2 being parsed as directive
+- fix bitshift.p8
+- add crc8 and crc16 and crc32 to math
+- fix crc* bench routines to no longer depend on the kernal rom version (use a bin file)
+
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 
 ...
@@ -48,7 +54,6 @@ Compiler:
 
 Libraries:
 
-- get rid of the "f" suffix of several funtions in floats_functions (breaking change)
 - once a VAL_1 implementation is merged into the X16 kernal properly, remove all the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?

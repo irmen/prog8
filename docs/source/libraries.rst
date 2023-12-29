@@ -360,11 +360,11 @@ point variables.  This includes ``print_f``, the routine used to print floating 
 ``clampf (value, minimum, maximum)``
     returns the value restricted to the given minimum and maximum.
 
-``print_f (x)``
+``print (x)``
     Prints the floating point number x as a string.
     There's no leading whitespace (unlike cbm BASIC when printing a floating point number)
 
-``str_f (x)``
+``tostr (x)``
     Converts the floating point number x to a string (returns address of the string buffer)
     There's no leading whitespace.
 
@@ -380,13 +380,13 @@ point variables.  This includes ``print_f``, the routine used to print floating 
 ``tan (x)``
     Tangent.
 
-``rndf ()``
+``rnd ()``
     returns the next random float between 0.0 and 1.0 from the Pseudo RNG sequence.
 
-``rndseedf (seed)``
+``rndseed (seed)``
     Sets a new seed for the float pseudo-RNG sequence. Use a negative non-zero number as seed value.
 
-``parse_f (stringvalue)``
+``parse (stringvalue)``
     Parses the string value as floating point number.
     Warning: this routine may stop working on the Commander X16 when a new ROM version is released,
     because it uses an internal BASIC routine. Then it will require a fix.

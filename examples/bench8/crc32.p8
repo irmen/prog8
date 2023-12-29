@@ -31,12 +31,13 @@ main {
 
     sub start() {
         txt.print("calculating (expecting $e1fa84c6)...\n")
+        txt.print("  if mismatch: first check if kernal is maybe updated?\n")
         cbm.SETTIM(0,0,0)
         crc32($e000, $2000)
         txt.print_uwhex(cx16.r0, true)
         txt.print_uwhex(cx16.r1, false)
         txt.nl()
-        floats.print_f(cbm.RDTIM16() / 60.0)
+        floats.print(cbm.RDTIM16() / 60.0)
         txt.print(" seconds")
         sys.wait(9999)
     }

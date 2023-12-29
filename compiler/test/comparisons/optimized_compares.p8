@@ -233,13 +233,13 @@ main {
         txt.print_ub(xx)
         txt.spc()
 
-        xx = b2>=value(-19)
+        xx = b2>=svalue(-19)
         txt.print_ub(xx)
         txt.spc()
-        xx = b2>=value(-20)
+        xx = b2>=svalue(-20)
         txt.print_ub(xx)
         txt.spc()
-        xx = b2>=value(-21)
+        xx = b2>=svalue(-21)
         txt.print_ub(xx)
         txt.spc()
 
@@ -323,13 +323,13 @@ main {
         txt.print_ub(xx)
         txt.spc()
 
-        xx = b2<=value(-19)
+        xx = b2<=svalue(-19)
         txt.print_ub(xx)
         txt.spc()
-        xx = b2<=value(-20)
+        xx = b2<=svalue(-20)
         txt.print_ub(xx)
         txt.spc()
-        xx = b2<=value(-21)
+        xx = b2<=svalue(-21)
         txt.print_ub(xx)
         txt.spc()
 

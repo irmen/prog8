@@ -296,12 +296,12 @@ main {
         txt.print("  8000\n")
 
         f = 0.0
-        floats.print_f(f)
+        floats.print(f)
         while f<2.2 {
             f+=0.1
-            floats.print_f(f)
+            floats.print(f)
         }
-        floats.print_f(f)
+        floats.print(f)
         txt.print("  2.2\n")
     }
 
@@ -594,12 +594,12 @@ main {
         txt.print("  8000\n")
 
         f = 0.0
-        floats.print_f(f)
+        floats.print(f)
         while f<twodottwo {
             f+=0.1
-            floats.print_f(f)
+            floats.print(f)
         }
-        floats.print_f(f)
+        floats.print(f)
         txt.print("  2.2\n")
     }
 }
