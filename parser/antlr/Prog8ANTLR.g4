@@ -34,8 +34,6 @@ INVALID_AND_COMPOSITE: '&&' ;
 fragment HEX_DIGIT: ('a'..'f') | ('A'..'F') | ('0'..'9') ;
 fragment BIN_DIGIT: ('0' | '1') ;
 fragment DEC_DIGIT: ('0'..'9') ;
-fragment LOWERCASE: ('a'..'z') ;
-DIRECTIVE: '%' LOWERCASE+ ;
 
 FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? DEC_INTEGER)? ;	// sign comes later from unary expression
 FNUMBER : FDOTNUMBER |  FNUMDOTNUMBER ;
@@ -130,7 +128,11 @@ labeldef :  identifier ':'  ;
 
 unconditionaljump :  'goto'  (integerliteral | scoped_identifier) ;
 
-directive : DIRECTIVE (directivearg? | directivearg (',' directivearg)*) ;
+directive :
+	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%import' |
+                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' )
+        (directivearg? | directivearg (',' directivearg)*)
+        ;
 
 directivearg : stringliteral | identifier | integerliteral ;
 

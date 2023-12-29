@@ -386,13 +386,18 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
         val optsDone3 = program.inlineSubroutines(compilerOptions)
         program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
-        errors.report()
+        if(!errors.noErrors()) {
+            errors.report()
+            break
+        }
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
     val remover2 = UnusedCodeRemover(program, errors, compTarget)
     remover2.visit(program)
     remover2.applyModifications()
+    if(errors.noErrors())
+        program.constantFold(errors, compTarget) // because simplified statements and expressions can result in more constants that can be folded away
     errors.report()
 }
 

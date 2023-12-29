@@ -2,7 +2,6 @@
 TODO
 ====
 
-- fix a1%a2 being parsed as directive
 - fix bitshift.p8
 - add crc8 and crc16 and crc32 to math
 - fix crc* bench routines to no longer depend on the kernal rom version (use a bin file)
