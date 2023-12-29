@@ -2,17 +2,10 @@
 TODO
 ====
 
-- add unittest for aa%bb (without space) to be parsed correctly as modulo
-        ubyte bb1 = 199
-        ubyte bb2 = 12
-        ubyte bb3 = bb1%bb2
-        txt.print_ub(bb3)
-
-
-- fix bitshift.p8
-- make internalCast() not complain anymore about signed <-> unsigned conversions
 - add crc8 and crc16 and crc32 to math
 - fix crc* bench routines to no longer depend on the kernal rom version (use a bin file)
+- make internalCast() not complain anymore about signed <-> unsigned conversions
+- fix bitshift.p8
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....
 

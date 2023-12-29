@@ -14,6 +14,7 @@ import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -492,6 +493,23 @@ main {
         (left2.right as? NumericLiteral)?.number shouldBe 4.0
         (right2.left as? IdentifierReference)?.nameInSource shouldBe listOf("x")
         (right2.right as? NumericLiteral)?.number shouldBe 10.0
+    }
+
+    test("modulo is not directive") {
+        val src="""
+main {
+    sub start() {
+        ubyte bb1 = 199
+        ubyte bb2 = 12
+        ubyte @shared bb3 = bb1%bb2
+    }
+}"""
+
+        val result=compileText(Cx16Target(), optimize=false, src, writeAssembly=false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 6
+        val value = (st[5] as Assignment).value as BinaryExpression
+        value.operator shouldBe "%"
     }
 })
 
