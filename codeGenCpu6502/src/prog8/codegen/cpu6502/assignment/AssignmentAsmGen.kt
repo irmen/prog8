@@ -733,7 +733,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             }
                             asmgen.out("  tay |  lda  #0")
                         } else {
-                            asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
+                            asmgen.out("  ldx  #$shifts")
+                            if(signed)
+                                asmgen.out("  jsr  math.lsr_word_AY")
+                            else
+                                asmgen.out("  jsr  math.lsr_uword_AY")
                         }
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                         return true

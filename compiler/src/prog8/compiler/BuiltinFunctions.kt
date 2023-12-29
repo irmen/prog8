@@ -16,13 +16,13 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "len" to ::builtinLen,
     "sizeof" to ::builtinSizeof,
     "sgn" to ::builtinSgn,
-    "sqrt__ubyte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
-    "sqrt__uword" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { sqrt(it.toDouble()) } },
+    "sqrt__ubyte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
+    "sqrt__uword" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
     "sqrt__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) { sqrt(it) } },
     "any" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
     "all" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
-    "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x and 255).toDouble() } },
-    "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg) { x: Int -> (x ushr 8 and 255).toDouble()} },
+    "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() } },
+    "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 8 and 255).toDouble()} },
     "mkword" to ::builtinMkword,
     "clamp__ubyte" to ::builtinClampUByte,
     "clamp__byte" to ::builtinClampByte,
@@ -59,11 +59,12 @@ internal class NotConstArgumentException: AstException("not a const argument to 
 internal class CannotEvaluateException(func:String, msg: String): FatalAstException("cannot evaluate built-in function $func: $msg")
 
 
-private fun oneIntArgOutputInt(args: List<Expression>, position: Position, program: Program, function: (arg: Int)->Double): NumericLiteral {
+private fun oneIntArgOutputInt(args: List<Expression>, position: Position, program: Program, signed: Boolean, function: (arg: Int)->Double): NumericLiteral {
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    if(constval.type != DataType.UBYTE && constval.type!= DataType.UWORD)
+    val allowedDt = if(signed) IntegerDatatypesNoBool else arrayOf(DataType.UBYTE, DataType.UWORD)
+    if(constval.type !in allowedDt)
         throw SyntaxError("built-in function requires one integer argument", position)
 
     val integer = constval.number.toInt()

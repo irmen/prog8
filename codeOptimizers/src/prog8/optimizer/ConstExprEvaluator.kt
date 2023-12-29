@@ -57,7 +57,15 @@ class ConstExprEvaluator {
         if(left.type !in IntegerDatatypes || amount.type !in IntegerDatatypes)
             throw ExpressionError("cannot compute $left << $amount", left.position)
         val result = left.number.toInt().shl(amount.number.toInt())
-        return NumericLiteral(left.type, result.toDouble(), left.position)
+//        when(left.type) {
+//            DataType.BOOL -> result = result and 1
+//            DataType.UBYTE -> result = result and 255
+//            DataType.BYTE -> result = result.toByte().toInt()
+//            DataType.UWORD -> result = result and 65535
+//            DataType.WORD -> result = result.toShort().toInt()
+//            else -> { /* keep as it is */ }
+//        }
+        return NumericLiteral.optimalNumeric(result.toDouble(), left.position)
     }
 
     private fun bitwiseXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
@@ -67,7 +75,11 @@ class ConstExprEvaluator {
             }
         } else if(left.type== DataType.UWORD) {
             if(right.type in IntegerDatatypes) {
-                return NumericLiteral(DataType.UWORD, (left.number.toInt() xor right.number.toInt()).toDouble(), left.position)
+                return NumericLiteral(DataType.UWORD, (left.number.toInt() xor right.number.toInt() and 65535).toDouble(), left.position)
+            }
+        } else if(left.type== DataType.LONG) {
+            if(right.type in IntegerDatatypes) {
+                return NumericLiteral.optimalNumeric((left.number.toInt() xor right.number.toInt()).toDouble(), left.position)
             }
         }
         throw ExpressionError("cannot calculate $left ^ $right", left.position)
@@ -80,7 +92,11 @@ class ConstExprEvaluator {
             }
         } else if(left.type== DataType.UWORD) {
             if(right.type in IntegerDatatypes) {
-                return NumericLiteral(DataType.UWORD, (left.number.toInt() or right.number.toInt()).toDouble(), left.position)
+                return NumericLiteral(DataType.UWORD, (left.number.toInt() or right.number.toInt() and 65535).toDouble(), left.position)
+            }
+        } else if(left.type== DataType.LONG) {
+            if(right.type in IntegerDatatypes) {
+                return NumericLiteral.optimalNumeric((left.number.toInt() or right.number.toInt()).toDouble(), left.position)
             }
         }
         throw ExpressionError("cannot calculate $left | $right", left.position)
@@ -93,7 +109,11 @@ class ConstExprEvaluator {
             }
         } else if(left.type== DataType.UWORD) {
             if(right.type in IntegerDatatypes) {
-                return NumericLiteral(DataType.UWORD, (left.number.toInt() and right.number.toInt()).toDouble(), left.position)
+                return NumericLiteral(DataType.UWORD, (left.number.toInt() and right.number.toInt() and 65535).toDouble(), left.position)
+            }
+        } else if(left.type== DataType.LONG) {
+            if(right.type in IntegerDatatypes) {
+                return NumericLiteral.optimalNumeric((left.number.toInt() and right.number.toInt()).toDouble(), left.position)
             }
         }
         throw ExpressionError("cannot calculate $left & $right", left.position)
