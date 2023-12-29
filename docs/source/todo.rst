@@ -2,8 +2,6 @@
 TODO
 ====
 
-- add crc8 and crc16 and crc32 to math
-- fix crc* bench routines to no longer depend on the kernal rom version (use a bin file)
 - make internalCast() not complain anymore about signed <-> unsigned conversions
 - fix bitshift.p8
 

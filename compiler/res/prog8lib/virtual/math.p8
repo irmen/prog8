@@ -293,4 +293,45 @@ math {
         return w2-w1
     }
 
+    sub crc16(uword data, uword length) -> uword {
+        ; calculates the CRC16 (XMODEM) checksum of the buffer.
+        cx16.r0 = 0  ; the crc value
+        repeat length {
+            cx16.r0H ^= @(data)
+            repeat 8 {
+                if cx16.r0H & $80
+                    cx16.r0 = (cx16.r0<<1)^$1021
+                else
+                    cx16.r0<<=1
+            }
+            data++
+        }
+        return cx16.r0
+    }
+
+    sub crc32(uword data, uword length) {
+        ; Calculates the CRC-32 (POSIX) checksum of the buffer.
+        ; because prog8 doesn't have 32 bits integers, we have to split up the calculation over 2 words.
+        ; result stored in cx16.r0 (low word) and cx16.r1 (high word)
+        cx16.r1 = 0
+        cx16.r0 = 0
+        repeat length {
+            cx16.r1H ^= @(data)
+            repeat 8 {
+                if cx16.r1H & $80 {
+                    cx16.r0 <<= 1
+                    rol(cx16.r1)
+                    cx16.r1 ^= $04c1
+                    cx16.r0 ^= $1db7
+                }
+                else {
+                    cx16.r0 <<= 1
+                    rol(cx16.r1)
+                }
+            }
+            data++
+        }
+        cx16.r1 ^= $ffff
+        cx16.r0 ^= $ffff
+    }
 }

@@ -491,6 +491,15 @@ but perhaps the provided ones can be of service too.
     It does not work for the verafx multiplication routines on the Commander X16!
     These have a different way to obtain the upper 16 bits of the result: just read cx16.r0.
 
+``crc16 (uword data, uword length) -> uword``
+    Returns a CRC-16 (XMODEM) checksum over the given data buffer.
+    Note: on the Commander X16, there is a CRC-16 routine in the kernal: cx16.memory_crc().
+    That one is faster, but yields different results. It is unclear what flavour of crc it is calculating.
+
+``crc32 (uword data, uword length)``
+    Calculates a CRC-32 (POSIX) checksum over the given data buffer.
+    The 32 bits result is stored in cx16.r0 (low word) and cx16.r1 (high word).
+
 
 cx16logo
 --------
