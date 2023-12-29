@@ -2,7 +2,6 @@
 TODO
 ====
 
-- make internalCast() not complain anymore about signed <-> unsigned conversions
 - fix bitshift.p8
 
 - [on branch: shortcircuit] investigate McCarthy evaluation again? this may also reduce code size perhaps for things like if a>4 or a<2 ....

@@ -577,8 +577,8 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
             return CastValue(true, null, this)
         when(type) {
             DataType.UBYTE -> {
-                if(targettype==DataType.BYTE && number <= 127)
-                    return CastValue(true, null, NumericLiteral(targettype, number, position))
+                if(targettype==DataType.BYTE)
+                    return CastValue(true, null, NumericLiteral(targettype, number.toInt().toByte().toDouble(), position))
                 if(targettype==DataType.WORD || targettype==DataType.UWORD)
                     return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.FLOAT)
@@ -615,8 +615,8 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.UBYTE && number <= 255)
                     return CastValue(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.WORD && number <= 32767)
-                    return CastValue(true, null, NumericLiteral(targettype, number, position))
+                if(targettype==DataType.WORD)
+                    return CastValue(true, null, NumericLiteral(targettype, number.toInt().toShort().toDouble(), position))
                 if(targettype==DataType.FLOAT)
                     return CastValue(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.BOOL)
