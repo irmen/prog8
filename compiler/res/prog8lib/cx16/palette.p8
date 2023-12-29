@@ -3,7 +3,7 @@
 ; The first 16 colors can be restored to their default with set_default16()
 
 palette {
-    %option no_symbol_prefixing, ignore_unused
+    %option ignore_unused
 
     uword vera_palette_ptr
 

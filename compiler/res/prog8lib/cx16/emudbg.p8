@@ -2,6 +2,7 @@
 ; Docs: https://github.com/X16Community/x16-emulator#emulator-io-registers
 
 emudbg {
+    %option ignore_unused
 
     const uword EMU_BASE = $9fb0
 
@@ -13,10 +14,14 @@ emudbg {
     &ubyte EMU_RECORD_GIF         = EMU_BASE + 5
     &ubyte EMU_RECORD_WAV         = EMU_BASE + 6
     &ubyte EMU_CMDKEYS_DISABLED   = EMU_BASE + 7
-    &ubyte EMU_CPUCLK_L           = EMU_BASE + 8     ; write: reset cpu clock to 0
-    &ubyte EMU_CPUCLK_M           = EMU_BASE + 9     ; write: outputs "User debug 1: $xx"
-    &ubyte EMU_CPUCLK_H           = EMU_BASE + 10    ; write: outputs "User debug 2: $xx"
-    &ubyte EMU_CPUCLK_U           = EMU_BASE + 11    ; write: outputs as character to console
+    &ubyte EMU_CPUCLK_L           = EMU_BASE + 8
+    &ubyte EMU_CPUCLK_M           = EMU_BASE + 9
+    &ubyte EMU_CPUCLK_H           = EMU_BASE + 10
+    &ubyte EMU_CPUCLK_U           = EMU_BASE + 11
+    &ubyte EMU_CPUCLK_RESET       = EMU_BASE + 8     ; write: reset cpu clock to 0
+    &ubyte EMU_DBGOUT1            = EMU_BASE + 9     ; write: outputs "User debug 1: $xx"
+    &ubyte EMU_DBGOUT2            = EMU_BASE + 10    ; write: outputs "User debug 2: $xx"
+    &ubyte EMU_CHROUT             = EMU_BASE + 11    ; write: outputs as character to console
     ; 12 is unused for now
     &ubyte EMU_KEYMAP             = EMU_BASE + 13
     &ubyte EMU_EMU_DETECT1        = EMU_BASE + 14
@@ -45,16 +50,16 @@ emudbg {
     sub console_chrout(ubyte char) {
         ; note: make sure the character is in Iso encoding.
         if is_emulator()
-            EMU_CPUCLK_U = char
+            EMU_CHROUT = char
     }
 
     sub console_value1(ubyte value) {
         if is_emulator()
-            EMU_CPUCLK_M = value
+            EMU_DBGOUT1 = value
     }
 
     sub console_value2(ubyte value) {
         if is_emulator()
-            EMU_CPUCLK_H = value
+            EMU_DBGOUT2 = value
     }
 }

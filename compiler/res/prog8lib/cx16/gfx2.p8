@@ -24,7 +24,7 @@
 
 gfx2 {
 
-    %option no_symbol_prefixing, ignore_unused
+    %option ignore_unused
 
     ; read-only control variables:
     ubyte active_mode = 0
@@ -141,8 +141,8 @@ gfx2 {
                 ; lores 256c
                 position(xx, yy)
                 %asm {{
-                    lda  color
-                    ldx  length+1
+                    lda  p8v_color
+                    ldx  p8v_length+1
                     beq  +
                     ldy  #0
 -                   sta  cx16.VERA_DATA0
@@ -150,7 +150,7 @@ gfx2 {
                     bne  -
                     dex
                     bne  -
-+                   ldy  length     ; remaining
++                   ldy  p8v_length     ; remaining
                     beq  +
 -                   sta  cx16.VERA_DATA0
                     dey
@@ -180,7 +180,7 @@ gfx2 {
                     sta  cx16.VERA_ADDR_L
                     lda  cx16.r0+1
                     sta  cx16.VERA_ADDR_M
-                    ldx  xx
+                    ldx  p8v_xx
                 }}
 
                 repeat length {
@@ -189,8 +189,8 @@ gfx2 {
                         and  #3
                         tay
                         lda  cx16.VERA_DATA0
-                        and  gfx2.plot.mask4c,y
-                        ora  colorbits,y
+                        and  p8b_gfx2.p8s_plot.p8v_mask4c,y
+                        ora  p8v_colorbits,y
                         sta  cx16.VERA_DATA0
                         cpy  #%00000011         ; next vera byte?
                         bne  ++
@@ -232,9 +232,9 @@ gfx2 {
                 position(xx,yy)
                 cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (14<<4)
                 %asm {{
-                    ldy  lheight
+                    ldy  p8v_lheight
                     beq  +
-                    lda  color
+                    lda  p8v_color
 -                   sta  cx16.VERA_DATA0
                     dey
                     bne  -
@@ -260,8 +260,8 @@ gfx2 {
                 repeat lheight {
                     %asm {{
                         lda  cx16.VERA_DATA0
-                        and  mask
-                        ora  color
+                        and  p8v_mask
+                        ora  p8v_color
                         sta  cx16.VERA_DATA1
                     }}
                 }
@@ -534,7 +534,7 @@ gfx2 {
                     sta  cx16.VERA_ADDR_M
                     lda  cx16.r0
                     sta  cx16.VERA_ADDR_L
-                    lda  color
+                    lda  p8v_color
                     sta  cx16.VERA_DATA0
                 }}
             }
@@ -558,9 +558,9 @@ gfx2 {
                     lda  cx16.r0L
                     sta  cx16.VERA_ADDR_L
                     ldy  cx16.r2L           ; xbits
-                    lda  mask4c,y
+                    lda  p8v_mask4c,y
                     and  cx16.VERA_DATA0
-                    ora  color
+                    ora  p8v_color
                     sta  cx16.VERA_DATA0
                 }}
             }
@@ -605,10 +605,10 @@ gfx2 {
                     sta  cx16.VERA_ADDR_L
                     lda  cx16.VERA_DATA0
                     pha
-                    lda  xx
+                    lda  p8v_xx
                     and  #3
                     tay
-                    lda  gfx2.plot.shift4c,y
+                    lda  p8b_gfx2.p8s_plot.p8v_shift4c,y
                     tay
                     pla
                     cpy  #0
@@ -651,21 +651,21 @@ gfx2 {
 ;;                cx16.r12L++
                 %asm {{
                     ldy  cx16.r12L
-                    lda  sxl
-                    sta  stack_xl_lsb,y
-                    lda  sxl+1
-                    sta  stack_xl_msb,y
-                    lda  sxr
-                    sta  stack_xr_lsb,y
-                    lda  sxr+1
-                    sta  stack_xr_msb,y
-                    lda  sy
-                    sta  stack_y_lsb,y
-                    lda  sy+1
-                    sta  stack_y_msb,y
+                    lda  p8v_sxl
+                    sta  p8v_stack_xl_lsb,y
+                    lda  p8v_sxl+1
+                    sta  p8v_stack_xl_msb,y
+                    lda  p8v_sxr
+                    sta  p8v_stack_xr_lsb,y
+                    lda  p8v_sxr+1
+                    sta  p8v_stack_xr_msb,y
+                    lda  p8v_sy
+                    sta  p8v_stack_y_lsb,y
+                    lda  p8v_sy+1
+                    sta  p8v_stack_y_msb,y
                     ldy  cx16.r12L
-                    lda  sdy
-                    sta  stack_dy,y
+                    lda  p8v_sdy
+                    sta  p8v_stack_dy,y
                     inc  cx16.r12L
                 }}
             }
@@ -679,21 +679,21 @@ gfx2 {
             %asm {{
                 dec  cx16.r12L
                 ldy  cx16.r12L
-                lda  stack_xl_lsb,y
-                sta  x1
-                lda  stack_xl_msb,y
-                sta  x1+1
-                lda  stack_xr_lsb,y
-                sta  x2
-                lda  stack_xr_msb,y
-                sta  x2+1
-                lda  stack_y_lsb,y
-                sta  yy
-                lda  stack_y_msb,y
-                sta  yy+1
+                lda  p8v_stack_xl_lsb,y
+                sta  p8v_x1
+                lda  p8v_stack_xl_msb,y
+                sta  p8v_x1+1
+                lda  p8v_stack_xr_lsb,y
+                sta  p8v_x2
+                lda  p8v_stack_xr_msb,y
+                sta  p8v_x2+1
+                lda  p8v_stack_y_lsb,y
+                sta  p8v_yy
+                lda  p8v_stack_y_msb,y
+                sta  p8v_yy+1
                 ldy  cx16.r12L
-                lda  stack_dy,y
-                sta  dy
+                lda  p8v_stack_dy,y
+                sta  p8v_dy
             }}
             yy+=dy
         }
@@ -852,7 +852,7 @@ skip:
                         position(xx,yy)
                         yy++
                         %asm {{
-                            ldx  color
+                            ldx  p8v_color
                             lda  cx16.VERA_DATA1
                             sta  P8ZP_SCRATCH_B1
                             ldy  #8

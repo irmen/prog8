@@ -14,7 +14,7 @@
 
 
 graphics {
-    %option no_symbol_prefixing, ignore_unused
+    %option ignore_unused
 
     romsub $feff = FB_cursor_position2()  clobbers(A,X,Y)     ; alias for the normal FB_cursor_position() call but reuses existing r0 and r1
 
@@ -158,7 +158,7 @@ graphics {
     inline asmsub  plot(uword plotx @R0, uword ploty @R1) clobbers(A, X, Y) {
         %asm {{
             jsr  cx16.FB_cursor_position
-            lda  graphics.stroke_color
+            lda  p8b_graphics.p8v_stroke_color
             jsr  cx16.FB_set_pixel
         }}
     }

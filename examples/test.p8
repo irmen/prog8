@@ -1,29 +1,21 @@
 %import math
+%import string
+%import emudbg
+%import palette
+%import floats
 %import textio
 %zeropage dontuse
 
 main {
     sub start() {
-        uword @shared x = 65535
-        word @shared y = x as word
-        txt.print_w(y)
-        txt.nl()
-        txt.print_w(x as word)
-        txt.nl()
-
-        word @shared x2 = -1
-        uword @shared y2 = x2 as uword
-        txt.print_uw(y2)
-        txt.nl()
-        txt.print_uw(x2 as uword)
-        txt.nl()
-
-        txt.print_uw(shiftluw1())
+        emudbg.console_value1(123)
+        emudbg.console_value2(99)
+        emudbg.console_chrout('@')
+        emudbg.console_chrout('h')
+        emudbg.console_chrout('e')
+        emudbg.console_chrout('l')
+        emudbg.console_chrout('l')
+        emudbg.console_chrout('o')
+        emudbg.console_chrout('\n')
     }
-
-;    sub shiftluw1() -> uword {
-;        uword q = $a49f
-;        return (q << 1) & 65535 as uword
-;    }
-
 }

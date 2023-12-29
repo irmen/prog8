@@ -11,7 +11,7 @@
 
 monogfx {
 
-    %option no_symbol_prefixing, ignore_unused
+    %option ignore_unused
 
     ; read-only control variables:
     uword width = 0
@@ -107,11 +107,11 @@ monogfx {
             ; just use 2 byte writes with shifted mask
             position2(xx,yy,true)
             %asm {{
-                ldy  length
-                lda  masked_ends,y
+                ldy  p8v_length
+                lda  p8v_masked_ends,y
                 sta  cx16.r0L           ; save left byte
                 stz  P8ZP_SCRATCH_B1
-                lda  xx
+                lda  p8v_xx
                 and  #7
                 beq  +
                 tay
@@ -122,10 +122,10 @@ monogfx {
                 bne  -
                 sta  cx16.r0L           ; new left byte
 +
-                lda  dont_stipple_flag
+                lda  p8v_dont_stipple_flag
                 bne  _dontstipple
                 ; determine stipple pattern
-                lda  yy
+                lda  p8v_yy
                 and  #1
                 beq  +
                 lda  #%10101010
@@ -139,7 +139,7 @@ monogfx {
                 and  P8ZP_SCRATCH_REG
                 sta  P8ZP_SCRATCH_B1
 _dontstipple
-                lda  draw
+                lda  p8v_draw
                 beq  _clear
                 lda  cx16.r0L           ; left byte
                 ora  cx16.VERA_DATA1
@@ -184,34 +184,34 @@ _clear
             separate_pixels = lsb(length) & 7
             xx += length & $fff8
             %asm {{
-                lsr  length+1
-                ror  length
-                lsr  length+1
-                ror  length
-                lsr  length+1
-                ror  length
-                lda  draw
+                lsr  p8v_length+1
+                ror  p8v_length
+                lsr  p8v_length+1
+                ror  p8v_length
+                lsr  p8v_length+1
+                ror  p8v_length
+                lda  p8v_draw
                 bne  +
                 ldy  #0     ; black
                 bra  _loop
-+               lda  dont_stipple_flag
++               lda  p8v_dont_stipple_flag
                 beq  _stipple
                 ldy  #255       ; don't stipple
                 bra  _loop
-_stipple        lda  yy
+_stipple        lda  p8v_yy
                 and  #1         ; determine stipple pattern to use
                 bne  +
                 ldy  #%01010101
                 bra  _loop
 +               ldy  #%10101010
-_loop           lda  length
-                ora  length+1
+_loop           lda  p8v_length
+                ora  p8v_length+1
                 beq  _done
                 sty  cx16.VERA_DATA0
-                lda  length
+                lda  p8v_length
                 bne  +
-                dec  length+1
-+               dec  length
+                dec  p8v_length+1
++               dec  p8v_length
                 bra  _loop
 _done
             }}
@@ -554,9 +554,9 @@ _done
         if draw {
             ; solid color or perhaps stipple
             %asm {{
-                lda  xx
-                eor  yy
-                ora  dont_stipple_flag
+                lda  p8v_xx
+                eor  p8v_yy
+                ora  p8v_dont_stipple_flag
                 and  #1
             }}
             if_nz {
@@ -575,7 +575,7 @@ _done
 
         sub prepare() {
             %asm {{
-                lda  xx
+                lda  p8v_xx
                 and  #7
                 pha     ; xbits
             }}
@@ -587,12 +587,12 @@ _done
             %asm {{
                 stz  cx16.VERA_CTRL
                 stz  cx16.VERA_ADDR_H
-                lda  xx+1
+                lda  p8v_xx+1
                 sta  cx16.VERA_ADDR_M
-                lda  xx
+                lda  p8v_xx
                 sta  cx16.VERA_ADDR_L
                 ply     ; xbits
-                lda  maskbits,y
+                lda  p8v_maskbits,y
             }}
         }
     }
@@ -608,7 +608,7 @@ _done
 
     sub pget(uword @zp xx, uword yy) -> ubyte {
         %asm {{
-            lda  xx
+            lda  p8v_xx
             and  #7
             pha     ; xbits
         }}
@@ -621,12 +621,12 @@ _done
         %asm {{
             stz  cx16.VERA_CTRL
             stz  cx16.VERA_ADDR_H
-            lda  xx+1
+            lda  p8v_xx+1
             sta  cx16.VERA_ADDR_M
-            lda  xx
+            lda  p8v_xx
             sta  cx16.VERA_ADDR_L
             ply         ; xbits
-            lda  plot.maskbits,y
+            lda  p8s_plot.p8v_maskbits,y
             and  cx16.VERA_DATA0
             beq  +
             lda  #1
@@ -662,21 +662,21 @@ _done
 ;;                cx16.r12L++
                 %asm {{
                     ldy  cx16.r12L
-                    lda  sxl
-                    sta  stack_xl_lsb,y
-                    lda  sxl+1
-                    sta  stack_xl_msb,y
-                    lda  sxr
-                    sta  stack_xr_lsb,y
-                    lda  sxr+1
-                    sta  stack_xr_msb,y
-                    lda  sy
-                    sta  stack_y_lsb,y
-                    lda  sy+1
-                    sta  stack_y_msb,y
+                    lda  p8v_sxl
+                    sta  p8v_stack_xl_lsb,y
+                    lda  p8v_sxl+1
+                    sta  p8v_stack_xl_msb,y
+                    lda  p8v_sxr
+                    sta  p8v_stack_xr_lsb,y
+                    lda  p8v_sxr+1
+                    sta  p8v_stack_xr_msb,y
+                    lda  p8v_sy
+                    sta  p8v_stack_y_lsb,y
+                    lda  p8v_sy+1
+                    sta  p8v_stack_y_msb,y
                     ldy  cx16.r12L
-                    lda  sdy
-                    sta  stack_dy,y
+                    lda  p8v_sdy
+                    sta  p8v_stack_dy,y
                     inc  cx16.r12L
                 }}
             }
@@ -690,21 +690,21 @@ _done
             %asm {{
                 dec  cx16.r12L
                 ldy  cx16.r12L
-                lda  stack_xl_lsb,y
-                sta  x1
-                lda  stack_xl_msb,y
-                sta  x1+1
-                lda  stack_xr_lsb,y
-                sta  x2
-                lda  stack_xr_msb,y
-                sta  x2+1
-                lda  stack_y_lsb,y
-                sta  yy
-                lda  stack_y_msb,y
-                sta  yy+1
+                lda  p8v_stack_xl_lsb,y
+                sta  p8v_x1
+                lda  p8v_stack_xl_msb,y
+                sta  p8v_x1+1
+                lda  p8v_stack_xr_lsb,y
+                sta  p8v_x2
+                lda  p8v_stack_xr_msb,y
+                sta  p8v_x2+1
+                lda  p8v_stack_y_lsb,y
+                sta  p8v_yy
+                lda  p8v_stack_y_msb,y
+                sta  p8v_yy+1
                 ldy  cx16.r12L
-                lda  stack_dy,y
-                sta  dy
+                lda  p8v_stack_dy,y
+                sta  p8v_dy
             }}
             yy+=dy
         }
@@ -797,7 +797,7 @@ skip:
             cx16.vaddr_autoincr(charset_bank, chardataptr, 0, 1)
             %asm {{
                 ; pre-shift the bits
-                lda  text.xx
+                lda  p8s_text.p8v_xx
                 and  #7
                 sta  P8ZP_SCRATCH_B1
                 ldy  #0
@@ -810,9 +810,9 @@ skip:
                 ror  P8ZP_SCRATCH_REG
                 dex
                 bne  -
-+               sta  char_bitmap_bytes_left,y
++               sta  p8v_char_bitmap_bytes_left,y
                 lda  P8ZP_SCRATCH_REG
-                sta  char_bitmap_bytes_right,y
+                sta  p8v_char_bitmap_bytes_right,y
                 iny
                 cpy  #8
                 bne  --
@@ -823,7 +823,7 @@ skip:
             if draw {
                 %asm {{
                     ldy  #0
--                   lda  char_bitmap_bytes_left,y
+-                   lda  p8v_char_bitmap_bytes_left,y
                     ora  cx16.VERA_DATA1
                     sta  cx16.VERA_DATA0
                     iny
@@ -833,7 +833,7 @@ skip:
             } else {
                 %asm {{
                     ldy  #0
--                   lda  char_bitmap_bytes_left,y
+-                   lda  p8v_char_bitmap_bytes_left,y
                     eor  #255
                     and  cx16.VERA_DATA1
                     sta  cx16.VERA_DATA0
@@ -849,7 +849,7 @@ skip:
                 if draw {
                     %asm {{
                         ldy  #0
--                       lda  char_bitmap_bytes_right,y
+-                       lda  p8v_char_bitmap_bytes_right,y
                         ora  cx16.VERA_DATA1
                         sta  cx16.VERA_DATA0
                         iny
@@ -859,7 +859,7 @@ skip:
                 } else {
                     %asm {{
                         ldy  #0
--                       lda  char_bitmap_bytes_right,y
+-                       lda  p8v_char_bitmap_bytes_right,y
                         eor  #255
                         and  cx16.VERA_DATA1
                         sta  cx16.VERA_DATA0

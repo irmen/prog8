@@ -8,7 +8,7 @@
 ; so that the program itself can be larger without starting to overwrite the graphics memory.
 
 graphics {
-    %option no_symbol_prefixing, ignore_unused
+    %option ignore_unused
 
     const uword WIDTH = 320
     const ubyte HEIGHT = 200
@@ -175,11 +175,11 @@ graphics {
 
         if separate_pixels {
             %asm {{
-                lda  pixaddr
+                lda  p8v_pixaddr
                 sta  P8ZP_SCRATCH_W1
-                lda  pixaddr+1
+                lda  p8v_pixaddr+1
                 sta  P8ZP_SCRATCH_W1+1
-                ldy  separate_pixels
+                ldy  p8v_separate_pixels
                 lda  hline_filled_right,y
                 eor  #255
                 ldy  #0
@@ -193,23 +193,23 @@ graphics {
 
         if length {
             %asm {{
-                lda  length
+                lda  p8v_length
                 and  #7
-                sta  separate_pixels
-                lsr  length+1
-                ror  length
-                lsr  length+1
-                ror  length
-                lsr  length+1
-                ror  length
-                lda  pixaddr
+                sta  p8v_separate_pixels
+                lsr  p8v_length+1
+                ror  p8v_length
+                lsr  p8v_length+1
+                ror  p8v_length
+                lsr  p8v_length+1
+                ror  p8v_length
+                lda  p8v_pixaddr
                 sta  _modified+1
-                lda  pixaddr+1
+                lda  p8v_pixaddr+1
                 sta  _modified+2
-                lda  length
-                ora  length+1
+                lda  p8v_length
+                ora  p8v_length+1
                 beq  _zero
-                ldy  length
+                ldy  p8v_length
                 ldx  #$ff
 _modified       stx  $ffff      ; modified
                 lda  _modified+1
@@ -221,7 +221,7 @@ _modified       stx  $ffff      ; modified
 +               dey
                 bne  _modified
 _zero
-                ldy  separate_pixels
+                ldy  p8v_separate_pixels
                 beq  hline_zero2
                 lda  _modified+1
                 sta  P8ZP_SCRATCH_W1
@@ -319,9 +319,9 @@ hline_zero2
 
     inline asmsub  plot(uword plotx @XY, ubyte ploty @A) clobbers (A, X, Y) {
         %asm {{
-            stx  graphics.internal_plotx
-            sty  graphics.internal_plotx+1
-            jsr  graphics.internal_plot
+            stx  p8b_graphics.p8v_internal_plotx
+            sty  p8b_graphics.p8v_internal_plotx+1
+            jsr  p8b_graphics.p8s_internal_plot
         }}
     }
 
@@ -333,11 +333,11 @@ hline_zero2
     asmsub  internal_plot(ubyte ploty @A) clobbers (A, X, Y) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
         %asm {{
         tay
-        lda  internal_plotx+1
+        lda  p8v_internal_plotx+1
         sta  P8ZP_SCRATCH_W2+1
         lsr  a            ; 0
         sta  P8ZP_SCRATCH_W2
-        lda  internal_plotx
+        lda  p8v_internal_plotx
         pha
         and  #7
         tax
@@ -365,7 +365,7 @@ _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 ; the y lookup tables encodes this formula:  BITMAP_ADDRESS + 320*(py>>3) + (py & 7)    (y from 0..199)
 ; We use the 64tass syntax for range expressions to calculate this table on assembly time.
 
-_plot_y_values := BITMAP_ADDRESS + 320*(range(200)>>3) + (range(200) & 7)
+_plot_y_values := p8c_BITMAP_ADDRESS + 320*(range(200)>>3) + (range(200) & 7)
 
 _y_lookup_lo    .byte  <_plot_y_values
 _y_lookup_hi    .byte  >_plot_y_values
@@ -375,9 +375,9 @@ _y_lookup_hi    .byte  >_plot_y_values
 
     asmsub get_y_lookup(ubyte yy @Y) -> uword @AY {
         %asm {{
-            lda  internal_plot._y_lookup_lo,y
+            lda  p8s_internal_plot._y_lookup_lo,y
             pha
-            lda  internal_plot._y_lookup_hi,y
+            lda  p8s_internal_plot._y_lookup_hi,y
             tay
             pla
             rts

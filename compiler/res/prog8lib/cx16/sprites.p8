@@ -7,6 +7,8 @@
 ; note: collision mask is not supported here yet.
 
 sprites {
+    %option ignore_unused
+
     const ubyte SIZE_8  = 0
     const ubyte SIZE_16 = 1
     const ubyte SIZE_32 = 2

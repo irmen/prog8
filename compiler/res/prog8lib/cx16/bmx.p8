@@ -3,7 +3,7 @@
 ; BMX Specification: https://cx16forum.com/forum/viewtopic.php?t=6945
 
 %import diskio
-%option no_symbol_prefixing, ignore_unused
+%option ignore_unused
 
 bmx {
 
