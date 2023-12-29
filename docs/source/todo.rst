@@ -2,7 +2,6 @@
 TODO
 ====
 
-- fix "txy" and "tyx" non-existing instructions (assembler/experiment/* causes them to be used)
 - fix a1%a2 being parsed as directive
 - fix bitshift.p8
 - add crc8 and crc16 and crc32 to math

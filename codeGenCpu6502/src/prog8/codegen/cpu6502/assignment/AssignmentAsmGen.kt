@@ -3040,7 +3040,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     CpuRegister.X -> when(target.register!!) {
                         RegisterOrPair.A -> { asmgen.out("  txa") }
                         RegisterOrPair.X -> {  }
-                        RegisterOrPair.Y -> { asmgen.out("  txy") }
+                        RegisterOrPair.Y -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.AY -> {
                             require(extendWord)
                             if(signed)
@@ -3090,7 +3090,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     CpuRegister.Y -> when(target.register!!) {
                         RegisterOrPair.A -> { asmgen.out("  tya") }
-                        RegisterOrPair.X -> { asmgen.out("  tyx") }
+                        RegisterOrPair.X -> { asmgen.out("  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.Y -> { }
                         RegisterOrPair.AY -> {
                             require(extendWord)

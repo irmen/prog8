@@ -381,15 +381,9 @@ private fun optimizeStoreLoadSame(
         } else if(first=="phx" && second=="pla") {
             mods.add(Modification(lines[1].index, true, null))
             mods.add(Modification(lines[2].index, false, "  txa"))
-        } else if(first=="phx" && second=="ply") {
-            mods.add(Modification(lines[1].index, true, null))
-            mods.add(Modification(lines[2].index, false, "  txy"))
         } else if(first=="phy" && second=="pla") {
             mods.add(Modification(lines[1].index, true, null))
             mods.add(Modification(lines[2].index, false, "  tya"))
-        } else if(first=="phy" && second=="plx") {
-            mods.add(Modification(lines[1].index, true, null))
-            mods.add(Modification(lines[2].index, false, "  tyx"))
         }
     }
     return mods
