@@ -2,15 +2,6 @@
 %zeropage dontuse
 
 main {
-/*
-    sub start() {
-        if bool_true() and bool_false() and bool_true()
-            txt.print("all true")
-        else
-            txt.print("not all true")
-    }
-*/
-
     ubyte @shared a1 = 10
     ubyte @shared a2 = 20
     ubyte @shared x1 = 30

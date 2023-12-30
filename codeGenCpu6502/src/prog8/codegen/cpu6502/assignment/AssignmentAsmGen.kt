@@ -1088,22 +1088,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             return true
         }
         else if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
-            if (expr.right is PtNumber || expr.right is PtIdentifier) {
-                assignLogicalAndOrWithSimpleRightOperandWord(target, expr.left, expr.operator, expr.right)
-                return true
-            }
-            else if (expr.left is PtNumber || expr.left is PtIdentifier) {
-                assignLogicalAndOrWithSimpleRightOperandWord(target, expr.right, expr.operator, expr.left)
-                return true
-            }
-            asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
-            when (expr.operator) {
-                "and" -> TODO("logical and (with optional shortcircuit) ${expr.position}")
-                "or" -> TODO("logical or (with optional shortcircuit) ${expr.position}")
-                else -> throw AssemblyError("invalid logical operator")
-            }
-            assignRegisterpairWord(target, RegisterOrPair.AY)
-            return true
+            throw AssemblyError("logical and/or/xor on words should be done on typecast to bytes instead")
         }
         return false
     }
@@ -1831,26 +1816,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             else -> throw AssemblyError("wrong right operand type")
         }
         assignRegisterpairWord(target, RegisterOrPair.AY)
-    }
-
-    private fun assignLogicalAndOrWithSimpleRightOperandWord(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
-        when(right) {
-            is PtNumber -> {
-                when (operator) {
-                    "and" -> TODO("logical and (with optional shortcircuit) ${left.position}")
-                    "or" -> TODO("logical or (with optional shortcircuit) ${left.position}")
-                    else -> throw AssemblyError("invalid logical operator")
-                }
-            }
-            is PtIdentifier -> {
-                when (operator) {
-                    "and" -> TODO("logical and (with optional shortcircuit) ${left.position}")
-                    "or" -> TODO("logical or (with optional shortcircuit) ${left.position}")
-                    else -> throw AssemblyError("invalid logical operator")
-                }
-            }
-            else -> throw AssemblyError("wrong right operand type")
-        }
     }
 
     private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {

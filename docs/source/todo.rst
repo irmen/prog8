@@ -6,7 +6,7 @@ TODO
     - note: shortcircuit only on logical boolean expressions (and,or) not on bitwise (&,|)
     - vm ircodegen (PARTIALLY DONE!)
     - in 6502 codegen (see vm's ExpressionGen operatorAnd / operatorOr)
-    - test on word variables, if the TODO doesn't trigger, just replace it with a specific notification
+    - remove debug println's
 
 ...
 

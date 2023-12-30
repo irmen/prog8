@@ -882,10 +882,9 @@ $shortcutLabel:""")
 +""")
                 }
             }
-            "&" -> asmgen.out("  and  $variable")
-            "|" -> asmgen.out("  ora  $variable")
-            "and", "or" -> throw AssemblyError("logical and/or should have been handled earlier because of shortcircuit handling")
-            "^" -> asmgen.out("  eor  $variable")
+            "&", "and" -> asmgen.out("  and  $variable")
+            "|", "or" -> asmgen.out("  ora  $variable")
+            "^","xor" -> asmgen.out("  eor  $variable")
             "==" -> {
                 asmgen.out("""
                     cmp  $variable
