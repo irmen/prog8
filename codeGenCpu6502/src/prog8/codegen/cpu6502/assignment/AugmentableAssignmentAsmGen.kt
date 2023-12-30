@@ -37,8 +37,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "*=" -> inplaceModification(assign.target, "*", assign.source)
             "/=" -> inplaceModification(assign.target, "/", assign.source)
             "|=" -> inplaceModification(assign.target, "|", assign.source)
+            "or=" -> inplaceModification(assign.target, "or", assign.source)
             "&=" -> inplaceModification(assign.target, "&", assign.source)
-            "^=" -> inplaceModification(assign.target, "^", assign.source)
+            "and=" -> inplaceModification(assign.target, "and", assign.source)
+            "^=", "xor=" -> inplaceModification(assign.target, "^", assign.source)
             "<<=" -> inplaceModification(assign.target, "<<", assign.source)
             ">>=" -> inplaceModification(assign.target, ">>", assign.source)
             "%=" -> inplaceModification(assign.target, "%", assign.source)
@@ -791,12 +793,42 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
+        if(asmgen.options.shortCircuit) {
+            val shortcutLabel = asmgen.makeLabel("shortcut")
+            when (operator) {
+                "and" -> {
+                    // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
+                    println("SHORTCUT AND ${value.position}")    // TODO weg
+                    asmgen.out("  lda  $name |  beq  $shortcutLabel")
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                    asmgen.out("""
+                         and  $name
+                         sta  $name
+$shortcutLabel:""")
+                    return
+                }
+                "or" -> {
+                    // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
+                    println("SHORTCUT OR ${value.position}")    // TODO weg
+                    asmgen.out("  lda  $name |  bne  $shortcutLabel")
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                    asmgen.out("""
+                         ora  $name
+                         sta  $name
+$shortcutLabel:""")
+                    return
+                }
+            }
+        }
+
+        // normal evaluation
         asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
         inplacemodificationRegisterAwithVariableWithSwappedOperands(operator, name, dt in SignedDatatypes)
         asmgen.out("  sta  $name")
     }
 
     private fun inplacemodificationByteVariableWithVariable(name: String, dt: DataType, operator: String, otherName: String) {
+        // note: no logical and/or shortcut here, not worth it due to simple right operand
         asmgen.out("  lda  $name")
         inplacemodificationRegisterAwithVariable(operator, otherName, dt in SignedDatatypes)
         asmgen.out("  sta  $name")
@@ -852,6 +884,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "&" -> asmgen.out("  and  $variable")
             "|" -> asmgen.out("  ora  $variable")
+            "and", "or" -> throw AssemblyError("logical and/or should have been handled earlier because of shortcircuit handling")
             "^" -> asmgen.out("  eor  $variable")
             "==" -> {
                 asmgen.out("""
@@ -1130,6 +1163,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
     private fun inplacemodificationByteVariableWithLiteralval(name: String, dt: DataType, operator: String, value: Int) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
+        // note: no logical and/or shortcut here, not worth it due to simple right operand
         when (operator) {
             "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
             "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
@@ -1192,9 +1226,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                 }
             }
-            "&" -> immediateAndInplace(name, value)
-            "|" -> immediateOrInplace(name, value)
-            "^" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
+            "&", "and" -> immediateAndInplace(name, value)
+            "|", "or" -> immediateOrInplace(name, value)
+            "^", "xor" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
             "==" -> {
                 asmgen.out("""
                     lda  $name

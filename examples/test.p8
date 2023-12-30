@@ -2,13 +2,22 @@
 %zeropage dontuse
 
 main {
-    sub start () {
-        ubyte a1 = 10
-        ubyte a2 = 20
-        ubyte x1 = 30
-        ubyte x2 = 40
-        ubyte zero = 0
+/*
+    sub start() {
+        if bool_true() and bool_false() and bool_true()
+            txt.print("all true")
+        else
+            txt.print("not all true")
+    }
+*/
 
+    ubyte @shared a1 = 10
+    ubyte @shared a2 = 20
+    ubyte @shared x1 = 30
+    ubyte @shared x2 = 40
+    ubyte @shared zero = 0
+
+    sub start () {
         txt.print("1a:\n")
         if calc_a1()<calc_x1() and calc_a2()<=calc_x2()
             txt.print("* 1a and ok\n")
@@ -56,30 +65,47 @@ main {
         txt.print("\n5d:\n")
         result = bool_false() xor bool_true()
 
+        txt.print("augmented and shortcut:\n")
+        bool @shared b1 = false
+        cx16.r0++
+        b1 = b1 and bool_true()
+        txt.print("augmented and no shortcut:\n")
+        b1 = true
+        cx16.r0++
+        b1 = b1 and bool_true()
 
-        sub bool_true() -> bool {
-            txt.print("bool_true\n")
-            return true
-        }
-        sub bool_false() -> bool {
-            txt.print("bool_false\n")
-            return false
-        }
-        sub calc_a1() -> ubyte {
-            txt.print("calc_a1\n")
-            return a1+zero
-        }
-        sub calc_a2() -> ubyte {
-            txt.print("calc_a2\n")
-            return a2+zero
-        }
-        sub calc_x1() -> ubyte {
-            txt.print("calc_x1\n")
-            return x1+zero
-        }
-        sub calc_x2() -> ubyte {
-            txt.print("calc_x2\n")
-            return x2+zero
-        }
+        txt.print("augmented or shortcut:\n")
+        b1 = true
+        cx16.r0++
+        b1 = b1 or bool_true()
+        txt.print("augmented or no shortcut:\n")
+        b1 = false
+        cx16.r0++
+        b1 = b1 or bool_true()
+    }
+
+    sub bool_true() -> bool {
+        txt.print("bool_true\n")
+        return true
+    }
+    sub bool_false() -> bool {
+        txt.print("bool_false\n")
+        return false
+    }
+    sub calc_a1() -> ubyte {
+        txt.print("calc_a1\n")
+        return a1+zero
+    }
+    sub calc_a2() -> ubyte {
+        txt.print("calc_a2\n")
+        return a2+zero
+    }
+    sub calc_x1() -> ubyte {
+        txt.print("calc_x1\n")
+        return x1+zero
+    }
+    sub calc_x2() -> ubyte {
+        txt.print("calc_x2\n")
+        return x2+zero
     }
 }

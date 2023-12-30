@@ -717,6 +717,7 @@ Logical expressions are expressions that calculate a boolean result: true or fal
 (which in reality are just a 1 or 0 integer value). When using variables of the type ``bool``,
 logical expressions will compile more efficiently than when you're using regular integer type operands
 (because these have to be converted to 0 or 1 every time)
+Prog8 applies short-circuit aka McCarthy evaluation for ``and`` and ``or`` on boolean expressions.
 
 You can use parentheses to group parts of an expression to change the precedence.
 Usually the normal precedence rules apply (``*`` goes before ``+`` etc.) but subexpressions

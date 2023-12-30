@@ -599,17 +599,12 @@ logical:  ``not``  ``and``  ``or``  ``xor``
 	about truths (boolean values). The result of such an expression is a 'boolean' value 'true' or 'false'
 	(which in reality is just a byte value of 1 or 0).
 	Notice that the expression ``not x`` is equivalent to ``x==0``, and the compiler will treat it as such.
+	Prog8 applies short-circuit aka McCarthy evaluation for ``and`` and ``or``.
 
 	.. note::
 		You can use regular integers directly in logical expressions but these have to be converted to
 		the boolean value 0 or 1 every time, resulting in larger and slower code. Consider using
 		the ``bool`` variable type instead, where this conversion doesn't need to occur.
-
-	.. note::
-		Unlike most other programming languages, there is no short-circuit or McCarthy evaluation
-		for the logical ``and`` and ``or`` operators. This means that prog8 currently always evaluates
-		all operands from these logical expressions, even when one of them already determines the outcome!
-		If you don't want this to happen, you have to split and nest the if-statements yourself.
 
 range creation:  ``to``, ``downto``
     Creates a range of values from the LHS value to the RHS value, inclusive.
