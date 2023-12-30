@@ -798,7 +798,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             when (operator) {
                 "and" -> {
                     // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
-                    println("SHORTCUT AND ${value.position}")    // TODO weg
                     asmgen.out("  lda  $name |  beq  $shortcutLabel")
                     asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
                     asmgen.out("""
@@ -809,7 +808,6 @@ $shortcutLabel:""")
                 }
                 "or" -> {
                     // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
-                    println("SHORTCUT OR ${value.position}")    // TODO weg
                     asmgen.out("  lda  $name |  bne  $shortcutLabel")
                     asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
                     asmgen.out("""

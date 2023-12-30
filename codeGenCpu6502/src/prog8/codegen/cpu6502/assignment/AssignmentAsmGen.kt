@@ -1056,7 +1056,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 when (expr.operator) {
                     "and" -> {
                         // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
-                        println("SHORTCUT AND ${expr.position}")    // TODO weg
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                         asmgen.out("  beq  $shortcutLabel")
                         assignExpressionToRegister(expr.right, RegisterOrPair.A, false)
@@ -1064,7 +1063,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     "or" -> {
                         // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
-                        println("SHORTCUT OR ${expr.position}")    // TODO weg
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                         asmgen.out("  bne  $shortcutLabel")
                         assignExpressionToRegister(expr.right, RegisterOrPair.A, false)

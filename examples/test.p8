@@ -2,13 +2,29 @@
 %zeropage dontuse
 
 main {
+    sub start() {
+        ubyte @shared x = 10
+        if value(12) < x < value(100)
+            txt.print("gottem")
+
+        sub value(ubyte v) -> ubyte {
+            cx16.r0++
+            txt.print("value(): ")
+            txt.print_ub(v)
+            txt.nl()
+            return v
+        }
+
+        bigtest()
+    }
+
     ubyte @shared a1 = 10
     ubyte @shared a2 = 20
     ubyte @shared x1 = 30
     ubyte @shared x2 = 40
     ubyte @shared zero = 0
 
-    sub start () {
+    sub bigtest () {
         txt.print("1a:\n")
         if calc_a1()<calc_x1() and calc_a2()<=calc_x2()
             txt.print("* 1a and ok\n")
