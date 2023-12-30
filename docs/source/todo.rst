@@ -2,12 +2,6 @@
 TODO
 ====
 
-- [on branch: shortcircuit] complete McCarthy evaluation. This may also reduce code size perhaps for things like if a>4 or a<2 ....
-    - note: shortcircuit only on logical boolean expressions (and,or) not on bitwise (&,|)
-    - vm ircodegen (PARTIALLY DONE!)
-    - in 6502 codegen (see vm's ExpressionGen operatorAnd / operatorOr)
-    - remove debug println's
-
 ...
 
 

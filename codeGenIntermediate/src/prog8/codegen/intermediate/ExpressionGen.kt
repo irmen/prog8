@@ -995,8 +995,38 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         addInstr(result, if(knownAddress!=null)
             IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = knownAddress)
         else
-            IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-            ,null)
+            IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol),null)
+        return result
+    }
+
+    internal fun operatorLogicalAndInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        if(codeGen.options.shortCircuit && !operand.isSimple()) {
+            // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
+            val inplaceReg = codeGen.registers.nextFree()
+            val shortcutLabel = codeGen.createLabelName()
+            result += IRCodeChunk(null, null).also {
+                it += if(knownAddress!=null)
+                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = knownAddress)
+                else
+                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, labelSymbol = symbol)
+                it += IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel)
+            }
+            addToResult(result, tr, tr.resultReg, -1)
+            addInstr(result, if(knownAddress!=null)
+                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            else
+                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
+            result += IRCodeChunk(shortcutLabel, null)
+        } else {
+            // normal evaluation
+            addToResult(result, tr, tr.resultReg, -1)
+            addInstr(result, if(knownAddress!=null)
+                IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            else
+                IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol),null)
+        }
         return result
     }
 
@@ -1007,8 +1037,37 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         addInstr(result, if(knownAddress!=null)
             IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = knownAddress)
         else
-            IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-            , null)
+            IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
+        return result
+    }
+
+    internal fun operatorLogicalOrInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(operand)
+        if(codeGen.options.shortCircuit && !operand.isSimple()) {
+            // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
+            val inplaceReg = codeGen.registers.nextFree()
+            val shortcutLabel = codeGen.createLabelName()
+            result += IRCodeChunk(null, null).also {
+                it += if(knownAddress!=null)
+                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = knownAddress)
+                else
+                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, labelSymbol = symbol)
+                it += IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel)
+            }
+            addToResult(result, tr, tr.resultReg, -1)
+            addInstr(result, if(knownAddress!=null)
+                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            else
+                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
+            result += IRCodeChunk(shortcutLabel, null)
+        } else {
+            addToResult(result, tr, tr.resultReg, -1)
+            addInstr(result, if(knownAddress!=null)
+                IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            else
+                IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
+        }
         return result
     }
 
