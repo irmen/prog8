@@ -17,8 +17,6 @@ internal class ExpressionCodeResult(val chunks: IRCodeChunks, val dt: IRDataType
         if(resultReg!=-1) require(resultFpReg==-1)
         if(resultFpReg!=-1) require(resultReg==-1)
     }
-
-    fun lastInstruction() = chunks.last().instructions.last()
 }
 
 internal class ExpressionGen(private val codeGen: IRCodeGen) {

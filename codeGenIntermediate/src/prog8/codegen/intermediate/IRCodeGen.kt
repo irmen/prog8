@@ -1026,7 +1026,8 @@ class IRCodeGen(
         val condition = ifElse.condition as PtBinaryExpression
         val leftTr = expressionEval.translateExpression(condition.left)
         addToResult(result, leftTr, leftTr.resultReg, -1)
-        val requireCompareZero = leftTr.lastInstruction().opcode !in OpcodesThatSetStatusbits
+        val lastInstruction = leftTr.chunks.last().instructions.lastOrNull()
+        val requireCompareZero = lastInstruction?.opcode !in OpcodesThatSetStatusbits
         when(condition.operator) {
             "==" -> {
                 if(requireCompareZero)

@@ -473,4 +473,17 @@ instructions {
         compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
     }
 
+    test("IR codegen for while loop with shortcircuit") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0L=1
+        while cx16.r0L < 10 and cx16.r0L>0 {
+            cx16.r0L++
+        }
+    }
+}"""
+        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+    }
+
 })
