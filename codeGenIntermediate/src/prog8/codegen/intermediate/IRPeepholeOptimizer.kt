@@ -46,7 +46,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                             .map { IndexedValue(it.index, it.value) }
                         val changed = removeNops(chunk1, indexedInstructions)
                                 || replaceConcatZeroMsbWithExt(chunk1, indexedInstructions)
-                                || removeDoubleLoadsAndStores(chunk1, indexedInstructions)       // TODO not yet implemented
+                                || removeDoubleLoadsAndStores(chunk1, indexedInstructions)
                                 || removeUselessArithmetic(chunk1, indexedInstructions)
                                 || removeNeedlessCompares(chunk1, indexedInstructions)
                                 || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
@@ -324,14 +324,16 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if(idx>0 && idx<(indexedInstructions.size-1) && ins.opcode==Opcode.CMPI && ins.immediate==0) {
                 val previous = indexedInstructions[idx-1].value
-                if(previous.opcode in OpcodesThatSetStatusbitsIncludingCarry) {
-                    chunk.instructions.removeAt(idx)
-                    changed = true
-                } else if(previous.opcode in OpcodesThatSetStatusbitsButNotCarry) {
-                    val next = indexedInstructions[idx+1].value
-                    if(next.opcode !in arrayOf(Opcode.BSTCC, Opcode.BSTCS, Opcode.BSTPOS, Opcode.BSTNEG)) {
+                if(previous.reg1==ins.reg1) {
+                    if (previous.opcode in OpcodesThatSetStatusbitsIncludingCarry) {
                         chunk.instructions.removeAt(idx)
                         changed = true
+                    } else if (previous.opcode in OpcodesThatSetStatusbitsButNotCarry) {
+                        val next = indexedInstructions[idx + 1].value
+                        if (next.opcode !in arrayOf(Opcode.BSTCC, Opcode.BSTCS, Opcode.BSTPOS, Opcode.BSTNEG)) {
+                            chunk.instructions.removeAt(idx)
+                            changed = true
+                        }
                     }
                 }
             }

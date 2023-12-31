@@ -2,6 +2,10 @@
 TODO
 ====
 
+PtAst/IR: attempt more complex common subexpression eliminations.
+    for any "top level" PtExpression enumerate all subexpressions and find commons, replace them by a tempvar
+    for walking the ast see walkAst() but it should not recurse into the "top level" PtExpression again
+
 ...
 
 
@@ -10,7 +14,6 @@ Future Things and Ideas
 Compiler:
 
 - get rid of the noshortcircuit fallback option and code.
-- What happens when we make all subs return a boolean not as ubyte in A, but in the cpu's Carry flag?
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
@@ -36,7 +39,6 @@ Compiler:
 - ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (this is a form of common subexpression elimination)
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
-- PtAst/IR: more complex common subexpression eliminations
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc shouldn't be deleted from the assembly?
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
