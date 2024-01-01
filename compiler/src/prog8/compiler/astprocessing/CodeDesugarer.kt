@@ -26,7 +26,6 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - pointer[word] replaced by @(pointer+word)
     // - @(&var) and @(&var+1) replaced by lsb(var) and msb(var) if var is a word
     // - flatten chained assignments
-    // - rewrite chained comparisons like  i<x<j  into  i<x and x<j
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {
@@ -258,29 +257,6 @@ _after:
                 IdentifierReference(listOf(function), expr.position),
                 mutableListOf(expr.left.copy()), expr.position)
             return listOf(IAstModification.ReplaceNode(expr, squareCall, parent))
-        }
-
-        // desugar chained comparisons:  i < x < j  --->  i<x and x<j
-        // only if  i<x  or x<j  was not written in parentheses!   (i<x) < y,  i < (x<y)  -> leave untouched
-        if(expr.isChainedComparison()) {
-            val leftBinExpr = expr.left as? BinaryExpression
-            if(leftBinExpr!=null) {
-                if(!leftBinExpr.right.isSimple) {
-                    errors.warn("possible multiple evaluation of subexpression in chained comparison, consider using a temporary variable", leftBinExpr.right.position)
-                }
-                val right = BinaryExpression(leftBinExpr.right.copy(), expr.operator, expr.right, leftBinExpr.right.position)
-                val desugar = BinaryExpression(leftBinExpr, "and", right, expr.position)
-                return listOf(IAstModification.ReplaceNode(expr, desugar, parent))
-            }
-            val rightBinExpr = expr.right as? BinaryExpression
-            if(rightBinExpr!=null) {
-                if(!rightBinExpr.left.isSimple) {
-                    errors.warn("possible multiple evaluation of subexpression in chained comparison, consider using a temporary variable", rightBinExpr.left.position)
-                }
-                val left = BinaryExpression(expr.left, expr.operator, rightBinExpr.left.copy(), rightBinExpr.left.position)
-                val desugar = BinaryExpression(left, "and", rightBinExpr, expr.position)
-                return listOf(IAstModification.ReplaceNode(expr, desugar, parent))
-            }
         }
 
         return noModifications

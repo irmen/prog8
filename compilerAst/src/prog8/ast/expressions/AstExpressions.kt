@@ -35,7 +35,7 @@ sealed class Expression: Node {
             is PrefixExpression ->
                 (other is PrefixExpression && other.operator==operator && other.expression isSameAs expression)
             is BinaryExpression -> {
-                if(other !is BinaryExpression || other.operator!=operator || other.isChainedComparison()!=isChainedComparison())
+                if(other !is BinaryExpression || other.operator!=operator)
                     false
                 else if(operator in AssociativeOperators)
                     (other.left isSameAs left && other.right isSameAs right) || (other.left isSameAs right && other.right isSameAs left)
@@ -181,18 +181,6 @@ class BinaryExpression(
     override fun toString() = "[$left $operator $right]"
 
     override val isSimple = false
-
-    fun isChainedComparison(): Boolean {
-        if(operator in ComparisonOperators) {
-            val leftBinExpr = left as? BinaryExpression
-            if (leftBinExpr != null && !leftBinExpr.insideParentheses && leftBinExpr.operator in ComparisonOperators)
-                return true
-            val rightBinExpr = right as? BinaryExpression
-            if (rightBinExpr != null && !rightBinExpr.insideParentheses && rightBinExpr.operator in ComparisonOperators)
-                return true
-        }
-        return false
-    }
 
     // binary expression should actually have been optimized away into a single value, before const value was requested...
     override fun constValue(program: Program): NumericLiteral? = null

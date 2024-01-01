@@ -1,17 +1,6 @@
 TODO
 ====
 
-- Revert or fix current "desugar chained comparisons" it causes problems with if statements (in optimizer).
-        ubyte @shared n=20
-        ubyte @shared L1=10
-        ubyte @shared L2=100
-
-        if n < L1 {
-          ;txt.print("bing")
-        } else {
-          txt.print("boom")         ; no longer triggers
-        }
-
 ...
 
 
@@ -87,3 +76,6 @@ Other language/syntax features to think about
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
   How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
+- chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`)
+  BUT this needs a new AST node type and rewritten parser rules, because otherwise it changes the semantics
+  of existing expressions such as  if x<y==0 ...

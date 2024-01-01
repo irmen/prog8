@@ -592,7 +592,6 @@ postfix increment and decrement: ``++``  ``--``
 comparison: ``==``  ``!=``  ``<``  ``>``  ``<=``  ``>=``
     Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
     The result is a boolean value 'true' or 'false' (1 or 0).
-    Note that you can chain comparisons like so: ``i < x < j``, which is the same as ``i<x and x<j``.
 
 logical:  ``not``  ``and``  ``or``  ``xor``
 	These operators are the usual logical operations that are part of a logical expression to reason

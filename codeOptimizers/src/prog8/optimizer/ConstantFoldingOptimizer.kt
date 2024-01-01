@@ -142,10 +142,8 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         // const fold when both operands are a const.
         // if in a chained comparison, that one has to be desugared first though.
         if(leftconst != null && rightconst != null) {
-            if((expr.parent as? BinaryExpression)?.isChainedComparison()!=true) {
-                val result = evaluator.evaluate(leftconst, expr.operator, rightconst)
-                modifications += IAstModification.ReplaceNode(expr, result, parent)
-            }
+            val result = evaluator.evaluate(leftconst, expr.operator, rightconst)
+            modifications += IAstModification.ReplaceNode(expr, result, parent)
         }
 
         if(leftconst==null && rightconst!=null && rightconst.number<0.0) {
