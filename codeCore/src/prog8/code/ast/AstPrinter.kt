@@ -57,9 +57,20 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     "???"
             }
             is PtAsmSub -> {
-                val params = if (node.parameters.isEmpty()) "" else "...TODO ${node.parameters.size} PARAMS..."
+                val params = node.parameters.map {
+                                val register = it.first.registerOrPair
+                                val statusflag = it.first.statusflag
+                                "${it.second.type} ${it.second.name} @${register ?: statusflag}"
+                            }.joinToString(", ")
                 val clobbers = if (node.clobbers.isEmpty()) "" else "clobbers ${node.clobbers}"
-                val returns = if (node.returns.isEmpty()) "" else (if (node.returns.size == 1) "-> ${node.returns[0].second.name.lowercase()}" else "-> ${node.returns.map { it.second.name.lowercase() }}")
+                val returns = if (node.returns.isEmpty()) "" else {
+                    "-> ${node.returns.map {
+                        val register = it.first.registerOrPair
+                        val statusflag = it.first.statusflag
+                        "${it.second} @${register ?: statusflag}"}
+                        .joinToString(", ")
+                    }"
+                }
                 val str = if (node.inline) "inline " else ""
                 if(node.address==null) {
                     str + "asmsub ${node.name}($params) $clobbers $returns"
@@ -87,7 +98,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 }
             }
             is PtSub -> {
-                val params = if (node.parameters.isEmpty()) "" else "...TODO ${node.parameters.size} PARAMS..."
+                val params = node.parameters.map { "${it.type} ${it.name}" }.joinToString(", ")
                 var str = "sub ${node.name}($params) "
                 if(node.returntype!=null)
                     str += "-> ${node.returntype.name.lowercase()}"
