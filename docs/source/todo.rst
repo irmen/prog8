@@ -1,9 +1,7 @@
 TODO
 ====
 
-- why is the right term of   cx16.r0 = (cx16.r1+cx16.r2) + (cx16.r1+cx16.r2)  flipped around but the left term isn't?
-
-- Revert or fix current "desugar chained comparisons" it causes problems with if statements.
+- Revert or fix current "desugar chained comparisons" it causes problems with if statements (in optimizer).
         ubyte @shared n=20
         ubyte @shared L1=10
         ubyte @shared L2=100

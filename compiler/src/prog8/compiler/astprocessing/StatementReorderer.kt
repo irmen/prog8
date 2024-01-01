@@ -226,36 +226,6 @@ internal class StatementReorderer(
                     // A = v <associative-operator> A  ==>  A = A <associative-operator> v
                     return listOf(IAstModification.SwapOperands(binExpr))
                 }
-
-                val leftBinExpr = binExpr.left as? BinaryExpression
-                if(leftBinExpr?.operator == binExpr.operator) {
-                    return if(leftBinExpr.left isSameAs assignment.target) {
-                        // A = (A <associative-operator> x) <same-operator> y ==> A = A <associative-operator> (x <same-operator> y)
-                        val newRight = BinaryExpression(leftBinExpr.right, binExpr.operator, binExpr.right, binExpr.position)
-                        val newValue = BinaryExpression(leftBinExpr.left, binExpr.operator, newRight, binExpr.position)
-                        listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
-                    }
-                    else {
-                        // A = (x <associative-operator> A) <same-operator> y ==> A = A <associative-operator> (x <same-operator> y)
-                        val newRight = BinaryExpression(leftBinExpr.left, binExpr.operator, binExpr.right, binExpr.position)
-                        val newValue = BinaryExpression(leftBinExpr.right, binExpr.operator, newRight, binExpr.position)
-                        listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
-                    }
-                }
-                val rightBinExpr = binExpr.right as? BinaryExpression
-                if(rightBinExpr?.operator == binExpr.operator) {
-                    return if(rightBinExpr.left isSameAs assignment.target) {
-                        // A = x <associative-operator> (A <same-operator> y) ==> A = A <associative-operator> (x <same-operator> y)
-                        val newRight = BinaryExpression(binExpr.left, binExpr.operator, rightBinExpr.right, binExpr.position)
-                        val newValue = BinaryExpression(rightBinExpr.left, binExpr.operator, newRight, binExpr.position)
-                        listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
-                    } else {
-                        // A = x <associative-operator> (y <same-operator> A) ==> A = A <associative-operator> (x <same-operator> y)
-                        val newRight = BinaryExpression(binExpr.left, binExpr.operator, rightBinExpr.left, binExpr.position)
-                        val newValue = BinaryExpression(rightBinExpr.right, binExpr.operator, newRight, binExpr.position)
-                        listOf(IAstModification.ReplaceNode(binExpr, newValue, assignment))
-                    }
-                }
             }
         }
 
