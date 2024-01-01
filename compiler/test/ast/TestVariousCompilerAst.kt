@@ -7,10 +7,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.ForLoop
-import prog8.ast.statements.InlineAssembly
-import prog8.ast.statements.VarDecl
+import prog8.ast.statements.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -457,42 +454,38 @@ main {
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
 
-    test("chained comparison") {
+    test("no chained comparison modifying expression semantics") {
         val src="""
 main {
     sub start() {
-        ubyte @shared x = 1
-        ubyte @shared y = 2
-        ubyte @shared z = 3
-        x = x==y==z
-        y = 4<x<10
+        ubyte @shared n=20
+        ubyte @shared x=10
+
+        if n < x {
+          ; nothing here, conditional gets inverted
+        } else {
+            cx16.r0++
+        }
+        cx16.r0L = n<x == 0
+        cx16.r1L = not n<x
     }
 }"""
-        val result=compileText(VMTarget(), optimize=false, src, writeAssembly=false)!!
+        val result=compileText(VMTarget(), optimize=true, src, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 8
+        st.size shouldBe 7
 
-        val comparison1 = (st[6] as Assignment).value as BinaryExpression
-        comparison1.operator shouldBe "and"
-        val left1 = comparison1.left as BinaryExpression
-        val right1 = comparison1.right as BinaryExpression
-        left1.operator shouldBe "=="
-        right1.operator shouldBe "=="
-        (left1.left as? IdentifierReference)?.nameInSource shouldBe listOf("x")
-        (left1.right as? IdentifierReference)?.nameInSource shouldBe listOf("y")
-        (right1.left as? IdentifierReference)?.nameInSource shouldBe listOf("y")
-        (right1.right as? IdentifierReference)?.nameInSource shouldBe listOf("z")
-
-        val comparison2 = (st[7] as Assignment).value as BinaryExpression
-        comparison2.operator shouldBe "and"
-        val left2 = comparison2.left as BinaryExpression
-        val right2 = comparison2.right as BinaryExpression
-        left2.operator shouldBe ">"
-        right2.operator shouldBe "<"
-        (left2.left as? IdentifierReference)?.nameInSource shouldBe listOf("x")
-        (left2.right as? NumericLiteral)?.number shouldBe 4.0
-        (right2.left as? IdentifierReference)?.nameInSource shouldBe listOf("x")
-        (right2.right as? NumericLiteral)?.number shouldBe 10.0
+        val ifCond = (st[4] as IfElse).condition as BinaryExpression
+        ifCond.operator shouldBe "=="
+        (ifCond.right as NumericLiteral).number shouldBe 0.0
+        (ifCond.left as BinaryExpression).operator shouldBe "<"
+        val assign1 = (st[5] as Assignment).value as BinaryExpression
+        val assign2 = (st[6] as Assignment).value as BinaryExpression
+        assign1.operator shouldBe "=="
+        (assign1.right as NumericLiteral).number shouldBe 0.0
+        (assign1.left as BinaryExpression).operator shouldBe "<"
+        assign2.operator shouldBe "=="
+        (assign2.right as NumericLiteral).number shouldBe 0.0
+        (assign2.left as BinaryExpression).operator shouldBe "<"
     }
 
     test("modulo is not directive") {
