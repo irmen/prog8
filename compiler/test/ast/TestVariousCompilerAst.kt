@@ -511,5 +511,33 @@ main {
         val value = (st[5] as Assignment).value as BinaryExpression
         value.operator shouldBe "%"
     }
+
+    test("isSame on binary expressions") {
+        val left1 = NumericLiteral.optimalInteger(1, Position.DUMMY)
+        val right1 = NumericLiteral.optimalInteger(2, Position.DUMMY)
+        val expr1 = BinaryExpression(left1, "/", right1, Position.DUMMY)
+        val left2 = NumericLiteral.optimalInteger(1, Position.DUMMY)
+        val right2 = NumericLiteral.optimalInteger(2, Position.DUMMY)
+        val expr2 = BinaryExpression(left2, "/", right2, Position.DUMMY)
+        (expr1 isSameAs expr2) shouldBe true
+        val left3 = NumericLiteral.optimalInteger(2, Position.DUMMY)
+        val right3 = NumericLiteral.optimalInteger(1, Position.DUMMY)
+        val expr3 = BinaryExpression(left3, "/", right3, Position.DUMMY)
+        (expr1 isSameAs expr3) shouldBe false
+    }
+
+    test("isSame on binary expressions with associative operators") {
+        val left1 = NumericLiteral.optimalInteger(1, Position.DUMMY)
+        val right1 = NumericLiteral.optimalInteger(2, Position.DUMMY)
+        val expr1 = BinaryExpression(left1, "+", right1, Position.DUMMY)
+        val left2 = NumericLiteral.optimalInteger(1, Position.DUMMY)
+        val right2 = NumericLiteral.optimalInteger(2, Position.DUMMY)
+        val expr2 = BinaryExpression(left2, "+", right2, Position.DUMMY)
+        (expr1 isSameAs expr2) shouldBe true
+        val left3 = NumericLiteral.optimalInteger(2, Position.DUMMY)
+        val right3 = NumericLiteral.optimalInteger(1, Position.DUMMY)
+        val expr3 = BinaryExpression(left3, "+", right3, Position.DUMMY)
+        (expr1 isSameAs expr3) shouldBe true
+    }
 })
 

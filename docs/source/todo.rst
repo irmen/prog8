@@ -1,10 +1,18 @@
-
 TODO
 ====
 
-PtAst/IR: attempt more complex common subexpression eliminations.
-    for any "top level" PtExpression enumerate all subexpressions and find commons, replace them by a tempvar
-    for walking the ast see walkAst() but it should not recurse into the "top level" PtExpression again
+- why is the right term of   cx16.r0 = (cx16.r1+cx16.r2) + (cx16.r1+cx16.r2)  flipped around but the left term isn't?
+
+- Revert or fix current "desugar chained comparisons" it causes problems with if statements.
+        ubyte @shared n=20
+        ubyte @shared L1=10
+        ubyte @shared L2=100
+
+        if n < L1 {
+          ;txt.print("bing")
+        } else {
+          txt.print("boom")         ; no longer triggers
+        }
 
 ...
 
@@ -36,7 +44,6 @@ Compiler:
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
 - ir: add more optimizations in IRPeepholeOptimizer
-- ir: for expressions with array indexes that occur multiple times, can we avoid loading them into new virtualregs everytime and just reuse a single virtualreg as indexer? (this is a form of common subexpression elimination)
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc shouldn't be deleted from the assembly?

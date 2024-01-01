@@ -23,7 +23,7 @@ class PtSub(
     val parameters: List<PtSubroutineParameter>,
     val returntype: DataType?,
     position: Position
-) : PtNamedNode(name, position), IPtSubroutine {
+) : PtNamedNode(name, position), IPtSubroutine, IPtStatementContainer {
     init {
         // params and return value should not be str
         if(parameters.any{ it.type !in NumericDatatypes })

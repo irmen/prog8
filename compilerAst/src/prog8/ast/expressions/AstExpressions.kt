@@ -34,11 +34,14 @@ sealed class Expression: Node {
                 (other is IdentifierReference && other.nameInSource==nameInSource)
             is PrefixExpression ->
                 (other is PrefixExpression && other.operator==operator && other.expression isSameAs expression)
-            is BinaryExpression ->
-                (other is BinaryExpression && other.operator==operator
-                        && other.left isSameAs left
-                        && other.right isSameAs right
-                        && other.isChainedComparison() == isChainedComparison())
+            is BinaryExpression -> {
+                if(other !is BinaryExpression || other.operator!=operator || other.isChainedComparison()!=isChainedComparison())
+                    false
+                else if(operator in AssociativeOperators)
+                    (other.left isSameAs left && other.right isSameAs right) || (other.left isSameAs right && other.right isSameAs left)
+                else
+                    other.left isSameAs left && other.right isSameAs right
+            }
             is ArrayIndexedExpression -> {
                 (other is ArrayIndexedExpression && other.arrayvar.nameInSource == arrayvar.nameInSource
                         && other.indexer isSameAs indexer)

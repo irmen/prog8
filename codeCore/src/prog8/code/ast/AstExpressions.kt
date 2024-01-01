@@ -36,7 +36,14 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
                 return arrayIndexExpr!! isSameAs other.arrayIndexExpr!!
             }
             is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index && other.splitWords==splitWords
-            is PtBinaryExpression -> other is PtBinaryExpression && other.left isSameAs left && other.right isSameAs right
+            is PtBinaryExpression -> {
+                if(other !is PtBinaryExpression || other.operator!=operator)
+                    false
+                else if(operator in AssociativeOperators)
+                    (other.left isSameAs left && other.right isSameAs right) || (other.left isSameAs right && other.right isSameAs left)
+                else
+                    other.left isSameAs left && other.right isSameAs right
+            }
             is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
             is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
             is PtMachineRegister -> other is PtMachineRegister && other.type==type && other.register==register

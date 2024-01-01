@@ -10,6 +10,7 @@ import prog8.ast.statements.Directive
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
 import prog8.code.core.*
+import prog8.code.optimize.optimizeIntermediateAst
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
@@ -102,7 +103,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     compilationOptions,
                     args.errors,
                     BuiltinFunctionsFacade(BuiltinFunctions),
-                    compTarget
                 )
             }
             postprocessAst(program, args.errors, compilationOptions)
@@ -124,6 +124,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 //                printProgram(program)
 
                 val intermediateAst = IntermediateAstMaker(program, args.errors).transform()
+//                printAst(intermediateAst, true) { println(it) }
+                optimizeIntermediateAst(intermediateAst, compilationOptions, args.errors)
+                args.errors.report()
 
 //                println("*********** AST RIGHT BEFORE ASM GENERATION *************")
 //                printAst(intermediateAst, true, ::println)
@@ -378,13 +381,13 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
 }
 
-private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, errors: IErrorReporter, functions: IBuiltinFunctions, compTarget: ICompilationTarget) {
-    val remover = UnusedCodeRemover(program, errors, compTarget)
+private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, errors: IErrorReporter, functions: IBuiltinFunctions) {
+    val remover = UnusedCodeRemover(program, errors, compilerOptions.compTarget)
     remover.visit(program)
     remover.applyModifications()
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
-        val optsDone1 = program.simplifyExpressions(errors, compTarget)
+        val optsDone1 = program.simplifyExpressions(errors, compilerOptions.compTarget)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
         val optsDone3 = program.inlineSubroutines(compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
@@ -395,7 +398,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
-    val remover2 = UnusedCodeRemover(program, errors, compTarget)
+    val remover2 = UnusedCodeRemover(program, errors, compilerOptions.compTarget)
     remover2.visit(program)
     remover2.applyModifications()
     if(errors.noErrors())
