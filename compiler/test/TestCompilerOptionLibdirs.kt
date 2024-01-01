@@ -38,6 +38,8 @@ class TestCompilerOptionSourcedirs: FunSpec({
             compilationTarget = Cx16Target.NAME,
             splitWordArrays = false,
             breakpointCpuInstruction = false,
+            printAst1 = false,
+            printAst2 = false,
             symbolDefs = emptyMap(),
             sourceDirs,
             outputDir

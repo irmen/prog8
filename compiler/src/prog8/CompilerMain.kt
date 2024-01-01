@@ -51,6 +51,8 @@ private fun compileMain(args: Array<String>): Boolean {
     val includeSourcelines by cli.option(ArgType.Boolean, fullName = "sourcelines", description = "include original Prog8 source lines in generated asm code")
     val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
     val noShortCircuit by cli.option(ArgType.Boolean, fullName = "noshortcircuit", description = "do not apply McCarthy/short-circuit evaluation to boolean expressions")
+    val printAst1 by cli.option(ArgType.Boolean, fullName = "printast1", description = "print out the compiler AST")
+    val printAst2 by cli.option(ArgType.Boolean, fullName = "printast2", description = "print out the intermediate AST that is used for code generation")
     val breakpointCpuInstruction by cli.option(ArgType.Boolean, fullName = "breakinstr", description = "also use a CPU instruction for %breakpoint")
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${PETTarget.NAME}', '${VMTarget.NAME}') (required)")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
@@ -159,6 +161,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     compilationTarget!!,
                     splitWordArrays == true,
                     breakpointCpuInstruction = false,
+                    printAst1 == true,
+                    printAst2 == true,
                     processedSymbols,
                     srcdirs,
                     outputPath
@@ -236,6 +240,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     compilationTarget!!,
                     splitWordArrays == true,
                     breakpointCpuInstruction == true,
+                    printAst1 == true,
+                    printAst2 == true,
                     processedSymbols,
                     srcdirs,
                     outputPath

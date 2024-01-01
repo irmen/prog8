@@ -39,7 +39,9 @@ internal fun compileFile(
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests(),
         splitWordArrays = false,
-        breakpointCpuInstruction = false
+        breakpointCpuInstruction = false,
+        printAst1 = false,
+        printAst2 = false
     )
     return compileProgram(args)
 }

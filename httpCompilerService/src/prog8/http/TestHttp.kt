@@ -44,6 +44,8 @@ class RequestParser : Take {
             experimentalCodegen = false,
             splitWordArrays = false,
             breakpointCpuInstruction = false,
+            printAst1 = false,
+            printAst2 = false,
             varsHighBank = null,
             varsGolden = false,
             slabsHighBank = null,

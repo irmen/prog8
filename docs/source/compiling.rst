@@ -185,6 +185,13 @@ One or more .p8 module files
 ``-expericodegen``
     Use experimental code generation backend (*incomplete*).
 
+``-printast1``
+    Prints the "compiler AST" (the internal representation of the program) after all processing steps.
+
+``-printast2``
+    Prints the "intermediate AST" which is the reduced representation of the program.
+    This is what is used in the code generators, to generate the executable code from.
+
 ``-sourcelines``
     Also include the original prog8 source code lines as comments in the generated assembly code file,
     mixed in between the actual generated assembly code.

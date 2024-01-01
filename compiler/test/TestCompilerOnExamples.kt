@@ -40,6 +40,8 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         compilationTarget = target.name,
         splitWordArrays = false,
         breakpointCpuInstruction = false,
+        printAst1 = false,
+        printAst2 = false,
         symbolDefs = emptyMap(),
         outputDir = outputDir
     )
