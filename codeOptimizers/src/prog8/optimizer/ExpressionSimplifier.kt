@@ -255,22 +255,8 @@ class ExpressionSimplifier(private val program: Program,
             }
         }
 
-        // boolvar & 1  --> boolvar
-        // boolvar & 2  --> false
-        if(expr.operator=="&" && rightDt in IntegerDatatypes && (leftDt == DataType.BOOL || (expr.left as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
-            if(rightVal?.number==1.0) {
-                return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
-            } else if(rightVal?.number!=null && (rightVal.number.toInt() and 1)==0) {
-                return listOf(IAstModification.ReplaceNode(expr, NumericLiteral.fromBoolean(false, expr.position), parent))
-            }
-        }
-
         if(leftDt==DataType.BOOL) {
             // optimize boolean constant comparisons
-//            if(expr.operator=="==" && rightVal?.number==0.0)
-//                return listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
-//            if(expr.operator=="!=" && rightVal?.number==1.0)
-//                return listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
             if(expr.operator=="==" && rightVal?.number==1.0)
                 return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
             if(expr.operator=="!=" && rightVal?.number==0.0)

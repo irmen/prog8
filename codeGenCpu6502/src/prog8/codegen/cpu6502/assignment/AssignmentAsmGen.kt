@@ -126,7 +126,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     // constant array index value
                     val indexValue = constIndex * program.memsizer.memorySize(elementDt)
                     when (elementDt) {
-                        in ByteDatatypes -> {
+                        in ByteDatatypesWithBoolean -> {
                             asmgen.out("  lda  $arrayVarName+$indexValue")
                             assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes, false)
                         }
@@ -143,7 +143,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                 } else {
                     when (elementDt) {
-                        in ByteDatatypes -> {
+                        in ByteDatatypesWithBoolean -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVarName,y")
                             assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes, true)
@@ -310,9 +310,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             is PtPrefix -> {
                 if(assign.target.array==null) {
                     if(assign.source.datatype==assign.target.datatype) {
-                        if(assign.source.datatype in IntegerDatatypes) {
+                        if(assign.source.datatype in IntegerDatatypesWithBoolean) {
                             val signed = assign.source.datatype in SignedDatatypes
-                            if(assign.source.datatype in ByteDatatypes) {
+                            if(assign.source.datatype in ByteDatatypesWithBoolean) {
                                 assignExpressionToRegister(value.value, RegisterOrPair.A, signed)
                                 when(value.operator) {
                                     "+" -> {}
@@ -323,7 +323,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                             asmgen.out("  eor  #255 |  clc |  adc  #1")
                                     }
                                     "~" -> asmgen.out("  eor  #255")
-                                    "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                                    "not" -> asmgen.out("  eor  #1")
                                     else -> throw AssemblyError("invalid prefix operator")
                                 }
                                 assignRegisterByte(assign.target, CpuRegister.A, signed, false)
@@ -344,7 +344,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                             txa""")
                                     }
                                     "~" -> asmgen.out("  tax |  tya |  eor  #255 |  tay |  txa |  eor  #255")
-                                    "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                                    "not" -> throw AssemblyError("not shouldn't exist on integer")
                                     else -> throw AssemblyError("invalid prefix operator")
                                 }
                                 assignRegisterpairWord(assign.target, RegisterOrPair.AY)
@@ -362,7 +362,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 "+" -> {}
                                 "-" -> inplaceNegate(assign, true, scope)
                                 "~" -> inplaceInvert(assign, scope)
-                                "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                                "not" -> inplaceInvert(assign, scope)
                                 else -> throw AssemblyError("invalid prefix operator")
                             }
                         }
@@ -382,10 +382,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 else
                                     inplaceInvert(assignTempvar, scope)
                             }
-                            "not" -> throw AssemblyError("not should have been replaced in the Ast by ==0")
+                            "not" -> {
+                                val assignTempvar = AsmAssignment(
+                                    AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = tempvar),
+                                    AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar),
+                                    program.memsizer, assign.position)
+                                inplaceInvert(assignTempvar, scope)
+                            }
                             else -> throw AssemblyError("invalid prefix operator")
                         }
-                        if(value.type in ByteDatatypes)
+                        if(value.type in ByteDatatypesWithBoolean)
                             assignVariableByte(assign.target, tempvar)
                         else
                             assignVariableWord(assign.target, tempvar, value.type)
@@ -433,8 +439,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun assignVirtualRegister(target: AsmAssignTarget, register: RegisterOrPair) {
         when(target.datatype) {
-            in ByteDatatypes -> {
-                asmgen.out("  lda  cx16.${register.toString().lowercase()}L")
+            in ByteDatatypesWithBoolean -> {
+                if(register in Cx16VirtualRegisters) {
+                    asmgen.out("  lda  cx16.${register.toString().lowercase()}L")
+                } else {
+                    TODO("LDA byte from $register")
+                }
                 assignRegisterByte(target, CpuRegister.A, false, false)
             }
             in WordDatatypes -> assignRegisterpairWord(target, register)
@@ -445,8 +455,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         val translatedOk = when (expr.operator) {
             in ComparisonOperators -> optimizedComparison(expr, assign)
-            in setOf("&", "|", "^", "xor") -> optimizedBitwiseExpr(expr, assign.target)
-            in setOf("and", "or") -> optimizedLogicalAndOrExpr(expr, assign.target)
+            in setOf("&", "|", "^") -> optimizedBitwiseExpr(expr, assign.target)
+            in setOf("and", "or", "xor") -> optimizedLogicalExpr(expr, assign.target)
             "+", "-" -> optimizedPlusMinExpr(expr, assign.target)
             "<<", ">>" -> optimizedBitshiftExpr(expr, assign.target)
             "*" -> optimizedMultiplyExpr(expr, assign.target)
@@ -465,7 +475,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         if(expr.right.asConstInteger() == 0) {
             if(expr.operator == "==" || expr.operator=="!=") {
                 when(assign.target.datatype) {
-                    in ByteDatatypes -> if(attemptAssignToByteCompareZero(expr, assign)) return true
+                    in ByteDatatypesWithBoolean -> if(attemptAssignToByteCompareZero(expr, assign)) return true
                     else -> {
                         // do nothing, this is handled by a type cast.
                     }
@@ -473,7 +483,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
-        if(expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+        if(expr.left.type in ByteDatatypesWithBoolean && expr.right.type in ByteDatatypesWithBoolean) {
             if(assignOptimizedComparisonBytes(expr, assign))
                 return true
         } else  if(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
@@ -1053,7 +1063,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             when (expr.operator) {
                 "&" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
                 "|" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
-                "^", "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
+                "^" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
                 else -> throw AssemblyError("invalid bitwise operator")
             }
             assignRegisterByte(target, CpuRegister.A, false, true)
@@ -1083,18 +1093,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun optimizedLogicalAndOrExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
-        if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
-            if (expr.right is PtNumber || expr.right is PtIdentifier) {
+    private fun optimizedLogicalExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
+        if ((expr.left.type in ByteDatatypes || expr.left.type==DataType.BOOL) && (expr.right.type in ByteDatatypes || expr.right.type==DataType.BOOL)) {
+            if (expr.right is PtBool || expr.right is PtNumber || expr.right is PtIdentifier) {
                 assignLogicalAndOrWithSimpleRightOperandByte(target, expr.left, expr.operator, expr.right)
                 return true
             }
-            else if (expr.left is PtNumber || expr.left is PtIdentifier) {
+            else if (expr.left is PtBool || expr.left is PtNumber || expr.left is PtIdentifier) {
                 assignLogicalAndOrWithSimpleRightOperandByte(target, expr.right, expr.operator, expr.left)
                 return true
             }
 
-            if(!expr.right.isSimple()) {
+            if(!expr.right.isSimple() && expr.operator!="xor") {
                 // shortcircuit evaluation into A
                 val shortcutLabel = asmgen.makeLabel("shortcut")
                 when (expr.operator) {
@@ -1128,6 +1138,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 when (expr.operator) {
                     "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
                     "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
+                    "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
                     else -> throw AssemblyError("invalid logical operator")
                 }
             }
@@ -1141,7 +1152,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun assignOptimizedComparisonBytes(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
-        val signed = expr.left.type == DataType.BYTE || expr.right.type ==  DataType.BYTE
+        val signed = expr.left.type == DataType.BYTE || expr.right.type == DataType.BYTE
         when(expr.operator) {
             "==" -> byteEquals(expr)
             "!=" -> byteNotEquals(expr)
@@ -1158,6 +1169,17 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun byteEquals(expr: PtBinaryExpression) {
         when (expr.right) {
+            is PtBool -> {
+                TODO("optimize byte / bool equals")
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A)
+                asmgen.out("""
+                    cmp  #${(expr.right as PtBool).asInt()}
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
             is PtNumber -> {
                 val number = (expr.right as PtNumber).number.toInt()
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A)
@@ -1195,6 +1217,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun byteNotEquals(expr: PtBinaryExpression) {
         when(expr.right) {
+            is PtBool -> TODO("optimize byte/bool not equals")
             is PtNumber -> {
                 val number = (expr.right as PtNumber).number.toInt()
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A)
@@ -1821,7 +1844,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when (operator) {
             "&" -> asmgen.out("  and  $operand")
             "|" -> asmgen.out("  ora  $operand")
-            "^", "xor" -> asmgen.out("  eor  $operand")
+            "^" -> asmgen.out("  eor  $operand")
             else -> throw AssemblyError("invalid operator")
         }
         assignRegisterByte(target, CpuRegister.A, false, true)
@@ -1841,6 +1864,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when (operator) {
             "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
             "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
+            "xor" -> asmgen.out("  eor  P8ZP_SCRATCH_B1")
             else -> throw AssemblyError("invalid logical operator")
         }
         assignRegisterByte(target, CpuRegister.A, false, true)
@@ -1854,7 +1878,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 when (operator) {
                     "&" -> asmgen.out("  and  #<$number |  tax |  tya |  and  #>$number |  tay |  txa")
                     "|" -> asmgen.out("  ora  #<$number |  tax |  tya |  ora  #>$number |  tay |  txa")
-                    "^", "xor" -> asmgen.out("  eor  #<$number |  tax |  tya |  eor  #>$number |  tay |  txa")
+                    "^" -> asmgen.out("  eor  #<$number |  tax |  tya |  eor  #>$number |  tay |  txa")
                     else -> throw AssemblyError("invalid bitwise operator")
                 }
             }
@@ -1863,7 +1887,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 when (operator) {
                     "&" -> asmgen.out("  and  $name |  tax |  tya |  and  $name+1 |  tay |  txa")
                     "|" -> asmgen.out("  ora  $name |  tax |  tya |  ora  $name+1 |  tay |  txa")
-                    "^", "xor" -> asmgen.out("  eor  $name |  tax |  tya |  eor  $name+1 |  tay |  txa")
+                    "^" -> asmgen.out("  eor  $name |  tax |  tya |  eor  $name+1 |  tay |  txa")
                     else -> throw AssemblyError("invalid bitwise operator")
                 }
             }
@@ -2066,7 +2090,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return
                 }
             }
-            is PtNumber -> throw AssemblyError("a cast of a literal value should have been const-folded away")
+            is PtNumber, is PtBool -> throw AssemblyError("a cast of a literal value should have been const-folded away")
             is PtArrayIndexer -> {
                 if(targetDt in ByteDatatypes && valueDt in WordDatatypes) {
                     // just assign the lsb from the array value
@@ -2083,7 +2107,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 
             when (valueDt) {
-                in ByteDatatypes, DataType.BOOL -> {
+                in ByteDatatypesWithBoolean -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, valueDt==DataType.BYTE)
                     assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.A, valueDt)
                 }
@@ -2178,8 +2202,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
-        if(targetDt in IntegerDatatypes && valueDt in IntegerDatatypes && valueDt!=targetDt && valueDt.isAssignableTo(targetDt)) {
-            require(targetDt in WordDatatypes && valueDt in ByteDatatypes) {
+        if(targetDt in IntegerDatatypes && valueDt in IntegerDatatypesWithBoolean && valueDt.isAssignableTo(targetDt)) {
+            require(targetDt in WordDatatypes && valueDt in ByteDatatypesWithBoolean) {
                 "should be byte to word assignment ${origTypeCastExpression.position}"
             }
             when(target.kind) {
@@ -2271,17 +2295,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
         // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)
         when(sourceDt) {
-            DataType.BOOL -> TODO("assign bool to something")
-            DataType.UBYTE -> {
+            DataType.UBYTE, DataType.BOOL -> {
                 when(targetDt) {
                     DataType.BOOL -> {
                         asmgen.out("""
-                            lda  $sourceAsmVarName
-                            beq  +
-                            lda  #1
-+                           sta  $targetAsmVarName""")
+                        lda  $sourceAsmVarName
+                        beq  +
+                        lda  #1
++                       sta  $targetAsmVarName""")
                     }
-                    DataType.BYTE -> {
+                    DataType.UBYTE, DataType.BYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
                     DataType.UWORD, DataType.WORD -> {
@@ -2299,7 +2322,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             ldy  $sourceAsmVarName
                             jsr  floats.cast_from_ub""")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird type $targetDt")
                 }
             }
             DataType.BYTE -> {
@@ -2403,7 +2426,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when(targetDt) {
                     DataType.BOOL -> {
-                        TODO("assign ubyte reg to bool")
+                        asmgen.out("""
+                            cp${regs.toString().lowercase()}  #0
+                            beq  +
+                            ld${regs.toString().lowercase()}  #1
++                           st${regs.toString().lowercase()}  $targetAsmVarName""")
                     }
                     DataType.BYTE -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
@@ -2647,10 +2674,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             assignRegisterpairWord(target, RegisterOrPair.AY)
             return
         }
-        require(sourceDt in WordDatatypes || sourceDt==DataType.UBYTE)
+        require(sourceDt in WordDatatypes || sourceDt==DataType.UBYTE || sourceDt==DataType.BOOL) { "weird source dt for word variable" }
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                if(sourceDt==DataType.UBYTE) {
+                if(sourceDt==DataType.UBYTE || sourceDt==DataType.BOOL) {
                     asmgen.out("  lda  $sourceName |  sta  ${target.asmVarname}")
                     if(asmgen.isTargetCpu(CpuType.CPU65c02))
                         asmgen.out("  stz  ${target.asmVarname}+1")
@@ -4080,12 +4107,13 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     internal fun inplaceInvert(assign: AsmAssignment, scope: IPtSubroutine?) {
         val target = assign.target
         when (assign.target.datatype) {
-            DataType.UBYTE -> {
+            DataType.UBYTE, DataType.BOOL -> {
+                val eorValue = if(assign.target.datatype==DataType.BOOL) 1 else 255
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
                             lda  ${target.asmVarname}
-                            eor  #255
+                            eor  #$eorValue
                             sta  ${target.asmVarname}""")
                     }
                     TargetStorageKind.MEMORY -> {
@@ -4095,12 +4123,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 val addr = (memory.address as PtNumber).number.toHex()
                                 asmgen.out("""
                                     lda  $addr
-                                    eor  #255
+                                    eor  #$eorValue
                                     sta  $addr""")
                             }
                             is PtIdentifier -> {
                                 val sourceName = asmgen.loadByteFromPointerIntoA(memory.address as PtIdentifier)
-                                asmgen.out("  eor  #255")
+                                asmgen.out("  eor  #$eorValue")
                                 asmgen.out("  sta  ($sourceName),y")
                             }
                             else -> {
@@ -4108,12 +4136,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
                                     asmgen.out("""
                                         lda  (P8ZP_SCRATCH_W2)
-                                        eor  #255""")
+                                        eor  #$eorValue""")
                                 } else {
                                     asmgen.out("""
                                         ldy  #0
                                         lda  (P8ZP_SCRATCH_W2),y
-                                        eor  #255""")
+                                        eor  #$eorValue""")
                                 }
                                 asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
                             }
@@ -4121,9 +4149,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     TargetStorageKind.REGISTER -> {
                         when(target.register!!) {
-                            RegisterOrPair.A -> asmgen.out("  eor  #255")
-                            RegisterOrPair.X -> asmgen.out("  txa |  eor  #255 |  tax")
-                            RegisterOrPair.Y -> asmgen.out("  tya |  eor  #255 |  tay")
+                            RegisterOrPair.A -> asmgen.out("  eor  #$eorValue")
+                            RegisterOrPair.X -> asmgen.out("  txa |  eor  #$eorValue |  tax")
+                            RegisterOrPair.Y -> asmgen.out("  tya |  eor  #$eorValue |  tay")
                             else -> throw AssemblyError("invalid reg dt for byte invert")
                         }
                     }

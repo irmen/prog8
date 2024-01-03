@@ -85,7 +85,11 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 "\nblock '${node.name}' $addr $align"
             }
             is PtConstant -> {
-                val value = if(node.type in IntegerDatatypes) node.value.toInt().toString() else node.value.toString()
+                val value = when(node.type) {
+                    DataType.BOOL -> if(node.value==0.0) "false" else "true"
+                    in IntegerDatatypes -> node.value.toInt().toString()
+                    else -> node.value.toString()
+                }
                 "const ${node.type.name.lowercase()} ${node.name} = $value"
             }
             is PtLabel -> "${node.name}:"

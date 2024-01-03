@@ -226,8 +226,12 @@ main {
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 3
-        val value1 = (stmts[1] as Assignment).value as PrefixExpression
-        val value2 = (stmts[2] as Assignment).value as PrefixExpression
+        val tc1 = (stmts[1] as Assignment).value as TypecastExpression
+        val tc2 = (stmts[2] as Assignment).value as TypecastExpression
+        tc1.type shouldBe DataType.UBYTE
+        tc2.type shouldBe DataType.UBYTE
+        val value1 = tc1.expression as PrefixExpression
+        val value2 = tc2.expression as PrefixExpression
         value1.operator shouldBe "not"
         value2.operator shouldBe "not"
         value1.expression shouldBe instanceOf<ContainmentCheck>()
@@ -348,7 +352,12 @@ main
     }
 }"""
 
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "use if"
+        errors.errors[1] shouldContain "value must be"
+        errors.errors[2] shouldContain "value must be"
     }
 
     test("char as str param is error") {
@@ -453,7 +462,7 @@ main {
         } else {
             cx16.r0++
         }
-        cx16.r0L = n<x == 0
+        cx16.r0L = n<x == false
         cx16.r1L = not n<x
     }
 }"""

@@ -12,7 +12,7 @@ import prog8.ast.walk.IAstModification
 import prog8.code.core.DataType
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
-import prog8.code.core.IntegerDatatypes
+import prog8.code.core.IntegerDatatypesWithBoolean
 
 internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
 
@@ -21,7 +21,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             val left = expr.left as? BinaryExpression
             if (left != null) {
                 val rightValue = expr.right.constValue(program)
-                if (rightValue?.number == 0.0 && rightValue.type in IntegerDatatypes) {
+                if (rightValue?.number == 0.0 && rightValue.type in IntegerDatatypesWithBoolean) {
                     if (left.operator == "==" && expr.operator == "==") {
                         // (x==something)==0  -->  x!=something
                         left.operator = "!="
@@ -119,12 +119,6 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                     subBinExpr.operator = "=="
                     return listOf(IAstModification.ReplaceNode(expr, subBinExpr, parent))
                 }
-            }
-
-            // not simpleX -> simpleX==0
-            if(expr.expression.isSimple) {
-                val replacement = BinaryExpression(expr.expression.copy(),"==", NumericLiteral(DataType.UBYTE, 0.0, expr.position), expr.position)
-                return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
             }
         }
         return noModifications

@@ -247,7 +247,7 @@ class TestOptimization: FunSpec({
                     z1 = 10
                     ubyte @shared z2
                     z2 = ~z2
-                    ubyte @shared z3
+                    bool @shared z3
                     z3 = not z3
                     uword @shared z4
                     z4 = (z4 as ubyte)
@@ -263,8 +263,8 @@ class TestOptimization: FunSpec({
         z1 = 10
         ubyte z2
         z2 = 255
-        ubyte z3
-        z3 = 1
+        bool z3
+        z3 = true
         uword z4
         z4 = 0
         ubyte z5

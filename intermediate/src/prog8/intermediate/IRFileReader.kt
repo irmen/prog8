@@ -174,7 +174,7 @@ class IRFileReader {
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
-                val dt: DataType = parseDatatype(type, arraysize!=null)
+                val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
                 val newVar = StStaticVariable(name, dt, null, null, null, arraysize, zp, dummyNode)
@@ -210,6 +210,7 @@ class IRFileReader {
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
                 when(dt) {
+                    DataType.BOOL -> TODO("parse boolean $value")
                     in NumericDatatypes -> initNumeric = parseIRValue(value)
                     in ArrayDatatypes -> {
                         initArray = value.split(',').map {

@@ -195,7 +195,7 @@ class StStaticVariable(name: String,
                 require(onetimeInitializationArrayValue.isEmpty() ||onetimeInitializationArrayValue.size==length)
         }
         if(onetimeInitializationNumericValue!=null) {
-            require(dt in NumericDatatypes)
+            require(dt in NumericDatatypes || dt==DataType.BOOL)
         }
         if(onetimeInitializationArrayValue!=null) {
             require(dt in ArrayDatatypes)

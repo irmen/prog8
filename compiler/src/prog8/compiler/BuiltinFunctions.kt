@@ -161,7 +161,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
             val refLv = target.value as? StringLiteral ?: throw CannotEvaluateException("len", "stringsize unknown")
             NumericLiteral.optimalInteger(refLv.value.length, args[0].position)
         }
-        in NumericDatatypes -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
+        in NumericDatatypes, DataType.BOOL -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
         else -> throw InternalCompilerException("weird datatype")
     }
 }

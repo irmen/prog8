@@ -247,6 +247,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish}\n")
             } else {
                 val value: String = when(variable.dt) {
+                    DataType.BOOL -> if(variable.onetimeInitializationNumericValue==0.0) "false" else "true"
                     DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: "").toString()
                     in NumericDatatypes -> (variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: "").toString()
                     DataType.STR -> {

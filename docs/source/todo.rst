@@ -5,14 +5,38 @@ TODO
  Find out what is what!   (paint)
  ALSO: when adding a expr.issimple to that, it crashes with a parent node mismatch error. FIX THAT.
 
+"in ByteDatatypes ->"  should probably be in ByteDatatypesWithBoolean ->  in more places.
+
+
+while not guessed  -> can we get rid of the cmp?
+optimize byte/bool equals, optimize byte/bool not equals
+what does invert/inplace invert do on a bool? and bitwise operations?
+allow  not integer  to mean  integer==0
+vm stores boolean values inverted? stipple(true) doesn't print 1 , it prints 0 ...
+static bool var with initializer value (staticVariable2asm)
+when on a boolean var should just be an if
+logical xor
+inplace invert and inplace not
+parse boolean variable value in IR
+return boolean value
 make sure assigning different types to bool works
 make sure that and,or,xor,not aren't getting replaced in the Ast by the bitwise versions
 make sure that if not x  doesn't get code generated into an eor with 255
 add compiler error if using a logical operator with a numeric literal other than 0 or 1
 replace UBYTE 0 or 1 constant numbers by actual BOOL type (if appropriate)
+if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint
 remove all ==0  and ==1 checks added to boolean expressions
-cube3d-gfx is now slightly larger, why
 
+expressionsimplifier used to contain:
+        // boolvar & 1  --> boolvar
+        // boolvar & N  --> false
+but there's something similar for ^ in NotExpressionAndIfComparisonExprChanger ?
+
+
+maze:
+  if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0
+              ^^ adding this !=0 caused a weird beq + / lda #1 / +  to appear in front of the shortcircuit beq...
+maze is a lot larger, why
 
 This program is now a LOT larger, why:
 %zeropage basicsafe

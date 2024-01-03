@@ -184,7 +184,7 @@ save_end:
         for cx16.r0L in 0 to sizeof(header)-1 {
             header[cx16.r0L] = cbm.CHRIN()
         }
-        return not cbm.READST()
+        return cbm.READST()==0
     }
 
     sub read_palette() -> bool {
@@ -206,7 +206,7 @@ save_end:
             }
             cx16.r2L--
         } until cx16.r2L==0
-        return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
+        return cbm.READST()==0 or cbm.READST()&$40!=0    ; no error or eof?
     }
 
     sub read_bitmap_padded(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
@@ -220,7 +220,7 @@ save_end:
             if_cs
                 vbank++
         }
-        return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
+        return cbm.READST()==0 or cbm.READST()&$40!=0    ; no error or eof?
     }
 
     sub read_bitmap(ubyte vbank, uword vaddr) -> bool {
@@ -229,7 +229,7 @@ save_end:
         cx16.vaddr(vbank, vaddr, 0, 1)
         repeat height
             read_scanline(cx16.r3)
-        return cbm.READST()==0 or cbm.READST()&$40    ; no error or eof?
+        return cbm.READST()==0 or cbm.READST()&$40!=0    ; no error or eof?
     }
 
     sub read_scanline(uword size) {
@@ -251,7 +251,7 @@ save_end:
         for cx16.r0L in 0 to sizeof(header)-1 {
             cbm.CHROUT(header[cx16.r0L])
         }
-        return not cbm.READST()
+        return cbm.READST()==0
     }
 
     sub write_palette() -> bool {
@@ -273,7 +273,7 @@ save_end:
             }
             cx16.r2L--
         } until cx16.r2L==0
-        return not cbm.READST()
+        return cbm.READST()==0
     }
 
     sub write_bitmap(ubyte vbank, uword vaddr, uword screenwidth) -> bool {
@@ -289,7 +289,7 @@ save_end:
             repeat cx16.r2
                 cx16.r0L = cx16.VERA_DATA0
         }
-        return not cbm.READST()
+        return cbm.READST()==0
 
         sub write_scanline(uword size) {
             while size {

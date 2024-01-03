@@ -23,8 +23,6 @@ main {
     sub start() {
         txt.print("\n\ndisk benchmark on drive 8.\n\n")
 
-        uword batchtotaltime
-
         txt.print("writing 64kb using save()")
         cbm.SETTIM(0,0,0)
         ; save 2 times 32Kb to make it 64Kb total
@@ -46,13 +44,13 @@ main {
         txt.print("\nreading 64kb using load() into hiram")
         cbm.SETTIM(0,0,0)
         cx16.rambank(4)
-        if not diskio.load("benchmark.dat", $a000)
+        if diskio.load("benchmark.dat", $a000)==0
             sys.exit(1)
         print_speed(cbm.RDTIM16())
 
         txt.print("\nreading 64kb using vload() into vram")
         cbm.SETTIM(0,0,0)
-        if not diskio.vload("benchmark.dat", 0, $0000)
+        if diskio.vload("benchmark.dat", 0, $0000)==0
             sys.exit(1)
         print_speed(cbm.RDTIM16())
 
@@ -60,7 +58,7 @@ main {
         if diskio.f_open("benchmark.dat") {
             cbm.SETTIM(0,0,0)
             repeat 65536/255 {
-                if not diskio.f_read(buffer, 255)
+                if diskio.f_read(buffer, 255)==0
                     sys.exit(1)
             }
             diskio.f_close()

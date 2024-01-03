@@ -47,6 +47,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtMachineRegister -> other is PtMachineRegister && other.type==type && other.register==register
             is PtMemoryByte -> other is PtMemoryByte && other.address isSameAs address
             is PtNumber -> other is PtNumber && other.type==type && other.number==number
+            is PtBool -> other is PtBool && other.value==value
             is PtPrefix -> other is PtPrefix && other.type==type && other.operator==operator && other.value isSameAs value
             is PtRange -> other is PtRange && other.type==type && other.from==from && other.to==to && other.step==step
             is PtTypeCast -> other is PtTypeCast && other.type==type && other.value isSameAs value
@@ -69,7 +70,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         }
     }
 
-    fun asConstInteger(): Int? = (this as? PtNumber)?.number?.toInt()
+    fun asConstInteger(): Int? = (this as? PtNumber)?.number?.toInt() ?: (this as? PtBool)?.asInt()
 
     fun isSimple(): Boolean {
         return when(this) {
@@ -115,6 +116,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtMachineRegister -> return withClonedChildrenFrom(this, PtMachineRegister(register, type, position))
             is PtMemoryByte -> return withClonedChildrenFrom(this, PtMemoryByte(position))
             is PtNumber -> return withClonedChildrenFrom(this, PtNumber(type, number, position))
+            is PtBool -> return withClonedChildrenFrom(this, PtBool(value, position))
             is PtPrefix -> return withClonedChildrenFrom(this, PtPrefix(operator, type, position))
             is PtRange -> return withClonedChildrenFrom(this, PtRange(type, position))
             is PtString -> return withClonedChildrenFrom(this, PtString(value, encoding, position))
@@ -148,7 +150,7 @@ class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(el
         get() = variable.type==DataType.UWORD
 
     init {
-        require(elementType in NumericDatatypes)
+        require(elementType in NumericDatatypesWithBoolean)
     }
 }
 
@@ -191,12 +193,12 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
         if(operator in ComparisonOperators || operator in LogicalOperators)
             require(type==DataType.BOOL)
         else
-            require(type!=DataType.BOOL)
+            require(type!=DataType.BOOL) { "no bool allowed for this operator $operator"}
     }
 }
 
 
-class PtContainmentCheck(position: Position): PtExpression(DataType.UBYTE, position) {
+class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, position) {
     val element: PtExpression
         get() = children[0] as PtExpression
     val iterable: PtIdentifier
@@ -263,7 +265,7 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
 
     init {
         if(type==DataType.BOOL)
-            throw IllegalArgumentException("need to use PtBool @$position")
+            throw IllegalArgumentException("use PtBool instead")
         if(type!=DataType.FLOAT) {
             val trunc = truncate(number)
             if (trunc != number)
@@ -355,5 +357,5 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
 class PtMachineRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position)
 
 
-fun constValue(expr: PtExpression): Double? = if(expr is PtNumber) expr.number else null
-fun constIntValue(expr: PtExpression): Int? = if(expr is PtNumber) expr.number.toInt() else null
+fun constValue(expr: PtExpression): Double? = if(expr is PtNumber) expr.number else if(expr is PtBool) expr.asInt().toDouble() else null
+fun constIntValue(expr: PtExpression): Int? = if(expr is PtNumber) expr.number.toInt() else if(expr is PtBool) expr.asInt() else null

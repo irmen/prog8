@@ -383,7 +383,7 @@ internal class ProgramAndVarsGen(
             if(sub.parameters.size==1) {
                 val dt = sub.parameters[0].type
                 val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, sub.parameters[0].position, variableAsmName = sub.parameters[0].name)
-                if(dt in ByteDatatypes)
+                if(dt in ByteDatatypesWithBoolean)
                     asmgen.assignRegister(RegisterOrPair.A, target)
                 else
                     asmgen.assignRegister(RegisterOrPair.AY, target)
@@ -613,6 +613,7 @@ internal class ProgramAndVarsGen(
             } else 0
 
         when (variable.dt) {
+            DataType.BOOL -> TODO("bool var to asm")
             DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
             DataType.BYTE -> asmgen.out("${variable.name}\t.char  $initialValue")
             DataType.UWORD -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")

@@ -142,11 +142,12 @@ private fun PtVariable.prefix(st: SymbolTable): PtVariable {
         return this
 
     val arrayValue = value as? PtArray
-    return if(arrayValue!=null && arrayValue.children.any { it !is PtNumber} ) {
+    return if(arrayValue!=null && arrayValue.children.any { it !is PtNumber && it !is PtBool } ) {
         val newValue = PtArray(arrayValue.type, arrayValue.position)
         arrayValue.children.forEach { elt ->
             when(elt) {
                 is PtIdentifier -> newValue.add(elt.prefix(arrayValue, st))
+                is PtBool -> newValue.add(elt)
                 is PtNumber -> newValue.add(elt)
                 is PtAddressOf -> {
                     if(elt.definingBlock()?.options?.noSymbolPrefixing==true)
@@ -565,7 +566,7 @@ class AsmGen6502Internal (
         }
 
         when (expr.type) {
-            in ByteDatatypes -> {
+            in ByteDatatypesWithBoolean -> {
                 assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register), false)
             }
             in WordDatatypes -> {
@@ -632,7 +633,7 @@ class AsmGen6502Internal (
 
     internal fun assignExpressionTo(value: PtExpression, target: AsmAssignTarget) {
         when (target.datatype) {
-            in ByteDatatypes -> {
+            in ByteDatatypesWithBoolean -> {
                 if (value.asConstInteger()==0) {
                     when(target.kind) {
                         TargetStorageKind.VARIABLE -> {
@@ -1059,7 +1060,7 @@ $repeatLabel""")
             val sub = ret.definingSub()!!
             val returnReg = sub.returnRegister()!!
             when (sub.returntype) {
-                in NumericDatatypes -> {
+                in NumericDatatypes, DataType.BOOL -> {
                     assignExpressionToRegister(returnvalue, returnReg.registerOrPair!!)
                 }
                 else -> {
@@ -1197,6 +1198,7 @@ $repeatLabel""")
             return when(expr) {
                 is PtIdentifier -> false
                 is PtNumber -> false
+                is PtBool -> false
                 is PtMemoryByte -> expr.address !is PtIdentifier && expr.address !is PtNumber
                 is PtTypeCast -> evalBytevalueWillClobberA(expr.value)
                 else -> true
@@ -1324,7 +1326,7 @@ $repeatLabel""")
         jumpIfFalseLabel: String
     ) {
         val dt = left.type
-        if(dt in IntegerDatatypes && left is PtIdentifier)
+        if(dt in IntegerDatatypesWithBoolean && left is PtIdentifier)
             return testVariableZeroOrJumpElsewhere(left, dt, operator, jumpIfFalseLabel)
 
         when(dt) {
@@ -1484,7 +1486,7 @@ $repeatLabel""")
         when (operator) {
             "==" -> {
                 when (dt) {
-                    in ByteDatatypes -> translateByteEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in ByteDatatypesWithBoolean -> translateByteEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> translateFloatEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.STR -> translateStringEqualsOrJumpElsewhere(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
@@ -1493,7 +1495,7 @@ $repeatLabel""")
             }
             "!=" -> {
                 when (dt) {
-                    in ByteDatatypes -> translateByteNotEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
+                    in ByteDatatypesWithBoolean -> translateByteNotEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     in WordDatatypes -> translateWordNotEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.FLOAT -> translateFloatNotEqualsOrJumpElsewhere(left, right, leftConstVal, rightConstVal, jumpIfFalseLabel)
                     DataType.STR -> translateStringNotEqualsOrJumpElsewhere(left as PtIdentifier, right as PtIdentifier, jumpIfFalseLabel)
@@ -2488,6 +2490,7 @@ $repeatLabel""")
         }
 
         when (right) {
+            is PtBool -> TODO("word equals for bool operand")
             is PtNumber -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val number = right.number.toHex()
@@ -2576,6 +2579,7 @@ $repeatLabel""")
         }
 
         when (right) {
+            is PtBool -> TODO("word not equals for bool operand")
             is PtNumber -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val number = right.number.toHex()
@@ -2610,6 +2614,7 @@ $repeatLabel""")
                 }
             }
             else -> {
+                TODO("word not equals boolean in special case?")
                 if(left.isSimple()) {
                     assignExpressionToVariable(right, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     assignExpressionToRegister(left, RegisterOrPair.AY)
@@ -2924,6 +2929,7 @@ $repeatLabel""")
 
     private fun wordJumpForSimpleLeftOperand(left: PtExpression, right: PtExpression, code: (String, String)->Unit): Boolean {
         when (left) {
+            is PtBool -> TODO("word jump for bool operand")
             is PtNumber -> {
                 assignExpressionToRegister(right, RegisterOrPair.AY)
                 val number = left.number.toHex()
@@ -2951,32 +2957,44 @@ $repeatLabel""")
     }
 
     private fun byteJumpForSimpleRightOperand(left: PtExpression, right: PtExpression, code: (String)->Unit): Boolean {
-        if(right is PtNumber) {
-            assignExpressionToRegister(left, RegisterOrPair.A)
-            code("#${right.number.toHex()}")
-            return true
-        }
-        if(right is PtIdentifier) {
-            assignExpressionToRegister(left, RegisterOrPair.A)
-            code(asmVariableName(right))
-            return true
-        }
-        var memread = right as? PtMemoryByte
-        if(memread==null && right is PtTypeCast)
-            memread = right.value as? PtMemoryByte
-        if(memread!=null) {
-            val address = memread.address as? PtNumber
-            if(address!=null) {
+        when (right) {
+            is PtBool -> {
                 assignExpressionToRegister(left, RegisterOrPair.A)
-                code(address.number.toHex())
+                code("#${right.asInt()}  ;  TODO can we get rid of this cmp when dealing with booleans?")       // TODO can we get rid of the cmp when dealing with booleans?
                 return true
             }
+            is PtNumber -> {
+                assignExpressionToRegister(left, RegisterOrPair.A)
+                code("#${right.number.toHex()}")
+                return true
+            }
+
+            is PtIdentifier -> {
+                assignExpressionToRegister(left, RegisterOrPair.A)
+                code(asmVariableName(right))
+                return true
+            }
+
+            else -> {
+                var memread = right as? PtMemoryByte
+                if (memread == null && right is PtTypeCast)
+                    memread = right.value as? PtMemoryByte
+                if (memread != null) {
+                    val address = memread.address as? PtNumber
+                    if (address != null) {
+                        assignExpressionToRegister(left, RegisterOrPair.A)
+                        code(address.number.toHex())
+                        return true
+                    }
+                }
+                return false
+            }
         }
-        return false
     }
 
     private fun wordJumpForSimpleRightOperands(left: PtExpression, right: PtExpression, code: (String, String)->Unit): Boolean {
         when (right) {
+            is PtBool -> TODO("word jump for bool operand")
             is PtNumber -> {
                 assignExpressionToRegister(left, RegisterOrPair.AY)
                 val number = right.number.toHex()
@@ -3018,7 +3036,7 @@ $repeatLabel""")
                 out("  lda  P8ZP_SCRATCH_REG")
         }
         else {
-            if (parameter.type in ByteDatatypes) {
+            if (parameter.type in ByteDatatypesWithBoolean) {
                 if (isTargetCpu(CpuType.CPU65c02)) {
                     when (reg.registerOrPair) {
                         RegisterOrPair.A -> out("  pla")
@@ -3076,7 +3094,7 @@ $repeatLabel""")
     }
 
     internal fun popCpuStack(dt: DataType) {
-        if (dt in ByteDatatypes) {
+        if (dt in ByteDatatypesWithBoolean) {
             out("  pla")
         } else if (dt in WordDatatypes) {
             if (isTargetCpu(CpuType.CPU65c02))
@@ -3090,7 +3108,7 @@ $repeatLabel""")
 
     internal fun pushCpuStack(dt: DataType, value: PtExpression) {
         val signed = value.type.oneOf(DataType.BYTE, DataType.WORD)
-        if(dt in ByteDatatypes) {
+        if(dt in ByteDatatypesWithBoolean) {
             assignExpressionToRegister(value, RegisterOrPair.A, signed)
             out("  pha")
         } else if(dt in WordDatatypes) {
@@ -3117,7 +3135,7 @@ $repeatLabel""")
     }
 
     internal fun needAsaveForExpr(arg: PtExpression): Boolean =
-        arg !is PtNumber && arg !is PtIdentifier && (arg !is PtMemoryByte || !arg.isSimple())
+        arg !is PtNumber && arg !is PtBool && arg !is PtIdentifier && (arg !is PtMemoryByte || !arg.isSimple())
 
     private val subroutineExtrasCache = mutableMapOf<IPtSubroutine, SubroutineExtraAsmInfo>()
 

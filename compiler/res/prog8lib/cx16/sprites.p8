@@ -135,11 +135,11 @@ sprites {
     }
 
     sub flipx(ubyte spritenum, bool flipped) {
-        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11111110, flipped)
+        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11111110, flipped as ubyte)
     }
 
     sub flipy(ubyte spritenum, bool flipped) {
-        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11111101, flipped<<1)
+        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11111101, (flipped as ubyte)<<1)
     }
 
     sub set_palette_offset(ubyte spritenum, ubyte offset) {

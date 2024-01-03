@@ -67,7 +67,7 @@ main {
 
 char_loop:
         ubyte char = cbm.GETIN()
-        if not char
+        if char==0
             goto char_loop
 
         when char {

@@ -125,9 +125,12 @@ enum class BranchCondition {
 
 
 val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE)
+val ByteDatatypesWithBoolean = ByteDatatypes + DataType.BOOL
 val WordDatatypes = arrayOf(DataType.UWORD, DataType.WORD)
 val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG)
+val IntegerDatatypesWithBoolean = IntegerDatatypes + DataType.BOOL
 val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG, DataType.FLOAT)
+val NumericDatatypesWithBoolean = NumericDatatypes + DataType.BOOL
 val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.LONG, DataType.FLOAT)
 val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_F, DataType.ARRAY_BOOL)
 val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)

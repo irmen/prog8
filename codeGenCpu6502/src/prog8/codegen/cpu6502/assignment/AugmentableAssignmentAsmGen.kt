@@ -18,13 +18,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
                 assignmentAsmGen.inplaceNegate(a2, false, scope)
             }
-            "~" -> {
+            "~", "not" -> {
                 val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
                 assignmentAsmGen.inplaceInvert(a2, scope)
             }
             "+" -> { /* is a nop */ }
             else -> {
-                require(assign.operator in ComparisonOperators || assign.operator.length>=2) { "invalid aug assign operator ${assign.operator}" }
                 augmentedAssignExpr(assign)
             }
         }

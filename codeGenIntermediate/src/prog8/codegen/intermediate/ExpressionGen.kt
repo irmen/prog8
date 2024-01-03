@@ -269,7 +269,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = mask), null)
             }
             "not" -> {
-                TODO("logical not $expr")
+                addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = 1), null)
             }
             else -> throw AssemblyError("weird prefix operator")
         }
@@ -288,11 +288,28 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             DataType.BOOL -> {
                 when(cast.value.type) {
                     in ByteDatatypes -> {
-                        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=tr.resultReg, immediate = 42), null)
-                        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=tr.resultReg, immediate = 42), null)
-                        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=tr.resultReg, immediate = 42), null)
+                        val skipLabel = codeGen.createLabelName()
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = skipLabel)
+                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=tr.resultReg, immediate = 1)
+                        }
+                        result += IRCodeChunk(skipLabel, null)
                         actualResultReg2 = tr.resultReg
-                        // TODO("cast of byte to boolean")
+                    }
+                    in WordDatatypes -> {
+                        // TODO optimize this code more
+                        val skipLabel1 = codeGen.createLabelName()
+                        val skipLabel2 = codeGen.createLabelName()
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = skipLabel1)
+                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=actualResultReg2, immediate = 1)
+                            it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel2)
+                        }
+                        result += IRCodeChunk(skipLabel1, null).also {
+                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=actualResultReg2, immediate = 0)
+                        }
+                        result += IRCodeChunk(skipLabel2, null)
                     }
                     else -> TODO("cast of non-byte value to boolean")
                 }
@@ -717,6 +734,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
             ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
+        } else if(binExpr.right is PtBool) {
+            TODO("xor bool")
         } else {
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -745,6 +764,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, tr, tr.resultReg, -1)
                 addInstr(result, IRInstruction(Opcode.AND, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
                 ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
+            } else if(binExpr.right is PtBool) {
+                TODO("and bool")
             } else {
                 val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -774,6 +795,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, tr, tr.resultReg, -1)
                 addInstr(result, IRInstruction(Opcode.OR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
                 ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
+            } else if(binExpr.right is PtBool) {
+                TODO("or bool")
             } else {
                 val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -1423,13 +1446,15 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val valueReg = codeGen.registers.nextFree()
         val cmpResultReg = codeGen.registers.nextFree()
-        if(operand is PtNumber) {
+        if(operand is PtNumber || operand is PtBool) {
             val numberReg = codeGen.registers.nextFree()
+            val value = if(operand is PtNumber) operand.number.toInt() else if(operand is PtBool) operand.asInt() else throw AssemblyError("wrong operand type")
             if (knownAddress != null) {
                 // in-place modify a memory location
+                val value = if(operand is PtNumber) operand.number.toInt() else if(operand is PtBool) operand.asInt() else throw AssemblyError("wrong operand type")
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, address = knownAddress)
-                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=numberReg, immediate = operand.number.toInt())
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=numberReg, immediate = value)
                     it += IRInstruction(compareAndSetOpcode, vmDt, reg1 = cmpResultReg, reg2 = valueReg, reg3 = numberReg)
                     it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, address = knownAddress)
                 }
@@ -1437,7 +1462,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 // in-place modify a symbol (variable)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, labelSymbol = symbol)
-                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=numberReg, immediate = operand.number.toInt())
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=numberReg, immediate = value)
                     it += IRInstruction(compareAndSetOpcode, vmDt, reg1=cmpResultReg, reg2 = valueReg, reg3 = numberReg)
                     it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, labelSymbol = symbol)
                 }

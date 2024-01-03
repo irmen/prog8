@@ -136,7 +136,7 @@ class AstPreprocessor(val program: Program,
                         }
                     } else {
                         // handle declaration of a single variable
-                        if(decl.value!=null && decl.datatype in NumericDatatypes) {
+                        if(decl.value!=null && (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL)) {
                             val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, decl.position)
                             val assign = Assignment(target, decl.value!!, AssignmentOrigin.VARINIT, decl.position)
                             replacements.add(IAstModification.ReplaceNode(decl, assign, scope))

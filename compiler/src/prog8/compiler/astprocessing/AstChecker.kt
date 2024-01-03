@@ -969,6 +969,10 @@ internal class AstChecker(private val program: Program,
             if(dt==DataType.BOOL)
                 errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
         }
+        else if(expr.operator == "not") {
+            if(dt!=DataType.BOOL)
+                errors.err("logical not is for booleans", expr.position)
+        }
         super.visit(expr)
     }
 
@@ -1008,11 +1012,6 @@ internal class AstChecker(private val program: Program,
                     if ((rightDt != DataType.UBYTE && rightDt != DataType.UWORD) || (leftDt!= DataType.UBYTE && leftDt!= DataType.UWORD))
                         errors.err("remainder can only be used on unsigned integer operands", expr.right.position)
                 }
-            }
-            "&", "|", "^" -> {
-                // only integer numeric operands accepted
-                if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
-                    errors.err("bitwise operator can only be used on integer operands", expr.right.position)
             }
             "in" -> throw FatalAstException("in expression should have been replaced by containmentcheck")
             "<<", ">>" -> {
@@ -1071,6 +1070,18 @@ internal class AstChecker(private val program: Program,
             }
             if((expr.operator == "/" || expr.operator == "%") && ( rightDt==DataType.BOOL || (expr.right as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
                 errors.err("can't use boolean operand with this operator ${expr.operator}", expr.right.position)
+            }
+        }
+
+
+        if(expr.operator in LogicalOperators) {
+            if (leftDt != DataType.BOOL || rightDt != DataType.BOOL)
+                errors.err("logical operator requires boolean operands", expr.right.position)
+        }
+        else {
+            if (leftDt == DataType.BOOL || rightDt == DataType.BOOL) {
+                if(expr.operator!="==" && expr.operator!="!=")
+                    errors.err("operator requires numeric operands", expr.right.position)
             }
         }
     }
@@ -1394,7 +1405,10 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(whenStmt: When) {
-        if(!whenStmt.condition.inferType(program).isInteger)
+        val conditionDt = whenStmt.condition.inferType(program)
+        if(conditionDt.isBool)
+            errors.err("condition is boolean, use if statement instead", whenStmt.position)
+        else if(!conditionDt.isInteger)
             errors.err("when condition must be an integer value", whenStmt.position)
         val tally = mutableSetOf<Int>()
         for((choices, choiceNode) in whenStmt.choiceValues(program)) {
@@ -1742,7 +1756,7 @@ internal class AstChecker(private val program: Program,
         }
 
         val result =  when(targetDatatype) {
-            DataType.BOOL -> sourceDatatype in NumericDatatypes
+            DataType.BOOL -> sourceDatatype in NumericDatatypes || sourceDatatype==DataType.BOOL
             DataType.BYTE -> sourceDatatype == DataType.BYTE || sourceDatatype == DataType.BOOL
             DataType.UBYTE -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.BOOL
             DataType.WORD -> sourceDatatype in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.BOOL)

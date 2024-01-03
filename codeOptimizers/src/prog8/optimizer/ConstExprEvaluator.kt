@@ -7,6 +7,7 @@ import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.code.core.DataType
 import prog8.code.core.IntegerDatatypes
+import prog8.code.core.IntegerDatatypesWithBoolean
 import prog8.code.core.Position
 import kotlin.math.*
 
@@ -69,15 +70,15 @@ class ConstExprEvaluator {
     }
 
     private fun bitwiseXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(left.type== DataType.UBYTE || left.type==DataType.BOOL) {
-            if(right.type in IntegerDatatypes) {
+        if(left.type==DataType.UBYTE || left.type==DataType.BOOL) {
+            if(right.type in IntegerDatatypesWithBoolean) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() xor (right.number.toInt() and 255)).toDouble(), left.position)
             }
-        } else if(left.type== DataType.UWORD) {
+        } else if(left.type==DataType.UWORD) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UWORD, (left.number.toInt() xor right.number.toInt() and 65535).toDouble(), left.position)
             }
-        } else if(left.type== DataType.LONG) {
+        } else if(left.type==DataType.LONG) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral.optimalNumeric((left.number.toInt() xor right.number.toInt()).toDouble(), left.position)
             }
@@ -86,15 +87,15 @@ class ConstExprEvaluator {
     }
 
     private fun bitwiseOr(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(left.type== DataType.UBYTE || left.type==DataType.BOOL) {
-            if(right.type in IntegerDatatypes) {
+        if(left.type==DataType.UBYTE || left.type==DataType.BOOL) {
+            if(right.type in IntegerDatatypesWithBoolean) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() or (right.number.toInt() and 255)).toDouble(), left.position)
             }
-        } else if(left.type== DataType.UWORD) {
+        } else if(left.type==DataType.UWORD) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UWORD, (left.number.toInt() or right.number.toInt() and 65535).toDouble(), left.position)
             }
-        } else if(left.type== DataType.LONG) {
+        } else if(left.type==DataType.LONG) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral.optimalNumeric((left.number.toInt() or right.number.toInt()).toDouble(), left.position)
             }
@@ -103,11 +104,11 @@ class ConstExprEvaluator {
     }
 
     private fun bitwiseAnd(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(left.type== DataType.UBYTE || left.type==DataType.BOOL) {
-            if(right.type in IntegerDatatypes) {
+        if(left.type==DataType.UBYTE || left.type==DataType.BOOL) {
+            if(right.type in IntegerDatatypesWithBoolean) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() and (right.number.toInt() and 255)).toDouble(), left.position)
             }
-        } else if(left.type== DataType.UWORD) {
+        } else if(left.type==DataType.UWORD) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UWORD, (left.number.toInt() and right.number.toInt() and 65535).toDouble(), left.position)
             }

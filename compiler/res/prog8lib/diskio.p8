@@ -68,7 +68,7 @@ io_error:
         cbm.CLRCHN()        ; restore default i/o devices
         cbm.CLOSE(READ_IO_CHANNEL)
 
-        if status and status & $40 == 0 {            ; bit 6=end of file
+        if status!=0 and status & $40 == 0 {            ; bit 6=end of file
             txt.print("\ni/o error, status: ")
             txt.print_ub(status)
             txt.nl()
@@ -239,7 +239,7 @@ io_error:
             void cbm.CHRIN()
 
             if not list_skip_disk_name {
-                if not list_pattern
+                if list_pattern==0
                     return true
                 if string.pattern_match(list_filename, list_pattern)
                     return true
@@ -297,7 +297,7 @@ close_end:
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
-        if not iteration_in_progress or not num_bytes
+        if not iteration_in_progress or num_bytes==0
             return 0
 
         reset_read_channel()
@@ -396,7 +396,7 @@ _end        rts
         cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, 1)
         void cbm.OPEN()             ; open 13,8,1,"filename"
         if_cc
-            return not cbm.READST()
+            return cbm.READST()==0
         cbm.CLOSE(WRITE_IO_CHANNEL)
         f_close_w()
         return false
@@ -410,7 +410,7 @@ _end        rts
                 cbm.CHROUT(@(bufferpointer))
                 bufferpointer++
             }
-            return not cbm.READST()
+            return cbm.READST()==0
         }
         return true
     }

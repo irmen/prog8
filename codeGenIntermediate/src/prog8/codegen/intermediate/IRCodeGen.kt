@@ -266,6 +266,7 @@ class IRCodeGen(
             is PtTypeCast,
             is PtSubroutineParameter,
             is PtNumber,
+            is PtBool,
             is PtArray,
             is PtBlock,
             is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
@@ -1739,9 +1740,9 @@ class IRCodeGen(
     internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall): ExpressionCodeResult
         = builtinFuncGen.translate(call)
 
-    internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
+    internal fun isZero(expression: PtExpression): Boolean = (expression as? PtNumber)?.number==0.0 || (expression as? PtBool)?.value==false
 
-    internal fun isOne(expression: PtExpression): Boolean = expression is PtNumber && expression.number==1.0
+    internal fun isOne(expression: PtExpression): Boolean = (expression as? PtNumber)?.number==1.0 || (expression as? PtBool)?.value==true
 
     fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
         return IRCodeChunk(label, null).also {

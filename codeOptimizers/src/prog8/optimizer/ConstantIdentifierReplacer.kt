@@ -292,7 +292,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
             return noModifications
 
         val dt = identifier.inferType(program)
-        if(!dt.isKnown || !dt.isNumeric)
+        if(!dt.isKnown || !dt.isNumeric && !dt.isBool)
             return noModifications
 
         try {
@@ -369,7 +369,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                 DataType.FLOAT -> {
                     // vardecl: for scalar float vars, promote constant integer initialization values to floats
                     val litval = decl.value as? NumericLiteral
-                    if (litval!=null && litval.type in IntegerDatatypes) {
+                    if (litval!=null && litval.type in IntegerDatatypesWithBoolean) {
                         val newValue = NumericLiteral(DataType.FLOAT, litval.number, litval.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
                     }
