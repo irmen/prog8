@@ -29,7 +29,7 @@ internal class AnyExprAsmGen(
                     require(expr.operator in ComparisonOperators)
                     return assignFloatBinExpr(expr, assign)
                 }
-                throw AssemblyError("weird expr operand types: ${expr.left.type} and {${expr.right.type}")
+                throw AssemblyError("weird expr operand types: ${expr.left.type} and ${expr.right.type}")
             }
             in WordDatatypes -> {
                 require(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {

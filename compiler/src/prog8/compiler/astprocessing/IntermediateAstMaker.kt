@@ -586,6 +586,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transform(srcCheck: ContainmentCheck): PtExpression {
 
         fun desugar(range: RangeExpression): PtExpression {
+            require(range.from.inferType(program)==range.to.inferType(program))
             val expr = PtBinaryExpression("and", DataType.UBYTE, srcCheck.position)
             val x1 = transformExpression(srcCheck.element)
             val x2 = transformExpression(srcCheck.element)
@@ -674,6 +675,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     }
 
     private fun transform(srcRange: RangeExpression): PtRange {
+        require(srcRange.from.inferType(program)==srcRange.to.inferType(program))
         val type = srcRange.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
         val range=PtRange(type, srcRange.position)
         range.add(transformExpression(srcRange.from))

@@ -378,6 +378,17 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         return noModifications
     }
 
+    override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
+        val fromDt = range.from.inferType(program).getOr(DataType.UNDEFINED)
+        val toDt = range.to.inferType(program).getOr(DataType.UNDEFINED)
+        val modifications = mutableListOf<IAstModification>()
+        val (commonDt, toChange) = BinaryExpression.commonDatatype(fromDt, toDt, range.from, range.to)
+        if(toChange!=null)
+            addTypecastOrCastedValueModification(modifications, toChange, commonDt, range)
+        return modifications
+    }
+
+
     private fun addTypecastOrCastedValueModification(
         modifications: MutableList<IAstModification>,
         expressionToCast: Expression,

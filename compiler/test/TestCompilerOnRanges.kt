@@ -440,4 +440,21 @@ class TestCompilerOnRanges: FunSpec({
                 }
             }""", writeAssembly = true) shouldNotBe null
     }
+
+    test("ranges with byte and word boundary") {
+        val src="""
+main{
+    sub start() {
+        cx16.r0 = 500
+        if cx16.r0 in 127 to 5555
+            cx16.r0++
+
+        cx16.r0 = 50
+        if cx16.r0 in 5555 downto 127
+            cx16.r0++
+    }
+}           
+        """
+        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
 })

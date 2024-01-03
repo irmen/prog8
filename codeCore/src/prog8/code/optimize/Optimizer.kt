@@ -62,6 +62,7 @@ private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorRepor
     }
 
     // replace common subexpressions by a temp variable that is assigned only once.
+    // TODO: check for commonalities across multiple separate expressions in the current scope, not only inside a single line
     commons.forEach { binexpr, (occurrence1, occurrence2) ->
         val (stmtContainer, stmt) = findContainingStatements(binexpr)
         val occurrence1idx = occurrence1.parent.children.indexOf(occurrence1)
@@ -92,7 +93,7 @@ private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorRepor
         stmtContainer.add(0, tempvar)
         tempvar.parent = stmtContainer
 
-        errors.info("common subexpressions replaced by a tempvar, maybe simplify the expression manually", binexpr.position)
+        // errors.info("common subexpressions replaced by a tempvar, maybe simplify the expression manually", binexpr.position)
     }
 
     return commons.size
