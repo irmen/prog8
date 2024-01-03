@@ -246,6 +246,12 @@ class BinaryExpression(
             // a combination with a float will be float (but give a warning about this!)
 
             return when (leftDt) {
+                DataType.BOOL -> {
+                    if(rightDt==DataType.BOOL)
+                        return Pair(DataType.BOOL, null)
+                    else
+                        return Pair(DataType.BOOL, right)
+                }
                 DataType.UBYTE -> {
                     when (rightDt) {
                         DataType.UBYTE -> Pair(DataType.UBYTE, null)
@@ -482,7 +488,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
-                NumericLiteral(DataType.UBYTE, if(bool) 1.0 else 0.0, position)
+                NumericLiteral(DataType.BOOL, if(bool) 1.0 else 0.0, position)
 
         fun optimalNumeric(value: Number, position: Position): NumericLiteral {
             val digits = floor(value.toDouble()) - value.toDouble()
@@ -521,11 +527,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 else -> throw FatalAstException("unsigned integer overflow: $value")
             }
         }
-    }
-
-    init {
-        if(type==DataType.BOOL)
-            throw FatalAstException("should not create NumericLiteral with BOOL type @$position")
     }
 
     val asBooleanValue: Boolean = number != 0.0

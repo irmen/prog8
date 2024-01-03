@@ -26,10 +26,10 @@ class PtSub(
 ) : PtNamedNode(name, position), IPtSubroutine, IPtStatementContainer {
     init {
         // params and return value should not be str
-        if(parameters.any{ it.type !in NumericDatatypes })
-            throw AssemblyError("non-numeric parameter")
-        if(returntype!=null && returntype !in NumericDatatypes)
-            throw AssemblyError("non-numeric returntype $returntype")
+        if(parameters.any{ it.type !in NumericDatatypes && it.type!=DataType.BOOL })
+            throw AssemblyError("non-numeric/non-bool parameter")
+        if(returntype!=null && returntype !in NumericDatatypes && returntype!=DataType.BOOL)
+            throw AssemblyError("non-numeric/non-bool returntype $returntype")
         parameters.forEach { it.parent=this }
     }
 }

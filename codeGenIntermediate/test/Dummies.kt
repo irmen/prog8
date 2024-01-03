@@ -3,7 +3,7 @@ import prog8.code.core.*
 
 internal object DummyMemsizer : IMemSizer {
     override fun memorySize(dt: DataType) = when(dt) {
-        in ByteDatatypes -> 1
+        in ByteDatatypes, DataType.BOOL -> 1
         DataType.FLOAT -> 5
         else -> 2
     }

@@ -583,7 +583,7 @@ internal class ProgramAndVarsGen(
 
     private fun uninitializedVariable2asm(variable: StStaticVariable) {
         when (variable.dt) {
-            DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ?")
+            DataType.BOOL, DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ?")
             DataType.BYTE -> asmgen.out("${variable.name}\t.char  ?")
             DataType.UWORD -> asmgen.out("${variable.name}\t.word  ?")
             DataType.WORD -> asmgen.out("${variable.name}\t.sint  ?")
@@ -637,7 +637,7 @@ internal class ProgramAndVarsGen(
 
     private fun arrayVariable2asm(varname: String, dt: DataType, value: StArray?, orNumberOfZeros: Int?) {
         when(dt) {
-            DataType.ARRAY_UB -> {
+            DataType.ARRAY_UB, DataType.ARRAY_BOOL -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
                     asmgen.out("$varname\t.byte  ${data.joinToString()}")
@@ -705,7 +705,7 @@ internal class ProgramAndVarsGen(
     private fun zeroFilledArray(numElts: Int): StArray {
         val values = mutableListOf<StArrayElement>()
         repeat(numElts) {
-            values.add(StArrayElement(0.0, null))
+            values.add(StArrayElement(0.0, null, null))
         }
         return values
     }
@@ -742,6 +742,16 @@ internal class ProgramAndVarsGen(
     private fun makeArrayFillDataUnsigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
         val array = value ?: zeroFilledArray(orNumberOfZeros!!)
         return when (dt) {
+            DataType.ARRAY_BOOL ->
+                // byte array can never contain pointer-to types, so treat values as all integers
+                array.map {
+                    if(it.boolean!=null)
+                        "${it.boolean}"
+                    else {
+                        val number = it.number!!
+                        if(number==0.0) "0" else "1"
+                    }
+                }
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {

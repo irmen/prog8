@@ -7,7 +7,7 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
 import prog8.code.core.BuiltinFunctions
 import prog8.code.core.DataType
-import prog8.code.core.NumericDatatypesNoBool
+import prog8.code.core.NumericDatatypes
 import prog8.code.core.RegisterOrPair
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.compileText
@@ -18,7 +18,7 @@ class TestBuiltinFunctions: FunSpec({
         val func = BuiltinFunctions.getValue("sgn")
         func.parameters.size shouldBe 1
         func.parameters[0].name shouldBe "value"
-        func.parameters[0].possibleDatatypes shouldBe NumericDatatypesNoBool
+        func.parameters[0].possibleDatatypes shouldBe NumericDatatypes
         func.pure shouldBe true
         func.returnType shouldBe DataType.BYTE
 

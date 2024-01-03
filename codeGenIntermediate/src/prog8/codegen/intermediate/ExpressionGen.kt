@@ -26,6 +26,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtMachineRegister -> {
                 ExpressionCodeResult(emptyList(), irType(expr.type), expr.register, -1)
             }
+            is PtBool -> {
+                val code = IRCodeChunk(null, null)
+                val resultRegister = codeGen.registers.nextFree()
+                code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultRegister, immediate = expr.asInt())
+                ExpressionCodeResult(code, IRDataType.BYTE, resultRegister, -1)
+            }
             is PtNumber -> {
                 val vmDt = irType(expr.type)
                 val code = IRCodeChunk(null, null)
@@ -262,6 +268,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val mask = if(vmDt==IRDataType.BYTE) 0x00ff else 0xffff
                 addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = mask), null)
             }
+            "not" -> {
+                TODO("logical not $expr")
+            }
             else -> throw AssemblyError("weird prefix operator")
         }
         return ExpressionCodeResult(result, vmDt, tr.resultReg, tr.resultFpReg)
@@ -276,9 +285,21 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         var actualResultReg2 = -1
         var actualResultFpReg2 = -1
         when(cast.type) {
+            DataType.BOOL -> {
+                when(cast.value.type) {
+                    in ByteDatatypes -> {
+                        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=tr.resultReg, immediate = 42), null)
+                        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=tr.resultReg, immediate = 42), null)
+                        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=tr.resultReg, immediate = 42), null)
+                        actualResultReg2 = tr.resultReg
+                        // TODO("cast of byte to boolean")
+                    }
+                    else -> TODO("cast of non-byte value to boolean")
+                }
+            }
             DataType.UBYTE -> {
                 when(cast.value.type) {
-                    DataType.BYTE, DataType.UWORD, DataType.WORD -> {
+                    DataType.BOOL, DataType.BYTE, DataType.UWORD, DataType.WORD -> {
                         actualResultReg2 = tr.resultReg  // just keep the LSB as it is
                     }
                     DataType.FLOAT -> {
@@ -290,7 +311,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             DataType.BYTE -> {
                 when(cast.value.type) {
-                    DataType.UBYTE, DataType.UWORD, DataType.WORD -> {
+                    DataType.BOOL, DataType.UBYTE, DataType.UWORD, DataType.WORD -> {
                         actualResultReg2 = tr.resultReg  // just keep the LSB as it is
                     }
                     DataType.FLOAT -> {
@@ -307,7 +328,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.nextFree()
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2 = tr.resultReg), null)
                     }
-                    DataType.UBYTE -> {
+                    DataType.BOOL, DataType.UBYTE -> {
                         // ubyte -> uword:   sign extend
                         actualResultReg2 = codeGen.registers.nextFree()
                         addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2 = tr.resultReg), null)
@@ -329,7 +350,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.nextFree()
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
-                    DataType.UBYTE -> {
+                    DataType.BOOL, DataType.UBYTE -> {
                         // byte -> word:   sign extend
                         actualResultReg2 = codeGen.registers.nextFree()
                         addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
@@ -347,7 +368,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             DataType.FLOAT -> {
                 actualResultFpReg2 = codeGen.registers.nextFreeFloat()
                 when(cast.value.type) {
-                    DataType.UBYTE -> {
+                    DataType.BOOL, DataType.UBYTE -> {
                         addInstr(result, IRInstruction(Opcode.FFROMUB, IRDataType.FLOAT, reg1=tr.resultReg, fpReg1 = actualResultFpReg2), null)
                     }
                     DataType.BYTE -> {

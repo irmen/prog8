@@ -6,7 +6,7 @@ import prog8.code.left
 import prog8.code.right
 
 
-fun DataType.typeString(length: Int?): String {
+internal fun DataType.typeString(length: Int?): String {
     val lengthStr = if(length==0) "" else length.toString()
     return when (this) {
         DataType.BOOL -> "bool"
@@ -40,6 +40,7 @@ fun convertIRType(typestr: String): IRDataType? {
 }
 
 fun parseIRValue(value: String): Double {
+    // TODO boolean IR value?
     return if(value.startsWith("-"))
         -parseIRValue(value.substring(1))
     else if(value.startsWith('$'))

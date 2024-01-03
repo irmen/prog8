@@ -8,6 +8,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
+import prog8.ast.printProgram
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
 import prog8.ast.statements.VarDecl
@@ -91,6 +92,7 @@ main {
     }
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
+        printProgram(result.compilerAst)
         val stmts = result.compilerAst.entrypoint.statements
         /*
         ubyte @shared ub1
@@ -142,10 +144,11 @@ main  {
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 2
-        val assignValue = (stmts[0] as Assignment).value as BinaryExpression
-        assignValue.left shouldBe instanceOf<BinaryExpression>()        // as a result of the cast to boolean
-        assignValue.operator shouldBe "and"
-        (assignValue.right as NumericLiteral).number shouldBe 1.0
+        val assignValue = (stmts[0] as Assignment).value as TypecastExpression
+        assignValue.type shouldBe DataType.UBYTE
+        assignValue.expression.inferType(result.compilerAst).isBool shouldBe true
+        (assignValue.expression as BinaryExpression).operator shouldBe "and"
+        (assignValue.expression as BinaryExpression).right shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
     }
 
     test("logical with byte instead of bool") {

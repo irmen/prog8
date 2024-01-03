@@ -5,6 +5,33 @@ TODO
  Find out what is what!   (paint)
  ALSO: when adding a expr.issimple to that, it crashes with a parent node mismatch error. FIX THAT.
 
+make sure assigning different types to bool works
+make sure that and,or,xor,not aren't getting replaced in the Ast by the bitwise versions
+make sure that if not x  doesn't get code generated into an eor with 255
+add compiler error if using a logical operator with a numeric literal other than 0 or 1
+replace UBYTE 0 or 1 constant numbers by actual BOOL type (if appropriate)
+remove all ==0  and ==1 checks added to boolean expressions
+cube3d-gfx is now slightly larger, why
+
+
+This program is now a LOT larger, why:
+%zeropage basicsafe
+main {
+    sub start() {
+        ubyte @shared x
+        ubyte @shared y
+
+        x = y>10
+        bool @shared yep = true
+        horizontal_line(1,2,3,cx16.r0L)
+    }
+
+    sub horizontal_line(uword xx, uword yy, uword length, bool draw) {
+        cx16.r0++
+    }
+}
+
+
 ...
 
 

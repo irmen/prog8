@@ -196,10 +196,6 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(valuetype in IterableDatatypes && targettype==DataType.UWORD)
                         // special case, don't typecast STR/arrays to UWORD, we support those assignments "directly"
                         return noModifications
-                    if((assignment.value as? BinaryExpression)?.operator in ComparisonOperators) {
-                        // special case, treat a boolean comparison result as the same type as the target value to avoid needless casts later
-                        return noModifications
-                    }
                     val modifications = mutableListOf<IAstModification>()
                     addTypecastOrCastedValueModification(modifications, assignment.value, targettype, assignment)
                     return modifications
@@ -215,7 +211,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(cvalue!=null) {
                         val number = cvalue.number
                         // more complex comparisons if the type is different, but the constant value is compatible
-                        if (valuetype == DataType.BYTE && targettype == DataType.UBYTE) {
+                        if(valuetype in IntegerDatatypes && targettype==DataType.BOOL) {
+                            return castLiteral(cvalue)
+                        } else if (valuetype == DataType.BYTE && targettype == DataType.UBYTE) {
                             if(number>0)
                                 return castLiteral(cvalue)
                         } else if (valuetype == DataType.WORD && targettype == DataType.UWORD) {
@@ -412,4 +410,30 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val cast = TypecastExpression(expressionToCast, requiredType, true, expressionToCast.position)
         modifications += IAstModification.ReplaceNode(expressionToCast, cast, parent)
     }
+}
+
+
+internal fun wrapWithBooleanCastIfNeeded(expr: Expression, program: Program): Expression? {
+    fun isBoolean(expr: Expression): Boolean {
+        return if(expr.inferType(program) istype DataType.BOOL)
+            true
+        else if(expr is NumericLiteral && expr.type in IntegerDatatypes && (expr.number==0.0 || expr.number==1.0))
+            true
+        else if(expr is BinaryExpression && expr.operator in ComparisonOperators + LogicalOperators)
+            true
+        else if(expr is PrefixExpression && expr.operator == "not")
+            true
+        else if(expr is BinaryExpression && expr.operator in BitwiseOperators) {
+            if(isBoolean(expr.left) && isBoolean(expr.right))
+                true
+            else expr.operator=="&" && expr.right.constValue(program)?.number==1.0          //  x & 1   is also a boolean result
+        }
+        else
+            false
+    }
+
+    return if(isBoolean(expr))
+        null
+    else
+        TypecastExpression(expr, DataType.BOOL, true, expr.position)
 }

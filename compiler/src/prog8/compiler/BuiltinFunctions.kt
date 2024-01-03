@@ -63,7 +63,7 @@ private fun oneIntArgOutputInt(args: List<Expression>, position: Position, progr
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    val allowedDt = if(signed) IntegerDatatypesNoBool else arrayOf(DataType.UBYTE, DataType.UWORD)
+    val allowedDt = if(signed) IntegerDatatypes else arrayOf(DataType.UBYTE, DataType.UWORD)
     if(constval.type !in allowedDt)
         throw SyntaxError("built-in function requires one integer argument", position)
 
@@ -100,7 +100,7 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
 
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     return when (constval.type) {
-        in IntegerDatatypesNoBool -> NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
+        in IntegerDatatypes -> NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
         else -> throw SyntaxError("abs requires one integer argument", position)
     }
 }

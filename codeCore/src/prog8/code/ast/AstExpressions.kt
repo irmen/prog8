@@ -9,8 +9,6 @@ import kotlin.math.truncate
 sealed class PtExpression(val type: DataType, position: Position) : PtNode(position) {
 
     init {
-        if(type==DataType.BOOL)
-            throw IllegalArgumentException("bool should have become ubyte @$position")
         if(type==DataType.UNDEFINED) {
             @Suppress("LeakingThis")
             when(this) {
@@ -90,6 +88,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtIdentifier -> true
             is PtMachineRegister -> true
             is PtMemoryByte -> address is PtNumber || address is PtIdentifier
+            is PtBool -> true
             is PtNumber -> true
             is PtPrefix -> value.isSimple()
             is PtRange -> true
@@ -183,11 +182,17 @@ class PtBuiltinFunctionCall(val name: String,
 
 
 class PtBinaryExpression(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
-    // note: "and", "or", "xor" do not occur anymore as operators. They've been replaced int the ast by their bitwise versions &, |, ^.
     val left: PtExpression
         get() = children[0] as PtExpression
     val right: PtExpression
         get() = children[1] as PtExpression
+
+    init {
+        if(operator in ComparisonOperators || operator in LogicalOperators)
+            require(type==DataType.BOOL)
+        else
+            require(type!=DataType.BOOL)
+    }
 }
 
 
@@ -228,6 +233,27 @@ class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) 
 }
 
 
+class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOOL, position) {
+
+    companion object {
+        fun fromNumber(number: Number, position: Position): PtBool =
+            PtBool(if(number==0.0) false else true, position)
+    }
+
+    override fun hashCode(): Int = Objects.hash(type, value)
+
+    override fun equals(other: Any?): Boolean {
+        if(other==null || other !is PtBool)
+            return false
+        return value==other.value
+    }
+
+    override fun toString() = "PtBool:$value"
+
+    fun asInt(): Int = if(value) 1 else 0
+}
+
+
 class PtNumber(type: DataType, val number: Double, position: Position) : PtExpression(type, position) {
 
     companion object {
@@ -237,7 +263,7 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
 
     init {
         if(type==DataType.BOOL)
-            throw IllegalArgumentException("bool should have become ubyte @$position")
+            throw IllegalArgumentException("need to use PtBool @$position")
         if(type!=DataType.FLOAT) {
             val trunc = truncate(number)
             if (trunc != number)
@@ -267,8 +293,7 @@ class PtPrefix(val operator: String, type: DataType, position: Position): PtExpr
         get() = children.single() as PtExpression
 
     init {
-        // note: the "not" operator may no longer occur in the ast; not x should have been replaced with x==0
-        require(operator in setOf("+", "-", "~")) { "invalid prefix operator: $operator" }
+        require(operator in setOf("+", "-", "~", "not")) { "invalid prefix operator: $operator" }
     }
 }
 

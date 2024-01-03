@@ -96,8 +96,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             importedFiles = imported
 
             processAst(program, args.errors, compilationOptions)
-//                println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
-//                printProgram(program)
+//            println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
+//            printProgram(program)
 
             if (compilationOptions.optimize) {
                 optimizeAst(
@@ -110,8 +110,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
             postprocessAst(program, args.errors, compilationOptions)
 
-//            println("*********** COMPILER AST BEFORE ASSEMBLYGEN *************")
-//            printProgram(program)
+            println("*********** COMPILER AST BEFORE ASSEMBLYGEN *************")
+            printProgram(program)
 
             determineProgramLoadAddress(program, compilationOptions, args.errors)
             args.errors.report()

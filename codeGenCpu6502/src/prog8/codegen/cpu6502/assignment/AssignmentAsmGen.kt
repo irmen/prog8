@@ -33,10 +33,21 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(assign.source.kind) {
+            SourceStorageKind.LITERALBOOLEAN -> {
+                // simple case: assign a constant number
+                val num = assign.source.boolean!!.asInt()
+                when (assign.target.datatype) {
+                    DataType.BOOL, DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num)
+                    DataType.UWORD, DataType.WORD -> assignConstantWord(assign.target, num)
+                    DataType.FLOAT -> assignConstantFloat(assign.target, num.toDouble())
+                    else -> throw AssemblyError("weird numval type")
+                }
+            }
             SourceStorageKind.LITERALNUMBER -> {
                 // simple case: assign a constant number
                 val num = assign.source.number!!.number
                 when (assign.target.datatype) {
+                    DataType.BOOL -> assignConstantByte(assign.target, if(num==0.0) 0 else 1)
                     DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num.toInt())
                     DataType.UWORD, DataType.WORD -> assignConstantWord(assign.target, num.toInt())
                     DataType.FLOAT -> assignConstantFloat(assign.target, num)
@@ -47,6 +58,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 // simple case: assign from another variable
                 val variable = assign.source.asmVarname
                 when (assign.target.datatype) {
+                    DataType.BOOL -> {
+                        when(assign.source.datatype) {
+                            DataType.BOOL -> assignVariableByte(assign.target, variable)
+                            else -> throw AssemblyError("assign ${assign.source.datatype} var to boolean, should have been typecasted")
+                        }
+                    }
                     DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
                     DataType.WORD -> assignVariableWord(assign.target, variable, assign.source.datatype)
                     DataType.UWORD -> {
@@ -195,6 +212,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 val arrayDt = value.identifier.type
                 assignAddressOf(assign.target, sourceName, arrayDt, value.arrayIndexExpr)
             }
+            is PtBool -> throw AssemblyError("source kind should have been literalboolean")
             is PtNumber -> throw AssemblyError("source kind should have been literalnumber")
             is PtIdentifier -> throw AssemblyError("source kind should have been variable")
             is PtArrayIndexer -> throw AssemblyError("source kind should have been array")
@@ -2065,7 +2083,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 
             when (valueDt) {
-                in ByteDatatypes -> {
+                in ByteDatatypes, DataType.BOOL -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, valueDt==DataType.BYTE)
                     assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.A, valueDt)
                 }
@@ -2253,8 +2271,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
         // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)
         when(sourceDt) {
+            DataType.BOOL -> TODO("assign bool to something")
             DataType.UBYTE -> {
                 when(targetDt) {
+                    DataType.BOOL -> {
+                        asmgen.out("""
+                            lda  $sourceAsmVarName
+                            beq  +
+                            lda  #1
++                           sta  $targetAsmVarName""")
+                    }
                     DataType.BYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
@@ -2368,8 +2394,17 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
         // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)
         when(sourceDt) {
+            DataType.BOOL -> {
+                when (targetDt) {
+                    in ByteDatatypes -> asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
+                    else -> throw AssemblyError("assign bool to non-byte variable")
+                }
+            }
             DataType.UBYTE -> {
                 when(targetDt) {
+                    DataType.BOOL -> {
+                        TODO("assign ubyte reg to bool")
+                    }
                     DataType.BYTE -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
@@ -2400,6 +2435,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.BYTE -> {
                 when(targetDt) {
+                    DataType.BOOL -> TODO("assign byte to bool")
                     DataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
@@ -2444,6 +2480,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.UWORD -> {
                 when(targetDt) {
+                    DataType.BOOL -> TODO("assign uword to bool")
                     DataType.BYTE, DataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase().first()}  $targetAsmVarName")
                     }
@@ -2472,6 +2509,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.WORD -> {
                 when(targetDt) {
+                    DataType.BOOL -> TODO("assign word to bool")
                     DataType.BYTE, DataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase().first()}  $targetAsmVarName")
                     }

@@ -15,14 +15,6 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                                         private val errors: IErrorReporter
 ) : AstWalker() {
 
-    override fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        if(typecast.type == DataType.BOOL) {
-            val notZero = BinaryExpression(typecast.expression, "!=", NumericLiteral(DataType.UBYTE, 0.0, typecast.position), typecast.position)
-            return listOf(IAstModification.ReplaceNode(typecast, notZero, parent))
-        }
-        return noModifications
-    }
-
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // see if we can remove redundant typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword  or even redundant casts (sourcetype = target type).

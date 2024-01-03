@@ -69,7 +69,7 @@ class ConstExprEvaluator {
     }
 
     private fun bitwiseXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(left.type== DataType.UBYTE) {
+        if(left.type== DataType.UBYTE || left.type==DataType.BOOL) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() xor (right.number.toInt() and 255)).toDouble(), left.position)
             }
@@ -86,7 +86,7 @@ class ConstExprEvaluator {
     }
 
     private fun bitwiseOr(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(left.type== DataType.UBYTE) {
+        if(left.type== DataType.UBYTE || left.type==DataType.BOOL) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() or (right.number.toInt() and 255)).toDouble(), left.position)
             }
@@ -103,7 +103,7 @@ class ConstExprEvaluator {
     }
 
     private fun bitwiseAnd(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
-        if(left.type== DataType.UBYTE) {
+        if(left.type== DataType.UBYTE || left.type==DataType.BOOL) {
             if(right.type in IntegerDatatypes) {
                 return NumericLiteral(DataType.UBYTE, (left.number.toInt() and (right.number.toInt() and 255)).toDouble(), left.position)
             }

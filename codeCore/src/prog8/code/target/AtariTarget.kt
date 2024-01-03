@@ -15,7 +15,7 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
 
     override fun memorySize(dt: DataType): Int {
         return when(dt) {
-            in ByteDatatypes -> 1
+            in ByteDatatypes, DataType.BOOL -> 1
             in WordDatatypes, in PassByReferenceDatatypes -> 2
             DataType.FLOAT -> machine.FLOAT_MEM_SIZE
             else -> throw IllegalArgumentException("invalid datatype")

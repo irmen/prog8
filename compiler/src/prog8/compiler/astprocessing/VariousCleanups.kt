@@ -54,7 +54,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         val sourceDt = typecast.expression.inferType(program)
-        if(sourceDt istype typecast.type || (sourceDt istype DataType.BOOL && typecast.type==DataType.UBYTE))
+        if(sourceDt istype typecast.type)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {
@@ -63,13 +63,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 // we can get rid of this typecast because the type is already the target type
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
-        }
-
-        // if the expression is a comparison expression, or a logical expression, it produces the
-        // correct 'boolean' byte result so the cast can be removed.
-        val binExpr = typecast.expression as? BinaryExpression
-        if(binExpr!=null && binExpr.operator in ComparisonOperators + LogicalOperators) {
-            return listOf(IAstModification.ReplaceNode(typecast, binExpr, parent))
         }
 
         return noModifications

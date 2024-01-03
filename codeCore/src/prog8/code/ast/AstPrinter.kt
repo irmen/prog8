@@ -35,6 +35,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 val numstr = if(node.type == DataType.FLOAT) node.number.toString() else node.number.toHex()
                 "$numstr ${type(node.type)}"
             }
+            is PtBool -> node.value.toString()
             is PtPrefix -> node.operator
             is PtRange -> "<range>"
             is PtString -> "\"${node.value.escape()}\""
