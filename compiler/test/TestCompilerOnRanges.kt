@@ -404,6 +404,14 @@ class TestCompilerOnRanges: FunSpec({
                     if ww in wvalues {
                         xx++
                     }                    
+                    
+                    if xx in 10 to 20 {
+                        xx++
+                    }
+                    
+                    if ww in 1000 to 2000 {
+                        xx++
+                    }
                 }
             }""", writeAssembly = true) shouldNotBe null
     }

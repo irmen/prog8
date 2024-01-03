@@ -1447,19 +1447,21 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(iterableDt.isIterable && containment.iterable !is RangeExpression) {
-            val iterableEltDt = ArrayToElementTypes.getValue(iterableDt.getOr(DataType.UNDEFINED))
-            val invalidDt = if (elementDt.isBytes) {
-                iterableEltDt !in ByteDatatypes
-            } else if (elementDt.isWords) {
-                iterableEltDt !in WordDatatypes
-            } else {
-                false
+        if (iterableDt.isIterable) {
+            if (containment.iterable !is RangeExpression) {
+                val iterableEltDt = ArrayToElementTypes.getValue(iterableDt.getOr(DataType.UNDEFINED))
+                val invalidDt = if (elementDt.isBytes) {
+                    iterableEltDt !in ByteDatatypes
+                } else if (elementDt.isWords) {
+                    iterableEltDt !in WordDatatypes
+                } else {
+                    false
+                }
+                if (invalidDt)
+                    errors.err("element datatype doesn't match iterable datatype", containment.position)
             }
-            if (invalidDt)
-                errors.err("element datatype doesn't match iterable datatype", containment.position)
         } else {
-            errors.err("value set for containment check must be a string or array", containment.iterable.position)
+            errors.err("iterable must be an array, a string, or a range expression", containment.iterable.position)
         }
 
         super.visit(containment)

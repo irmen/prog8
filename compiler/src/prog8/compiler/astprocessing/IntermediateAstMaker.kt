@@ -583,15 +583,73 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         return call
     }
 
-    private fun transform(srcCheck: ContainmentCheck): PtContainmentCheck {
-        val check = PtContainmentCheck(srcCheck.position)
-        check.add(transformExpression(srcCheck.element))
-        if(srcCheck.iterable !is IdentifierReference)
-            throw FatalAstException("iterable in containmentcheck must always be an identifier (referencing string or array) $srcCheck")
-        val iterable = transformExpression(srcCheck.iterable)
-        check.add(iterable)
-        return check
+    private fun transform(srcCheck: ContainmentCheck): PtExpression {
+
+        fun desugar(range: RangeExpression): PtExpression {
+            val expr = PtBinaryExpression("and", DataType.UBYTE, srcCheck.position)
+            val x1 = transformExpression(srcCheck.element)
+            val x2 = transformExpression(srcCheck.element)
+            val eltDt = srcCheck.element.inferType(program)
+            if(eltDt.isInteger) {
+                val low = PtBinaryExpression("<=", DataType.UBYTE, srcCheck.position)
+                low.add(transformExpression(range.from))
+                low.add(x1)
+                expr.add(low)
+                val high = PtBinaryExpression("<=", DataType.UBYTE, srcCheck.position)
+                high.add(x2)
+                high.add(transformExpression(range.to))
+                expr.add(high)
+            } else {
+                val low = PtBinaryExpression("<=", DataType.UBYTE, srcCheck.position)
+                val lowFloat = PtTypeCast(DataType.FLOAT, range.from.position)
+                lowFloat.add(transformExpression(range.from))
+                low.add(lowFloat)
+                low.add(x1)
+                expr.add(low)
+                val high = PtBinaryExpression("<=", DataType.UBYTE, srcCheck.position)
+                high.add(x2)
+                val highFLoat = PtTypeCast(DataType.FLOAT, range.to.position)
+                highFLoat.add(transformExpression(range.to))
+                high.add(highFLoat)
+                expr.add(high)
+            }
+            return expr
+        }
+
+        when(srcCheck.iterable) {
+            is IdentifierReference -> {
+                val check = PtContainmentCheck(srcCheck.position)
+                check.add(transformExpression(srcCheck.element))
+                val iterable = transformExpression(srcCheck.iterable)
+                check.add(iterable)
+                return check
+            }
+            is RangeExpression -> {
+                val range = srcCheck.iterable as RangeExpression
+                val constRange = range.toConstantIntegerRange()
+                val constElt = srcCheck.element.constValue(program)?.number
+                val step = range.step.constValue(program)?.number
+                if(constElt!=null && constRange!=null) {
+                    return PtNumber(DataType.UBYTE, if(constRange.first<=constElt && constElt<=constRange.last) 1.0 else 0.0, srcCheck.position)
+                }
+                else if(step==1.0) {
+                    // x in low to high --> low <=x and x <= high
+                    return desugar(range)
+                } else if(step==-1.0) {
+                    // x in high downto low -> low <=x and x <= high
+                    val tmp = range.to
+                    range.to = range.from
+                    range.from = tmp
+                    return desugar(range)
+                } else {
+                    errors.err("cannot use step size different than 1 or -1 in a non constant range containment check", srcCheck.position)
+                    return PtNumber(DataType.BYTE, 0.0, Position.DUMMY)
+                }
+            }
+            else -> throw FatalAstException("iterable in containmentcheck must always be an identifier (referencing string or array) or a range expression $srcCheck")
+        }
     }
+
 
     private fun transform(memory: DirectMemoryWrite): PtMemoryByte {
         val mem = PtMemoryByte(memory.position)

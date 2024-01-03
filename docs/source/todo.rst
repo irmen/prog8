@@ -76,10 +76,3 @@ Other language/syntax features to think about
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
   How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
-- chained comparisons   `10<x<20` ,   `x==y==z`   (desugars to  `10<x and x<20`,   `x==y and y==z`)
-  BUT this needs a new AST node type and rewritten parser rules, because otherwise it changes the semantics
-  of existing expressions such as  if x<y==0 ...
-- Better idea perhaps is "runtime range objects" the idea would be that "a to b" generates
-  a new kind of "range" value rather than an array (though you can still use it to initialize an array),
-  so you could replace if a <= n <= b with: if n in a to b
-  So this means we should keep the Range Expression alive for much longer.

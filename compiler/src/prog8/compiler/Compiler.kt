@@ -146,6 +146,15 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     return null
                 }
                 ast = intermediateAst
+            } else {
+                if(args.printAst1) {
+                    println("\n*********** COMPILER AST *************")
+                    printProgram(program)
+                    println("*********** COMPILER AST END *************\n")
+                }
+                if(args.printAst2) {
+                    System.err.println("There is no intermediate Ast available if assembly generation is disabled.")
+                }
             }
         }
 

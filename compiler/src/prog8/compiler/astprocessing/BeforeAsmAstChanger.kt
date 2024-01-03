@@ -5,8 +5,6 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.ContainmentCheck
-import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -26,12 +24,6 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 
     override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
         throw InternalCompilerException("do..until should have been converted to jumps")
-    }
-
-    override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
-        if(containment.iterable !is IdentifierReference)
-            throw InternalCompilerException("iterable in containmentcheck should be identifier (referencing string or array)")
-        return noModifications
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {

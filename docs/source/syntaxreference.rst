@@ -611,10 +611,11 @@ range creation:  ``to``, ``downto``
     See :ref:`range-expression` for details.
 
 containment check:  ``in``
-    Tests if a value is present in a list of values, which can be a string or an array.
+    Tests if a value is present in a list of values, which can be a string, or an array, or a range expression.
     The result is a simple boolean ``true`` or ``false``.
     Consider using this instead of chaining multiple value tests with ``or``, because the
     containment check is more efficient.
+    Checking N in a range from x to y, is identical to x<=N and N<=y; the actual range of values is never created.
     Examples::
 
         ubyte cc
@@ -622,7 +623,11 @@ containment check:  ``in``
             txt.print("cc is one of the values")
         }
 
-        str  email_address = "name@test.com"
+        if cc in 10 to 20 {
+            txt.print("10 <= cc and cc <=20")
+        }
+
+        str email_address = "name@test.com"
         if '@' in email_address {
             txt.print("email address seems ok")
         }
