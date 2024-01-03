@@ -373,7 +373,13 @@ asmsub  init_system_phase2()  {
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
     %asm {{
-        jmp  sys.enable_runstop_and_charsetswitch
+        lda  #0
+        sta  $ff00          ; default bank 15
+        jsr  cbm.CLRCHN		; reset i/o channels
+        jsr  enable_runstop_and_charsetswitch
+_exitcode = *+1
+        lda  #0        ; exit code possibly modified in exit()
+        rts
     }}
 }
 
@@ -754,16 +760,13 @@ _longcopy
         }}
     }
 
-    inline asmsub exit(ubyte returnvalue @A) {
+    asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
-            lda  #0
-            sta  $ff00          ; default bank 15
-            jsr  cbm.CLRCHN		; reset i/o channels
-            jsr  sys.enable_runstop_and_charsetswitch
+            sta  cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
             txs
-            rts		; return to original caller
+            jmp  cleanup_at_exit
         }}
     }
 

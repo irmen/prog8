@@ -1,7 +1,7 @@
 TODO
 ====
 
-keep Bool alive longer until codegen? (don't replace by UBYTE so quickly?)
+[on branch 'booleans']: keep Bool alive longer until codegen? (don't replace by UBYTE so quickly?)
 
 ...
 

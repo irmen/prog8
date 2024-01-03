@@ -133,7 +133,6 @@ internal class ProgramAndVarsGen(
                 pha""")
         }
 
-        // make sure that on the cx16 and c64, basic rom is banked in again when we exit the program
         when(compTarget.name) {
             "cx16" -> {
                 if(options.floats)
@@ -143,17 +142,11 @@ internal class ProgramAndVarsGen(
             }
             "c64" -> {
                 asmgen.out("  jsr  p8b_main.p8s_start |  lda  #31 |  sta  $01")
-                if(!options.noSysInit)
-                    asmgen.out("  jmp  sys.cleanup_at_exit")
-                else
-                    asmgen.out("  rts")
+                asmgen.out("  jmp  sys.cleanup_at_exit")
             }
             "c128" -> {
                 asmgen.out("  jsr  p8b_main.p8s_start |  lda  #0 |  sta ${"$"}ff00")
-                if(!options.noSysInit)
-                    asmgen.out("  jmp  sys.cleanup_at_exit")
-                else
-                    asmgen.out("  rts")
+                asmgen.out("  jmp  sys.cleanup_at_exit")
             }
             else -> asmgen.jmp("p8b_main.p8s_start")
         }

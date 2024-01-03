@@ -252,9 +252,9 @@ save_SCRATCH_ZPWORD2	.word  0
         }}
     }
 
-    inline asmsub exit(ubyte returnvalue @A) {
+    asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
-        ;    TODO
+        ;    TODO where to store A as exit code?
         %asm {{
             ldx  prog8_lib.orig_stackpointer
             txs

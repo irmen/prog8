@@ -110,6 +110,8 @@ asmsub  init_system_phase2()  {
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
     %asm {{
+_exitcode = *+1
+        lda  #0        ; exit code possibly modified in exit()
         rts
     }}
 }
@@ -345,12 +347,13 @@ save_SCRATCH_ZPWORD2	.word  0
         }}
     }
 
-    inline asmsub exit(ubyte returnvalue @A) {
+    asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
+            sta  cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
             txs
-            rts		; return to original caller
+            jmp  cleanup_at_exit
         }}
     }
 

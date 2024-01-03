@@ -1239,6 +1239,9 @@ asmsub  cleanup_at_exit() {
         lda  #4
         sta  $01        ; rom bank 4 (basic)
         stz  $2d        ; hack to reset machine code monitor bank to 0
+        jsr  cbm.CLRCHN		; reset i/o channels
+_exitcode = *+1
+        lda  #0        ; exit code possibly modified in exit()
         rts
     }}
 }
@@ -1602,10 +1605,10 @@ save_SCRATCH_ZPWORD2	.word  0
     asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
-            jsr  cbm.CLRCHN		; reset i/o channels
+            sta  cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
             txs
-            rts		; return to original caller
+            jmp  cleanup_at_exit
         }}
     }
 
