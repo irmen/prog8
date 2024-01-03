@@ -1,6 +1,8 @@
 TODO
 ====
 
+keep Bool alive longer until codegen? (don't replace by UBYTE so quickly?)
+
 ...
 
 
@@ -24,22 +26,22 @@ Compiler:
     - (need separate step in codegen and IR to write the "golden" variables)
 
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
-- ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
-- ir: getting it in shape for code generation
 - ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
+- ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
-- [problematic due to using 64tass:] better support for building library programs, where unused .proc shouldn't be deleted from the assembly?
+- ir: getting it in shape for code generation...
+- [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
-- generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit or my binaryen kotlin library?
-- add Vic20 target
+- generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit and/or my binaryen kotlin library?
+- add Vic20 target?
 
 Libraries:
 
