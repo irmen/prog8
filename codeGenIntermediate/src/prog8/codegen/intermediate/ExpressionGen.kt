@@ -1451,10 +1451,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val value = if(operand is PtNumber) operand.number.toInt() else if(operand is PtBool) operand.asInt() else throw AssemblyError("wrong operand type")
             if (knownAddress != null) {
                 // in-place modify a memory location
-                val value = if(operand is PtNumber) operand.number.toInt() else if(operand is PtBool) operand.asInt() else throw AssemblyError("wrong operand type")
+                val innervalue = if(operand is PtNumber) operand.number.toInt() else if(operand is PtBool) operand.asInt() else throw AssemblyError("wrong operand type")
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, address = knownAddress)
-                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=numberReg, immediate = value)
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=numberReg, immediate = innervalue)
                     it += IRInstruction(compareAndSetOpcode, vmDt, reg1 = cmpResultReg, reg2 = valueReg, reg3 = numberReg)
                     it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, address = knownAddress)
                 }

@@ -105,7 +105,7 @@ class TestOptimization: FunSpec({
                 sub start() {
                     bool @shared a1
                     bool @shared a2
-                    a1 = not a1                 ; a1 = a1==0
+                    a1 = not a1                 ; a1 = not a1
                     a1 = not not a1             ; a1 = a1,  so removed totally
                     a1 = not not not a1         ; a1 = a1==0
                     a1 = not a1 or not a2       ; a1 = (a1 and a2)==0
@@ -139,7 +139,7 @@ class TestOptimization: FunSpec({
                 sub start() {
                     bool @shared a1
                     bool @shared a2
-                    a1 = not a1                 ; a1 = a1==0
+                    a1 = not a1                 ; a1 = not a1
                     a1 = not not a1             ; a1 = a1, so removed totally
                     a1 = not not not a1         ; a1 = a1==0
                     a1 = not a1 or not a2       ; a1 = (a1 and a2)==0

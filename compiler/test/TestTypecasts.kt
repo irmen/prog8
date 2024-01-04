@@ -85,8 +85,8 @@ main {
         bool @shared bvalue
 
         bvalue = ub1 xor ub2 xor ub3 xor true
-        bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)
-        bvalue = ub1 and ub2 and ftrue(99)
+        bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)!=0
+        bvalue = ub1 and ub2 and ftrue(99)!=0
         bvalue = ub1 xor ub2 xor ub3 xor btrue(99)
         bvalue = ub1 and ub2 and btrue(99)        
     }

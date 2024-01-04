@@ -81,7 +81,7 @@ string {
         repeat {
             ubyte char=source[ix]
             target[ix]=char
-            if not char
+            if char==0
                 return ix
             ix++
         }
@@ -114,7 +114,7 @@ string {
         ubyte ix
         repeat {
             ubyte char=st[ix]
-            if not char
+            if char==0
                 return ix
             if char >= 'A' and char <= 'Z'
                 st[ix] = char | %00100000
@@ -127,7 +127,7 @@ string {
         ubyte ix
         repeat {
             ubyte char=st[ix]
-            if not char
+            if char==0
                 return ix
             if char >= 97 and char <= 122
                 st[ix] = char & %11011111

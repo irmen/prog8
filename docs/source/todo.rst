@@ -1,18 +1,18 @@
 TODO
 ====
 
-"all other not(x)  -->  x==0"    SOMETIMES if removed, improves code, sometimes it makes it worse.
- Find out what is what!   (paint)
- ALSO: when adding a expr.issimple to that, it crashes with a parent node mismatch error. FIX THAT.
+fix crash:  ubyte[]    cycle_reverseflags[num_cycles] = flags & 2 != 0  (imageviewer)
 
-"in ByteDatatypes ->"  should probably be in ByteDatatypesWithBoolean ->  in more places.
+no automatic casting of bool to ubyte/uword.  Like there is no automatic casting of ubyte to bool.
 
+"in ByteDatatypes ->"  should probably be "in ByteDatatypesWithBoolean ->"  in more places.
 
 while not guessed  -> can we get rid of the cmp?
 optimize byte/bool equals, optimize byte/bool not equals
 what does invert/inplace invert do on a bool? and bitwise operations?
 allow  not integer  to mean  integer==0
 vm stores boolean values inverted? stipple(true) doesn't print 1 , it prints 0 ...
+probably caused by the previous one: vm/textelite behaves wrong, doesn't show market at startup and 'g' map shows local map instead
 static bool var with initializer value (staticVariable2asm)
 when on a boolean var should just be an if
 logical xor
@@ -26,6 +26,13 @@ add compiler error if using a logical operator with a numeric literal other than
 replace UBYTE 0 or 1 constant numbers by actual BOOL type (if appropriate)
 if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint
 remove all ==0  and ==1 checks added to boolean expressions
+
+is optimizing this useful? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
+
+boolean trick to go from a compare >= value, to a bool
+    cmp #value
+	rol  a
+	and  #1
 
 expressionsimplifier used to contain:
         // boolvar & 1  --> boolvar
