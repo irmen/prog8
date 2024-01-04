@@ -965,4 +965,83 @@ main {
         (assignv1 as NumericLiteral).number shouldBe 1.0
         (assignv2 as NumericLiteral).number shouldBe 0.0
     }
+
+    test("De Morgan's laws") {
+        val src="""
+main {
+    sub start() {
+        bool @shared a1
+        bool @shared a2
+        
+        if a1==0 and a2==0
+            cx16.r0++
+        if a1==0 or a2==0
+            cx16.r0++
+
+        if not a1 or not a2
+            cx16.r0++
+        if not a1 and not a2
+            cx16.r0++
+    }
+}"""
+        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 8
+        val if1c = (st[4] as IfElse).condition as BinaryExpression
+        val if2c = (st[5] as IfElse).condition as BinaryExpression
+        val if3c = (st[6] as IfElse).condition as BinaryExpression
+        val if4c = (st[7] as IfElse).condition as BinaryExpression
+        if1c.operator shouldBe "=="
+        (if1c.right as NumericLiteral).number shouldBe 0.0
+        (if1c.left as BinaryExpression).operator shouldBe "or"
+        if2c.operator shouldBe "=="
+        (if2c.right as NumericLiteral).number shouldBe 0.0
+        (if2c.left as BinaryExpression).operator shouldBe "and"
+        if3c.operator shouldBe "=="
+        (if3c.right as NumericLiteral).number shouldBe 0.0
+        (if3c.left as BinaryExpression).operator shouldBe "and"
+        if4c.operator shouldBe "=="
+        (if4c.right as NumericLiteral).number shouldBe 0.0
+        (if4c.left as BinaryExpression).operator shouldBe "or"
+    }
+
+    test("absorption laws") {
+        val src="""
+main {
+    sub start() {
+        bool @shared a
+        bool @shared b
+
+        if a or (a and b)
+            cx16.r0 ++
+        if a or (b and a)
+            cx16.r0 ++
+        if a and (a or b)
+            cx16.r0 ++
+        if a and (b or a)
+            cx16.r0 ++
+
+        ; no opt:
+        if a and (b and a)
+            cx16.r0 ++
+        if a or (b or a)
+            cx16.r0 ++
+    }
+}"""
+        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 10
+        val if1 = st[4] as IfElse
+        val if2 = st[5] as IfElse
+        val if3 = st[6] as IfElse
+        val if4 = st[7] as IfElse
+        (if1.condition as IdentifierReference).nameInSource shouldBe listOf("a")
+        (if2.condition as IdentifierReference).nameInSource shouldBe listOf("a")
+        (if3.condition as IdentifierReference).nameInSource shouldBe listOf("a")
+        (if4.condition as IdentifierReference).nameInSource shouldBe listOf("a")
+        val if5 = st[8] as IfElse
+        val if6 = st[9] as IfElse
+        if5.condition shouldBe instanceOf<BinaryExpression>()
+        if6.condition shouldBe instanceOf<BinaryExpression>()
+    }
 })

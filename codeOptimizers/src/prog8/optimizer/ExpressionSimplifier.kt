@@ -97,6 +97,10 @@ class ExpressionSimplifier(private val program: Program,
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        val newExpr = applyAbsorptionLaws(expr)
+        if(newExpr!=null)
+            return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+
         val leftVal = expr.left.constValue(program)
         val rightVal = expr.right.constValue(program)
 
@@ -158,8 +162,8 @@ class ExpressionSimplifier(private val program: Program,
                     val y = determineY(x, leftBinExpr)
                     if (y != null) {
                         val yPlus1 = BinaryExpression(y, "+", NumericLiteral(leftDt, 1.0, y.position), y.position)
-                        val newExpr = BinaryExpression(x, "*", yPlus1, x.position)
-                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        val replacement = BinaryExpression(x, "*", yPlus1, x.position)
+                        return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
                     }
                 } else {
                     // Y*X - X  ->  X*(Y - 1)
@@ -168,8 +172,8 @@ class ExpressionSimplifier(private val program: Program,
                     val y = determineY(x, leftBinExpr)
                     if (y != null) {
                         val yMinus1 = BinaryExpression(y, "-", NumericLiteral(leftDt, 1.0, y.position), y.position)
-                        val newExpr = BinaryExpression(x, "*", yMinus1, x.position)
-                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        val replacement = BinaryExpression(x, "*", yMinus1, x.position)
+                        return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
                     }
                 }
             } else if (rightBinExpr?.operator == "*") {
@@ -180,8 +184,8 @@ class ExpressionSimplifier(private val program: Program,
                     val y = determineY(x, rightBinExpr)
                     if (y != null) {
                         val yPlus1 = BinaryExpression(y, "+", NumericLiteral.optimalInteger(1, y.position), y.position)
-                        val newExpr = BinaryExpression(x, "*", yPlus1, x.position)
-                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        val replacement = BinaryExpression(x, "*", yPlus1, x.position)
+                        return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
                     }
                 }
             }
@@ -270,7 +274,7 @@ class ExpressionSimplifier(private val program: Program,
 
         // simplify when a term is constant and directly determines the outcome
         val constFalse = NumericLiteral.fromBoolean(false, expr.position)
-        val newExpr: Expression? = when (expr.operator) {
+        val newExpr2 = when (expr.operator) {
             "|" -> {
                 when {
                     leftVal?.number==0.0 -> expr.right
@@ -336,10 +340,42 @@ class ExpressionSimplifier(private val program: Program,
             }
         }
 
-        if(newExpr != null)
-            return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+        if(newExpr2 != null)
+            return listOf(IAstModification.ReplaceNode(expr, newExpr2, parent))
 
         return noModifications
+    }
+
+    private fun applyAbsorptionLaws(expr: BinaryExpression): Expression? {
+        val rightB = expr.right as? BinaryExpression
+        if(rightB!=null) {
+            // absorption laws:  a or (a and b) --> a,  a and (a or b) --> a
+            if(expr.operator=="or" && rightB.operator=="and") {
+                if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
+                    return expr.left
+                }
+            }
+            else if(expr.operator=="and" && rightB.operator=="or") {
+                if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
+                    return expr.left
+                }
+            }
+        }
+        val leftB = expr.left as? BinaryExpression
+        if(leftB!=null) {
+            // absorption laws:  (a and b) or a --> a,  (a or b) and a --> a
+            if(expr.operator=="or" && leftB.operator=="and") {
+                if(expr.right isSameAs leftB.left || expr.left isSameAs leftB.right) {
+                    return expr.right
+                }
+            }
+            else if(expr.operator=="and" && leftB.operator=="or") {
+                if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
+                    return expr.right
+                }
+            }
+        }
+        return null
     }
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
