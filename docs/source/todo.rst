@@ -53,6 +53,7 @@ Libraries:
 
 Optimizations:
 
+- the many pha/pla's in AssignmentAsmGen added to the code size. Can they be tweaked better? Maybe they are not always required, how to detect that/use another register/tempvar/etc?
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
@@ -75,6 +76,7 @@ What if we were to re-introduce Structs in prog8? Some thoughts:
 Other language/syntax features to think about
 ---------------------------------------------
 
+- support for assigning multiple return values from romsub/asmsub to multiple variables.
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
   How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?

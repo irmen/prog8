@@ -1228,7 +1228,10 @@ class BuiltinFunctionCall(override var target: IdentifierReference,
     }
 
     override fun copy() = BuiltinFunctionCall(target.copy(), args.map { it.copy() }.toMutableList(), position)
-    override val isSimple = false
+    override val isSimple = when (name) {
+        in arrayOf("msb", "lsb", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> this.args.all { it.isSimple }
+        else -> false
+    }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)

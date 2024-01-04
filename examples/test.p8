@@ -4,18 +4,18 @@
 
 main {
     sub start() {
-        bool @shared a1 = true
-        bool @shared a2 = false
+        ubyte @shared rnr = $a0
+        txt.print_ub(rnr>=$33)
+        txt.print_ub(rnr>=$66)
+        txt.print_ub(rnr>=$99)
+        txt.print_ub(rnr>=$cc)
+        txt.nl()
 
-        txt.print_ub(not a1)                 ; a1 = a1==0       "0"
+        ubyte wordNr = (rnr >= $33) as ubyte + (rnr >= $66) as ubyte + (rnr >= $99) as ubyte + (rnr >= $CC) as ubyte
+        txt.print_uw(wordNr)
         txt.nl()
-        txt.print_ub(not not a1)             ; a1 = a1          "1"
-        txt.nl()
-        txt.print_ub(not not not a1)         ; a1 = a1==0       "0"
-        txt.nl()
-        txt.print_ub(not a1 or not a2)       ; a1 = a1==0 or a2==0    "1"
-        txt.nl()
-        txt.print_ub(not a1 and not a2)      ; a1 = a1==0 and a2==0   "0"
+        wordNr = 100 - (rnr >= $33) - (rnr >= $66) - (rnr >= $99) - (rnr >= $CC)
+        txt.print_uw(wordNr)
         txt.nl()
     }
 }

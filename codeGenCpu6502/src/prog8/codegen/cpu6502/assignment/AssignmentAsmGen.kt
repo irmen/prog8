@@ -563,11 +563,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R1, expr.left.type in SignedDatatypes)
                         } else {
                             asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type in SignedDatatypes)
-                            asmgen.saveRegisterStack(CpuRegister.A, false)
+                            asmgen.out("  pha")
                             asmgen.saveRegisterStack(CpuRegister.Y, false)
                             asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R1, expr.left.type in SignedDatatypes)
                             asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                            asmgen.restoreRegisterStack(CpuRegister.A, false)
+                            asmgen.out("  pla")
                             asmgen.out("  sta  cx16.r0 |  sty  cx16.r0+1")
                         }
                         asmgen.out("  jsr  verafx.muls")
@@ -813,8 +813,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
                     } else {
-                        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)
                         assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
+                        asmgen.out("  pha")
+                        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)
+                        asmgen.out("  pla")
                         if (expr.operator == "+")
                             asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
                         else
@@ -1003,9 +1005,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
 
             assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-            asmgen.saveRegisterStack(CpuRegister.A, false)
+            asmgen.out("  pha")
             assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
-            asmgen.restoreRegisterStack(CpuRegister.A, false)
+            asmgen.out("  pla")
             when (expr.operator) {
                 "&" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
                 "|" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
@@ -1073,9 +1075,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             } else {
                 // normal evaluation into A
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.out("  pha")
                 assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
+                asmgen.out("  pla")
                 when (expr.operator) {
                     "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
                     "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
@@ -1780,8 +1782,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     private fun assignLogicalAndOrWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
         // normal evaluation, not worth to shortcircuit the simple right operand
-        assignExpressionToVariable(left, "P8ZP_SCRATCH_B1", DataType.UBYTE)
-        assignExpressionToRegister(right, RegisterOrPair.A, false)
+        assignExpressionToRegister(left, RegisterOrPair.A, false)
+        asmgen.out("  pha")
+        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+        asmgen.out("  pla")
         when (operator) {
             "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
             "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
@@ -1896,9 +1900,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             DataType.STR -> {
                 // use subroutine
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
-                asmgen.saveRegisterStack(CpuRegister.A, true)
+                asmgen.out("  pha")
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
+                asmgen.out("  pla")
                 asmgen.out("  ldy  #${numElements-1}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
@@ -1908,9 +1912,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
-                asmgen.saveRegisterStack(CpuRegister.A, true)
+                asmgen.out("  pha")
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
+                asmgen.out("  pla")
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
                 return
@@ -2725,11 +2729,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     jsr  floats.copy_float""")
             }
             TargetStorageKind.ARRAY -> {
-                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.out("  pha")
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
                 asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
+                asmgen.out("  pla")
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
@@ -3261,7 +3265,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 } else {
                     asmgen.saveRegisterStack(register, false)
                     asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.Y, false)
-                    asmgen.restoreRegisterStack(CpuRegister.A, false)
+                    asmgen.out("  pla")
                     if(asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
                         asmgen.out("  sta  (${target.asmVarname}),y")
                     } else {
@@ -3298,8 +3302,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     require(target.array.index.type in ByteDatatypes)
                     asmgen.saveRegisterStack(register, false)
                     asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.Y, false)
-                    asmgen.restoreRegisterStack(CpuRegister.A, false)
-                    asmgen.out("  sta  ${target.asmVarname},y")
+                    asmgen.out("  pla |  sta  ${target.asmVarname},y")
                 }
             }
         }

@@ -79,7 +79,12 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtArray -> true
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
             is PtBinaryExpression -> false
-            is PtBuiltinFunctionCall -> name in arrayOf("msb", "lsb", "peek", "peekw", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd")
+            is PtBuiltinFunctionCall -> {
+                when (name) {
+                    in arrayOf("msb", "lsb", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> this.args.all { it.isSimple() }
+                    else -> false
+                }
+            }
             is PtContainmentCheck -> false
             is PtFunctionCall -> false
             is PtIdentifier -> true
