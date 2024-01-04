@@ -48,6 +48,34 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
         }
 
+
+        // applying De Morgan's laws proved beneficial for the code generator,
+        // when the code has one outer 'not' instead of two inner ones.
+        if(expr.operator=="or" || expr.operator=="and") {
+            val newOper = if(expr.operator=="or") "and" else "or"
+            val leftP = expr.left as? PrefixExpression
+            val rightP = expr.right as? PrefixExpression
+            if(leftP!=null && leftP.operator=="not" && rightP!=null && rightP.operator=="not") {
+                // (not a) or (not b)  --> not(a and b)
+                // (not a) and (not b) --> not(a or b)
+                val inner = BinaryExpression(leftP.expression, newOper, rightP.expression, expr.position)
+                val notExpr = PrefixExpression("not", inner, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
+            }
+            val leftB = expr.left as? BinaryExpression
+            val rightB = expr.right as? BinaryExpression
+            if(leftB!=null && leftB.operator=="==" && (leftB.right as? NumericLiteral)?.number==0.0
+                && rightB!=null && rightB.operator=="==" && (rightB.right as? NumericLiteral)?.number==0.0) {
+                // a==0 or b==0  --> (a!=0 and b!=0)==0
+                // a==0 and b==0 --> (a!=0 or b!=0)==0
+                leftB.operator = "!="
+                rightB.operator = "!="
+                val inner = BinaryExpression(leftB, newOper, rightB, expr.position)
+                val notExpr = BinaryExpression(inner, "==", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
+            }
+        }
+
         return noModifications
     }
 

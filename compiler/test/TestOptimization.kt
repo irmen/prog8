@@ -307,8 +307,8 @@ class TestOptimization: FunSpec({
                     a1 = not a1                 ; a1 = a1==0
                     a1 = not not a1             ; a1 = a1,  so removed totally
                     a1 = not not not a1         ; a1 = a1==0
-                    a1 = not a1 or not a2       ; a1 = a1==0 or a2==0
-                    a1 = not a1 and not a2      ; a1 = a1==0 and a2==0
+                    a1 = not a1 or not a2       ; a1 = (a1 and a2)==0
+                    a1 = not a1 and not a2      ; a1 = (a1 or a2)==0
                 }
             }
         """
@@ -324,8 +324,12 @@ class TestOptimization: FunSpec({
         value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         value2.operator shouldBe "=="
         value2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value3.operator shouldBe "or"
-        value4.operator shouldBe "and"
+        value3.operator shouldBe "=="
+        value3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        (value3.left as BinaryExpression).operator shouldBe "and"
+        value4.operator shouldBe "=="
+        value4.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        (value4.left as BinaryExpression).operator shouldBe "or"
     }
 
     test("various 'not' operator rewrites with optimizations") {
@@ -337,8 +341,8 @@ class TestOptimization: FunSpec({
                     a1 = not a1                 ; a1 = a1==0
                     a1 = not not a1             ; a1 = a1, so removed totally
                     a1 = not not not a1         ; a1 = a1==0
-                    a1 = not a1 or not a2       ; a1 = a1==0 or a2==0
-                    a1 = not a1 and not a2      ; a1 = a1==0 and a2==0
+                    a1 = not a1 or not a2       ; a1 = (a1 and a2)==0
+                    a1 = not a1 and not a2      ; a1 = (a1 or a2)==0
                 }
             }
         """
@@ -354,8 +358,12 @@ class TestOptimization: FunSpec({
         value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         value2.operator shouldBe "=="
         value2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value3.operator shouldBe "or"
-        value4.operator shouldBe "and"
+        value3.operator shouldBe "=="
+        value3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        (value3.left as BinaryExpression).operator shouldBe "and"
+        value4.operator shouldBe "=="
+        value4.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        (value4.left as BinaryExpression).operator shouldBe "or"
     }
 
     test("asmgen correctly deals with float typecasting in augmented assignment") {

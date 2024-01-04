@@ -4,18 +4,31 @@
 
 main {
     sub start() {
-        ubyte @shared rnr = $a0
-        txt.print_ub(rnr>=$33)
-        txt.print_ub(rnr>=$66)
-        txt.print_ub(rnr>=$99)
-        txt.print_ub(rnr>=$cc)
-        txt.nl()
+        ; is optimizing this useful? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
+        bool @shared a1 = true
+        bool @shared a2
+        bool @shared a4
 
-        ubyte wordNr = (rnr >= $33) as ubyte + (rnr >= $66) as ubyte + (rnr >= $99) as ubyte + (rnr >= $CC) as ubyte
-        txt.print_uw(wordNr)
-        txt.nl()
-        wordNr = 100 - (rnr >= $33) - (rnr >= $66) - (rnr >= $99) - (rnr >= $CC)
-        txt.print_uw(wordNr)
-        txt.nl()
+        if a1==0 and a2==0
+            cx16.r0++
+
+        if (a1!=0 or a2!=0)==0
+            cx16.r0++
+
+        if a1==0 or a2==0
+            cx16.r0++
+
+        if (a1!=0 and a2!=0)==0
+            cx16.r0++
+
+
+;        if not a1 or not a2
+;            cx16.r0++
+;        if not (a1 and a2)
+;            cx16.r0++
+;        if not a1 and not a2
+;            cx16.r0++
+;        if not (a1 or a2)
+;            cx16.r0++
     }
 }
