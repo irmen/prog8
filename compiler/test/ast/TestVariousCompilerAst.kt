@@ -444,11 +444,11 @@ main {
 main {
     sub start() {
         str test = "test"
-        ubyte insync
+        bool @shared insync
         if not insync
-            insync++
+            insync=true
         if insync not in test
-            insync++
+            insync=true
     }
 }"""
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null

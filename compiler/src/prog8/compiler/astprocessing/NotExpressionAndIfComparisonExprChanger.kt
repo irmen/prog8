@@ -70,7 +70,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
 
             // not(not(x)) -> x
             if((expr.expression as? PrefixExpression)?.operator=="not")
-                return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
+                return listOf(IAstModification.ReplaceNode(expr, (expr.expression as PrefixExpression).expression, parent))
             // not(~x) -> x!=0
             if((expr.expression as? PrefixExpression)?.operator=="~") {
                 val x = (expr.expression as PrefixExpression).expression

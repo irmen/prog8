@@ -346,6 +346,7 @@ main {
     sub start() {
         ubyte[3] values = [1,2,3]
         func(33 + (22 in values))   ; bool cast to byte
+        cx16.r0L = 33 + (22 in values)   ; bool cast to byte
         func(values[cx16.r0L] + (22 in values))  ; containment in complex expression
     }
     sub func(ubyte arg) {

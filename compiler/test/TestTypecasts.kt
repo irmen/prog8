@@ -69,7 +69,12 @@ class TestTypecasts: FunSpec({
 main {
     sub ftrue(ubyte arg) -> ubyte {
         arg++
-        return 64
+        return 42
+    }
+    
+    sub btrue(ubyte arg) -> bool {
+        arg++
+        return true
     }
 
     sub start() {
@@ -81,30 +86,38 @@ main {
         bvalue = ub1 xor ub2 xor ub3 xor true
         bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)
         bvalue = ub1 and ub2 and ftrue(99)
+        bvalue = ub1 xor ub2 xor ub3 xor btrue(99)
+        bvalue = ub1 and ub2 and btrue(99)        
     }
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
         /*
-        ubyte ub1
+        ubyte @shared ub1
         ub1 = 1
-        ubyte ub2
+        ubyte @shared ub2
         ub2 = 1
-        ubyte ub3
+        ubyte @shared ub3
         ub3 = 1
         ubyte @shared bvalue
-        bvalue = ub1 xor ub2 xor ub3 xor true
-        bvalue = (((ub1 xor ub2)xor ub3) xor (ftrue(99)!=0))
+        bvalue = (((ub1 xor ub2) xor ub3) xor 1)
+        bvalue = (((ub1 xor ub2) xor ub3) xor (ftrue(99)!=0))
         bvalue = ((ub1 and ub2) and (ftrue(99)!=0))
+        bvalue = (((ub1 xor ub2) xor ub3) xor btrue(99))
+        bvalue = ((ub1 and ub2) and btrue(99))
         return
          */
-        stmts.size shouldBe 11
+        stmts.size shouldBe 13
         val assignValue1 = (stmts[7] as Assignment).value as BinaryExpression
         val assignValue2 = (stmts[8] as Assignment).value as BinaryExpression
         val assignValue3 = (stmts[9] as Assignment).value as BinaryExpression
+        val assignValue4 = (stmts[10] as Assignment).value as BinaryExpression
+        val assignValue5 = (stmts[11] as Assignment).value as BinaryExpression
         assignValue1.operator shouldBe "xor"
         assignValue2.operator shouldBe "xor"
         assignValue3.operator shouldBe "and"
+        assignValue4.operator shouldBe "xor"
+        assignValue5.operator shouldBe "and"
         val right2 = assignValue2.right as BinaryExpression
         val right3 = assignValue3.right as BinaryExpression
         right2.operator shouldBe "!="
@@ -113,6 +126,8 @@ main {
         right2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
         right3.left shouldBe instanceOf<IFunctionCall>()
         right3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        assignValue4.right shouldBe instanceOf<IFunctionCall>()
+        assignValue5.right shouldBe instanceOf<IFunctionCall>()
     }
 
     test("simple logical with byte instead of bool ok with typecasting") {

@@ -298,13 +298,15 @@ class TestOptimization: FunSpec({
         (initY2.value as NumericLiteral).number shouldBe 11.0
     }
 
-    test("various 'not' operator rewrites even without optimizations on") {
+    test("various 'not' operator rewrites even without optimizations") {
         val src = """
             main {
                 sub start() {
-                    ubyte a1
-                    ubyte a2
-                    a1 = not not a1             ; a1 = a1==0
+                    bool @shared a1
+                    bool @shared a2
+                    a1 = not a1                 ; a1 = a1==0
+                    a1 = not not a1             ; a1 = a1,  so removed totally
+                    a1 = not not not a1         ; a1 = a1==0
                     a1 = not a1 or not a2       ; a1 = a1==0 or a2==0
                     a1 = not a1 and not a2      ; a1 = a1==0 and a2==0
                 }
@@ -312,15 +314,48 @@ class TestOptimization: FunSpec({
         """
         val result = compileText(C64Target(), false, src, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 8
+        stmts.size shouldBe 9
 
         val value1 = (stmts[4] as Assignment).value as BinaryExpression
         val value2 = (stmts[5] as Assignment).value as BinaryExpression
         val value3 = (stmts[6] as Assignment).value as BinaryExpression
+        val value4 = (stmts[7] as Assignment).value as BinaryExpression
         value1.operator shouldBe "=="
         value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value2.operator shouldBe "or"
-        value3.operator shouldBe "and"
+        value2.operator shouldBe "=="
+        value2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        value3.operator shouldBe "or"
+        value4.operator shouldBe "and"
+    }
+
+    test("various 'not' operator rewrites with optimizations") {
+        val src = """
+            main {
+                sub start() {
+                    bool @shared a1
+                    bool @shared a2
+                    a1 = not a1                 ; a1 = a1==0
+                    a1 = not not a1             ; a1 = a1, so removed totally
+                    a1 = not not not a1         ; a1 = a1==0
+                    a1 = not a1 or not a2       ; a1 = a1==0 or a2==0
+                    a1 = not a1 and not a2      ; a1 = a1==0 and a2==0
+                }
+            }
+        """
+        val result = compileText(C64Target(), true, src, writeAssembly = true)!!
+        val stmts = result.compilerAst.entrypoint.statements
+        stmts.size shouldBe 9
+
+        val value1 = (stmts[4] as Assignment).value as BinaryExpression
+        val value2 = (stmts[5] as Assignment).value as BinaryExpression
+        val value3 = (stmts[6] as Assignment).value as BinaryExpression
+        val value4 = (stmts[7] as Assignment).value as BinaryExpression
+        value1.operator shouldBe "=="
+        value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        value2.operator shouldBe "=="
+        value2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        value3.operator shouldBe "or"
+        value4.operator shouldBe "and"
     }
 
     test("asmgen correctly deals with float typecasting in augmented assignment") {
