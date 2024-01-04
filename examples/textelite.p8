@@ -493,7 +493,7 @@ galaxy {
         ubyte current_planet = planet.number
         ubyte px = planet.x
         ubyte py = planet.y
-        uword current_name = &planet.name
+        str current_name = "        "       ; 8 max
         ubyte pn = 0
         uword scaling = 8
         if local
@@ -501,6 +501,7 @@ galaxy {
         if txt.width() > 60
             scaling /= 2
 
+        current_name = planet.name
         init(number)
         txt.clear_screen()
         txt.print("Galaxy #")
@@ -513,6 +514,10 @@ galaxy {
         ubyte max_distance = 255
         if local
             max_distance = ship.Max_fuel
+        ubyte home_sx
+        ubyte home_sy
+        ubyte home_distance
+
         do {
             generate_next_planet()
             ubyte distance = planet.distance(px, py)
@@ -532,19 +537,20 @@ galaxy {
                 ubyte char = '*'
                 if planet.number==current_planet
                     char = '%'
-                if local or planet.number==current_planet {
-                    txt.plot(2+sx-2, 2+sy+1)
-                    txt.print(current_name)
-                    if distance {
-                        txt.plot(2+sx-2, 2+sy+2)
-                        util.print_10s(distance)
-                        txt.print(" LY")
-                    }
+                if local {
+                    print_planet_details(planet.name, sx, sy, distance)
+                } else if planet.number==current_planet {
+                    home_distance = distance
+                    home_sx = sx
+                    home_sy = sy
                 }
                 txt.setchr(2+sx, 2+sy, char)
             }
             pn++
         } until pn==0
+
+        if not local
+            print_planet_details(current_name, home_sx, home_sy, home_distance)
 
         if txt.width() < 80
             txt.plot(0,20)
@@ -553,6 +559,16 @@ galaxy {
 
 
         travel_to(number, current_planet)
+
+        sub print_planet_details(str name, ubyte sx, ubyte sy, ubyte d) {
+            txt.plot(2+sx-2, 2+sy+1)
+            txt.print(name)
+            if d!=0 {
+                txt.plot(2+sx-2, 2+sy+2)
+                util.print_10s(d)
+                txt.print(" LY")
+            }
+        }
     }
 
     ubyte pn_pair1
