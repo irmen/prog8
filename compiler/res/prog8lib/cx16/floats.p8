@@ -27,7 +27,7 @@ romsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 100-101 
 romsub $fe03 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 
 romsub $fe06 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
-romsub $fe09 = VAL_1(uword string @XY, ubyte length @A) clobbers(A,X,Y) -> float @FAC1      ; convert ASCII string in XY and length in A, to floating point in FAC1. WARNING: not implemented in the ROM yet!
+romsub $fe09 = VAL_1(uword string @XY, ubyte length @A) clobbers(A,X,Y) -> float @FAC1      ; convert ASCII string in XY and length in A, to floating point in FAC1. WARNING: only implemented in ROM 47+. Safer to use floats.parse() instead.
 
 ; GETADR: fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
@@ -139,7 +139,7 @@ asmsub parse(str value @AY) -> float @FAC1 {
     ; -- parse a string value of a number to float in FAC1
     ;    warning: on older <R47 kernals it uses an internal BASIC routine that is ROM version dependent,
     ;    ($deb6 is inside the routine for VAL at $deb3)  See basic.sym from x16-rom
-    ;    TODO once VAL_1 is merged into the kernal properly, remove all the workarounds here
+    ;    TODO once ROM v47 is released, all the workarounds here can be removed. But probably keep the kernal VAL_1 existance check
     %asm {{
         ldx  VAL_1
         cpx  #$4c       ; is there an implementation in VAL_1? (test for JMP)

@@ -43,7 +43,7 @@ Compiler:
 
 Libraries:
 
-- once a VAL_1 implementation is merged into the X16 kernal properly, remove all the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
+- once kernal rom v47 is released, remove most of the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?
@@ -51,7 +51,6 @@ Libraries:
 
 Optimizations:
 
-- the many pha/pla's in AssignmentAsmGen added to the code size. Can they be tweaked better? Maybe they are not always required, how to detect that/use another register/tempvar/etc?
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,

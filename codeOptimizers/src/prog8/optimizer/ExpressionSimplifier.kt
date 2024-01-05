@@ -445,6 +445,14 @@ class ExpressionSimplifier(private val program: Program,
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
             }
         }
+        else if(functionCallExpr.target.nameInSource == listOf("string", "contains")) {
+            val target = (functionCallExpr.args[0] as? IdentifierReference)?.targetVarDecl(program)
+            if(target?.value is StringLiteral) {
+                errors.info("for actual strings, use a regular containment check instead: 'char in string'", functionCallExpr.position)
+                val contains = ContainmentCheck(functionCallExpr.args[1], functionCallExpr.args[0], functionCallExpr.position)
+                return listOf(IAstModification.ReplaceNode(functionCallExpr as Node, contains, parent))
+            }
+        }
 
         return noModifications
     }

@@ -5,56 +5,21 @@
 
 main {
     sub start() {
-        str s = "?"
-        s[0] = 's'
-        txt.print(s)
+        str s = "the quick brown fox jumps over the lazy dog."
+        uword sp = &s
+
+        cbm.SETTIM(0,0,0)
+        repeat 5000 {
+            cx16.r0L = 'v' in s
+        }
+        txt.print_uw(cbm.RDTIM16())
         txt.nl()
 
-        if 's' in s {
-            txt.print("ok1\n")
-        } else {
-            txt.print("fail1\n")
+        cbm.SETTIM(0,0,0)
+        repeat 5000 {
+            cx16.r0L = string.contains(s, 'v')
         }
-
-        void string.find(s, 's')
-        if_cs {
-            txt.print("ok2\n")
-        } else {
-            txt.print("fail2\n")
-        }
-
-        if string.contains(s, 's') {
-            txt.print("ok3\n")
-        } else {
-            txt.print("fail3\n")
-        }
-
-        if 'q' in s {
-            txt.print("ok1\n")
-        } else {
-            txt.print("fail1\n")
-        }
-
-        void string.find(s, 'q')
-        if_cs {
-            txt.print("ok2\n")
-        } else {
-            txt.print("fail2\n")
-        }
-
-        if string.contains(s, 'q') {
-            txt.print("ok3\n")
-        } else {
-            txt.print("fail3\n")
-        }
-
-        str buffer="?" * 20
-        str name = "irmen de jong"
-        string.left(name, 5, buffer)
-        txt.print(buffer)
-        txt.nl()
-        string.right(name, 4, buffer)
-        txt.print(buffer)
+        txt.print_uw(cbm.RDTIM16())
         txt.nl()
 
     }

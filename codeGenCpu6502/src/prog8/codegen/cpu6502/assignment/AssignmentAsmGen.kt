@@ -486,13 +486,24 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
+    private fun directIntoY(expr: PtExpression): Boolean {
+        return when(expr) {
+            is PtIdentifier -> true
+            is PtMachineRegister -> true
+            is PtNumber -> true
+            is PtBuiltinFunctionCall -> expr.name in arrayOf("lsb", "msb")
+            else -> false
+        }
+    }
+
     private fun optimizedRemainderExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
         when(expr.type) {
             DataType.UBYTE -> {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-                asmgen.out("  pha")
+                if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
-                asmgen.out("  pla |  jsr  math.divmod_ub_asm")
+                if(!directIntoY(expr.right)) asmgen.out("  pla")
+                asmgen.out("  jsr  math.divmod_ub_asm")
                 if(target.register==RegisterOrPair.A)
                     asmgen.out("  cmp  #0")     // fix the status register
                 else
@@ -513,17 +524,19 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when(expr.type) {
             DataType.UBYTE -> {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-                asmgen.out("  pha")
+                if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
-                asmgen.out("  pla |  jsr  math.divmod_ub_asm")
+                if(!directIntoY(expr.right)) asmgen.out("  pla")
+                asmgen.out("  jsr  math.divmod_ub_asm")
                 assignRegisterByte(target, CpuRegister.Y, false, true)
                 return true
             }
             DataType.BYTE -> {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, true)
-                asmgen.out("  pha")
+                if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, true)
-                asmgen.out("  pla |  jsr  math.divmod_b_asm")
+                if(!directIntoY(expr.right)) asmgen.out("  pla")
+                asmgen.out("  jsr  math.divmod_b_asm")
                 assignRegisterByte(target, CpuRegister.Y, true, true)
                 return true
             }
@@ -549,9 +562,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             when(expr.type) {
                 in ByteDatatypes -> {
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type in SignedDatatypes)
-                    asmgen.out("  pha")
+                    if(!directIntoY(expr.right)) asmgen.out("  pha")
                     assignExpressionToRegister(expr.right, RegisterOrPair.Y, expr.type in SignedDatatypes)
-                    asmgen.out("  pla |  jsr  math.multiply_bytes")
+                    if(!directIntoY(expr.right)) asmgen.out("  pla")
+                    asmgen.out("  jsr  math.multiply_bytes")
                     assignRegisterByte(target, CpuRegister.A, false, true)
                     return true
                 }
@@ -814,9 +828,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
                     } else {
                         assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
-                        asmgen.out("  pha")
-                        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)
-                        asmgen.out("  pla")
+                        if(directIntoY(right)) {
+                            assignExpressionToRegister(right, RegisterOrPair.Y, left.type==DataType.BYTE)
+                            asmgen.out("  sty  P8ZP_SCRATCH_B1")
+                        } else {
+                            asmgen.out("  pha")
+                            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", right.type)
+                            asmgen.out("  pla")
+                        }
                         if (expr.operator == "+")
                             asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
                         else
@@ -1005,9 +1024,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
 
             assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-            asmgen.out("  pha")
-            assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
-            asmgen.out("  pla")
+            if(directIntoY(expr.right)) {
+                assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
+                asmgen.out("  sty  P8ZP_SCRATCH_B1")
+            } else {
+                asmgen.out("  pha")
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                asmgen.out("  pla")
+            }
             when (expr.operator) {
                 "&" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
                 "|" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
@@ -1075,9 +1099,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             } else {
                 // normal evaluation into A
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-                asmgen.out("  pha")
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
-                asmgen.out("  pla")
+                if(directIntoY(expr.right)) {
+                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
+                    asmgen.out("  sty  P8ZP_SCRATCH_B1")
+                } else {
+                    asmgen.out("  pha")
+                    assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                    asmgen.out("  pla")
+                }
                 when (expr.operator) {
                     "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
                     "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")
@@ -1783,9 +1812,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun assignLogicalAndOrWithSimpleRightOperandByte(target: AsmAssignTarget, left: PtExpression, operator: String, right: PtExpression) {
         // normal evaluation, not worth to shortcircuit the simple right operand
         assignExpressionToRegister(left, RegisterOrPair.A, false)
-        asmgen.out("  pha")
-        assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
-        asmgen.out("  pla")
+        if(directIntoY(right)) {
+            assignExpressionToRegister(right, RegisterOrPair.Y, false)
+            asmgen.out("  sty  P8ZP_SCRATCH_B1")
+        } else {
+            asmgen.out("  pha")
+            assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+            asmgen.out("  pla")
+        }
         when (operator) {
             "and" -> asmgen.out("  and  P8ZP_SCRATCH_B1")
             "or" -> asmgen.out("  ora  P8ZP_SCRATCH_B1")

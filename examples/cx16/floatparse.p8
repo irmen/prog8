@@ -5,7 +5,7 @@
 
 main {
 
-    ; float parsing prototype  (remember, there's no official kernal VAL_1 routine to do this yet...)
+    ; float parsing prototype
 
     sub start() {
         f("")
