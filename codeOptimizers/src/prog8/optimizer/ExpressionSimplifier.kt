@@ -67,14 +67,12 @@ class ExpressionSimplifier(private val program: Program,
             }
             if(elsepart.statements.singleOrNull() is Jump) {
                 val invertedCondition = invertCondition(ifElse.condition)
-                if(invertedCondition!=null) {
-                    return listOf(
-                        IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse),
-                        IAstModification.InsertAfter(ifElse, truepart, parent as IStatementContainer),
-                        IAstModification.ReplaceNode(elsepart, AnonymousScope(mutableListOf(), elsepart.position), ifElse),
-                        IAstModification.ReplaceNode(truepart, elsepart, ifElse)
-                    )
-                }
+                return listOf(
+                    IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse),
+                    IAstModification.InsertAfter(ifElse, truepart, parent as IStatementContainer),
+                    IAstModification.ReplaceNode(elsepart, AnonymousScope(mutableListOf(), elsepart.position), ifElse),
+                    IAstModification.ReplaceNode(truepart, elsepart, ifElse)
+                )
             }
         }
 
@@ -319,23 +317,13 @@ class ExpressionSimplifier(private val program: Program,
         }
 
         if(rightVal!=null && leftDt==DataType.BOOL) {
-            // see if we can replace comparison against true/1 with simpler comparison against zero
-            if (expr.operator == "==") {
-                if (rightVal.number == 1.0) {
-                    val zero = NumericLiteral(DataType.UBYTE, 0.0, expr.right.position)
-                    return listOf(
-                        IAstModification.SetExpression({expr.operator="!="}, expr, parent),
-                        IAstModification.ReplaceNode(expr.right, zero, expr)
-                    )
-                }
-            }
-            if (expr.operator == "!=") {
-                if (rightVal.number == 1.0) {
-                    val zero = NumericLiteral(DataType.UBYTE, 0.0, expr.right.position)
-                    return listOf(
-                        IAstModification.SetExpression({expr.operator="=="}, expr, parent),
-                        IAstModification.ReplaceNode(expr.right, zero, expr)
-                    )
+            // boolean compare against a number -> just keep the boolean, no compare
+            if(expr.operator=="==" || expr.operator=="!=") {
+                val test = if (expr.operator == "==") rightVal.asBooleanValue else !rightVal.asBooleanValue
+                return if (test) {
+                    listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                } else {
+                    listOf(IAstModification.ReplaceNode(expr, invertCondition(expr.left), parent))
                 }
             }
         }

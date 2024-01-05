@@ -6,6 +6,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
+import prog8.ast.expressions.invertCondition
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.DataType
@@ -44,8 +45,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
 
         if(expr.operator=="^" && expr.left.inferType(program) istype DataType.BOOL && expr.right.constValue(program)?.number == 1.0) {
             // boolean ^ 1 --> not boolean
-            val notExpr = PrefixExpression("not", expr.left, expr.position)
-            return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
+            return listOf(IAstModification.ReplaceNode(expr, invertCondition(expr.left), parent))
         }
 
 

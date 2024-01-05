@@ -165,17 +165,18 @@ class IRStMemVar(name: String,
 
     val typeString: String
         get() = when (dt) {
+            DataType.BOOL -> "bool"
             DataType.UBYTE -> "ubyte"
             DataType.BYTE -> "byte"
             DataType.UWORD -> "uword"
             DataType.WORD -> "word"
             DataType.FLOAT -> "float"
-            DataType.BOOL, DataType.ARRAY_BOOL -> throw InternalCompilerException("bool should have been converted to ubyte")
-            DataType.ARRAY_UB, DataType.STR -> "ubyte[${length}]"
-            DataType.ARRAY_B -> "byte[${length}]"
-            DataType.ARRAY_UW -> "uword[${length}]"
-            DataType.ARRAY_W -> "word[${length}]"
-            DataType.ARRAY_F -> "float[${length}]"
+            DataType.ARRAY_BOOL -> "bool[$length]"
+            DataType.ARRAY_UB, DataType.STR -> "ubyte[$length]"
+            DataType.ARRAY_B -> "byte[$length]"
+            DataType.ARRAY_UW -> "uword[$length]"
+            DataType.ARRAY_W -> "word[$length]"
+            DataType.ARRAY_F -> "float[$length]"
             in SplitWordArrayTypes -> throw InternalCompilerException("@split can't be used on memory mapped arrays")
             else -> throw InternalCompilerException("weird dt")
         }
@@ -221,17 +222,18 @@ class IRStStaticVariable(name: String,
 
     val typeString: String
         get() = when (dt) {
+            DataType.BOOL -> "bool"
             DataType.UBYTE -> "ubyte"
             DataType.BYTE -> "byte"
             DataType.UWORD -> "uword"
             DataType.WORD -> "word"
             DataType.FLOAT -> "float"
-            DataType.BOOL, DataType.ARRAY_BOOL -> throw InternalCompilerException("bool should have been converted to ubyte")
-            DataType.ARRAY_UB, DataType.STR -> "ubyte[${length}]"
-            DataType.ARRAY_B -> "byte[${length}]"
-            DataType.ARRAY_UW -> "uword[${length}]"
-            DataType.ARRAY_W -> "word[${length}]"
-            DataType.ARRAY_F -> "float[${length}]"
+            DataType.ARRAY_BOOL -> "bool[$length]"
+            DataType.ARRAY_UB, DataType.STR -> "ubyte[$length]"
+            DataType.ARRAY_B -> "byte[$length]"
+            DataType.ARRAY_UW -> "uword[$length]"
+            DataType.ARRAY_W -> "word[$length]"
+            DataType.ARRAY_F -> "float[$length]"
             in SplitWordArrayTypes -> throw InternalCompilerException("split array should have been converted to 2 ubyte arrays")
             else -> throw InternalCompilerException("weird dt")
         }

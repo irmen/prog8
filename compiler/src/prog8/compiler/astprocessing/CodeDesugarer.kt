@@ -91,17 +91,15 @@ do { STUFF } until CONDITION
     ===>
 _loop:
   STUFF
-if CONDITION==0
+if not CONDITION
    goto _loop
          */
         val pos = untilLoop.position
         val loopLabel = program.makeLabel("untilloop", pos)
-        val ifCondition = invertCondition(untilLoop.condition)
-            ?: BinaryExpression(untilLoop.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, pos), pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
             untilLoop.body,
-            IfElse(ifCondition,
+            IfElse(invertCondition(untilLoop.condition),
                 AnonymousScope(mutableListOf(program.jumpLabel(loopLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos)
@@ -130,7 +128,7 @@ if CONDITION==0
 while CONDITION { STUFF }
     ==>
 _whileloop:
-  if INVERTED-CONDITION goto _after
+  if not CONDITION goto _after
   STUFF
   goto _whileloop
 _after:
@@ -138,11 +136,9 @@ _after:
         val pos = whileLoop.position
         val loopLabel = program.makeLabel("whileloop", pos)
         val afterLabel = program.makeLabel("afterwhile", pos)
-        val ifCondition = invertCondition(whileLoop.condition)
-            ?: BinaryExpression(whileLoop.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, pos), pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
-            IfElse(ifCondition,
+            IfElse(invertCondition(whileLoop.condition),
                 AnonymousScope(mutableListOf(program.jumpLabel(afterLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos),

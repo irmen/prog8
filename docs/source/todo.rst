@@ -1,7 +1,11 @@
 TODO
 ====
 
-[on branch 'booleans']: keep Bool alive longer until codegen? (don't replace by UBYTE so quickly?)
+consolidate the various type-to-string tables, look for:   DataType.BOOL -> "bool"
+
+"all other not(x)  -->  x==0"    SOMETIMES if removed, improves code, sometimes it makes it worse.
+ Find out what is what!   (paint)
+ ALSO: when adding a expr.issimple to that, it crashes with a parent node mismatch error. FIX THAT.
 
 ...
 

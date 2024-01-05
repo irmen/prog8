@@ -987,22 +987,18 @@ main {
         val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
-        val if1c = (st[4] as IfElse).condition as BinaryExpression
-        val if2c = (st[5] as IfElse).condition as BinaryExpression
-        val if3c = (st[6] as IfElse).condition as BinaryExpression
-        val if4c = (st[7] as IfElse).condition as BinaryExpression
-        if1c.operator shouldBe "=="
-        (if1c.right as NumericLiteral).number shouldBe 0.0
-        (if1c.left as BinaryExpression).operator shouldBe "or"
-        if2c.operator shouldBe "=="
-        (if2c.right as NumericLiteral).number shouldBe 0.0
-        (if2c.left as BinaryExpression).operator shouldBe "and"
-        if3c.operator shouldBe "=="
-        (if3c.right as NumericLiteral).number shouldBe 0.0
-        (if3c.left as BinaryExpression).operator shouldBe "and"
-        if4c.operator shouldBe "=="
-        (if4c.right as NumericLiteral).number shouldBe 0.0
-        (if4c.left as BinaryExpression).operator shouldBe "or"
+        val if1c = (st[4] as IfElse).condition as PrefixExpression
+        val if2c = (st[5] as IfElse).condition as PrefixExpression
+        val if3c = (st[6] as IfElse).condition as PrefixExpression
+        val if4c = (st[7] as IfElse).condition as PrefixExpression
+        if1c.operator shouldBe "not"
+        if2c.operator shouldBe "not"
+        if3c.operator shouldBe "not"
+        if4c.operator shouldBe "not"
+        (if1c.expression as BinaryExpression).operator shouldBe "or"
+        (if2c.expression as BinaryExpression).operator shouldBe "and"
+        (if3c.expression as BinaryExpression).operator shouldBe "and"
+        (if4c.expression as BinaryExpression).operator shouldBe "or"
     }
 
     test("absorption laws") {

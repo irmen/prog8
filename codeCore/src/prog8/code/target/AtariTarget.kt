@@ -18,7 +18,7 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
             in ByteDatatypes -> 1
             in WordDatatypes, in PassByReferenceDatatypes -> 2
             DataType.FLOAT -> machine.FLOAT_MEM_SIZE
-            else -> Int.MIN_VALUE
+            else -> throw IllegalArgumentException("invalid datatype")
         }
     }
 

@@ -95,7 +95,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     private fun datatypeString(dt: DataType): String {
         return when (dt) {
             in NumericDatatypes -> dt.toString().lowercase()
-            DataType.STR -> dt.toString().lowercase()
+            DataType.BOOL -> "bool"
+            DataType.STR -> "str"
             DataType.ARRAY_UB -> "ubyte["
             DataType.ARRAY_B -> "byte["
             DataType.ARRAY_UW -> "uword["

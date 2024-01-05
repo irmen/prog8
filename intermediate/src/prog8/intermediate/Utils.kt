@@ -7,12 +7,13 @@ import prog8.code.right
 
 
 fun getTypeString(dt : DataType): String = when(dt) {
+    DataType.BOOL -> "bool"
     DataType.UBYTE -> "ubyte"
     DataType.BYTE -> "byte"
     DataType.UWORD -> "uword"
     DataType.WORD -> "word"
     DataType.FLOAT -> "float"
-    DataType.BOOL, DataType.ARRAY_BOOL -> throw InternalCompilerException("bool should have been converted to ubyte")
+    DataType.ARRAY_BOOL -> "bool[]"
     DataType.ARRAY_UB, DataType.STR -> "ubyte[]"
     DataType.ARRAY_B -> "byte[]"
     DataType.ARRAY_UW -> "uword[]"

@@ -117,11 +117,10 @@ class StatementOptimizer(private val program: Program,
             if(jump is Jump) {
                 val newTruePart = AnonymousScope(mutableListOf(jump), ifElse.elsepart.position)
                 val newElsePart = AnonymousScope(ifElse.truepart.statements, ifElse.truepart.position)
-                val invertedCondition = PrefixExpression("not", ifElse.condition, ifElse.condition.position)
                 return listOf(
                     IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
                     IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
-                    IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse)
+                    IAstModification.ReplaceNode(ifElse.condition, invertCondition(ifElse.condition), ifElse)
                 )
             }
         }

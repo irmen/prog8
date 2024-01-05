@@ -475,17 +475,17 @@ main {
         st.size shouldBe 7
 
         val ifCond = (st[4] as IfElse).condition as BinaryExpression
-        ifCond.operator shouldBe "=="
-        (ifCond.right as NumericLiteral).number shouldBe 0.0
-        (ifCond.left as BinaryExpression).operator shouldBe "<"
+        ifCond.operator shouldBe ">="
+        (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("n")
+        (ifCond.right as IdentifierReference).nameInSource shouldBe listOf("x")
         val assign1 = (st[5] as Assignment).value as BinaryExpression
         val assign2 = (st[6] as Assignment).value as BinaryExpression
-        assign1.operator shouldBe "=="
-        (assign1.right as NumericLiteral).number shouldBe 0.0
-        (assign1.left as BinaryExpression).operator shouldBe "<"
-        assign2.operator shouldBe "=="
-        (assign2.right as NumericLiteral).number shouldBe 0.0
-        (assign2.left as BinaryExpression).operator shouldBe "<"
+        assign1.operator shouldBe ">="
+        (assign1.left as IdentifierReference).nameInSource shouldBe listOf("n")
+        (assign1.right as IdentifierReference).nameInSource shouldBe listOf("x")
+        assign2.operator shouldBe ">="
+        (assign1.left as IdentifierReference).nameInSource shouldBe listOf("n")
+        (assign1.right as IdentifierReference).nameInSource shouldBe listOf("x")
     }
 
     test("modulo is not directive") {

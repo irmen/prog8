@@ -683,7 +683,13 @@ class FunctionCallArgs(
     val returns: RegSpec?
 ) {
     class RegSpec(val dt: IRDataType, val registerNum: Int, val cpuRegister: RegisterOrStatusflag?)
-    class ArgumentSpec(val name: String, val address: Int?, val reg: RegSpec)
+    class ArgumentSpec(val name: String, val address: Int?, val reg: RegSpec) {
+        init {
+            require(address==null || address>=0) {
+                "address must be >=0"
+            }
+        }
+    }
 }
 
 data class IRInstruction(
@@ -758,6 +764,9 @@ data class IRInstruction(
                 require(immediate != null || immediateFp != null || labelSymbol!=null) { "missing immediate value or labelsymbol" }
             else
                 require(immediate != null || immediateFp != null) { "missing immediate value" }
+        }
+        require(address==null || address>=0) {
+            "address must be >=0"
         }
 
         reg1direction = format.reg1

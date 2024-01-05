@@ -9,7 +9,7 @@ internal object CbmMemorySizer: IMemSizer {
             in ByteDatatypes -> 1
             in WordDatatypes, in PassByReferenceDatatypes -> 2
             DataType.FLOAT -> Mflpt5.FLOAT_MEM_SIZE
-            else -> Int.MIN_VALUE
+            else -> throw IllegalArgumentException("invalid datatype")
         }
     }
 
