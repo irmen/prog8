@@ -474,8 +474,12 @@ main {
         ifCond.operator shouldBe ">="
         (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("n")
         (ifCond.right as IdentifierReference).nameInSource shouldBe listOf("x")
-        val assign1 = (st[5] as Assignment).value as BinaryExpression
-        val assign2 = (st[6] as Assignment).value as BinaryExpression
+        val tc1 = (st[5] as Assignment).value as TypecastExpression
+        val tc2 = (st[6] as Assignment).value as TypecastExpression
+        tc1.type shouldBe DataType.UBYTE
+        tc2.type shouldBe DataType.UBYTE
+        val assign1 = tc1.expression as BinaryExpression
+        val assign2 = tc2.expression as BinaryExpression
         assign1.operator shouldBe ">="
         (assign1.left as IdentifierReference).nameInSource shouldBe listOf("n")
         (assign1.right as IdentifierReference).nameInSource shouldBe listOf("x")

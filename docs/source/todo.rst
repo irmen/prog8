@@ -1,6 +1,10 @@
 TODO
 ====
 
+in TypeCastAdder, in after(assignment...,  there was a second "special case" that avoided a typecast for boolean comparisons. Did it help? Should it come back?
+same in VariousCleanups, in after(typecast ...
+
+
 fix crash:  ubyte[]    cycle_reverseflags[num_cycles] = flags & 2 != 0  (imageviewer)
 
 no automatic casting of bool to ubyte/uword.  Like there is no automatic casting of ubyte to bool.
@@ -27,18 +31,12 @@ replace UBYTE 0 or 1 constant numbers by actual BOOL type (if appropriate)
 if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint
 remove all ==0  and ==1 checks added to boolean expressions
 
-is optimizing this useful? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
+is this De Morgan's optimization still useful? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
 
 boolean trick to go from a compare >= value, to a bool
     cmp #value
 	rol  a
 	and  #1
-
-expressionsimplifier used to contain:
-        // boolvar & 1  --> boolvar
-        // boolvar & N  --> false
-but there's something similar for ^ in NotExpressionAndIfComparisonExprChanger ?
-
 
 maze:
   if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0

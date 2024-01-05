@@ -37,9 +37,6 @@ class Memory {
     }
 
     fun setUW(address: Int, value: UShort) {
-        require(address>=0) {
-            "ronk"
-        }
         mem[address+1]  = (value.toInt() ushr 8).toUByte()
         mem[address] = value.toUByte()
     }

@@ -107,9 +107,9 @@ class TestOptimization: FunSpec({
                     bool @shared a2
                     a1 = not a1                 ; a1 = not a1
                     a1 = not not a1             ; a1 = a1,  so removed totally
-                    a1 = not not not a1         ; a1 = a1==0
-                    a1 = not a1 or not a2       ; a1 = (a1 and a2)==0
-                    a1 = not a1 and not a2      ; a1 = (a1 or a2)==0
+                    a1 = not not not a1         ; a1 = not a1
+                    a1 = not a1 or not a2       ; a1 = not (a1 and a2)
+                    a1 = not a1 and not a2      ; a1 = not (a1 or a2)
                 }
             }
         """
@@ -117,20 +117,18 @@ class TestOptimization: FunSpec({
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 9
 
-        val value1 = (stmts[4] as Assignment).value as BinaryExpression
-        val value2 = (stmts[5] as Assignment).value as BinaryExpression
-        val value3 = (stmts[6] as Assignment).value as BinaryExpression
-        val value4 = (stmts[7] as Assignment).value as BinaryExpression
-        value1.operator shouldBe "=="
-        value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value2.operator shouldBe "=="
-        value2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value3.operator shouldBe "=="
-        value3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        (value3.left as BinaryExpression).operator shouldBe "and"
-        value4.operator shouldBe "=="
-        value4.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        (value4.left as BinaryExpression).operator shouldBe "or"
+        val value1 = (stmts[4] as Assignment).value as PrefixExpression
+        val value2 = (stmts[5] as Assignment).value as PrefixExpression
+        val value3 = (stmts[6] as Assignment).value as PrefixExpression
+        val value4 = (stmts[7] as Assignment).value as PrefixExpression
+        value1.operator shouldBe "not"
+        value2.operator shouldBe "not"
+        value3.operator shouldBe "not"
+        value4.operator shouldBe "not"
+        value1.expression shouldBe instanceOf<IdentifierReference>()
+        value2.expression shouldBe instanceOf<IdentifierReference>()
+        (value3.expression as BinaryExpression).operator shouldBe "and"
+        (value4.expression as BinaryExpression).operator shouldBe "or"
     }
 
     test("various 'not' operator rewrites with optimizations") {
@@ -140,10 +138,10 @@ class TestOptimization: FunSpec({
                     bool @shared a1
                     bool @shared a2
                     a1 = not a1                 ; a1 = not a1
-                    a1 = not not a1             ; a1 = a1, so removed totally
-                    a1 = not not not a1         ; a1 = a1==0
-                    a1 = not a1 or not a2       ; a1 = (a1 and a2)==0
-                    a1 = not a1 and not a2      ; a1 = (a1 or a2)==0
+                    a1 = not not a1             ; a1 = a1,  so removed totally
+                    a1 = not not not a1         ; a1 = not a1
+                    a1 = not a1 or not a2       ; a1 = not (a1 and a2)
+                    a1 = not a1 and not a2      ; a1 = not (a1 or a2)
                 }
             }
         """
@@ -151,20 +149,18 @@ class TestOptimization: FunSpec({
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 9
 
-        val value1 = (stmts[4] as Assignment).value as BinaryExpression
-        val value2 = (stmts[5] as Assignment).value as BinaryExpression
-        val value3 = (stmts[6] as Assignment).value as BinaryExpression
-        val value4 = (stmts[7] as Assignment).value as BinaryExpression
-        value1.operator shouldBe "=="
-        value1.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value2.operator shouldBe "=="
-        value2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        value3.operator shouldBe "=="
-        value3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        (value3.left as BinaryExpression).operator shouldBe "and"
-        value4.operator shouldBe "=="
-        value4.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        (value4.left as BinaryExpression).operator shouldBe "or"
+        val value1 = (stmts[4] as Assignment).value as PrefixExpression
+        val value2 = (stmts[5] as Assignment).value as PrefixExpression
+        val value3 = (stmts[6] as Assignment).value as PrefixExpression
+        val value4 = (stmts[7] as Assignment).value as PrefixExpression
+        value1.operator shouldBe "not"
+        value2.operator shouldBe "not"
+        value3.operator shouldBe "not"
+        value4.operator shouldBe "not"
+        value1.expression shouldBe instanceOf<IdentifierReference>()
+        value2.expression shouldBe instanceOf<IdentifierReference>()
+        (value3.expression as BinaryExpression).operator shouldBe "and"
+        (value4.expression as BinaryExpression).operator shouldBe "or"
     }
 
     test("asmgen correctly deals with float typecasting in augmented assignment") {

@@ -23,7 +23,6 @@ internal class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncod
                     else -> throw InternalCompilerException("weird dt")
                 }
 
-            require(memsize>0)
             allocations[variable.name] = nextLocation
             nextLocation += memsize
         }

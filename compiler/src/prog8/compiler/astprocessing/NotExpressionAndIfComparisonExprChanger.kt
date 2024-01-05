@@ -6,10 +6,8 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
-import prog8.ast.expressions.invertCondition
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.DataType
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 import prog8.code.core.IntegerDatatypesWithBoolean
@@ -42,12 +40,6 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                 }
             }
         }
-
-        if(expr.operator=="^" && expr.left.inferType(program) istype DataType.BOOL && expr.right.constValue(program)?.number == 1.0) {
-            // boolean ^ 1 --> not boolean
-            return listOf(IAstModification.ReplaceNode(expr, invertCondition(expr.left, program), parent))
-        }
-
 
         // applying De Morgan's laws proved beneficial for the code generator,
         // when the code has one outer 'not' instead of two inner ones.
@@ -121,6 +113,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                 }
             }
         }
+
         return noModifications
     }
 }
