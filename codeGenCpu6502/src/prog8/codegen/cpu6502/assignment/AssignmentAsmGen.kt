@@ -1898,33 +1898,29 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         }
         when(dt) {
             DataType.STR -> {
-                // use subroutine
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
-                asmgen.out("  pha")
+                asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #${numElements-1}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
-                return
             }
             DataType.ARRAY_F -> {
-                throw AssemblyError("containment check of floats not supported")
+                TODO("containment check of floats")
             }
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
-                asmgen.out("  pha")
+                asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
-                return
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
                 assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
-                return
             }
             else -> throw AssemblyError("invalid dt")
         }

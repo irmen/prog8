@@ -20,22 +20,19 @@ string {
         }}
     }
 
-    asmsub left(uword source @R0, ubyte length @A, uword target @R1) clobbers(A, Y) {
+    asmsub left(uword source @AX, ubyte length @Y, uword target @R1) clobbers(A, Y) {
         ; Copies the left side of the source string of the given length to target string.
         ; It is assumed the target string buffer is large enough to contain the result.
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
         %asm {{
-                ; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
-		ldy  cx16.r0
-		sty  P8ZP_SCRATCH_W1
-		ldy  cx16.r0+1
-		sty  P8ZP_SCRATCH_W1+1
-		ldy  cx16.r1
-		sty  P8ZP_SCRATCH_W2
-		ldy  cx16.r1+1
-		sty  P8ZP_SCRATCH_W2+1
-		tay
+		; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
+		sta  P8ZP_SCRATCH_W1
+		stx  P8ZP_SCRATCH_W1+1
+		lda  cx16.r1
+		sta  P8ZP_SCRATCH_W2
+		lda  cx16.r1+1
+		sta  P8ZP_SCRATCH_W2+1
 		lda  #0
 		sta  (P8ZP_SCRATCH_W2),y
 		cpy  #0
@@ -51,16 +48,16 @@ _loop		dey
 ;                asmgen.out("  jsr  prog8_lib.func_leftstr")
     }
 
-    asmsub right(uword source @R0, ubyte length @A, uword target @R1) clobbers(A,Y) {
+    asmsub right(uword source @AY, ubyte length @X, uword target @R1) clobbers(A,Y) {
         ; Copies the right side of the source string of the given length to target string.
         ; It is assumed the target string buffer is large enough to contain the result.
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
         %asm {{
                 ; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
-                sta  P8ZP_SCRATCH_B1
-                lda  cx16.r0
-                ldy  cx16.r0+1
+                stx  P8ZP_SCRATCH_B1
+                sta  cx16.r0
+                sty  cx16.r0+1
                 jsr  string.length
                 tya
                 sec
@@ -128,16 +125,14 @@ _startloop	dey
         }}
     }
 
-    asmsub find(uword string @R0, ubyte character @A) -> ubyte @A, bool @Pc {
+    asmsub find(uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
         ; Locates the first position of the given character in the string,
         ; returns Carry set if found + index in A, or A=0 + Carry clear if not found.
         %asm {{
-                ; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
-                sta  P8ZP_SCRATCH_B1
-		lda  cx16.r0
-		ldy  cx16.r0+1
+		; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
+		stx  P8ZP_SCRATCH_B1
 		ldy  #0
 -		lda  (P8ZP_SCRATCH_W1),y
 		beq  _notfound
@@ -151,6 +146,13 @@ _notfound	lda  #0
 _found	tya
         sec
         rts
+        }}
+    }
+
+    asmsub contains(uword string @AY, ubyte character @X) -> bool @Pc {
+        ; Just return true/false if the character is in the given string or not.
+        %asm {{
+            jmp  find
         }}
     }
 

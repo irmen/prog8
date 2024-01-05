@@ -65,6 +65,13 @@ string {
         return 0
     }
 
+    sub contains(str st, ubyte character) -> bool {
+        void find(st, character)
+        if_cs
+            return true
+        return false
+    }
+
     sub copy(str source, str target) -> ubyte {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.

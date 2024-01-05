@@ -258,6 +258,10 @@ Provides string manipulation routines.
     Simply call this and only act on the carry status with ``if_cc`` for example.
     Much like the difference between len(str) and length(str).
 
+``contains (string, char) -> bool``
+    Just returns true if the character is in the given string, or false if it's not.
+    For string literals, you can use a containment check expression instead: ``char in "hello world"``.
+
 ``compare (string1, string2) -> ubyte result``
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
     Note that you can also directly compare strings and string values with each other

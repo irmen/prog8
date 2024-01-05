@@ -225,19 +225,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 val array = (containment.iterable as ArrayLiteral).value
                 return checkArray(array)
             }
-            is IdentifierReference -> {
-                val variable = (containment.iterable as IdentifierReference).targetVarDecl(program)
-                when(variable?.datatype) {
-                    DataType.STR -> {
-                        val stringVal = (variable.value as StringLiteral)
-                        return checkString(stringVal)
-                    }
-                    in ArrayDatatypes -> {
-                        return checkArray(variable!!)
-                    }
-                    else -> {}
-                }
-            }
             is RangeExpression -> {
                 val constValues = (containment.iterable as RangeExpression).toConstantIntegerRange()
                 if(constValues!=null) {
