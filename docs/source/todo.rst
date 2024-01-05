@@ -1,10 +1,9 @@
 TODO
 ====
 
-fix crash:  @(&var_string+10)="...\x00"
-
-make the breakpoint instruction selectable (BRK vs STP)
-
+"all other not(x)  -->  x==0"    SOMETIMES if removed, improves code, sometimes it makes it worse.
+ Find out what is what!   (paint)
+ ALSO: when adding a expr.issimple to that, it crashes with a parent node mismatch error. FIX THAT.
 
 ...
 
@@ -13,8 +12,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
-  that will allow them to be reused from custom user written assembly code as well.
+- get rid of the noshortcircuit fallback option and code.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
@@ -35,7 +33,6 @@ Compiler:
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
-- ir: fix call() return value handling
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
@@ -47,9 +44,6 @@ Compiler:
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit and/or my binaryen kotlin library?
 - add Vic20 target?
-- split words arrays all()
-- split words arrays sort()
-
 
 Libraries:
 
@@ -65,7 +59,7 @@ Optimizations:
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
-- optimizeCommonSubExpressions: currently only looks in expressions on a single line, could search across multiple expressions
+
 
 STRUCTS again?
 --------------
