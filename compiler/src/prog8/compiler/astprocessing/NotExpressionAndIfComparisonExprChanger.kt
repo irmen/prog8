@@ -45,7 +45,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
 
         if(expr.operator=="^" && expr.left.inferType(program) istype DataType.BOOL && expr.right.constValue(program)?.number == 1.0) {
             // boolean ^ 1 --> not boolean
-            return listOf(IAstModification.ReplaceNode(expr, invertCondition(expr.left), parent))
+            return listOf(IAstModification.ReplaceNode(expr, invertCondition(expr.left, program), parent))
         }
 
 
@@ -121,10 +121,11 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                 }
             }
 
-            // all other not(x)  -->  x==0
-            // this means that "not" will never occur anywhere again in the ast after this
-            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral(DataType.UBYTE,0.0, expr.position), expr.position)
-            return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
+            // not simpleX -> simpleX==0
+            if(expr.expression.isSimple) {
+                val replacement = BinaryExpression(expr.expression.copy(),"==", NumericLiteral(DataType.UBYTE, 0.0, expr.position), expr.position)
+                return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
+            }
         }
         return noModifications
     }

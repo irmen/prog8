@@ -90,6 +90,14 @@ internal class BoolRemover(val program: Program) : AstWalker() {
 
     override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
         if(expr.operator=="not") {
+            val binExpr = expr.expression as? BinaryExpression
+            if(binExpr!=null) {
+                val invertedOperator = invertedComparisonOperator(binExpr.operator)
+                if(invertedOperator!=null) {
+                    val inverted = BinaryExpression(binExpr.left, invertedOperator, binExpr.right, binExpr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, inverted, parent))
+                }
+            }
             val exprDt = expr.expression.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
             val nonBoolDt = if(exprDt==DataType.BOOL) DataType.UBYTE else exprDt
             val equalZero = BinaryExpression(expr.expression, "==", NumericLiteral(nonBoolDt, 0.0, expr.expression.position), expr.expression.position)

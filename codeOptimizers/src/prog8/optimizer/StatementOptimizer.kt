@@ -120,7 +120,7 @@ class StatementOptimizer(private val program: Program,
                 return listOf(
                     IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
                     IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
-                    IAstModification.ReplaceNode(ifElse.condition, invertCondition(ifElse.condition), ifElse)
+                    IAstModification.ReplaceNode(ifElse.condition, invertCondition(ifElse.condition, program), ifElse)
                 )
             }
         }

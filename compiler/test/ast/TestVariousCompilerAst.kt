@@ -211,14 +211,12 @@ main {
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 3
-        val value1 = (stmts[1] as Assignment).value as BinaryExpression
-        val value2 = (stmts[2] as Assignment).value as BinaryExpression
-        value1.operator shouldBe "=="
-        value1.left shouldBe instanceOf<ContainmentCheck>()
-        (value1.right as NumericLiteral).number shouldBe 0.0
-        value2.operator shouldBe "=="
-        value2.left shouldBe instanceOf<ContainmentCheck>()
-        (value2.right as NumericLiteral).number shouldBe 0.0
+        val value1 = (stmts[1] as Assignment).value as PrefixExpression
+        val value2 = (stmts[2] as Assignment).value as PrefixExpression
+        value1.operator shouldBe "not"
+        value2.operator shouldBe "not"
+        value1.expression shouldBe instanceOf<ContainmentCheck>()
+        value2.expression shouldBe instanceOf<ContainmentCheck>()
     }
 
     test("const pointer variable indexing works") {

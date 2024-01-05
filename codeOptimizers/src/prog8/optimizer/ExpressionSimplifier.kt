@@ -66,7 +66,7 @@ class ExpressionSimplifier(private val program: Program,
                 )
             }
             if(elsepart.statements.singleOrNull() is Jump) {
-                val invertedCondition = invertCondition(ifElse.condition)
+                val invertedCondition = invertCondition(ifElse.condition, program)
                 return listOf(
                     IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse),
                     IAstModification.InsertAfter(ifElse, truepart, parent as IStatementContainer),
@@ -323,7 +323,7 @@ class ExpressionSimplifier(private val program: Program,
                 return if (test) {
                     listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
                 } else {
-                    listOf(IAstModification.ReplaceNode(expr, invertCondition(expr.left), parent))
+                    listOf(IAstModification.ReplaceNode(expr, invertCondition(expr.left, program), parent))
                 }
             }
         }
@@ -333,6 +333,22 @@ class ExpressionSimplifier(private val program: Program,
 
         return noModifications
     }
+
+    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator=="not") {
+            // not  X <compare> Y  ->   X <invertedcompare> Y
+            val binExpr = expr.expression as? BinaryExpression
+            if(binExpr!=null) {
+                val invertedOperator = invertedComparisonOperator(binExpr.operator)
+                if(invertedOperator!=null) {
+                    val inverted = BinaryExpression(binExpr.left, invertedOperator, binExpr.right, binExpr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, inverted, parent))
+                }
+            }
+        }
+        return noModifications
+    }
+
 
     private fun applyAbsorptionLaws(expr: BinaryExpression): Expression? {
         val rightB = expr.right as? BinaryExpression

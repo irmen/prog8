@@ -6,21 +6,27 @@ import prog8.code.left
 import prog8.code.right
 
 
-fun getTypeString(dt : DataType): String = when(dt) {
-    DataType.BOOL -> "bool"
-    DataType.UBYTE -> "ubyte"
-    DataType.BYTE -> "byte"
-    DataType.UWORD -> "uword"
-    DataType.WORD -> "word"
-    DataType.FLOAT -> "float"
-    DataType.ARRAY_BOOL -> "bool[]"
-    DataType.ARRAY_UB, DataType.STR -> "ubyte[]"
-    DataType.ARRAY_B -> "byte[]"
-    DataType.ARRAY_UW -> "uword[]"
-    DataType.ARRAY_W -> "word[]"
-    DataType.ARRAY_F -> "float[]"
-    in SplitWordArrayTypes ->  throw InternalCompilerException("split array should have been converted to 2 ubyte arrays")
-    else -> throw InternalCompilerException("weird dt")
+fun DataType.typeString(length: Int?): String {
+    val lengthStr = if(length==0) "" else length.toString()
+    return when (this) {
+        DataType.BOOL -> "bool"
+        DataType.UBYTE -> "ubyte"
+        DataType.BYTE -> "byte"
+        DataType.UWORD -> "uword"
+        DataType.WORD -> "word"
+        DataType.LONG -> "long"
+        DataType.FLOAT -> "float"
+        DataType.STR -> "ubyte[$lengthStr]"              // here string doesn't exist as a seperate datatype anymore
+        DataType.ARRAY_BOOL -> "bool[$lengthStr]"
+        DataType.ARRAY_UB -> "ubyte[$lengthStr]"
+        DataType.ARRAY_B -> "byte[$lengthStr]"
+        DataType.ARRAY_UW -> "uword[$lengthStr]"
+        DataType.ARRAY_W -> "word[$lengthStr]"
+        DataType.ARRAY_F -> "float[$lengthStr]"
+        DataType.ARRAY_UW_SPLIT -> "@split uword[$lengthStr]"      // should be 2 separate byte arrays by now really
+        DataType.ARRAY_W_SPLIT -> "@split word[$lengthStr]"        // should be 2 separate byte arrays by now really
+        DataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
+    }
 }
 
 fun convertIRType(typestr: String): IRDataType? {

@@ -94,8 +94,13 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     private fun datatypeString(dt: DataType): String {
         return when (dt) {
-            in NumericDatatypes -> dt.toString().lowercase()
             DataType.BOOL -> "bool"
+            DataType.UBYTE -> "ubyte"
+            DataType.BYTE -> "byte"
+            DataType.UWORD -> "uword"
+            DataType.WORD -> "word"
+            DataType.LONG -> "long"
+            DataType.FLOAT -> "float"
             DataType.STR -> "str"
             DataType.ARRAY_UB -> "ubyte["
             DataType.ARRAY_B -> "byte["
@@ -105,7 +110,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             DataType.ARRAY_BOOL -> "bool["
             DataType.ARRAY_UW_SPLIT -> "@split uword["
             DataType.ARRAY_W_SPLIT -> "@split word["
-            else -> throw IllegalArgumentException("weird dt: $dt")
+            DataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
         }
     }
 

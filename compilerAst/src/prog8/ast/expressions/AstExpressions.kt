@@ -1257,12 +1257,15 @@ class BuiltinFunctionCall(override var target: IdentifierReference,
     override fun inferType(program: Program) = program.builtinFunctions.returnType(name)
 }
 
-fun invertCondition(cond: Expression): Expression {
+fun invertCondition(cond: Expression, program: Program): Expression {
     if(cond is BinaryExpression) {
         val invertedOperator = invertedComparisonOperator(cond.operator)
         if (invertedOperator != null)
             return BinaryExpression(cond.left, invertedOperator, cond.right, cond.position)
     }
 
-    return PrefixExpression("not", cond, cond.position)
+    return if(cond.inferType(program).isBool)
+        PrefixExpression("not", cond, cond.position)
+    else
+        BinaryExpression(cond, "==", NumericLiteral(DataType.UBYTE, 0.0, cond.position), cond.position)
 }

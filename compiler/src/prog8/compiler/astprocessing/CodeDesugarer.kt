@@ -99,7 +99,7 @@ if not CONDITION
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
             untilLoop.body,
-            IfElse(invertCondition(untilLoop.condition),
+            IfElse(invertCondition(untilLoop.condition, program),
                 AnonymousScope(mutableListOf(program.jumpLabel(loopLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos)
@@ -138,7 +138,7 @@ _after:
         val afterLabel = program.makeLabel("afterwhile", pos)
         val replacement = AnonymousScope(mutableListOf(
             loopLabel,
-            IfElse(invertCondition(whileLoop.condition),
+            IfElse(invertCondition(whileLoop.condition, program),
                 AnonymousScope(mutableListOf(program.jumpLabel(afterLabel)), pos),
                 AnonymousScope(mutableListOf(), pos),
                 pos),

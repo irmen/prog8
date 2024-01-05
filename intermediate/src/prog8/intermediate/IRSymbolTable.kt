@@ -1,7 +1,10 @@
 package prog8.intermediate
 
 import prog8.code.*
-import prog8.code.core.*
+import prog8.code.core.DataType
+import prog8.code.core.Encoding
+import prog8.code.core.ZeropageWish
+import prog8.code.core.internedStringsModuleName
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -163,23 +166,7 @@ class IRStMemVar(name: String,
         }
     }
 
-    val typeString: String
-        get() = when (dt) {
-            DataType.BOOL -> "bool"
-            DataType.UBYTE -> "ubyte"
-            DataType.BYTE -> "byte"
-            DataType.UWORD -> "uword"
-            DataType.WORD -> "word"
-            DataType.FLOAT -> "float"
-            DataType.ARRAY_BOOL -> "bool[$length]"
-            DataType.ARRAY_UB, DataType.STR -> "ubyte[$length]"
-            DataType.ARRAY_B -> "byte[$length]"
-            DataType.ARRAY_UW -> "uword[$length]"
-            DataType.ARRAY_W -> "word[$length]"
-            DataType.ARRAY_F -> "float[$length]"
-            in SplitWordArrayTypes -> throw InternalCompilerException("@split can't be used on memory mapped arrays")
-            else -> throw InternalCompilerException("weird dt")
-        }
+    val typeString: String = dt.typeString(length)
 }
 
 class IRStMemorySlab(
@@ -220,23 +207,7 @@ class IRStStaticVariable(name: String,
 
     val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null
 
-    val typeString: String
-        get() = when (dt) {
-            DataType.BOOL -> "bool"
-            DataType.UBYTE -> "ubyte"
-            DataType.BYTE -> "byte"
-            DataType.UWORD -> "uword"
-            DataType.WORD -> "word"
-            DataType.FLOAT -> "float"
-            DataType.ARRAY_BOOL -> "bool[$length]"
-            DataType.ARRAY_UB, DataType.STR -> "ubyte[$length]"
-            DataType.ARRAY_B -> "byte[$length]"
-            DataType.ARRAY_UW -> "uword[$length]"
-            DataType.ARRAY_W -> "word[$length]"
-            DataType.ARRAY_F -> "float[$length]"
-            in SplitWordArrayTypes -> throw InternalCompilerException("split array should have been converted to 2 ubyte arrays")
-            else -> throw InternalCompilerException("weird dt")
-        }
+    val typeString: String = dt.typeString(length)
 }
 
 class IRStArrayElement(val number: Double?, val addressOfSymbol: String?) {

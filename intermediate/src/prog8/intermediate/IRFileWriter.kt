@@ -105,7 +105,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                         xml.writeCharacters("\n")
                         xml.writeStartElement("PARAMS")
                         xml.writeCharacters("\n")
-                        child.parameters.forEach { param -> xml.writeCharacters("${getTypeString(param.dt)} ${param.name}\n") }
+                        child.parameters.forEach { param -> xml.writeCharacters("${param.dt.typeString(null)} ${param.name}\n") }
                         xml.writeEndElement()
                         xml.writeCharacters("\n")
                         child.chunks.forEach { chunk ->
