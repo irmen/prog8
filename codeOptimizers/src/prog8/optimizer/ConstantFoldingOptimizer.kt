@@ -233,10 +233,14 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 }
                 else if(leftBinExpr.operator=="*" && rightBinExpr.operator=="*"){
                     if (c1 != null && c2 != null && c1==c2) {
-                        //(X * C) <plusmin> (Y * C)  =>  (X <plusmin> Y) * C
-                        val xwithy = BinaryExpression(leftBinExpr.left, expr.operator, rightBinExpr.left, expr.position)
-                        val newExpr = BinaryExpression(xwithy, "*", c1, expr.position)
-                        modifications += IAstModification.ReplaceNode(expr, newExpr, parent)
+                        //(X * C) <plusmin> (Y * C)  =>  (X <plusmin> Y) * C    (only if types of X and Y are the same!)
+                        val xDt = leftBinExpr.left.inferType(program)
+                        val yDt = rightBinExpr.left.inferType(program)
+                        if(xDt==yDt) {
+                            val xwithy = BinaryExpression(leftBinExpr.left, expr.operator, rightBinExpr.left, expr.position)
+                            val newExpr = BinaryExpression(xwithy, "*", c1, expr.position)
+                            modifications += IAstModification.ReplaceNode(expr, newExpr, parent)
+                        }
                     }
                 }
             }
