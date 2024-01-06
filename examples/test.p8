@@ -5,22 +5,38 @@
 
 main {
     sub start() {
-        str s = "the quick brown fox jumps over the lazy dog."
-        uword sp = &s
+        uword @shared uw = $3f2f
 
-        cbm.SETTIM(0,0,0)
-        repeat 5000 {
-            cx16.r0L = 'v' in s
-        }
-        txt.print_uw(cbm.RDTIM16())
-        txt.nl()
+        if uw & $0800
+            txt.print("ok1\n")
 
-        cbm.SETTIM(0,0,0)
-        repeat 5000 {
-            cx16.r0L = string.contains(s, 'v')
-        }
-        txt.print_uw(cbm.RDTIM16())
-        txt.nl()
+        if uw & 8
+            txt.print("ok2\n")
 
+        if uw & $0800 ==0
+            txt.print("fail1\n")
+
+        if uw & $0800 !=0
+            txt.print("ok3\n")
+
+        if uw & 8 ==0
+            txt.print("fail2\n")
+
+        if uw & 8 !=0
+            txt.print("ok4\n")
+
+
+
+        if uw & $ff00 == $3f00
+            txt.print("ok5\n")
+
+        if uw & $ff00 != $3f00
+            txt.print("fail5\n")
+
+        if uw & $00ff == $002f
+            txt.print("ok6\n")
+
+        if uw & $00ff != $002f
+            txt.print("fail6\n")
     }
 }
