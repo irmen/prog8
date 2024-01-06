@@ -626,10 +626,25 @@ class ExpressionSimplifier(private val program: Program,
                         return expr.left
                     }
                 }
+                256.0 -> {
+                    when(leftDt) {
+                        DataType.UBYTE -> return NumericLiteral(DataType.UBYTE, 0.0, expr.position)
+                        DataType.BYTE -> return null        // is either 0 or -1 we cannot tell here
+                        DataType.UWORD, DataType.WORD -> {
+                            // just use:  msb(value) as type
+                            val msb = BuiltinFunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                            return if(leftDt==DataType.WORD)
+                                TypecastExpression(msb, DataType.BYTE, true, expr.position)
+                            else
+                                TypecastExpression(msb, DataType.UWORD, true, expr.position)
+                        }
+                        else -> return null
+                    }
+                }
                 in powersOfTwo -> {
                     if (leftDt==DataType.UBYTE || leftDt==DataType.UWORD) {
                         // Unsigned number divided by a power of two => shift right
-                        // Signed number can't simply be bitshifted in this case (due to rounding issues for negative values),
+                        // Signed number can't simply be bitshifted in this case (due to rounding issues for negative values),  TODO is this correct???
                         // so we leave that as is and let the code generator deal with it.
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
@@ -791,8 +806,8 @@ class ExpressionSimplifier(private val program: Program,
             }
             DataType.UWORD -> {
                 if (amount >= 16) {
-                    errors.warn("shift always results in 0", expr.position)
-                    return NumericLiteral.optimalInteger(0, expr.position)
+                    errors.err("useless to shift by more than 15 bits", expr.position)
+                    return null
                 }
                 else if(amount==8) {
                     // shift right by 8 bits is just a byte operation: msb(X) as uword
@@ -806,10 +821,19 @@ class ExpressionSimplifier(private val program: Program,
                 }
             }
             DataType.WORD -> {
-                // bit-shifting a signed value shouldn't be allowed by the compiler but here we go...
-                if (amount > 16) {
-                    expr.right = NumericLiteral.optimalInteger(16, expr.right.position)
+                if (amount >= 16) {
+                    errors.err("useless to shift by more than 15 bits", expr.position)
                     return null
+                }
+                else if(amount == 8) {
+                    // shift right by 8 bits is just a byte operation: msb(X) as byte
+                    val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                    return TypecastExpression(msb, DataType.BYTE, true, expr.position)
+                }
+                else if(amount > 8) {
+                    // same as above but with residual shifts.
+                    val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                    return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position), DataType.BYTE, true, expr.position)
                 }
             }
             else -> {

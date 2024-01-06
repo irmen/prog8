@@ -1,3 +1,4 @@
+%import textio
 %import syslib
 %import test_stack
 %import conv
@@ -29,7 +30,7 @@ main {
             draw_lines_hiddenremoval()
             ; draw_lines()
 
-            anglex += 217
+            anglex += 317
             angley -= 505
             anglez += 452
 
@@ -58,25 +59,10 @@ main {
             cx16.GRAPH_put_next_char(c)
     }
 
-    asmsub print_number_gfx(ubyte num @ A) clobbers(A,X,Y) {
-    	%asm {{
-            jsr  conv.ubyte2decimal
-            phx
-            pha
-            cpy  #'0'
-            beq  +
-            tya
-            jsr  cx16.GRAPH_put_char
-            pla
-            jsr  cx16.GRAPH_put_char
-            bra  _ones
-+           pla
-            cmp  #'0'
-            beq  _ones
-            jsr  cx16.GRAPH_put_char
-_ones       pla
-            jmp  cx16.GRAPH_put_char
-    	}}
+    sub print_number_gfx(ubyte num) {
+        conv.str_ub(num)
+        for cx16.r9L in conv.string_out
+            cx16.GRAPH_put_next_char(cx16.r9L)
     }
 
     const uword screen_width = 320

@@ -679,6 +679,29 @@ main  {
         stmts.size shouldBe 3
     }
 
+    test("ubyte to word casts") {
+        var src="""
+main {
+    sub start() {
+        ubyte @shared bb = 255
+        cx16.r0s = (bb as byte) as word     ; should result in -1 word value
+        cx16.r1s = (bb as word)             ; should result in 255 word value
+    }
+}"""
+
+        val result = compileText(C64Target(), true, src, writeAssembly = false)!!
+        val stmts = result.compilerAst.entrypoint.statements
+        stmts.size shouldBe 4
+        val assign1tc = (stmts[2] as Assignment).value as TypecastExpression
+        val assign2tc = (stmts[3] as Assignment).value as TypecastExpression
+        assign1tc.type shouldBe DataType.WORD
+        assign2tc.type shouldBe DataType.WORD
+        assign2tc.expression shouldBe instanceOf<IdentifierReference>()
+        val assign1subtc = (assign1tc.expression as TypecastExpression)
+        assign1subtc.type shouldBe DataType.BYTE
+        assign1subtc.expression shouldBe instanceOf<IdentifierReference>()
+    }
+
     test("add missing & to function arguments") {
         val text="""
             main  {

@@ -2092,20 +2092,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
-        if(valueDt==DataType.UBYTE || valueDt==DataType.BOOL) {
+        if(valueDt in ByteDatatypes) {
             when(target.register) {
                 RegisterOrPair.A,
                 RegisterOrPair.X,
                 RegisterOrPair.Y -> {
                     // 'cast' an ubyte value to a byte register; no cast needed at all
-                    return assignExpressionToRegister(value, target.register, false)
+                    return assignExpressionToRegister(value, target.register, valueDt in SignedDatatypes)
                 }
                 RegisterOrPair.AX,
                 RegisterOrPair.AY,
                 RegisterOrPair.XY,
                 in Cx16VirtualRegisters -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, false)
-                    assignRegisterByte(target, CpuRegister.A, false, true)
+                    assignRegisterByte(target, CpuRegister.A, valueDt in SignedDatatypes, true)
                     return
                 }
                 else -> {}
@@ -2124,7 +2124,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 RegisterOrPair.XY,
                 in Cx16VirtualRegisters -> {
                     // 'cast' uword into a 16 bits register, just assign it
-                    return assignExpressionToRegister(value, target.register!!, false)
+                    return assignExpressionToRegister(value, target.register!!, targetDt in SignedDatatypes)
                 }
                 else -> {}
             }

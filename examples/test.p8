@@ -1,42 +1,56 @@
 %import textio
-%import string
+%import math
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        uword @shared uw = $3f2f
 
-        if uw & $0800
-            txt.print("ok1\n")
+        ubyte @shared bb = 255
+        txt.print_w((bb as byte) as word)       ; should print -1 !
+        txt.nl()
+        txt.print_w((bb as word))       ; should print 255 !
+        txt.nl()
+        txt.nl()
 
-        if uw & 8
-            txt.print("ok2\n")
+        bb= 30
+        word @shared offset=1000
+        cx16.r2s = (math.sin8u(bb) as word) + offset    ; 1213
+        txt.print_w(cx16.r2s)
+        txt.nl()
+        txt.nl()
 
-        if uw & $0800 ==0
-            txt.print("fail1\n")
+        ; expected results:
+        ; -96
+        ; -96
+        ; 947
+        ; 947
 
-        if uw & $0800 !=0
-            txt.print("ok3\n")
+        word @shared wcosa = 1111
+        word @shared wsinb = -22
 
-        if uw & 8 ==0
-            txt.print("fail2\n")
+        txt.print_w(wcosa*wsinb / 256)
+        txt.nl()
+        txt.print_w((wcosa*wsinb) >>8)
+        txt.nl()
 
-        if uw & 8 !=0
-            txt.print("ok4\n")
+        word[] rotatedz = [-11111,-12222,-13333,-14444,-15555]
+
+        word @shared persp1 = 1000 + rotatedz[2]/256
+        txt.print_w(persp1)
+        txt.nl()
+        persp1 = 1000 + (rotatedz[2]>>8)
+        txt.print_w(persp1)
+        txt.nl()
 
 
+;        ubyte[3]    cycle_reverseflags
+;
+;        ubyte @shared flags=2
+;        bool @shared b1
+;        bool @shared b2
+;
+;        cycle_reverseflags[1]= b1 and b2 ; flags & 2 != 0 as bool
 
-        if uw & $ff00 == $3f00
-            txt.print("ok5\n")
-
-        if uw & $ff00 != $3f00
-            txt.print("fail5\n")
-
-        if uw & $00ff == $002f
-            txt.print("ok6\n")
-
-        if uw & $00ff != $002f
-            txt.print("fail6\n")
     }
 }
