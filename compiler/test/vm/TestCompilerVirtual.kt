@@ -93,7 +93,7 @@ mylabel0:
             goto mylabel0
         }
 
-        while cx16.r0 {
+        while cx16.r0==0 {
 mylabel1:
             goto mylabel1
         }
@@ -101,7 +101,7 @@ mylabel1:
         do {
 mylabel2:
             goto mylabel2
-        } until cx16.r0
+        } until cx16.r0==1
 
         repeat cx16.r0 {
 mylabel3:
@@ -322,7 +322,6 @@ main {
             goto ending
         if_cs
             goto ending
-        if cx16.r0 goto ending
         if cx16.r0==0 goto ending
         if cx16.r0!=0 goto ending
         if cx16.r0s>0 goto ending
@@ -331,12 +330,12 @@ main {
     }
 }"""
         val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 9
+        result.compilerAst.entrypoint.statements.size shouldBe 8
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irProgram = IRFileReader().read(virtfile)
         val start = irProgram.blocks[0].children[0] as IRSubroutine
         val instructions = start.chunks.flatMap { c->c.instructions }
-        instructions.size shouldBe 13
+        instructions.size shouldBe 11
         instructions.last().opcode shouldBe Opcode.RETURN
     }
 

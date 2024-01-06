@@ -70,7 +70,7 @@ diskio {
             void cbm.CHRIN()     ; skip 2 bytes
             void cbm.CHRIN()
             status = cbm.READST()
-            if cbm.STOP2()
+            if cbm.STOP2()!=0
                 break
         }
         status = cbm.READST()
@@ -210,14 +210,14 @@ io_error:
             ubyte blocks_lsb = cbm.CHRIN()
             ubyte blocks_msb = cbm.CHRIN()
 
-            if cbm.READST()
+            if cbm.READST()!=0
                 goto close_end
 
             list_blocks = mkword(blocks_msb, blocks_lsb)
 
             ; read until the filename starts after the first "
             while cbm.CHRIN()!='\"'  {
-                if cbm.READST()
+                if cbm.READST()!=0
                     goto close_end
             }
 
@@ -240,7 +240,7 @@ io_error:
             list_filetype[0] = cx16.r15L
             list_filetype[1] = cbm.CHRIN()
             list_filetype[2] = cbm.CHRIN()
-            while cbm.CHRIN() {
+            while cbm.CHRIN()!=0 {
                 ; read the rest of the entry until the end
             }
 
@@ -250,7 +250,7 @@ io_error:
             if not list_skip_disk_name {
                 if list_pattern==0
                     return true
-                if string.pattern_match(list_filename, list_pattern)
+                if string.pattern_match(list_filename, list_pattern)!=0
                     return true
             }
             list_skip_disk_name = false
@@ -315,7 +315,7 @@ close_end:
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
 
         uword readsize
-        while num_bytes {
+        while num_bytes!=0 {
             readsize = 255
             if num_bytes<readsize
                 readsize = num_bytes
@@ -327,7 +327,7 @@ close_end:
             if msb(bufferpointer) == $c0
                 bufferpointer = mkword($a0, lsb(bufferpointer))  ; wrap over bank boundary
             num_bytes -= readsize
-            if cbm.READST() & $40 {
+            if cbm.READST() & $40 !=0 {
                 f_close()       ; end of file, close it
                 break
             }
@@ -341,10 +341,10 @@ byte_read_loop:         ; fallback if MACPTR isn't supported on the device
             lda  bufferpointer+1
             sta  m_in_buffer+2
         }}
-        while num_bytes {
-            if cbm.READST() {
+        while num_bytes!=0 {
+            if cbm.READST()!=0 {
                 f_close()
-                if cbm.READST() & $40    ; eof?
+                if cbm.READST() & $40 !=0    ; eof?
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
             }
@@ -371,7 +371,7 @@ m_in_buffer     sta  $ffff
 
         reset_read_channel()
         uword total_read = 0
-        while not cbm.READST() {
+        while cbm.READST()==0 {
             cx16.r0 = f_read(bufferpointer, 256)
             total_read += cx16.r0
             bufferpointer += cx16.r0
@@ -506,7 +506,7 @@ no_mciout:
             goto io_error
         void cbm.CHKIN(15)        ; use #15 as input channel
 
-        while not cbm.READST() {
+        while cbm.READST()==0 {
             cx16.r5L = cbm.CHRIN()
             if cx16.r5L=='\r' or cx16.r5L=='\n'
                 break
@@ -596,7 +596,7 @@ io_error:
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
-        if address_override
+        if address_override!=0
             secondary = 0
         if headerless
             secondary |= %00000010  ; activate cx16 kernal headerless load support
@@ -755,7 +755,7 @@ internal_vload:
         repeat 6 {
             void cbm.CHRIN()
         }
-        while cbm.CHRIN() {
+        while cbm.CHRIN()!=0 {
             ; skip first line (drive label)
         }
         while cbm.CHRIN()!='"' {

@@ -31,7 +31,7 @@ sys {
 
     sub internal_stringcopy(uword source, uword tgt) {
         ; Called when the compiler wants to assign a string value to another string.
-        while @(source) {
+        while @(source)!=0 {
             @(tgt) = @(source)
             source++
             tgt++

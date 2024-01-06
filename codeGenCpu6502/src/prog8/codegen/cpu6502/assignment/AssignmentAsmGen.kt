@@ -455,8 +455,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     private fun attemptAssignOptimizedBinexpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         val translatedOk = when (expr.operator) {
             in ComparisonOperators -> optimizedComparison(expr, assign)
-            in setOf("&", "|", "^") -> optimizedBitwiseExpr(expr, assign.target)
-            in setOf("and", "or", "xor") -> optimizedLogicalExpr(expr, assign.target)
+            in LogicalOperators -> optimizedLogicalExpr(expr, assign.target)
+            in BitwiseOperators -> optimizedBitwiseExpr(expr, assign.target)
             "+", "-" -> optimizedPlusMinExpr(expr, assign.target)
             "<<", ">>" -> optimizedBitshiftExpr(expr, assign.target)
             "*" -> optimizedMultiplyExpr(expr, assign.target)
@@ -2046,7 +2046,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when(value) {
             is PtIdentifier -> {
                 if(targetDt in WordDatatypes) {
-                    if(valueDt==DataType.UBYTE) {
+                    if(valueDt==DataType.UBYTE || valueDt==DataType.BOOL) {
                         assignVariableUByteIntoWord(target, value)
                         return
                     }
@@ -2190,10 +2190,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     } else if(valueDt in WordDatatypes && targetDt in WordDatatypes) {
                         // word to word, just assign
                         assignExpressionToRegister(value, target.register!!, valueDt in SignedDatatypes)
-                    } else if(valueDt in ByteDatatypes && targetDt in ByteDatatypes) {
+                    } else if(valueDt in ByteDatatypesWithBoolean && targetDt in ByteDatatypes) {
                         // byte to byte, just assign
                         assignExpressionToRegister(value, target.register!!, valueDt in SignedDatatypes)
-                    } else if(valueDt in ByteDatatypes && targetDt in WordDatatypes) {
+                    } else if(valueDt in ByteDatatypesWithBoolean && targetDt in WordDatatypes) {
                         // byte to word, just assign
                         assignExpressionToRegister(value, target.register!!, valueDt==DataType.WORD)
                     } else

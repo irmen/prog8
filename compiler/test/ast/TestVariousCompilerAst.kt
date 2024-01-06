@@ -285,23 +285,23 @@ main
 {
     sub start()
     {
-        ubyte variable=55
+        ubyte @shared variable=55
         when variable
         {
             33 -> cx16.r0++
             else -> cx16.r1++
         }
 
-        if variable {
+        if variable!=0 {
             cx16.r0++
         } else {
             cx16.r1++
         }
 
-        if variable { cx16.r0++ }
+        if variable!=0 { cx16.r0++ }
         else { cx16.r1++ }
 
-        if variable
+        if variable!=0
         {
             cx16.r0++
         }
@@ -354,10 +354,8 @@ main
 
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 3
+        errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "use if"
-        errors.errors[1] shouldContain "value must be"
-        errors.errors[2] shouldContain "value must be"
     }
 
     test("char as str param is error") {

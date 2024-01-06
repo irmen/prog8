@@ -491,7 +491,7 @@ log2_tab
         repeat length {
             cx16.r0H ^= @(cx16.r1)
             repeat 8 {
-                if cx16.r0H & $80 {
+                if cx16.r0H & $80 !=0 {
                     cx16.r0 <<= 1
                     cx16.r0 ^= $1021
                 }
@@ -513,7 +513,7 @@ log2_tab
         repeat length {
             cx16.r1H ^= @(cx16.r2)
             repeat 8 {
-                if cx16.r1H & $80 {
+                if cx16.r1H & $80 !=0 {
                     cx16.r0 <<= 1
                     rol(cx16.r1)
                     cx16.r1 ^= $04c1

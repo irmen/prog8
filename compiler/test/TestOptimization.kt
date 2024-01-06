@@ -211,7 +211,7 @@ class TestOptimization: FunSpec({
         val src="""
             main {
                 sub start()  {
-                    if cx16.r0 {
+                    if cx16.r0!=0 {
                         uword xx            ; to be removed
                         cx16.r0 = 0
                     }

@@ -5,16 +5,16 @@ in TypeCastAdder, in after(assignment...,  there was a second "special case" tha
 same in VariousCleanups, in after(typecast ...
 
 
-fix crash:  ubyte[]    cycle_reverseflags[num_cycles] = flags & 2 != 0  (imageviewer)
+fix crash:  ubyte[]    cycle_reverseflags[num_cycles] = flags & 2 != 0    (array should be boolean, but that's not the point, it shouldn't crash)
 
-no automatic casting of bool to ubyte/uword.  Like there is no automatic casting of ubyte to bool.
+at first: no automatic casting of bool to ubyte/uword AT ALL .  Like there is no automatic casting of ubyte to bool AT ALL.
+this may be added back in later to maybe avoid many var==0 var!=0 comparisons.
 
-"in ByteDatatypes ->"  should probably be "in ByteDatatypesWithBoolean ->"  in more places.
-
+while integer!=0  should produce the same optimized asm as:  while boolean
+if not X -> test all variations with and without else
 while not guessed  -> can we get rid of the cmp?
 optimize byte/bool equals, optimize byte/bool not equals
 what does invert/inplace invert do on a bool? and bitwise operations?
-allow  not integer  to mean  integer==0
 vm stores boolean values inverted? stipple(true) doesn't print 1 , it prints 0 ...
 probably caused by the previous one: vm/textelite behaves wrong, doesn't show market at startup and 'g' map shows local map instead
 static bool var with initializer value (staticVariable2asm)
@@ -31,7 +31,7 @@ replace UBYTE 0 or 1 constant numbers by actual BOOL type (if appropriate)
 if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint
 remove all ==0  and ==1 checks added to boolean expressions
 
-is this De Morgan's optimization still useful? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
+is this De Morgan's optimization still useful in this branch? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
 
 boolean trick to go from a compare >= value, to a bool
     cmp #value

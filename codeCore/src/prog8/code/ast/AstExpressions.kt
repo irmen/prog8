@@ -190,7 +190,7 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
         get() = children[1] as PtExpression
 
     init {
-        if(operator in ComparisonOperators || operator in LogicalOperators)
+        if(operator in ComparisonOperators + LogicalOperators)
             require(type==DataType.BOOL)
         else
             require(type!=DataType.BOOL) { "no bool allowed for this operator $operator"}

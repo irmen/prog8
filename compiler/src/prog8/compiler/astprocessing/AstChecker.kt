@@ -144,12 +144,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(ifElse: IfElse) {
-        val dt = ifElse.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
-            val identifier = ifElse.condition as? IdentifierReference
-            if(identifier==null || identifier.targetStatement(program)!=null)
-                errors.err("condition value should be an integer type or bool", ifElse.condition.position)
-        }
+        if(!ifElse.condition.inferType(program).isBool)
+            errors.err("condition should be a boolean", ifElse.condition.position)
+
         super.visit(ifElse)
     }
 
@@ -468,22 +465,16 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(untilLoop: UntilLoop) {
-        val dt = untilLoop.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
-            val identifier = untilLoop.condition as? IdentifierReference
-            if(identifier==null || identifier.targetStatement(program)!=null)
-                errors.err("condition value should be an integer type or bool", untilLoop.condition.position)
-        }
+        if(!untilLoop.condition.inferType(program).isBool)
+            errors.err("condition should be a boolean", untilLoop.condition.position)
+
         super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        val dt = whileLoop.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
-            val identifier = whileLoop.condition as? IdentifierReference
-            if(identifier==null || identifier.targetStatement(program)!=null)
-                errors.err("condition value should be an integer type or bool", whileLoop.condition.position)
-        }
+        if(!whileLoop.condition.inferType(program).isBool)
+            errors.err("condition should be a boolean", whileLoop.condition.position)
+
         super.visit(whileLoop)
     }
 
@@ -1037,10 +1028,12 @@ internal class AstChecker(private val program: Program,
                 // expression with one side BOOL other side (U)BYTE is allowed; bool==byte
             } else if((expr.operator == "<<" || expr.operator == ">>") && (leftDt in WordDatatypes && rightDt in ByteDatatypes)) {
                 // exception allowed: shifting a word by a byte
+            } else if((expr.operator in BitwiseOperators) && (leftDt in IntegerDatatypes && rightDt in IntegerDatatypes)) {
+                // exception allowed: bitwise operations with any integers
             } else if((leftDt==DataType.UWORD && rightDt==DataType.STR) || (leftDt==DataType.STR && rightDt==DataType.UWORD)) {
                 // exception allowed: comparing uword (pointer) with string
             } else {
-                errors.err("left and right operands aren't the same type", expr.left.position)
+                errors.err("left and right operands aren't the same type", expr.position)
             }
         }
 
@@ -1439,7 +1432,7 @@ internal class AstChecker(private val program: Program,
             for((constvalue, pos) in constvalues) {
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", pos)
-                    constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", pos)
+                    constvalue.type !in IntegerDatatypesWithBoolean -> errors.err("choice value must be a byte or word", pos)
                     conditionType isnot constvalue.type -> {
                         if(conditionType.isKnown) {
                             if(conditionType.istype(DataType.BOOL)) {

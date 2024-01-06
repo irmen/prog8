@@ -426,13 +426,13 @@ main {
                     if bb < 0 {
                         bb ++
                     }
-                    if bb & 1 {
+                    if bb & 1 !=0 {
                         bb++
                     }
-                    if bb & 128 {
+                    if bb & 128 !=0 {
                         bb++
                     }
-                    if bb & 255 {
+                    if bb & 255 !=0 {
                         bb++
                     }
 
@@ -442,13 +442,13 @@ main {
                     if ww < 0 {
                         ww ++
                     }
-                    if ww & 1 {
+                    if ww & 1 !=0 {
                         ww++
                     }
-                    if ww & 32768 {
+                    if ww & 32768 != 0 {
                         ww++
                     }
-                    if ww & 65535 {
+                    if ww & 65535 != 0 {
                         ww++
                     }
                 }
@@ -473,10 +473,10 @@ main {
                         num_bytes++
                     }
         
-                    if bb as ubyte  {
+                    if bb as ubyte !=0  {
                         bb++
                     }
-                    if ww as uword  {
+                    if ww as uword !=0 {
                         ww++
                     }
                 }

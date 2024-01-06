@@ -918,7 +918,7 @@ class IRCodeGen(
         val goto = ifElse.ifScope.children.firstOrNull() as? PtJump
         when (condition) {
             is PtBinaryExpression -> {
-                if(condition.operator !in ComparisonOperators)
+                if(condition.operator !in ComparisonOperators+ LogicalOperators)
                     throw AssemblyError("if condition should only be a binary comparison expression")
 
                 val signed = condition.left.type in SignedDatatypes
@@ -1054,15 +1054,17 @@ class IRCodeGen(
         irDtLeft: IRDataType,
         goto: PtJump
     ) {
-        val condition = ifElse.condition as? PtBinaryExpression
-        if(condition==null) {
-            throw AssemblyError("expected condition")
+        if((ifElse.condition as? PtPrefix)?.operator=="not") {
+            TODO("if not X then jump")
 //            val tr = expressionEval.translateExpression(ifElse.condition)
 //            result += tr.chunks
 //            result += IRCodeChunk(null, null).also {
 //                it += IRInstruction(Opcode.CMPI, irDtLeft, reg1 = tr.resultReg, immediate = 0)      // was redundant CMP most likely
 //                it += branchInstr(goto, Opcode.BSTNE)
-//            }
+        }
+        val condition = ifElse.condition as? PtBinaryExpression
+        if(condition==null) {
+            throw AssemblyError("expected comparison expression")
         } else {
             val leftTr = expressionEval.translateExpression(condition.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -1299,7 +1301,16 @@ class IRCodeGen(
                     result += translateNode(ifElse.ifScope)
                     result += IRCodeChunk(afterIfLabel, null)
                 }
-            } else {
+            }
+            else if(condition.operator in LogicalOperators) {
+                when(condition.operator) {
+                    "and" -> TODO("if and - with McCarthy")
+                    "or" -> TODO("if or - with McCarty")
+                    "xor" -> TODO("if xor")
+                    else -> throw AssemblyError("invalid operator")
+                }
+            }
+            else {
                 // integer comparisons
                 branchDt = irDtLeft
                 val leftTr = expressionEval.translateExpression(condition.left)
@@ -1396,6 +1407,7 @@ class IRCodeGen(
                         }
                         else -> throw AssemblyError("invalid comparison operator")
                     }
+
                     if (ifElse.elseScope.children.isNotEmpty()) {
                         // if and else parts
                         val elseLabel = createLabelName()

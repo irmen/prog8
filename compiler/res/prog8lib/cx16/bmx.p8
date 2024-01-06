@@ -126,7 +126,7 @@ bmx {
         ; If you're saving the whole screen width, you can leave screenwidth at 0.
         ; Returns: success status. If false, error_message points to the error message string.
         error_message = 0
-        if compression {
+        if compression!=0 {
             error_message = "compression not supported"
             return false
         }
@@ -197,7 +197,7 @@ save_end:
         do {
             cx16.r4L = cbm.CHRIN()
             cx16.r4H = cbm.CHRIN()
-            if cx16.r3 {
+            if cx16.r3!=0 {
                 pokew(cx16.r3, cx16.r4)             ; into memory
                 cx16.r3+=2
             } else {
@@ -233,7 +233,7 @@ save_end:
     }
 
     sub read_scanline(uword size) {
-        while size {
+        while size!=0 {
             cx16.r0 = cx16.MACPTR(min(255, size) as ubyte, &cx16.VERA_DATA0, true)
             if_cs {
                 ; no MACPTR support
@@ -262,7 +262,7 @@ save_end:
         cx16.r2L = lsb(palette_entries)
         cx16.vaddr(1, $fa00+palette_start*2, 0, 1)
         do {
-            if cx16.r3 {
+            if cx16.r3!=0 {
                 cbm.CHROUT(@(cx16.r3))      ; from memory
                 cx16.r3++
                 cbm.CHROUT(@(cx16.r3))
@@ -282,7 +282,7 @@ save_end:
         cx16.vaddr(vbank, vaddr, 0, 1)
         cx16.r3 = bytes_per_scanline(width)         ; num bytes per image scanline
         cx16.r2 = 0
-        if screenwidth
+        if screenwidth!=0
             cx16.r2 = bytes_per_scanline(screenwidth-width)   ; num bytes padding per screen scanline
         repeat height {
             write_scanline(cx16.r3)
@@ -292,9 +292,9 @@ save_end:
         return cbm.READST()==0
 
         sub write_scanline(uword size) {
-            while size {
+            while size!=0 {
                 cx16.r0L = lsb(size)
-                if msb(size)
+                if msb(size)!=0
                     cx16.r0L = 0        ; 256 bytes
                 cx16.r0 = cx16.MCIOUT(cx16.r0L, &cx16.VERA_DATA0, true)
                 if_cs {

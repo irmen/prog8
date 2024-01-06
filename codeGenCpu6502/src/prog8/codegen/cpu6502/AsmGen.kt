@@ -747,7 +747,7 @@ class AsmGen6502Internal (
                     }
                     when(stmt.condition.type) {
                         in WordDatatypes -> translateWordEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, label)
-                        in ByteDatatypes -> translateByteEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, label)
+                        in ByteDatatypesWithBoolean -> translateByteEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, label)
                         else -> throw AssemblyError("weird condition dt")
                     }
                 } else {
@@ -755,7 +755,7 @@ class AsmGen6502Internal (
                     val endLabel = makeLabel("if_end")
                     when(stmt.condition.type) {
                         in WordDatatypes -> translateWordNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, endLabel)
-                        in ByteDatatypes -> translateByteNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, endLabel)
+                        in ByteDatatypesWithBoolean -> translateByteNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, endLabel)
                         else -> throw AssemblyError("weird condition dt")
                     }
                     translate(stmt.ifScope)
@@ -767,7 +767,7 @@ class AsmGen6502Internal (
                 val endLabel = makeLabel("if_end")
                 when(stmt.condition.type) {
                     in WordDatatypes -> translateWordNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, elseLabel)
-                    in ByteDatatypes -> translateByteNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, elseLabel)
+                    in ByteDatatypesWithBoolean -> translateByteNotEqualsOrJumpElsewhere(stmt.condition, zero, leftConst, zero, elseLabel)
                     else -> throw AssemblyError("weird condition dt")
                 }
                 translate(stmt.ifScope)
@@ -780,8 +780,8 @@ class AsmGen6502Internal (
     }
 
     private fun requireComparisonExpression(condition: PtExpression) {
-        if (!(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
-            throw AssemblyError("expected boolean comparison expression $condition")
+        if (!(condition is PtBinaryExpression && condition.operator in ComparisonOperators + LogicalOperators))
+            throw AssemblyError("expected boolean comparison expression")
     }
 
     private fun translate(stmt: PtRepeatLoop) {
@@ -1282,7 +1282,7 @@ $repeatLabel""")
     }
 
     private fun translateCompareAndJumpIfTrue(expr: PtBinaryExpression, jump: PtJump) {
-        if(expr.operator !in ComparisonOperators)
+        if(expr.operator !in ComparisonOperators + LogicalOperators)
             throw AssemblyError("must be comparison expression")
 
         // invert the comparison, so we can reuse the JumpIfFalse code generation routines

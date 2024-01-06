@@ -225,7 +225,12 @@ class BinaryExpression(
                     }
                 }
             }
-            "&", "|", "^" -> if(leftDt istype DataType.BOOL) InferredTypes.knownFor(DataType.UBYTE) else leftDt
+            "&", "|", "^" -> when(leftDt.getOr(DataType.UNDEFINED)) {
+                DataType.BYTE -> InferredTypes.knownFor(DataType.UBYTE)
+                DataType.WORD -> InferredTypes.knownFor(DataType.UWORD)
+                DataType.BOOL -> InferredTypes.knownFor(DataType.UBYTE)
+                else -> leftDt
+            }
             "and", "or", "xor", "not", "in", "not in",
             "<", ">",
             "<=", ">=",

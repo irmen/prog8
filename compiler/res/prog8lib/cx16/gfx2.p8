@@ -62,7 +62,7 @@ gfx2 {
         }
 
         init_mode(mode)
-        if active_mode
+        if active_mode!=0
             clear_screen(0)
     }
 
@@ -315,7 +315,7 @@ gfx2 {
         cx16.r14 = x1       ; internal plot X
 
         if dx >= dy {
-            if cx16.r1L {
+            if cx16.r1L!=0 {
                 repeat {
                     plot(cx16.r14, y1, color)
                     if cx16.r14==x2
@@ -342,7 +342,7 @@ gfx2 {
             }
         }
         else {
-            if cx16.r1L {
+            if cx16.r1L!=0 {
                 repeat {
                     plot(cx16.r14, y1, color)
                     if y1 == y2
@@ -705,7 +705,7 @@ gfx2 {
         push_stack(xx, xx, yy, 1)
         push_stack(xx, xx, yy + 1, -1)
         word left = 0
-        while cx16.r12L {
+        while cx16.r12L!=0 {
             pop_stack()
             xx = x1
             ; possible speed optimization: if mode==1 (256c) use vera autodecrement instead of pget(), but code bloat not worth it?
@@ -845,7 +845,7 @@ skip:
         when active_mode {
             1 -> {
                 ; lores 256c
-                while @(sctextptr) {
+                while @(sctextptr)!=0 {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     cx16.vaddr(charset_bank, chardataptr, 1, 1)
                     repeat 8 {
@@ -874,7 +874,7 @@ skip:
                 ; hires 4c
                 ; we're going to use a few cx16 registers to make sure every variable is in zeropage in the inner loop.
                 cx16.r11L = color
-                while @(sctextptr) {
+                while @(sctextptr)!=0 {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
                     cx16.vaddr(charset_bank, chardataptr, 1, true)  ; for reading the chardata from Vera data channel 1
                     position(xx, yy)              ; only calculated once, we update vera address in the loop instead

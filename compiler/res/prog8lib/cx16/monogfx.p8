@@ -162,7 +162,7 @@ _clear
         }
 
         ubyte separate_pixels = (8-lsb(xx)) & 7
-        if separate_pixels {
+        if separate_pixels!=0 {
             if dont_stipple_flag {
                 position(xx,yy)
                 cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
@@ -179,7 +179,7 @@ _clear
             }
             length -= separate_pixels
         }
-        if length {
+        if length!=0 {
             position(xx, yy)
             separate_pixels = lsb(length) & 7
             xx += length & $fff8
