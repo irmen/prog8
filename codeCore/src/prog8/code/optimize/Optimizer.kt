@@ -25,10 +25,16 @@ private fun walkAst(root: PtNode, act: (node: PtNode, depth: Int) -> Boolean) {
 private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorReporter): Int {
 
     fun extractableSubExpr(expr: PtExpression): Boolean {
-        return if(expr is PtBinaryExpression)
-            !expr.left.isSimple() || !expr.right.isSimple() || (expr.operator !in LogicalOperators && expr.operator !in BitwiseOperators)
+        val result = if(expr is PtBinaryExpression)
+            expr.type !in ByteDatatypes ||
+                    !expr.left.isSimple() ||
+                    !expr.right.isSimple() ||
+                    (expr.operator !in LogicalOperators && expr.operator !in BitwiseOperators)
+        else if (expr is PtArrayIndexer && expr.type !in ByteDatatypes)
+            true
         else
             !expr.isSimple()
+        return result
     }
 
     // for each Binaryexpression, recurse to find a common subexpression pair therein.
