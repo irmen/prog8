@@ -36,7 +36,7 @@ monogfx {
 
     sub clear_screen(ubyte color) {
         stipple(false)
-        if color
+        if color!=0
             color=255
         sys.gfx_clear(color)
     }
@@ -136,7 +136,7 @@ monogfx {
         cx16.r14 = x1       ; internal plot X
 
         if dx >= dy {
-            if cx16.r1L {
+            if cx16.r1L!=0 {
                 repeat {
                     plot(cx16.r14, y1, draw)
                     if cx16.r14==x2
@@ -163,7 +163,7 @@ monogfx {
             }
         }
         else {
-            if cx16.r1L {
+            if cx16.r1L!=0 {
                 repeat {
                     plot(cx16.r14, y1, draw)
                     if y1 == y2
@@ -340,7 +340,7 @@ monogfx {
             if dont_stipple_flag
                 sys.gfx_plot(xx, yy, 255)
             else {
-                if (xx ^ yy)&1
+                if (xx ^ yy)&1 !=0
                     sys.gfx_plot(xx, yy, 255)
                 else
                     sys.gfx_plot(xx, yy, 0)
@@ -407,7 +407,7 @@ monogfx {
         push_stack(xx, xx, yy, 1)
         push_stack(xx, xx, yy + 1, -1)
         word left = 0
-        while cx16.r12L {
+        while cx16.r12L!=0 {
             pop_stack()
             xx = x1
             while xx >= 0 {

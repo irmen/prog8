@@ -978,12 +978,19 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
 
         fun ifNonZeroIntThenJump_BinExpr(condition: PtBinaryExpression) {
+            if(condition.operator in LogicalOperators) {
+                val trCond = expressionEval.translateExpression(condition)
+                result += trCond.chunks
+                addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
+                return
+            }
+
+            val leftTr = expressionEval.translateExpression(condition.left)
+            val irDt = leftTr.dt
+            val signed = condition.left.type in SignedDatatypes
+            addToResult(result, leftTr, leftTr.resultReg, -1)
             val number = (condition.right as? PtNumber)?.number?.toInt()
             if(number!=null) {
-                val leftTr = expressionEval.translateExpression(condition.left)
-                val irDt = leftTr.dt
-                val signed = ifElse.condition.type in SignedDatatypes
-                addToResult(result, leftTr, leftTr.resultReg, -1)
                 val firstReg = leftTr.resultReg
                 when(condition.operator) {
                     "==" -> {
@@ -1008,15 +1015,7 @@ class IRCodeGen(
                             addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, labelSymbol = goto.identifier!!.name), null)
                     }
                 }
-            } else if(condition.operator in LogicalOperators) {
-                val trCond = expressionEval.translateExpression(condition)
-                result += trCond.chunks
-                addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
             } else {
-                val leftTr = expressionEval.translateExpression(condition.left)
-                val irDt = leftTr.dt
-                val signed = ifElse.condition.type in SignedDatatypes
-                addToResult(result, leftTr, leftTr.resultReg, -1)
                 val rightTr = expressionEval.translateExpression(condition.right)
                 addToResult(result, rightTr, rightTr.resultReg, -1)
                 val firstReg: Int
@@ -1130,6 +1129,7 @@ class IRCodeGen(
             ">=" -> elseBranch = Opcode.BLTS
             else -> throw AssemblyError("weird operator")
         }
+
         if (ifElse.elseScope.children.isNotEmpty()) {
             // if and else parts
             val elseLabel = createLabelName()
@@ -1163,20 +1163,21 @@ class IRCodeGen(
 
     private fun ifWithElse_IntegerCond(ifElse: PtIfElse): List<IRCodeChunkBase> {
         val result = mutableListOf<IRCodeChunkBase>()
-        val elseLabel = createLabelName()
-        val afterIfLabel = createLabelName()
         val hasElse = ifElse.elseScope.children.isNotEmpty()
 
         fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode) {
             val tr = expressionEval.translateExpression(condition)
             result += tr.chunks
             if(hasElse) {
+                val elseLabel = createLabelName()
+                val afterIfLabel = createLabelName()
                 addInstr(result, IRInstruction(jumpFalseOpcode, labelSymbol = elseLabel), null)
                 result += translateNode(ifElse.ifScope)
                 addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
                 result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
                 result += IRCodeChunk(afterIfLabel, null)
             } else {
+                val afterIfLabel = createLabelName()
                 addInstr(result, IRInstruction(jumpFalseOpcode, labelSymbol = afterIfLabel), null)
                 result += translateNode(ifElse.ifScope)
                 result += IRCodeChunk(afterIfLabel, null)
@@ -1184,13 +1185,17 @@ class IRCodeGen(
         }
 
         fun translateBinExpr(condition: PtBinaryExpression) {
-            val signed = ifElse.condition.type in SignedDatatypes
+            if(condition.operator in LogicalOperators)
+                return translateSimple(condition, Opcode.BSTEQ)
+
+            val signed = condition.left.type in SignedDatatypes
             val elseBranchFirstReg: Int
             val elseBranchSecondReg: Int
+            val number = (condition.right as? PtNumber)?.number?.toInt()
+
             val leftTr = expressionEval.translateExpression(condition.left)
             val branchDt = leftTr.dt
             addToResult(result, leftTr, leftTr.resultReg, -1)
-            val number = (condition.right as? PtNumber)?.number?.toInt()
             if (number!=null) {
                 val elseBranch: Opcode
                 var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
@@ -1209,21 +1214,26 @@ class IRCodeGen(
                     ">=" -> elseBranch = if(signed) Opcode.BLTS else Opcode.BLT
                     else -> throw AssemblyError("invalid comparison operator")
                 }
+
                 if (hasElse) {
                     // if and else parts
+                    val elseLabel = createLabelName()
+                    val afterIfLabel = createLabelName()
                     if(useCmpi) {
                         result += IRCodeChunk(null, null).also {
                             it += IRInstruction(Opcode.CMPI, branchDt, reg1 = leftTr.resultReg, immediate = number)
                             it += IRInstruction(elseBranch, labelSymbol = elseLabel)
                         }
-                    } else
+                    } else {
                         addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = leftTr.resultReg, immediate = number, labelSymbol = elseLabel), null)
+                    }
                     result += translateNode(ifElse.ifScope)
                     addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
                     result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
                     result += IRCodeChunk(afterIfLabel, null)
                 } else {
                     // only if part
+                    val afterIfLabel = createLabelName()
                     if(useCmpi) {
                         result += IRCodeChunk(null, null).also {
                             it += IRInstruction(Opcode.CMPI, branchDt, reg1 = leftTr.resultReg, immediate = number)
@@ -1234,8 +1244,6 @@ class IRCodeGen(
                     result += translateNode(ifElse.ifScope)
                     result += IRCodeChunk(afterIfLabel, null)
                 }
-            } else if(condition.operator in LogicalOperators) {
-                translateSimple(condition, Opcode.BSTEQ)
             } else {
                 val rightTr = expressionEval.translateExpression(condition.right)
                 val elseBranch: Opcode
@@ -1283,6 +1291,8 @@ class IRCodeGen(
 
                 if (hasElse) {
                     // if and else parts
+                    val elseLabel = createLabelName()
+                    val afterIfLabel = createLabelName()
                     if(useCmp) {
                         result += IRCodeChunk(null,null).also {
                             it += IRInstruction(Opcode.CMP, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg)
@@ -1297,6 +1307,7 @@ class IRCodeGen(
                     result += IRCodeChunk(afterIfLabel, null)
                 } else {
                     // only if part
+                    val afterIfLabel = createLabelName()
                     if(useCmp) {
                         result += IRCodeChunk(null,null).also {
                             it += IRInstruction(Opcode.CMP, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg)
