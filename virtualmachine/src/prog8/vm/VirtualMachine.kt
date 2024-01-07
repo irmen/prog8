@@ -19,7 +19,8 @@ Program to execute is not stored in the system memory, it's just a separate list
 65536 bytes of memory, thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
 Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC!!!
-                                             logical or arithmetic operations DO NOT AFFECT THE STATUS FLAGS UNLESS EXPLICITLY NOTED!
+                                             logical AND, OR, XOR also set the N and Z bits.
+                                             arithmetic operations DO NOT AFFECT THE STATUS FLAGS UNLESS EXPLICITLY NOTED!
 
  */
 
@@ -1633,112 +1634,154 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsANDR(i: IRInstruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
+        val value = (left and right).toInt()
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, (left and right).toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, (left and right).toUShort())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
     private fun InsAND(i: IRInstruction) {
+        val value: Int
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) and i.immediate!!.toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) and i.immediate!!.toUShort())
+            IRDataType.BYTE -> {
+                value = registers.getUB(i.reg1!!).toInt() and i.immediate!!
+                registers.setUB(i.reg1!!, value.toUByte())
+            }
+            IRDataType.WORD -> {
+                value = registers.getUW(i.reg1!!).toInt() and i.immediate!!
+                registers.setUW(i.reg1!!, value.toUShort())
+            }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
     private fun InsANDM(i: IRInstruction) {
+        val value: Int
         val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val left = memory.getUB(address)
                 val right = registers.getUB(i.reg1!!)
-                memory.setUB(address, left and right)
+                value = left.toInt() and right.toInt()
+                memory.setUB(address, value.toUByte())
             }
             IRDataType.WORD -> {
                 val left = memory.getUW(address)
                 val right = registers.getUW(i.reg1!!)
-                memory.setUW(address, left and right)
+                value = left.toInt() and right.toInt()
+                memory.setUW(address, value.toUShort())
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
     private fun InsORR(i: IRInstruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
+        val value = (left or right).toInt()
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, (left or right).toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, (left or right).toUShort())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
     private fun InsOR(i: IRInstruction) {
+        val value: Int
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) or i.immediate!!.toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) or i.immediate!!.toUShort())
+            IRDataType.BYTE -> {
+                value = registers.getUB(i.reg1!!).toInt() or i.immediate!!
+                registers.setUB(i.reg1!!, value.toUByte())
+            }
+            IRDataType.WORD -> {
+                value = registers.getUW(i.reg1!!).toInt() or i.immediate!!
+                registers.setUW(i.reg1!!, value.toUShort())
+            }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
     private fun InsORM(i: IRInstruction) {
+        val value: Int
         val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val left = memory.getUB(address)
                 val right = registers.getUB(i.reg1!!)
-                memory.setUB(address, left or right)
+                value = left.toInt() or right.toInt()
+                memory.setUB(address, value.toUByte())
             }
             IRDataType.WORD -> {
                 val left = memory.getUW(address)
                 val right = registers.getUW(i.reg1!!)
-                memory.setUW(address, left or right)
+                value = left.toInt() or right.toInt()
+                memory.setUW(address, value.toUShort())
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
     private fun InsXORR(i: IRInstruction) {
         val (left: UInt, right: UInt) = getLogicalOperandsU(i)
+        val value = (left xor right).toInt()
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, (left xor right).toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, (left xor right).toUShort())
+            IRDataType.BYTE -> registers.setUB(i.reg1!!, value.toUByte())
+            IRDataType.WORD -> registers.setUW(i.reg1!!, value.toUShort())
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
     private fun InsXOR(i: IRInstruction) {
+        val value: Int
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, registers.getUB(i.reg1!!) xor i.immediate!!.toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, registers.getUW(i.reg1!!) xor i.immediate!!.toUShort())
+            IRDataType.BYTE -> {
+                value = registers.getUB(i.reg1!!).toInt() xor i.immediate!!
+                registers.setUB(i.reg1!!, value.toUByte())
+            }
+            IRDataType.WORD -> {
+                value = registers.getUW(i.reg1!!).toInt() xor i.immediate!!
+                registers.setUW(i.reg1!!, value.toUShort())
+            }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
     private fun InsXORM(i: IRInstruction) {
+        val value: Int
         val address = i.address!!
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val left = memory.getUB(address)
                 val right = registers.getUB(i.reg1!!)
-                memory.setUB(address, left xor right)
+                value = left.toInt() xor right.toInt()
+                memory.setUB(address, value.toUByte())
             }
             IRDataType.WORD -> {
                 val left = memory.getUW(address)
                 val right = registers.getUW(i.reg1!!)
-                memory.setUW(address, left xor right)
+                value = left.toInt() xor right.toInt()
+                memory.setUW(address, value.toUShort())
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        statusbitsNZ(value, i.type!!)
         nextPc()
     }
 
