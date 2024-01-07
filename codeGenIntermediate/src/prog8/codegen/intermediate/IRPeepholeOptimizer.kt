@@ -330,7 +330,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                         changed = true
                     } else if (previous.opcode in OpcodesThatSetStatusbitsButNotCarry) {
                         val next = indexedInstructions[idx + 1].value
-                        if (next.opcode !in arrayOf(Opcode.BSTCC, Opcode.BSTCS, Opcode.BSTPOS, Opcode.BSTNEG)) {
+                        if (next.opcode !in OpcodesThatDependOnCarry) {
                             chunk.instructions.removeAt(idx)
                             changed = true
                         }

@@ -18,6 +18,7 @@ Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by t
                                              LOAD instructions DO affect the Z and N flags.
                                              INC/DEC instructions DO affect the Z and N flags,
                                              other instructions only affect Z an N flags if the value in a result register is written.
+                                             See OpcodesThatSetStatusbits
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
@@ -387,14 +388,14 @@ enum class Opcode {
     BREAKPOINT
 }
 
-val OpcodesThatJump = setOf(
+val OpcodesThatJump = arrayOf(
     Opcode.JUMP,
     Opcode.JUMPI,
     Opcode.RETURN,
     Opcode.RETURNR
 )
 
-val OpcodesThatBranch = setOf(
+val OpcodesThatBranch = arrayOf(
     Opcode.JUMP,
     Opcode.JUMPI,
     Opcode.RETURN,
@@ -424,11 +425,11 @@ val OpcodesThatBranch = setOf(
     Opcode.BLES
 )
 
-val OpcodesThatSetStatusbitsIncludingCarry = setOf(
+val OpcodesThatSetStatusbitsIncludingCarry = arrayOf(
     Opcode.CMP,
     Opcode.CMPI
 )
-val OpcodesThatSetStatusbitsButNotCarry = setOf(
+val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.LOAD,
     Opcode.LOADM,
     Opcode.LOADI,
@@ -438,8 +439,29 @@ val OpcodesThatSetStatusbitsButNotCarry = setOf(
     Opcode.INC,
     Opcode.INCM,
     Opcode.DEC,
-    Opcode.DECM
+    Opcode.DECM,
+    Opcode.ANDM,
+    Opcode.ANDR,
+    Opcode.AND,
+    Opcode.ORM,
+    Opcode.ORR,
+    Opcode.OR,
+    Opcode.XORM,
+    Opcode.XORR,
+    Opcode.XOR
 )
+
+val OpcodesThatDependOnCarry = arrayOf(
+    Opcode.BSTCC,
+    Opcode.BSTCS,
+    Opcode.BSTPOS,
+    Opcode.BSTNEG,
+    Opcode.ROXL,
+    Opcode.ROXLM,
+    Opcode.ROXR,
+    Opcode.ROXRM,
+)
+
 val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThatSetStatusbitsIncludingCarry
 
 
