@@ -1,23 +1,32 @@
 %import textio
-%import math
-%import floats
+;%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
 
-        ubyte[3]    cycle_reverseflags
-        bool[3]    cycle_reverseflags_b
         bool @shared bb
-        str name="zzzz"
-        ubyte @shared ubb
-        float @shared fl1 = 2.2
-        float @shared fl2 = 3.3
+        bool @shared bb2
+;        ubyte[3]    cycle_reverseflags
+;        bool[3]    cycle_reverseflags_b
+;        str name="zzzz"
+        ubyte @shared ubb=10
+;        float @shared fl1 = 2.2
+;        float @shared fl2 = 3.3
 
-        if ubb==42
-            goto $1000
+        bb=false
+        bb2=true
 
+        if bb and bb2
+            txt.print("true")
+        else
+            txt.print("false")
+
+        if not (bb and bb2)
+            txt.print("true")
+        else
+            txt.print("false")
 
 ;
 ;        ubyte @shared flags=2

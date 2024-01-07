@@ -142,7 +142,7 @@ val IterableDatatypes = arrayOf(
     DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT,
     DataType.ARRAY_F, DataType.ARRAY_BOOL
 )
-val PassByValueDatatypes = NumericDatatypes
+val PassByValueDatatypes = NumericDatatypesWithBoolean
 val PassByReferenceDatatypes = IterableDatatypes
 val ArrayToElementTypes = mapOf(
     DataType.STR to DataType.UBYTE,
