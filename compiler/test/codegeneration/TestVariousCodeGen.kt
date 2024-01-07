@@ -72,7 +72,6 @@ main {
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-
     test("ast result from compileText") {
         val text="""
 main {

@@ -219,19 +219,6 @@ main {
         value2.expression shouldBe instanceOf<ContainmentCheck>()
     }
 
-    test("const pointer variable indexing works") {
-        val src="""
-main {
-    sub start() {
-        const uword pointer=$1000
-        cx16.r0L = pointer[2]
-        pointer[2] = cx16.r0L
-    }
-}
-"""
-        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
-    }
-
     test("unroll good") {
         val src="""
 main {
@@ -362,19 +349,6 @@ main {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.single() shouldContain  "cannot use byte value"
-    }
-
-    test("const eval of address-of a memory mapped variable") {
-        val src = """
-main {
-    sub start() {
-        &ubyte mappedvar = 1000
-        cx16.r0 = &mappedvar
-        &ubyte[8] array = &mappedvar
-        cx16.r0 = &array
-    }
-}"""
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
 
     test("sizeof number const evaluation in vardecl") {

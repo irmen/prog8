@@ -328,7 +328,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
             return noModifications
         }
 
-        if(decl.isArray && decl.type==VarDeclType.MEMORY) {
+        if(decl.isArray && decl.type==VarDeclType.MEMORY && decl.value !is IdentifierReference) {
             val memaddr = decl.value?.constValue(program)
             if(memaddr!=null && memaddr !== decl.value) {
                 return listOf(IAstModification.SetExpression(

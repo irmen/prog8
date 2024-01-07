@@ -497,11 +497,11 @@ galaxy {
 
         travel_to(number, current_planet)
 
-        sub print_planet_details(str name, ubyte sx, ubyte sy, ubyte d) {
-            txt.plot(2+sx-2, 2+sy+1)
+        sub print_planet_details(str name, ubyte screenx, ubyte screeny, ubyte d) {
+            txt.plot(2+screenx-2, 2+screeny+1)
             txt.print(name)
             if d!=0 {
-                txt.plot(2+sx-2, 2+sy+2)
+                txt.plot(2+screenx-2, 2+screeny+2)
                 util.print_10s(d)
                 txt.print(" LY")
             }
