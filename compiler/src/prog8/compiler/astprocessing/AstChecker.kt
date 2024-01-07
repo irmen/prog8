@@ -1277,14 +1277,7 @@ internal class AstChecker(private val program: Program,
         if(target is Label && args.isNotEmpty())
             errors.err("cannot use arguments when calling a label", position)
 
-        if(target is BuiltinFunctionPlaceholder) {
-            if(target.name=="all" || target.name=="any") {
-                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR
-                    || args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
-                    errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
-                }
-            }
-        } else if(target is Subroutine) {
+        if(target is Subroutine) {
             if(target.isAsmSubroutine) {
                 for (arg in args.zip(target.parameters)) {
                     val argIDt = arg.first.inferType(program)

@@ -19,8 +19,8 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "sqrt__ubyte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
     "sqrt__uword" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
     "sqrt__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) { sqrt(it) } },
-    "any" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAny) },
-    "all" to { a, p, prg -> collectionArg(a, p, prg, ::builtinAll) },
+    "any" to { a, p, prg -> collectionArgBoolResult(a, p, prg) { array->array.any { it!=0.0 }  } },
+    "all" to { a, p, prg -> collectionArgBoolResult(a, p, prg) { array->array.all { it!=0.0 }  } },
     "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() } },
     "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 8 and 255).toDouble()} },
     "mkword" to ::builtinMkword,
@@ -37,10 +37,6 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "max__uword" to ::builtinMaxUWord,
     "max__word" to ::builtinMaxWord
 )
-
-private fun builtinAny(array: List<Double>): Double = if(array.any { it!=0.0 }) 1.0 else 0.0
-
-private fun builtinAll(array: List<Double>): Double = if(array.all { it!=0.0 }) 1.0 else 0.0
 
 internal fun builtinFunctionReturnType(function: String): InferredTypes.InferredType {
     if(function in arrayOf("set_carry", "set_irqd", "clear_carry", "clear_irqd"))
@@ -81,7 +77,7 @@ private fun oneFloatArgOutputFloat(args: List<Expression>, position: Position, p
     return NumericLiteral(DataType.FLOAT, function(constval.number), args[0].position)
 }
 
-private fun collectionArg(args: List<Expression>, position: Position, program: Program, function: (arg: List<Double>)->Double): NumericLiteral {
+private fun collectionArgBoolResult(args: List<Expression>, position: Position, program: Program, function: (arg: List<Double>)->Boolean): NumericLiteral {
     if(args.size!=1)
         throw SyntaxError("builtin function requires one non-scalar argument", position)
 
@@ -89,8 +85,7 @@ private fun collectionArg(args: List<Expression>, position: Position, program: P
     val constElements = array.value.map{it.constValue(program)?.number}
     if(constElements.contains(null))
         throw NotConstArgumentException()
-
-    return NumericLiteral.optimalNumeric(function(constElements.mapNotNull { it }), args[0].position)
+    return NumericLiteral.fromBoolean(function(constElements.mapNotNull { it }), args[0].position)
 }
 
 private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteral {

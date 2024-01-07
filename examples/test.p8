@@ -1,17 +1,50 @@
 %import textio
-%import string
+%import math
+%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
+
         ubyte[3]    cycle_reverseflags
+        bool[3]    cycle_reverseflags_b
+        bool @shared bb
+        str name="zzzz"
+        ubyte @shared ubb
+        float @shared fl1 = 2.2
+        float @shared fl2 = 3.3
 
-        ubyte @shared flags=2
+        if ubb==42
+            goto $1000
 
-        cycle_reverseflags[1]= flags & 2 != 0
+
+;
+;        ubyte @shared flags=2
+;        bool @shared b1
+;        bool @shared b2
+;
+;        cycle_reverseflags[1]= b1 and b2 ; flags & 2 != 0 as bool
+
     }
 }
+
+
+
+;%import textio
+;%import string
+;%zeropage basicsafe
+;%option no_sysinit
+
+;main {
+;    sub start() {
+;        ubyte[3]    cycle_reverseflags
+;
+;        ubyte @shared flags=2
+;
+;        cycle_reverseflags[1]= flags & 2 != 0
+;    }
+;}
 
 
 ;%import textio

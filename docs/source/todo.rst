@@ -61,6 +61,10 @@ main {
 }
 
 
+IR: add TEST instruction to test memory content and set N/Z flags, without affecting any register.
+    replace all LOADM+CMPI #0  / LOAD #0+LOADM+CMP+BRANCH   by this instruction
+
+
 ...
 
 
