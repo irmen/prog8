@@ -203,6 +203,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BLE -> InsBLE(ins)
             Opcode.BGES -> InsBGES(ins)
             Opcode.BLES -> InsBLES(ins)
+            Opcode.SCC -> InsSCC(ins)
+            Opcode.SCS -> InsSCS(ins)
             Opcode.SZ -> InsSZ(ins)
             Opcode.SNZ -> InsSNZ(ins)
             Opcode.SEQ -> InsSEQ(ins)
@@ -769,6 +771,16 @@ class VirtualMachine(irProgram: IRProgram) {
             branchTo(i)
         else
             nextPc()
+    }
+
+    private fun InsSCC(i: IRInstruction) {
+        setResultReg(i.reg1!!, if(statusCarry) 0 else 1, i.type!!)
+        nextPc()
+    }
+
+    private fun InsSCS(i: IRInstruction) {
+        setResultReg(i.reg1!!, if(statusCarry) 1 else 0, i.type!!)
+        nextPc()
     }
 
     private fun InsSZ(i: IRInstruction) {

@@ -1,6 +1,7 @@
 TODO
 ====
 
+IR: use SCC and SCS, to optimize some code that sets 0/1 based on carry flag status
 
 ...
 

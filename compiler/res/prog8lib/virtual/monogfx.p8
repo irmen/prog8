@@ -70,12 +70,9 @@ monogfx {
     }
 
     sub horizontal_line(uword xx, uword yy, uword length, bool draw) {
-        ubyte color = 0
-        if draw
-            color = 255
         uword xpos
         for xpos in xx to xx+length-1
-            plot(xpos, yy, color)
+            plot(xpos, yy, draw)
     }
 
     sub safe_horizontal_line(uword xx, uword yy, uword length, bool draw) {
@@ -97,12 +94,9 @@ monogfx {
     }
 
     sub vertical_line(uword xx, uword yy, uword lheight, bool draw) {
-        ubyte color = 0
-        if draw
-            color = 255
         uword ypos
         for ypos in yy to yy+lheight-1
-            plot(xx, ypos, color)
+            plot(xx, ypos, draw)
     }
 
     sub line(uword @zp x1, uword @zp y1, uword @zp x2, uword @zp y2, bool draw) {

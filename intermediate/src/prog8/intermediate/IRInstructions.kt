@@ -106,6 +106,8 @@ bles        reg1, value,      address   - jump to location in program given by l
 bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 'blesr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed) ==> use bgesr with swapped operands
 
+scc         reg1                        - set reg1=1 if Carry flag is clear, else 0
+scs         reg1                        - set reg1=1 if Carry flag is set, else 0
 sz          reg1, reg2                  - set reg1=1 if reg2==0, else 0
 snz         reg1, reg2                  - set reg1=1 if reg2!=0, else 0
 seq         reg1, reg2, reg3            - set reg1=1 if reg2 == reg3, else 0
@@ -280,6 +282,8 @@ enum class Opcode {
     BGESR,
     BGES,
     BLES,
+    SCC,
+    SCS,
     SZ,
     SNZ,
     SEQ,
@@ -593,6 +597,8 @@ val instructionFormats = mutableMapOf(
     Opcode.BGESR      to InstructionFormat.from("BW,<r1,<r2,<a"),
     Opcode.BGES       to InstructionFormat.from("BW,<r1,<i,<a"),
     Opcode.BLES       to InstructionFormat.from("BW,<r1,<i,<a"),
+    Opcode.SCC        to InstructionFormat.from("BW,>r1"),
+    Opcode.SCS        to InstructionFormat.from("BW,>r1"),
     Opcode.SZ         to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.SNZ        to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.SEQ        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
