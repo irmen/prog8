@@ -1,19 +1,13 @@
 TODO
 ====
 
-IR/VM:
-testmonogfx is a lot larger
-
-
-
-in TypeCastAdder, in after(assignment...,  there was a second "special case" that avoided a typecast for boolean comparisons. Did it help? Should it come back?
-same in VariousCleanups, in after(typecast ...
-
-fix crash:  ubyte[]    cycle_reverseflags[num_cycles] = flags & 2 != 0    (array should be boolean, but that's not the point, it shouldn't crash)
+First, make sure IR+VM is 100% correctly working. Only after that, move on to the 6502 code gen.
 
 at first: no automatic casting of bool to ubyte/uword AT ALL .  Like there is no automatic casting of ubyte to bool AT ALL.
 this may be added back in later to maybe avoid many var==0 var!=0 comparisons.
 (likewise: later, replace UBYTE 0 or 1 constant numbers by actual BOOL type if appropriate)
+
+6502 fix crash:  ubyte[]    cycle_reverseflags[num_cycles] = flags & 2 != 0    (array should be boolean, but that's not the point, it shouldn't crash)
 
 while boolean  should produce identical code as  while integer!=0
 while booleanvar==42    should give type error
@@ -33,6 +27,9 @@ if someint==0 / ==1  should stil produce good asm same as what it used to be wit
 remove all ==0  and ==1 checks added to boolean expressions
 
 is this De Morgan's optimization still useful in this branch? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
+
+in TypeCastAdder, in after(assignment...,  there was a second "special case" that avoided a typecast for boolean comparisons. Did it help? Should it come back?
+same in VariousCleanups, in after(typecast ...
 
 boolean trick to go from a compare >= value, to a bool
     cmp #value

@@ -286,33 +286,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         var actualResultFpReg2 = -1
         when(cast.type) {
             DataType.BOOL -> {
-                when(cast.value.type) {
-                    in ByteDatatypes -> {
-                        val skipLabel = codeGen.createLabelName()
-                        result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = skipLabel)
-                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=tr.resultReg, immediate = 1)
-                        }
-                        result += IRCodeChunk(skipLabel, null)
-                        actualResultReg2 = tr.resultReg
-                    }
-                    in WordDatatypes -> {
-                        // TODO optimize this code more
-                        val skipLabel1 = codeGen.createLabelName()
-                        val skipLabel2 = codeGen.createLabelName()
-                        actualResultReg2 = codeGen.registers.nextFree()
-                        result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = skipLabel1)
-                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=actualResultReg2, immediate = 1)
-                            it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel2)
-                        }
-                        result += IRCodeChunk(skipLabel1, null).also {
-                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=actualResultReg2, immediate = 0)
-                        }
-                        result += IRCodeChunk(skipLabel2, null)
-                    }
-                    else -> TODO("cast of non-byte value to boolean")
+                if (cast.value.type in IntegerDatatypes) {
+                    actualResultReg2 = codeGen.registers.nextFree()
+                    addInstr(result, IRInstruction(Opcode.SNZ, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg), null)
                 }
+                else TODO("cast of non-integer value to boolean")
             }
             DataType.UBYTE -> {
                 when(cast.value.type) {
@@ -580,7 +558,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 if (greaterEquals) Opcode.SGE else Opcode.SGT
             }
-            addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1=cmpResultReg, reg2 = resultRegister, reg3 = zeroRegister), null)
+            addInstr(result, IRInstruction(ins, vmDt, reg1=cmpResultReg, reg2 = resultRegister, reg3 = zeroRegister), null)
             return ExpressionCodeResult(result, IRDataType.BYTE, cmpResultReg, -1)
         } else {
             if(binExpr.left.type==DataType.STR || binExpr.right.type==DataType.STR) {
@@ -623,7 +601,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 if (lessEquals) Opcode.SLE else Opcode.SLT
             }
-            addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1=cmpResultRegister, reg2 = resultRegister, reg3 = zeroRegister), null)
+            addInstr(result, IRInstruction(ins, vmDt, reg1=cmpResultRegister, reg2 = resultRegister, reg3 = zeroRegister), null)
             return ExpressionCodeResult(result, IRDataType.BYTE, cmpResultRegister, -1)
         } else {
             if(binExpr.left.type==DataType.STR || binExpr.right.type==DataType.STR) {
