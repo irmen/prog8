@@ -408,9 +408,17 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
     override fun constValue(program: Program): NumericLiteral? {
         val target = this.identifier.targetStatement(program) as? VarDecl
         if(target?.type==VarDeclType.MEMORY) {
-            val address = target.value?.constValue(program)
-            if(address!=null)
-                return NumericLiteral(DataType.UWORD, address.number, position)
+            var address = target.value?.constValue(program)?.number
+            if(address!=null) {
+                if(arrayIndex!=null) {
+                    val index = arrayIndex?.constIndex()
+                    if (index != null)
+                        address += program.memsizer.memorySize(target.datatype, index)
+                    else
+                        return null
+                }
+                return NumericLiteral(DataType.UWORD, address, position)
+            }
         }
         return null
     }

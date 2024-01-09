@@ -1,17 +1,16 @@
+%import floats
 %import textio
 %zeropage basicsafe
 %option no_sysinit
 
-mpb {
-    const uword HIGH_MEMORY_START = $A000
-}
-
 main {
-    &uword[20] wa = mpb.HIGH_MEMORY_START
-;    &uword[20] wa = $A000
-
     sub start() {
-        wa[0] = "smile"
-        txt.print(wa[0])
+        &uword[30] wb = $2000
+        &uword[100] array1 = $9e00
+        &uword[30] array2 = &array1[len(wb)]
+
+        txt.print_uwhex(&array1, true)           ; $9e00
+        txt.print_uwhex(&array1[len(wb)], true)  ; $9e3c
+        txt.print_uwhex(&array2, true)           ; $9e3c
     }
 }

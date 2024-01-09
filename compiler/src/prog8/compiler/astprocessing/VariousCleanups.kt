@@ -43,6 +43,10 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
+        val constValue = typecast.constValue(program)
+        if(constValue!=null)
+            return listOf(IAstModification.ReplaceNode(typecast, constValue, parent))
+
         if(typecast.expression is NumericLiteral) {
             val value = (typecast.expression as NumericLiteral).cast(typecast.type)
             if(value.isValid)

@@ -271,4 +271,27 @@ main {
         (assignv2 as NumericLiteral).number shouldBe 0.0
     }
 
+    test("const address-of memory mapped arrays") {
+        val src="""
+main {
+    sub start() {
+        &uword[30] wb = ${'$'}2000
+        &uword[100] array1 = ${'$'}9e00
+        &uword[30] array2 = &array1[len(wb)]
+
+        cx16.r0 = &array1           ; ${'$'}9e00
+        cx16.r1 = &array1[len(wb)]  ; ${'$'}9e3c
+        cx16.r2 = &array2           ; ${'$'}9e3c
+    }
+}"""
+        val result = compileText(Cx16Target(), false, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 6
+        ((st[0] as VarDecl).value as NumericLiteral).number shouldBe 0x2000
+        ((st[1] as VarDecl).value as NumericLiteral).number shouldBe 0x9e00
+        ((st[2] as VarDecl).value as NumericLiteral).number shouldBe 0x9e00+2*30
+        ((st[3] as Assignment).value as NumericLiteral).number shouldBe 0x9e00
+        ((st[4] as Assignment).value as NumericLiteral).number shouldBe 0x9e00+2*30
+        ((st[5] as Assignment).value as NumericLiteral).number shouldBe 0x9e00+2*30
+    }
 })

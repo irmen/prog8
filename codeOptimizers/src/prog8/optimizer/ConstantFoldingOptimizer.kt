@@ -20,6 +20,11 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
     private val evaluator = ConstExprEvaluator()
 
+    override fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
+        val constAddr = addressOf.constValue(program) ?: return noModifications
+        return listOf(IAstModification.ReplaceNode(addressOf, constAddr, parent))
+    }
+
     override fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
         // @( &thing )  -->  thing  (but only if thing is a byte type!)
         val addrOf = memread.addressExpression as? AddressOf
@@ -430,6 +435,11 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             integer.linkParents(repeatLoop)
         }
         return noModifications
+    }
+
+    override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
+        val constValue = typecast.constValue(program) ?: return noModifications
+        return listOf(IAstModification.ReplaceNode(typecast, constValue, parent))
     }
 
     private class ShuffleOperands(val expr: BinaryExpression,
