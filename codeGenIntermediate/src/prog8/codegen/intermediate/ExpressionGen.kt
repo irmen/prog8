@@ -461,24 +461,22 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else
                         IRInstruction(Opcode.CALL, address = callTarget.address!!.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec))
                 addInstr(result, call, null)
-
                 var finalReturnRegister = returnRegSpec?.registerNum ?: -1
 
-                if(fcall.parent is PtAssignment) {
+                if(fcall.parent is PtAssignment || fcall.parent is PtTypeCast) {
                     // look if the status flag bit should actually be returned as a 0/1 byte value in a result register (so it can be assigned)
                     if(statusFlagResult!=null && returnRegSpec!=null) {
                         // assign status flag bit to the return value register
-                        finalReturnRegister = codeGen.registers.nextFree()
+                        finalReturnRegister = returnRegSpec.registerNum
+                        if(finalReturnRegister<0)
+                            finalReturnRegister = codeGen.registers.nextFree()
                         when(statusFlagResult) {
                             Statusflag.Pc -> {
-                                result += IRCodeChunk(null, null).also {
-                                    it += IRInstruction(Opcode.LOAD, returnRegSpec.dt, reg1=finalReturnRegister, immediate = 0)
-                                    it += IRInstruction(Opcode.ROXL, returnRegSpec.dt, reg1=finalReturnRegister)
-                                }
+                                addInstr(result, IRInstruction(Opcode.SCS, returnRegSpec.dt, reg1=finalReturnRegister), null)
                             }
                             else -> {
                                 val branchOpcode = when(statusFlagResult) {
-                                    Statusflag.Pc -> Opcode.BSTCS
+                                    Statusflag.Pc -> throw AssemblyError("carry should be treated separately")
                                     Statusflag.Pz -> Opcode.BSTEQ
                                     Statusflag.Pv -> Opcode.BSTVS
                                     Statusflag.Pn -> Opcode.BSTNEG
@@ -498,6 +496,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         }
                     }
                 }
+
                 return if(fcall.void)
                     ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
                 else if(fcall.type==DataType.FLOAT)
