@@ -164,20 +164,38 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         println("\nTotal compilation+assemble time: ${round(seconds*100.0)/100.0} sec.")
         return CompilationResult(program, ast, compilationOptions, importedFiles)
     } catch (px: ParseError) {
+        System.out.flush()
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
         System.err.print("\u001b[0m")  // reset
     } catch (ac: ErrorsReportedException) {
+        if(args.printAst1) {
+            println("\n*********** COMPILER AST *************")
+            printProgram(program)
+            println("*********** COMPILER AST END *************\n")
+        }
+        if (args.printAst2) {
+            if(ast==null)
+                println("There is no intermediate AST available because of compilation errors.")
+            else {
+                println("\n*********** INTERMEDIATE AST *************")
+                printAst(ast!!, true, ::println)
+                println("*********** INTERMEDIATE AST END *************\n")
+            }
+        }
         if(!ac.message.isNullOrEmpty()) {
+            System.out.flush()
             System.err.print("\n\u001b[91m")  // bright red
             System.err.println(ac.message)
             System.err.print("\u001b[0m")  // reset
         }
     } catch (nsf: NoSuchFileException) {
+        System.out.flush()
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println("File not found: ${nsf.message}")
         System.err.print("\u001b[0m")  // reset
     } catch (ax: AstException) {
+        System.out.flush()
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println(ax.toString())
         System.err.print("\u001b[0m")  // reset

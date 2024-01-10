@@ -427,9 +427,14 @@ class ExpressionSimplifier(private val program: Program,
             val arg = functionCallExpr.args[0]
             if(arg is TypecastExpression) {
                 val valueDt = arg.expression.inferType(program)
-                if (valueDt istype DataType.BYTE || valueDt istype DataType.UBYTE) {
-                    // useless lsb() of byte value that was typecasted to word
+                if (valueDt istype DataType.UBYTE) {
+                    // useless lsb() of ubyte value
                     return listOf(IAstModification.ReplaceNode(functionCallExpr, arg.expression, parent))
+                }
+                else if (valueDt istype DataType.BYTE) {
+                    // useless lsb() of byte value, but as lsb() returns unsigned, we have to cast now.
+                    val cast = TypecastExpression(arg.expression, DataType.UBYTE, true, arg.position)
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
                 }
             } else {
                 if(arg is IdentifierReference && arg.nameInSource.size==2
@@ -439,9 +444,14 @@ class ExpressionSimplifier(private val program: Program,
                     return listOf(IAstModification.ReplaceNode(functionCallExpr, highReg, parent))
                 }
                 val argDt = arg.inferType(program)
-                if (argDt istype DataType.BYTE || argDt istype DataType.UBYTE) {
+                if (argDt istype DataType.UBYTE) {
                     // useless lsb() of byte value
                     return listOf(IAstModification.ReplaceNode(functionCallExpr, arg, parent))
+                }
+                else if (argDt istype DataType.BYTE) {
+                    // useless lsb() of byte value, but as lsb() returns unsigned, we have to cast now.
+                    val cast = TypecastExpression(arg, DataType.UBYTE, true, arg.position)
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
                 }
             }
         }

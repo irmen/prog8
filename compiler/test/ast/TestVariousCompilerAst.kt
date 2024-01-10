@@ -504,5 +504,29 @@ main {
         val expr3 = BinaryExpression(left3, "+", right3, Position.DUMMY)
         (expr1 isSameAs expr3) shouldBe true
     }
+
+    test("mkword insertion with signed values gets correct type cast") {
+        val src = """
+main {
+    sub start() {
+        byte[10] @shared bottom
+        byte @shared col = 20
+        col++
+        ubyte @shared ubb = lsb(col as uword)
+        uword @shared vaddr = bottom[col] as uword << 8          ; a mkword will get inserted here
+    }
+}"""
+        val result = compileText(VMTarget(), optimize=true, src, writeAssembly=false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 8
+        val assignUbb = ((st[5] as Assignment).value as TypecastExpression)
+        assignUbb.type shouldBe DataType.UBYTE
+        assignUbb.expression shouldBe instanceOf<IdentifierReference>()
+        val assignVaddr = (st[7] as Assignment).value as FunctionCallExpression
+        assignVaddr.target.nameInSource shouldBe listOf("mkword")
+        val tc = assignVaddr.args[0] as TypecastExpression
+        tc.type shouldBe DataType.UBYTE
+        tc.expression shouldBe instanceOf<ArrayIndexedExpression>()
+    }
 })
 
