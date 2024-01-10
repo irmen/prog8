@@ -914,7 +914,7 @@ class TestProg8Parser: FunSpec( {
         val text="""
             main {
                 sub start() {
-                    ubyte @shared cc
+                    bool @shared cc
                     ubyte[] array = [1,2,3]
                     cc = 99 in 12345
                     cc = 9999 in array

@@ -21,7 +21,7 @@ main {
                 prime = i + i + 3
                 k = i + prime
                 while k <= SIZEPL-1 {
-                    flags_ptr[k] = false
+                    flags_ptr[k] = 0    ; false
                     k += prime
                 }
                 txt.print_uw(prime)

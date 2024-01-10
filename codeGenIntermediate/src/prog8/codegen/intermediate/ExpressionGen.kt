@@ -290,7 +290,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     actualResultReg2 = codeGen.registers.nextFree()
                     addInstr(result, IRInstruction(Opcode.SNZ, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg), null)
                 }
-                else TODO("cast of non-integer value to boolean")
+                else if(cast.value.type==DataType.FLOAT) {
+                    actualResultReg2 = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.SGN, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg)
+                        it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=actualResultReg2, immediate = 1)
+                    }
+                }
+                else throw AssemblyError("weird cast value type")
             }
             DataType.UBYTE -> {
                 when(cast.value.type) {

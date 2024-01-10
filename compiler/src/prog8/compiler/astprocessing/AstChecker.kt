@@ -123,12 +123,6 @@ internal class AstChecker(private val program: Program,
                     if(valueDt istype DataType.BOOL && expectedReturnValues[0] == DataType.UBYTE) {
                         // if the return value is a bool and the return type is ubyte, allow this. But give a warning.
                         errors.info("return type of the subroutine should probably be bool instead of ubyte", returnStmt.position)
-                    } else if(valueDt istype DataType.UBYTE && expectedReturnValues[0] == DataType.BOOL) {
-                        // if the return value is ubyte and the return type is bool, allow this only if value is 0 or 1
-                        val returnValue = returnStmt.value as? NumericLiteral
-                        if (returnValue == null || returnValue.type != DataType.UBYTE || (returnValue.number!=0.0 && returnValue.number!=1.0)) {
-                            errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}",returnStmt.value!!.position)
-                        }
                     } else if(valueDt.isIterable && expectedReturnValues[0]==DataType.UWORD) {
                         // you can return a string or array when an uword (pointer) is returned
                     } else if(valueDt istype DataType.UWORD && expectedReturnValues[0]==DataType.STR) {
@@ -518,20 +512,10 @@ internal class AstChecker(private val program: Program,
         if(numvalue!=null && targetDt.isKnown)
             checkValueTypeAndRange(targetDt.getOr(DataType.UNDEFINED), numvalue)
 
-// for now, don't enforce bool type with only logical operators...
-//        if(assignment.isAugmentable && targetDt istype DataType.BOOL) {
-//            val operator = (assignment.value as? BinaryExpression)?.operator
-//            if(operator in InvalidOperatorsForBoolean)
-//                errors.err("can't use boolean operand with this operator $operator", assignment.position)
-//        }
-
         super.visit(assignment)
     }
 
     override fun visit(assignTarget: AssignTarget) {
-        if(assignTarget.inferType(program).istype(DataType.LONG))
-            errors.err("integer overflow", assignTarget.position)
-
         super.visit(assignTarget)
 
         val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
@@ -565,16 +549,13 @@ internal class AstChecker(private val program: Program,
         if (assignment is Assignment) {
             val targetDatatype = assignTarget.inferType(program)
             if (targetDatatype.isKnown) {
-                val constVal = assignment.value.constValue(program)
-                if(constVal==null) {
-                    val sourceDatatype = assignment.value.inferType(program)
-                    if (sourceDatatype.isUnknown) {
-                        if (assignment.value !is FunctionCallExpression)
-                            errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
-                    } else {
-                        checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
-                                sourceDatatype.getOr(DataType.UNDEFINED), assignment.value)
-                    }
+                val sourceDatatype = assignment.value.inferType(program)
+                if (sourceDatatype.isUnknown) {
+                    if (assignment.value !is FunctionCallExpression)
+                        errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
+                } else {
+                    checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
+                            sourceDatatype.getOr(DataType.UNDEFINED), assignment.value)
                 }
             }
         }
@@ -1511,7 +1492,8 @@ internal class AstChecker(private val program: Program,
 
     private fun checkLongType(expression: Expression) {
         if(expression.inferType(program).istype(DataType.LONG)) {
-            errors.err("integer overflow", expression.position)
+            if(errors.noErrorForLine(expression.position))
+                errors.err("integer overflow", expression.position)
         }
     }
 
@@ -1673,13 +1655,14 @@ internal class AstChecker(private val program: Program,
                     return err("value '$number' out of range for word")
             }
             DataType.BOOL -> {
-                return true
+                if(value.type!=DataType.BOOL)
+                    err("type of value ${value.type} doesn't match target $targetDt")
             }
             in ArrayDatatypes -> {
                 val eltDt = ArrayToElementTypes.getValue(targetDt)
                 return checkValueTypeAndRange(eltDt, value)
             }
-            else -> return err("value of type ${value.type} not compatible with $targetDt")
+            else -> return err("type of value ${value.type} doesn't match target $targetDt")
         }
         return true
     }
@@ -1742,11 +1725,11 @@ internal class AstChecker(private val program: Program,
         }
 
         val result =  when(targetDatatype) {
-            DataType.BOOL -> sourceDatatype in NumericDatatypes || sourceDatatype==DataType.BOOL
-            DataType.BYTE -> sourceDatatype == DataType.BYTE || sourceDatatype == DataType.BOOL
-            DataType.UBYTE -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.BOOL
-            DataType.WORD -> sourceDatatype in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.BOOL)
-            DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD || sourceDatatype == DataType.BOOL
+            DataType.BOOL -> sourceDatatype==DataType.BOOL
+            DataType.BYTE -> sourceDatatype == DataType.BYTE
+            DataType.UBYTE -> sourceDatatype == DataType.UBYTE
+            DataType.WORD -> sourceDatatype in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD)
+            DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype == DataType.STR
             else -> {
@@ -1766,12 +1749,14 @@ internal class AstChecker(private val program: Program,
         }
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
             errors.err("cannot assign float to ${targetDatatype.name.lowercase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
+        else if((sourceValue as? BinaryExpression)?.operator in BitwiseOperators && targetDatatype.equalsSize(sourceDatatype)) {
+            // this is allowed: bitwise operation between different types as long as they're the same size.
+        }
+        else if(targetDatatype==DataType.UWORD && sourceDatatype in PassByReferenceDatatypes) {
+            // this is allowed: a pass-by-reference datatype into a uword (pointer value).
+        }
         else {
-            if(targetDatatype!=DataType.UWORD && sourceDatatype !in PassByReferenceDatatypes) {
-                // allow bitwise operations on different types as long as the size is the same
-                if (!((sourceValue as? BinaryExpression)?.operator in BitwiseOperators && targetDatatype.equalsSize(sourceDatatype)))
-                    errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
-            }
+            errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
 
         return false

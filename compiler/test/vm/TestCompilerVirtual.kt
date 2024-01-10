@@ -25,10 +25,10 @@ main {
 
     sub start() {
         uword[] words = [1111,2222,0,4444,3333]
-        ubyte result = all(words)
-        result++
+        bool result = all(words)
+        cx16.r0++
         result = any(words)
-        result++
+        cx16.r0++
         sort(words)
         reverse(words)
     }
@@ -47,7 +47,7 @@ main {
         ubyte[] otherarray = [1,2,3]
         uword[] words = [1111,2222,"three",&localstr,&otherarray]
         uword @shared zz = &words
-        ubyte result = 2222 in words
+        bool result = 2222 in words
         zz = words[2]
         zz++
         zz = words[3]
@@ -337,22 +337,6 @@ main {
         val instructions = start.chunks.flatMap { c->c.instructions }
         instructions.size shouldBe 11
         instructions.last().opcode shouldBe Opcode.RETURN
-    }
-
-    test("compile virtual: various expressions") {
-        val text="""
-main {
-    sub start() {
-        ubyte[3] values = [1,2,3]
-        func(33 + (22 in values))   ; bool cast to byte
-        cx16.r0L = 33 + (22 in values)   ; bool cast to byte
-        func(values[cx16.r0L] + (22 in values))  ; containment in complex expression
-    }
-    sub func(ubyte arg) {
-        arg++
-    }
-}"""
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
     test("repeat counts (const)") {

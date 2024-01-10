@@ -126,10 +126,10 @@ monogfx {
         }
 
         word @zp d = 0
-        cx16.r1L = true      ; 'positive_ix'
+        cx16.r1L = 1  ; true      ; 'positive_ix'
         if dx < 0 {
             dx = -dx
-            cx16.r1L = false
+            cx16.r1L = 0 ; false
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
@@ -426,7 +426,7 @@ monogfx {
             xx = x1 + 1
 
             do {
-                cx16.r9 = xx
+                cx16.r9 = xx as uword
                 while xx <= width-1 {
                     if pget(xx as uword, yy as uword) != cx16.r11L
                         break

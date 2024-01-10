@@ -66,4 +66,6 @@ internal class ErrorReporter: IErrorReporter {
     }
 
     override fun noErrors() = messages.none { it.severity==MessageSeverity.ERROR }
+    override fun noErrorForLine(position: Position) = !messages.any { it.position.line==position.line && it.severity!=MessageSeverity.INFO }
+
 }

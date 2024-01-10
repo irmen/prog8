@@ -110,8 +110,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
             postprocessAst(program, args.errors, compilationOptions)
 
-            println("*********** COMPILER AST BEFORE ASSEMBLYGEN *************")
-            printProgram(program)
+//            println("*********** COMPILER AST BEFORE ASSEMBLYGEN *************")
+//            printProgram(program)
 
             determineProgramLoadAddress(program, compilationOptions, args.errors)
             args.errors.report()

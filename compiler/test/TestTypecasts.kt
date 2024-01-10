@@ -8,7 +8,6 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
-import prog8.ast.printProgram
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
 import prog8.ast.statements.VarDecl
@@ -92,7 +91,6 @@ main {
     }
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        printProgram(result.compilerAst)
         val stmts = result.compilerAst.entrypoint.statements
         /*
         ubyte @shared ub1
@@ -138,7 +136,7 @@ main  {
     ubyte ubb
 
     sub start() {
-        ubb = ubb and 123
+        ubb = (ubb as bool) and (123 as bool) as ubyte
     }
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
@@ -219,17 +217,17 @@ main  {
             main {
                 sub start() {
                     uword camg
-                    ubyte @shared interlaced
+                    bool @shared interlaced
                     interlaced = (camg & ${'$'}0004) != 0
-                    interlaced++
+                    cx16.r0L++
                     interlaced = (${'$'}0004 & camg) != 0
-                    interlaced++
+                    cx16.r0L++
                     uword @shared ww
                     ww = (camg & ${'$'}0004)
                     ww++
                     ww = (${'$'}0004 & camg)
-                    
-                    bool @shared collected = (interlaced >= ${'$'}33) or (interlaced >= ${'$'}66) or (interlaced >= ${'$'}99) or (interlaced >= ${'$'}CC)
+                    ubyte @shared value
+                    bool @shared collected = (value >= ${'$'}33) or (value >= ${'$'}66) or (value >= ${'$'}99) or (value >= ${'$'}CC)
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
@@ -648,8 +646,8 @@ main {
         thing(large)
         thing(320*240/8/8)
         thing(320*HEIGHT/8/8)
-        thing(320*HEIGHT)        ; overflow
-        large = 12345678         ; overflow
+        thing(320*HEIGHT)       ; overflow
+        large = 12345678        ; overflow
     }
 
     sub thing(uword value) {
@@ -658,11 +656,86 @@ main {
 }"""
         val errors=ErrorReporterForTests()
         compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 4
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain ":9:"
         errors.errors[0] shouldContain "no cast"
-        errors.errors[1] shouldContain "overflow"
-        errors.errors[2] shouldContain "out of range"
-        errors.errors[3] shouldContain "overflow"
+        errors.errors[1] shouldContain ":10:"
+        errors.errors[1] shouldContain "out of range"
+        errors.errors[2] shouldContain ":10:"
+        errors.errors[2] shouldContain "doesn't match"
     }
 
+    test("various bool typecasts and type mismatches") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+
+        float @shared fl
+        ubyte @shared flags
+        byte @shared flagss
+        uword @shared flagsw
+        word @shared flagssw
+        bool @shared bflags = 123
+        cx16.r0++
+        bflags = 123
+        cx16.r0++
+        bflags = 123 as bool
+
+        flags = bflags
+        flagss = bflags
+        flagsw = bflags
+        flagssw = bflags
+        fl = bflags
+        bflags = flags
+        bflags = flagss
+        bflags = flagsw
+        bflags = flagssw
+        bflags = fl
+
+        flags = bflags as ubyte
+        flagss = bflags as byte
+        flagsw = bflags as uword
+        flagssw = bflags as word
+        fl = bflags as float
+        bflags = flags as bool
+        bflags = flagss as bool
+        bflags = flagsw as bool
+        bflags = flagssw as bool
+        bflags = fl as bool
+    }
+}"""
+        val errors=ErrorReporterForTests()
+        compileText(VMTarget(), false, src, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 12
+        errors.errors.all { "type of value" in it } shouldBe true
+        errors.errors.all { "doesn't match" in it } shouldBe true
+    }
+
+    test("bool to byte cast in expression is not allowed") {
+        val text="""
+main {
+    sub start() {
+        ubyte[3] values
+        func1(22 in values)
+        func2(22 in values)
+        ubyte @shared qq = 22 in values
+        byte @shared ww = 22 in values
+    }
+    sub func1(ubyte arg) {
+        arg++
+    }
+    sub func2(byte arg) {
+        arg++
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, writeAssembly = true, errors = errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain("argument 1 type mismatch")
+        errors.errors[1] shouldContain("argument 1 type mismatch")
+        errors.errors[2] shouldContain("type of value BOOL doesn't match target")
+        errors.errors[3] shouldContain("type of value BOOL doesn't match target")
+    }
 })

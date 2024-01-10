@@ -100,17 +100,6 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     return modifications
             }
             if(leftDt!=rightDt) {
-                // convert bool type to byte if needed
-                if(leftDt istype DataType.BOOL && rightDt.isBytes && !rightDt.istype(DataType.BOOL)) {
-                    if(rightCv==null || (rightCv.number!=1.0 && rightCv.number!=0.0))
-                        return listOf(IAstModification.ReplaceNode(expr.left,
-                            TypecastExpression(expr.left, rightDt.getOr(DataType.UNDEFINED),true, expr.left.position), expr))
-                } else if(leftDt.isBytes && !leftDt.istype(DataType.BOOL) && rightDt istype DataType.BOOL) {
-                    if(leftCv==null || (leftCv.number!=1.0 && leftCv.number!=0.0))
-                        return listOf(IAstModification.ReplaceNode(expr.right,
-                            TypecastExpression(expr.right, leftDt.getOr(DataType.UNDEFINED),true, expr.right.position), expr))
-                }
-
                 // convert a negative operand for bitwise operator to the 2's complement positive number instead
                 if(expr.operator in BitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
                     if(leftCv!=null && leftCv.number<0) {
@@ -211,9 +200,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(cvalue!=null) {
                         val number = cvalue.number
                         // more complex comparisons if the type is different, but the constant value is compatible
-                        if(valuetype in IntegerDatatypes && targettype==DataType.BOOL) {
-                            return castLiteral(cvalue)
-                        } else if (valuetype == DataType.BYTE && targettype == DataType.UBYTE) {
+                        if (valuetype == DataType.BYTE && targettype == DataType.UBYTE) {
                             if(number>0)
                                 return castLiteral(cvalue)
                         } else if (valuetype == DataType.WORD && targettype == DataType.UWORD) {

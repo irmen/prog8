@@ -35,8 +35,8 @@ class VarConstantValueTypeAdjuster(
                 // avoid silent float roundings
                 if(decl.datatype in IntegerDatatypes && declConstValue.type == DataType.FLOAT) {
                     errors.err("refused truncating of float to avoid loss of precision", decl.value!!.position)
-                } else {
-                    // cast the numeric literal to the appropriate datatype of the variable
+                } else if(decl.datatype!=DataType.BOOL) {
+                    // cast the numeric literal to the appropriate datatype of the variable if it's not boolean
                     declConstValue.linkParents(decl)
                     val cast = declConstValue.cast(decl.datatype)
                     if (cast.isValid)

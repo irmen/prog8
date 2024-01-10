@@ -24,8 +24,8 @@ enum class DataType {
      */
     infix fun isAssignableTo(targetType: DataType) =
         when(this) {
-            BOOL -> targetType.oneOf(BOOL, BYTE, UBYTE, WORD, UWORD, LONG, FLOAT)
-            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, LONG, FLOAT, BOOL)
+            BOOL -> targetType == BOOL
+            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, LONG, FLOAT)
             BYTE -> targetType.oneOf(BYTE, WORD, LONG, FLOAT)
             UWORD -> targetType.oneOf(UWORD, LONG, FLOAT)
             WORD -> targetType.oneOf(WORD, LONG, FLOAT)
@@ -41,9 +41,9 @@ enum class DataType {
     infix fun largerThan(other: DataType) =
         when {
             this == other -> false
-            this in ByteDatatypes -> false
-            this in WordDatatypes -> other in ByteDatatypes
-            this == LONG -> other in ByteDatatypes+WordDatatypes
+            this in ByteDatatypesWithBoolean -> false
+            this in WordDatatypes -> other in ByteDatatypesWithBoolean
+            this == LONG -> other in ByteDatatypesWithBoolean+WordDatatypes
             this == STR && other == UWORD || this == UWORD && other == STR -> false
             else -> true
         }
@@ -51,7 +51,7 @@ enum class DataType {
     infix fun equalsSize(other: DataType) =
         when {
             this == other -> true
-            this in ByteDatatypes -> other in ByteDatatypes
+            this in ByteDatatypesWithBoolean -> other in ByteDatatypesWithBoolean
             this in WordDatatypes -> other in WordDatatypes
             this== STR && other== UWORD || this== UWORD && other== STR -> true
             else -> false

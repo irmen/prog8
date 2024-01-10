@@ -671,8 +671,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                     if(targettype==DataType.LONG && number >=0 && number <= 2147483647)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if(targettype==DataType.BOOL)
-                        return ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
                 } catch (x: ExpressionError) {
                     return ValueAfterCast(false, x.message,null)
                 }
@@ -690,8 +688,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if(targettype==DataType.BOOL)
-                        return ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
                     if(targettype==DataType.FLOAT)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 } catch (x: ExpressionError) {
@@ -702,7 +698,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 throw FatalAstException("type cast of weird type $type")
             }
         }
-        return ValueAfterCast(false, "no cast available between these types", null)
+        return ValueAfterCast(false, "no cast available from $type to $targettype", null)
     }
 }
 

@@ -19,21 +19,6 @@ import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestVariousCodeGen: FunSpec({
-    test("bool to byte cast in expression is correct") {
-        val text="""
-main {
-    sub start() {
-        ubyte[3] values
-        func(22 in values)
-        ubyte @shared qq = 22 in values
-    }
-    sub func(ubyte arg) {
-        arg++
-    }
-}"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-    }
-
     test("nested scoping") {
         val text="""
 main {
@@ -211,7 +196,7 @@ main {
         ubyte[] otherarray = [1,2,3]
         uword[] words = [1111,2222,"three",&localstr,&otherarray]
         uword @shared zz = &words
-        ubyte result = 2222 in words
+        bool @shared result = 2222 in words
         zz = words[2]
         zz++
         zz = words[3]

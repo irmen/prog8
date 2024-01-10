@@ -791,7 +791,7 @@ planet {
                 else {
                     if c <= $a4 {
                         ubyte rnr = goatsoup_rnd_number()
-                        ubyte wordNr = (rnr >= $33) as ubyte + (rnr >= $66) as ubyte + (rnr >= $99) as ubyte + (rnr >= $CC) as ubyte
+                        ubyte wordNr = ((rnr >= $33) as ubyte) + ((rnr >= $66) as ubyte) + ((rnr >= $99) as ubyte) + ((rnr >= $CC) as ubyte)
                         source_stack[stack_ptr] = source_ptr
                         stack_ptr++
                         source_ptr = getword(c, wordNr)

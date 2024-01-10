@@ -3,30 +3,33 @@ TODO
 
 First, make sure IR+VM is 100% correctly working. Only after that, move on to the 6502 code gen.
 
-at first: no automatic casting of bool to ubyte/uword AT ALL .  Like there is no automatic casting of ubyte to bool AT ALL.
-this may be added back in later to maybe avoid many var==0 var!=0 comparisons.
-(likewise: later, replace UBYTE 0 or 1 constant numbers by actual BOOL type if appropriate)
+===== ====== =======
+VM    6502   what
+===== ====== =======
+.     .      while boolean  should produce identical code as  while integer!=0
+.     .      while booleanvar==42    should give type error
+.     .      if not X -> test all variations with and without else
+.     .      while not guessed  -> can we get rid of the cmp?
+.     .      optimize byte/bool equals, optimize byte/bool not equals
+.     .      what does invert/inplace invert do on a bool? and bitwise operations?
+.     .      static bool var with initializer value (staticVariable2asm)
+.     .      logical xor
+.     .      inplace invert and inplace not
+.     .      parse boolean variable value in IR
+.     .      return boolean value
+.     .      make sure that and,or,xor,not aren't getting replaced in the Ast by the bitwise versions
+.     .      make sure that if not x  doesn't get code generated into an eor with 255
+.     .      if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint
+.     .      remove all ==0  and ==1 checks added to boolean expressions
+.     .      is this De Morgan's optimization still useful in this branch? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
+.     .      check program sizes v.s. master branch
+===== ====== =======
+
+
 
 6502 fix crash:  ubyte[]    cycle_reverseflags[num_cycles] = flags & 2 != 0    (array should be boolean, but that's not the point, it shouldn't crash)
 
-while boolean  should produce identical code as  while integer!=0
-while booleanvar==42    should give type error
-if not X -> test all variations with and without else
-while not guessed  -> can we get rid of the cmp?
-optimize byte/bool equals, optimize byte/bool not equals
-what does invert/inplace invert do on a bool? and bitwise operations?
-static bool var with initializer value (staticVariable2asm)
-logical xor
-inplace invert and inplace not
-parse boolean variable value in IR
-return boolean value
-make sure assigning different types to bool works
-make sure that and,or,xor,not aren't getting replaced in the Ast by the bitwise versions
-make sure that if not x  doesn't get code generated into an eor with 255
-if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint
-remove all ==0  and ==1 checks added to boolean expressions
-
-is this De Morgan's optimization still useful in this branch? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
+re-allow typecast of const true/false back to ubytes 1 and 0.
 
 in TypeCastAdder, in after(assignment...,  there was a second "special case" that avoided a typecast for boolean comparisons. Did it help? Should it come back?
 same in VariousCleanups, in after(typecast ...

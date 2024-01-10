@@ -421,7 +421,7 @@ class TestCompilerOnRanges: FunSpec({
             C64Target(), false, """
             main {
                 sub start() {
-                    ubyte xx
+                    bool xx
                     uword ww
                     str name = "irmen"
                     ubyte[] values = [1,2,3,4,5,6,7]

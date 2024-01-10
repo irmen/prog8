@@ -365,8 +365,9 @@ class TestOptimization: FunSpec({
         """
         val errors = ErrorReporterForTests()
         compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 1
+        errors.errors.size shouldBe 2
         errors.errors[0] shouldContain  "out of range"
+        errors.errors[1] shouldContain  "cannot assign word to byte"
     }
 
     test("out of range cast should give error") {

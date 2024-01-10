@@ -92,16 +92,17 @@ main {
     sub start() {
         str name = "name"
         uword nameptr = &name
+        bool result
 
-        cx16.r0L= name=="foo"
-        cx16.r1L= name!="foo"
-        cx16.r2L= name<"foo"
-        cx16.r3L= name>"foo"
+        result = name=="foo"
+        result = name!="foo"
+        result = name<"foo"
+        result = name>"foo"
 
-        cx16.r0L= nameptr=="foo"
-        cx16.r1L= nameptr!="foo"
-        cx16.r2L= nameptr<"foo"
-        cx16.r3L= nameptr>"foo"
+        result = nameptr=="foo"
+        result = nameptr!="foo"
+        result = nameptr<"foo"
+        result = nameptr>"foo"
 
         void compare(name, "foo")
         void compare(name, "name")
@@ -117,10 +118,10 @@ main {
 }"""
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 16
+        stmts.size shouldBe 17
         val result2 = compileText(VMTarget(), optimize=false, src, writeAssembly=true)!!
         val stmts2 = result2.compilerAst.entrypoint.statements
-        stmts2.size shouldBe 16
+        stmts2.size shouldBe 17
     }
 
     test("string concatenation and repeats") {
@@ -202,8 +203,8 @@ main {
         uword[128] YY
         ubyte[] ARRAY = [1, 5, 2]
         repeat {
-            ubyte pixel_side1 = pget(2, YY[2]+1) in ARRAY
-            ubyte pixel_side2 = pget(2, 2) in ARRAY
+            bool pixel_side1 = pget(2, YY[2]+1) in ARRAY
+            bool pixel_side2 = pget(2, 2) in ARRAY
             ubyte[] array2 = [1,2,3]
         }
     }
@@ -218,20 +219,17 @@ main {
 main {
     sub start() {
         ubyte[] array=[1,2,3]
-        cx16.r0L = not (3 in array)
-        cx16.r1L = 3 not in array
+        bool result
+        result = not (3 in array)
+        result = 3 not in array
     }
 }
 """
         val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 3
-        val tc1 = (stmts[1] as Assignment).value as TypecastExpression
-        val tc2 = (stmts[2] as Assignment).value as TypecastExpression
-        tc1.type shouldBe DataType.UBYTE
-        tc2.type shouldBe DataType.UBYTE
-        val value1 = tc1.expression as PrefixExpression
-        val value2 = tc2.expression as PrefixExpression
+        stmts.size shouldBe 4
+        val value1 = (stmts[2] as Assignment).value as PrefixExpression
+        val value2 = (stmts[3] as Assignment).value as PrefixExpression
         value1.operator shouldBe "not"
         value2.operator shouldBe "not"
         value1.expression shouldBe instanceOf<ContainmentCheck>()
@@ -454,30 +452,27 @@ main {
     sub start() {
         ubyte @shared n=20
         ubyte @shared x=10
+        bool @shared result1, result2
 
         if n < x {
           ; nothing here, conditional gets inverted
         } else {
             cx16.r0++
         }
-        cx16.r0L = n<x == false
-        cx16.r1L = not n<x
+        result1 = n<x == false
+        result2 = not n<x
     }
 }"""
         val result=compileText(VMTarget(), optimize=true, src, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 7
+        st.size shouldBe 11
 
-        val ifCond = (st[4] as IfElse).condition as BinaryExpression
+        val ifCond = (st[8] as IfElse).condition as BinaryExpression
         ifCond.operator shouldBe ">="
         (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("n")
         (ifCond.right as IdentifierReference).nameInSource shouldBe listOf("x")
-        val tc1 = (st[5] as Assignment).value as TypecastExpression
-        val tc2 = (st[6] as Assignment).value as TypecastExpression
-        tc1.type shouldBe DataType.UBYTE
-        tc2.type shouldBe DataType.UBYTE
-        val assign1 = tc1.expression as BinaryExpression
-        val assign2 = tc2.expression as BinaryExpression
+        val assign1 = (st[9] as Assignment).value as BinaryExpression
+        val assign2 = (st[10] as Assignment).value as BinaryExpression
         assign1.operator shouldBe ">="
         (assign1.left as IdentifierReference).nameInSource shouldBe listOf("n")
         (assign1.right as IdentifierReference).nameInSource shouldBe listOf("x")

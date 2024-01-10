@@ -58,6 +58,7 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
     }
 
     override fun noErrors(): Boolean  = errors.isEmpty()
+    override fun noErrorForLine(position: Position) = !errors.any { ":${position.line}:" in it }
 
     override fun report() {
         infos.forEach { println("UNITTEST COMPILATION REPORT: INFO: $it") }
