@@ -620,7 +620,6 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
         ;    note: inefficient when reading multiple sequential bytes!
         %asm {{
                 stz  cx16.VERA_CTRL
-                and  #1
                 sta  cx16.VERA_ADDR_H
                 sty  cx16.VERA_ADDR_M
                 stx  cx16.VERA_ADDR_L
@@ -634,7 +633,6 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
         ;    with optional auto increment or decrement of 1.
         ;    Note that the vaddr_autoincr() and vaddr_autodecr() routines allow to set all possible strides, not just 1.
         %asm {{
-            and  #1
             pha
             lda  cx16.r1
             and  #1
@@ -690,8 +688,7 @@ asmsub vaddr_autoincr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword
             sta  cx16.VERA_ADDR_H
             rts
 
-_setup      and  #1
-            sta  P8ZP_SCRATCH_REG
+_setup      sta  P8ZP_SCRATCH_REG
             lda  cx16.r1
             and  #1
             sta  cx16.VERA_CTRL
@@ -761,7 +758,6 @@ asmsub vpoke(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers(A) {
     ;    note: inefficient when writing multiple sequential bytes!
     %asm {{
         stz  cx16.VERA_CTRL
-        and  #1
         sta  cx16.VERA_ADDR_H
         lda  cx16.r0
         sta  cx16.VERA_ADDR_L
@@ -777,7 +773,6 @@ asmsub vpoke_or(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) {
     ;    note: inefficient when writing multiple sequential bytes!
     %asm {{
         stz  cx16.VERA_CTRL
-        and  #1
         sta  cx16.VERA_ADDR_H
         lda  cx16.r0
         sta  cx16.VERA_ADDR_L
@@ -795,7 +790,6 @@ asmsub vpoke_and(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers(A) {
     ;    note: inefficient when writing multiple sequential bytes!
     %asm {{
         stz  cx16.VERA_CTRL
-        and  #1
         sta  cx16.VERA_ADDR_H
         lda  cx16.r0
         sta  cx16.VERA_ADDR_L
@@ -813,7 +807,6 @@ asmsub vpoke_xor(ubyte bank @A, uword address @R0, ubyte value @Y) clobbers (A) 
     ;    note: inefficient when writing multiple sequential bytes!
     %asm {{
         stz  cx16.VERA_CTRL
-        and  #1
         sta  cx16.VERA_ADDR_H
         lda  cx16.r0
         sta  cx16.VERA_ADDR_L
@@ -832,7 +825,6 @@ asmsub vpoke_mask(ubyte bank @A, uword address @R0, ubyte mask @X, ubyte value @
     %asm {{
         sty  P8ZP_SCRATCH_B1
         stz  cx16.VERA_CTRL
-        and  #1
         sta  cx16.VERA_ADDR_H
         lda  cx16.r0
         sta  cx16.VERA_ADDR_L
