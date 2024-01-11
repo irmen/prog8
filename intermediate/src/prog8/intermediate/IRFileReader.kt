@@ -503,7 +503,7 @@ class IRFileReader {
                 "bool" -> DataType.ARRAY_B
                 "uword_split" -> DataType.ARRAY_UW_SPLIT
                 "word_split" -> DataType.ARRAY_W_SPLIT
-                else -> throw IRParseException("invalid dt $type")
+                else -> throw IRParseException("invalid dt")
             }
         } else {
             return when(type) {
@@ -514,7 +514,7 @@ class IRFileReader {
                 "float" -> DataType.FLOAT
                 "bool" -> DataType.BOOL
                 // note: 'str' should not occur anymore in IR. Should be 'uword'
-                else -> throw IRParseException("invalid dt $type")
+                else -> throw IRParseException("invalid dt")
             }
         }
     }

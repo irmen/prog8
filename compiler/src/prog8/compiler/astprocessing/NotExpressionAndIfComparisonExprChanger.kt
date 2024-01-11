@@ -102,7 +102,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             // not(~x) -> x!=0
             if((expr.expression as? PrefixExpression)?.operator=="~") {
                 val x = (expr.expression as PrefixExpression).expression
-                val dt = x.inferType(program).getOrElse { throw FatalAstException("invalid dt") }
+                val dt = x.inferType(program).getOrElse { throw FatalAstException("invalid dt ${x.position}") }
                 val notZero = BinaryExpression(x, "!=", NumericLiteral(dt, 0.0, expr.position), expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, notZero, parent))
             }

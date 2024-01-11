@@ -270,7 +270,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 }
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultFpReg)
             }
-            else -> throw AssemblyError("invalid dt for sqrt")
+            else -> throw AssemblyError("invalid dt")
         }
     }
 

@@ -338,7 +338,7 @@ class AsmGen6502Internal (
             DataType.UWORD -> "cx16.r9"
             DataType.WORD -> "cx16.r9s"
             DataType.FLOAT -> "floats.floats_temp_var"
-            else -> throw AssemblyError("invalid dt $dt")
+            else -> throw AssemblyError("invalid dt")
         }
     }
 

@@ -3,7 +3,6 @@ package prog8.compiler.astprocessing
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
@@ -35,7 +34,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         if(scope.statements.any { it is VarDecl || it is IStatementContainer })
-            throw FatalAstException("anonymousscope may no longer contain any vardecls or subscopes")
+            throw InternalCompilerException("anonymousscope may no longer contain any vardecls or subscopes")
         return noModifications
     }
 

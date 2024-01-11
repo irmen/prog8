@@ -1,6 +1,8 @@
 TODO
 ====
 
+Mark had a compiler crash FatalAstException: invalid dt
+
 ...
 
 
@@ -9,6 +11,8 @@ Future Things and Ideas
 Compiler:
 
 - get rid of the noshortcircuit fallback option and code.
+- instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
+  that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
