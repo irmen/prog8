@@ -2,6 +2,7 @@ package prog8tests
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.maps.shouldNotContainKey
 import io.kotest.matchers.shouldBe
@@ -11,6 +12,7 @@ import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.code.core.SourceCode
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8.compiler.CallGraph
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.*
@@ -221,5 +223,29 @@ class TestCallgraph: FunSpec({
         callgraph.checkRecursiveCalls(errors)
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
+    }
+    
+    test("subs that aren't called but only used as scope aren't unused") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0L = main.scopesub.variable
+        cx16.r0L = main.scopesub.array[1]
+        cx16.r0++
+    }
+
+    sub scopesub() {
+        ubyte variable
+        ubyte[] array = [1,2,3]
+
+        cx16.r0++
+    }
+}"""
+        val result = compileText(VMTarget(), true, src)!!
+        val callgraph = CallGraph(result.compilerAst)
+        val scopeSub = result.compilerAst.entrypoint.lookup(listOf("main", "scopesub")) as Subroutine
+        scopeSub.name shouldBe "scopesub"
+        callgraph.notCalledButReferenced shouldContain scopeSub
+        callgraph.unused(scopeSub) shouldBe false
     }
 })

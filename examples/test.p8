@@ -1,26 +1,19 @@
 %import textio
+%import palette
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        ubyte xx = wobwob()
-        txt.print_ub(xx)
-        uword yy = wobwob2()
-        txt.print_uw(yy)
+        cx16.r0L = main.dummy.variable
+        cx16.r0L = main.dummy.array[1]
+        cx16.r0++
+    }
 
-        asmsub wobwob() -> bool @Pc {
-            %asm {{
-                sec
-                rts
-            }}
-        }
+    sub dummy() {
+        ubyte variable
+        ubyte[] array = [1,2,3]
 
-        asmsub wobwob2() -> bool @Pc {
-            %asm {{
-                clc
-                rts
-            }}
-        }
+        cx16.r0++
     }
 }

@@ -152,27 +152,26 @@ palette {
         set_rgb(colors, len(colors))
     }
 
-    uword[] default_colors_16 = [
-        $000,   ; 0 = black
-        $fff,   ; 1 = white
-        $800,   ; 2 = red
-        $afe,   ; 3 = cyan
-        $c4c,   ; 4 = purple
-        $0c5,   ; 5 = green
-        $00a,   ; 6 = blue
-        $ee7,   ; 7 = yellow
-        $d85,   ; 8 = orange
-        $640,   ; 9 = brown
-        $f77,   ; 10 = light red
-        $333,   ; 11 = dark grey
-        $777,   ; 12 = medium grey
-        $af6,   ; 13 = light green
-        $08f,   ; 14 = light blue
-        $bbb    ; 15 = light grey
-    ]
-
     sub set_default16() {
         ; set first 16 colors to the defaults on the X16
-        set_rgb(default_colors_16, len(default_colors_16))
+        uword[] colors = [
+            $000,   ; 0 = black
+            $fff,   ; 1 = white
+            $800,   ; 2 = red
+            $afe,   ; 3 = cyan
+            $c4c,   ; 4 = purple
+            $0c5,   ; 5 = green
+            $00a,   ; 6 = blue
+            $ee7,   ; 7 = yellow
+            $d85,   ; 8 = orange
+            $640,   ; 9 = brown
+            $f77,   ; 10 = light red
+            $333,   ; 11 = dark grey
+            $777,   ; 12 = medium grey
+            $af6,   ; 13 = light green
+            $08f,   ; 14 = light blue
+            $bbb    ; 15 = light grey
+        ]
+        set_rgb(colors, len(colors))
     }
 }

@@ -709,7 +709,7 @@ main {
             ubyte counter
             counter++
         }
-        test2(main.test.nested.counter)      ; shouldn't crash but just give nice error
+        test2(main.test.nested.counter)
     }
 
     sub test2(ubyte value) {
@@ -717,8 +717,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), true, src, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.single() shouldContain  "undefined symbol"
+        compileText(Cx16Target(), true, src, writeAssembly = false, errors = errors) shouldNotBe null
     }
 
     test("var to const") {

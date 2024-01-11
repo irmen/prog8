@@ -100,6 +100,16 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val target = identifier.targetStatement(program)
         if(target!=null)
             allIdentifiersAndTargets[identifier] = target
+
+        // if it's a scoped identifier, the subroutines in the name are also referenced!
+        val scope = identifier.definingScope
+        val name = identifier.nameInSource.toMutableList()
+        while(name.size>1) {
+            name.removeLast()
+            val scopeTarget = scope.lookup(name)
+            if(scopeTarget is Subroutine)
+                notCalledButReferenced += scopeTarget
+        }
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {
