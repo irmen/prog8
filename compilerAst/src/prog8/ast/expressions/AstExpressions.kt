@@ -128,18 +128,14 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
             "+" -> inferred
             "not" -> InferredTypes.knownFor(DataType.BOOL)
             "~" -> {
-                when(inferred.getOr(DataType.UNDEFINED)) {
-                    in ByteDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
-                    in WordDatatypes -> InferredTypes.knownFor(DataType.UWORD)
-                    else -> inferred
-                }
+                if(inferred.isBytes) InferredTypes.knownFor(DataType.UBYTE)
+                else if(inferred.isWords) InferredTypes.knownFor(DataType.UWORD)
+                else InferredTypes.InferredType.unknown()
             }
             "-" -> {
-                when(inferred.getOr(DataType.UNDEFINED)) {
-                    in ByteDatatypes -> InferredTypes.knownFor(DataType.BYTE)
-                    in WordDatatypes -> InferredTypes.knownFor(DataType.WORD)
-                    else -> inferred
-                }
+                if(inferred.isBytes) InferredTypes.knownFor(DataType.BYTE)
+                else if(inferred.isWords) InferredTypes.knownFor(DataType.WORD)
+                else inferred
             }
             else -> throw FatalAstException("weird prefix expression operator")
         }

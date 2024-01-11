@@ -551,7 +551,7 @@ internal class AstChecker(private val program: Program,
             if (targetDatatype.isKnown) {
                 val sourceDatatype = assignment.value.inferType(program)
                 if (sourceDatatype.isUnknown) {
-                    if (assignment.value !is FunctionCallExpression)
+                    if (assignment.value !is BinaryExpression && assignment.value !is PrefixExpression && assignment.value !is ContainmentCheck)
                         errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
                 } else {
                     checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
@@ -938,7 +938,7 @@ internal class AstChecker(private val program: Program,
         else if(expr.operator == "~") {
             if(dt !in IntegerDatatypes)
                 errors.err("can only use bitwise invert on integer types", expr.position)
-            if(dt==DataType.BOOL)
+            else if(dt==DataType.BOOL)
                 errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
         }
         else if(expr.operator == "not") {

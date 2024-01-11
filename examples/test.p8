@@ -1,55 +1,49 @@
 %zeropage basicsafe
-%option enable_floats
 
 main {
     sub start() {
-        ubyte[3] values
-        func1(22 in values)
-        func2(22 in values)
-        ubyte @shared qq = 22 in values
-        byte @shared ww = 22 in values
-    }
-    sub func1(ubyte arg) {
-        arg++
-    }
-    sub func2(byte arg) {
-        arg++
-    }
+        bool @shared b1 = true
+        bool @shared b2 = false
+        bool @shared b3 = true
+        ubyte @shared ub
+
+        ubyte[] ubarray = [false, true, false, true]        ; TODO should give type error
+        bool[] boolarray = [false, true, false, true]
+
+        b1 = b1 and b2
+        b2 = b1 or b2
+        b3 = b1 xor b2
 
 
-/*    sub start2() {
+        while b1
+            cx16.r0++
 
-        float @shared fl
-        ubyte @shared flags
-        byte @shared flagss
-        uword @shared flagsw
-        word @shared flagssw
-        bool @shared bflags = 123
+        while ub!=0
+            cx16.r0++
+
+        b1 = returnbool()
+        ub = ubarray[2]
+        b1 = boolarray[2]
+
+/*
+        ub = b1 + 42
+        b1 = b2 * 2
+
+        b1 = b1 & b2
+        b3 = b1 | b2
+        b3 = b1 ^ b2
+
+        b1 = ~b1
+        ub = ~b1
+
+        while b1==42        ; TODO should give type error
+            cx16.r0++
+*/
+
+    }
+
+    sub returnbool() -> bool {
         cx16.r0++
-        bflags = 123
-        cx16.r0++
-        bflags = 123 as bool
-
-        flags = bflags
-        flagss = bflags
-        flagsw = bflags
-        flagssw = bflags
-        fl = bflags
-        bflags = flags
-        bflags = flagss
-        bflags = flagsw
-        bflags = flagssw
-        bflags = fl
-
-        flags = bflags as ubyte
-        flagss = bflags as byte
-        flagsw = bflags as uword
-        flagssw = bflags as word
-        fl = bflags as float
-        bflags = flags as bool
-        bflags = flagss as bool
-        bflags = flagsw as bool
-        bflags = flagssw as bool
-        bflags = fl as bool
-    }*/
+        return true
+    }
 }

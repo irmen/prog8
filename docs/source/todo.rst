@@ -1,24 +1,32 @@
 TODO
 ====
 
+boolean memvar should not be possible.  memory is always numeric
+
+get rid of all "bool" in the IR. in IR it is a ubyte.
+
+
+
 First, make sure IR+VM is 100% correctly working. Only after that, move on to the 6502 code gen.
 
 ===== ====== =======
 VM    6502   what
 ===== ====== =======
-.     .      while boolean  should produce identical code as  while integer!=0
-.     .      while booleanvar==42    should give type error
+ok    .      boolean variables value
+F     .      boolean arrays value
+ok    .      return boolean value from sub
+ok    .      make sure that and,or,xor,not aren't getting replaced by the bitwise versions
+ok    .      bitwise logical ops on bools give type error, including invert
+ok     .     arithmetic ops on bools give type error
+ok    .      while boolean  should produce identical code as  while integer!=0
+F     .      boolean values in ubyte array should give type error
+F     .      while booleanvar==42    should give type error
 .     .      if not X -> test all variations with and without else
 .     .      while not guessed  -> can we get rid of the cmp?
 .     .      optimize byte/bool equals, optimize byte/bool not equals
-.     .      what does invert/inplace invert do on a bool? and bitwise operations?
 .     .      static bool var with initializer value (staticVariable2asm)
-.     .      logical xor
-.     .      inplace invert and inplace not
-.     .      parse boolean variable value in IR
-.     .      return boolean value
-.     .      make sure that and,or,xor,not aren't getting replaced in the Ast by the bitwise versions
-.     .      make sure that if not x  doesn't get code generated into an eor with 255
+.     .      logical xor works, also inplace
+.     .      not works, also inplace
 .     .      if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint
 .     .      remove all ==0  and ==1 checks added to boolean expressions
 .     .      is this De Morgan's optimization still useful in this branch? :   not a1 or not a2 -> not(a1 and a2)  likewise for and.
