@@ -9,6 +9,13 @@ This is a structured programming language for the 8-bit 6502/6510/65c02 micropro
 as used in many home computers from that era. It is a medium to low level programming language,
 which aims to provide many conveniences over raw assembly code (even when using a macro assembler).
 
+**Want to buy me a coffee or a pizza perhaps?**
+
+This project was created over the last couple of years by dedicating thousands of hours of my free time to it, to make it the best I possibly can.
+If you like Prog8, and think it's worth a nice cup of hot coffee or a delicious pizza, 
+you can help me out a little bit over at [ko-fi.com/irmen](https://ko-fi.com/irmen).
+
+
 Documentation
 -------------
 Full documentation (syntax reference, how to use the language and the compiler, etc.) can be found at:

@@ -40,7 +40,13 @@ class CallGraph(private val program: Program) : IAstVisitor {
             used.add(target)
         }
 
-        used + blocksFromLibraries + program.entrypoint.definingBlock
+        // warning: it's possible that we still have a faulty program without
+        // a proper main.start entrypoint, so be cautiuous about it.
+        val main = program.allBlocks.firstOrNull { it.name=="main" }
+        if(main?.subScope("start") != null)
+            used + blocksFromLibraries + main
+        else
+            used + blocksFromLibraries
     }
 
     private val usedModules: Set<Module> by lazy {

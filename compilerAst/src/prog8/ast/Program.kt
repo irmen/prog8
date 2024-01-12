@@ -58,12 +58,11 @@ class Program(val name: String,
 
     val entrypoint: Subroutine
         get() {
-            val mainBlocks = allBlocks.filter { it.name=="main" }
-            return when (mainBlocks.size) {
-                0 -> throw FatalAstException("no 'main' block")
-                1 -> mainBlocks[0].subScope("start") as Subroutine
-                else -> throw FatalAstException("more than one 'main' block")
-            }
+            val mainBlock = allBlocks.firstOrNull { it.name=="main" }
+            if(mainBlock!=null)
+                return mainBlock.subScope("start") as? Subroutine ?: throw FatalAstException("no 'main.start' subroutine")
+            else
+                throw FatalAstException("no 'main' block")
         }
 
     val toplevelModule: Module

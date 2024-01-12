@@ -38,7 +38,7 @@ class CX16MachineDefinition: IMachineDefinition {
         when(selectedEmulator) {
             1 -> {
                 emulator = "x16emu"
-                extraArgs = emptyList()
+                extraArgs = listOf("-debug")
             }
             2 -> {
                 emulator = "box16"
@@ -51,7 +51,7 @@ class CX16MachineDefinition: IMachineDefinition {
         }
 
         println("\nStarting Commander X16 emulator $emulator...")
-        val cmdline = listOf(emulator, "-scale", "2", "-run", "-prg", "${programNameWithPath}.prg") + extraArgs
+        val cmdline = listOf(emulator, "-scale", "2", "-rtc", "-run", "-prg", "${programNameWithPath}.prg") + extraArgs
         val processb = ProcessBuilder(cmdline).inheritIO()
         processb.environment()["PULSE_LATENCY_MSEC"] = "10"
         val process: Process = processb.start()
