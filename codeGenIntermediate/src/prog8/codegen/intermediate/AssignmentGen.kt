@@ -1,5 +1,6 @@
 package prog8.codegen.intermediate
 
+import prog8.code.StRomSub
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
@@ -8,15 +9,34 @@ import prog8.intermediate.*
 internal class AssignmentGen(private val codeGen: IRCodeGen, private val expressionEval: ExpressionGen) {
 
     internal fun translate(assignment: PtAssignment): IRCodeChunks {
-        if(assignment.target.children.single() is PtIrRegister)
-            throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
+        if(assignment.multiTarget) {
+            val values = assignment.value as? PtFunctionCall
+                ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
-        val chunks = translateRegularAssign(assignment)
-        chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
-        return chunks
+            val sub = codeGen.symbolTable.lookup(values.name) as? StRomSub
+                ?: throw AssemblyError("only asmsubs can return multiple values")
+
+            val result = mutableListOf<IRCodeChunkBase>()
+            sub.returns.zip(assignment.children).forEach { (returns, target) ->
+                val singleAssign = PtAssignment(assignment.position)
+                singleAssign.children.add(target)
+                TODO("IR cannot store machine register results yet  ${assignment.position}")
+                // singleAssign.children.add(PtMachineRegister(4242, returns.type, assignment.position))
+                // result += translateRegularAssign(singleAssign)
+            }
+            return result
+        } else {
+            if (assignment.target.children.single() is PtIrRegister)
+                throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
+
+            val chunks = translateRegularAssign(assignment)
+            chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
+            return chunks
+        }
     }
 
     internal fun translate(augAssign: PtAugmentedAssign): IRCodeChunks {
+        // augmented assignment always has just a single target
         if(augAssign.target.children.single() is PtIrRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 

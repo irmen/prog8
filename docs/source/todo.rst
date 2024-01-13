@@ -66,7 +66,6 @@ Optimizations:
   those checks should probably be removed, or be made permanent
 - optimizeCommonSubExpressions: currently only looks in expressions on a single line, could search across multiple expressions
 
-
 STRUCTS again?
 --------------
 

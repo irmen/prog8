@@ -517,31 +517,77 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignment: Assignment) {
-        val targetDt = assignment.target.inferType(program)
-        val valueDt = assignment.value.inferType(program)
-        if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
-            if(targetDt.isIterable)
-                errors.err("cannot assign value to string or array", assignment.value.position)
-            else if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD)) {
-                if(targetDt.isUnknown) {
-                    if(assignment.target.identifier?.targetStatement(program)!=null)
-                        errors.err("target datatype is unknown", assignment.target.position)
-                    // otherwise, another error about missing symbol is already reported.
+        fun checkType(target: AssignTarget, value: Expression, augmentable: Boolean) {
+            val targetDt = target.inferType(program)
+            val valueDt = value.inferType(program)
+            if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
+                if(targetDt.isIterable)
+                    errors.err("cannot assign value to string or array", value.position)
+                else if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD)) {
+                    if(targetDt.isUnknown) {
+                        if(target.identifier?.targetStatement(program)!=null)
+                            errors.err("target datatype is unknown", target.position)
+                        // otherwise, another error about missing symbol is already reported.
+                    }
                 }
+            }
+
+            if(value is TypecastExpression) {
+                if(augmentable && targetDt istype DataType.FLOAT)
+                    errors.err("typecasting a float value in-place makes no sense", value.position)
+            }
+
+            val numvalue = value.constValue(program)
+            if(numvalue!=null && targetDt.isKnown)
+                checkValueTypeAndRange(targetDt.getOr(DataType.UNDEFINED), numvalue)
+        }
+
+        if(assignment.target.multi==null) {
+            checkType(assignment.target, assignment.value, assignment.isAugmentable)
+        }
+
+
+        // multi-assign: check the number of assign targets vs. the number of return values of the subroutine
+        // also check the types of the variables vs the types of each return value
+        val fcall = assignment.value as? IFunctionCall
+        val fcallTarget = fcall?.target?.targetSubroutine(program)
+        if(assignment.target.multi!=null) {
+            val multi = assignment.target.multi!!
+            if(fcall==null) {
+                errors.err("expected a function call with multiple return values", assignment.value.position)
+            } else {
+                if(fcallTarget==null) {
+                    errors.err("expected a function call with multiple return values", assignment.value.position)
+                } else {
+                    if(fcallTarget.returntypes.size!=multi.size) {
+                        errors.err("expected ${multi.size} return values, have ${fcallTarget.returntypes.size}", fcall.position)
+                    }
+                }
+            }
+
+            if(errors.noErrors()) {
+                // check the types...
+                fcallTarget!!.returntypes.zip(multi).withIndex().forEach { (index, p) ->
+                    val (returnType, target) = p
+                    val targetDt = target.inferType(program).getOr(DataType.UNDEFINED)
+                    if(!(returnType isAssignableTo targetDt))
+                        errors.err("can't assign returnvalue #${index+1} to corresponding target; ${returnType} vs $targetDt", target.position)
+                }
+            }
+
+        } else if(fcallTarget!=null) {
+            if(fcallTarget.returntypes.size!=1) {
+                // If there are 2 return values, one of them being a boolean in a status register, this is okay.
+                // In that case the normal value is assigned and the status bit is dealth with separately for example with if_cs
+                val (returnRegisters, _) = fcallTarget.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
+                if(returnRegisters.size>1)
+                    errors.err("expected 1 return value, have ${fcallTarget.returntypes.size}", fcall.position)
             }
         }
 
-        if(assignment.value is TypecastExpression) {
-            if(assignment.isAugmentable && targetDt istype DataType.FLOAT)
-                errors.err("typecasting a float value in-place makes no sense", assignment.value.position)
-        }
-
-        val numvalue = assignment.value.constValue(program)
-        if(numvalue!=null && targetDt.isKnown)
-            checkValueTypeAndRange(targetDt.getOr(DataType.UNDEFINED), numvalue)
-
         super.visit(assignment)
     }
+
 
     override fun visit(assignTarget: AssignTarget) {
         super.visit(assignTarget)
@@ -551,6 +597,9 @@ internal class AstChecker(private val program: Program,
             if (memAddr < 0 || memAddr >= 65536)
                 errors.err("address out of range", assignTarget.position)
         }
+
+        if(assignTarget.parent is AssignTarget)
+            return      // sub-target of a multi-assign is tested elsewhere
 
         val assignment = assignTarget.parent as Statement
         val targetIdentifier = assignTarget.identifier
@@ -1173,25 +1222,6 @@ internal class AstChecker(private val program: Program,
         val error = VerifyFunctionArgTypes.checkTypes(functionCallExpr, program, compilerOptions)
         if(error!=null)
             errors.err(error.first, error.second)
-
-        // check the functions that return multiple returnvalues.
-        val stmt = functionCallExpr.target.targetStatement(program)
-        if (stmt is Subroutine) {
-            if (stmt.returntypes.size > 1) {
-                // Currently, it's only possible to handle ONE (or zero) return values from a subroutine.
-                // asmsub routines can have multiple return values, for instance in 2 different registers.
-                // It's not (yet) possible to handle these multiple return values because assignments
-                // are only to a single unique target at the same time.
-                //   EXCEPTION:
-                // if the asmsub returns multiple values and one of them is via a status register bit (such as carry),
-                // it *is* possible to handle them by just actually assigning the register value and
-                // dealing with the status bit as just being that, the status bit after the call.
-                val (returnRegisters, _) = stmt.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
-                if (returnRegisters.size>1) {
-                    errors.err("It's not possible to store the multiple result values of this asmsub call; you should use a small block of custom inline assembly for this.", functionCallExpr.position)
-                }
-            }
-        }
 
         // functions that don't return a value, can't be used in an expression or assignment
         if(targetStatement is Subroutine) {

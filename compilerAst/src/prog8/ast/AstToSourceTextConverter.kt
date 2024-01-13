@@ -409,6 +409,14 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         assignTarget.memoryAddress?.accept(this)
         assignTarget.identifier?.accept(this)
         assignTarget.arrayindexed?.accept(this)
+        val multi = assignTarget.multi
+        if(multi!=null) {
+            multi.dropLast(1).forEach { target ->
+                target.accept(this)
+                output(", ")
+            }
+            multi.last().accept(this)
+        }
     }
 
     override fun visit(scope: AnonymousScope) {

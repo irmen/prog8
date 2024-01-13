@@ -90,6 +90,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcAssign: Assignment): PtNode {
         if(srcAssign.isAugmentable) {
+            require(srcAssign.target.multi==null)
             val srcExpr = srcAssign.value
             val (operator: String, augmentedValue: Expression?) = when(srcExpr) {
                 is BinaryExpression -> {
@@ -136,7 +137,12 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         }
 
         val assign = PtAssignment(srcAssign.position)
-        assign.add(transform(srcAssign.target))
+        val multi = srcAssign.target.multi
+        if(multi==null) {
+            assign.add(transform(srcAssign.target))
+        } else {
+            multi.forEach { target -> assign.add(transform(target)) }
+        }
         assign.add(transformExpression(srcAssign.value))
         return assign
     }
@@ -272,11 +278,8 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcCall: FunctionCallExpression): PtFunctionCall {
         val (target, _) = srcCall.target.targetNameAndType(program)
-        val type = srcCall.inferType(program).getOrElse {
-            throw FatalAstException("unknown dt $srcCall")
-        }
-        val isVoid = type==DataType.UNDEFINED
-        val call = PtFunctionCall(target, isVoid, type, srcCall.position)
+        val iType = srcCall.inferType(program)
+        val call = PtFunctionCall(target, iType.isUnknown, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call

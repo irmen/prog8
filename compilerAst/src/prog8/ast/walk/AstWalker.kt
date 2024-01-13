@@ -432,6 +432,7 @@ abstract class AstWalker {
         assignTarget.arrayindexed?.accept(this, assignTarget)
         assignTarget.identifier?.accept(this, assignTarget)
         assignTarget.memoryAddress?.accept(this, assignTarget)
+        assignTarget.multi?.forEach { it.accept(this, assignTarget) }
         track(after(assignTarget, parent), assignTarget, parent)
     }
 

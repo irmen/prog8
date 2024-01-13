@@ -150,7 +150,7 @@ datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'bool' ;
 
 arrayindex:  '[' expression ']' ;
 
-assignment :  (assign_target '=' expression) | (assign_target '=' assignment);
+assignment :  (assign_target '=' expression) | (assign_target '=' assignment) | (multi_assign_target '=' expression);
 
 augassignment :
 	assign_target operator=('+=' | '-=' | '/=' | '*=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
@@ -161,6 +161,9 @@ assign_target:
 	| arrayindexed                  #ArrayindexedTarget
 	| directmemory                  #MemoryTarget
 	;
+
+multi_assign_target:
+    assign_target (',' assign_target)+ ;
 
 postincrdecr :  assign_target  operator = ('++' | '--') ;
 
