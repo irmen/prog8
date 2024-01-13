@@ -41,6 +41,16 @@ sprites {
         cx16.vpoke_mask(1, sprite_reg+1, %11110000, msb(addr))    ; address 16:13
     }
 
+    sub get_data_ptr(ubyte spritenum) {
+        ; -- returns the VRAM address where the sprite's bitmap data is stored
+        ;    R1 (byte) = the vera bank (0 or 1), R0 (word) = the address.
+        sprite_reg = VERA_SPRITEREGS + spritenum*$0008
+        cx16.r0L = cx16.vpeek(1, sprite_reg)
+        cx16.r0H = cx16.vpeek(1, sprite_reg+1)
+        cx16.r1L = cx16.r0H & %00001000 !=0     ; bank
+        cx16.r0 <<= 5                           ; address
+    }
+
     sub pos(ubyte spritenum, word xpos, word ypos) {
         sprite_reg = VERA_SPRITEREGS + 2 + spritenum*$0008
         cx16.vpoke(1, sprite_reg, lsb(xpos))
@@ -134,5 +144,48 @@ sprites {
 
     sub set_palette_offset(ubyte spritenum, ubyte offset) {
         cx16.vpoke_mask(1, VERA_SPRITEREGS + 7 + spritenum*$0008, %11110000, offset>>4)
+    }
+
+    sub set_mousepointer_hand() {
+        ; the array below is the compressed form of this sprite image:
+        ;    00, 16, 16, 00, 00, 00, 00, 00, 16, 16, 16, 00, 00, 00, 00, 00,
+        ;    16, 01, 01, 16, 00, 00, 16, 16, 15, 01, 01, 16, 00, 00, 00, 00,
+        ;    16, 01, 01, 01, 16, 16, 15, 01, 16, 15, 01, 01, 16, 00, 00, 00,
+        ;    16, 15, 01, 01, 01, 01, 16, 15, 01, 01, 01, 01, 16, 00, 00, 00,
+        ;    00, 16, 15, 01, 01, 01, 01, 01, 01, 01, 11, 01, 01, 16, 00, 00,
+        ;    00, 00, 16, 15, 01, 01, 01, 01, 11, 01, 01, 11, 01, 16, 00, 00,
+        ;    00, 00, 16, 16, 15, 01, 01, 01, 01, 11, 01, 01, 01, 16, 00, 00,
+        ;    00, 00, 16, 12, 12, 15, 01, 01, 01, 01, 01, 01, 01, 16, 16, 00,
+        ;    00, 00, 16, 12, 15, 15, 01, 01, 01, 01, 01, 01, 16, 01, 01, 16,
+        ;    00, 00, 00, 16, 15, 15, 01, 01, 01, 01, 01, 01, 01, 01, 01, 16,
+        ;    00, 00, 00, 00, 16, 15, 15, 15, 15, 15, 16, 01, 01, 15, 16, 00,
+        ;    00, 00, 00, 00, 00, 16, 16, 16, 16, 16, 15, 01, 15, 16, 00, 00,
+        ;    00, 00, 00, 00, 00, 00, 00, 00, 16, 12, 15, 15, 16, 00, 00, 00,
+        ;    00, 00, 00, 00, 00, 00, 00, 00, 16, 12, 12, 16, 00, 00, 00, 00,
+        ;    00, 00, 00, 00, 00, 00, 00, 00, 00, 16, 16, 00, 00, 00, 00, 00,
+        ;    00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00
+        ubyte[] hand_image_lzsa = [
+            26, 31, 0, 16, 16, 0, 46, 16, 192, 58, 1, 1, 16, 156, 41, 15, 37,
+            137, 42, 1, 6, 115, 2, 43, 1, 152, 34, 4, 127, 4, 15, 11, 116, 233,
+            11, 37, 135, 6, 38, 7, 19, 12, 12, 67, 167, 35, 136, 237, 15, 77,
+            16, 157, 37, 71, 157, 47, 2, 33, 24, 9, 15, 69, 83, 66, 94, 6, 136,
+            77, 0, 186, 6, 69, 154, 6, 143, 70, 204, 15, 0, 191, 231, 232]
+
+        set_mousepointer_image(hand_image_lzsa, true)
+    }
+
+    sub set_mousepointer_image(uword data, bool compressed) {
+        get_data_ptr(0)  ; the mouse cursor is sprite 0
+        if cx16.r1L==0 and cx16.r0==0
+            return    ; mouse cursor not enabled
+        ubyte vbank = cx16.r1L
+        cx16.vaddr(vbank, cx16.r0, 0, 1)
+        if compressed {
+            void cx16.memory_decompress(data, &cx16.VERA_DATA0)      ; decompress directly into vram
+        } else {
+            for cx16.r0L in 0 to 255 {
+                cx16.VERA_DATA0 = data[cx16.r0L]
+            }
+        }
     }
 }

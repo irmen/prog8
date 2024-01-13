@@ -624,7 +624,6 @@ That's why they control one sprite at a time. The exception is the ``pos_batch``
 which is quite efficient to update sprite positions of multiple sprites in one go.
 See the examples/cx16/sprites/dragon.p8 and dragons.p8 programs for ideas how to use it.
 
-
 Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/sprites.p8>`_
 to see what's in there.
 
