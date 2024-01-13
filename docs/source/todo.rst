@@ -1,9 +1,6 @@
 TODO
 ====
 
-can't makeAllBooleansUByte just be removed, and do the bool->ubyte translation scattered throughout the IRCodeGen ?
-
-
 allow const bools.
 
 

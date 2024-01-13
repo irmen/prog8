@@ -100,7 +100,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     is IRSubroutine -> {
                         xml.writeStartElement("SUB")
                         xml.writeAttribute("NAME", child.label)
-                        xml.writeAttribute("RETURNTYPE", child.returnType?.toString()?.lowercase() ?: "")
+                        xml.writeAttribute("RETURNTYPE", child.returnType?.typeString(null)?.lowercase() ?: "")
                         xml.writeAttribute("POS", child.position.toString())
                         xml.writeCharacters("\n")
                         xml.writeStartElement("PARAMS")
@@ -247,9 +247,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish}\n")
             } else {
                 val value: String = when(variable.dt) {
-                    DataType.BOOL -> if(variable.onetimeInitializationNumericValue==0.0) "false" else "true"
+                    DataType.BOOL -> variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: ""
                     DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: "").toString()
-                    in NumericDatatypes -> (variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: "").toString()
+                    in NumericDatatypes -> variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: ""
                     DataType.STR -> {
                         val encoded = irProgram.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue.second) + listOf(0u)
                         encoded.joinToString(",") { it.toInt().toString() }
