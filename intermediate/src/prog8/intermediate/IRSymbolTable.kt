@@ -80,7 +80,13 @@ class IRSymbolTable {
                 return newArray
             }
             scopedName = variable.scopedName
-            varToadd = IRStStaticVariable(scopedName, variable.dt,
+            val dt = when(variable.dt) {
+                DataType.BOOL -> DataType.UBYTE
+                DataType.ARRAY_BOOL -> DataType.ARRAY_UB
+                else -> variable.dt
+            }
+            varToadd = IRStStaticVariable(scopedName,
+                dt,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
                 fixupAddressOfInArray(variable.onetimeInitializationArrayValue),
@@ -166,6 +172,10 @@ class IRStMemVar(name: String,
         }
     }
 
+    init {
+        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
+    }
+
     val typeString: String = dt.typeString(length)
 }
 
@@ -203,6 +213,10 @@ class IRStStaticVariable(name: String,
                 variable.length,
                 variable.zpwish)
         }
+    }
+
+    init {
+        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
     }
 
     val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null

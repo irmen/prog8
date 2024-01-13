@@ -10,7 +10,7 @@ import kotlin.math.pow
 
 class IRCodeGen(
     internal val program: PtProgram,
-    internal val symbolTable: SymbolTable,
+    initialSymbolTable: SymbolTable,
     internal val options: CompilationOptions,
     internal val errors: IErrorReporter
 ) {
@@ -19,8 +19,14 @@ class IRCodeGen(
     private val builtinFuncGen = BuiltinFuncGen(this, expressionEval)
     private val assignmentGen = AssignmentGen(this, expressionEval)
     internal val registers = RegisterPool()
+    internal var symbolTable: SymbolTable = initialSymbolTable
 
     fun generate(): IRProgram {
+        if(makeAllBooleansUByte()>0) {
+            val stMaker = SymbolTableMaker(program, options)
+            symbolTable = stMaker.make()
+        }
+
         makeAllNodenamesScoped()
         moveAllNestedSubroutinesToBlockScope()
         verifyNameScoping(program, symbolTable)
@@ -187,6 +193,123 @@ class IRCodeGen(
         }
         recurse(program)
         renames.forEach { it.first.name = it.second }
+    }
+
+    private fun makeAllBooleansUByte(): Int {
+        var numReplacements = 0
+
+        fun transferChildren(oldParent: PtNode, newParent: PtNode) {
+            oldParent.children.forEach(newParent::add)
+            oldParent.children.clear()
+        }
+
+        fun replace(oldNode: PtNode, newNode: PtNode) {
+            transferChildren(oldNode, newNode)
+            val parent = oldNode.parent
+            val index = parent.children.indexOf(oldNode)
+            if(index>=0) {
+                parent.children[index] = newNode
+            } else
+                throw AssemblyError("parent node mismatch")
+            newNode.parent = parent
+            numReplacements++
+        }
+
+        fun recurse(node: PtNode) {
+            when(node) {
+                is PtArray -> {
+                    if(node.type==DataType.BOOL || node.type==DataType.ARRAY_BOOL)
+                        TODO("convert PtArray")
+                    else
+                        node.children.forEach(::recurse)
+                }
+                is PtBool -> {
+                    replace(node, PtNumber(DataType.UBYTE, node.asInt().toDouble(), node.position))
+                }
+                is PtTypeCast -> {
+                    if(node.type==DataType.BOOL) {
+                        val cast = PtTypeCast(DataType.UBYTE, node.position)
+                        replace(node, cast)
+                        cast.children.forEach(::recurse)
+                    }
+                    else
+                        node.children.forEach(::recurse)
+                }
+                is PtAsmSub -> {
+                    if(node.returns.any { it.second==DataType.BOOL })
+                        TODO("convert asmsub bool return type? but maybe ok in status flag?")
+
+                    // replace parameters directly (not children)
+/*                    val paramReplacements = mutableListOf<Pair<Int, Pair<RegisterOrStatusflag, PtSubroutineParameter>>>()
+                    node.parameters.withIndex().forEach { (index, param) ->
+                        if(param.second.type==DataType.BOOL) {
+                            TODO("convert asmsub bool parameter type? but maybe ok in status flag?")
+                            paramReplacements.add(index to Pair(param.first, PtSubroutineParameter(param.name, DataType.UBYTE, param.position)))
+                        }
+                        else if(param.second.type==DataType.ARRAY_BOOL) {
+                            paramReplacements.add(index to Pair(param.first, PtSubroutineParameter(param.name, DataType.ARRAY_UB, param.position)))
+                        }
+                    }
+                    if(paramReplacements.isNotEmpty()) {
+                        val newParams = node.parameters.toMutableList()
+                        paramReplacements.forEach { (index, param) ->
+                            newParams[index] = param
+                        }
+                        val sub = PtAsmSub(node.name, node.address, node.clobbers, newParams, node.returns, node.inline, node.position)
+                        transferChildren(node, sub)
+                        replacements.add(node to sub)
+                    }*/
+                }
+                is PtConstant -> {
+                    if(node.type==DataType.BOOL || node.type==DataType.ARRAY_BOOL)
+                        //replacements.add(node to PtConstant(node.name, DataType.UBYTE, node.value,))
+                        TODO("convert bool constant")
+                }
+                is PtSub -> {
+                    // replace parameters directly (not children)
+                    val paramReplacements = mutableListOf<Pair<Int, PtSubroutineParameter>>()
+                    node.parameters.withIndex().forEach { (index, param) ->
+                        if(param.type==DataType.BOOL)
+                            paramReplacements.add(index to PtSubroutineParameter(param.name, DataType.UBYTE, param.position))
+                        else if(param.type==DataType.ARRAY_BOOL)
+                            paramReplacements.add(index to PtSubroutineParameter(param.name, DataType.ARRAY_UB, param.position))
+                    }
+                    if(paramReplacements.isNotEmpty()) {
+                        val newParams = node.parameters.toMutableList()
+                        paramReplacements.forEach { (index, param) -> newParams[index] = param }
+                        val dt = if(node.returntype==DataType.BOOL) DataType.UBYTE else node.returntype
+                        val newSub = PtSub(node.name, newParams, dt, node.position)
+                        replace(node, newSub)
+                        newSub.children.forEach(::recurse)
+                    } else if(node.returntype==DataType.BOOL) {
+                        // convert only return type
+                        val newSub = PtSub(node.name, node.parameters, DataType.UBYTE, node.position)
+                        replace(node, newSub)
+                        newSub.children.forEach(::recurse)
+                    }
+                }
+                is PtVariable -> {
+                    var newVar: PtVariable? = null
+                    if (node.type==DataType.BOOL) {
+                        newVar = PtVariable(node.name, DataType.UBYTE, node.zeropage, node.value, node.arraySize, node.position)
+                        replace(node, newVar)
+                    }
+                    else if (node.type == DataType.ARRAY_BOOL) {
+                        newVar = PtVariable(node.name, DataType.ARRAY_UB, node.zeropage, node.value, node.arraySize, node.position)
+                        replace(node, newVar)
+                    }
+                    newVar?.children?.forEach(::recurse)
+                }
+                else -> {
+                    node.children.forEach(::recurse)
+                }
+            }
+        }
+
+        recurse(program)
+        // renames.forEach { it.first.name = it.second }
+
+        return numReplacements
     }
 
     private fun moveAllNestedSubroutinesToBlockScope() {
@@ -1629,6 +1752,8 @@ class IRCodeGen(
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
             val flattenedName = it.definingSub()!!.name + "." + it.name
+            if(symbolTable.lookup(flattenedName)==null)
+                TODO("fix missing lookup for: $flattenedName   parameter")
             val orig = symbolTable.lookup(flattenedName) as StStaticVariable
             IRSubroutine.IRParam(flattenedName, orig.dt)
         }

@@ -577,6 +577,10 @@ internal class AstChecker(private val program: Program,
 
         if(decl.datatype==DataType.LONG)
             errors.err("integer overflow", decl.position)
+        if(decl.type==VarDeclType.MEMORY) {
+            if (decl.datatype == DataType.BOOL || decl.datatype == DataType.ARRAY_BOOL)
+                errors.err("variables mapped in memory should be numeric", decl.position)
+        }
 
         fun err(msg: String) = errors.err(msg, decl.position)
 

@@ -497,24 +497,24 @@ class IRFileReader {
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
             return when(type) {
+                // note: there are no BOOLEANS anymore in the IR. Only UBYTE.
                 "byte" -> DataType.ARRAY_B
                 "ubyte", "str" -> DataType.ARRAY_UB
                 "word" -> DataType.ARRAY_W
                 "uword" -> DataType.ARRAY_UW
                 "float" -> DataType.ARRAY_F
-                "bool" -> DataType.ARRAY_B
                 "uword_split" -> DataType.ARRAY_UW_SPLIT
                 "word_split" -> DataType.ARRAY_W_SPLIT
                 else -> throw IRParseException("invalid dt")
             }
         } else {
             return when(type) {
+                // note: there are no BOOLEANS anymore in the IR. Only UBYTE.
                 "byte" -> DataType.BYTE
                 "ubyte" -> DataType.UBYTE
                 "word" -> DataType.WORD
                 "uword" -> DataType.UWORD
                 "float" -> DataType.FLOAT
-                "bool" -> DataType.BOOL
                 // note: 'str' should not occur anymore in IR. Should be 'uword'
                 else -> throw IRParseException("invalid dt")
             }

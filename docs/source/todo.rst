@@ -1,10 +1,10 @@
 TODO
 ====
 
-boolean memvar should not be possible.  memory is always numeric
+can't makeAllBooleansUByte just be removed, and do the bool->ubyte translation scattered throughout the IRCodeGen ?
 
-get rid of all "bool" in the IR. in IR it is a ubyte.
 
+allow const bools.
 
 
 First, make sure IR+VM is 100% correctly working. Only after that, move on to the 6502 code gen.

@@ -1,7 +1,21 @@
 %zeropage basicsafe
+%import textio
 
 main {
     sub start() {
+        bool @shared bb = func(true)
+    }
+
+    sub func(bool arg) -> bool {
+        cx16.r0++
+        return arg
+    }
+}
+
+mainxxxxx {
+    sub start() {
+        ; const bool zz = true        ; TODO allow const bool;
+
         bool @shared b1 = true
         bool @shared b2 = false
         bool @shared b3 = true

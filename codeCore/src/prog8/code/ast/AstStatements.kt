@@ -152,7 +152,11 @@ class PtVariable(name: String, override val type: DataType, val zeropage: Zeropa
 class PtConstant(name: String, override val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position), IPtVariable
 
 
-class PtMemMapped(name: String, override val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable
+class PtMemMapped(name: String, override val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
+    init {
+        require(type!=DataType.BOOL && type!=DataType.ARRAY_BOOL)
+    }
+}
 
 
 class PtWhen(position: Position) : PtNode(position) {
