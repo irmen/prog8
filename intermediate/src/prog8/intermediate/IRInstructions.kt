@@ -732,6 +732,7 @@ data class IRInstruction(
     val immediateFp: Double?=null,
     val address: Int?=null,       // 0-$ffff
     val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
+    private val symbolOffset: Int? = null,     // offset to add on labelSymbol (used to index into an array variable)
     var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
     val fcallArgs: FunctionCallArgs? = null       // will be set for the CALL and SYSCALL instructions.
 ) {
@@ -742,9 +743,16 @@ data class IRInstruction(
     val reg3direction: OperandDirection
     val fpReg1direction: OperandDirection
     val fpReg2direction: OperandDirection
+    val labelSymbolOffset = if(symbolOffset==0) null else symbolOffset
 
     init {
-        require(labelSymbol?.first()!='_') {"label/symbol should not start with underscore $labelSymbol"}
+        if(labelSymbol!=null) {
+            require(labelSymbol.first() != '_') { "label/symbol should not start with underscore $labelSymbol" }
+            require(labelSymbol.all { it.isJavaIdentifierStart() || it.isJavaIdentifierPart() || it=='.' }) {
+                "label/symbol contains invalid character $labelSymbol"
+            }
+        }
+        if(labelSymbolOffset!=null) require(labelSymbolOffset>0 && labelSymbol!=null) {"labelsymbol offset inconsistency"}
         require(reg1==null || reg1 in 0..65536) {"reg1 out of bounds"}
         require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
         require(reg3==null || reg3 in 0..65536) {"reg3 out of bounds"}
@@ -941,7 +949,12 @@ data class IRInstruction(
 
         if(this.fcallArgs!=null) {
             immediate?.let { result.add(it.toHex()) }       // syscall
-            labelSymbol?.let { result.add(it) }             // regular subroutine call
+            if(labelSymbol!=null) {
+                // regular subroutine call
+                result.add(labelSymbol)
+                if(labelSymbolOffset!=null)
+                    result.add("+$labelSymbolOffset")
+            }
             address?.let { result.add(address.toHex()) }    // romcall
             result.add("(")
             fcallArgs.arguments.forEach {
@@ -1028,6 +1041,8 @@ data class IRInstruction(
             }
             labelSymbol?.let {
                 result.add(it)
+                if(labelSymbolOffset!=null)
+                    result.add("+$labelSymbolOffset")
             }
         }
         if(result.last() == ",")

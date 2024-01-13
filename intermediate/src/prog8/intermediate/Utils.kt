@@ -196,12 +196,20 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     if(format.address!=OperandDirection.UNUSED && address==null && labelSymbol==null)
         throw IRParseException("requires address or symbol for $line")
 
+    var offset: Int? = null
     if(labelSymbol!=null) {
         if (labelSymbol!![0] == 'r' && labelSymbol!![1].isDigit())
             throw IRParseException("labelsymbol confused with register?: $labelSymbol")
+        if('+' in labelSymbol!!) {
+            val offsetStr = labelSymbol!!.substringAfterLast('+')
+            if (offsetStr.isNotEmpty()) {
+                offset = offsetStr.toInt()
+                labelSymbol = labelSymbol!!.substringBeforeLast('+')
+            }
+        }
     }
 
-    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol))
+    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol, symbolOffset = offset))
 }
 
 private class ParsedCall(

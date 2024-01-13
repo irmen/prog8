@@ -131,5 +131,19 @@ class TestInstructions: FunSpec({
                 require(format.fpReg2==OperandDirection.UNUSED || format.fpReg2==OperandDirection.READ) {"fpReg2 can only be used as input"}
             }
         }
-     }
+    }
+
+    test("with symbol offset") {
+        val i1 = IRInstruction(Opcode.ADDM, IRDataType.BYTE, reg1 = 1, labelSymbol = "symbol", symbolOffset = 99)
+        i1.labelSymbol shouldBe "symbol"
+        i1.labelSymbolOffset shouldBe 99
+
+        val i2 = IRInstruction(Opcode.ADDM, IRDataType.BYTE, reg1 = 1, labelSymbol = "symbol", symbolOffset = 0)
+        i2.labelSymbol shouldBe "symbol"
+        i2.labelSymbolOffset shouldBe null
+
+        shouldThrowWithMessage<IllegalArgumentException>("labelsymbol offset inconsistency") {
+            IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1 = 1, reg2 = 2, symbolOffset = 99)
+        }
+    }
 })

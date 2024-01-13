@@ -229,11 +229,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 if(fixedIndex!=null) {
                     val chunk = IRCodeChunk(null, null).also {
                         if(targetArray.splitWords) {
-                            it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, immediate = arrayLength, labelSymbol = "${variable}_lsb+$fixedIndex")
-                            it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, immediate = arrayLength, labelSymbol = "${variable}_msb+$fixedIndex")
+                            it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, immediate = arrayLength, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
+                            it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, immediate = arrayLength, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
                         }
                         else
-                            it += IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = "$variable+${fixedIndex*itemsize}")
+                            it += IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = variable, symbolOffset = fixedIndex*itemsize)
                     }
                     result += chunk
                 } else {
@@ -253,7 +253,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     if(fixedIndex!=null) {
                         val offset = fixedIndex*itemsize
                         val chunk = IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = "$variable+$offset")
+                            it += IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = variable, symbolOffset = offset)
                         }
                         result += chunk
                     } else {
@@ -268,12 +268,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         val chunk = IRCodeChunk(null, null).also {
                             if(targetArray.splitWords) {
                                 val msbReg = codeGen.registers.nextFree()
-                                it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = valueRegister, immediate = arrayLength, labelSymbol = "${variable}_lsb+$fixedIndex")
+                                it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = valueRegister, immediate = arrayLength, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
                                 it += IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = msbReg, reg2 = valueRegister)
-                                it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = msbReg, immediate = arrayLength, labelSymbol = "${variable}_msb+$fixedIndex")
+                                it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = msbReg, immediate = arrayLength, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
                             }
                             else
-                                it += IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = "$variable+${fixedIndex*itemsize}")
+                                it += IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = variable, symbolOffset = fixedIndex*itemsize)
                         }
                         result += chunk
                     } else {

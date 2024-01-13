@@ -15,7 +15,9 @@ import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8.compiler.CallGraph
 import prog8.parser.Prog8Parser.parseModule
+import prog8.vm.VmRunner
 import prog8tests.helpers.*
+import kotlin.io.path.readText
 
 class TestCallgraph: FunSpec({
     test("testGraphForEmptySubs") {
@@ -224,13 +226,13 @@ class TestCallgraph: FunSpec({
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
     }
-    
-    test("subs that aren't called but only used as scope aren't unused") {
+
+    test("subs that aren't called but only used as scope aren't unused (6502)") {
         val src="""
 main {
     sub start() {
         cx16.r0L = main.scopesub.variable
-        cx16.r0L = main.scopesub.array[1]
+        cx16.r1L = main.scopesub.array[1]
         cx16.r0++
     }
 
@@ -238,14 +240,49 @@ main {
         ubyte variable
         ubyte[] array = [1,2,3]
 
-        cx16.r0++
+        variable++
     }
 }"""
-        val result = compileText(VMTarget(), true, src)!!
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(C64Target(), true, src, errors=errors)!!
         val callgraph = CallGraph(result.compilerAst)
         val scopeSub = result.compilerAst.entrypoint.lookup(listOf("main", "scopesub")) as Subroutine
         scopeSub.name shouldBe "scopesub"
         callgraph.notCalledButReferenced shouldContain scopeSub
         callgraph.unused(scopeSub) shouldBe false
+
+        errors.warnings.any { "unused" in it } shouldBe false
+        errors.infos.any { "unused" in it } shouldBe false
+    }
+
+    test("subs that aren't called but only used as scope aren't unused (IR/VM)") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0L = main.scopesub.variable
+        cx16.r1L = main.scopesub.array[1]
+        cx16.r0++
+    }
+
+    sub scopesub() {
+        ubyte variable
+        ubyte[] array = [1,2,3]
+
+        variable++
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), true, src, errors=errors)!!
+        val callgraph = CallGraph(result.compilerAst)
+        val scopeSub = result.compilerAst.entrypoint.lookup(listOf("main", "scopesub")) as Subroutine
+        scopeSub.name shouldBe "scopesub"
+        callgraph.notCalledButReferenced shouldContain scopeSub
+        callgraph.unused(scopeSub) shouldBe false
+
+        errors.warnings.any { "unused" in it } shouldBe false
+        errors.infos.any { "unused" in it } shouldBe false
+
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runProgram(virtfile.readText())
     }
 })

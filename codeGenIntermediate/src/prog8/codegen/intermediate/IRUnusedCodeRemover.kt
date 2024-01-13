@@ -167,7 +167,13 @@ class IRUnusedCodeRemover(
                 it.next?.let { next -> new += next }
                 it.instructions.forEach { instr ->
                     if (instr.branchTarget == null)
-                        instr.labelSymbol?.let { label -> allLabeledChunks[label]?.let { chunk -> new += chunk } }
+                        instr.labelSymbol?.let { label ->
+                            val chunk = allLabeledChunks[label.substringBeforeLast('.')]
+                            if(chunk!=null)
+                                new+=chunk
+                            else
+                                allLabeledChunks[label]?.let { new += it }
+                        }
                     else
                         new += instr.branchTarget!!
                 }
@@ -212,6 +218,16 @@ class IRUnusedCodeRemover(
             }
             if (chunk.label == "main.start")
                 linkedChunks += chunk
+        }
+
+        // make sure that chunks that are only used as a prefix of a label, are also marked as linked
+        linkedChunks.forEach { chunk ->
+            chunk.instructions.forEach {
+                if(it.labelSymbol!=null) {
+                    val chunkName = it.labelSymbol!!.substringBeforeLast('.')
+                    allLabeledChunks[chunkName]?.let { linkedChunks+=it }
+                }
+            }
         }
 
         return removeUnlinkedChunks(linkedChunks)

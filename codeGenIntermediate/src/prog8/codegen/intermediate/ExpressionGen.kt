@@ -188,8 +188,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val memOffset = (arrayIx.index as PtNumber).number.toInt()
                 result += IRCodeChunk(null, null).also {
                     val tmpRegMsb = codeGen.registers.nextFree()
-                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=tmpRegMsb, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_msb+$memOffset")
-                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_lsb+$memOffset")
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=tmpRegMsb, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_msb", symbolOffset = memOffset)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_lsb", symbolOffset = memOffset)
                     it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=tmpRegMsb, reg3=resultRegister)
                 }
             } else {
@@ -207,14 +207,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         var resultFpRegister = -1
         if(arrayIx.index is PtNumber) {
-            val memOffset = ((arrayIx.index as PtNumber).number.toInt() * eltSize).toString()
+            val memOffset = ((arrayIx.index as PtNumber).number.toInt() * eltSize)
             if(vmDt==IRDataType.FLOAT) {
                 resultFpRegister = codeGen.registers.nextFreeFloat()
-                addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol = "$arrayVarSymbol+$memOffset"), null)
+                addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
             }
             else {
                 resultRegister = codeGen.registers.nextFree()
-                addInstr(result, IRInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, labelSymbol = "$arrayVarSymbol+$memOffset"), null)
+                addInstr(result, IRInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
             }
         } else {
             val tr = translateExpression(arrayIx.index)

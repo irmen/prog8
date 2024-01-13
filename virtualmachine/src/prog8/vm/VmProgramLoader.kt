@@ -148,26 +148,25 @@ class VmProgramLoader {
         for((ref, label) in placeholders) {
             val (chunk, line) = ref
             val replacement = variableAddresses[label]
+            val instr = chunk.instructions[line]
+            val offset = instr.labelSymbolOffset ?: 0
             if(replacement==null) {
                 // it could be an address + index:   symbol+42
-                if('+' in label) {
-                    val (symbol, indexStr) = label.split('+')
-                    val index = indexStr.toInt()
-                    val address = variableAddresses.getValue(symbol) + index
-                    chunk.instructions[line] = chunk.instructions[line].copy(address = address)
+                if(offset>0) {
+                    val address = variableAddresses.getValue(label) + offset
+                    chunk.instructions[line] = instr.copy(address = address)
                 } else {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
                     val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
-                    val opcode = chunk.instructions[line].opcode
                     if(target==null)
                         throw IRParseException("placeholder not found in variables nor labels: $label")
-                    else if(opcode in OpcodesThatBranch)
-                        chunk.instructions[line] = chunk.instructions[line].copy(branchTarget = target, address = null)
+                    else if(instr.opcode in OpcodesThatBranch)
+                        chunk.instructions[line] = instr.copy(branchTarget = target, address = null)
                     else
-                        throw IRParseException("vm cannot yet load a label address as a value: ${chunk.instructions[line]}")
+                        throw IRParseException("vm cannot yet load a label address as a value: ${instr}")
                 }
             } else {
-                chunk.instructions[line] = chunk.instructions[line].copy(address = replacement)
+                chunk.instructions[line] = instr.copy(address = replacement + offset)
             }
         }
 

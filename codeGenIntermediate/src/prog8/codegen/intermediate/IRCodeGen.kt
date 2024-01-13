@@ -143,19 +143,10 @@ class IRCodeGen(
                 (idx, instr) ->
                     val symbolExpr = instr.labelSymbol
                     if(symbolExpr!=null) {
-                        val symbol: String
-                        val index: UInt
-                        if('+' in symbolExpr) {
-                            val operands = symbolExpr.split('+', )
-                            symbol = operands[0]
-                            index = operands[1].toUInt()
-                        } else {
-                            symbol = symbolExpr
-                            index = 0u
-                        }
-                        val target = symbolTable.flat[symbol]
+                        val index = instr.labelSymbolOffset ?: 0
+                        val target = symbolTable.flat[symbolExpr]
                         if (target is StMemVar) {
-                            replacements.add(Triple(chunk, idx, target.address+index))
+                            replacements.add(Triple(chunk, idx, target.address+index.toUInt()))
                         }
                     }
                 }
@@ -1451,21 +1442,21 @@ class IRCodeGen(
                 when(postIncrDecr.operator) {
                     "++" -> {
                         result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = "${variable}_lsb+$fixedIndex")
+                            it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel)
-                            it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = "${variable}_msb+$fixedIndex")
+                            it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
                         }
                         result += IRCodeChunk(skipLabel, null)
                     }
                     "--" -> {
                         val valueReg=registers.nextFree()
                         result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=valueReg, labelSymbol = "${variable}_lsb+$fixedIndex")
+                            it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=valueReg, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel)
-                            it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = "${variable}_msb+$fixedIndex")
+                            it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
                         }
                         result += IRCodeChunk(skipLabel, null).also {
-                            it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = "${variable}_lsb+$fixedIndex")
+                            it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
                         }
                     }
                     else -> throw AssemblyError("weird operator")
@@ -1556,7 +1547,7 @@ class IRCodeGen(
                             it += IRInstruction(Opcode.STOREIX, irDt, reg1 = dataReg, reg2 = indexReg, labelSymbol = variable)
                         }
                     } else {
-                        addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = "$variable+$offset"), null)
+                        addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = variable, symbolOffset = offset), null)
                     }
                 } else {
                     val indexTr = expressionEval.translateExpression(array.index)
