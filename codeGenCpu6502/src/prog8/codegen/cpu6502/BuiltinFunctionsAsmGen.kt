@@ -409,8 +409,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        translateRolRorArrayArgs(what.variable, what, "ror2", 'b')
-                        asmgen.out("  jsr  prog8_lib.ror2_array_ub")
+                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        val varname = asmgen.asmVariableName(what.variable)
+                        asmgen.out("  lda  ${varname},x |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${varname},x")
                     }
                     is PtMemoryByte -> {
                         if (what.address is PtNumber) {
@@ -431,10 +432,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
-                            TODO("ror2 split words ${what.position}")
-                        translateRolRorArrayArgs(what.variable, what, "ror2", 'w')
-                        asmgen.out("  jsr  prog8_lib.ror2_array_uw")
+                            asmgen.out("  lsr  ${varname}_msb,x |  ror  ${varname}_lsb,x |  bcc  + |  lda  ${varname}_msb,x |  ora  #\$80 |  sta  ${varname}_msb,x |+ ")
+                        else
+                            asmgen.out("  lsr  ${varname}+1,x |  ror  ${varname},x |  bcc  +  |  lda  ${varname}+1,x  |  ora  #\$80 |  sta  ${varname}+1,x |+ ")
                     }
                     is PtIdentifier -> {
                         val variable = asmgen.asmVariableName(what)
@@ -453,8 +456,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        translateRolRorArrayArgs(what.variable, what, "ror", 'b')
-                        asmgen.out("  jsr  prog8_lib.ror_array_ub")
+                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        val varname = asmgen.asmVariableName(what.variable)
+                        asmgen.out("  ror  ${varname},x")
                     }
                     is PtMemoryByte -> {
                         if (what.address is PtNumber) {
@@ -489,10 +493,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
-                            TODO("ror split words ${what.position}")
-                        translateRolRorArrayArgs(what.variable, what, "ror", 'w')
-                        asmgen.out("  jsr  prog8_lib.ror_array_uw")
+                            asmgen.out("  ror  ${varname}_msb,x |  ror  ${varname}_lsb,x")
+                        else
+                            asmgen.out("  ror  ${varname}+1,x |  ror  ${varname},x")
                     }
                     is PtIdentifier -> {
                         val variable = asmgen.asmVariableName(what)
@@ -511,8 +517,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        translateRolRorArrayArgs(what.variable, what, "rol2", 'b')
-                        asmgen.out("  jsr  prog8_lib.rol2_array_ub")
+                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        val varname = asmgen.asmVariableName(what.variable)
+                        asmgen.out("  lda  ${varname},x |  cmp  #\$80 |  rol  a |  sta  ${varname},x")
                     }
                     is PtMemoryByte -> {
                         if (what.address is PtNumber) {
@@ -533,10 +540,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
-                            TODO("rol2 split words ${what.position}")
-                        translateRolRorArrayArgs(what.variable, what, "rol2", 'w')
-                        asmgen.out("  jsr  prog8_lib.rol2_array_uw")
+                            asmgen.out("  asl  ${varname}_lsb,x |  rol  ${varname}_msb,x |  bcc  + |  inc  ${varname}_lsb |+")
+                        else
+                            asmgen.out("  asl  ${varname},x |  rol  ${varname}+1,x |  bcc  + |  inc  ${varname},x |+  ")
                     }
                     is PtIdentifier -> {
                         val variable = asmgen.asmVariableName(what)
@@ -555,8 +564,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        translateRolRorArrayArgs(what.variable, what, "rol", 'b')
-                        asmgen.out("  jsr  prog8_lib.rol_array_ub")
+                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        val varname = asmgen.asmVariableName(what.variable)
+                        asmgen.out("  rol  ${varname},x")
                     }
                     is PtMemoryByte -> {
                         if (what.address is PtNumber) {
@@ -591,10 +601,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
-                            TODO("rol split words ${what.position}")
-                        translateRolRorArrayArgs(what.variable, what, "rol", 'w')
-                        asmgen.out("  jsr  prog8_lib.rol_array_uw")
+                            asmgen.out("  rol  ${varname}_lsb,x |  rol  ${varname}_msb,x")
+                        else
+                            asmgen.out("  rol  ${varname},x |  rol  ${varname}+1,x")
                     }
                     is PtIdentifier -> {
                         val variable = asmgen.asmVariableName(what)
@@ -605,23 +617,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
             else -> throw AssemblyError("weird type")
         }
-    }
-
-    private fun translateRolRorArrayArgs(arrayvar: PtIdentifier, indexer: PtArrayIndexer, operation: String, dt: Char) {
-        if(indexer.splitWords)
-            TODO("rol/ror split words access ${indexer.position}")
-        if(arrayvar.type==DataType.UWORD) {
-            if(dt!='b')
-                throw AssemblyError("non-array var indexing requires bytes dt")
-            asmgen.assignExpressionToVariable(arrayvar, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD)
-        } else {
-            val p = arrayvar.parent
-            val addressOf = PtAddressOf(arrayvar.position)
-            addressOf.add(arrayvar)
-            addressOf.parent = p
-            asmgen.assignExpressionToVariable(addressOf, "prog8_lib.${operation}_array_u${dt}._arg_target", DataType.UWORD)
-        }
-        asmgen.assignExpressionToVariable(indexer.index, "prog8_lib.${operation}_array_u${dt}._arg_index", DataType.UBYTE)
     }
 
     private fun funcSetLsbMsb(fcall: PtBuiltinFunctionCall, msb: Boolean) {

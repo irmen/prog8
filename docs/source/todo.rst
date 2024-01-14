@@ -1,9 +1,13 @@
 TODO
 ====
 
+funcRor()/funcRol():   save carry flag before calculating array index otherwise it gets clobbered
+rol/ror a membyte through a uword ptr
+
 split words sort and reverse
-split words rol and ror  and rol2/ror2
 split words any and all
+
+loadScaledArrayIndexIntoRegister():   the type arg can be removed?
 
 Mark had a compiler crash FatalAstException: invalid dt
 

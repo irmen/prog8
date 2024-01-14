@@ -527,6 +527,7 @@ class AsmGen6502Internal (
         elementDt: DataType,
         register: CpuRegister
     ) {
+        require(elementDt==expr.type)       // TODO remove this if it is ok
         val reg = register.toString().lowercase()
         val indexnum = expr.index.asConstInteger()
         if (indexnum != null) {
