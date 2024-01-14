@@ -55,6 +55,7 @@ SYSCALLS:
 45 = str to float
 46 = MUL16_LAST_UPPER
 47 = float to str
+48 = FLOATARRAY_CONTAINS
 */
 
 enum class Syscall {
@@ -105,7 +106,8 @@ enum class Syscall {
     ATAN,
     STR_TO_FLOAT,
     MUL16_LAST_UPPER,
-    FLOAT_TO_STR
+    FLOAT_TO_STR,
+    FLOATARRAY_CONTAINS,
     ;
 
     companion object {
@@ -452,6 +454,18 @@ object SysCalls {
                     if(vm.memory.getUW(array)==value)
                         return returnValue(callspec.returns!!, 1u, vm)
                     array += 2
+                    length--
+                }
+                returnValue(callspec.returns!!, 0u, vm)
+            }
+            Syscall.FLOATARRAY_CONTAINS -> {
+                val (value, arrayV, lengthV) = getArgValues(callspec.arguments, vm)
+                var length = lengthV as UByte
+                var array = (arrayV as UShort).toInt()
+                while(length>0u) {
+                    if(vm.memory.getFloat(array)==value)
+                        return returnValue(callspec.returns!!, 1u, vm)
+                    array += vm.machinedef.FLOAT_MEM_SIZE
                     length--
                 }
                 returnValue(callspec.returns!!, 0u, vm)

@@ -154,7 +154,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 result += codeGen.makeSyscall(IMSyscall.WORDARRAY_CONTAINS, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to elementTr.resultReg)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
-            DataType.ARRAY_F -> throw AssemblyError("containment check in float-array not supported")
+            DataType.ARRAY_F -> {
+                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
+                val elementTr = translateExpression(check.element)
+                addToResult(result, elementTr, -1, elementTr.resultFpReg)
+                val iterableTr = translateExpression(check.iterable)
+                addToResult(result, iterableTr, iterableTr.resultReg, -1)
+                val lengthReg = codeGen.registers.nextFree()
+                val resultReg = codeGen.registers.nextFree()
+                val iterableLength = codeGen.symbolTable.getLength(check.iterable.name)
+                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
+                result += codeGen.makeSyscall(IMSyscall.FLOATARRAY_CONTAINS, listOf(IRDataType.FLOAT to elementTr.resultFpReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+            }
             else -> throw AssemblyError("weird iterable dt ${check.iterable.type} for ${check.iterable.name}")
         }
     }

@@ -1,6 +1,10 @@
 TODO
 ====
 
+split words sort and reverse
+split words rol and ror  and rol2/ror2
+split words any and all
+
 Mark had a compiler crash FatalAstException: invalid dt
 
 ...
@@ -33,6 +37,7 @@ Compiler:
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
+- ir: fix call() return value handling
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
@@ -59,7 +64,7 @@ Optimizations:
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
-
+- optimizeCommonSubExpressions: currently only looks in expressions on a single line, could search across multiple expressions
 
 STRUCTS again?
 --------------

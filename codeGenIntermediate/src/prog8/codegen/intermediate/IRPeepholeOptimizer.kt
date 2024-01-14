@@ -419,7 +419,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // TODO: detect multiple loads to the same target registers, only keep first (if source is not I/O memory)
             // TODO: detect multiple stores to the same target, only keep first (if target is not I/O memory)
             // TODO: detect multiple float ffrom/fto to the same target, only keep first
-            // TODO: detect multiple sequential rnd with same reg1, only keep one
             // TODO: detect subsequent same xors/nots/negs, remove the pairs completely as they cancel out
             // TODO: detect multiple same ands, ors; only keep first
             // TODO: (hard) detect multiple registers being assigned the same value (and not changed) - use only 1 of them

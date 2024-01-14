@@ -2,6 +2,7 @@ package prog8.vm
 
 import prog8.code.core.toHex
 import prog8.code.target.virtual.IVirtualMachineRunner
+import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.intermediate.*
 import java.awt.Color
 import java.awt.Toolkit
@@ -34,6 +35,7 @@ class BreakpointException(val pcChunk: IRCodeChunk, val pcIndex: Int): Exception
 class VirtualMachine(irProgram: IRProgram) {
     class CallSiteContext(val returnChunk: IRCodeChunk, val returnIndex: Int, val fcallSpec: FunctionCallArgs)
     val memory = Memory()
+    val machinedef = VirtualMachineDefinition()
     val program: List<IRCodeChunk>
     val registers = Registers()
     val callStack = Stack<CallSiteContext>()

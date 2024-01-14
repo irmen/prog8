@@ -221,7 +221,7 @@ class IRUnusedCodeRemover(
         }
 
         // make sure that chunks that are only used as a prefix of a label, are also marked as linked
-        linkedChunks.forEach { chunk ->
+        linkedChunks.toList().forEach { chunk ->
             chunk.instructions.forEach {
                 if(it.labelSymbol!=null) {
                     val chunkName = it.labelSymbol!!.substringBeforeLast('.')

@@ -1940,7 +1940,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
             DataType.ARRAY_F -> {
-                TODO("containment check of floats")
+                assignExpressionToRegister(containment.element, RegisterOrPair.FAC1, true)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
+                asmgen.out("  ldy  #$numElements")
+                asmgen.out("  jsr  floats.containment_floatarray")
             }
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)

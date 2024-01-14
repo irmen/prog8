@@ -1709,7 +1709,7 @@ class IRCodeGen(
                 is PtLabel -> {
                     irBlock += IRCodeChunk(child.name, null)
                 }
-                else -> TODO("weird child node $child")
+                else -> TODO("weird block child node $child")
             }
         }
         return irBlock

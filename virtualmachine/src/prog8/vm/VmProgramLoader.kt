@@ -119,6 +119,7 @@ class VmProgramLoader {
                         IMSyscall.STRING_CONTAINS.number -> Syscall.STRING_CONTAINS
                         IMSyscall.BYTEARRAY_CONTAINS.number -> Syscall.BYTEARRAY_CONTAINS
                         IMSyscall.WORDARRAY_CONTAINS.number -> Syscall.WORDARRAY_CONTAINS
+                        IMSyscall.FLOATARRAY_CONTAINS.number -> Syscall.FLOATARRAY_CONTAINS
                         IMSyscall.CLAMP_BYTE.number -> Syscall.CLAMP_BYTE
                         IMSyscall.CLAMP_UBYTE.number -> Syscall.CLAMP_UBYTE
                         IMSyscall.CLAMP_WORD.number -> Syscall.CLAMP_WORD

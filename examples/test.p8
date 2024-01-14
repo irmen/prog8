@@ -1,12 +1,13 @@
 %import textio
-%import sprites
+%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
+        float[] fa = [1.1, 2.2, 3.3]
+        float @shared fl = 2.2
 
-        cx16.mouse_config2(1)
-        sprites.set_mousepointer_hand()
+        txt.print_ub(fl in fa)
     }
 }

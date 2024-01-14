@@ -708,7 +708,7 @@ gfx2 {
         while cx16.r12L {
             pop_stack()
             xx = x1
-            ; TODO: if mode==1 (256c) use vera autodecrement instead of pget(), but code bloat not worth it?
+            ; possible speed optimization: if mode==1 (256c) use vera autodecrement instead of pget(), but code bloat not worth it?
             while xx >= 0 {
                 if pget(xx as uword, yy as uword) != cx16.r11L
                     break
@@ -726,7 +726,7 @@ gfx2 {
 
             do {
                 cx16.r9 = xx
-                ; TODO: if mode==1 (256c) use vera autoincrement instead of pget(), but code bloat not worth it?
+                ; possible speed optimization: if mode==1 (256c) use vera autoincrement instead of pget(), but code bloat not worth it?
                 while xx <= width-1 {
                     if pget(xx as uword, yy as uword) != cx16.r11L
                         break
