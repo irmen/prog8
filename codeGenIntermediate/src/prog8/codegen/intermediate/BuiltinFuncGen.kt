@@ -149,10 +149,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val arrayName = call.args[0] as PtIdentifier
         val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
         val result = mutableListOf<IRCodeChunkBase>()
+        val lengthReg = codeGen.registers.nextFree()
 
         if(arrayName.type in SplitWordArrayTypes) {
             // any(lsb-array) or any(msb-array)
-            val lengthReg = codeGen.registers.nextFree()
             addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
             val trLsb = exprGen.translateExpression(PtIdentifier(arrayName.name+"_lsb", DataType.ARRAY_UB, call.position))
             addToResult(result, trLsb, trLsb.resultReg, -1)
@@ -183,9 +183,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 else -> throw IllegalArgumentException("weird type")
             }
         addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-        val tr = exprGen.translateExpression(call.args[0])
+        val tr = exprGen.translateExpression(arrayName)
         addToResult(result, tr, tr.resultReg, -1)
-        val lengthReg = codeGen.registers.nextFree()
         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength), null)
         result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
@@ -211,7 +210,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             }
         val result = mutableListOf<IRCodeChunkBase>()
         addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-        val tr = exprGen.translateExpression(call.args[0])
+        val tr = exprGen.translateExpression(arrayName)
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength), null)
@@ -307,19 +306,33 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcReverse(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val arrayName = call.args[0] as PtIdentifier
         val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
+        val lengthReg = codeGen.registers.nextFree()
+        val result = mutableListOf<IRCodeChunkBase>()
+
+        if(arrayName.type in SplitWordArrayTypes) {
+            // reverse the lsb and msb arrays both, independently
+            addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
+            val trLsb = exprGen.translateExpression(PtIdentifier(arrayName.name+"_lsb", DataType.ARRAY_UB, call.position))
+            addToResult(result, trLsb, trLsb.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
+            result += codeGen.makeSyscall(IMSyscall.REVERSE_BYTES, listOf(IRDataType.WORD to trLsb.resultReg, IRDataType.BYTE to lengthReg), null)
+            val trMsb = exprGen.translateExpression(PtIdentifier(arrayName.name+"_msb", DataType.ARRAY_UB, call.position))
+            addToResult(result, trMsb, trMsb.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
+            result += codeGen.makeSyscall(IMSyscall.REVERSE_BYTES, listOf(IRDataType.WORD to trMsb.resultReg, IRDataType.BYTE to lengthReg), null)
+            return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+        }
+
         val syscall =
             when(arrayName.type) {
                 DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> IMSyscall.REVERSE_BYTES
                 DataType.ARRAY_UW, DataType.ARRAY_W -> IMSyscall.REVERSE_WORDS
                 DataType.ARRAY_F -> IMSyscall.REVERSE_FLOATS
-                in SplitWordArrayTypes -> TODO("split word reverse")
                 else -> throw IllegalArgumentException("weird type to reverse")
             }
-        val result = mutableListOf<IRCodeChunkBase>()
         addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-        val tr = exprGen.translateExpression(call.args[0])
+        val tr = exprGen.translateExpression(arrayName)
         addToResult(result, tr, tr.resultReg, -1)
-        val lengthReg = codeGen.registers.nextFree()
         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
         result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), null)
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
@@ -341,7 +354,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             }
         val result = mutableListOf<IRCodeChunkBase>()
         addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-        val tr = exprGen.translateExpression(call.args[0])
+        val tr = exprGen.translateExpression(arrayName)
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)

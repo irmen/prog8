@@ -355,7 +355,22 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     lda  #$numElements
                     jsr  floats.func_reverse_f""")
             }
-            in SplitWordArrayTypes -> TODO("split word reverse")
+            in SplitWordArrayTypes -> {
+                // reverse the lsb and msb arrays both, independently
+                asmgen.out("""
+                    lda  #<${varName}_lsb
+                    ldy  #>${varName}_lsb
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #$numElements
+                    jsr  prog8_lib.func_reverse_b
+                    lda  #<${varName}_msb
+                    ldy  #>${varName}_msb
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #$numElements
+                    jsr  prog8_lib.func_reverse_b""")
+            }
             else -> throw AssemblyError("weird type")
         }
     }
@@ -398,7 +413,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     jsr  prog8_lib.func_sort_ub""")
             }
             DataType.ARRAY_F -> throw AssemblyError("sorting of floating point array is not supported")
-            in SplitWordArrayTypes -> TODO("split word sort")
+            in SplitWordArrayTypes -> TODO("split words sort")
             else -> throw AssemblyError("weird type")
         }
     }

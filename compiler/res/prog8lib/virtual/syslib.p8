@@ -160,6 +160,30 @@ sys {
             returnr.w r65535
         }}
     }
+
+    sub read_flags() -> ubyte {
+        ; "simulate" the 6502 status register a little bit
+        if_neg {
+            if_z
+                cx16.r0L = %10000010
+            else
+                cx16.r0L = %10000000
+        }
+        else {
+            if_z
+                cx16.r0L = %00000010
+            else
+                cx16.r0L = %00000000
+        }
+
+        if_cs
+            cx16.r0L |= 1
+; TODO: overflow flag not yet supported
+;        if_vs
+;            cx16.r0L |= %01000000
+
+        return cx16.r0L
+    }
 }
 
 cx16 {

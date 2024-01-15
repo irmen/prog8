@@ -3,8 +3,6 @@ TODO
 
 funcRor()/funcRol():   save carry flag before calculating array index otherwise it gets clobbered
 
-- split words arrays reverse()
-
 Mark had a compiler crash FatalAstException: invalid dt
 
 ...
