@@ -75,7 +75,7 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
         dec  ${asmArrayvarname}_msb+$constIndex
 +       dec  ${asmArrayvarname}_lsb+$constIndex""")
                     } else {
-                        asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, CpuRegister.X)
                         if(incr)
                             asmgen.out(" inc  ${asmArrayvarname}_lsb,x |  bne  + |  inc  ${asmArrayvarname}_msb,x |+")
                         else
@@ -127,7 +127,7 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                 }
                 else
                 {
-                    asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, elementDt, CpuRegister.X)
+                    asmgen.loadScaledArrayIndexIntoRegister(targetArrayIdx, CpuRegister.X)
                     when(elementDt) {
                         in ByteDatatypes -> {
                             if(targetArrayIdx.usesPointerVariable) {

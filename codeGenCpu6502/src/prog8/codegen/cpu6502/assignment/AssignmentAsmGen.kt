@@ -78,7 +78,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  lda  (P8ZP_SCRATCH_W1)")
                         }
                     } else {
-                        asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
+                        asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                         if (asmgen.isZpVar(value.variable)) {
                             asmgen.out("  lda  ($arrayVarName),y")
                         } else {
@@ -98,7 +98,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  ${arrayVarName}_lsb+$constIndex |  ldy  ${arrayVarName}_msb+$constIndex")
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                     } else {
-                        asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
+                        asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                         asmgen.out("  lda  ${arrayVarName}_lsb,y |  ldx  ${arrayVarName}_msb,y")
                         assignRegisterpairWord(assign.target, RegisterOrPair.AX)
                     }
@@ -127,17 +127,17 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 } else {
                     when (elementDt) {
                         in ByteDatatypes -> {
-                            asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVarName,y")
                             assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes, true)
                         }
                         in WordDatatypes  -> {
-                            asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVarName,y |  ldx  $arrayVarName+1,y")
                             assignRegisterpairWord(assign.target, RegisterOrPair.AX)
                         }
                         DataType.FLOAT -> {
-                            asmgen.loadScaledArrayIndexIntoRegister(value, elementDt, CpuRegister.A)
+                            asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.A)
                             asmgen.out("""
                                 ldy  #>$arrayVarName
                                 clc
@@ -2659,11 +2659,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 {
                     when(target.datatype) {
                         DataType.UBYTE, DataType.BYTE -> {
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
                         }
                         DataType.UWORD, DataType.WORD -> {
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             if(target.array.splitWords)
                                 asmgen.out("""
                                     lda  $sourceName
@@ -2841,7 +2841,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  $sourceName")
                         asmgen.storeAIntoPointerVar(target.origAstTarget!!.array!!.variable)
                     } else {
-                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
                         if (asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
                             asmgen.out("  lda  $sourceName |  sta  (${target.asmVarname}),y")
                         } else {
@@ -2858,7 +2858,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                 }
                 else {
-                    asmgen.loadScaledArrayIndexIntoRegister(target.array, target.datatype, CpuRegister.Y)
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                     asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
                 }
             }
@@ -2909,7 +2909,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("  sta  ${wordtarget.asmVarname}+$scaledIdx |  sty  ${wordtarget.asmVarname}+$scaledIdx+1")
                 }
                 else {
-                    asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, wordtarget.datatype, CpuRegister.X)
+                    asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, CpuRegister.X)
                     asmgen.out("  lda  $sourceName")
                     asmgen.signExtendAYlsb(DataType.BYTE)
                     asmgen.out("  sta  ${wordtarget.asmVarname},x |  inx |  tya |  sta  ${wordtarget.asmVarname},x")
@@ -2978,7 +2978,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  lda  #0  | sta  ${wordtarget.asmVarname}_msb+$scaledIdx")
                     }
                     else {
-                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, wordtarget.datatype, CpuRegister.Y)
+                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, CpuRegister.Y)
                         asmgen.out("""
                             lda  $sourceName
                             sta  ${wordtarget.asmVarname}_lsb,y
@@ -2995,7 +2995,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
                     }
                     else {
-                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, wordtarget.datatype, CpuRegister.Y)
+                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, CpuRegister.Y)
                         asmgen.out("""
                             lda  $sourceName
                             sta  ${wordtarget.asmVarname},y
@@ -3393,7 +3393,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
                                 else -> throw AssemblyError("expected reg pair")
                             }
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out("""
                                 pla
                                 sta  ${target.asmVarname}_msb,y
@@ -3401,7 +3401,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 sta  ${target.asmVarname}_lsb,y""")
                         } else {
                             val srcReg = asmgen.asmSymbolName(regs)
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out("""
                                 lda  $srcReg
                                 sta  ${target.asmVarname}_lsb,y
@@ -3436,7 +3436,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
                                 else -> throw AssemblyError("expected reg pair")
                             }
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out("""
                                 iny
                                 pla
@@ -3446,7 +3446,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 sta  ${target.asmVarname},y""")
                         } else {
                             val srcReg = asmgen.asmSymbolName(regs)
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out("""
                                 iny
                                 lda  $srcReg+1
@@ -3532,7 +3532,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     throw AssemblyError("memory is bytes not words")
                 }
                 TargetStorageKind.ARRAY -> {
-                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
                     if(target.array.splitWords)
                         asmgen.out("""
                             lda  #0
@@ -3586,7 +3586,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 throw AssemblyError("assign word to memory ${target.memory} should have gotten a typecast")
             }
             TargetStorageKind.ARRAY -> {
-                asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UWORD, CpuRegister.Y)
+                asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
                 if(target.array.splitWords)
                     asmgen.out("""
                         lda  #<${word.toHex()}
@@ -3637,7 +3637,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  lda  #0")
                             asmgen.storeAIntoPointerVar(target.origAstTarget!!.array!!.variable)
                         } else {
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
                             if (asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
                                 asmgen.out("  lda  #0 |  sta  (${target.asmVarname}),y")
                             } else {
@@ -3691,7 +3691,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  #${byte.toHex()}")
                         asmgen.storeAIntoPointerVar(target.origAstTarget!!.array!!.variable)
                     } else {
-                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, DataType.UBYTE, CpuRegister.Y)
+                        asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
                         if (asmgen.isZpVar(target.origAstTarget!!.array!!.variable)) {
                             asmgen.out("  lda  #${byte.toHex()} |  sta  (${target.asmVarname}),y")
                         } else {
@@ -3708,7 +3708,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname}+$indexValue")
                 }
                 else {
-                    asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                     asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname},y")
                 }
             }

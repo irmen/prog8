@@ -522,19 +522,14 @@ class AsmGen6502Internal (
         }
     }
 
-    internal fun loadScaledArrayIndexIntoRegister(
-        expr: PtArrayIndexer,
-        elementDt: DataType,
-        register: CpuRegister
-    ) {
-        require(elementDt==expr.type)       // TODO remove this if it is ok
+    internal fun loadScaledArrayIndexIntoRegister(expr: PtArrayIndexer, register: CpuRegister) {
         val reg = register.toString().lowercase()
         val indexnum = expr.index.asConstInteger()
         if (indexnum != null) {
             val indexValue = if(expr.splitWords)
                 indexnum
             else
-                indexnum * options.compTarget.memorySize(elementDt)
+                indexnum * options.compTarget.memorySize(expr.type)
             out("  ld$reg  #$indexValue")
             return
         }
@@ -544,7 +539,7 @@ class AsmGen6502Internal (
             return
         }
 
-        when (elementDt) {
+        when (expr.type) {
             in ByteDatatypes -> {
                 assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register), false)
             }

@@ -409,7 +409,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         asmgen.out("  lda  ${varname},x |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${varname},x")
                     }
@@ -432,7 +432,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
                             asmgen.out("  lsr  ${varname}_msb,x |  ror  ${varname}_lsb,x |  bcc  + |  lda  ${varname}_msb,x |  ora  #\$80 |  sta  ${varname}_msb,x |+ ")
@@ -456,7 +456,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         asmgen.out("  ror  ${varname},x")
                     }
@@ -493,7 +493,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
                             asmgen.out("  ror  ${varname}_msb,x |  ror  ${varname}_lsb,x")
@@ -517,7 +517,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         asmgen.out("  lda  ${varname},x |  cmp  #\$80 |  rol  a |  sta  ${varname},x")
                     }
@@ -540,7 +540,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
                             asmgen.out("  asl  ${varname}_lsb,x |  rol  ${varname}_msb,x |  bcc  + |  inc  ${varname}_lsb |+")
@@ -564,7 +564,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         asmgen.out("  rol  ${varname},x")
                     }
@@ -601,7 +601,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(what, what.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
                             asmgen.out("  rol  ${varname}_lsb,x |  rol  ${varname}_msb,x")
@@ -1172,15 +1172,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val arrayVar = if(arg.splitWords) asmgen.asmVariableName(arg.variable)+"_lsb" else asmgen.asmVariableName(arg.variable)
                 when(resultRegister) {
                     null, RegisterOrPair.A -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(arg, arg.type, CpuRegister.Y)
+                        asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
                         asmgen.out("  lda  $arrayVar,y")
                     }
                     RegisterOrPair.Y -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(arg, arg.type, CpuRegister.X)
+                        asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.X)
                         asmgen.out("  lda  $arrayVar,x")
                     }
                     RegisterOrPair.X -> {
-                        asmgen.loadScaledArrayIndexIntoRegister(arg, arg.type, CpuRegister.Y)
+                        asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
                         asmgen.out("  ldx  $arrayVar,y")
                     }
                     else -> throw AssemblyError("invalid reg")

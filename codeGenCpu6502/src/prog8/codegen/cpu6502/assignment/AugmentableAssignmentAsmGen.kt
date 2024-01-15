@@ -278,7 +278,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 && value.expression is PtTypeCast
                                 && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
                                 return
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UBYTE, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.saveRegisterStack(CpuRegister.Y, false)
                             asmgen.out("  lda  ${target.array.variable.name},y")
                             when(value.kind) {
@@ -329,7 +329,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 && value.expression is PtTypeCast
                                 && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
                                 return
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.UWORD, CpuRegister.Y)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.saveRegisterStack(CpuRegister.Y, false)
                             if(target.array.splitWords) {
                                 asmgen.out("  lda  ${target.array.variable.name}_lsb,y")
@@ -404,7 +404,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         DataType.FLOAT -> {
                             // copy array value into tempvar
                             val tempvar = asmgen.getTempVarName(DataType.FLOAT)
-                            asmgen.loadScaledArrayIndexIntoRegister(target.array, DataType.FLOAT, CpuRegister.A)
+                            asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.A)
                             asmgen.out("""
                                                 ldy  #>${target.asmVarname}
                                                 clc

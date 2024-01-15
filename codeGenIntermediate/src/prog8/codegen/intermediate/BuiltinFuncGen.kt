@@ -148,6 +148,11 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcAny(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val arrayName = call.args[0] as PtIdentifier
         val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
+
+        if(arrayName.type in SplitWordArrayTypes) {
+            TODO("any(split words)  array=$arrayName length=$arrayLength")
+        }
+
         val syscall =
             when (arrayName.type) {
                 DataType.ARRAY_UB,
@@ -170,6 +175,11 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcAll(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val arrayName = call.args[0] as PtIdentifier
         val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
+
+        if(arrayName.type in SplitWordArrayTypes) {
+            TODO("all(split words)  array=$arrayName length=$arrayLength")
+        }
+
         val syscall =
             when(arrayName.type) {
                 DataType.ARRAY_UB,
