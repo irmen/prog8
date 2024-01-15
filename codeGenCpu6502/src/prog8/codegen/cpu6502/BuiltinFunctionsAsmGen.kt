@@ -713,13 +713,57 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcAnyAll(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
-        outputAddressAndLenghtOfArray(fcall.args[0])
         val dt = fcall.args.single().type
+        val array = fcall.args[0] as PtIdentifier
         when (dt) {
-            DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A |  ldy  #0")
-            DataType.ARRAY_UW, DataType.ARRAY_W -> asmgen.out("  jsr  prog8_lib.func_${fcall.name}_w_into_A |  ldy  #0")
-            DataType.ARRAY_F -> asmgen.out("  jsr  floats.func_${fcall.name}_f_into_A |  ldy  #0")
-            in SplitWordArrayTypes -> TODO("split word any/all")
+            DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> {
+                outputAddressAndLengthOfArray(array)
+                asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
+            }
+            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                outputAddressAndLengthOfArray(array)
+                asmgen.out("  jsr  prog8_lib.func_${fcall.name}_w_into_A")
+            }
+            DataType.ARRAY_F -> {
+                outputAddressAndLengthOfArray(array)
+                asmgen.out("  jsr  floats.func_${fcall.name}_f_into_A")
+            }
+            in SplitWordArrayTypes -> {
+                val numElements = (asmgen.symbolTable.lookup(array.name) as StStaticVariable).length
+                when(fcall.name) {
+                    "any" -> {
+                        // any(lsb-array) or any(msb-array)
+                        val arrayName = asmgen.asmVariableName(array)
+                        asmgen.out("""
+                            lda  #<${arrayName}_lsb
+                            ldy  #>${arrayName}_lsb
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  #$numElements
+                        """)
+                        asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
+                        asmgen.out("  bne  +")      // shortcircuit
+                        asmgen.out("""
+                            pha
+                            lda  #<${arrayName}_msb
+                            ldy  #>${arrayName}_msb
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  #$numElements
+                        """)
+                        asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_REG
+                            pla
+                            ora  P8ZP_SCRATCH_REG
++""")
+                    }
+                    "all" -> {
+                        TODO("split words all")
+                    }
+                    else -> throw AssemblyError("weird call")
+                }
+            }
             else -> throw AssemblyError("weird type $dt")
         }
         assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, dt in SignedDatatypes, true)
@@ -1226,9 +1270,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun outputAddressAndLenghtOfArray(arg: PtExpression) {
-        // address in P8ZP_SCRATCH_W1,  number of elements in A
-        arg as PtIdentifier
+    private fun outputAddressAndLengthOfArray(arg: PtIdentifier) {
+        // address goes in P8ZP_SCRATCH_W1,  number of elements in A
         val symbol = asmgen.symbolTable.lookup(arg.name)
         val numElements = when(symbol) {
             is StStaticVariable -> symbol.length!!
