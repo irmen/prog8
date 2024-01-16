@@ -286,6 +286,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
             Opcode.POP -> InsPOP(ins)
+            Opcode.PUSHST -> InsPUSHST()
+            Opcode.POPST -> InsPOPST()
             Opcode.BREAKPOINT -> InsBREAKPOINT()
             Opcode.CLC -> { statusCarry = false; nextPc() }
             Opcode.SEC -> { statusCarry = true; nextPc() }
@@ -357,6 +359,28 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.WORD -> setResultReg(i.reg1!!, valueStack.popw().toInt(), i.type!!)
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, valueStack.popf())
         }
+        nextPc()
+    }
+
+    private fun InsPUSHST() {
+        var status: UByte = 0u
+        if(statusNegative)
+            status = status or 0b10000000u
+        if(statusZero)
+            status = status or 0b00000010u
+        if(statusCarry)
+            status = status or 0b00000001u
+        // TODO overflow not yet supported
+        valueStack.push(status)
+        nextPc()
+    }
+
+    private fun InsPOPST() {
+        val status = valueStack.pop().toInt()
+        statusNegative = status and 0b10000000 != 0
+        statusZero = status and 0b00000010 != 0
+        statusCarry = status and 0b00000001 != 0
+        // TODO overflow not yet supported
         nextPc()
     }
 

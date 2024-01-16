@@ -471,7 +471,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
+                        if(!what.index.isSimple()) asmgen.out("  plp")
                         val varname = asmgen.asmVariableName(what.variable)
                         asmgen.out("  ror  ${varname},x")
                     }
@@ -482,15 +484,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.address)
                             if(ptrAndIndex!=null) {
+                                asmgen.out("  php")
                                 asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.A)
                                 asmgen.saveRegisterStack(CpuRegister.A, true)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
                                 asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
                                 asmgen.restoreRegisterStack(CpuRegister.X, false)
                                 asmgen.out("""
+                                    plp
 +                                   ror  ${'$'}ffff,x           ; modified""")
                             } else {
+                                if(!what.address.isSimple()) asmgen.out("  php")   // save Carry
                                 asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
+                                if(!what.address.isSimple()) asmgen.out("  plp")
                                 asmgen.out("""
                                     sta  (+) + 1
                                     sty  (+) + 2
@@ -508,7 +514,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
+                        if(!what.index.isSimple()) asmgen.out("  plp")
                         val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
                             asmgen.out("  ror  ${varname}_msb,x |  ror  ${varname}_lsb,x")
@@ -579,7 +587,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
+                        if(!what.index.isSimple()) asmgen.out("  plp")
                         val varname = asmgen.asmVariableName(what.variable)
                         asmgen.out("  rol  ${varname},x")
                     }
@@ -590,15 +600,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         } else {
                             val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.address)
                             if(ptrAndIndex!=null) {
+                                asmgen.out("  php")
                                 asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.A)
                                 asmgen.saveRegisterStack(CpuRegister.A, true)
                                 asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
                                 asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
                                 asmgen.restoreRegisterStack(CpuRegister.X, false)
                                 asmgen.out("""
+                                    plp
 +                                   rol  ${'$'}ffff,x           ; modified""")
                             } else {
+                                if(!what.address.isSimple()) asmgen.out("  php")   // save Carry
                                 asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
+                                if(!what.address.isSimple()) asmgen.out("  plp")
                                 asmgen.out("""
                                     sta  (+) + 1
                                     sty  (+) + 2
@@ -616,7 +630,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             DataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
+                        if(!what.index.isSimple()) asmgen.out("  plp")
                         val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
                             asmgen.out("  rol  ${varname}_lsb,x |  rol  ${varname}_msb,x")

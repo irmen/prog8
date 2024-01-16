@@ -623,22 +623,28 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val tr = exprGen.translateExpression(call.args.single())
         addToResult(result, tr, tr.resultReg, -1)
         val resultReg = codeGen.registers.nextFree()
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = resultReg, reg2 = tr.resultReg)
-        }
+        addInstr(result, IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = resultReg, reg2 = tr.resultReg), null)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
         return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
     }
 
     private fun funcRolRor(opcode: Opcode, call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        // TODO optimize this to use the other ROL/ROR instructions too to always load into a temp reg
         val vmDt = irType(call.args[0].type)
         val result = mutableListOf<IRCodeChunkBase>()
+        val saveCarry = opcode in OpcodesThatDependOnCarry && !call.args[0].isSimple()
+        if(saveCarry)
+            addInstr(result, IRInstruction(Opcode.PUSHST), null)    // save Carry
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(opcode, vmDt, reg1 = tr.resultReg)
-        }
+        if(saveCarry)
+            addInstr(result, IRInstruction(Opcode.POPST), null)
+        addInstr(result, IRInstruction(opcode, vmDt, reg1 = tr.resultReg), null)
+        if(saveCarry)
+            addInstr(result, IRInstruction(Opcode.PUSHST), null)    // save Carry
         result += assignRegisterTo(call.args[0], tr.resultReg)
+        if(saveCarry)
+            addInstr(result, IRInstruction(Opcode.POPST), null)
         return ExpressionCodeResult(result, vmDt, -1, -1)
     }
 

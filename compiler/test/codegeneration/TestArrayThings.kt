@@ -203,5 +203,19 @@ main {
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
+
+    test("address of a uword pointer array expression") {
+        val src="""
+main {
+    sub start() {
+        set_state(12345, 1)
+    }
+    sub set_state(uword buffer, ubyte i) {
+        uword addr = &buffer[i]
+        addr++
+    }
+}"""
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
 })
 

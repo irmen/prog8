@@ -294,4 +294,22 @@ main {
         ((st[4] as Assignment).value as NumericLiteral).number shouldBe 0x9e00+2*30
         ((st[5] as Assignment).value as NumericLiteral).number shouldBe 0x9e00+2*30
     }
+
+    test("address of a const uword pointer array expression") {
+        val src="""
+main {
+    sub start() {
+        const uword buffer = ${'$'}2000
+        uword addr = &buffer[2]
+        
+        const ubyte width = 100
+        ubyte @shared i
+        ubyte @shared j
+        uword addr2 = &buffer[i * width + j]
+    }
+}"""
+        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 9999
+    }
 })

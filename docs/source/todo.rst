@@ -1,9 +1,10 @@
 TODO
 ====
 
-funcRor()/funcRol():   save carry flag before calculating array index otherwise it gets clobbered
+2 unit tests that are failing.
+Mark had a compiler crash FatalAstException: invalid dt.
 
-Mark had a compiler crash FatalAstException: invalid dt
+IR: optimize funcRolRor()
 
 ...
 

@@ -50,25 +50,26 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         assignment: PtAugmentedAssign
     ): IRCodeChunks {
         val value = assignment.value
-        val vmDt = irType(value.type)
+        val targetDt = irType(assignment.target.type)
+        val signed = assignment.target.type in SignedDatatypes
         return when(assignment.operator) {
-            "+=" -> expressionEval.operatorPlusInplace(address, null, vmDt, value)
-            "-=" -> expressionEval.operatorMinusInplace(address, null, vmDt, value)
-            "*=" -> expressionEval.operatorMultiplyInplace(address, null, vmDt, value)
-            "/=" -> expressionEval.operatorDivideInplace(address, null, vmDt, value.type in SignedDatatypes, value)
-            "|=" -> expressionEval.operatorOrInplace(address, null, vmDt, value)
-            "&=" -> expressionEval.operatorAndInplace(address, null, vmDt, value)
-            "^=" -> expressionEval.operatorXorInplace(address, null, vmDt, value)
-            "<<=" -> expressionEval.operatorShiftLeftInplace(address, null, vmDt, value)
-            ">>=" -> expressionEval.operatorShiftRightInplace(address, null, vmDt, value.type in SignedDatatypes, value)
-            "%=" -> expressionEval.operatorModuloInplace(address, null, vmDt, value)
-            "==" -> expressionEval.operatorEqualsInplace(address, null, vmDt, value)
-            "!=" -> expressionEval.operatorNotEqualsInplace(address, null, vmDt, value)
-            "<" -> expressionEval.operatorLessInplace(address, null, vmDt, value.type in SignedDatatypes, value)
-            ">" -> expressionEval.operatorGreaterInplace(address, null, vmDt, value.type in SignedDatatypes, value)
-            "<=" -> expressionEval.operatorLessEqualInplace(address, null, vmDt, value.type in SignedDatatypes, value)
-            ">=" -> expressionEval.operatorGreaterEqualInplace(address, null, vmDt, value.type in SignedDatatypes, value)
-            in PrefixOperators -> inplacePrefix(assignment.operator, vmDt, address, null)
+            "+=" -> expressionEval.operatorPlusInplace(address, null, targetDt, value)
+            "-=" -> expressionEval.operatorMinusInplace(address, null, targetDt, value)
+            "*=" -> expressionEval.operatorMultiplyInplace(address, null, targetDt, value)
+            "/=" -> expressionEval.operatorDivideInplace(address, null, targetDt, signed, value)
+            "|=" -> expressionEval.operatorOrInplace(address, null, targetDt, value)
+            "&=" -> expressionEval.operatorAndInplace(address, null, targetDt, value)
+            "^=" -> expressionEval.operatorXorInplace(address, null, targetDt, value)
+            "<<=" -> expressionEval.operatorShiftLeftInplace(address, null, targetDt, value)
+            ">>=" -> expressionEval.operatorShiftRightInplace(address, null, targetDt, signed, value)
+            "%=" -> expressionEval.operatorModuloInplace(address, null, targetDt, value)
+            "==" -> expressionEval.operatorEqualsInplace(address, null, targetDt, value)
+            "!=" -> expressionEval.operatorNotEqualsInplace(address, null, targetDt, value)
+            "<" -> expressionEval.operatorLessInplace(address, null, targetDt, signed, value)
+            ">" -> expressionEval.operatorGreaterInplace(address, null, targetDt, signed, value)
+            "<=" -> expressionEval.operatorLessEqualInplace(address, null, targetDt, signed, value)
+            ">=" -> expressionEval.operatorGreaterEqualInplace(address, null, targetDt, signed, value)
+            in PrefixOperators -> inplacePrefix(assignment.operator, targetDt, address, null)
 
             else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
         }
@@ -76,26 +77,27 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun assignVarAugmented(symbol: String, assignment: PtAugmentedAssign): IRCodeChunks {
         val value = assignment.value
+        val signed = assignment.target.type in SignedDatatypes
         val targetDt = irType(assignment.target.type)
-        return when (assignment.operator) {
+        return when(assignment.operator) {
             "+=" -> expressionEval.operatorPlusInplace(null, symbol, targetDt, value)
             "-=" -> expressionEval.operatorMinusInplace(null, symbol, targetDt, value)
             "*=" -> expressionEval.operatorMultiplyInplace(null, symbol, targetDt, value)
-            "/=" -> expressionEval.operatorDivideInplace(null, symbol, targetDt, value.type in SignedDatatypes, value)
+            "/=" -> expressionEval.operatorDivideInplace(null, symbol, targetDt, signed, value)
             "|=" -> expressionEval.operatorOrInplace(null, symbol, targetDt, value)
             "or=" -> expressionEval.operatorLogicalOrInplace(null, symbol, targetDt, value)
             "&=" -> expressionEval.operatorAndInplace(null, symbol, targetDt, value)
             "and=" -> expressionEval.operatorLogicalAndInplace(null, symbol, targetDt, value)
             "^=", "xor=" -> expressionEval.operatorXorInplace(null, symbol, targetDt, value)
             "<<=" -> expressionEval.operatorShiftLeftInplace(null, symbol, targetDt, value)
-            ">>=" -> expressionEval.operatorShiftRightInplace(null, symbol, targetDt, value.type in SignedDatatypes, value)
+            ">>=" -> expressionEval.operatorShiftRightInplace(null, symbol, targetDt, signed, value)
             "%=" -> expressionEval.operatorModuloInplace(null, symbol, targetDt, value)
             "==" -> expressionEval.operatorEqualsInplace(null, symbol, targetDt, value)
             "!=" -> expressionEval.operatorNotEqualsInplace(null, symbol, targetDt, value)
-            "<" -> expressionEval.operatorLessInplace(null, symbol, targetDt, value.type in SignedDatatypes, value)
-            ">" -> expressionEval.operatorGreaterInplace(null, symbol, targetDt, value.type in SignedDatatypes, value)
-            "<=" -> expressionEval.operatorLessEqualInplace(null, symbol, targetDt, value.type in SignedDatatypes, value)
-            ">=" -> expressionEval.operatorGreaterEqualInplace(null, symbol, targetDt, value.type in SignedDatatypes, value)
+            "<" -> expressionEval.operatorLessInplace(null, symbol, targetDt, signed, value)
+            ">" -> expressionEval.operatorGreaterInplace(null, symbol, targetDt, signed, value)
+            "<=" -> expressionEval.operatorLessEqualInplace(null, symbol, targetDt, signed, value)
+            ">=" -> expressionEval.operatorGreaterEqualInplace(null, symbol, targetDt, signed, value)
             in PrefixOperators -> inplacePrefix(assignment.operator, targetDt, null, symbol)
             else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
         }
@@ -104,11 +106,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     private fun fallbackAssign(origAssign: PtAugmentedAssign): IRCodeChunks {
         val value: PtExpression
         if(origAssign.operator in PrefixOperators) {
-            value = PtPrefix(origAssign.operator, origAssign.value.type, origAssign.value.position)
+            value = PtPrefix(origAssign.operator, origAssign.target.type, origAssign.value.position)
             value.add(origAssign.value)
         } else {
             require(origAssign.operator.endsWith('='))
-            value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.value.type, origAssign.value.position)
+            value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.target.type, origAssign.value.position)
             val left: PtExpression = origAssign.target.children.single() as PtExpression
             value.add(left)
             value.add(origAssign.value)

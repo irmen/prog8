@@ -235,6 +235,8 @@ msig [b, w]   reg1, reg2                  - reg1 becomes the most significant by
 concat [b, w] reg1, reg2, reg3            - reg1.w = 'concatenate' two registers: lsb/lsw of reg2 (as msb) and lsb/lsw of reg3 (as lsb) into word or int (int not yet implemented; requires 32bits regs)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
+pushst                                    - push status register bits to stack
+popst                                     - pop status register bits from stack
  */
 
 enum class Opcode {
@@ -387,6 +389,8 @@ enum class Opcode {
     SEC,
     PUSH,
     POP,
+    PUSHST,
+    POPST,
     MSIG,
     CONCAT,
     BREAKPOINT
@@ -699,6 +703,8 @@ val instructionFormats = mutableMapOf(
     Opcode.MSIG       to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.PUSH       to InstructionFormat.from("BW,<r1       | F,<fr1"),
     Opcode.POP        to InstructionFormat.from("BW,>r1       | F,>fr1"),
+    Opcode.PUSHST     to InstructionFormat.from("N"),
+    Opcode.POPST      to InstructionFormat.from("N"),
     Opcode.CONCAT     to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
