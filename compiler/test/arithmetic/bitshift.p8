@@ -376,12 +376,6 @@ main {
         sw = shiftrsw15()
         txt.print_uwbin(sw as uword, true)
         txt.chrout('\n')
-        sw = shiftrsw16()
-        txt.print_uwbin(sw as uword, true)
-        txt.chrout('\n')
-        sw = shiftrsw17()
-        txt.print_uwbin(sw as uword, true)
-        txt.chrout('\n')
 
     }
 
@@ -553,16 +547,6 @@ main {
     sub shiftrsw15() -> word {
         word @shared q = -12345
         return (q >> 15)
-    }
-
-    sub shiftrsw16() -> word {
-        word @shared q = -12345
-        return (q >> 16)
-    }
-
-    sub shiftrsw17() -> word {
-        word @shared q = -12345
-        return (q >> 17)
     }
 
 

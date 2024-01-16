@@ -4,9 +4,20 @@
 
 main {
     sub start() {
+        word @shared q = -12345
+        txt.print_w(q)
+        txt.nl()
+        txt.print_uwbin(q as uword, true)
+        txt.nl()
+        q >>=9
+        txt.print_w(q)
+        txt.nl()
+        txt.print_uwbin(q as uword, true)
+        txt.nl()
+
 ;        mem()
 ;        bytes()
-        words()
+;        words()
     }
 
     sub mem() {
@@ -29,11 +40,6 @@ main {
     sub bytes() {
         ubyte[]  wa = [$1a, $2b, $3c]
 
-        txt.print_ub(all(wa))
-        txt.spc()
-        txt.print_ub(any(wa))
-        txt.nl()
-
         txt.print_ubbin(wa[2], true)
         txt.nl()
         rol(wa[2])
@@ -54,47 +60,6 @@ main {
     sub words() {
         uword[]  wa = [$11aa, $22bb, $33cc]
         uword[]  @split swa = [$11aa, $22bb, $33cc]
-        uword[]  waone = [$0000, $3300, $0000]
-        uword[]  wazero = [$0000, $0000, $0000]
-        uword[]  @split swaone = [$0000, $3300, $0000]
-        uword[]  @split swazero = [$0000, $0000, $0000]
-
-        reverse(wa)
-        for cx16.r9 in wa {
-            txt.print_uwhex(cx16.r9, true)
-            txt.nl()
-        }
-        txt.nl()
-        reverse(swa)
-        for cx16.r9 in swa {
-            txt.print_uwhex(cx16.r9, true)
-            txt.nl()
-        }
-
-        txt.print_ub(all(wa))        ; 1
-        txt.spc()
-        txt.print_ub(any(wa))        ; 1
-        txt.nl()
-        txt.print_ub(all(waone))     ; 0
-        txt.spc()
-        txt.print_ub(any(waone))     ; 1
-        txt.nl()
-;        txt.print_ub(all(swaone))    ; 0
-;        txt.spc()
-        txt.print_ub(any(swaone))    ; 1
-        txt.nl()
-;        txt.print_ub(all(swa))       ; 1
-;        txt.spc()
-        txt.print_ub(any(swa))       ; 1
-        txt.nl()
-        txt.print_ub(all(wazero))    ; 0
-        txt.spc()
-        txt.print_ub(any(wazero))    ; 0
-        txt.nl()
-;        txt.print_ub(all(swazero))   ; 0
-;        txt.spc()
-        txt.print_ub(any(swazero))   ; 0
-        txt.nl()
 
         txt.print_uwbin(wa[2], true)
         txt.nl()

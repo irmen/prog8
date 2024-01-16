@@ -836,14 +836,15 @@ class ExpressionSimplifier(private val program: Program,
                     return null
                 }
                 else if(amount == 8) {
-                    // shift right by 8 bits is just a byte operation: msb(X) as byte
+                    // shift right by 8 bits is just a byte operation: msb(X) as byte  (will get converted to word later)
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                     return TypecastExpression(msb, DataType.BYTE, true, expr.position)
                 }
                 else if(amount > 8) {
-                    // same as above but with residual shifts.
+                    // same as above but with residual shifts. Take care to do signed shift.
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position), DataType.BYTE, true, expr.position)
+                    val signed = TypecastExpression(msb, DataType.BYTE, true, expr.position)
+                    return BinaryExpression(signed, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
                 }
             }
             else -> {
