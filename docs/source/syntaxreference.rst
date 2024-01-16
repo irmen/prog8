@@ -785,11 +785,11 @@ Remember that a step value in a range must be a constant value.
 
 You can use a single statement, or a statement block like in the example below::
 
-	for <loopvar>  in  <expression>  [ step <amount> ]   {
-		; do something...
-		break		; break out of the loop
-		continue    ; immediately next iteration
-	}
+    for <loopvar>  in  <expression>  [ step <amount> ]   {
+        ; do something...
+        break       ; break out of the loop
+        continue    ; immediately next iteration
+    }
 
 For example, this is a for loop using a byte variable ``i``, defined before, to loop over a certain range of numbers::
 
@@ -801,7 +801,27 @@ For example, this is a for loop using a byte variable ``i``, defined before, to 
         ; do something
     }
 
-And this is a loop over the values of the array ``fibonacci_numbers``::
+To loop over a decreasing or descending range, use the ``downto`` keyword::
+
+    ubyte i
+     
+    ...
+     
+    for i in 155 downto 20 {        ; 155, 154, 153, ..., 20
+        ; do something
+    }
+
+Similarly, a descending range may be specified by using ``to`` in combination with a ``step`` that is ``< 0``::
+
+    ubyte i
+     
+    ...
+     
+    for i in 155 to 20 step -1 {    ; 155, 154, 153, ..., 20
+        ; do something
+    }
+
+The following example is a loop over the values of the array ``fibonacci_numbers``::
 
     uword[] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
 
@@ -811,7 +831,7 @@ And this is a loop over the values of the array ``fibonacci_numbers``::
         break       ; break out of the loop early
     }
 
-
+See :ref:`range-expression` for all of the details.
 
 while loop
 ^^^^^^^^^^
