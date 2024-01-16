@@ -156,7 +156,7 @@ divmodr     reg1, reg2                      - unsigned division reg1/reg2, stori
 divmod      reg1,              value        - unsigned division reg1/value, storing division and remainder on value stack (so need to be POPped off)
 sqrt        reg1, reg2                      - reg1 is the square root of reg2 (reg2 can be .w or .b, result type in reg1 is always .b)  you can also use it with floating point types, fpreg1 and fpreg2 (result is also .f)
 square      reg1, reg2                      - reg1 is the square of reg2 (reg2 can be .w or .b, result type in reg1 is always .b)  you can also use it with floating point types, fpreg1 and fpreg2 (result is also .f)
-sgn         reg1, reg2                      - reg1 is the sign of reg2 (0.b, 1.b or -1.b)
+sgn         reg1, reg2                      - reg1.b is the sign of reg2 (or fpreg1, if sgn.f) (0.b, 1.b or -1.b)
 cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
 cmpi        reg1,              value        - set processor status bits C, N, Z according to comparison of reg1 with immediate value. (semantics taken from 6502/68000 CMP instruction)
 
@@ -634,7 +634,7 @@ val instructionFormats = mutableMapOf(
     Opcode.DIVSM      to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
     Opcode.SQRT       to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
     Opcode.SQUARE     to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
-    Opcode.SGN        to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
+    Opcode.SGN        to InstructionFormat.from("BW,>r1,<r2   | F,>r1,<fr1"),
     Opcode.MODR       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.MOD        to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),

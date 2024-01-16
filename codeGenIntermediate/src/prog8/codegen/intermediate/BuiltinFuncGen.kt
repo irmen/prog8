@@ -260,14 +260,21 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun funcSgn(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        val vmDt = irType(call.type)
         val tr = exprGen.translateExpression(call.args.single())
-        addToResult(result, tr, tr.resultReg, -1)
         val resultReg = codeGen.registers.nextFree()
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.SGN, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
+
+        if(tr.dt==IRDataType.FLOAT) {
+            addToResult(result, tr, -1, tr.resultFpReg)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.SGN, tr.dt, reg1 = resultReg, fpReg1 = tr.resultFpReg)
+            }
+        } else {
+            addToResult(result, tr, tr.resultReg, -1)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.SGN, tr.dt, reg1 = resultReg, reg2 = tr.resultReg)
+            }
         }
-        return ExpressionCodeResult(result, vmDt, resultReg, -1)
+        return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
     }
 
     private fun funcSqrt(call: PtBuiltinFunctionCall): ExpressionCodeResult {

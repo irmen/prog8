@@ -1202,8 +1202,8 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsSGN(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setSB(i.reg1!!, registers.getSB(i.reg2!!).toInt().sign.toByte())
-            IRDataType.WORD -> registers.setSW(i.reg1!!, registers.getSW(i.reg2!!).toInt().sign.toShort())
-            IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, registers.getFloat(i.fpReg2!!).sign)
+            IRDataType.WORD -> registers.setSB(i.reg1!!, registers.getSW(i.reg2!!).toInt().sign.toByte())
+            IRDataType.FLOAT -> registers.setSB(i.reg1!!, registers.getFloat(i.fpReg1!!).sign.toInt().toByte())
         }
         nextPc()
     }

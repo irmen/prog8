@@ -3,7 +3,6 @@
 %import string
 %import syslib
 %import math
-%import test_stack
 %zeropage basicsafe
 
 main {
@@ -12,8 +11,6 @@ main {
         rotations()
         integers()
         floatingpoint()
-
-        test_stack.test()
     }
 
     sub rotations() {
@@ -175,7 +172,7 @@ main {
         txt.nl()
 
         &ubyte  membyte = $c000
-        uword addr = $c000
+        uword @shared addr = $c000
 
         @(addr) = %10110101
         txt.print_ubbin(@(addr), true)
@@ -252,9 +249,6 @@ main {
         txt.print_ubbin(@(addr), true)
         txt.nl()
         txt.nl()
-
-        test_stack.test()
-
     }
 
     sub integers() {
@@ -263,12 +257,12 @@ main {
         uword[]  uwarr = [100,200,300,400,0,500,400,300,200,100]
         word[] warr = [100,200,300,400,500,0,-400,-300,200,100,-99, -4096]
 
-        ubyte zero=0
-        ubyte ub
-        ubyte ub2
-        byte bb
-        uword uw
-        word ww
+        ubyte @shared zero=0
+        ubyte @shared ub
+        ubyte @shared ub2
+        byte @shared bb
+        uword @shared uw
+        word @shared ww
 
         repeat(20) {
             txt.nl()
@@ -421,20 +415,17 @@ main {
         reverse(barr)
         reverse(uwarr)
         reverse(warr)
-
-        test_stack.test()
     }
 
     sub floatingpoint() {
-        ubyte[]  barr = [1,2,3,4,5,0,4,3,2,1]
         float[] flarr = [1.1, 2.2, 3.3, 0.0, -9.9, 5.5, 4.4]
 
-        ubyte zero=0
-        ubyte ub
-        byte bb
-        uword uw
-        float fl
-        float fzero=0.0
+        ubyte @shared zero=0
+        ubyte @shared ub
+        byte @shared bb
+        uword @shared uw
+        float @shared fl
+        float @shared fzero=0.0
 
         fl = -9.9
         bb = sgn(fl)
@@ -464,7 +455,5 @@ main {
             txt.chrout(',')
         }
         txt.nl()
-
-        test_stack.test()
     }
 }
