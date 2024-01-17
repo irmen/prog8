@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.instanceOf
+import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
@@ -15,7 +16,6 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
 import prog8tests.helpers.compileText
 
 class TestConst: FunSpec({
@@ -219,22 +219,6 @@ class TestConst: FunSpec({
         (initY2.value as NumericLiteral).number shouldBe 11.0
     }
 
-    test("const eval of address-of a memory mapped variable") {
-        val src = """
-main {
-    sub start() {
-        &ubyte mappedvar = 1000
-        cx16.r0 = &mappedvar
-        &ubyte[8] array = &mappedvar
-        cx16.r0 = &array
-        
-        const uword HIGH_MEMORY_START = 40960
-        &uword[20] @shared wa = HIGH_MEMORY_START
-    }
-}"""
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
-    }
-
     test("const pointer variable indexing works") {
         val src="""
 main {
@@ -295,21 +279,48 @@ main {
         ((st[5] as Assignment).value as NumericLiteral).number shouldBe 0x9e00+2*30
     }
 
+    test("address of a memory mapped variable") {
+        val src = """
+main {
+    sub start() {
+        &ubyte mappedvar = 1000
+        cx16.r0 = &mappedvar
+        &ubyte[8] array = &mappedvar
+        cx16.r0 = &array
+        
+        const uword HIGH_MEMORY_START = 40960
+        &uword[20] @shared wa = HIGH_MEMORY_START
+    }
+}"""
+        val result = compileText(Cx16Target(), optimize=false, src, writeAssembly=true)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 7
+        val arrayDeclV = (st[2] as VarDecl).value
+        (arrayDeclV as NumericLiteral).number shouldBe 1000.0
+        val waDeclV = (st[5] as VarDecl).value
+        (waDeclV as NumericLiteral).number shouldBe 40960.0
+    }
+
     test("address of a const uword pointer array expression") {
         val src="""
 main {
     sub start() {
         const uword buffer = ${'$'}2000
-        uword addr = &buffer[2]
+        uword @shared addr = &buffer[2]
         
         const ubyte width = 100
         ubyte @shared i
         ubyte @shared j
-        uword addr2 = &buffer[i * width + j]
+        uword @shared addr2 = &buffer[i * width + j]
     }
 }"""
-        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), true, src, writeAssembly = true)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 9999
+        st.size shouldBe 11
+        val assignAddr = (st[2] as Assignment).value
+        (assignAddr as NumericLiteral).number shouldBe 8194.0
+        val assignAddr2 = ((st[9] as Assignment).value as AddressOf)
+        assignAddr2.identifier.nameInSource shouldBe listOf("buffer")
+        assignAddr2.arrayIndex!!.indexExpr shouldBe instanceOf<BinaryExpression>()
     }
 })

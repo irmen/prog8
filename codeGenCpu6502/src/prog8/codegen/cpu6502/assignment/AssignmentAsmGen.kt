@@ -2512,7 +2512,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 else
                     program.memsizer.memorySize(arrayDt!!, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
             } else {
-                val eltSize = program.memsizer.memorySize(ArrayToElementTypes.getValue(arrayDt!!))
+                val eltSize = if(arrayDt==DataType.UWORD) 1 else program.memsizer.memorySize(ArrayToElementTypes.getValue(arrayDt!!))
                 assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_W1", DataType.UWORD)
                 when(eltSize) {
                     1 -> {}

@@ -1,7 +1,6 @@
 TODO
 ====
 
-2 unit tests that are failing.
 Mark had a compiler crash FatalAstException: invalid dt.
 
 IR: optimize funcRolRor()

@@ -272,6 +272,14 @@ class VarConstantValueTypeAdjuster(
 // This is needed because further constant optimizations depend on those.
 internal class ConstantIdentifierReplacer(private val program: Program, private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
 
+    override fun before(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
+        val constValue = addressOf.constValue(program)
+        if(constValue!=null) {
+            return listOf(IAstModification.ReplaceNode(addressOf, constValue, parent))
+        }
+        return noModifications
+    }
+
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
         // replace identifiers that refer to const value, with the value itself
         // if it's a simple type and if it's not a left hand side variable
@@ -304,16 +312,20 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                     listOf(IAstModification.ReplaceNode(arrayIdx, memread, arrayIdx.parent))
                 }
             }
-            return when (cval.type) {
-                in NumericDatatypes -> listOf(
-                    IAstModification.ReplaceNode(
-                        identifier,
-                        NumericLiteral(cval.type, cval.number, identifier.position),
-                        identifier.parent
+            when (cval.type) {
+                in NumericDatatypes -> {
+                    if(parent is AddressOf)
+                        return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
+                    return listOf(
+                        IAstModification.ReplaceNode(
+                            identifier,
+                            NumericLiteral(cval.type, cval.number, identifier.position),
+                            identifier.parent
+                        )
                     )
-                )
+                }
                 in PassByReferenceDatatypes -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
-                else -> noModifications
+                else -> return noModifications
             }
         } catch (x: UndefinedSymbolError) {
             errors.err(x.message, x.position)
@@ -321,7 +333,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
         }
     }
 
-    override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true) {
             errors.err("recursive var declaration", decl.position)

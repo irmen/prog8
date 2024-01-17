@@ -592,8 +592,10 @@ internal class AstChecker(private val program: Program,
     override fun visit(addressOf: AddressOf) {
         checkLongType(addressOf)
         val variable=addressOf.identifier.targetVarDecl(program)
-        if(variable!=null && variable.type==VarDeclType.CONST)
-            errors.err("invalid pointer-of operand type", addressOf.position)
+        if(variable!=null && variable.type==VarDeclType.CONST && addressOf.arrayIndex==null) errors.err(
+            "invalid pointer-of operand type",
+            addressOf.position
+        )
         super.visit(addressOf)
     }
 
