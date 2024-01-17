@@ -13,7 +13,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- get rid of the noshortcircuit fallback option and code.
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.

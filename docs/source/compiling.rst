@@ -202,11 +202,6 @@ One or more .p8 module files
     This removes the need to add @split yourself but some programs may fail to compile with
     this option as not all array operations are implemented yet on split arrays.
 
-``-noshortcircuit``
-    Do *not* apply `McCarthy/short-circuit evaluation <https://en.wikipedia.org/wiki/Short-circuit_evaluation>`_ to boolean expressions.
-    This is a new feature and changes the behavior of existing programs so it can be turned off again for now.
-    This toggle will disappear eventually.
-
 ``-vm``
     load and run a p8-virt or p8-ir listing in the internal VirtualMachine instead of compiling a prog8 program file..
 

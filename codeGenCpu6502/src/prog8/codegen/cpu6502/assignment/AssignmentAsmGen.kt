@@ -1076,7 +1076,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return true
             }
 
-            if(asmgen.options.shortCircuit && (!expr.left.isSimple() && !expr.right.isSimple())) {
+            if(!expr.right.isSimple()) {
                 // shortcircuit evaluation into A
                 val shortcutLabel = asmgen.makeLabel("shortcut")
                 when (expr.operator) {
@@ -1097,7 +1097,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("invalid logical operator")
                 }
             } else {
-                // normal evaluation into A
+                // normal evaluation into A, it is *likely* shorter and faster because of the simple operands.
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 if(directIntoY(expr.right)) {
                     assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)

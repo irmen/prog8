@@ -793,36 +793,27 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
-        if(asmgen.options.shortCircuit) {
-            val shortcutLabel = asmgen.makeLabel("shortcut")
-            when (operator) {
-                "and" -> {
-                    // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
-                    asmgen.out("  lda  $name |  beq  $shortcutLabel")
-                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
-                    asmgen.out("""
-                         and  $name
-                         sta  $name
+        val shortcutLabel = asmgen.makeLabel("shortcut")
+        when (operator) {
+            "and" -> {
+                // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
+                asmgen.out("  lda  $name |  beq  $shortcutLabel")
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                asmgen.out("""
+                     and  $name
+                     sta  $name
 $shortcutLabel:""")
-                    return
-                }
-                "or" -> {
-                    // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
-                    asmgen.out("  lda  $name |  bne  $shortcutLabel")
-                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
-                    asmgen.out("""
-                         ora  $name
-                         sta  $name
+            }
+            "or" -> {
+                // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
+                asmgen.out("  lda  $name |  bne  $shortcutLabel")
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                asmgen.out("""
+                     ora  $name
+                     sta  $name
 $shortcutLabel:""")
-                    return
-                }
             }
         }
-
-        // normal evaluation
-        asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
-        inplacemodificationRegisterAwithVariableWithSwappedOperands(operator, name, dt in SignedDatatypes)
-        asmgen.out("  sta  $name")
     }
 
     private fun inplacemodificationByteVariableWithVariable(name: String, dt: DataType, operator: String, otherName: String) {

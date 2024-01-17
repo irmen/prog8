@@ -50,7 +50,6 @@ private fun compileMain(args: Array<String>): Boolean {
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val includeSourcelines by cli.option(ArgType.Boolean, fullName = "sourcelines", description = "include original Prog8 source lines in generated asm code")
     val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
-    val noShortCircuit by cli.option(ArgType.Boolean, fullName = "noshortcircuit", description = "do not apply McCarthy/short-circuit evaluation to boolean expressions")
     val printAst1 by cli.option(ArgType.Boolean, fullName = "printast1", description = "print out the compiler AST")
     val printAst2 by cli.option(ArgType.Boolean, fullName = "printast2", description = "print out the intermediate AST that is used for code generation")
     val breakpointCpuInstruction by cli.option(ArgType.Boolean, fullName = "breakinstr", description = "also use a CPU instruction for %breakpoint")
@@ -151,7 +150,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
-                    noShortCircuit != true,
                     includeSourcelines == true,
                     experimentalCodegen == true,
                     varsHighBank,
@@ -230,7 +228,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
-                    noShortCircuit != true,
                     includeSourcelines == true,
                     experimentalCodegen == true,
                     varsHighBank,

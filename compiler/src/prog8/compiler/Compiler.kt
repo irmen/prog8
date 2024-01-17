@@ -36,7 +36,6 @@ class CompilerArguments(val filepath: Path,
                         val warnSymbolShadowing: Boolean,
                         val quietAssembler: Boolean,
                         val asmListfile: Boolean,
-                        val shortCircuit: Boolean,
                         val includeSourcelines: Boolean,
                         val experimentalCodegen: Boolean,
                         val varsHighBank: Int?,
@@ -82,7 +81,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 optimize = args.optimize
                 asmQuiet = args.quietAssembler
                 asmListfile = args.asmListfile
-                shortCircuit = args.shortCircuit
                 includeSourcelines = args.includeSourcelines
                 experimentalCodegen = args.experimentalCodegen
                 breakpointCpuInstruction = args.breakpointCpuInstruction

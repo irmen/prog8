@@ -27,7 +27,6 @@ internal fun compileFile(
         warnSymbolShadowing = false,
         quietAssembler = true,
         asmListfile = false,
-        shortCircuit = true,
         includeSourcelines = false,
         experimentalCodegen = false,
         varsHighBank = null,

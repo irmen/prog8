@@ -708,7 +708,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun operatorAnd(binExpr: PtBinaryExpression, vmDt: IRDataType, bitwise: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        if(!bitwise && codeGen.options.shortCircuit && (!binExpr.left.isSimple() && !binExpr.right.isSimple())) {
+        if(!bitwise && !binExpr.right.isSimple()) {
             // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -737,7 +737,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun operatorOr(binExpr: PtBinaryExpression, vmDt: IRDataType, bitwise: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        if(!bitwise && codeGen.options.shortCircuit && (!binExpr.left.isSimple() && !binExpr.right.isSimple())) {
+        if(!bitwise && !binExpr.right.isSimple()) {
             // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
@@ -1011,7 +1011,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     internal fun operatorLogicalAndInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
-        if(codeGen.options.shortCircuit && !operand.isSimple()) {
+        if(!operand.isSimple()) {
             // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
             val inplaceReg = codeGen.registers.nextFree()
             val shortcutLabel = codeGen.createLabelName()
@@ -1029,7 +1029,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
             result += IRCodeChunk(shortcutLabel, null)
         } else {
-            // normal evaluation
+            // normal evaluation, it is *likely* shorter and faster because of the simple operands.
             addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, if(knownAddress!=null)
                 IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = knownAddress)
@@ -1053,7 +1053,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     internal fun operatorLogicalOrInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
-        if(codeGen.options.shortCircuit && !operand.isSimple()) {
+        if(!operand.isSimple()) {
             // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
             val inplaceReg = codeGen.registers.nextFree()
             val shortcutLabel = codeGen.createLabelName()
@@ -1071,6 +1071,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
             result += IRCodeChunk(shortcutLabel, null)
         } else {
+            // normal evaluation, it is *likely* shorter and faster because of the simple operands.
             addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, if(knownAddress!=null)
                 IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = knownAddress)

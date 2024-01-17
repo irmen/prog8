@@ -40,7 +40,6 @@ class RequestParser : Take {
             quietAssembler = false,
             includeSourcelines = false,
             asmListfile = false,
-            shortCircuit = true,
             experimentalCodegen = false,
             splitWordArrays = false,
             breakpointCpuInstruction = false,
