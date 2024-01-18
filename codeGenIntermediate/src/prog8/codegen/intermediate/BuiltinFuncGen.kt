@@ -41,10 +41,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "reverse" -> funcReverse(call)
             "setlsb" -> funcSetLsbMsb(call, false)
             "setmsb" -> funcSetLsbMsb(call, true)
-            "rol" -> funcRolRor(Opcode.ROXL, call)
-            "ror" -> funcRolRor(Opcode.ROXR, call)
-            "rol2" -> funcRolRor(Opcode.ROL, call)
-            "ror2" -> funcRolRor(Opcode.ROR, call)
+            "rol" -> funcRolRor(call)
+            "ror" -> funcRolRor(call)
+            "rol2" -> funcRolRor(call)
+            "ror2" -> funcRolRor(call)
             "prog8_lib_stringcompare" -> funcStringCompare(call)
             "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
             "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)
@@ -628,21 +628,51 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
     }
 
-    private fun funcRolRor(opcode: Opcode, call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        // TODO optimize this to use the other ROL/ROR instructions too to always load into a temp reg
-        val vmDt = irType(call.args[0].type)
+    private fun funcRolRor(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        val saveCarry = opcode in OpcodesThatDependOnCarry && !call.args[0].isSimple()
+        val arg = call.args[0]
+        val vmDt = irType(arg.type)
+        val opcodeMemAndReg = when(call.name) {
+            "rol" -> Opcode.ROXLM to Opcode.ROXL
+            "ror" -> Opcode.ROXRM to Opcode.ROXR
+            "rol2" -> Opcode.ROLM to Opcode.ROL
+            "ror2" -> Opcode.RORM to Opcode.ROR
+            else -> throw AssemblyError("wrong func")
+        }
+
+        val ident = arg as? PtIdentifier
+        if(ident!=null) {
+            addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, labelSymbol = ident.name), null)
+            return ExpressionCodeResult(result, vmDt, -1, -1)
+        }
+
+        val memAddr  = (arg as? PtMemoryByte)?.address?.asConstInteger()
+        if(memAddr!=null) {
+            addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, address = memAddr), null)
+            return ExpressionCodeResult(result, vmDt, -1, -1)
+        }
+
+        val arr = (arg as? PtArrayIndexer)
+        val index = arr?.index?.asConstInteger()
+        if(arr!=null && index!=null) {
+            val variable = arr.variable.name
+            val itemsize = codeGen.program.memsizer.memorySize(arr.type)
+            addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, labelSymbol = variable, symbolOffset = index*itemsize), null)
+            return ExpressionCodeResult(result, vmDt, -1, -1)
+        }
+
+        val opcode = opcodeMemAndReg.second
+        val saveCarry = opcode in OpcodesThatDependOnCarry && !arg.isSimple()
         if(saveCarry)
             addInstr(result, IRInstruction(Opcode.PUSHST), null)    // save Carry
-        val tr = exprGen.translateExpression(call.args[0])
+        val tr = exprGen.translateExpression(arg)
         addToResult(result, tr, tr.resultReg, -1)
         if(saveCarry)
             addInstr(result, IRInstruction(Opcode.POPST), null)
         addInstr(result, IRInstruction(opcode, vmDt, reg1 = tr.resultReg), null)
         if(saveCarry)
             addInstr(result, IRInstruction(Opcode.PUSHST), null)    // save Carry
-        result += assignRegisterTo(call.args[0], tr.resultReg)
+        result += assignRegisterTo(arg, tr.resultReg)
         if(saveCarry)
             addInstr(result, IRInstruction(Opcode.POPST), null)
         return ExpressionCodeResult(result, vmDt, -1, -1)

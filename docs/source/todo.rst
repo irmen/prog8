@@ -1,9 +1,7 @@
 TODO
 ====
 
-Mark had a compiler crash FatalAstException: invalid dt.
-
-IR: optimize funcRolRor()
+imageviewer: bmp palette is off (autumn.bmp)
 
 ...
 
