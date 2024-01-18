@@ -938,4 +938,9 @@ cx16 {
         }}
     }
 
+    sub cpu_is_65816() -> bool {
+        ; Returns true when you have a 65816 cpu, false when it's a 6502.
+        return false
+    }
+
 }

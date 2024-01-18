@@ -1157,16 +1157,18 @@ sub search_x16edit() -> ubyte {
 }
 
     asmsub cpu_is_65816() -> bool @A {
-        ; Returns true if you have a 65816 cpu, false if it's a 6502.
-        ; for Prog8 with the 64tass assembler, call in 8 bit mode only
+        ; Returns true when you have a 65816 cpu, false when it's a 6502.
         %asm {{
-            .cpu '65816' ; let 64tass use the xba opcode
-            lda #1   ; set up for a <> b exchange
-            xba      ; exchange will be a nop on a 65C02
-            lda #0   ; set up for second exchange
-            xba      ; exchange will be a nop on the 65C02
-            rts
-            .cpu 'w65c02'
+			php
+			clv
+			.byte $e2, $ea  ; SEP #$ea, should be interpreted as 2 NOPs by 6502. 65c816 will set the Overflow flag.
+			bvc +
+			lda #1
+			plp
+			rts
++			lda #0
+			plp
+			rts
         }}
     }
 
