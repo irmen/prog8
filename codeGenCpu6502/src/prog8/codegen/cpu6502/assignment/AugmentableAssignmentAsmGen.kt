@@ -803,6 +803,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                      and  $name
                      sta  $name
 $shortcutLabel:""")
+                return
             }
             "or" -> {
                 // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
@@ -812,8 +813,14 @@ $shortcutLabel:""")
                      ora  $name
                      sta  $name
 $shortcutLabel:""")
+                return
             }
         }
+
+        // normal evaluation
+        asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+        inplacemodificationRegisterAwithVariableWithSwappedOperands(operator, name, dt in SignedDatatypes)
+        asmgen.out("  sta  $name")
     }
 
     private fun inplacemodificationByteVariableWithVariable(name: String, dt: DataType, operator: String, otherName: String) {

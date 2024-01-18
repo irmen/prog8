@@ -1,8 +1,6 @@
 TODO
 ====
 
-imageviewer: bmp palette is off (autumn.bmp)
-
 ...
 
 
