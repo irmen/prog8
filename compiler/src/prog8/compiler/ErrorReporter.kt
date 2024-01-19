@@ -33,7 +33,7 @@ internal class ErrorReporter: IErrorReporter {
         var numErrors = 0
         var numWarnings = 0
         var numInfos = 0
-        messages.forEach {
+        messages.sortedWith(compareBy({it.position.file}, {it.position.line}, {it.severity})).forEach {
             val printer = when(it.severity) {
                 MessageSeverity.INFO -> System.out
                 MessageSeverity.WARNING -> System.out
