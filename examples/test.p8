@@ -1,15 +1,15 @@
-%import textio
-%zeropage dontuse
+%zeropage basicsafe
+%option no_sysinit
 
 main {
     sub start() {
-        ubyte @shared ubb = 99
-        uword @shared uww = 12345
-        ubyte[200] @shared barr
-        uword @shared ptr = memory("data", $2000, 0)
+            %asm {{
 
-        %breakpoint
+                rmb 0,$22
+                smb 1,$22
+                bbr 2,$22
+                bbs 3,$22
+            }}
 
-        txt.print_uwhex(sys.progend(), true)
     }
 }

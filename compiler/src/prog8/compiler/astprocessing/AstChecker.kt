@@ -742,6 +742,15 @@ internal class AstChecker(private val program: Program,
 
             if(decl.splitArray && decl.type==VarDeclType.MEMORY)
                 err("@split can't be used on memory mapped arrays")
+
+            if(decl.value is ArrayLiteral) {
+                val declLen = decl.arraysize!!.constIndex()
+                if(declLen!=null) {
+                    val len = (decl.value as ArrayLiteral).value.size
+                    if(len!=declLen)
+                        throw FatalAstException("array initializer value length doesn't match vardecl length: $decl")
+                }
+            }
         }
 
         if(decl.datatype==DataType.STR) {
