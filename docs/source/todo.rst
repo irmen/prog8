@@ -1,8 +1,10 @@
 TODO
 ====
 
-maze:   if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0
-              ^^ adding this !=0 caused a weird beq + / lda #1 / +  to appear in front of the shortcircuit beq...
+fix crash:  @(&var_string+10)="...\x00"
+
+make the breakpoint instruction selectable (BRK vs STP)
+
 
 ...
 
