@@ -590,8 +590,8 @@ internal class AstChecker(private val program: Program,
 
         // CONST can only occur on simple types (byte, word, float)
         if(decl.type== VarDeclType.CONST) {
-            if (decl.datatype !in NumericDatatypes)
-                err("const can only be used on numeric types (byte, word, float)")
+            if (decl.datatype !in NumericDatatypesWithBoolean)
+                err("const can only be used on numeric types or booleans")
         }
 
         // FLOATS enabled?
@@ -679,11 +679,11 @@ internal class AstChecker(private val program: Program,
                     val eltDt = ArrayToElementTypes.getValue(decl.datatype)
                     if(iDt isnot eltDt) {
                         if(!(iDt.isBool && eltDt==DataType.UBYTE || iDt.istype(DataType.UBYTE) && eltDt==DataType.BOOL))
-                            err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                            err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                     }
                 } else {
                     if(!(iDt.isBool && decl.datatype==DataType.UBYTE || iDt.istype(DataType.UBYTE) && decl.datatype==DataType.BOOL))
-                        err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                        err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 }
             }
         }
@@ -718,15 +718,6 @@ internal class AstChecker(private val program: Program,
 
             if(decl.splitArray && decl.type==VarDeclType.MEMORY)
                 err("@split can't be used on memory mapped arrays")
-
-            if(decl.value is ArrayLiteral) {
-                val declLen = decl.arraysize!!.constIndex()
-                if(declLen!=null) {
-                    val len = (decl.value as ArrayLiteral).value.size
-                    if(len!=declLen)
-                        throw FatalAstException("array initializer value length doesn't match vardecl length: $decl")
-                }
-            }
         }
 
         if(decl.datatype==DataType.STR) {
@@ -1073,7 +1064,7 @@ internal class AstChecker(private val program: Program,
             errors.err("this expression doesn't return a value", typecast.expression.position)
 
         if(typecast.expression is NumericLiteral) {
-            val castResult = (typecast.expression as NumericLiteral).cast(typecast.type)
+            val castResult = (typecast.expression as NumericLiteral).cast(typecast.type, typecast.implicit)
             if(castResult.isValid)
                 throw FatalAstException("cast should have been performed in const eval already")
             errors.err(castResult.whyFailed!!, typecast.expression.position)
@@ -1679,7 +1670,7 @@ internal class AstChecker(private val program: Program,
                 is IdentifierReference -> it.hashCode() and 0xffff
                 is TypecastExpression -> {
                     val constVal = it.expression.constValue(program)
-                    val cast = constVal?.cast(it.type)
+                    val cast = constVal?.cast(it.type, true)
                     if(cast==null || !cast.isValid)
                         -9999999
                     else

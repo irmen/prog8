@@ -140,6 +140,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 else
                     IRInstruction(Opcode.XORM, vmDt, reg1=regMask, labelSymbol = symbol)
             }
+            "not" -> {
+                val regMask = codeGen.registers.nextFree()
+                code += IRInstruction(Opcode.LOAD, vmDt, reg1=regMask, immediate = 1)
+                code += if(address!=null)
+                    IRInstruction(Opcode.XORM, vmDt, reg1=regMask, address = address)
+                else
+                    IRInstruction(Opcode.XORM, vmDt, reg1=regMask, labelSymbol = symbol)
+            }
             else -> throw AssemblyError("weird prefix operator")
         }
         return listOf(code)

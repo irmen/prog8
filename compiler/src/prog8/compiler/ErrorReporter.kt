@@ -43,6 +43,7 @@ internal class ErrorReporter: IErrorReporter {
             if(msg !in alreadyReportedMessages) {
                 when(it.severity) {
                     MessageSeverity.ERROR -> {
+                        System.out.flush()
                         printer.print("\u001b[91mERROR\u001B[0m ")  // bright red
                         numErrors++
                     }

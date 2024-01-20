@@ -305,10 +305,10 @@ gfx2 {
         }
 
         word @zp d = 0
-        cx16.r1L = true      ; 'positive_ix'
+        cx16.r1L = 1  ;; true      ; 'positive_ix'
         if dx < 0 {
             dx = -dx
-            cx16.r1L = false
+            cx16.r1L = 0 ;; false
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
@@ -725,15 +725,15 @@ gfx2 {
             xx = x1 + 1
 
             do {
-                cx16.r9 = xx
+                cx16.r9s = xx
                 ; possible speed optimization: if mode==1 (256c) use vera autoincrement instead of pget(), but code bloat not worth it?
                 while xx <= width-1 {
                     if pget(xx as uword, yy as uword) != cx16.r11L
                         break
                     xx++
                 }
-                if cx16.r9!=xx
-                    horizontal_line(cx16.r9, yy as uword, (xx as uword)-cx16.r9, cx16.r10L)
+                if cx16.r9s!=xx
+                    horizontal_line(cx16.r9, yy as uword, xx-cx16.r9s as uword, cx16.r10L)
 
                 push_stack(left, xx - 1, yy, dy)
                 if xx > x2 + 1
@@ -876,7 +876,7 @@ skip:
                 cx16.r11L = color
                 while @(sctextptr)!=0 {
                     chardataptr = charset_addr + (@(sctextptr) as uword)*8
-                    cx16.vaddr(charset_bank, chardataptr, 1, true)  ; for reading the chardata from Vera data channel 1
+                    cx16.vaddr(charset_bank, chardataptr, 1, 1)  ; for reading the chardata from Vera data channel 1
                     position(xx, yy)              ; only calculated once, we update vera address in the loop instead
                     cx16.VERA_ADDR_H &= $0f     ; no auto increment
                     repeat 8 {

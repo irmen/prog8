@@ -3,7 +3,6 @@ package prog8.optimizer
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.code.core.CompilationOptions
-import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 
 
@@ -60,8 +59,8 @@ fun Program.inlineSubroutines(options: CompilationOptions): Int {
     return inliner.applyModifications()
 }
 
-fun Program.simplifyExpressions(errors: IErrorReporter, target: ICompilationTarget) : Int {
-    val opti = ExpressionSimplifier(this, errors, target)
+fun Program.simplifyExpressions(errors: IErrorReporter) : Int {
+    val opti = ExpressionSimplifier(this, errors)
     opti.visit(this)
     return opti.applyModifications()
 }

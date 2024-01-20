@@ -40,7 +40,7 @@ main {
                     iter++
                 }
 
-                if iter & 1
+                if iter & 1 !=0
                     graphics.plot(pixelx, pixely)
             }
         }

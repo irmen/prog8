@@ -562,9 +562,9 @@ io_error:
         }}
 
         if_cc
-            cx16.r0L = cbm.READST()==0
+            cx16.r0L = cbm.READST()==0 as ubyte
 
-        return cx16.r0L
+        return cx16.r0L as bool
     }
 
     ; Use kernal LOAD routine to load the given program file in memory.

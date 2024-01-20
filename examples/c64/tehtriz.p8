@@ -208,7 +208,7 @@ waitkey:
                     txt.setcc(x, linepos, sc:'▒', 1)
             }
         }
-        if num_lines {
+        if num_lines!=0 {
             if num_lines>3
                 sound.lineclear_big()
             else
@@ -390,7 +390,7 @@ waitkey:
         ubyte @zp i
         for i in 15 downto 0 {
             ubyte @zp c=blocklogic.currentBlock[i]
-            if c
+            if c!=0
                 txt.setcc((i&3)+x, (i/4)+y, character, c)
         }
     }

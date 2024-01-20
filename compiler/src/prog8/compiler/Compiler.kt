@@ -422,7 +422,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     remover.applyModifications()
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
-        val optsDone1 = program.simplifyExpressions(errors, compilerOptions.compTarget)
+        val optsDone1 = program.simplifyExpressions(errors)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
         val optsDone3 = program.inlineSubroutines(compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away

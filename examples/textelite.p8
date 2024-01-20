@@ -37,7 +37,7 @@ main {
             txt.print("\nCommand (?=help): ")
             ubyte num_chars = txt.input_chars(input)
             txt.nl()
-            if num_chars {
+            if num_chars!=0 {
                 when input[0] {
                     '?' -> {
                         txt.print("\nCommands are:\n"+
@@ -86,7 +86,7 @@ trader {
 
     sub do_load() {
         txt.print("\nLoading universe... (drive 8)")
-        if diskio.load(Savegame, &savedata) {
+        if diskio.load(Savegame, &savedata)!=0 {
             txt.print("ok\n")
         } else {
             txt.print("\ni/o error: ")
@@ -163,7 +163,7 @@ trader {
         str commodity = "???????????????"
         void txt.input_chars(commodity)
         ubyte ci = market.match(commodity)
-        if ci & 128 {
+        if ci & 128 !=0 {
             txt.print("Unknown\n")
         } else {
             txt.print("\nHow much? ")
@@ -191,7 +191,7 @@ trader {
         str commodity = "???????????????"
         void txt.input_chars(commodity)
         ubyte ci = market.match(commodity)
-        if ci & 128 {
+        if ci & 128 !=0 {
             txt.print("Unknown\n")
         } else {
             txt.print("\nHow much? ")
@@ -247,7 +247,7 @@ trader {
     sub do_info() {
         txt.print("\nSystem name (empty=current): ")
         num_chars = txt.input_chars(input)
-        if num_chars {
+        if num_chars!=0 {
             ubyte current_planet = planet.number
             ubyte x = planet.x
             ubyte y = planet.y
@@ -270,7 +270,7 @@ trader {
     sub do_map() {
         txt.print("\n(l)ocal or (g)alaxy starmap? ")
         num_chars = txt.input_chars(input)
-        if num_chars {
+        if num_chars!=0 {
             galaxy.starmap(input[0]=='l')
         }
     }
@@ -342,7 +342,7 @@ market {
             product = planet.economy as word * gradients[ci]
             changing = fluct & maskbytes[ci]  as byte
             ubyte q = (basequants[ci] as word + changing - product) as ubyte
-            if q & $80
+            if q & $80 !=0
                 q = 0  ; clip to positive 8-bit
             current_quantity[ci] = q & $3f
             q = (baseprices[ci] + changing + product) as ubyte
@@ -430,13 +430,13 @@ galaxy {
         market.init(lsb(seed[0])+msb(seed[2]))
     }
 
-    sub search_closest_planet(uword nameptr) -> ubyte {
+    sub search_closest_planet(uword nameptr) -> bool {
         ubyte x = planet.x
         ubyte y = planet.y
         ubyte current_planet_num = planet.number
 
         init(number)
-        ubyte found = false
+        bool found = false
         ubyte current_closest_pi
         ubyte current_distance = 127
         ubyte pi
@@ -575,11 +575,11 @@ galaxy {
     ubyte pn_pair2
     ubyte pn_pair3
     ubyte pn_pair4
-    ubyte longname
+    bool longname
 
     sub generate_next_planet() {
         determine_planet_properties()
-        longname = lsb(seed[0]) & 64
+        longname = lsb(seed[0]) & 64 !=0
 
         ; Always four iterations of random number
         pn_pair1 = (msb(seed[2]) & 31) * 2
@@ -647,7 +647,7 @@ galaxy {
             planet.economy = (planet.economy | 2)
         planet.techlevel = (msb(seed[1]) & 3) + (planet.economy ^ 7)
         planet.techlevel += planet.govtype >> 1
-        if planet.govtype & 1
+        if planet.govtype & 1 !=0
             planet.techlevel++
         planet.population = 4 * planet.techlevel + planet.economy
         planet.population += planet.govtype + 1
@@ -655,7 +655,7 @@ galaxy {
         planet.productivity *= planet.population * 8
         ubyte seed2_msb = msb(seed[2])
         planet.radius = mkword((seed2_msb & 15) + 11, planet.x)
-        planet.species_is_alien = lsb(seed[2]) & 128       ; bit 7 of w2_lo
+        planet.species_is_alien = lsb(seed[2]) & 128 !=0      ; bit 7 of w2_lo
         if planet.species_is_alien {
             planet.species_size = (seed2_msb >> 2) & 7      ; bits 2-4 of w2_hi
             planet.species_color = seed2_msb >> 5           ; bits 5-7 of w2_hi
@@ -765,7 +765,7 @@ planet {
     ubyte population
     uword productivity
     uword radius
-    ubyte species_is_alien      ; otherwise "Human Colonials"
+    bool species_is_alien      ; otherwise "Human Colonials"
     ubyte species_size
     ubyte species_color
     ubyte species_look
@@ -928,7 +928,7 @@ planet {
     sub display(bool compressed, ubyte distance) {
         if compressed {
             print_name_uppercase()
-            if distance {
+            if distance!=0 {
                 txt.print(" (")
                 util.print_10s(distance)
                 txt.print(" LY)")
@@ -950,7 +950,7 @@ planet {
             txt.spc()
             txt.chrout('#')
             txt.print_ub(number)
-            if distance {
+            if distance!=0 {
                 txt.print("\nDistance: ")
                 util.print_10s(distance)
                 txt.print(" LY")
@@ -1025,7 +1025,7 @@ planet {
 }
 
 util {
-    sub prefix_matches(uword prefixptr, uword stringptr) -> ubyte {
+    sub prefix_matches(uword prefixptr, uword stringptr) -> bool {
         repeat {
             ubyte pc = @(prefixptr)
             ubyte sc = @(stringptr)

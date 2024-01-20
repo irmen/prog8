@@ -231,7 +231,7 @@ io_error:
             list_filetype[0] = cx16.r15L
             list_filetype[1] = cbm.CHRIN()
             list_filetype[2] = cbm.CHRIN()
-            while cbm.CHRIN() {
+            while cbm.CHRIN()!=0 {
                 ; read the rest of the entry until the end
             }
 
@@ -309,7 +309,7 @@ close_end:
             lda  bufferpointer+1
             sta  m_in_buffer+2
         }}
-        while num_bytes {
+        while num_bytes!=0 {
             if cbm.READST() {
                 f_close()
                 if cbm.READST() & $40    ; eof?

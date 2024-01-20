@@ -57,20 +57,20 @@ graphics {
     }
 
     sub fillrect(uword xx, uword yy, uword width, uword height) {
-        cx16.GRAPH_draw_rect(xx, yy, width, height, 0, 1)
+        cx16.GRAPH_draw_rect(xx, yy, width, height, 0, true)
     }
 
     sub rect(uword xx, uword yy, uword width, uword height) {
-        cx16.GRAPH_draw_rect(xx, yy, width, height, 0, 0)
+        cx16.GRAPH_draw_rect(xx, yy, width, height, 0, false)
     }
 
     sub horizontal_line(uword xx, uword yy, uword length) {
-        if length
+        if length!=0
             cx16.GRAPH_draw_line(xx, yy, xx+length-1, yy)
     }
 
     sub vertical_line(uword xx, uword yy, uword height) {
-        if height
+        if height!=0
             cx16.GRAPH_draw_line(xx, yy, xx, yy+height-1)
     }
 

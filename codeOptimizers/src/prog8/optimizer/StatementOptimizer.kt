@@ -82,7 +82,7 @@ class StatementOptimizer(private val program: Program,
 
         // empty true part? switch with the else part
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isNotEmpty()) {
-            val invertedCondition = BinaryExpression(ifElse.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, ifElse.condition.position), ifElse.condition.position)
+            val invertedCondition = invertCondition(ifElse.condition, program)
             val emptyscope = AnonymousScope(mutableListOf(), ifElse.elsepart.position)
             val truepart = AnonymousScope(ifElse.elsepart.statements, ifElse.truepart.position)
             return listOf(
@@ -470,38 +470,6 @@ class StatementOptimizer(private val program: Program,
             val ifStmt = IfElse(condition, trueBlock, elseBlock ?: AnonymousScope(mutableListOf(), whenStmt.position), whenStmt.position)
             errors.info("for boolean condition a normal if statement is preferred", whenStmt.position)
             return listOf(IAstModification.ReplaceNode(whenStmt, ifStmt, parent))
-        }
-
-        if(whenStmt.condition.inferType(program).isBool) {
-            if(whenStmt.choices.all { it.values?.size==1 }) {
-                if (whenStmt.choices.all { it.values!!.single().constValue(program)!!.number in arrayOf(0.0, 1.0) }) {
-                    // it's a when statement on booleans that can just be replaced by an if or if-else.
-                    if (whenStmt.choices.size == 1) {
-                        return if(whenStmt.choices[0].values!![0].constValue(program)!!.number==1.0) {
-                            replaceWithIf(whenStmt.condition, whenStmt.choices[0].statements, null)
-                        } else {
-                            val notCondition = BinaryExpression(whenStmt.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, whenStmt.condition.position), whenStmt.condition.position)
-                            replaceWithIf(notCondition, whenStmt.choices[0].statements, null)
-                        }
-                    } else if (whenStmt.choices.size == 2) {
-                        var trueBlock: AnonymousScope? = null
-                        var elseBlock: AnonymousScope? = null
-                        if(whenStmt.choices[0].values!![0].constValue(program)!!.number==1.0) {
-                            trueBlock = whenStmt.choices[0].statements
-                        } else {
-                            elseBlock = whenStmt.choices[0].statements
-                        }
-                        if(whenStmt.choices[1].values!![0].constValue(program)!!.number==1.0) {
-                            trueBlock = whenStmt.choices[1].statements
-                        } else {
-                            elseBlock = whenStmt.choices[1].statements
-                        }
-                        if(trueBlock!=null && elseBlock!=null) {
-                            return replaceWithIf(whenStmt.condition, trueBlock, elseBlock)
-                        }
-                    }
-                }
-            }
         }
 
         val constantValue = whenStmt.condition.constValue(program)?.number

@@ -46,7 +46,7 @@ main {
                     if snowx!=0 and snowx!=319 {        ; check to avoid x coordinate under/overflow
                         uword pilex1
                         uword pilex2
-                        if math.rnd() & 1 {
+                        if math.rnd() & 1 !=0 {
                             pilex1 = snowx-1
                             pilex2 = snowx+1
                         } else {
@@ -73,7 +73,7 @@ main {
                     flakes1_yy[idx]++
                     when math.rnd() & 3 {
                         1 -> {
-                            if flakes1_xx[idx]
+                            if flakes1_xx[idx]!=0
                                 flakes1_xx[idx]--
                         }
                         2 -> {
@@ -103,7 +103,7 @@ main {
                         flakes2_yy[idx]+=1
                         when math.rnd() & 3 {
                             1 -> {
-                                if flakes2_xx[idx]
+                                if flakes2_xx[idx]!=0
                                     flakes2_xx[idx]--
                             }
                             2 -> {

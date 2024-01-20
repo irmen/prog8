@@ -287,7 +287,7 @@ waitkey:
                     txt.setcc2(x, linepos, 160, 1)
             }
         }
-        if num_lines {
+        if num_lines!=0 {
             if num_lines>3 {
                 sound.lineclear_big()
                 sys.wait(25) ; slight delay to flash the line
@@ -481,7 +481,7 @@ waitkey:
         ubyte @zp i
         for i in 15 downto 0 {
             ubyte @zp c=blocklogic.currentBlock[i]
-            if c {
+            if c!=0 {
                 if erase
                     c=0
                 else {

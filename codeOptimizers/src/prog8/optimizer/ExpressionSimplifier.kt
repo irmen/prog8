@@ -19,9 +19,7 @@ import kotlin.math.pow
 
 // TODO add more peephole expression optimizations? Investigate what optimizations binaryen has?
 
-class ExpressionSimplifier(private val program: Program,
-                           private val errors: IErrorReporter,
-                           private val compTarget: ICompilationTarget) : AstWalker() {
+class ExpressionSimplifier(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
@@ -31,7 +29,7 @@ class ExpressionSimplifier(private val program: Program,
         // try to statically convert a literal value into one of the desired type
         val literal = typecast.expression as? NumericLiteral
         if (literal != null) {
-            val newLiteral = literal.cast(typecast.type)
+            val newLiteral = literal.cast(typecast.type, typecast.implicit)
             if (newLiteral.isValid && newLiteral.valueOrZero() !== literal) {
                 mods += IAstModification.ReplaceNode(typecast, newLiteral.valueOrZero(), parent)
             }
@@ -261,6 +259,45 @@ class ExpressionSimplifier(private val program: Program,
                 return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
             if(expr.operator=="!=" && rightVal?.number==0.0)
                 return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+
+            if(rightDt==DataType.BOOL && expr.operator in arrayOf("and", "or", "xor")) {
+                if(leftVal!=null) {
+                    val result = if(leftVal.asBooleanValue) {
+                        when(expr.operator) {
+                            "and" -> expr.right
+                            "or" -> NumericLiteral.fromBoolean(true, expr.position)
+                            "xor" -> PrefixExpression("not", expr.right, expr.position)
+                            else -> throw FatalAstException("weird op")
+                        }
+                    } else {
+                        when(expr.operator) {
+                            "and" -> NumericLiteral.fromBoolean(false, expr.position)
+                            "or" -> expr.right
+                            "xor" -> expr.right
+                            else -> throw FatalAstException("weird op")
+                        }
+                    }
+                    return listOf(IAstModification.ReplaceNode(expr, result, parent))
+                }
+                else if(rightVal!=null) {
+                    val result = if(rightVal.asBooleanValue) {
+                        when(expr.operator) {
+                            "and" -> expr.left
+                            "or" -> NumericLiteral.fromBoolean(true, expr.position)
+                            "xor" -> PrefixExpression("not", expr.left, expr.position)
+                            else -> throw FatalAstException("weird op")
+                        }
+                    } else {
+                        when(expr.operator) {
+                            "and" -> NumericLiteral.fromBoolean(false, expr.position)
+                            "or" -> expr.left
+                            "xor" -> expr.left
+                            else -> throw FatalAstException("weird op")
+                        }
+                    }
+                    return listOf(IAstModification.ReplaceNode(expr, result, parent))
+                }
+            }
         }
 
         // simplify when a term is constant and directly determines the outcome
@@ -372,7 +409,6 @@ class ExpressionSimplifier(private val program: Program,
         }
         return noModifications
     }
-
 
     private fun applyAbsorptionLaws(expr: BinaryExpression): Expression? {
         val rightB = expr.right as? BinaryExpression

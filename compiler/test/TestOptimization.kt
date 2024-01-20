@@ -288,9 +288,9 @@ class TestOptimization: FunSpec({
         z2decl.name shouldBe "z2"
         z2init.value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
         z3decl.name shouldBe "z3"
-        z3init.value shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+        z3init.value shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
         z4decl.name shouldBe "z4"
-        z4init.value shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        z4init.value shouldBe NumericLiteral(DataType.UWORD, 0.0, Position.DUMMY)
         z5decl.name shouldBe "z5"
         (z5init.value as BinaryExpression).operator shouldBe "+"
         (z5init.value as BinaryExpression).right shouldBe NumericLiteral(DataType.UBYTE, 5.0, Position.DUMMY)
@@ -343,7 +343,7 @@ class TestOptimization: FunSpec({
                     ubyte @shared z1 = 1
                     ubyte @shared z2 = + 1
                     ubyte @shared z3 = ~ 1
-                    ubyte @shared z4 = not 1
+                    bool @shared z4 = not 1
                     byte @shared z5 = - 1
                 }
             }
@@ -461,13 +461,13 @@ class TestOptimization: FunSpec({
         stmts.filterIsInstance<Assignment>().size shouldBe 5
         val assignXX1 = stmts[1] as Assignment
         assignXX1.target.identifier!!.nameInSource shouldBe listOf("xx")
-        assignXX1.value shouldBe NumericLiteral(DataType.UBYTE, 20.0, Position.DUMMY)
+        assignXX1.value shouldBe NumericLiteral(DataType.UWORD, 20.0, Position.DUMMY)
         val assignXX2 = stmts.last() as Assignment
         assignXX2.target.identifier!!.nameInSource shouldBe listOf("xx")
         val xxValue = assignXX2.value as BinaryExpression
         xxValue.operator shouldBe "+"
         (xxValue.left as? IdentifierReference)?.nameInSource shouldBe listOf("xx")
-        xxValue.right shouldBe NumericLiteral(DataType.UBYTE, 10.0, Position.DUMMY)
+        xxValue.right shouldBe NumericLiteral(DataType.UWORD, 10.0, Position.DUMMY)
     }
 
     test("multi-comparison replaced by containment check") {
@@ -569,7 +569,7 @@ class TestOptimization: FunSpec({
             main{
                 sub start () {
                     uword @shared eRef
-                    if eRef[3] and 10  {
+                    if eRef[3] & 10 ==0 {
                       return
                     }
                 }
@@ -746,11 +746,6 @@ main {
     sub start() {
         bool @shared a1
         bool @shared a2
-        
-        if a1==0 and a2==0
-            cx16.r0++
-        if a1==0 or a2==0
-            cx16.r0++
 
         if not a1 or not a2
             cx16.r0++
@@ -760,19 +755,13 @@ main {
 }"""
         val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 8
+        st.size shouldBe 6
         val if1c = (st[4] as IfElse).condition as PrefixExpression
         val if2c = (st[5] as IfElse).condition as PrefixExpression
-        val if3c = (st[6] as IfElse).condition as PrefixExpression
-        val if4c = (st[7] as IfElse).condition as PrefixExpression
         if1c.operator shouldBe "not"
         if2c.operator shouldBe "not"
-        if3c.operator shouldBe "not"
-        if4c.operator shouldBe "not"
-        (if1c.expression as BinaryExpression).operator shouldBe "or"
-        (if2c.expression as BinaryExpression).operator shouldBe "and"
-        (if3c.expression as BinaryExpression).operator shouldBe "and"
-        (if4c.expression as BinaryExpression).operator shouldBe "or"
+        (if1c.expression as BinaryExpression).operator shouldBe "and"
+        (if2c.expression as BinaryExpression).operator shouldBe "or"
     }
 
     test("absorption laws") {

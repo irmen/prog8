@@ -57,7 +57,7 @@ irq {
             if shift_counter == 32+32+32 {
                 make_new_gradient()
                 shift_counter = 0
-            } else if shift_counter & 1 {
+            } else if shift_counter & 1 !=0 {
                 shift_gradient()
             }
         } else if next_irq_line & 15 == 0  {

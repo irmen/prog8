@@ -303,14 +303,14 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
         fun adjustRangeDt(rangeFrom: NumericLiteral, targetDt: DataType, rangeTo: NumericLiteral, stepLiteral: NumericLiteral?, range: RangeExpression): RangeExpression? {
-            val fromCast = rangeFrom.cast(targetDt)
-            val toCast = rangeTo.cast(targetDt)
+            val fromCast = rangeFrom.cast(targetDt, true)
+            val toCast = rangeTo.cast(targetDt, true)
             if(!fromCast.isValid || !toCast.isValid)
                 return null
 
             val newStep =
                 if(stepLiteral!=null) {
-                    val stepCast = stepLiteral.cast(targetDt)
+                    val stepCast = stepLiteral.cast(targetDt, true)
                     if(stepCast.isValid)
                         stepCast.valueOrZero()
                     else
@@ -376,7 +376,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             val valueDt = numval.inferType(program)
             if(valueDt isnot decl.datatype) {
                 if(decl.datatype!=DataType.BOOL || valueDt.isnot(DataType.UBYTE)) {
-                    val cast = numval.cast(decl.datatype)
+                    val cast = numval.cast(decl.datatype, true)
                     if (cast.isValid)
                         return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
                 }

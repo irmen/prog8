@@ -717,7 +717,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +                   lda  #1
 +""")
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer?
+            // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?
             "<", "<=", ">", ">=" -> TODO("byte-var-to-pointer comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -810,7 +810,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +""")
                 asmgen.storeAIntoZpPointerVar(sourceName)
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer?:
+            // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?:
             "<", "<=", ">", ">=" -> TODO("byte-litval-to-pointer comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -2117,7 +2117,7 @@ $shortcutLabel:""")
                             lda  #0
                             sta  $name+1""")
                     }
-                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    // pretty uncommon, who's going to assign a comparison boolean expression to a word var?:
                     "<", "<=", ">", ">=" -> TODO("word-bytevar-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -2544,7 +2544,7 @@ $shortcutLabel:""")
                             lda  #0
                             sta  $name+1""")
                     }
-                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    // pretty uncommon, who's going to assign a comparison boolean expression to a word var?:
                     "<", "<=", ">", ">=" -> TODO("word-bytevalue-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -2624,7 +2624,7 @@ $shortcutLabel:""")
                             lda  #0
                             sta  $name+1""")
                     }
-                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    // pretty uncommon, who's going to assign a comparison boolean expression to a word var?:
                     "<", "<=", ">", ">=" -> TODO("word-value-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -2664,7 +2664,7 @@ $shortcutLabel:""")
                     jsr  floats.FDIV
                 """)
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
+            // pretty uncommon, who's going to assign a comparison boolean expression to a float var:
             "==" -> TODO("float-value-to-var comparison ==")
             "!=" -> TODO("float-value-to-var comparison !=")
             "<", "<=", ">", ">=" -> TODO("float-value-to-var comparisons")
@@ -2720,7 +2720,7 @@ $shortcutLabel:""")
                     jsr  floats.FDIV
                 """)
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
+            // pretty uncommon, who's going to assign a comparison boolean expression to a float var:
             "==" -> {
                 asmgen.out("""
                     lda  #<$name

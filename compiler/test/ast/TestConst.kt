@@ -65,11 +65,11 @@ class TestConst: FunSpec({
         val subR5value = (stmts[7] as Assignment).value
         val binexpr5 = subR5value as BinaryExpression
         binexpr5.operator shouldBe "-"
-        binexpr5.right shouldBe NumericLiteral(DataType.UWORD, 1899.0, Position.DUMMY)
+        binexpr5.right shouldBe NumericLiteral(DataType.WORD, 1899.0, Position.DUMMY)
         val subR7value = (stmts[8] as Assignment).value
         val binexpr7 = subR7value as BinaryExpression
         binexpr7.operator shouldBe "+"
-        binexpr7.right shouldBe NumericLiteral(DataType.UWORD, 99.0, Position.DUMMY)
+        binexpr7.right shouldBe NumericLiteral(DataType.WORD, 99.0, Position.DUMMY)
     }
 
     test("const folding multiple scenarios * and / (floats)") {
@@ -158,24 +158,24 @@ class TestConst: FunSpec({
         val mulR0Value = (stmts[2] as Assignment).value
         val binexpr0 = mulR0Value as BinaryExpression
         binexpr0.operator shouldBe "*"
-        binexpr0.right shouldBe NumericLiteral(DataType.UWORD, 180.0, Position.DUMMY)
+        binexpr0.right shouldBe NumericLiteral(DataType.WORD, 180.0, Position.DUMMY)
         val mulR1Value = (stmts[3] as Assignment).value
         val binexpr1 = mulR1Value as BinaryExpression
         binexpr1.operator shouldBe "*"
-        binexpr1.right shouldBe NumericLiteral(DataType.UWORD, 180.0, Position.DUMMY)
+        binexpr1.right shouldBe NumericLiteral(DataType.WORD, 180.0, Position.DUMMY)
         val divR2Value = (stmts[4] as Assignment).value
         val binexpr2 = divR2Value as BinaryExpression
         binexpr2.operator shouldBe "/"
-        binexpr2.right shouldBe NumericLiteral(DataType.UWORD, 90.0, Position.DUMMY)
+        binexpr2.right shouldBe NumericLiteral(DataType.WORD, 90.0, Position.DUMMY)
         val mulR3Value = (stmts[5] as Assignment).value
         val binexpr3 = mulR3Value as BinaryExpression
         binexpr3.operator shouldBe "*"
-        binexpr3.right shouldBe NumericLiteral(DataType.UWORD, 10.0, Position.DUMMY)
+        binexpr3.right shouldBe NumericLiteral(DataType.WORD, 10.0, Position.DUMMY)
         binexpr3.left shouldBe instanceOf<BinaryExpression>()
         val mulR4Value = (stmts[6] as Assignment).value
         val binexpr4 = mulR4Value as BinaryExpression
         binexpr4.operator shouldBe "/"
-        binexpr4.right shouldBe NumericLiteral(DataType.UWORD, 5.0, Position.DUMMY)
+        binexpr4.right shouldBe NumericLiteral(DataType.WORD, 5.0, Position.DUMMY)
         binexpr4.left shouldBe instanceOf<BinaryExpression>()
     }
 

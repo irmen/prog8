@@ -24,12 +24,11 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val valueDt = declValue.inferType(program)
             if(valueDt isnot decl.datatype) {
 
-                // don't add a typecast on an array initializer value, unless booleans
                 if(valueDt.isInteger && decl.isArray) {
                     if(decl.datatype == DataType.ARRAY_BOOL) {
                         val integer = declValue.constValue(program)?.number
                         if(integer!=null) {
-                            val num = NumericLiteral(DataType.UBYTE, if(integer==0.0) 0.0 else 1.0, declValue.position)
+                            val num = NumericLiteral(DataType.BOOL, if(integer==0.0) 0.0 else 1.0, declValue.position)
                             num.parent = decl
                             decl.value = num
                         }
@@ -87,18 +86,6 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 }
             }
 
-            if(expr.operator in LogicalOperators && leftDt.isInteger && rightDt.isInteger) {
-                // see if any of the operands needs conversion to bool
-                val modifications = mutableListOf<IAstModification>()
-                val newLeft = wrapWithBooleanCastIfNeeded(expr.left, program)
-                val newRight = wrapWithBooleanCastIfNeeded(expr.right, program)
-                if(newLeft!=null)
-                    modifications += IAstModification.ReplaceNode(expr.left, newLeft, expr)
-                if(newRight!=null)
-                    modifications += IAstModification.ReplaceNode(expr.right, newRight, expr)
-                if(modifications.isNotEmpty())
-                    return modifications
-            }
             if(leftDt!=rightDt) {
                 // convert a negative operand for bitwise operator to the 2's complement positive number instead
                 if(expr.operator in BitwiseOperators && leftDt.isInteger && rightDt.isInteger) {
@@ -158,13 +145,18 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     // determine common datatype and add typecast as required to make left and right equal types
                     val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.right)
                     if(toFix!=null) {
-                        val modifications = mutableListOf<IAstModification>()
-                        when {
-                            toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt, expr)
-                            toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt, expr)
-                            else -> throw FatalAstException("confused binary expression side")
+                        if(commonDt==DataType.BOOL) {
+                            // don't automatically cast to bool
+                            errors.err("left and right operands aren't the same type", expr.position)
+                        } else {
+                            val modifications = mutableListOf<IAstModification>()
+                            when {
+                                toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt, expr)
+                                toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt, expr)
+                                else -> throw FatalAstException("confused binary expression side")
+                            }
+                            return modifications
                         }
-                        return modifications
                     }
                 }
             }
@@ -190,7 +182,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     return modifications
                 } else {
                     fun castLiteral(cvalue2: NumericLiteral): List<IAstModification.ReplaceNode> {
-                        val cast = cvalue2.cast(targettype)
+                        val cast = cvalue2.cast(targettype, true)
                         return if(cast.isValid)
                             listOf(IAstModification.ReplaceNode(assignment.value, cast.valueOrZero(), assignment))
                         else
@@ -229,7 +221,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     private fun afterFunctionCallArgs(call: IFunctionCall): Iterable<IAstModification> {
-        // see if a typecast is needed to convert the arguments into the required parameter's type
+        // see if a typecast is needed to convert the arguments into the required parameter type
         val modifications = mutableListOf<IAstModification>()
         val sub = call.target.targetStatement(program)
         val params = when(sub) {
@@ -299,7 +291,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val modifications = mutableListOf<IAstModification>()
         val dt = memread.addressExpression.inferType(program)
         if(dt.isKnown && dt.getOr(DataType.UWORD)!=DataType.UWORD) {
-            val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(DataType.UWORD)?.valueOrZero()
+            val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(DataType.UWORD, true)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memread.addressExpression, castedValue, memread)
             else
@@ -313,7 +305,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val modifications = mutableListOf<IAstModification>()
         val dt = memwrite.addressExpression.inferType(program)
         if(dt.isKnown && dt.getOr(DataType.UWORD)!=DataType.UWORD) {
-            val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(DataType.UWORD)?.valueOrZero()
+            val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(DataType.UWORD, true)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memwrite.addressExpression, castedValue, memwrite)
             else
@@ -334,7 +326,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
                     return noModifications
                 if (returnValue is NumericLiteral) {
-                    val cast = returnValue.cast(subroutine.returntypes.single())
+                    val cast = returnValue.cast(subroutine.returntypes.single(), true)
                     if(cast.isValid)
                         returnStmt.value = cast.valueOrZero()
                 } else {
@@ -383,8 +375,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val sourceDt = expressionToCast.inferType(program).getOr(DataType.UNDEFINED)
         if(sourceDt == requiredType)
             return
+        if(requiredType==DataType.BOOL)
+            return
         if(expressionToCast is NumericLiteral && expressionToCast.type!=DataType.FLOAT) { // refuse to automatically truncate floats
-            val castedValue = expressionToCast.cast(requiredType)
+            val castedValue = expressionToCast.cast(requiredType, true)
             if (castedValue.isValid) {
                 val signOriginal = sign(expressionToCast.number)
                 val signCasted = sign(castedValue.valueOrZero().number)
@@ -397,30 +391,4 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val cast = TypecastExpression(expressionToCast, requiredType, true, expressionToCast.position)
         modifications += IAstModification.ReplaceNode(expressionToCast, cast, parent)
     }
-}
-
-
-internal fun wrapWithBooleanCastIfNeeded(expr: Expression, program: Program): Expression? {
-    fun isBoolean(expr: Expression): Boolean {
-        return if(expr.inferType(program) istype DataType.BOOL)
-            true
-        else if(expr is NumericLiteral && expr.type in IntegerDatatypes && (expr.number==0.0 || expr.number==1.0))
-            true
-        else if(expr is BinaryExpression && expr.operator in ComparisonOperators + LogicalOperators)
-            true
-        else if(expr is PrefixExpression && expr.operator == "not")
-            true
-        else if(expr is BinaryExpression && expr.operator in BitwiseOperators) {
-            if(isBoolean(expr.left) && isBoolean(expr.right))
-                true
-            else expr.operator=="&" && expr.right.constValue(program)?.number==1.0          //  x & 1   is also a boolean result
-        }
-        else
-            false
-    }
-
-    return if(isBoolean(expr))
-        null
-    else
-        TypecastExpression(expr, DataType.BOOL, true, expr.position)
 }

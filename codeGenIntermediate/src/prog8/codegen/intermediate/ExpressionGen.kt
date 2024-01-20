@@ -608,7 +608,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 if (lessEquals) Opcode.SLE else Opcode.SLT
             }
-            addInstr(result, IRInstruction(ins, vmDt, reg1=cmpResultRegister, reg2 = resultRegister, reg3 = zeroRegister), null)
+            addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1=cmpResultRegister, reg2 = resultRegister, reg3 = zeroRegister), null)
             return ExpressionCodeResult(result, IRDataType.BYTE, cmpResultRegister, -1)
         } else {
             if(binExpr.left.type==DataType.STR || binExpr.right.type==DataType.STR) {
@@ -714,20 +714,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun operatorXor(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(binExpr.left)
+        addToResult(result, tr, tr.resultReg, -1)
         return if(binExpr.right is PtNumber) {
-            val tr = translateExpression(binExpr.left)
-            addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
             ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
         } else if(binExpr.right is PtBool) {
-            TODO("xor bool")
+            addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtBool).asInt()), null)
+            ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
         } else {
-            val leftTr = translateExpression(binExpr.left)
-            addToResult(result, leftTr, leftTr.resultReg, -1)
             val rightTr = translateExpression(binExpr.right)
             addToResult(result, rightTr, rightTr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.XORR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
-            ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.XORR, vmDt, reg1 = tr.resultReg, reg2 = rightTr.resultReg), null)
+            ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
         }
     }
 
@@ -744,20 +743,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             result += IRCodeChunk(shortcutLabel, null)
             return ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
         } else {
+            val tr = translateExpression(binExpr.left)
+            addToResult(result, tr, tr.resultReg, -1)
             return if(binExpr.right is PtNumber) {
-                val tr = translateExpression(binExpr.left)
-                addToResult(result, tr, tr.resultReg, -1)
                 addInstr(result, IRInstruction(Opcode.AND, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
                 ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             } else if(binExpr.right is PtBool) {
-                TODO("and bool")
+                addInstr(result, IRInstruction(Opcode.AND, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtBool).asInt()), null)
+                ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             } else {
-                val leftTr = translateExpression(binExpr.left)
-                addToResult(result, leftTr, leftTr.resultReg, -1)
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, rightTr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.ANDR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
-                ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.ANDR, vmDt, reg1 = tr.resultReg, reg2 = rightTr.resultReg), null)
+                ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             }
         }
     }
@@ -775,20 +773,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             result += IRCodeChunk(shortcutLabel, null)
             return ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
         } else {
+            val tr = translateExpression(binExpr.left)
+            addToResult(result, tr, tr.resultReg, -1)
             return if(binExpr.right is PtNumber) {
-                val tr = translateExpression(binExpr.left)
-                addToResult(result, tr, tr.resultReg, -1)
                 addInstr(result, IRInstruction(Opcode.OR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
                 ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             } else if(binExpr.right is PtBool) {
-                TODO("or bool")
+                addInstr(result, IRInstruction(Opcode.OR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtBool).asInt()), null)
+                ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             } else {
-                val leftTr = translateExpression(binExpr.left)
-                addToResult(result, leftTr, leftTr.resultReg, -1)
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, rightTr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.ORR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
-                ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.ORR, vmDt, reg1 = tr.resultReg, reg2 = rightTr.resultReg), null)
+                ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             }
         }
     }

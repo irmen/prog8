@@ -13,7 +13,7 @@ main {
 
         repeat {
             txt.print("\nenter bmx image filename: ")
-            if txt.input_chars(&filename) {
+            if txt.input_chars(&filename)!=0 {
 
                 if bmx.open(8, filename) {
                     txt.print("\nsize: ")
@@ -66,7 +66,7 @@ main {
 
                 cbm.CINT()  ; reset screen
 
-                if bmx.error_message {
+                if bmx.error_message!=0 {
                     txt.print("load error:\n")
                     txt.print(bmx.error_message)
                     txt.nl()

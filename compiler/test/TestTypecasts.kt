@@ -8,9 +8,9 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
+import prog8.ast.printProgram
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
-import prog8.ast.statements.VarDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -39,29 +39,28 @@ class TestTypecasts: FunSpec({
 
     test("not casting bool operands to logical operators") {
         val text="""
-            %import textio
-            %zeropage basicsafe
-            
             main {
                 sub start() {
                     bool @shared bb2=true
-                    bool @shared bb = bb2 and true
+                    bool @shared bb3=false
+                    bool @shared bb = bb2 and bb3
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 4
-        val expr = (stmts[3] as Assignment).value as BinaryExpression
+        stmts.size shouldBe 6
+        val expr = (stmts[5] as Assignment).value as BinaryExpression
         expr.operator shouldBe "and"
-        expr.right shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
         (expr.left as IdentifierReference).nameInSource shouldBe listOf("bb2")  // no cast
+        (expr.right as IdentifierReference).nameInSource shouldBe listOf("bb3")  // no cast
 
         val result2 = compileText(C64Target(), true, text, writeAssembly = true)!!
         val stmts2 = result2.compilerAst.entrypoint.statements
-        stmts2.size shouldBe 5
-        val expr2 = (stmts2[3] as Assignment).value as BinaryExpression
+        stmts2.size shouldBe 7
+        val expr2 = (stmts2[5] as Assignment).value as BinaryExpression
         expr2.operator shouldBe "and"
-        expr2.right shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
+        (expr2.left as IdentifierReference).nameInSource shouldBe listOf("bb2")  // no cast
+        (expr2.right as IdentifierReference).nameInSource shouldBe listOf("bb3")  // no cast
     }
 
     test("bool expressions with functioncalls") {
@@ -92,15 +91,16 @@ main {
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
+        printProgram(result.compilerAst)
         /*
-        ubyte @shared ub1
-        ub1 = 1
-        ubyte @shared ub2
-        ub2 = 1
-        ubyte @shared ub3
-        ub3 = 1
-        ubyte @shared bvalue
-        bvalue = (((ub1 xor ub2) xor ub3) xor 1)
+        bool @shared ub1
+        ub1 = true
+        bool @shared ub2
+        ub2 = true
+        bool @shared ub3
+        ub3 = true
+        bool @shared bvalue
+        bvalue =  not ((ub1 xor ub2) xor ub3)
         bvalue = (((ub1 xor ub2) xor ub3) xor (ftrue(99)!=0))
         bvalue = ((ub1 and ub2) and (ftrue(99)!=0))
         bvalue = (((ub1 xor ub2) xor ub3) xor btrue(99))
@@ -108,12 +108,12 @@ main {
         return
          */
         stmts.size shouldBe 13
-        val assignValue1 = (stmts[7] as Assignment).value as BinaryExpression
+        val assignValue1 = (stmts[7] as Assignment).value as PrefixExpression
         val assignValue2 = (stmts[8] as Assignment).value as BinaryExpression
         val assignValue3 = (stmts[9] as Assignment).value as BinaryExpression
         val assignValue4 = (stmts[10] as Assignment).value as BinaryExpression
         val assignValue5 = (stmts[11] as Assignment).value as BinaryExpression
-        assignValue1.operator shouldBe "xor"
+        assignValue1.operator shouldBe "not"
         assignValue2.operator shouldBe "xor"
         assignValue3.operator shouldBe "and"
         assignValue4.operator shouldBe "xor"
@@ -130,53 +130,6 @@ main {
         assignValue5.right shouldBe instanceOf<IFunctionCall>()
     }
 
-    test("simple logical with byte instead of bool ok with typecasting") {
-        val text="""
-main  {
-    ubyte ubb
-
-    sub start() {
-        ubb = (ubb as bool) and (123 as bool) as ubyte
-    }
-}"""
-        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 2
-        val assignValue = (stmts[0] as Assignment).value as TypecastExpression
-        assignValue.type shouldBe DataType.UBYTE
-        assignValue.expression.inferType(result.compilerAst).isBool shouldBe true
-        (assignValue.expression as BinaryExpression).operator shouldBe "and"
-        (assignValue.expression as BinaryExpression).right shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
-    }
-
-    test("bool arrays") {
-        val text="""
-            main {
-                sub start() {
-                    bool[] barray = [true, false, 1, 0, 222]
-                    bool bb
-                    ubyte xx
-            
-                    for bb in barray {
-                        if bb
-                            xx++
-                    }
-                 }
-             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 6
-        val arraydecl = stmts[0] as VarDecl
-        arraydecl.datatype shouldBe DataType.ARRAY_BOOL
-        val values = (arraydecl.value as ArrayLiteral).value
-        values.size shouldBe 5
-        values[0] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        values[1] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        values[2] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        values[3] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        values[4] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-    }
-
     test("correct handling of bool parameters") {
         val text="""
             main  {
@@ -188,10 +141,9 @@ main  {
                 sub start() {
                     bool boolvalue1 = true
                     bool boolvalue2 = false
-                    uword xx
             
                     boolvalue1 = thing(true, false)
-                    boolvalue2 = thing(xx, xx)
+                    boolvalue2 = thing(false, true)
             
                     if boolvalue1 and boolvalue2
                         boolvalue1=false
@@ -199,14 +151,14 @@ main  {
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 9
-        val fcall1 = ((stmts[6] as Assignment).value as IFunctionCall)
-        fcall1.args[0] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        fcall1.args[1] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        val fcall2 = ((stmts[7] as Assignment).value as IFunctionCall)
-        (fcall2.args[0] as TypecastExpression).type shouldBe DataType.BOOL
-        (fcall2.args[1] as TypecastExpression).type shouldBe DataType.BOOL
-        val ifCond = (stmts[8] as IfElse).condition as BinaryExpression
+        stmts.size shouldBe 7
+        val fcall1 = ((stmts[4] as Assignment).value as IFunctionCall)
+        fcall1.args[0] shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
+        fcall1.args[1] shouldBe NumericLiteral(DataType.BOOL, 0.0, Position.DUMMY)
+        val fcall2 = ((stmts[5] as Assignment).value as IFunctionCall)
+        fcall2.args[0] shouldBe NumericLiteral(DataType.BOOL, 0.0, Position.DUMMY)
+        fcall2.args[1] shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
+        val ifCond = (stmts[6] as IfElse).condition as BinaryExpression
         ifCond.operator shouldBe "and" // no asm writing so logical expressions haven't been replaced with bitwise equivalents yet
         (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("boolvalue1")
         (ifCond.right as IdentifierReference).nameInSource shouldBe listOf("boolvalue2")
@@ -737,5 +689,88 @@ main {
         errors.errors[1] shouldContain("argument 1 type mismatch")
         errors.errors[2] shouldContain("type of value BOOL doesn't match target")
         errors.errors[3] shouldContain("type of value BOOL doesn't match target")
+    }
+
+    test("bool function parameters correct typing") {
+        val src = """
+main {
+    sub start() {
+        bool bb = func(true)
+        void func(true)
+        ; all these should fail:
+        void func(0)
+        void func(1)
+        void func(42)
+        void func(65535)
+        void func(655.444)
+        cx16.r0L = func(true)
+    }
+
+    sub func(bool draw) -> bool {
+        cx16.r0++
+        return true
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 6
+        errors.errors[0] shouldContain("type mismatch")
+        errors.errors[1] shouldContain("type mismatch")
+        errors.errors[2] shouldContain("type mismatch")
+        errors.errors[3] shouldContain("type mismatch")
+        errors.errors[4] shouldContain("type mismatch")
+        errors.errors[5] shouldContain("type of value BOOL doesn't match target")
+    }
+
+    test("no implicit bool-to-int cast") {
+        val src="""
+main {
+    sub start() {
+        func(true)
+        func(true as ubyte)
+        cx16.r0L = true
+        cx16.r0L = true as ubyte
+    }
+
+    sub func(bool b) {
+        cx16.r0++
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain(":5:14: argument 1 type mismatch")
+        errors.errors[1] shouldContain(":6:20: type of value BOOL doesn't match target")
+    }
+
+    test("no implicit int-to-bool cast") {
+        val src="""
+main {
+    sub start() {
+        func1(true)
+        func2(true)
+        func1(true as ubyte)
+        func2(true as uword)
+        bool @shared bb1 = 1
+        bool @shared bb2 = 12345
+        bool @shared bb3 = 1 as bool
+        bool @shared bb4 = 12345 as bool
+    }
+
+    sub func1(ubyte ub) {
+        cx16.r0++
+    }
+
+    sub func2(uword uw) {
+        cx16.r0++
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain(":4:15: no implicit cast")
+        errors.errors[1] shouldContain(":5:15: no implicit cast")
+        errors.errors[2] shouldContain(":8:28: type of value UBYTE doesn't match target")
+        errors.errors[3] shouldContain(":9:28: type of value UWORD doesn't match target")
     }
 })

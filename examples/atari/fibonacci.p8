@@ -14,7 +14,7 @@ main {
             txt.nl()
         }
 
-        txt.waitkey()
+        void txt.waitkey()
     }
 
     uword fib_prev = 0

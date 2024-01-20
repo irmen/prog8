@@ -416,7 +416,7 @@ monogfx {
                 xx--
             }
             if x1!=xx
-                horizontal_line(xx as uword+1, yy as uword, x1-xx as uword, cx16.r10L)
+                horizontal_line(xx as uword+1, yy as uword, x1-xx as uword, cx16.r10L as bool)
             else
                 goto skip
 
@@ -433,7 +433,7 @@ monogfx {
                     xx++
                 }
                 if cx16.r9!=xx
-                    horizontal_line(cx16.r9, yy as uword, (xx as uword)-cx16.r9, cx16.r10L)
+                    horizontal_line(cx16.r9, yy as uword, (xx as uword)-cx16.r9, cx16.r10L as bool)
 
                 push_stack(left, xx - 1, yy, dy)
                 if xx > x2 + 1

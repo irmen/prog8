@@ -49,7 +49,7 @@ turtle {
     sub update_turtle_sprite() {
         uword xx = xpos as uword
         c64.SPXY[0] = lsb(xx) + 12
-        c64.MSIGX = msb(xx) > 0
+        c64.MSIGX = msb(xx)!=0 as ubyte
         c64.SPXY[1] = ypos as ubyte + 40
     }
 

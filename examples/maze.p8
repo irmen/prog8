@@ -87,7 +87,7 @@ carve_restart_after_repath:
                 if stackptr==255 {
                     ; stack empty.
                     ; repath if we are not done yet. (this is a workaround for the prog8 256 array lenght limit)
-                    if cells_to_carve {
+                    if cells_to_carve!=0 {
                         if repath()
                             goto carve_restart_after_repath
                     }
@@ -102,7 +102,7 @@ carve_restart_after_repath:
                 if stackptr==0 {
                     ; stack overflow, we can't track our path any longer.
                     ; repath if we are not done yet. (this is a workaround for the prog8 256 array lenght limit)
-                    if cells_to_carve {
+                    if cells_to_carve!=0 {
                         if repath()
                             goto carve_restart_after_repath
                     }
@@ -141,8 +141,8 @@ carve_restart_after_repath:
                 do {
                     cx = math.rnd() % numCellsHoriz
                     cy = math.rnd() % numCellsVert
-                } until not @(celladdr(cx, cy)) & STONE
-                if available_uncarved()
+                } until @(celladdr(cx, cy)) & STONE ==0
+                if available_uncarved()!=0
                     return true
             }
             return false
@@ -168,7 +168,7 @@ carve_restart_after_repath:
 
             repeat {
                 ubyte choice = candidates & directionflags[math.rnd() & 3]
-                if choice
+                if choice!=0
                     return choice
             }
         }
@@ -183,7 +183,7 @@ carve_restart_after_repath:
             do {
                 cx = math.rnd() % (numCellsHoriz-2) + 1
                 cy = math.rnd() % (numCellsVert-2) + 1
-            } until not @(celladdr(cx, cy)) & STONE
+            } until @(celladdr(cx, cy)) & STONE ==0
             ubyte direction = directionflags[math.rnd() & 3]
             if @(celladdr(cx, cy)) & direction == 0 {
                 when direction {
@@ -310,22 +310,22 @@ solve_loop:
         ubyte x = cx * 2 + 1
         ubyte y = cy * 2 + 1
         ubyte doors = @(celladdr(cx,cy))
-        if doors & UP
+        if doors & UP !=0
             txt.setcc(x, y-1, ' ', EMPTYCOLOR)
-        if doors & RIGHT
+        if doors & RIGHT !=0
             txt.setcc(x+1, y, ' ', EMPTYCOLOR)
-        if doors & DOWN
+        if doors & DOWN !=0
             txt.setcc(x, y+1, ' ', EMPTYCOLOR)
-        if doors & LEFT
+        if doors & LEFT !=0
             txt.setcc(x-1, y, ' ', EMPTYCOLOR)
-        if doors & STONE
+        if doors & STONE !=0
             txt.setcc(x, y, 160, WALLCOLOR)
         else
             txt.setcc(x, y, 32, EMPTYCOLOR)
 
-        if doors & WALKED
+        if doors & WALKED !=0
             txt.setcc(x, y, 81, 1)
-        if doors & BACKTRACKED
+        if doors & BACKTRACKED !=0
             txt.setcc(x, y, 81, 2)
     }
 
