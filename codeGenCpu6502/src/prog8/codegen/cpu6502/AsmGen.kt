@@ -7,6 +7,7 @@ import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.target.Cx16Target
 import prog8.codegen.cpu6502.assignment.*
 import java.util.*
 import kotlin.io.path.Path
@@ -223,7 +224,7 @@ class AsmGen6502Internal (
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.machine.zeropage
     private val allocator = VariableAllocator(symbolTable, options, errors)
-    private val assemblyLines = mutableListOf<String>()
+    private val assembly = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(this, zeropage)
     private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
@@ -235,7 +236,7 @@ class AsmGen6502Internal (
 
     fun compileToAssembly(): IAssemblyProgram? {
 
-        assemblyLines.clear()
+        assembly.clear()
         loopEndLabels.clear()
 
         println("Generating assembly code... ")
@@ -243,20 +244,43 @@ class AsmGen6502Internal (
 
         if(errors.noErrors()) {
             val output = options.outputDir.resolve("${program.name}.asm")
+            val asmLines = assembly.asSequence().flatMapTo(mutableListOf()) { it.split('\n') }
+            if(options.compTarget.name==Cx16Target.NAME) {
+                scanInvalid65816instructions(asmLines)
+                if(!errors.noErrors()) {
+                    errors.report()
+                    return null
+                }
+            }
             if(options.optimize) {
-                val separateLines = assemblyLines.flatMapTo(mutableListOf()) { it.split('\n') }
-                assemblyLines.clear()
-                while(optimizeAssembly(separateLines, options.compTarget.machine, symbolTable)>0) {
+                while(optimizeAssembly(asmLines, options.compTarget.machine, symbolTable)>0) {
                     // optimize the assembly source code
                 }
-                output.writeLines(separateLines)
+                output.writeLines(asmLines)
             } else {
-                output.writeLines(assemblyLines)
+                // write the unmodified code
+                output.writeLines(assembly)
             }
             return AssemblyProgram(program.name, options.outputDir, options.compTarget)
         } else {
             errors.report()
             return null
+        }
+    }
+
+    private fun scanInvalid65816instructions(asmLines: MutableList<String>) {
+        // The CommanderX16 ships with a WDC 65C02 CPU or a WDC 65816 CPU
+        // The latter is compatible with the 65C02 except for 4 instructions: RMB, SMB, BBS, BBR.
+        // We cannot set a different 6502 CPU target for the 64tass assembler, because we still need to support the STP and WAI instructions...
+        // so we have to scan for these instructions ourselves.
+        val invalid = Regex("""\s*((rmb\s|smb\s|bbs\s|bbr\s)|(rmb[0-7]|smb[0-7]|bbs[0-7]|bbr[0-7]))""", RegexOption.IGNORE_CASE)
+        for((index, line) in asmLines.withIndex()) {
+            if(line.length>=4 && invalid.matchesAt(line, 0)) {
+                errors.err(
+                    "invalid assembly instruction used (not compatible with the 65816 CPU): ${line.trim()}",
+                    Position("<output-assemblycode>", index, 1, 1)
+                )
+            }
         }
     }
 
@@ -283,9 +307,9 @@ class AsmGen6502Internal (
             for (line in fragment.splitToSequence('\n')) {
                 val trimmed = if (line.startsWith(' ')) "\t" + line.trim() else line
                 // trimmed = trimmed.replace(Regex("^\\+\\s+"), "+\t")  // sanitize local label indentation
-                assemblyLines.add(trimmed)
+                assembly.add(trimmed)
             }
-        } else assemblyLines.add(fragment)
+        } else assembly.add(fragment)
     }
 
     fun asmSymbolName(regs: RegisterOrPair): String =
@@ -1056,7 +1080,7 @@ $repeatLabel""")
         if(asm.isIR)
             throw AssemblyError("%asm containing IR code cannot be translated to 6502 assembly")
         else
-            assemblyLines.add(asm.assembly.trimEnd().trimStart('\r', '\n'))
+            assembly.add(asm.assembly.trimEnd().trimStart('\r', '\n'))
     }
 
     private fun translate(incbin: PtIncludeBinary) {

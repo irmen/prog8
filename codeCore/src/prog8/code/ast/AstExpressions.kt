@@ -250,7 +250,10 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is PtNumber)
             return false
-        return number==other.number
+        else if(type!=DataType.BOOL && other.type!=DataType.BOOL)
+            return number==other.number
+        else
+            return type==other.type && number==other.number
     }
 
     operator fun compareTo(other: PtNumber): Int = number.compareTo(other.number)

@@ -1538,6 +1538,25 @@ internal class AstChecker(private val program: Program,
 
         when (targetDt) {
             DataType.STR -> return err("string value expected")
+            DataType.ARRAY_BOOL -> {
+                // value may be either a single byte, or a byte arraysize (of all constant values)\
+                if(value.type istype targetDt) {
+                    if(!checkArrayValues(value, targetDt))
+                        return false
+                    val arraySpecSize = arrayspec.constIndex()
+                    val arraySize = value.value.size
+                    if(arraySpecSize!=null && arraySpecSize>0) {
+                        if(arraySpecSize>256)
+                            return err("boolean array length must be 1-256")
+                        val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
+                        if (arraySize != expectedSize)
+                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                        return true
+                    }
+                    return err("invalid boolean array size, must be 1-256")
+                }
+                return err("invalid boolean array initialization value ${value.type}, expected $targetDt")
+            }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
                 // value may be either a single byte, or a byte arraysize (of all constant values), or a range
                 if(value.type istype targetDt) {
@@ -1687,6 +1706,9 @@ internal class AstChecker(private val program: Program,
             DataType.ARRAY_W, DataType.ARRAY_W_SPLIT -> {
                 correct = array.all { it in -32768..32767 }
             }
+            DataType.ARRAY_BOOL -> {
+                correct = array.all { it==0 || it==1 }
+            }
             DataType.ARRAY_F -> correct = true
             else -> throw FatalAstException("invalid array type $type")
         }
@@ -1729,6 +1751,9 @@ internal class AstChecker(private val program: Program,
 
         if((sourceDatatype== DataType.UWORD || sourceDatatype== DataType.WORD) && (targetDatatype== DataType.UBYTE || targetDatatype== DataType.BYTE)) {
             errors.err("cannot assign word to byte, use msb() or lsb()?", position)
+        }
+        else if(sourceDatatype in IterableDatatypes && targetDatatype in ByteDatatypes) {
+            errors.err("cannot assign string or array to a byte", position)
         }
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
             errors.err("cannot assign float to ${targetDatatype.name.lowercase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)

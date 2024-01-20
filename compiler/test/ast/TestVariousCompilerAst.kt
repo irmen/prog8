@@ -58,6 +58,21 @@ main {
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
+    test("array init size mismatch error") {
+        val text="""
+main {
+    sub start() {
+        ubyte[10] uba = [1,2,3]
+        bool[10] bba = [true, false, true]
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "size mismatch"
+        errors.errors[1] shouldContain "size mismatch"
+    }
+
     test("invalid && operator") {
         val text="""
 main {
