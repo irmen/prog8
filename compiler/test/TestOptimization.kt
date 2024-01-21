@@ -817,4 +817,59 @@ main {
         if5.condition shouldBe instanceOf<BinaryExpression>()
         if6.condition shouldBe instanceOf<BinaryExpression>()
     }
+
+    test("funky bitshifts") {
+        val src="""
+main {   
+    sub start() {
+        const uword one = 1
+        const uword two = 2
+        uword @shared answer = one * two >> 8
+        funcw(one * two >> 8)
+
+        const uword uw1 = 99
+        const uword uw2 = 22
+        uword @shared answer2 = uw1 * uw2 >> 8      ; optimized into  msb(uw1*uw2) as uword
+        funcw(uw1 * uw2 >> 8)
+
+        uword @shared uw3 = 99
+        uword @shared uw4 = 22
+        uword @shared answer3 = uw3 * uw4 >> 8      ; optimized into  msb(uw1*uw2) as uword
+        funcw(uw3 * uw4 >> 8)
+    }
+
+    sub funcw(uword ww) {
+        cx16.r0++
+    }
+    
+}"""
+
+        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 17
+
+        val answerValue = (st[3] as Assignment).value
+        answerValue shouldBe NumericLiteral(DataType.UWORD, 0.0, Position.DUMMY)
+
+        val funcarg1 = (st[4] as FunctionCallStatement).args.single()
+        funcarg1 shouldBe NumericLiteral(DataType.UWORD, 0.0, Position.DUMMY)
+
+        val answer2Value = (st[8] as Assignment).value
+        answer2Value shouldBe NumericLiteral(DataType.UWORD, 8.0, Position.DUMMY)
+
+        val funcarg2 = (st[9] as FunctionCallStatement).args.single()
+        funcarg2 shouldBe NumericLiteral(DataType.UWORD, 8.0, Position.DUMMY)
+
+        val answer3ValueTc = (st[15] as Assignment).value as TypecastExpression
+        answer3ValueTc.type shouldBe DataType.UWORD
+        val answer3Value = answer3ValueTc.expression as FunctionCallExpression
+        answer3Value.target.nameInSource shouldBe listOf("msb")
+        answer3Value.args.single() shouldBe instanceOf<BinaryExpression>()
+
+        val funcarg3tc = (st[16] as FunctionCallStatement).args.single() as TypecastExpression
+        funcarg3tc.type shouldBe DataType.UWORD
+        val funcarg3 = funcarg3tc.expression as FunctionCallExpression
+        funcarg3.target.nameInSource shouldBe listOf("msb")
+        funcarg3.args.single() shouldBe instanceOf<BinaryExpression>()
+    }
 })

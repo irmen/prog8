@@ -251,48 +251,6 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             }
         }
 
-        if(rightconst!=null && (expr.operator=="<<" || expr.operator==">>")) {
-            val dt = expr.left.inferType(program)
-            if(dt.isBytes && rightconst.number>=8) {
-                if(dt.istype(DataType.UBYTE)) {
-                    val zeroUB = NumericLiteral(DataType.UBYTE, 0.0, expr.position)
-                    modifications.add(IAstModification.ReplaceNode(expr, zeroUB, parent))
-                } else {
-                    if(leftconst!=null) {
-                        val zeroB = NumericLiteral(DataType.BYTE, 0.0, expr.position)
-                        val minusoneB = NumericLiteral(DataType.BYTE, -1.0, expr.position)
-                        if(leftconst.number<0.0) {
-                            if(expr.operator=="<<")
-                                modifications.add(IAstModification.ReplaceNode(expr, zeroB, parent))
-                            else
-                                modifications.add(IAstModification.ReplaceNode(expr, minusoneB, parent))
-                        } else {
-                            modifications.add(IAstModification.ReplaceNode(expr, zeroB, parent))
-                        }
-                    }
-                }
-            }
-            else if(dt.isWords && rightconst.number>=16) {
-                if(dt.istype(DataType.UWORD)) {
-                    val zeroUW = NumericLiteral(DataType.UWORD, 0.0, expr.position)
-                    modifications.add(IAstModification.ReplaceNode(expr, zeroUW, parent))
-                } else {
-                    if(leftconst!=null) {
-                        val zeroW = NumericLiteral(DataType.WORD, 0.0, expr.position)
-                        val minusoneW = NumericLiteral(DataType.WORD, -1.0, expr.position)
-                        if(leftconst.number<0.0) {
-                            if(expr.operator=="<<")
-                                modifications.add(IAstModification.ReplaceNode(expr, zeroW, parent))
-                            else
-                                modifications.add(IAstModification.ReplaceNode(expr, minusoneW, parent))
-                        } else {
-                            modifications.add(IAstModification.ReplaceNode(expr, zeroW, parent))
-                        }
-                    }
-                }
-            }
-        }
-
         return modifications
     }
 
