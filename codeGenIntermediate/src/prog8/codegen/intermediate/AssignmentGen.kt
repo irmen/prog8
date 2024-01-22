@@ -110,7 +110,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             value.add(origAssign.value)
         } else {
             require(origAssign.operator.endsWith('='))
-            value = PtBinaryExpression(origAssign.operator.dropLast(1), origAssign.target.type, origAssign.value.position)
+            val operator = if(origAssign.operator=="==") "==" else origAssign.operator.dropLast(1)
+            value = PtBinaryExpression(operator, origAssign.target.type, origAssign.value.position)
             val left: PtExpression = origAssign.target.children.single() as PtExpression
             value.add(left)
             value.add(origAssign.value)
