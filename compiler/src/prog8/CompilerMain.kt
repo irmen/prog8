@@ -52,7 +52,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
     val printAst1 by cli.option(ArgType.Boolean, fullName = "printast1", description = "print out the compiler AST")
     val printAst2 by cli.option(ArgType.Boolean, fullName = "printast2", description = "print out the intermediate AST that is used for code generation")
-    val breakpointCpuInstruction by cli.option(ArgType.Boolean, fullName = "breakinstr", description = "also use a CPU instruction for %breakpoint")
+    val breakpointCpuInstruction by cli.option(ArgType.Choice(listOf("brk", "stp"), { it }), fullName = "breakinstr", description = "the CPU instruction to use as well for %breakpoint")
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${PETTarget.NAME}', '${VMTarget.NAME}') (required)")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
@@ -68,6 +68,8 @@ private fun compileMain(args: Array<String>): Boolean {
         System.err.println(e.message)
         return false
     }
+
+    println("BREAKPOINTINSTR=$breakpointCpuInstruction")
 
     val outputPath = pathFrom(outputDir)
     if(!outputPath.toFile().isDirectory) {
@@ -158,7 +160,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     slabsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
-                    breakpointCpuInstruction = false,
+                    breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
                     processedSymbols,
@@ -236,7 +238,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     slabsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
-                    breakpointCpuInstruction == true,
+                    breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
                     processedSymbols,

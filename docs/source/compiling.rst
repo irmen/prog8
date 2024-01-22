@@ -175,12 +175,13 @@ One or more .p8 module files
 ``-check``
     Quickly check the program for errors. No output will be produced.
 
-``-breakinstr``
-    Also output a CPU instruction for a ``%breakpoint``, as well as the entry in the vice monitor list file.
+``-breakinstr <instruction>``
+    Also output the specified CPU instruction for a ``%breakpoint``, as well as the entry in the vice monitor list file.
     This can be useful on emulators/systems that don't parse the breakpoint information in the list file,
-    such as the X16Emu emulator for the Commander X16. Prog8 then uses a STP instruction (65c02) to trigger a
-    breakpoint in the debugger (if enabled with -debug on the emulator). On a 6502 CPU, this option
-    will output a BRK instruction instead.
+    such as the X16Emu emulator for the Commander X16.
+    Useful instructions to consider are ``brk`` and ``stp``.
+    For example for the Commander X16 emulator, ``stp`` is useful because it can actually tyrigger
+    a breakpoint halt in the debugger when this is enabled by running the emulator with -debug.
 
 ``-expericodegen``
     Use experimental code generation backend (*incomplete*).

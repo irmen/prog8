@@ -42,7 +42,7 @@ class RequestParser : Take {
             asmListfile = false,
             experimentalCodegen = false,
             splitWordArrays = false,
-            breakpointCpuInstruction = false,
+            breakpointCpuInstruction = null,
             printAst1 = false,
             printAst2 = false,
             varsHighBank = null,
