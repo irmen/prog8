@@ -1,6 +1,10 @@
 TODO
 ====
 
+IR assignVarAugmented(): implement all operators.
+IR expressionGen.kt: optimize various stuff if the operand is const value 0
+
+
 maze:   if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0
               ^^ adding this !=0 caused a weird beq + / lda #1 / +  to appear in front of the shortcircuit beq...
 
@@ -64,6 +68,7 @@ Optimizations:
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
 - optimizeCommonSubExpressions: currently only looks in expressions on a single line, could search across multiple expressions
+
 
 STRUCTS again?
 --------------

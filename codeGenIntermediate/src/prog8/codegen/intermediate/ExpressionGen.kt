@@ -1,10 +1,14 @@
 package prog8.codegen.intermediate
 
+import com.github.michaelbull.result.Err
+import com.github.michaelbull.result.Ok
+import com.github.michaelbull.result.Result
 import prog8.code.StRomSub
 import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
+
 
 internal class ExpressionCodeResult(val chunks: IRCodeChunks, val dt: IRDataType, val resultReg: Int, val resultFpReg: Int) {
     constructor(chunks: IRCodeChunk, dt: IRDataType, resultReg: Int, resultFpReg: Int) : this(listOf(chunks), dt, resultReg, resultFpReg)
@@ -193,15 +197,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         if(arrayIx.splitWords) {
             require(vmDt==IRDataType.WORD)
-            val arrayLength = codeGen.symbolTable.getLength(arrayIx.variable.name)
             resultRegister = codeGen.registers.nextFree()
             val finalResultReg = codeGen.registers.nextFree()
             if(arrayIx.index is PtNumber) {
                 val memOffset = (arrayIx.index as PtNumber).number.toInt()
                 result += IRCodeChunk(null, null).also {
                     val tmpRegMsb = codeGen.registers.nextFree()
-                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=tmpRegMsb, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_msb", symbolOffset = memOffset)
-                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_lsb", symbolOffset = memOffset)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=tmpRegMsb, labelSymbol= "${arrayVarSymbol}_msb", symbolOffset = memOffset)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, labelSymbol= "${arrayVarSymbol}_lsb", symbolOffset = memOffset)
                     it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=tmpRegMsb, reg3=resultRegister)
                 }
             } else {
@@ -209,8 +212,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, tr, tr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
                     val tmpRegMsb = codeGen.registers.nextFree()
-                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2 = tr.resultReg, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_msb")
-                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=resultRegister, reg2 = tr.resultReg, immediate = arrayLength, labelSymbol= "${arrayVarSymbol}_lsb")
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2 = tr.resultReg, labelSymbol= "${arrayVarSymbol}_msb")
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=resultRegister, reg2 = tr.resultReg, labelSymbol= "${arrayVarSymbol}_lsb")
                     it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=tmpRegMsb, reg3=resultRegister)
                 }
             }
@@ -1338,7 +1341,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return result
     }
 
-    fun operatorEqualsInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    fun operatorEqualsNotEqualsInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         return if(vmDt==IRDataType.FLOAT) {
             createInplaceFloatComparison(knownAddress, symbol, operand, Opcode.SEQ)
         } else {
@@ -1391,7 +1394,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun createInplaceComparison(
+    private fun  createInplaceComparison(
         knownAddress: Int?,
         symbol: String?,
         vmDt: IRDataType,
@@ -1402,6 +1405,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val valueReg = codeGen.registers.nextFree()
         val cmpResultReg = codeGen.registers.nextFree()
         if(operand is PtNumber) {
+            // TODO optimize if operand is 0
             val numberReg = codeGen.registers.nextFree()
             if (knownAddress != null) {
                 // in-place modify a memory location
@@ -1453,6 +1457,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val cmpReg = codeGen.registers.nextFree()
         val zeroReg = codeGen.registers.nextFree()
         if(operand is PtNumber) {
+            // TODO optimize if operand is 0 ?
             val numberReg = codeGen.registers.nextFreeFloat()
             val cmpResultReg = codeGen.registers.nextFree()
             if (knownAddress != null) {
@@ -1505,6 +1510,38 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
         }
         return result
+    }
+
+    fun operatorEqualsNotEqualsInplace(array: PtArrayIndexer, eltSize: Int, value: PtExpression, equals: Boolean): Result<IRCodeChunks, NotImplementedError> {
+        val result = mutableListOf<IRCodeChunkBase>()
+        if(array.splitWords)
+            TODO("inplace == for split word array")
+        if(array.usesPointerVariable)
+            TODO("inplace == for pointer variable")
+        val vmDt = irType(array.type)
+        val constIndex = array.index.asConstInteger()
+        val constValue = value.asConstInteger()
+        val cmpResultReg = codeGen.registers.nextFree()
+        if(constIndex!=null) {
+            if(constValue!=null) {
+                val valueReg = codeGen.registers.nextFree()
+                if(constValue==0) {
+                    val compareAndSetOpcode = if(equals) Opcode.SZ else Opcode.SNZ
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                        it += IRInstruction(compareAndSetOpcode, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                } else {
+                    return Err(NotImplementedError("compare against non-zero value"))
+                }
+            } else {
+                TODO("non const value")
+            }
+        } else {
+            TODO("non const index")
+        }
+        return Ok(result)
     }
 
 }

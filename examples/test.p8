@@ -1,15 +1,32 @@
 %import textio
-%zeropage dontuse
+%zeropage basicsafe
+%option no_sysinit
 
 main {
     sub start() {
-        ubyte @shared ubb = 99
-        uword @shared uww = 12345
-        ubyte[200] @shared barr
-        uword @shared ptr = memory("data", $2000, 0)
+        uword[3] ubarr
+        bool[3] barr
+        bool @shared bb
 
-        %breakpoint
+;        ubarr[1] = ubarr[1] + 2
+;        ubarr[1] = ubarr[1] * 3
 
-        txt.print_uwhex(sys.progend(), true)
+;        barr[1] = barr[0] and barr[2]
+;        barr[1] = barr[0] or barr[2]
+;        barr[1] = barr[0] xor barr[2]
+;        barr[1] = not barr[0]
+
+        ubarr[1] = 999
+        ubarr[1] = ubarr[1]==999
+        txt.print_uw(ubarr[1])
+
+;        barr[1] = barr[1] and bb
+;        barr[1] = barr[1] or bb
+;        barr[1] = barr[1] xor bb
+
+;        bb = bb and barr[1]
+;        bb = bb or barr[1]
+;        bb = bb xor barr[1]
+;        bb = not bb
     }
 }

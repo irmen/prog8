@@ -475,8 +475,8 @@ class IRCodeGen(
                             val tmpRegLsb = registers.nextFree()
                             val tmpRegMsb = registers.nextFree()
                             val concatReg = registers.nextFree()
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, immediate = iterableLength, labelSymbol=iterable.name+"_msb")
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, immediate = iterableLength, labelSymbol=iterable.name+"_lsb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, labelSymbol=iterable.name+"_msb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, labelSymbol=iterable.name+"_lsb")
                             it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=concatReg, reg2=tmpRegMsb, reg3=tmpRegLsb)
                             it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=concatReg, labelSymbol = loopvarSymbol)
                         }
@@ -1462,7 +1462,6 @@ class IRCodeGen(
                     else -> throw AssemblyError("weird operator")
                 }
             } else {
-                val arrayLength = symbolTable.getLength(array.variable.name)
                 val indexTr = expressionEval.translateExpression(array.index)
                 addToResult(result, indexTr, indexTr.resultReg, -1)
                 val incReg = registers.nextFree()
@@ -1470,28 +1469,28 @@ class IRCodeGen(
                 when(postIncrDecr.operator) {
                     "++" -> {
                         result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_lsb")
                             it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=incReg)
-                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_lsb")
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel)
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_msb")
                             it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=incReg)
-                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_msb")
                         }
                         result += IRCodeChunk(skipLabel, null)
                     }
                     "--" -> {
                         result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_lsb")
                             it += IRInstruction(Opcode.BSTNE, labelSymbol = skipLabel)
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_msb")
                             it += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=incReg)
-                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_msb")
                         }
                         result += IRCodeChunk(skipLabel, null).also {
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_lsb")
                             it += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=incReg)
-                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=incReg, reg2=indexTr.resultReg, labelSymbol = "${variable}_lsb")
                         }
                     }
                     else -> throw AssemblyError("weird operator")
