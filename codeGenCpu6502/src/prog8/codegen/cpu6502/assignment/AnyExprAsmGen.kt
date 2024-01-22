@@ -18,7 +18,7 @@ internal class AnyExprAsmGen(
 ) {
     fun assignAnyExpressionUsingStack(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         when(expr.type) {
-            DataType.BOOL, in ByteDatatypes -> {
+            in ByteDatatypesWithBoolean -> {
                 if(expr.left.type in ByteDatatypesWithBoolean && expr.right.type in ByteDatatypesWithBoolean)
                     return assignByteBinExpr(expr, assign)
                 if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {

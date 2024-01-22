@@ -250,7 +250,7 @@ io_error:
             if not list_skip_disk_name {
                 if list_pattern==0
                     return true
-                if string.pattern_match(list_filename, list_pattern)!=0
+                if string.pattern_match(list_filename, list_pattern)
                     return true
             }
             list_skip_disk_name = false

@@ -747,7 +747,7 @@ internal class ProgramAndVarsGen(
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
                     if(it.boolean!=null)
-                        "${it.boolean}"
+                        if(it.boolean==true) "1" else "0"
                     else {
                         val number = it.number!!
                         if(number==0.0) "0" else "1"

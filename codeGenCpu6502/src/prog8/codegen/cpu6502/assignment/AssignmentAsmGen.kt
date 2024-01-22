@@ -281,7 +281,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(assign.target.register==null) {
                     // still need to assign the result to the target variable/etc.
                     when(returnDt) {
-                        in ByteDatatypes -> assignRegisterByte(assign.target, CpuRegister.A, returnDt in SignedDatatypes, false)            // function's byte result is in A
+                        in ByteDatatypesWithBoolean -> assignRegisterByte(assign.target, CpuRegister.A, returnDt in SignedDatatypes, false)            // function's byte result is in A
                         in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
                         DataType.STR -> {
                             when (assign.target.datatype) {
@@ -429,7 +429,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     variableAsmName=tempvar, origAstTarget = assign.target.origAstTarget), program.memsizer, assign.position)
             asmgen.translateNormalAssignment(assignToTempvar, scope)
             when(assign.target.datatype) {
-                in ByteDatatypes -> assignVariableByte(assign.target, tempvar)
+                in ByteDatatypesWithBoolean -> assignVariableByte(assign.target, tempvar)
                 in WordDatatypes -> assignVariableWord(assign.target, tempvar, assign.source.datatype)
                 DataType.FLOAT -> assignVariableFloat(assign.target, tempvar)
                 else -> throw AssemblyError("weird dt")
@@ -1900,6 +1900,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when (expr.operator) {
             "==" -> {
                 when(val dt = expr.left.type) {
+                    DataType.BOOL -> TODO("compare bool to 0")
                     in ByteDatatypes -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
                         asmgen.out("""
@@ -1933,6 +1934,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             "!=" -> {
                 when(val dt = expr.left.type) {
+                    DataType.BOOL -> TODO("compare bool to 0")
                     in ByteDatatypes -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
                         asmgen.out("  beq  + |  lda  #1")
@@ -2419,7 +2421,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         when(sourceDt) {
             DataType.BOOL -> {
                 when (targetDt) {
-                    in ByteDatatypes -> asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
+                    in ByteDatatypesWithBoolean -> asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     else -> throw AssemblyError("assign bool to non-byte variable")
                 }
             }

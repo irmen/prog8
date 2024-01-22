@@ -780,7 +780,7 @@ class AsmGen6502Internal (
     }
 
     private fun requireComparisonExpression(condition: PtExpression) {
-        if (!(condition is PtBinaryExpression && condition.operator in ComparisonOperators + LogicalOperators))
+        if (!(condition is PtBinaryExpression && condition.operator in ComparisonOperators))
             throw AssemblyError("expected boolean comparison expression")
     }
 
@@ -1282,12 +1282,12 @@ $repeatLabel""")
     }
 
     private fun translateCompareAndJumpIfTrue(expr: PtBinaryExpression, jump: PtJump) {
-        if(expr.operator !in ComparisonOperators + LogicalOperators)
+        if(expr.operator !in ComparisonOperators)
             throw AssemblyError("must be comparison expression")
 
         // invert the comparison, so we can reuse the JumpIfFalse code generation routines
         val invertedComparisonOperator = invertedComparisonOperator(expr.operator)
-            ?: throw AssemblyError("can't invert comparison $expr")
+            ?: throw AssemblyError("can't invert comparison ${expr.operator} $expr")
 
         val left = expr.left
         val right = expr.right

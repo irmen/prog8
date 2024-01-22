@@ -295,7 +295,7 @@ _done       rts
         return compare(st + str_len - suffix_len, suffix) == 0
     }
 
-    asmsub pattern_match(str string @AY, str pattern @R0) clobbers(Y) -> ubyte @A {
+    asmsub pattern_match(str string @AY, str pattern @R0) clobbers(Y) -> bool @A {
 		%asm {{
 ; pattern matching of a string.
 ; Input:  cx16.r0:  A NUL-terminated, <255-length pattern

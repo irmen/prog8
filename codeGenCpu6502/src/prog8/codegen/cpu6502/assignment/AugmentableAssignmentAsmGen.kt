@@ -63,10 +63,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         fun regName(v: AsmAssignSource) = "cx16.${v.register!!.name.lowercase()}"
 
+        if(value.kind==SourceStorageKind.LITERALBOOLEAN)
+            TODO("inplace modification literalboolean")
+
         when (target.kind) {
             TargetStorageKind.VARIABLE -> {
                 when (target.datatype) {
-                    in ByteDatatypes -> {
+                    in ByteDatatypesWithBoolean -> {
                         when(value.kind) {
                             SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(target.asmVarname, target.datatype, operator, value.boolean!!.asInt())
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt())

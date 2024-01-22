@@ -59,7 +59,7 @@ diskio {
             void cbm.CHRIN()     ; skip 2 bytes
             void cbm.CHRIN()
             status = cbm.READST()
-            if cbm.STOP2()
+            if cbm.STOP2()!=0
                 break
         }
         status = cbm.READST()
@@ -83,7 +83,7 @@ io_error:
 
         cbm.SETNAM(1, "$")
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
-        ubyte okay = false
+        bool okay = false
         void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
@@ -201,14 +201,14 @@ io_error:
             ubyte blocks_lsb = cbm.CHRIN()
             ubyte blocks_msb = cbm.CHRIN()
 
-            if cbm.READST()
+            if cbm.READST()!=0
                 goto close_end
 
             list_blocks = mkword(blocks_msb, blocks_lsb)
 
             ; read until the filename starts after the first "
             while cbm.CHRIN()!='\"'  {
-                if cbm.READST()
+                if cbm.READST()!=0
                     goto close_end
             }
 
@@ -310,9 +310,9 @@ close_end:
             sta  m_in_buffer+2
         }}
         while num_bytes!=0 {
-            if cbm.READST() {
+            if cbm.READST()!=0 {
                 f_close()
-                if cbm.READST() & $40    ; eof?
+                if cbm.READST() & $40 !=0    ; eof?
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
             }
@@ -337,7 +337,7 @@ m_in_buffer     sta  $ffff
 
         reset_read_channel()
         uword total_read = 0
-        while not cbm.READST() {
+        while cbm.READST()==0 {
             cx16.r0 = f_read(bufferpointer, 256)
             total_read += cx16.r0
             bufferpointer += cx16.r0
@@ -441,7 +441,7 @@ _end        rts
             goto io_error
         void cbm.CHKIN(15)        ; use #15 as input channel
 
-        while not cbm.READST() {
+        while cbm.READST()==0 {
             cx16.r5L = cbm.CHRIN()
             if cx16.r5L=='\r' or cx16.r5L=='\n'
                 break
@@ -481,9 +481,9 @@ io_error:
         }}
 
         if_cc
-            cx16.r0L = cbm.READST()==0
+            cx16.r0L = cbm.READST()==0 as ubyte
 
-        return cx16.r0L
+        return cx16.r0L as bool
     }
 
     ; Use kernal LOAD routine to load the given program file in memory.
@@ -496,7 +496,7 @@ io_error:
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
-        if address_override
+        if address_override!=0
             secondary = 0
         cbm.SETLFS(1, drivenumber, secondary)
         %asm {{
