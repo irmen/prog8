@@ -126,21 +126,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val code= IRCodeChunk(null, null)
         when(operator) {
             "+" -> { }
-            "-" -> {
-                code += if(address!=null)
-                    IRInstruction(Opcode.NEGM, vmDt, address = address)
-                else
-                    IRInstruction(Opcode.NEGM, vmDt, labelSymbol = symbol)
-            }
-            "~" -> {
-                val regMask = codeGen.registers.nextFree()
-                val mask = if(vmDt==IRDataType.BYTE) 0x00ff else 0xffff
-                code += IRInstruction(Opcode.LOAD, vmDt, reg1=regMask, immediate = mask)
-                code += if(address!=null)
-                    IRInstruction(Opcode.XORM, vmDt, reg1=regMask, address = address)
-                else
-                    IRInstruction(Opcode.XORM, vmDt, reg1=regMask, labelSymbol = symbol)
-            }
+            "-" -> code += IRInstruction(Opcode.NEGM, vmDt, address = address, labelSymbol = symbol)
+            "~" -> code += IRInstruction(Opcode.INVM, vmDt, address = address, labelSymbol = symbol)
             else -> throw AssemblyError("weird prefix operator")
         }
         return listOf(code)

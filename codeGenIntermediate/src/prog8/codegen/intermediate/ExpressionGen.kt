@@ -259,8 +259,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addInstr(result, IRInstruction(Opcode.NEG, vmDt, reg1 = tr.resultReg), null)
             }
             "~" -> {
-                val mask = if(vmDt==IRDataType.BYTE) 0x00ff else 0xffff
-                addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = mask), null)
+                addInstr(result, IRInstruction(Opcode.INV, vmDt, reg1 = tr.resultReg), null)
             }
             else -> throw AssemblyError("weird prefix operator")
         }
