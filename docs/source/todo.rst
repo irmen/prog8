@@ -1,8 +1,7 @@
 TODO
 ====
 
-IR assignVarAugmented(): implement all operators.
-IR expressionGen.kt: optimize various stuff if the operand is const value 0
+IR assignArrayAugmented(): implement all operators.  (BUT: actually, don't split this up anymore per assign target type ...)
 
 
 maze:   if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0

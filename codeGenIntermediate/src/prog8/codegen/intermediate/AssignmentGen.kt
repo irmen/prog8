@@ -4,10 +4,7 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.getOrElse
 import prog8.code.ast.*
-import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
-import prog8.code.core.PrefixOperators
-import prog8.code.core.SignedDatatypes
+import prog8.code.core.*
 import prog8.intermediate.*
 
 
@@ -30,6 +27,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val memory = augAssign.target.memory
         val array = augAssign.target.array
 
+        // TODO don't fragment the implementation over multiple subroutines
         val chunks = if(ident!=null) {
             assignVarAugmented(ident.name, augAssign)
         } else if(memory != null) {
@@ -38,7 +36,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             else
                 fallbackAssign(augAssign)
         } else if(array!=null) {
-            assignArrayAugmented(array, augAssign)
+            // TODO assignArrayAugmented(array, augAssign)
+            fallbackAssign(augAssign)
         } else {
             fallbackAssign(augAssign)
         }
@@ -118,12 +117,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 //            "<<=" -> expressionEval.operatorShiftLeftInplace(array, eltSize, value)
 //            ">>=" -> expressionEval.operatorShiftRightInplace(array, eltSize, signed, value)
 //            "%=" -> expressionEval.operatorModuloInplace(array, eltSize, value)
-            "==" -> expressionEval.operatorEqualsNotEqualsInplace(array, eltSize, value, true)
-            "!=" -> expressionEval.operatorEqualsNotEqualsInplace(array, eltSize, value, false)
-//            "<" -> expressionEval.operatorLessInplace(array, eltSize, signed, value)      // TODO reuse code from ==
-//            ">" -> expressionEval.operatorGreaterInplace(array, eltSize, signed, value)   // TODO reuse code from ==
-//            "<=" -> expressionEval.operatorLessEqualInplace(array, eltSize, signed, value)    // TODO reuse code from ==
-//            ">=" -> expressionEval.operatorGreaterEqualInplace(array, eltSize, signed, value) // TODO reuse code from ==
+            "==" -> expressionEval.operatorEqualsInplace(array, eltSize, value)
+            "!=" -> expressionEval.operatorNotEqualsInplace(array, eltSize, value)
+            "<" -> expressionEval.operatorLessInplace(array, eltSize, signed, value)
+            ">" -> expressionEval.operatorGreaterInplace(array, eltSize, signed, value)
+            "<=" -> expressionEval.operatorLessEqualInplace(array, eltSize, signed, value)
+            ">=" -> expressionEval.operatorGreaterEqualInplace(array, eltSize, signed, value)
             in PrefixOperators -> inplacePrefix(assignment.operator, array, eltSize)
 
             // else -> Err(NotImplementedError("invalid augmented assign operator ${assignment.operator}"))
@@ -136,12 +135,17 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     private fun fallbackAssign(origAssign: PtAugmentedAssign): IRCodeChunks {
         val value: PtExpression
         if(origAssign.operator in PrefixOperators) {
-            value = PtPrefix(origAssign.operator, origAssign.target.type, origAssign.value.position)
+            value = PtPrefix(origAssign.operator, origAssign.value.type, origAssign.value.position)
             value.add(origAssign.value)
         } else {
-            require(origAssign.operator.endsWith('='))
-            val operator = if(origAssign.operator=="==") "==" else origAssign.operator.dropLast(1)
-            value = PtBinaryExpression(operator, origAssign.target.type, origAssign.value.position)
+            val operator = when(origAssign.operator) {
+                in ComparisonOperators -> origAssign.operator
+                else -> {
+                    require(origAssign.operator.endsWith('='))
+                    origAssign.operator.dropLast(1)
+                }
+            }
+            value = PtBinaryExpression(operator, origAssign.value.type, origAssign.value.position)
             val left: PtExpression = origAssign.target.children.single() as PtExpression
             value.add(left)
             value.add(origAssign.value)

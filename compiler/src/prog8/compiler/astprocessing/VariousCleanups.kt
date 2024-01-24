@@ -66,9 +66,9 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         // if the expression is a comparison expression, or a logical expression, it produces the
-        // correct 'boolean' byte result so the cast can be removed.
+        // correct 'boolean' byte result so the cast can be removed. Only if target is Integer.
         val binExpr = typecast.expression as? BinaryExpression
-        if(binExpr!=null && binExpr.operator in ComparisonOperators + LogicalOperators) {
+        if(binExpr!=null && binExpr.operator in ComparisonOperators + LogicalOperators && typecast.type in IntegerDatatypesNoBool) {
             return listOf(IAstModification.ReplaceNode(typecast, binExpr, parent))
         }
 
