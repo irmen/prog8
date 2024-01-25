@@ -40,7 +40,7 @@ class VarConstantValueTypeAdjuster(
                     declConstValue.linkParents(decl)
                     val cast = declConstValue.cast(decl.datatype)
                     if (cast.isValid)
-                        return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
+                        return listOf(IAstModification.ReplaceNode(decl.value!!, cast.value!!, decl))
                 }
             }
         } catch (x: UndefinedSymbolError) {

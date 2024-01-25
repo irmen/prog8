@@ -50,7 +50,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         if(typecast.expression is NumericLiteral) {
             val value = (typecast.expression as NumericLiteral).cast(typecast.type)
             if(value.isValid)
-                return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
+                return listOf(IAstModification.ReplaceNode(typecast, value.value!!, parent))
         }
 
         val sourceDt = typecast.expression.inferType(program)

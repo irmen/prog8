@@ -366,7 +366,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         val cv = expression.constValue(program) ?: return null
         val cast = cv.cast(type)
         return if(cast.isValid) {
-            val newval = cast.valueOrZero()
+            val newval = cast.value!!
             newval.linkParents(parent)
             return newval
         }
@@ -566,16 +566,11 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     operator fun compareTo(other: NumericLiteral): Int = number.compareTo(other.number)
 
-    class ValueAfterCast(val isValid: Boolean, val whyFailed: String?, private val value: NumericLiteral?) {
-        fun valueOrZero() = if(isValid) value!! else NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        fun linkParent(parent: Node) {
-            value?.linkParents(parent)
-        }
-    }
+    data class ValueAfterCast(val isValid: Boolean, val whyFailed: String?, val value: NumericLiteral?)
 
     fun cast(targettype: DataType): ValueAfterCast {
         val result = internalCast(targettype)
-        result.linkParent(this.parent)
+        result.value?.linkParents(this.parent)
         return result
     }
 
@@ -870,7 +865,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 val castArray = value.map {
                     val cast = (it as NumericLiteral).cast(elementType)
                     if(cast.isValid)
-                        cast.valueOrZero() as Expression
+                        cast.value!! as Expression
                     else
                         return null // abort
                 }.toTypedArray()
@@ -879,12 +874,12 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             else if(elementType in WordDatatypes && value.all { it is NumericLiteral || it is AddressOf || it is IdentifierReference}) {
                 val castArray = value.map {
                     when(it) {
-                        is AddressOf -> it as Expression
-                        is IdentifierReference -> it as Expression
+                        is AddressOf -> it
+                        is IdentifierReference -> it
                         is NumericLiteral -> {
                             val numcast = it.cast(elementType)
                             if(numcast.isValid)
-                                numcast.valueOrZero() as Expression
+                                numcast.value!!
                             else
                                 return null     // abort
                         }

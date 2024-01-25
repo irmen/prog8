@@ -1088,4 +1088,16 @@ main {
         errors.errors[3] shouldContain "overflow"
     }
 
+    test("type fitting of const assignment values") {
+        val src="""
+main {
+    sub start() {
+        &ubyte mapped = 8000
+        mapped = 6144 >> 9
+        ubyte @shared ubb = 6144 >> 9
+        bool @shared bb = 6144
+    }
+}"""
+        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
 })

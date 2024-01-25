@@ -32,8 +32,8 @@ class ExpressionSimplifier(private val program: Program,
         val literal = typecast.expression as? NumericLiteral
         if (literal != null) {
             val newLiteral = literal.cast(typecast.type)
-            if (newLiteral.isValid && newLiteral.valueOrZero() !== literal) {
-                mods += IAstModification.ReplaceNode(typecast, newLiteral.valueOrZero(), parent)
+            if (newLiteral.isValid && newLiteral.value!! !== literal) {
+                mods += IAstModification.ReplaceNode(typecast, newLiteral.value!!, parent)
             }
         }
 

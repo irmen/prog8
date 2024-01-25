@@ -1687,7 +1687,7 @@ internal class AstChecker(private val program: Program,
                     if(cast==null || !cast.isValid)
                         -9999999
                     else
-                        cast.valueOrZero().number.toInt()
+                        cast.value!!.number.toInt()
                 }
                 else -> -9999999
             }
