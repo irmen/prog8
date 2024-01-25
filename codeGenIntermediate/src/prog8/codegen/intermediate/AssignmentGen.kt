@@ -36,8 +36,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             else
                 fallbackAssign(augAssign)
         } else if(array!=null) {
-            // TODO assignArrayAugmented(array, augAssign)
-            fallbackAssign(augAssign)
+            assignArrayAugmented(array, augAssign)
         } else {
             fallbackAssign(augAssign)
         }
@@ -157,27 +156,84 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun inplacePrefix(operator: String, array: PtArrayIndexer, eltSize: Int): Result<IRCodeChunks, NotImplementedError> {
-        if(array.splitWords)
-            TODO("inplace prefix for split word array")
-
         val result = mutableListOf<IRCodeChunkBase>()
         val vmDt = irType(array.type)
         val constIndex = array.index.asConstInteger()
+
+        fun loadIndex(): Int {
+            val tr = expressionEval.translateExpression(array.index)
+            addToResult(result, tr, tr.resultReg, -1)
+            if(!array.splitWords && eltSize>1)
+                result += codeGen.multiplyByConst(IRDataType.BYTE, tr.resultReg, eltSize)
+            return tr.resultReg
+        }
+
+        if(array.splitWords) {
+            // handle split LSB/MSB arrays
+            when(operator) {
+                "+" -> { }
+                "-" -> {
+                    val skipCarryLabel = codeGen.createLabelName()
+                    if(constIndex!=null) {
+                        addInstr(result, IRInstruction(Opcode.NEGM, IRDataType.BYTE, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex), null)
+                        addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = skipCarryLabel), null)
+                        addInstr(result, IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex), null)
+                        addInstr(result, IRInstruction(Opcode.NEGM, IRDataType.BYTE, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex), skipCarryLabel)
+                    } else {
+                        val indexReg = loadIndex()
+                        val registerLsb = codeGen.registers.nextFree()
+                        val registerMsb = codeGen.registers.nextFree()
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1 = registerLsb, reg2 = indexReg, labelSymbol = array.variable.name+"_lsb")
+                            it += IRInstruction(Opcode.NEG, IRDataType.BYTE, reg1 = registerLsb)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = registerLsb, reg2 = indexReg, labelSymbol = array.variable.name+"_lsb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1 = registerMsb, reg2 = indexReg, labelSymbol = array.variable.name+"_msb")
+                            it += IRInstruction(Opcode.NEG, IRDataType.BYTE, reg1 = registerMsb)
+                            it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = registerLsb, immediate = 0)
+                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = skipCarryLabel)
+                            it += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1 = registerMsb)
+                        }
+                        result += IRCodeChunk(skipCarryLabel, null).also {
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = registerMsb, reg2 = indexReg, labelSymbol = array.variable.name+"_msb")
+                        }
+                    }
+                }
+                "~" -> {
+                    if(constIndex!=null) {
+                        addInstr(result, IRInstruction(Opcode.INVM, IRDataType.BYTE, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex), null)
+                        addInstr(result, IRInstruction(Opcode.INVM, IRDataType.BYTE, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex), null)
+                    } else {
+                        val indexReg = loadIndex()
+                        val register = codeGen.registers.nextFree()
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name+"_lsb")
+                            it += IRInstruction(Opcode.INV, IRDataType.BYTE, reg1 = register)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name+"_lsb")
+                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name+"_msb")
+                            it += IRInstruction(Opcode.INV, IRDataType.BYTE, reg1 = register)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name+"_msb")
+                        }
+                    }
+                }
+                else -> throw AssemblyError("weird prefix operator")
+            }
+            return Ok(result)
+        }
+
+        // normal array.
+
         when(operator) {
             "+" -> { }
             "-" -> {
                 if(constIndex!=null) {
                     addInstr(result, IRInstruction(Opcode.NEGM, vmDt, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize), null)
                 } else {
+                    val indexReg = loadIndex()
                     val register = codeGen.registers.nextFree()
-                    val tr = expressionEval.translateExpression(array.index)
-                    addToResult(result, tr, tr.resultReg, -1)
-                    if(eltSize>1)
-                        result += codeGen.multiplyByConst(IRDataType.BYTE, tr.resultReg, eltSize)
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = tr.resultReg, labelSymbol = array.variable.name)
+                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name)
                         it += IRInstruction(Opcode.NEG, vmDt, reg1 = register)
-                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = tr.resultReg, labelSymbol = array.variable.name)
+                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name)
                     }
                 }
             }
@@ -185,35 +241,29 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 if(constIndex!=null) {
                     addInstr(result, IRInstruction(Opcode.INVM, vmDt, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize), null)
                 } else {
+                    val indexReg = loadIndex()
                     val register = codeGen.registers.nextFree()
-                    val tr = expressionEval.translateExpression(array.index)
-                    addToResult(result, tr, tr.resultReg, -1)
-                    if(eltSize>1)
-                        result += codeGen.multiplyByConst(IRDataType.BYTE, tr.resultReg, eltSize)
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = tr.resultReg, labelSymbol = array.variable.name)
+                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name)
                         it += IRInstruction(Opcode.INV, vmDt, reg1 = register)
-                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = tr.resultReg, labelSymbol = array.variable.name)
+                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name)
                     }
                 }
             }
             "not" -> {
+                // TODO: in boolean branch, is 'not' handled ok like this?
                 val register = codeGen.registers.nextFree()
                 if(constIndex!=null) {
-                    // TODO: in boolean branch, is 'not' handled ok like this?
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOAD, vmDt, reg1=register, immediate = 1)
                         it += IRInstruction(Opcode.XORM, vmDt, reg1=register, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
                     }
                 } else {
-                    val tr = expressionEval.translateExpression(array.index)
-                    addToResult(result, tr, tr.resultReg, -1)
-                    if(eltSize>1)
-                        result += codeGen.multiplyByConst(IRDataType.BYTE, tr.resultReg, eltSize)
+                    val indexReg = loadIndex()
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = tr.resultReg, labelSymbol = array.variable.name)
+                        it += IRInstruction(Opcode.LOADX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name)
                         it += IRInstruction(Opcode.XOR, vmDt, reg1 = register, immediate = 1)
-                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = tr.resultReg, labelSymbol = array.variable.name)
+                        it += IRInstruction(Opcode.STOREX, vmDt, reg1 = register, reg2 = indexReg, labelSymbol = array.variable.name)
                     }
                 }
             }

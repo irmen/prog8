@@ -16,7 +16,7 @@ Program to execute is not stored in the system memory, it's just a separate list
 Value stack, max 128 entries of 1 byte each.
 Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC,
                                              LOAD instructions DO affect the Z and N flags.
-                                             INC/DEC instructions DO affect the Z and N flags,
+                                             INC/DEC/NEG instructions DO affect the Z and N flags,
                                              other instructions only affect Z an N flags if the value in a result register is written.
                                              See OpcodesThatSetStatusbits
 
@@ -444,6 +444,8 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.LOADX,
     Opcode.LOADIX,
     Opcode.LOADR,
+    Opcode.NEG,
+    Opcode.NEGM,
     Opcode.INC,
     Opcode.INCM,
     Opcode.DEC,
@@ -456,7 +458,7 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.OR,
     Opcode.XORM,
     Opcode.XORR,
-    Opcode.XOR
+    Opcode.XOR,
 )
 
 val OpcodesThatDependOnCarry = arrayOf(

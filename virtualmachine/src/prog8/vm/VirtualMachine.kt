@@ -974,8 +974,16 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsNEG(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setUB(i.reg1!!, (-registers.getUB(i.reg1!!).toInt()).toUByte())
-            IRDataType.WORD -> registers.setUW(i.reg1!!, (-registers.getUW(i.reg1!!).toInt()).toUShort())
+            IRDataType.BYTE -> {
+                val value = -registers.getUB(i.reg1!!).toInt()
+                registers.setUB(i.reg1!!, value.toUByte())
+                statusbitsNZ(value, IRDataType.BYTE)
+            }
+            IRDataType.WORD -> {
+                val value = -registers.getUW(i.reg1!!).toInt()
+                registers.setUW(i.reg1!!, value.toUShort())
+                statusbitsNZ(value, IRDataType.WORD)
+            }
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, -registers.getFloat(i.fpReg1!!))
         }
         nextPc()
@@ -984,8 +992,16 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsNEGM(i: IRInstruction) {
         val address = i.address!!
         when(i.type!!) {
-            IRDataType.BYTE -> memory.setUB(address, (-memory.getUB(address).toInt()).toUByte())
-            IRDataType.WORD -> memory.setUW(address, (-memory.getUW(address).toInt()).toUShort())
+            IRDataType.BYTE -> {
+                val value = -memory.getUB(address).toInt()
+                memory.setUB(address, value.toUByte())
+                statusbitsNZ(value, IRDataType.BYTE)
+            }
+            IRDataType.WORD -> {
+                val value = -memory.getUW(address).toInt()
+                memory.setUW(address, value.toUShort())
+                statusbitsNZ(value, IRDataType.WORD)
+            }
             IRDataType.FLOAT -> memory.setFloat(address, -memory.getFloat(address))
         }
         nextPc()
