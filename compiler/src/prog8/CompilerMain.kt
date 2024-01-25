@@ -69,8 +69,6 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    println("BREAKPOINTINSTR=$breakpointCpuInstruction")
-
     val outputPath = pathFrom(outputDir)
     if(!outputPath.toFile().isDirectory) {
         System.err.println("Output path doesn't exist")

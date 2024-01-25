@@ -1098,6 +1098,14 @@ main {
         bool @shared bb = 6144
     }
 }"""
-        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, writeAssembly = false) shouldNotBe null
+
+        val src2="""
+main {
+    sub start() {
+        ubyte @shared ubb = 6144 >> 2       ; should still be type error
+    }
+}"""
+        compileText(C64Target(), true, src2, writeAssembly = false) shouldBe null
     }
 })
