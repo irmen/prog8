@@ -23,112 +23,41 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(augAssign.target.children.single() is PtMachineRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 
-        val ident = augAssign.target.identifier
-        val memory = augAssign.target.memory
-        val array = augAssign.target.array
+        val target = augAssign.target
+        val targetDt = irType(target.type)
+        val memTarget = target.memory
+        val constAddress = (memTarget?.address as? PtNumber)?.number?.toInt()
+        val symbol = target.identifier?.name
+        val array = target.array
+        val value = augAssign.value
+        val signed = target.type in SignedDatatypes
+        val result: Result<IRCodeChunks, NotImplementedError> = when(augAssign.operator) {
+            "+=" -> expressionEval.operatorPlusInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "-=" -> expressionEval.operatorMinusInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "*=" -> expressionEval.operatorMultiplyInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "/=" -> expressionEval.operatorDivideInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
+            "|=" -> expressionEval.operatorOrInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "or=" -> expressionEval.operatorLogicalOrInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "&=" -> expressionEval.operatorAndInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "and=" -> expressionEval.operatorLogicalAndInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "^=", "xor=" -> expressionEval.operatorXorInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "<<=" -> expressionEval.operatorShiftLeftInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            ">>=" -> expressionEval.operatorShiftRightInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
+            "%=" -> expressionEval.operatorModuloInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "==" -> expressionEval.operatorEqualsInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "!=" -> expressionEval.operatorNotEqualsInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "<" -> expressionEval.operatorLessInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
+            ">" -> expressionEval.operatorGreaterInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
+            "<=" -> expressionEval.operatorLessEqualInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
+            ">=" -> expressionEval.operatorGreaterEqualInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
+            in PrefixOperators -> inplacePrefix(augAssign.operator, symbol, array, constAddress, memTarget, targetDt)
 
-        // TODO don't fragment the implementation over multiple subroutines
-        val chunks = if(ident!=null) {
-            assignVarAugmented(ident.name, augAssign)
-        } else if(memory != null) {
-            if(memory.address is PtNumber)
-                assignMemoryAugmented((memory.address as PtNumber).number.toInt(), augAssign)
-            else
-                fallbackAssign(augAssign)
-        } else if(array!=null) {
-            assignArrayAugmented(array, augAssign)
-        } else {
-            fallbackAssign(augAssign)
+            else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
         }
+
+        val chunks = result.getOrElse { fallbackAssign(augAssign) }
         chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(augAssign.position)
         return chunks
-    }
-
-    private fun assignMemoryAugmented(address: Int, assignment: PtAugmentedAssign): IRCodeChunks {
-        val value = assignment.value
-        val targetDt = irType(assignment.target.type)
-        val signed = assignment.target.type in SignedDatatypes
-        return when(assignment.operator) {
-            "+=" -> expressionEval.operatorPlusInplace(address, null, targetDt, value)
-            "-=" -> expressionEval.operatorMinusInplace(address, null, targetDt, value)
-            "*=" -> expressionEval.operatorMultiplyInplace(address, null, targetDt, value)
-            "/=" -> expressionEval.operatorDivideInplace(address, null, targetDt, signed, value)
-            "|=" -> expressionEval.operatorOrInplace(address, null, targetDt, value)
-            "&=" -> expressionEval.operatorAndInplace(address, null, targetDt, value)
-            "^=" -> expressionEval.operatorXorInplace(address, null, targetDt, value)
-            "<<=" -> expressionEval.operatorShiftLeftInplace(address, null, targetDt, value)
-            ">>=" -> expressionEval.operatorShiftRightInplace(address, null, targetDt, signed, value)
-            "%=" -> expressionEval.operatorModuloInplace(address, null, targetDt, value)
-            "==" -> expressionEval.operatorEqualsNotEqualsInplace(address, null, targetDt, value)
-            "!=" -> expressionEval.operatorNotEqualsInplace(address, null, targetDt, value)
-            "<" -> expressionEval.operatorLessInplace(address, null, targetDt, signed, value)
-            ">" -> expressionEval.operatorGreaterInplace(address, null, targetDt, signed, value)
-            "<=" -> expressionEval.operatorLessEqualInplace(address, null, targetDt, signed, value)
-            ">=" -> expressionEval.operatorGreaterEqualInplace(address, null, targetDt, signed, value)
-            in PrefixOperators -> inplacePrefix(assignment.operator, targetDt, address, null)
-
-            else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
-        }
-    }
-
-    private fun assignVarAugmented(symbol: String, assignment: PtAugmentedAssign): IRCodeChunks {
-        val value = assignment.value
-        val signed = assignment.target.type in SignedDatatypes
-        val targetDt = irType(assignment.target.type)
-        return when(assignment.operator) {
-            "+=" -> expressionEval.operatorPlusInplace(null, symbol, targetDt, value)
-            "-=" -> expressionEval.operatorMinusInplace(null, symbol, targetDt, value)
-            "*=" -> expressionEval.operatorMultiplyInplace(null, symbol, targetDt, value)
-            "/=" -> expressionEval.operatorDivideInplace(null, symbol, targetDt, signed, value)
-            "|=" -> expressionEval.operatorOrInplace(null, symbol, targetDt, value)
-            "or=" -> expressionEval.operatorLogicalOrInplace(null, symbol, targetDt, value)
-            "&=" -> expressionEval.operatorAndInplace(null, symbol, targetDt, value)
-            "and=" -> expressionEval.operatorLogicalAndInplace(null, symbol, targetDt, value)
-            "^=", "xor=" -> expressionEval.operatorXorInplace(null, symbol, targetDt, value)
-            "<<=" -> expressionEval.operatorShiftLeftInplace(null, symbol, targetDt, value)
-            ">>=" -> expressionEval.operatorShiftRightInplace(null, symbol, targetDt, signed, value)
-            "%=" -> expressionEval.operatorModuloInplace(null, symbol, targetDt, value)
-            "==" -> expressionEval.operatorEqualsNotEqualsInplace(null, symbol, targetDt, value)
-            "!=" -> expressionEval.operatorNotEqualsInplace(null, symbol, targetDt, value)
-            "<" -> expressionEval.operatorLessInplace(null, symbol, targetDt, signed, value)
-            ">" -> expressionEval.operatorGreaterInplace(null, symbol, targetDt, signed, value)
-            "<=" -> expressionEval.operatorLessEqualInplace(null, symbol, targetDt, signed, value)
-            ">=" -> expressionEval.operatorGreaterEqualInplace(null, symbol, targetDt, signed, value)
-            in PrefixOperators -> inplacePrefix(assignment.operator, targetDt, null, symbol)
-
-            else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
-        }
-    }
-
-    private fun assignArrayAugmented(array: PtArrayIndexer, assignment: PtAugmentedAssign): IRCodeChunks {
-        val eltSize = codeGen.program.memsizer.memorySize(array.type)
-        val value = assignment.value
-        val signed = assignment.target.type in SignedDatatypes
-        val result = when(assignment.operator) {
-            // TODO implement all of these:
-//            "+=" -> expressionEval.operatorPlusInplace(array, eltSize, value)
-//            "-=" -> expressionEval.operatorMinusInplace(array, eltSize, value)
-//            "*=" -> expressionEval.operatorMultiplyInplace(array, eltSize, value)
-//            "/=" -> expressionEval.operatorDivideInplace(array, eltSize, signed, value)
-//            "|=" -> expressionEval.operatorOrInplace(array, eltSize, value)
-//            "&=" -> expressionEval.operatorAndInplace(array, eltSize, value)
-//            "^=" -> expressionEval.operatorXorInplace(array, eltSize, value)
-//            "<<=" -> expressionEval.operatorShiftLeftInplace(array, eltSize, value)
-//            ">>=" -> expressionEval.operatorShiftRightInplace(array, eltSize, signed, value)
-//            "%=" -> expressionEval.operatorModuloInplace(array, eltSize, value)
-            "==" -> expressionEval.operatorEqualsInplace(array, eltSize, value)
-            "!=" -> expressionEval.operatorNotEqualsInplace(array, eltSize, value)
-            "<" -> expressionEval.operatorLessInplace(array, eltSize, signed, value)
-            ">" -> expressionEval.operatorGreaterInplace(array, eltSize, signed, value)
-            "<=" -> expressionEval.operatorLessEqualInplace(array, eltSize, signed, value)
-            ">=" -> expressionEval.operatorGreaterEqualInplace(array, eltSize, signed, value)
-            in PrefixOperators -> inplacePrefix(assignment.operator, array, eltSize)
-
-            // else -> Err(NotImplementedError("invalid augmented assign operator ${assignment.operator}"))
-            else -> throw AssemblyError("invalid augmented assign operator ${assignment.operator}")
-        }
-
-        return result.getOrElse { fallbackAssign(assignment) }
     }
 
     private fun fallbackAssign(origAssign: PtAugmentedAssign): IRCodeChunks {
@@ -155,7 +84,47 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         return translateRegularAssign(normalAssign)
     }
 
-    private fun inplacePrefix(operator: String, array: PtArrayIndexer, eltSize: Int): Result<IRCodeChunks, NotImplementedError> {
+    private fun inplacePrefix(operator: String, symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType): Result<IRCodeChunks, NotImplementedError> {
+        if(operator=="+")
+            return Ok(emptyList())
+
+        if(array!=null)
+            return Ok(inplacePrefixArray(operator, array))
+
+        val result = mutableListOf<IRCodeChunkBase>()
+        if(constAddress==null && memory!=null) {
+            val register = codeGen.registers.nextFree()
+            val tr = expressionEval.translateExpression(memory.address)
+            addToResult(result, tr, tr.resultReg, -1)
+            when(operator) {
+                "-" -> {
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADI, vmDt, reg1=register, reg2=tr.resultReg)
+                        it += IRInstruction(Opcode.NEG, vmDt, reg1=register)
+                        it += IRInstruction(Opcode.STOREI, vmDt, reg1=register, reg2=tr.resultReg)
+                    }
+                }
+                "~" -> {
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADI, vmDt, reg1=register, reg2=tr.resultReg)
+                        it += IRInstruction(Opcode.INV, vmDt, reg1=register)
+                        it += IRInstruction(Opcode.STOREI, vmDt, reg1=register, reg2=tr.resultReg)
+                    }
+                }
+            }
+        } else {
+            when (operator) {
+                "-" -> addInstr(result, IRInstruction(Opcode.NEGM, vmDt, address = constAddress, labelSymbol = symbol), null)
+                "~" -> addInstr(result, IRInstruction(Opcode.INVM, vmDt, address = constAddress, labelSymbol = symbol), null)
+                // TODO: in boolean branch, how is 'not' handled here?
+                else -> throw AssemblyError("weird prefix operator")
+            }
+        }
+        return Ok(result)
+    }
+
+    private fun inplacePrefixArray(operator: String, array: PtArrayIndexer): IRCodeChunks {
+        val eltSize = codeGen.program.memsizer.memorySize(array.type)
         val result = mutableListOf<IRCodeChunkBase>()
         val vmDt = irType(array.type)
         val constIndex = array.index.asConstInteger()
@@ -217,7 +186,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
                 else -> throw AssemblyError("weird prefix operator")
             }
-            return Ok(result)
+            return result
         }
 
         // normal array.
@@ -269,19 +238,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             }
             else -> throw AssemblyError("weird prefix operator")
         }
-        return Ok(result)
-    }
-
-    private fun inplacePrefix(operator: String, vmDt: IRDataType, address: Int?, symbol: String?): IRCodeChunks {
-        val code= IRCodeChunk(null, null)
-        when(operator) {
-            "+" -> { }
-            "-" -> code += IRInstruction(Opcode.NEGM, vmDt, address = address, labelSymbol = symbol)
-            "~" -> code += IRInstruction(Opcode.INVM, vmDt, address = address, labelSymbol = symbol)
-            // TODO: in boolean branch, how is 'not' handled here?
-            else -> throw AssemblyError("weird prefix operator")
-        }
-        return listOf(code)
+        return result
     }
 
     private fun translateRegularAssign(assignment: PtAssignment): IRCodeChunks {

@@ -999,18 +999,30 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
 
-    internal fun operatorAndInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("&")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place &"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, if(knownAddress!=null)
-            IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = knownAddress)
+        addInstr(result, if(constAddress!=null)
+            IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = constAddress)
         else
             IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol),null)
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorLogicalAndInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorLogicalAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("and")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place and"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
         if(!operand.isSimple()) {
@@ -1018,41 +1030,53 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val inplaceReg = codeGen.registers.nextFree()
             val shortcutLabel = codeGen.createLabelName()
             result += IRCodeChunk(null, null).also {
-                it += if(knownAddress!=null)
-                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = knownAddress)
+                it += if(constAddress!=null)
+                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = constAddress)
                 else
                     IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, labelSymbol = symbol)
                 it += IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel)
             }
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            addInstr(result, if(constAddress!=null)
+                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = constAddress)
             else
                 IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
             result += IRCodeChunk(shortcutLabel, null)
         } else {
             // normal evaluation, it is *likely* shorter and faster because of the simple operands.
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            addInstr(result, if(constAddress!=null)
+                IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = constAddress)
             else
                 IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol),null)
         }
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorOrInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorOrInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("|")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place |"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, if(knownAddress!=null)
-            IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = knownAddress)
+        addInstr(result, if(constAddress!=null)
+            IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = constAddress)
         else
             IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorLogicalOrInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorLogicalOrInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("or")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place or"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
         if(!operand.isSimple()) {
@@ -1060,48 +1084,54 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val inplaceReg = codeGen.registers.nextFree()
             val shortcutLabel = codeGen.createLabelName()
             result += IRCodeChunk(null, null).also {
-                it += if(knownAddress!=null)
-                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = knownAddress)
+                it += if(constAddress!=null)
+                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = constAddress)
                 else
                     IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, labelSymbol = symbol)
                 it += IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel)
             }
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            addInstr(result, if(constAddress!=null)
+                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = constAddress)
             else
                 IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
             result += IRCodeChunk(shortcutLabel, null)
         } else {
             // normal evaluation, it is *likely* shorter and faster because of the simple operands.
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            addInstr(result, if(constAddress!=null)
+                IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = constAddress)
             else
                 IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
         }
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorDivideInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+    internal fun operatorDivideInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("/")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place /"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorRight = operand as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number
-                result += codeGen.divideByConstFloatInplace(knownAddress, symbol, factor)
+                result += codeGen.divideByConstFloatInplace(constAddress, symbol, factor)
             } else {
                 val tr = translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 val ins = if(signed) {
-                    if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = tr.resultFpReg, address = knownAddress)
+                    if(constAddress!=null)
+                        IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = tr.resultFpReg, address = constAddress)
                     else
                         IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
                 }
                 else {
-                    if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVM, vmDt, fpReg1 = tr.resultFpReg, address = knownAddress)
+                    if(constAddress!=null)
+                        IRInstruction(Opcode.DIVM, vmDt, fpReg1 = tr.resultFpReg, address = constAddress)
                     else
                         IRInstruction(Opcode.DIVM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
                 }
@@ -1110,40 +1140,46 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         } else {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number.toInt()
-                result += codeGen.divideByConstInplace(vmDt, knownAddress, symbol, factor, signed)
+                result += codeGen.divideByConstInplace(vmDt, constAddress, symbol, factor, signed)
             } else {
                 val tr = translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 val ins = if(signed) {
-                    if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, address = knownAddress)
+                    if(constAddress!=null)
+                        IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, address = constAddress)
                     else
                         IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
                 }
                 else {
-                    if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, address = knownAddress)
+                    if(constAddress!=null)
+                        IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, address = constAddress)
                     else
                         IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
                 }
                 addInstr(result, ins, null)
             }
         }
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorMultiplyInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorMultiplyInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("*")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place *"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorRight = operand as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
             if(constFactorRight!=null) {
                 val factor = constFactorRight.number
-                result += codeGen.multiplyByConstFloatInplace(knownAddress, symbol, factor)
+                result += codeGen.multiplyByConstFloatInplace(constAddress, symbol, factor)
             } else {
                 val tr = translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, address = constAddress)
                 else
                     IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
                     , null)
@@ -1151,26 +1187,32 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         } else {
             if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
                 val factor = constFactorRight.number.toInt()
-                result += codeGen.multiplyByConstInplace(vmDt, knownAddress, symbol, factor)
+                result += codeGen.multiplyByConstInplace(vmDt, constAddress, symbol, factor)
             } else {
                 val tr = translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, address = constAddress)
                 else
                     IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
                     , null)
             }
         }
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorMinusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorMinusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("-")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place -"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.DECM, vmDt, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.DECM, vmDt, address = constAddress)
                 else
                     IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol)
                     , null)
@@ -1178,16 +1220,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             else {
                 val tr = translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, address = constAddress)
                 else
                     IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, labelSymbol = symbol)
                     , null)
             }
         } else {
             if((operand as? PtNumber)?.number==1.0) {
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.DECM, vmDt, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.DECM, vmDt, address = constAddress)
                 else
                     IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol)
                     , null)
@@ -1195,22 +1237,28 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             else {
                 val tr = translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, address = constAddress)
                 else
                     IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
                     , null)
             }
         }
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorPlusInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("+")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place +"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.INCM, vmDt, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.INCM, vmDt, address = constAddress)
                 else
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol)
                     , null)
@@ -1218,16 +1266,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             else {
                 val tr = translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
-                addInstr(result, if(knownAddress!=null)
-                        IRInstruction(Opcode.ADDM, vmDt, fpReg1=tr.resultFpReg, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                        IRInstruction(Opcode.ADDM, vmDt, fpReg1=tr.resultFpReg, address = constAddress)
                     else
                         IRInstruction(Opcode.ADDM, vmDt, fpReg1=tr.resultFpReg, labelSymbol = symbol)
                         , null)
             }
         } else {
             if((operand as? PtNumber)?.number==1.0) {
-                addInstr(result, if(knownAddress!=null)
-                    IRInstruction(Opcode.INCM, vmDt, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                    IRInstruction(Opcode.INCM, vmDt, address = constAddress)
                 else
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol)
                     , null)
@@ -1235,22 +1283,28 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             else {
                 val tr = translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, if(knownAddress!=null)
-                        IRInstruction(Opcode.ADDM, vmDt, reg1=tr.resultReg, address = knownAddress)
+                addInstr(result, if(constAddress!=null)
+                        IRInstruction(Opcode.ADDM, vmDt, reg1=tr.resultReg, address = constAddress)
                     else
                         IRInstruction(Opcode.ADDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
                     , null)
             }
         }
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorShiftRightInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+    internal fun operatorShiftRightInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO(">>")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place >>"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         if(codeGen.isOne(operand)) {
             val opc = if (signed) Opcode.ASRM else Opcode.LSRM
-            val ins = if(knownAddress!=null)
-                IRInstruction(opc, vmDt, address = knownAddress)
+            val ins = if(constAddress!=null)
+                IRInstruction(opc, vmDt, address = constAddress)
             else
                 IRInstruction(opc, vmDt, labelSymbol = symbol)
             addInstr(result, ins, null)
@@ -1258,58 +1312,76 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val tr = translateExpression(operand)
             addToResult(result, tr, tr.resultReg, -1)
             val opc = if (signed) Opcode.ASRNM else Opcode.LSRNM
-            val ins = if(knownAddress!=null)
-                IRInstruction(opc, vmDt, reg1 = tr.resultReg, address = knownAddress)
+            val ins = if(constAddress!=null)
+                IRInstruction(opc, vmDt, reg1 = tr.resultReg, address = constAddress)
             else
                 IRInstruction(opc, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
             addInstr(result, ins, null)
         }
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorShiftLeftInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorShiftLeftInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("<<")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place <<"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         if(codeGen.isOne(operand)){
-            addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.LSLM, vmDt, address = knownAddress)
+            addInstr(result, if(constAddress!=null)
+                IRInstruction(Opcode.LSLM, vmDt, address = constAddress)
             else
                 IRInstruction(Opcode.LSLM, vmDt, labelSymbol = symbol)
                 , null)
         } else {
             val tr = translateExpression(operand)
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, if(knownAddress!=null)
-                IRInstruction(Opcode.LSLNM, vmDt, reg1=tr.resultReg, address = knownAddress)
+            addInstr(result, if(constAddress!=null)
+                IRInstruction(Opcode.LSLNM, vmDt, reg1=tr.resultReg, address = constAddress)
             else
                 IRInstruction(Opcode.LSLNM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
                 ,null)
         }
-        return result
+        return Ok(result)
     }
 
-    internal fun operatorXorInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorXorInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("xor")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place xor"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, if(knownAddress!=null)
-            IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, address = knownAddress)
+        addInstr(result, if(constAddress!=null)
+            IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, address = constAddress)
         else
             IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
             ,null)
-        return result
+        return Ok(result)
     }
 
-    fun operatorModuloInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    internal fun operatorModuloInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null) {
+            TODO("%")
+        }
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place %"))  // TODO
+
         val result = mutableListOf<IRCodeChunkBase>()
         val resultReg = codeGen.registers.nextFree()
         if(operand is PtNumber) {
             val number = operand.number.toInt()
-            if (knownAddress != null) {
+            if (constAddress != null) {
                 // @(address) = @(address) %= operand
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = knownAddress)
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = constAddress)
                     it += IRInstruction(Opcode.MOD, vmDt, reg1 = resultReg, immediate = number)
-                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = knownAddress)
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = constAddress)
                 }
             } else {
                 // symbol = symbol %= operand
@@ -1322,12 +1394,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         } else {
             val tr = translateExpression(operand)
             result += tr.chunks
-            if (knownAddress != null) {
+            if (constAddress != null) {
                 // @(address) = @(address) %= operand
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = knownAddress)
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = constAddress)
                     it += IRInstruction(Opcode.MODR, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
-                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = knownAddress)
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = constAddress)
                 }
             } else {
                 // symbol = symbol %= operand
@@ -1338,64 +1410,99 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
         }
-        return result
+        return Ok(result)
     }
 
-    fun operatorEqualsNotEqualsInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
-        return if(vmDt==IRDataType.FLOAT) {
-            createInplaceFloatComparison(knownAddress, symbol, operand, Opcode.SEQ)
+    internal fun operatorEqualsInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null)
+            return createInplaceArrayComparison(array, operand, "==")
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place compare"))  // TODO
+
+        val chunks = if(vmDt==IRDataType.FLOAT) {
+            createInplaceFloatComparison(constAddress, symbol, operand, Opcode.SEQ)
         } else {
-            createInplaceComparison(knownAddress, symbol, vmDt, operand, Opcode.SEQ)
+            createInplaceComparison(constAddress, symbol, vmDt, operand, Opcode.SEQ)
         }
+        return Ok(chunks)
     }
 
-    fun operatorNotEqualsInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
-        return if(vmDt==IRDataType.FLOAT) {
-            createInplaceFloatComparison(knownAddress, symbol, operand, Opcode.SNE)
+    internal fun operatorNotEqualsInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null)
+            return createInplaceArrayComparison(array, operand, "!=")
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place compare"))  // TODO
+
+        val chunks = if(vmDt==IRDataType.FLOAT) {
+            createInplaceFloatComparison(constAddress, symbol, operand, Opcode.SNE)
         } else {
-            createInplaceComparison(knownAddress, symbol, vmDt, operand, Opcode.SNE)
+            createInplaceComparison(constAddress, symbol, vmDt, operand, Opcode.SNE)
         }
-
+        return Ok(chunks)
     }
 
-    fun operatorGreaterInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+    internal fun operatorGreaterInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null)
+            return createInplaceArrayComparison(array, operand, ">")
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place compare"))  // TODO
+
         val opcode = if(signed) Opcode.SGTS else Opcode.SGT
-        return if(vmDt==IRDataType.FLOAT) {
-            createInplaceFloatComparison(knownAddress, symbol, operand, opcode)
+        val chunks = if(vmDt==IRDataType.FLOAT) {
+            createInplaceFloatComparison(constAddress, symbol, operand, opcode)
         } else {
-            createInplaceComparison(knownAddress, symbol, vmDt, operand, opcode)
+            createInplaceComparison(constAddress, symbol, vmDt, operand, opcode)
         }
+        return Ok(chunks)
     }
 
-    fun operatorLessInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+    internal fun operatorLessInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null)
+            return createInplaceArrayComparison(array, operand, "<")
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place compare"))  // TODO
+
         val opcode = if(signed) Opcode.SLTS else Opcode.SLT
-        return if(vmDt==IRDataType.FLOAT) {
-            createInplaceFloatComparison(knownAddress, symbol, operand, opcode)
+        val chunks = if(vmDt==IRDataType.FLOAT) {
+            createInplaceFloatComparison(constAddress, symbol, operand, opcode)
         } else {
-            createInplaceComparison(knownAddress, symbol, vmDt, operand, opcode)
+            createInplaceComparison(constAddress, symbol, vmDt, operand, opcode)
         }
+        return Ok(chunks)
     }
 
-    fun operatorGreaterEqualInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+    internal fun operatorGreaterEqualInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null)
+            return createInplaceArrayComparison(array, operand, ">=")
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place compare"))  // TODO
+
         val opcode = if(signed) Opcode.SGES else Opcode.SGE
-        return if(vmDt==IRDataType.FLOAT) {
-            createInplaceFloatComparison(knownAddress, symbol, operand, opcode)
+        val chunks = if(vmDt==IRDataType.FLOAT) {
+            createInplaceFloatComparison(constAddress, symbol, operand, opcode)
         } else {
-            createInplaceComparison(knownAddress, symbol, vmDt, operand, opcode)
+            createInplaceComparison(constAddress, symbol, vmDt, operand, opcode)
         }
+        return Ok(chunks)
     }
 
-    fun operatorLessEqualInplace(knownAddress: Int?, symbol: String?, vmDt: IRDataType, signed: Boolean, operand: PtExpression): IRCodeChunks {
+    internal fun operatorLessEqualInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
+        if(array!=null)
+            return createInplaceArrayComparison(array, operand, "<=")
+        if(constAddress==null && memory!=null)
+            return Err(NotImplementedError("optimized memory in-place compare"))  // TODO
+
         val opcode = if(signed) Opcode.SLES else Opcode.SLE
-        return if(vmDt==IRDataType.FLOAT) {
-            createInplaceFloatComparison(knownAddress, symbol, operand, opcode)
+        val chunks = if(vmDt==IRDataType.FLOAT) {
+            createInplaceFloatComparison(constAddress, symbol, operand, opcode)
         } else {
-            createInplaceComparison(knownAddress, symbol, vmDt, operand, opcode)
+            createInplaceComparison(constAddress, symbol, vmDt, operand, opcode)
         }
+        return Ok(chunks)
     }
 
     private fun createInplaceComparison(
-        knownAddress: Int?,
+        constAddress: Int?,
         symbol: String?,
         vmDt: IRDataType,
         operand: PtExpression,
@@ -1409,12 +1516,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(operand.number==0.0 && compareAndSetOpcode in arrayOf(Opcode.SEQ, Opcode.SNE)) {
                 // ==0 or !=0 optimized case
                 val compareAndSetOpcodeZero = if(compareAndSetOpcode==Opcode.SEQ) Opcode.SZ else Opcode.SNZ
-                if (knownAddress != null) {
+                if (constAddress != null) {
                     // in-place modify a memory location
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, address = knownAddress)
+                        it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, address = constAddress)
                         it += IRInstruction(compareAndSetOpcodeZero, vmDt, reg1 = cmpResultReg, reg2 = valueReg)
-                        it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, address = knownAddress)
+                        it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, address = constAddress)
                     }
                 } else {
                     // in-place modify a symbol (variable)
@@ -1429,13 +1536,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
             // compare against number that is not 0
             val numberReg = codeGen.registers.nextFree()
-            if (knownAddress != null) {
+            if (constAddress != null) {
                 // in-place modify a memory location
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, address = knownAddress)
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, address = constAddress)
                     it += IRInstruction(Opcode.LOAD, vmDt, reg1=numberReg, immediate = operand.number.toInt())
                     it += IRInstruction(compareAndSetOpcode, vmDt, reg1 = cmpResultReg, reg2 = valueReg, reg3 = numberReg)
-                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, address = knownAddress)
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, address = constAddress)
                 }
             } else {
                 // in-place modify a symbol (variable)
@@ -1449,12 +1556,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         } else {
             val tr = translateExpression(operand)
             addToResult(result, tr, tr.resultReg, -1)
-            if (knownAddress != null) {
+            if (constAddress != null) {
                 // in-place modify a memory location
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, address = knownAddress)
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = valueReg, address = constAddress)
                     it += IRInstruction(compareAndSetOpcode, vmDt, reg1=cmpResultReg, reg2 = valueReg, reg3 = tr.resultReg)
-                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, address = knownAddress)
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, address = constAddress)
                 }
             } else {
                 // in-place modify a symbol (variable)
@@ -1469,7 +1576,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun createInplaceFloatComparison(
-        knownAddress: Int?,
+        constAddress: Int?,
         symbol: String?,
         operand: PtExpression,
         compareAndSetOpcode: Opcode
@@ -1481,16 +1588,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(operand is PtNumber) {
             val numberReg = codeGen.registers.nextFreeFloat()
             val cmpResultReg = codeGen.registers.nextFree()
-            if (knownAddress != null) {
+            if (constAddress != null) {
                 // in-place modify a memory location
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1 = valueReg, address = knownAddress)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1 = valueReg, address = constAddress)
                     it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = numberReg, immediateFp = operand.number)
                     it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=cmpReg, fpReg1 = valueReg, fpReg2 = numberReg)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=zeroReg, immediate = 0)
                     it += IRInstruction(compareAndSetOpcode, IRDataType.BYTE, reg1=cmpResultReg, reg2=cmpReg, reg3=zeroReg)
                     it += IRInstruction(Opcode.FFROMUB, IRDataType.FLOAT, reg1=cmpResultReg, fpReg1 = valueReg)
-                    it += IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = valueReg, address = knownAddress)
+                    it += IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = valueReg, address = constAddress)
                 }
             } else {
                 // in-place modify a symbol (variable)
@@ -1508,15 +1615,15 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val tr = translateExpression(operand)
             val cmpResultReg = codeGen.registers.nextFree()
             addToResult(result, tr, -1, tr.resultFpReg)
-            if (knownAddress != null) {
+            if (constAddress != null) {
                 // in-place modify a memory location
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1 = valueReg, address = knownAddress)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1 = valueReg, address = constAddress)
                     it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=cmpReg, fpReg1 = valueReg, fpReg2 = tr.resultFpReg)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=zeroReg, immediate = 0)
                     it += IRInstruction(compareAndSetOpcode, IRDataType.BYTE, reg1=cmpResultReg, reg2=cmpReg, reg3=zeroReg)
                     it += IRInstruction(Opcode.FFROMUB, IRDataType.FLOAT, reg1=cmpResultReg, fpReg1 = valueReg)
-                    it += IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = valueReg, address = knownAddress)
+                    it += IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = valueReg, address = constAddress)
                 }
             } else {
                 // in-place modify a symbol (variable)
@@ -1533,82 +1640,65 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return result
     }
 
-    fun operatorEqualsInplace(array: PtArrayIndexer, eltSize: Int, value: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+    private fun createInplaceArrayComparison(array: PtArrayIndexer, value: PtExpression, comparisonOperator: String): Result<IRCodeChunks, NotImplementedError> {
         if(array.type==DataType.FLOAT)
-            return Err(NotImplementedError("optimized in-place compare on float arrays"))   // TODO
-        else
-            return createCompareArrayInplace(array, eltSize, value, Opcode.SZ)
-    }
+            return Err(NotImplementedError("optimized in-place compare on float arrays"))   // TODO?
 
-    fun operatorNotEqualsInplace(array: PtArrayIndexer, eltSize: Int, value: PtExpression): Result<IRCodeChunks, NotImplementedError> {
-        if(array.type==DataType.FLOAT)
-            return Err(NotImplementedError("optimized in-place compare on float arrays"))   // TODO
-        else
-            return createCompareArrayInplace(array, eltSize, value, Opcode.SNZ)
-    }
-
-    fun operatorLessInplace(array: PtArrayIndexer, eltSize: Int, signed: Boolean, value: PtExpression): Result<IRCodeChunks, NotImplementedError> {
-        if(array.type==DataType.FLOAT)
-            return Err(NotImplementedError("optimized in-place compare on float arrays"))   // TODO
-        else
-            TODO("<")
-        //return createOperatorEqualsNotEqualsInplaceComparison(array, eltSize, value, Opcode.SZ)
-    }
-
-    fun operatorLessEqualInplace(array: PtArrayIndexer, eltSize: Int, signed: Boolean, value: PtExpression): Result<IRCodeChunks, NotImplementedError> {
-        if(array.type==DataType.FLOAT)
-            return Err(NotImplementedError("optimized in-place compare on float arrays"))   // TODO
-        else
-            TODO("<=")
-        //return createOperatorEqualsNotEqualsInplaceComparison(array, eltSize, value, Opcode.SZ)
-    }
-
-    fun operatorGreaterInplace(array: PtArrayIndexer, eltSize: Int, signed: Boolean, value: PtExpression): Result<IRCodeChunks, NotImplementedError> {
-        if(array.type==DataType.FLOAT)
-            return Err(NotImplementedError("optimized in-place compare on float arrays"))   // TODO
-        else
-            TODO(">")
-        //return createOperatorEqualsNotEqualsInplaceComparison(array, eltSize, value, Opcode.SZ)
-    }
-
-    fun operatorGreaterEqualInplace(array: PtArrayIndexer, eltSize: Int, signed: Boolean, value: PtExpression): Result<IRCodeChunks, NotImplementedError> {
-        if(array.type==DataType.FLOAT)
-            return Err(NotImplementedError("optimized in-place compare on float arrays"))   // TODO
-        else
-            TODO(">=")
-        //return createOperatorEqualsNotEqualsInplaceComparison(array, eltSize, value, Opcode.SZ)
-    }
-
-    private fun createCompareArrayInplace(array: PtArrayIndexer, eltSize: Int, value: PtExpression, compareAndSetOpcode: Opcode): Result<IRCodeChunks, NotImplementedError> {
-        require(array.type!=DataType.FLOAT)
+        val eltSize = codeGen.program.memsizer.memorySize(array.type)
         val result = mutableListOf<IRCodeChunkBase>()
         if(array.splitWords)
-            TODO("inplace == for split word array")
+            TODO("inplace compare for split word array")
         if(array.usesPointerVariable)
-            TODO("inplace == for pointer variable")
+            TODO("inplace compare for pointer variable")
         val vmDt = irType(array.type)
         val constIndex = array.index.asConstInteger()
         val constValue = value.asConstInteger()
         val cmpResultReg = codeGen.registers.nextFree()
         if(constIndex!=null) {
-            if(constValue!=null) {
+            if(constValue==0) {
+                // comparison against zero.
                 val valueReg = codeGen.registers.nextFree()
-                if(constValue==0) {
-                    result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
-                        it += IRInstruction(compareAndSetOpcode, vmDt, reg1=cmpResultReg, reg2=valueReg)
-                        it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    when(comparisonOperator) {
+                        "==" -> it += IRInstruction(Opcode.SZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                        "!=" -> it += IRInstruction(Opcode.SNZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                        "<" -> return Err(NotImplementedError("array <0 inplace")) // TODO?
+                        "<=" -> return Err(NotImplementedError("array <=0 inplace")) // TODO?
+                        ">" -> return Err(NotImplementedError("array >0 inplace")) // TODO?
+                        ">=" -> return Err(NotImplementedError("array >=0 inplace")) // TODO?
+                        else -> throw AssemblyError("invalid operator")
                     }
-                } else {
-                    return Err(NotImplementedError("compare against non-zero value"))
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
                 }
+                return Ok(result)
             } else {
-                TODO("non const value")
+                return Err(NotImplementedError("compare against non-zero value"))
             }
         } else {
-            TODO("non const index")
+            if(constValue==0) {
+                // comparison against zero.
+                val valueReg = codeGen.registers.nextFree()
+                val indexTr = translateExpression(array.index)
+                addToResult(result, indexTr, indexTr.resultReg, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=valueReg, reg2=indexTr.resultReg, labelSymbol = array.variable.name)
+                    when(comparisonOperator) {
+                        "==" -> it += IRInstruction(Opcode.SZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                        "!=" -> it += IRInstruction(Opcode.SNZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                        "<" -> return Err(NotImplementedError("array <0 inplace")) // TODO?
+                        "<=" -> return Err(NotImplementedError("array <=0 inplace")) // TODO?
+                        ">" -> return Err(NotImplementedError("array >0 inplace")) // TODO?
+                        ">=" -> return Err(NotImplementedError("array >=0 inplace")) // TODO?
+                        else -> throw AssemblyError("invalid operator")
+                    }
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=valueReg, reg2=indexTr.resultReg, labelSymbol = array.variable.name)
+                }
+                return Ok(result)
+            }
+            else
+                return Err(NotImplementedError("compare against non-zero value"))
         }
-        return Ok(result)
     }
 
 }

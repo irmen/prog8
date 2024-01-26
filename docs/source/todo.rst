@@ -1,8 +1,14 @@
 TODO
 ====
 
+IR ExpressionGen: implement all in-place operators TODOs.  Starting with operatorPlusInplace
+
+
 maze:   if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0
               ^^ adding this !=0 caused a weird beq + / lda #1 / +  to appear in front of the shortcircuit beq...
+
+
+(after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 
 ...
 
@@ -83,7 +89,6 @@ Other language/syntax features to think about
 ---------------------------------------------
 
 - support for assigning multiple return values from romsub/asmsub to multiple variables.
-- remove ++/-- (just use Pythonesque x+=1)  OR  make ++/-- into a postfix expression (but then we need a prefix variant of them too?) maybe via a new builtin function like postincr__w() etc?
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
   How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
