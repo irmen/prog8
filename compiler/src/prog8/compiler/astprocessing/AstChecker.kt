@@ -1328,7 +1328,7 @@ internal class AstChecker(private val program: Program,
                 if(target !is VarDecl || target.type== VarDeclType.CONST) {
                     errors.err("can only increment or decrement a variable", postIncrDecr.position)
                 } else if(target.datatype !in NumericDatatypes) {
-                    errors.err("can only increment or decrement a byte/float/word variable", postIncrDecr.position)
+                    errors.err("cannot increment/decrement this", postIncrDecr.position)
                 }
             }
         } else if(postIncrDecr.target.arrayindexed != null) {
@@ -1339,8 +1339,8 @@ internal class AstChecker(private val program: Program,
             }
             else {
                 val dt = (target as VarDecl).datatype
-                if(dt !in NumericDatatypes && dt !in ArrayDatatypes)
-                    errors.err("can only increment or decrement a byte/float/word", postIncrDecr.position)
+                if(dt !in NumericDatatypes && dt !in ArrayDatatypes && dt!=DataType.STR)
+                    errors.err("cannot increment/decrement this", postIncrDecr.position)
             }
         }
         // else if(postIncrDecr.target.memoryAddress != null) { } // a memory location can always be ++/--
