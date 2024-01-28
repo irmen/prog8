@@ -208,10 +208,23 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             TargetStorageKind.ARRAY -> {
                 val indexNum = target.array!!.index as? PtNumber
                 if (indexNum!=null) {
-                    val targetVarName = if(target.array.splitWords)
-                        "${target.asmVarname} + ${indexNum.number.toInt()}"
-                    else
-                        "${target.asmVarname} + ${indexNum.number.toInt()*program.memsizer.memorySize(target.datatype)}"
+                    val index = indexNum.number.toInt()
+                    if(target.array.splitWords) {
+                        when(value.kind) {
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationSplitWordWithLiteralval(target.asmVarname, index, operator, value.number!!.number.toInt())
+                            else -> {
+                                // TODO: more optimized code for VARIABLE, REGISTER, MEMORY, ARRAY, EXPRESSION in the case of split-word arrays
+                                val scope = target.origAstTarget?.definingSub()
+                                val regTarget = AsmAssignTarget.fromRegisters(RegisterOrPair.R0, false, target.position, scope, asmgen)
+                                val assignToReg = AsmAssignment(value, regTarget, program.memsizer, target.position)
+                                assignmentAsmGen.translateNormalAssignment(assignToReg, scope)
+                                inplacemodificationSplitWordWithR0(target.asmVarname, index, operator)
+                            }
+                        }
+                        return
+                    }
+                    // normal array
+                    val targetVarName = "${target.asmVarname} + ${index*program.memsizer.memorySize(target.datatype)}"
                     when (target.datatype) {
                         in ByteDatatypes -> {
                             when(value.kind) {
@@ -455,6 +468,91 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
+        }
+    }
+
+    private fun inplacemodificationSplitWordWithR0(arrayVar: String, index: Int, operator: String) {
+        when (operator) {
+            "+" -> {
+                asmgen.out("""
+                    lda  ${arrayVar}_lsb+$index
+                    clc
+                    adc  cx16.r0L
+                    sta  ${arrayVar}_lsb+$index
+                    lda  ${arrayVar}_msb+$index
+                    adc  cx16.r0H
+                    sta  ${arrayVar}_msb+$index""")
+            }
+            "-" -> {
+                asmgen.out("""
+                    lda  ${arrayVar}_lsb+$index
+                    sec
+                    sbc  cx16.r0L
+                    sta  ${arrayVar}_lsb+$index
+                    lda  ${arrayVar}_msb+$index
+                    sbc  cx16.r0H
+                    sta  ${arrayVar}_msb+$index""")
+            }
+            else -> TODO("in-place modify split-words array value for operator $operator")
+        }
+    }
+
+    private fun inplacemodificationSplitWordWithLiteralval(arrayVar: String, index: Int, operator: String, value: Int) {
+        // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
+        when (operator) {
+            "+" -> {
+                when {
+                    value==0 -> {}
+                    value in 1..0xff -> asmgen.out("""
+                        lda  ${arrayVar}_lsb+$index
+                        clc
+                        adc  #$value
+                        sta  ${arrayVar}_lsb+$index
+                        bcc  +
+                        inc  ${arrayVar}_msb+$index
++""")
+                    value==0x0100 -> asmgen.out(" inc  ${arrayVar}_msb+$index")
+                    value==0x0200 -> asmgen.out(" inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index")
+                    value==0x0300 -> asmgen.out(" inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index")
+                    value==0x0400 -> asmgen.out(" inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index")
+                    value and 255==0 -> asmgen.out(" lda  ${arrayVar}_msb+$index |  clc |  adc  #>$value |  sta  ${arrayVar}_msb+$index")
+                    else -> asmgen.out("""
+                        lda  ${arrayVar}_lsb+$index
+                        clc
+                        adc  #<$value
+                        sta  ${arrayVar}_lsb+$index
+                        lda  ${arrayVar}_msb+$index
+                        adc  #>$value
+                        sta  ${arrayVar}_msb+$index""")
+                }
+            }
+            "-" -> {
+                when {
+                    value==0 -> {}
+                    value in 1..0xff -> asmgen.out("""
+                        lda  ${arrayVar}_lsb+$index
+                        sec
+                        sbc  #$value
+                        sta  ${arrayVar}_lsb+$index
+                        bcs  +
+                        dec  ${arrayVar}_msb+$index
++""")
+                    value==0x0100 -> asmgen.out(" dec  ${arrayVar}_msb+$index")
+                    value==0x0200 -> asmgen.out(" dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index")
+                    value==0x0300 -> asmgen.out(" dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index")
+                    value==0x0400 -> asmgen.out(" dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index")
+                    value and 255==0 -> asmgen.out(" lda  ${arrayVar}_msb+$index |  sec |  sbc  #>$value |  sta  ${arrayVar}_msb+$index")
+                    else -> asmgen.out("""
+                        lda  ${arrayVar}_lsb+$index
+                        sec
+                        sbc  #<$value
+                        sta  ${arrayVar}_lsb+$index
+                        lda  ${arrayVar}_msb+$index
+                        sbc  #>$value
+                        sta  ${arrayVar}_msb+$index""")
+                }
+            }
+            else -> TODO("in-place modify split-words array value for operator $operator") 
         }
     }
 
