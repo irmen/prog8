@@ -1001,7 +1001,30 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("&")
+            val result = mutableListOf<IRCodeChunkBase>()
+            val constIndex = array.index.asConstInteger()
+            val constValue = operand.asConstInteger()
+            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            if(constIndex!=null && constValue!=null) {
+                if(array.splitWords) {
+                    val valueRegLsb = codeGen.registers.nextFree()
+                    val valueRegMsb = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegLsb, immediate=constValue and 255)
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegMsb, immediate=constValue shr 8)
+                        it += IRInstruction(Opcode.ANDM, vmDt, reg1=valueRegLsb, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex)
+                        it += IRInstruction(Opcode.ANDM, vmDt, reg1=valueRegMsb, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex)
+                    }
+                } else {
+                    val valueReg = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate=constValue)
+                        it += IRInstruction(Opcode.ANDM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                }
+                return Ok(result)
+            }
+            return Err(NotImplementedError("inplace word array &"))  // TODO?
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place &"))  // TODO
@@ -1055,7 +1078,30 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorOrInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("|")
+            val result = mutableListOf<IRCodeChunkBase>()
+            val constIndex = array.index.asConstInteger()
+            val constValue = operand.asConstInteger()
+            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            if(constIndex!=null && constValue!=null) {
+                if(array.splitWords) {
+                    val valueRegLsb = codeGen.registers.nextFree()
+                    val valueRegMsb = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegLsb, immediate=constValue and 255)
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegMsb, immediate=constValue shr 8)
+                        it += IRInstruction(Opcode.ORM, vmDt, reg1=valueRegLsb, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex)
+                        it += IRInstruction(Opcode.ORM, vmDt, reg1=valueRegMsb, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex)
+                    }
+                } else {
+                    val valueReg = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate=constValue)
+                        it += IRInstruction(Opcode.ORM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                }
+                return Ok(result)
+            }
+            return Err(NotImplementedError("inplace word array |"))  // TODO?
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place |"))  // TODO
@@ -1203,7 +1249,29 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorMinusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("-")
+            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val result = mutableListOf<IRCodeChunkBase>()
+            if(array.splitWords)
+                return operatorMinusInplaceSplitArray(array, operand)
+            if(array.usesPointerVariable) {
+                TODO("inplace - for pointer variable")
+            }
+            val vmDt = irType(array.type)
+            val constIndex = array.index.asConstInteger()
+            val constValue = operand.asConstInteger()
+            if(constIndex!=null && constValue!=null) {
+                if(constValue==1) {
+                    addInstr(result, IRInstruction(Opcode.DECM, vmDt, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize), null)
+                } else {
+                    val valueReg=codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate = constValue)
+                        it += IRInstruction(Opcode.SUBM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                }
+                return Ok(result)
+            }
+            return Err(NotImplementedError("inplace array -"))  // TODO?
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place -"))  // TODO
@@ -1247,9 +1315,55 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return Ok(result)
     }
 
+    private fun operatorMinusInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val constIndex = array.index.asConstInteger()
+        val constValue = operand.asConstInteger()
+        if(constIndex!=null) {
+            val skip = codeGen.createLabelName()
+            if(constValue==1) {
+                val lsbReg = codeGen.registers.nextFree()
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.BSTNE, labelSymbol = skip)
+                    it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex)
+                }
+                result += IRCodeChunk(skip, null).also {
+                    it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex)
+                }
+                return Ok(result)
+            } else {
+                return Err(NotImplementedError("inplace split word array +"))  // TODO?
+            }
+        }
+        return Err(NotImplementedError("inplace split word array +"))  // TODO?
+    }
+
     internal fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("+")
+            val result = mutableListOf<IRCodeChunkBase>()
+            if(array.splitWords)
+                return operatorPlusInplaceSplitArray(array, operand)
+            if(array.usesPointerVariable) {
+                TODO("inplace + for pointer variable")
+            }
+            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val elementDt = irType(array.type)
+            val constIndex = array.index.asConstInteger()
+            val constValue = operand.asConstInteger()
+            if(constIndex!=null && constValue!=null) {
+                if(constValue==1) {
+                    addInstr(result, IRInstruction(Opcode.INCM, elementDt, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize), null)
+                } else {
+                    val valueReg=codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, elementDt, reg1=valueReg, immediate = constValue)
+                        it += IRInstruction(Opcode.ADDM, elementDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                }
+                return Ok(result)
+            }
+            return Err(NotImplementedError("inplace array +"))  // TODO?
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place +"))  // TODO
@@ -1291,6 +1405,27 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
         }
         return Ok(result)
+    }
+
+    private fun operatorPlusInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val constIndex = array.index.asConstInteger()
+        val constValue = operand.asConstInteger()
+        if(constIndex!=null) {
+            val skip = codeGen.createLabelName()
+            if(constValue==1) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.BSTNE, labelSymbol = skip)
+                    it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex)
+                }
+                result += IRCodeChunk(skip, null)
+                return Ok(result)
+            } else {
+                return Err(NotImplementedError("inplace split word array +"))  // TODO?
+            }
+        }
+        return Err(NotImplementedError("inplace split word array +"))  // TODO?
     }
 
     internal fun operatorShiftRightInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
@@ -1349,7 +1484,30 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorXorInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("xor")
+            val result = mutableListOf<IRCodeChunkBase>()
+            val constIndex = array.index.asConstInteger()
+            val constValue = operand.asConstInteger()
+            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            if(constIndex!=null && constValue!=null) {
+                if(array.splitWords) {
+                    val valueRegLsb = codeGen.registers.nextFree()
+                    val valueRegMsb = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegLsb, immediate=constValue and 255)
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegMsb, immediate=constValue shr 8)
+                        it += IRInstruction(Opcode.XORM, vmDt, reg1=valueRegLsb, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex)
+                        it += IRInstruction(Opcode.XORM, vmDt, reg1=valueRegMsb, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex)
+                    }
+                } else {
+                    val valueReg = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate=constValue)
+                        it += IRInstruction(Opcode.XORM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                }
+                return Ok(result)
+            }
+            return Err(NotImplementedError("inplace word array ^"))  // TODO?
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place xor"))  // TODO

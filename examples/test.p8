@@ -37,10 +37,22 @@ main {
 
         ubyte @shared xx
         ubyte[3] ubarr
+        uword[3] @split uwarr
         byte[3] sbarr
         bool[3] barr
         float[3] flarr
         bool @shared bb
+        uword ptr = &ubarr
+
+        ptr[1]++
+        ptr[1]++
+        ptr[1]--
+        txt.print_ub(ubarr[1])
+        txt.nl()
+        ptr[1]+=4
+        ptr[1]-=3
+        txt.print_ub(ubarr[1])
+        txt.nl()
 
 ;        sbarr[1] = sbarr[1] == 0
 ;        sbarr[1] = sbarr[1] != 0
@@ -58,19 +70,19 @@ main {
 ;        sbarr[xx] = sbarr[xx] > 0
 ;        sbarr[xx] = sbarr[xx] >= 0
 
-        sbarr[1] = sbarr[1] == 2
-        sbarr[1] = sbarr[1] != 2
-        sbarr[1] = sbarr[1] < 2
-        sbarr[1] = sbarr[1] <= 2
-        sbarr[1] = sbarr[1] > 2
-        sbarr[1] = sbarr[1] >= 2
-        xx = 1
-        sbarr[xx] = sbarr[xx] == 2
-        sbarr[xx] = sbarr[xx] != 2
-        sbarr[xx] = sbarr[xx] < 2
-        sbarr[xx] = sbarr[xx] <= 2
-        sbarr[xx] = sbarr[xx] > 2
-        sbarr[xx] = sbarr[xx] >= 2
+;        sbarr[1] = sbarr[1] == 2
+;        sbarr[1] = sbarr[1] != 2
+;        sbarr[1] = sbarr[1] < 2
+;        sbarr[1] = sbarr[1] <= 2
+;        sbarr[1] = sbarr[1] > 2
+;        sbarr[1] = sbarr[1] >= 2
+;        xx = 1
+;        sbarr[xx] = sbarr[xx] == 2
+;        sbarr[xx] = sbarr[xx] != 2
+;        sbarr[xx] = sbarr[xx] < 2
+;        sbarr[xx] = sbarr[xx] <= 2
+;        sbarr[xx] = sbarr[xx] > 2
+;        sbarr[xx] = sbarr[xx] >= 2
 
 ;        ubarr[1] = ubarr[1] == 2
 ;        ubarr[1] = ubarr[1] < 2
