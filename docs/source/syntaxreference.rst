@@ -329,22 +329,21 @@ Variable declarations
 Variables should be declared with their exact type and size so the compiler can allocate storage
 for them. You can give them an initial value as well. That value can be a simple literal value,
 or an expression. If you don't provide an initial value yourself, zero will be used.
-Add a ``@zp`` zeropage-tag, to tell the compiler to prioritize it
-when selecting variables to be put into zeropage (but no guarantees). If the ZP is full,
-the variable will be allocated in normal memory elsewhere.
-Add a ``@requirezp`` tag to force the variable in zeropage, but if the ZP is full,
-the compilation will fail.
-Add a ``@shared`` shared-tag, to tell the compiler that the variable is shared
-with some assembly code and that it should not be optimized away if not used elsewhere.
-For (u)word arrays, add ``@split`` to make the array layout in memory as 2 split arrays
-one with the LSBs one with the MSBs of the word values.
+The syntax for variable declarations is::
 
+	<datatype>  [ @tag ]  <variable name>   [ = <initial value> ]
 
-The syntax is::
+Here are the tags you can add to a variable:
 
-	<datatype>  [ @type-tag ]  <variable name>   [ = <initial value> ]
+==========  ======
+Tag         Effect
+==========  ======
+@zp         prioritize the variable for putting it into Zero page. No guarantees; if ZP is full the variable will be placed in another memory location.
+@requirezp  force the variable into Zero page. If ZP is full, compilation will fail.
+@shared     means the variable is shared with some assembly code and that it cannot be optimized away if not used elsewhere.
+@split      (only valid on (u)word arrays) Makes the array to be placed in memory as 2 separate byte arrays; one with the LSBs one with the MSBs of the word values. May improve performance.
+==========  ======
 
-where type-tag is one of the tags mentioned earlier.
 
 For boolean and numeric variables, you can actually declare them in one go by listing the names in a comma separated list.
 Type tags, and the optional initialization value, are applied equally to all variables in such a list.
@@ -403,6 +402,8 @@ type identifier  type                     storage size       example var declara
 
 **arrays:** you can split an array initializer list over several lines if you want. When an initialization
 value is given, the array size in the declaration can be omitted.
+
+**numbers:** unless prefixed for hex or binary as described below, all numbers are decimal numbers. There is no octal notation.
 
 **hexadecimal numbers:** you can use a dollar prefix to write hexadecimal numbers: ``$20ac``
 

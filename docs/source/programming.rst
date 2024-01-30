@@ -232,7 +232,8 @@ Integers
 ^^^^^^^^
 
 Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
-in hexadecimal and in binary notation.  You can use underscores to group digits to make long numbers more readable.
+in hexadecimal and in binary notation. There is no octal notation.
+You can use underscores to group digits to make long numbers more readable.
 A single character in single quotes such as ``'a'`` is translated into a byte integer,
 which is the PETSCII value for that character.
 
