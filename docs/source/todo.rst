@@ -1,6 +1,9 @@
 TODO
 ====
 
+fix "safe evaluation of sub-expression"  (byte and word, in AugmentableAssignmentAsmGen).
+
+
 maze:   if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0
               ^^ adding this !=0 caused a weird beq + / lda #1 / +  to appear in front of the shortcircuit beq...
 

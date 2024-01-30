@@ -1,10 +1,49 @@
 %import textio
-%import floats
+%import test_stack
 %zeropage basicsafe
 %option no_sysinit
 
 main {
+    uword[3] a
+    uword[3] b
+    ubyte @shared j
+    uword @shared aa = 1
+
     sub start() {
+        test_stack.test()
+        j = 1
+        a[j] = 1
+        b[j] = 0
+        b[j] += 5 * aa
+        b[j] += 5 * aa
+        b[j] += 5 * aa
+        b[j] += 5 * aa
+        txt.print_uw(b[j])      ; 20
+        txt.nl()
+        b[j] += 5 * a[1]
+        b[j] += 5 * a[1]
+        b[j] += 5 * a[1]
+        b[j] += 5 * a[1]
+        txt.print_uw(b[j])      ; 40
+        txt.nl()
+        b[j] += 5 * a[j]
+        b[j] += 5 * a[j]
+        b[j] += 5 * a[j]
+        b[j] += 5 * a[j]
+        txt.print_uw(b[j])      ; 60
+        txt.nl()
+        test_stack.test()
+    }
+}
+
+
+;%import textio
+;%import floats
+;%zeropage basicsafe
+;%option no_sysinit
+;
+;main {
+;    sub start() {
 
 ;        uword  @shared addr = 2000
 ;        @(2000) = 199
@@ -35,24 +74,24 @@ main {
 ;        txt.nl()
 ;
 
-        ubyte @shared xx
-        ubyte[3] ubarr
-        uword[3] @split uwarr
-        byte[3] sbarr
-        bool[3] barr
-        float[3] flarr
-        bool @shared bb
-        uword ptr = &ubarr
-
-        ptr[1]++
-        ptr[1]++
-        ptr[1]--
-        txt.print_ub(ubarr[1])
-        txt.nl()
-        ptr[1]+=4
-        ptr[1]-=3
-        txt.print_ub(ubarr[1])
-        txt.nl()
+;        ubyte @shared xx
+;        ubyte[3] ubarr
+;        uword[3] @split uwarr
+;        byte[3] sbarr
+;        bool[3] barr
+;        float[3] flarr
+;        bool @shared bb
+;        uword ptr = &ubarr
+;
+;        ptr[1]++
+;        ptr[1]++
+;        ptr[1]--
+;        txt.print_ub(ubarr[1])
+;        txt.nl()
+;        ptr[1]+=4
+;        ptr[1]-=3
+;        txt.print_ub(ubarr[1])
+;        txt.nl()
 
 ;        sbarr[1] = sbarr[1] == 0
 ;        sbarr[1] = sbarr[1] != 0
@@ -107,5 +146,5 @@ main {
 ;        bb = bb or barr[1]
 ;        bb = bb xor barr[1]
 ;        bb = not bb
-    }
-}
+;    }
+;}
