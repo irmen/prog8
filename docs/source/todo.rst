@@ -1,7 +1,7 @@
 TODO
 ====
 
-fix "safe evaluation of sub-expression"  (byte and word, in AugmentableAssignmentAsmGen).
+fix "return <stmt>" not being an error.
 
 
 maze:   if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0

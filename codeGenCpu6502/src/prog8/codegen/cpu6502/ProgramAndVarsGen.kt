@@ -49,6 +49,7 @@ internal class ProgramAndVarsGen(
             }
 
             memorySlabs()
+            tempVars()
             footer()
         }
     }
@@ -163,6 +164,26 @@ internal class ProgramAndVarsGen(
             }
             asmgen.out("\t.bend\n  .send slabs_BSS")
         }
+    }
+
+    private fun tempVars() {
+        asmgen.out("; expression temp vars\n  .section BSS")
+        for((dt, count) in asmgen.tempVarsCounters) {
+            if(count>0) {
+                for(num in 1..count) {
+                    val name = asmgen.buildTempVarName(dt, num)
+                    when (dt) {
+                        DataType.BYTE  -> asmgen.out("$name    .char  ?")
+                        DataType.UBYTE -> asmgen.out("$name    .byte  ?")
+                        DataType.WORD  -> asmgen.out("$name    .sint  ?")
+                        DataType.UWORD -> asmgen.out("$name    .word  ?")
+                        DataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
+                        else -> throw AssemblyError("weird dt for extravar $dt")
+                    }
+                }
+            }
+        }
+        asmgen.out("  .send BSS")
     }
 
     private fun footer() {

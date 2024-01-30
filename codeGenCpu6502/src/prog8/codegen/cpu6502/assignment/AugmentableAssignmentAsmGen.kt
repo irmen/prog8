@@ -191,13 +191,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                             SourceStorageKind.EXPRESSION -> {
-                                TODO("safe evaluation of sub-expression at ${value.expression!!.position} -  in the meantime, split up the expression in multiple statements")
-//                                asmgen.out("  sta  P8ZP_SCRATCH_B1")
-//                                if(value.expression is PtTypeCast)
-//                                    inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression)
-//                                else
-//                                    inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.expression!!)
-//                                asmgen.out("  ldx  P8ZP_SCRATCH_B1")
+                                val tempVar = asmgen.getTempVarName(DataType.UBYTE)
+                                asmgen.out("  sta  $tempVar")
+                                if(value.expression is PtTypeCast)
+                                    inplacemodificationByteVariableWithValue(tempVar, DataType.UBYTE, operator, value.expression)
+                                else
+                                    inplacemodificationByteVariableWithValue(tempVar, DataType.UBYTE, operator, value.expression!!)
+                                asmgen.out("  ldx  $tempVar")
                             }
                         }
                         asmgen.restoreRegisterStack(CpuRegister.Y, false)
@@ -326,14 +326,14 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
 
                                 SourceStorageKind.EXPRESSION -> {
-                                    TODO("safe evaluation of sub-expression at ${value.expression!!.position} -  in the meantime, split up the expression in multiple statements")
-//                                    asmgen.out("  sta  P8ZP_SCRATCH_B1")
-//                                    if(value.expression is PtTypeCast)
-//                                        inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression)
-//                                    else
-//                                        inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", target.datatype, operator, value.expression!!)
-//                                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
-//                                    asmgen.out("  lda  P8ZP_SCRATCH_B1")
+                                    val tempVar = asmgen.getTempVarName(DataType.UBYTE)
+                                    asmgen.out("  sta  $tempVar")
+                                    if(value.expression is PtTypeCast)
+                                        inplacemodificationByteVariableWithValue(tempVar, target.datatype, operator, value.expression)
+                                    else
+                                        inplacemodificationByteVariableWithValue(tempVar, target.datatype, operator, value.expression!!)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                                    asmgen.out("  lda  $tempVar")
                                 }
                             }
                             asmgen.out("  sta  ${target.array.variable.name},y")
@@ -401,13 +401,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
 
                                 SourceStorageKind.EXPRESSION -> {
-                                    TODO("safe evaluation of sub-expression at ${value.expression!!.position} -  in the meantime, split up the expression in multiple statements")
-//                                    asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
-//                                    if(value.expression is PtTypeCast)
-//                                        inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression, block)
-//                                    else
-//                                        inplacemodificationWordWithValue("P8ZP_SCRATCH_W1", target.datatype, operator, value.expression!!, block)
-//                                    asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                    val tempVar = asmgen.getTempVarName(DataType.UWORD)
+                                    asmgen.out("  sta  $tempVar |  stx  $tempVar+1")
+                                    if(value.expression is PtTypeCast)
+                                        inplacemodificationWordWithValue(tempVar, target.datatype, operator, value.expression, block)
+                                    else
+                                        inplacemodificationWordWithValue(tempVar, target.datatype, operator, value.expression!!, block)
+                                    asmgen.out("  lda  $tempVar |  ldx  $tempVar+1")
                                 }
                             }
                             asmgen.restoreRegisterStack(CpuRegister.Y, true)

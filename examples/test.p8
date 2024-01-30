@@ -1,5 +1,5 @@
 %import textio
-%import test_stack
+;; %import test_stack
 %zeropage basicsafe
 %option no_sysinit
 
@@ -9,8 +9,13 @@ main {
     ubyte @shared j
     uword @shared aa = 1
 
+    sub derp() {
+        return aa=5
+    }
+
     sub start() {
-        test_stack.test()
+        derp()
+        ;; test_stack.test()
         j = 1
         a[j] = 1
         b[j] = 0
@@ -32,7 +37,7 @@ main {
         b[j] += 5 * a[j]
         txt.print_uw(b[j])      ; 60
         txt.nl()
-        test_stack.test()
+        ;; test_stack.test()
     }
 }
 

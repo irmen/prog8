@@ -356,15 +356,20 @@ class AsmGen6502Internal (
             name
     }
 
+
+    internal val tempVarsCounters = mutableMapOf(
+        DataType.BYTE to 0,
+        DataType.UBYTE to 0,
+        DataType.WORD to 0,
+        DataType.UWORD to 0,
+        DataType.FLOAT to 0
+    )
+
+    internal fun buildTempVarName(dt: DataType, counter: Int): String = "prog8_tmpvar_${dt.toString().lowercase()}_$counter"
+
     internal fun getTempVarName(dt: DataType): String {
-        return when(dt) {
-            DataType.UBYTE -> "cx16.r9L"
-            DataType.BYTE -> "cx16.r9sL"
-            DataType.UWORD -> "cx16.r9"
-            DataType.WORD -> "cx16.r9s"
-            DataType.FLOAT -> "floats.floats_temp_var"
-            else -> throw AssemblyError("invalid dt")
-        }
+        tempVarsCounters[dt] = tempVarsCounters.getValue(dt)+1
+        return buildTempVarName(dt, tempVarsCounters.getValue(dt))
     }
 
     internal fun loadByteFromPointerIntoA(pointervar: PtIdentifier): String {
