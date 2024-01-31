@@ -174,4 +174,22 @@ main {
         compileText(Cx16Target(), false, text, writeAssembly = true)  shouldNotBe null
         compileText(VMTarget(), false, text, writeAssembly = true)  shouldNotBe null
     }
+
+    test("return with a statement instead of a value is a syntax error") {
+        val src="""
+main {
+
+    sub invalid() {
+        return cx16.r0++
+    }
+
+    sub start() {
+        invalid()
+    }
+}"""
+        val errors=ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors=errors)  shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "statement"
+    }
 })
