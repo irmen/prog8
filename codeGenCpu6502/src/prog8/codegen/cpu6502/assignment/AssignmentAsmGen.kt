@@ -4061,9 +4061,9 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                     sta  $addr""")
                             }
                             is PtIdentifier -> {
-                                val sourceName = asmgen.loadByteFromPointerIntoA(memory.address as PtIdentifier)
+                                asmgen.loadByteFromPointerIntoA(memory.address as PtIdentifier)
                                 asmgen.out("  eor  #255")
-                                asmgen.out("  sta  ($sourceName),y")
+                                asmgen.storeAIntoPointerVar(memory.address as PtIdentifier)
                             }
                             else -> {
                                 asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
