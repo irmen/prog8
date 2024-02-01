@@ -1,10 +1,6 @@
 TODO
 ====
 
-maze:   if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0
-              ^^ adding this !=0 caused a weird beq + / lda #1 / +  to appear in front of the shortcircuit beq...
-
-
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 
 ...
