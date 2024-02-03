@@ -3,6 +3,7 @@ package prog8tests.ast
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.core.SourceCode
 import prog8.code.core.SourceCode.Companion.LIBRARYFILEPREFIX
@@ -27,6 +28,14 @@ class TestSourceCode: AnnotationSpec() {
         src.isFromResources shouldBe false
         src.isFromFilesystem shouldBe false
         src.toString().startsWith("prog8.code.core.SourceCode") shouldBe true
+    }
+
+    @Test
+    fun testFromStringDOSLineEndings() {
+        val text = "main {\r\nline2\r\nline3\r\n}\r\n"
+        val src = SourceCode.Text(text)
+        src.text shouldNotBe text     // because normalized line endings!
+        src.text.split('\r', '\n').size shouldBe 5
     }
 
     @Test
@@ -58,6 +67,15 @@ class TestSourceCode: AnnotationSpec() {
         src.text shouldBe path.toFile().readText()
         src.isFromResources shouldBe false
         src.isFromFilesystem shouldBe true
+    }
+
+    @Test
+    fun testFromPathWithExistingPathDOSLineEndings() {
+        val filename = "dos_line_endings.p8"
+        val path = assumeReadableFile(fixturesDir, filename)
+        val src = SourceCode.File(path)
+        src.text shouldNotBe  path.toFile().readText()      // should be normalized!
+        src.text.split('\r', '\n').size shouldBe 7
     }
 
     @Test

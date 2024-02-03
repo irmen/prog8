@@ -69,7 +69,8 @@ sealed class SourceCode {
      * Turn a plain String into a [SourceCode] object.
      * [origin] will be something like `string:44c56085`.
      */
-    class Text(override val text: String): SourceCode() {
+    class Text(origText: String): SourceCode() {
+        override val text = origText.replace("\\R".toRegex(), "\n")      // normalize line endings
         override val isFromResources = false
         override val isFromFilesystem = false
         override val origin = "$STRINGSOURCEPREFIX${System.identityHashCode(text).toString(16)}"
@@ -95,7 +96,8 @@ sealed class SourceCode {
             val normalized = path.normalize()
             origin = relative(normalized).toString()
             try {
-                text = Normalizer.normalize(normalized.readText(), Normalizer.Form.NFC)
+                val contents = Normalizer.normalize(normalized.readText(), Normalizer.Form.NFC)
+                text = contents.replace("\\R".toRegex(), "\n")      // normalize line endings
                 name = normalized.toFile().nameWithoutExtension
             } catch (nfx: java.nio.file.NoSuchFileException) {
                 throw NoSuchFileException(normalized.toFile()).also { it.initCause(nfx) }
@@ -127,7 +129,8 @@ sealed class SourceCode {
                 )
             }
             val stream = object {}.javaClass.getResourceAsStream(normalized)
-            text = stream!!.reader().use { Normalizer.normalize(it.readText(), Normalizer.Form.NFC) }
+            val contents = stream!!.reader().use { Normalizer.normalize(it.readText(), Normalizer.Form.NFC) }
+            text = contents.replace("\\R".toRegex(), "\n")      // normalize line endings
             name = Path(pathString).toFile().nameWithoutExtension
         }
     }
