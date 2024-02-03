@@ -1192,7 +1192,7 @@ $repeatLabel""")
         return null
     }
 
-    internal fun tryOptimizedPointerAccessWithA(addressExpr: PtExpression, operator: String, write: Boolean): Boolean {
+    internal fun tryOptimizedPointerAccessWithA(addressExpr: PtBinaryExpression, write: Boolean): Boolean {
         // optimize pointer,indexregister if possible
 
         fun evalBytevalueWillClobberA(expr: PtExpression): Boolean {
@@ -1208,7 +1208,7 @@ $repeatLabel""")
             }
         }
 
-        if(operator=="+") {
+        if(addressExpr.operator=="+") {
             val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr)
             if(ptrAndIndex!=null) {
                 val pointervar = ptrAndIndex.first as? PtIdentifier
@@ -2919,7 +2919,7 @@ $repeatLabel""")
             }
             is PtBinaryExpression -> {
                 val addrExpr = expr.address as PtBinaryExpression
-                if(!tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
+                if(!tryOptimizedPointerAccessWithA(addrExpr, false)) {
                     assignViaExprEval()
                 }
             }

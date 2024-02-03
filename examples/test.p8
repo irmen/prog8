@@ -5,25 +5,22 @@
 %option no_sysinit
 
 main {
-    sub derp(str arg) {
-        arg[4] = '?'
-    }
-
     sub start() {
-        str msg = "hello"
-        derp(msg)
-        txt.chrout(msg[4])              ; ?
-        txt.nl()
+        ; ubyte[10] az
+        ubyte @shared offset=4
         uword @shared az = $4000
-        @($4004) = 0
-        az[4] |= $40
-        txt.print_ub(@($4004))          ; 64
+        ubyte @shared value = 22
+        @($4004) = 99
+        az[4]--
+        @(az + offset)--
+        txt.print_ub(@($4004))
         txt.nl()
-        @(az+4) = 0
-        @(az+4) |= $4f
-        txt.print_ub(@($4004))          ; 79
+        az[4]++
+        @(az+offset)++
+        txt.print_ub(@($4004))
         txt.nl()
-
+;        cx16.r0L = az[4] + value*5
+;        cx16.r1L = value*5 + az[4]
 
 ;        ubyte @shared idx = 1
 ;        txt.print_w(array[idx])

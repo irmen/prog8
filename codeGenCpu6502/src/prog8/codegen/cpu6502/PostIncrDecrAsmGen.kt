@@ -1,9 +1,6 @@
 package prog8.codegen.cpu6502
 
-import prog8.code.ast.PtIdentifier
-import prog8.code.ast.PtNumber
-import prog8.code.ast.PtPostIncrDecr
-import prog8.code.ast.PtProgram
+import prog8.code.ast.*
 import prog8.code.core.*
 
 
@@ -37,6 +34,55 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                 }
             }
             targetMemory!=null -> {
+                fun incDecViaExprEval() {
+                    asmgen.assignExpressionToRegister(targetMemory.address, RegisterOrPair.AY)
+                    asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                    if(incr)
+                        asmgen.out("+\tinc  ${'$'}ffff\t; modified")
+                    else
+                        asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                }
+
+                fun tryOptimizedPointerIncDec(address: PtBinaryExpression): Boolean {
+                    if(address.operator=="+") {
+                        val offset = address.right.asConstInteger()
+                        if(offset!=null && offset<256) {
+                            // we have @(ptr + 255) ++ , or  @(ptr+255)--
+                            asmgen.assignExpressionToRegister(address.left, RegisterOrPair.AY, false)
+                            asmgen.out("""
+                                sta  (+) + 1
+                                sty  (+) + 2
+                                ldx  #$offset""")
+                            if(incr)
+                                asmgen.out("+\tinc  ${'$'}ffff,x\t; modified")
+                            else
+                                asmgen.out("+\tdec  ${'$'}ffff,x\t; modified")
+                            return true
+                        } else if(address.right.type in ByteDatatypes) {
+                            // we have @(ptr + bytevar) ++ , or  @(ptr+bytevar)--
+                            asmgen.assignExpressionToRegister(address.left, RegisterOrPair.AY, false)
+                            asmgen.out(" sta  (+) + 1 |  sty  (+) + 2")
+                            asmgen.assignExpressionToRegister(address.right, RegisterOrPair.X, false)
+                            if(incr)
+                                asmgen.out("+\tinc  ${'$'}ffff,x\t; modified")
+                            else
+                                asmgen.out("+\tdec  ${'$'}ffff,x\t; modified")
+                            return true
+                        } else if((address.right as? PtTypeCast)?.value?.type in ByteDatatypes) {
+                            // we have @(ptr + bytevar) ++ , or  @(ptr+bytevar)--
+                            asmgen.assignExpressionToRegister(address.left, RegisterOrPair.AY, false)
+                            asmgen.out(" sta  (+) + 1 |  sty  (+) + 2")
+                            asmgen.assignExpressionToRegister((address.right as PtTypeCast).value, RegisterOrPair.X, false)
+                            if(incr)
+                                asmgen.out("+\tinc  ${'$'}ffff,x\t; modified")
+                            else
+                                asmgen.out("+\tdec  ${'$'}ffff,x\t; modified")
+                            return true
+                        }
+                    }
+                    return false
+                }
+
                 when (val addressExpr = targetMemory.address) {
                     is PtNumber -> {
                         val what = addressExpr.number.toHex()
@@ -50,13 +96,13 @@ internal class PostIncrDecrAsmGen(private val program: PtProgram, private val as
                         else
                             asmgen.out("+\tdec  ${'$'}ffff\t; modified")
                     }
+                    is PtBinaryExpression -> {
+                        if(!tryOptimizedPointerIncDec(addressExpr)) {
+                            incDecViaExprEval()
+                        }
+                    }
                     else -> {
-                        asmgen.assignExpressionToRegister(addressExpr, RegisterOrPair.AY)
-                        asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                        if(incr)
-                            asmgen.out("+\tinc  ${'$'}ffff\t; modified")
-                        else
-                            asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                        incDecViaExprEval()
                     }
                 }
             }

@@ -98,7 +98,7 @@ private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorRepor
         stmtContainer.children.add(stmtContainer.children.indexOf(stmt), tempassign)
         tempassign.parent = stmtContainer
 
-        val tempvar = PtVariable(tempvarName, datatype, ZeropageWish.DONTCARE, null, null, binexpr.position)
+        val tempvar = PtVariable(tempvarName, datatype, ZeropageWish.NOT_IN_ZEROPAGE, null, null, binexpr.position)
         stmtContainer.add(0, tempvar)
         tempvar.parent = stmtContainer
 

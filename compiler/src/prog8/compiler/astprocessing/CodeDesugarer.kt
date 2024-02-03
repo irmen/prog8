@@ -197,19 +197,16 @@ _after:
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
         if(arrayVar!=null && arrayVar.datatype==DataType.UWORD) {
-            val add: Expression =
-                if(indexExpr.constValue(program)?.number==0.0)
-                    arrayIndexedExpression.arrayvar.copy()
-                else
-                    BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexExpr, arrayIndexedExpression.position)
+            val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
+            val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", wordIndex, arrayIndexedExpression.position)
             return if(parent is AssignTarget) {
                 // assignment to array
-                val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)
+                val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
                 val newtarget = AssignTarget(null, null, memwrite, arrayIndexedExpression.position)
                 listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
             } else {
                 // read from array
-                val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
+                val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
                 listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
             }
         }

@@ -144,7 +144,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     is PtBinaryExpression -> {
                         val addrExpr = value.address as PtBinaryExpression
-                        if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
+                        if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, false)) {
                             assignRegisterByte(assign.target, CpuRegister.A, false, true)
                         } else {
                             assignViaExprEval(value.address)
@@ -772,9 +772,21 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
                 else -> {
+                    val leftMemByte = expr.left as? PtMemoryByte
+                    val rightMemByte = expr.right as? PtMemoryByte
+                    val leftArrayIndexer = expr.left as? PtArrayIndexer
                     val rightArrayIndexer = expr.right as? PtArrayIndexer
-                    if(rightArrayIndexer!=null && rightArrayIndexer.type in ByteDatatypes && left.type in ByteDatatypes) {
-                        // special optimization for  bytevalue +/- bytearr[y] :  no need to use a tempvar, just use adc array,y or sbc array,y  or  adc (ptr),y / sbc (ptr),y
+                    if(expr.operator=="+" && leftArrayIndexer!=null && leftArrayIndexer.type in ByteDatatypes && right.type in ByteDatatypes) {
+                        // special optimization for  bytearray[y] + bytevalue :  no need to use a tempvar, just use adc array,y
+                        assignExpressionToRegister(right, RegisterOrPair.A, right.type==DataType.BYTE)
+                        if(!leftArrayIndexer.index.isSimple()) asmgen.out("  pha")
+                        asmgen.assignExpressionToRegister(leftArrayIndexer.index, RegisterOrPair.Y, false)
+                        if(!leftArrayIndexer.index.isSimple()) asmgen.out("  pla")
+                        val arrayvarname = asmgen.asmSymbolName(leftArrayIndexer.variable)
+                        asmgen.out("  clc |  adc  $arrayvarname,y")
+                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                    } else if(rightArrayIndexer!=null && rightArrayIndexer.type in ByteDatatypes && left.type in ByteDatatypes) {
+                        // special optimization for  bytevalue +/- bytearray[y] :  no need to use a tempvar, just use adc array,y or sbc array,y
                         assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
                         if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pha")
                         asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y, false)
@@ -785,6 +797,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         else
                             asmgen.out("  sec |  sbc  $arrayvarname,y")
                         assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                    } else if(expr.operator=="+" && leftMemByte!=null && right.type in ByteDatatypes && optimizedPointerIndexPlusByteIntoA(leftMemByte, right)) {
+                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                        return true
+                    } else if(rightMemByte!=null && left.type in ByteDatatypes && optimizedPointerIndexPlusMinusByteIntoA(left, expr.operator, rightMemByte)) {
+                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                        return true
                     } else {
                         assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
                         if(directIntoY(right)) {
@@ -966,6 +984,32 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
             }
         }
+        return false
+    }
+
+    private fun optimizedPointerIndexPlusByteIntoA(mem: PtMemoryByte, value: PtExpression): Boolean {
+        // special optimization for  pointervar[y] + bytevalue  (actually: @(address) + value)
+        return false            // TODO implement this optimization?
+    }
+
+    private fun optimizedPointerIndexPlusMinusByteIntoA(value: PtExpression, operator: String, mem: PtMemoryByte): Boolean {
+        // special optimization for  bytevalue +/- pointervar[y]  (actually: bytevalue +/-  @(address) )
+        val address = mem.address as? PtBinaryExpression
+
+        if(address is PtBinaryExpression) {
+            val offset = address.right.asConstInteger()
+            if(offset!=null && offset<256) {
+                // we have value + @(ptr + 255), or value - @(ptr+255)
+//                TODO()
+            } else if(address.right.type in ByteDatatypes) {
+                // we have @(ptr + bytevar) ++ , or  @(ptr+bytevar)--
+//                TODO()
+            } else if((address.right as? PtTypeCast)?.value?.type in ByteDatatypes) {
+                // we have @(ptr + bytevar) ++ , or  @(ptr+bytevar)--
+//                TODO()
+            }
+        }
+        println("TODO: OPTIMIZE POINTER PLUSMINUS  ${value.position}")
         return false
     }
 
@@ -1993,7 +2037,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                         is PtBinaryExpression -> {
                             val addrExpr = value.address as PtBinaryExpression
-                            if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, addrExpr.operator, false)) {
+                            if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, false)) {
                                 asmgen.out("  ldy  #0")
                                 assignRegisterpairWord(target, RegisterOrPair.AY)
                             } else {
@@ -3860,7 +3904,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                 }
-                if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, addressExpr.operator, true))
+                if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))
                     storeViaExprEval()
             }
             else -> storeViaExprEval()
