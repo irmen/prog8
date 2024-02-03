@@ -180,19 +180,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val vmDt = irType(arrayIx.type)
         val result = mutableListOf<IRCodeChunkBase>()
         val arrayVarSymbol = arrayIx.variable.name
-
-        if(arrayIx.usesPointerVariable) {
-            if(eltSize!=1)
-                throw AssemblyError("non-array var indexing requires bytes dt")
-            if(arrayIx.index.type !in ByteDatatypes)
-                throw AssemblyError("non-array var indexing requires bytes index")
-            val tr = translateExpression(arrayIx.index)
-            addToResult(result, tr, tr.resultReg, -1)
-            val resultReg = codeGen.registers.nextFree()
-            addInstr(result, IRInstruction(Opcode.LOADIX, vmDt, reg1=resultReg, reg2=tr.resultReg, labelSymbol = arrayVarSymbol), null)
-            return ExpressionCodeResult(result, vmDt, resultReg, -1)
-        }
-
         var resultRegister = -1
 
         if(arrayIx.splitWords) {
@@ -1253,20 +1240,17 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val result = mutableListOf<IRCodeChunkBase>()
             if(array.splitWords)
                 return operatorMinusInplaceSplitArray(array, operand)
-            if(array.usesPointerVariable) {
-                TODO("inplace - for pointer variable")
-            }
-            val vmDt = irType(array.type)
+            val eltDt = irType(array.type)
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
                 if(constValue==1) {
-                    addInstr(result, IRInstruction(Opcode.DECM, vmDt, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize), null)
+                    addInstr(result, IRInstruction(Opcode.DECM, eltDt, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize), null)
                 } else {
                     val valueReg=codeGen.registers.nextFree()
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate = constValue)
-                        it += IRInstruction(Opcode.SUBM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                        it += IRInstruction(Opcode.LOAD, eltDt, reg1=valueReg, immediate = constValue)
+                        it += IRInstruction(Opcode.SUBM, eltDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
                     }
                 }
                 return Ok(result)
@@ -1344,9 +1328,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val result = mutableListOf<IRCodeChunkBase>()
             if(array.splitWords)
                 return operatorPlusInplaceSplitArray(array, operand)
-            if(array.usesPointerVariable) {
-                TODO("inplace + for pointer variable")
-            }
             val eltSize = codeGen.program.memsizer.memorySize(array.type)
             val elementDt = irType(array.type)
             val constIndex = array.index.asConstInteger()
@@ -1806,8 +1787,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         if(array.splitWords)
             TODO("inplace compare for split word array")
-        if(array.usesPointerVariable)
-            TODO("inplace compare for pointer variable")
         val vmDt = irType(array.type)
         val constIndex = array.index.asConstInteger()
         val constValue = value.asConstInteger()

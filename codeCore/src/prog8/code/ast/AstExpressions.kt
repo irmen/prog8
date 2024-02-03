@@ -138,15 +138,15 @@ class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
 
 class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(elementType, position) {
     val variable: PtIdentifier
-        get() = children[0] as PtIdentifier
+        get() {
+            require((children[0] as? PtIdentifier)?.type in ArrayDatatypes+DataType.STR)        // TODO remove
+            return children[0] as PtIdentifier
+        }
     val index: PtExpression
         get() = children[1] as PtExpression
 
     val splitWords: Boolean
         get() = variable.type in SplitWordArrayTypes
-
-    val usesPointerVariable: Boolean
-        get() = variable.type==DataType.UWORD
 
     init {
         require(elementType in NumericDatatypes)

@@ -288,9 +288,6 @@ mylabel:
 
     test("nesting with overlapping names is ok (doesn't work for 64tass)") {
         val src="""
-%import textio
-%zeropage basicsafe
-
 main {
     sub start() {
         main()

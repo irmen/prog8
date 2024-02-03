@@ -1,74 +1,30 @@
 %import textio
-;; %import test_stack
+%import floats
+%import math
 %zeropage basicsafe
 %option no_sysinit
 
 main {
-    uword[3] a
-    uword[3] b
-    ubyte @shared j
-    uword @shared aa = 1
-
-    sub derp() {
-        return aa=5
+    sub derp(str arg) {
+        arg[4] = '?'
     }
 
     sub start() {
-        derp()
-        ;; test_stack.test()
-        j = 1
-        a[j] = 1
-        b[j] = 0
-        b[j] += 5 * aa
-        b[j] += 5 * aa
-        b[j] += 5 * aa
-        b[j] += 5 * aa
-        txt.print_uw(b[j])      ; 20
+        str msg = "hello"
+        derp(msg)
+        txt.chrout(msg[4])              ; ?
         txt.nl()
-        b[j] += 5 * a[1]
-        b[j] += 5 * a[1]
-        b[j] += 5 * a[1]
-        b[j] += 5 * a[1]
-        txt.print_uw(b[j])      ; 40
+        uword @shared az = $4000
+        @($4004) = 0
+        az[4] |= $40
+        txt.print_ub(@($4004))          ; 64
         txt.nl()
-        b[j] += 5 * a[j]
-        b[j] += 5 * a[j]
-        b[j] += 5 * a[j]
-        b[j] += 5 * a[j]
-        txt.print_uw(b[j])      ; 60
+        @(az+4) = 0
+        @(az+4) |= $4f
+        txt.print_ub(@($4004))          ; 79
         txt.nl()
-        ;; test_stack.test()
-    }
-}
 
 
-;%import textio
-;%import floats
-;%zeropage basicsafe
-;%option no_sysinit
-;
-;main {
-;    sub start() {
-
-;        uword  @shared addr = 2000
-;        @(2000) = 199
-;        txt.print_ub(@(2000))
-;        txt.nl()
-;        @(addr) = ~@(addr)
-;        txt.print_ub(@(2000))
-;        txt.nl()
-;
-;        word[3] @split @shared array = [1111,$10ff,3333]
-;
-;        txt.print_w(array[1])
-;        txt.nl()
-;        txt.print_w(-array[1])
-;        txt.nl()
-;        array[1] = -array[1]
-;        txt.print_w(array[1])
-;        txt.nl()
-;        txt.nl()
-;
 ;        ubyte @shared idx = 1
 ;        txt.print_w(array[idx])
 ;        txt.nl()
@@ -151,5 +107,5 @@ main {
 ;        bb = bb or barr[1]
 ;        bb = bb xor barr[1]
 ;        bb = not bb
-;    }
-;}
+    }
+}

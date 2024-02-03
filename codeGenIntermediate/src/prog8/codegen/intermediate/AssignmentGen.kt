@@ -302,25 +302,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val variable = targetArray.variable.name
             val itemsize = codeGen.program.memsizer.memorySize(targetArray.type)
 
-            if(targetArray.usesPointerVariable) {
-                if(itemsize!=1)
-                    throw AssemblyError("non-array var indexing requires bytes dt")
-                if(targetArray.index.type!=DataType.UBYTE)
-                    throw AssemblyError("non-array var indexing requires bytes index")
-                val tr = expressionEval.translateExpression(targetArray.index)
-                val idxReg = tr.resultReg
-                addToResult(result, tr, tr.resultReg, -1)
-                val code = IRCodeChunk(null, null)
-                if(zero) {
-                    // there's no STOREZIX instruction
-                    valueRegister = codeGen.registers.nextFree()
-                    code += IRInstruction(Opcode.LOAD, targetDt, reg1=valueRegister, immediate = 0)
-                }
-                code += IRInstruction(Opcode.STOREIX, targetDt, reg1=valueRegister, reg2=idxReg, labelSymbol = variable)
-                result += code
-                return result
-            }
-
             val fixedIndex = constIntValue(targetArray.index)
             val arrayLength = codeGen.symbolTable.getLength(targetArray.variable.name)
             if(zero) {

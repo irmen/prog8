@@ -195,25 +195,22 @@ _after:
         // replace pointervar[word] by @(pointervar+word) to avoid the
         // "array indexing is limited to byte size 0..255" error for pointervariables.
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
-        val indexerDt = indexExpr.inferType(program)
-        if(indexerDt.isWords) {
-            val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
-            if(arrayVar!=null && arrayVar.datatype==DataType.UWORD) {
-                val add: Expression =
-                    if(indexExpr.constValue(program)?.number==0.0)
-                        arrayIndexedExpression.arrayvar.copy()
-                    else
-                        BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexExpr, arrayIndexedExpression.position)
-                return if(parent is AssignTarget) {
-                    // assignment to array
-                    val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)
-                    val newtarget = AssignTarget(null, null, memwrite, arrayIndexedExpression.position)
-                    listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
-                } else {
-                    // read from array
-                    val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
-                    listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
-                }
+        val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
+        if(arrayVar!=null && arrayVar.datatype==DataType.UWORD) {
+            val add: Expression =
+                if(indexExpr.constValue(program)?.number==0.0)
+                    arrayIndexedExpression.arrayvar.copy()
+                else
+                    BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", indexExpr, arrayIndexedExpression.position)
+            return if(parent is AssignTarget) {
+                // assignment to array
+                val memwrite = DirectMemoryWrite(add, arrayIndexedExpression.position)
+                val newtarget = AssignTarget(null, null, memwrite, arrayIndexedExpression.position)
+                listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
+            } else {
+                // read from array
+                val memread = DirectMemoryRead(add, arrayIndexedExpression.position)
+                listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
             }
         }
         return noModifications

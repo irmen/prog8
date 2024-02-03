@@ -705,7 +705,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 }
             }
             is PtArrayIndexer -> {
-                require(!target.usesPointerVariable)
                 if(target.splitWords) {
                     // lsb/msb in split arrays, element index 'size' is always 1
                     val constIndex = target.index.asConstInteger()

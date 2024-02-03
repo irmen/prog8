@@ -677,7 +677,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
             is PtArrayIndexer -> {
                 val indexer = fcall.args[0] as PtArrayIndexer
-                require(!indexer.usesPointerVariable)
                 val elementSize: Int
                 val msbAdd: Int
                 if(indexer.splitWords) {
@@ -846,8 +845,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
             else -> {
                 val tempvar = asmgen.getTempVarName(DataType.FLOAT)
-                asmgen.assignExpressionTo(fcall.args[1],
-                    AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position, tempvar, null, null, null, null))
+                asmgen.assignExpressionToVariable(fcall.args[1], tempvar, DataType.FLOAT)
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
                 asmgen.out("""
                     pha

@@ -1,6 +1,9 @@
 TODO
 ====
 
+petaxian is now a lot larger since pointer[idx] is rewritten into @(ptr+idx). Missing some optimized code somewhere now?
+VM textelite is now a lot larger too
+
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 
 ...
