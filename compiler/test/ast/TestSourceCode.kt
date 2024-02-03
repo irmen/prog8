@@ -7,10 +7,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.core.SourceCode
 import prog8.code.core.SourceCode.Companion.LIBRARYFILEPREFIX
-import prog8tests.helpers.assumeNotExists
-import prog8tests.helpers.assumeReadableFile
-import prog8tests.helpers.fixturesDir
-import prog8tests.helpers.resourcesDir
+import prog8tests.helpers.*
 import kotlin.io.path.Path
 
 
@@ -71,11 +68,13 @@ class TestSourceCode: AnnotationSpec() {
 
     @Test
     fun testFromPathWithExistingPathDOSLineEndings() {
-        val filename = "dos_line_endings.p8"
-        val path = assumeReadableFile(fixturesDir, filename)
+        val text = "main {\r\nline2\r\nline3\r\n}\r"
+        val filePath = outputDir.resolve("on_the_fly_test_" + text.hashCode().toUInt().toString(16) + ".p8")
+        filePath.toFile().writeText(text)
+        val path = assumeReadableFile(fixturesDir, filePath)
         val src = SourceCode.File(path)
         src.text shouldNotBe  path.toFile().readText()      // should be normalized!
-        src.text.split('\r', '\n').size shouldBe 7
+        src.text.split('\r', '\n').size shouldBe 5
     }
 
     @Test
