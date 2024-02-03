@@ -22,6 +22,8 @@ private fun walkAst(root: PtNode, act: (node: PtNode, depth: Int) -> Boolean) {
 }
 
 
+private var tempVarCounter = 0
+
 private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorReporter): Int {
 
     fun extractableSubExpr(expr: PtExpression): Boolean {
@@ -74,7 +76,8 @@ private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorRepor
         val occurrence1idx = occurrence1.parent.children.indexOf(occurrence1)
         val occurrence2idx = occurrence2.parent.children.indexOf(occurrence2)
         val containerScopedName = findScopeName(stmtContainer)
-        val tempvarName = "subexprvar_line${binexpr.position.line}_${binexpr.hashCode().toUInt()}"
+        tempVarCounter++
+        val tempvarName = "prog8_subexprvar_$tempVarCounter"
         // TODO: some tempvars could be reused, if they are from different lines
 
         val datatype = occurrence1.type
