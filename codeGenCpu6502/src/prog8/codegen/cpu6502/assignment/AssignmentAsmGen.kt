@@ -797,7 +797,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         else
                             asmgen.out("  sec |  sbc  $arrayvarname,y")
                         assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
-                    } else if(expr.operator=="+" && leftMemByte!=null && right.type in ByteDatatypes && optimizedPointerIndexPlusByteIntoA(leftMemByte, right)) {
+                    } else if(expr.operator=="+" && leftMemByte!=null && right.type in ByteDatatypes && optimizedPointerIndexPlusMinusByteIntoA(right, "+", leftMemByte)) {
                         assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
                         return true
                     } else if(rightMemByte!=null && left.type in ByteDatatypes && optimizedPointerIndexPlusMinusByteIntoA(left, expr.operator, rightMemByte)) {
@@ -987,29 +987,44 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun optimizedPointerIndexPlusByteIntoA(mem: PtMemoryByte, value: PtExpression): Boolean {
-        // special optimization for  pointervar[y] + bytevalue  (actually: @(address) + value)
-        return false            // TODO implement this optimization?
-    }
-
     private fun optimizedPointerIndexPlusMinusByteIntoA(value: PtExpression, operator: String, mem: PtMemoryByte): Boolean {
         // special optimization for  bytevalue +/- pointervar[y]  (actually: bytevalue +/-  @(address) )
         val address = mem.address as? PtBinaryExpression
-
         if(address is PtBinaryExpression) {
-            val offset = address.right.asConstInteger()
-            if(offset!=null && offset<256) {
-                // we have value + @(ptr + 255), or value - @(ptr+255)
-//                TODO()
-            } else if(address.right.type in ByteDatatypes) {
-                // we have @(ptr + bytevar) ++ , or  @(ptr+bytevar)--
-//                TODO()
-            } else if((address.right as? PtTypeCast)?.value?.type in ByteDatatypes) {
-                // we have @(ptr + bytevar) ++ , or  @(ptr+bytevar)--
-//                TODO()
+            val ptrVar = address.left as? PtIdentifier
+            if(ptrVar!=null && asmgen.isZpVar(ptrVar)) {
+                assignExpressionToRegister(value, RegisterOrPair.A, false)
+                val pointername = asmgen.asmVariableName(ptrVar)
+                val constOffset = address.right.asConstInteger()
+                if (constOffset != null && constOffset < 256) {
+                    // we have value + @(zpptr + 255), or value - @(zpptr+255)
+                    asmgen.out("  ldy  #$constOffset")
+                    if (operator == "+")
+                        asmgen.out("  clc |  adc  ($pointername),y")
+                    else
+                        asmgen.out("  sec |  sbc  ($pointername),y")
+                } else if (address.right.type in ByteDatatypes) {
+                    // we have @(ptr + bytevar) ++ , or  @(ptr+bytevar)--
+                    asmgen.out("  pha")
+                    assignExpressionToRegister(address.right, RegisterOrPair.Y, false)
+                    asmgen.out("  pla")
+                    if (operator == "+")
+                        asmgen.out("  clc |  adc  ($pointername),y")
+                    else
+                        asmgen.out("  sec |  sbc  ($pointername),y")
+                } else if ((address.right as? PtTypeCast)?.value?.type in ByteDatatypes) {
+                    // we have @(ptr + bytevar as uword) ++ , or  @(ptr+bytevar as uword)--
+                    asmgen.out("  pha")
+                    assignExpressionToRegister((address.right as PtTypeCast).value, RegisterOrPair.Y, false)
+                    asmgen.out("  pla")
+                    if (operator == "+")
+                        asmgen.out("  clc |  adc  ($pointername),y")
+                    else
+                        asmgen.out("  sec |  sbc  ($pointername),y")
+                }
+                return true
             }
         }
-        println("TODO: OPTIMIZE POINTER PLUSMINUS  ${value.position}")
         return false
     }
 

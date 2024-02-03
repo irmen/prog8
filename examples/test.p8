@@ -10,15 +10,19 @@ main {
         ubyte @shared offset=4
         uword @shared az = $4000
         ubyte @shared value = 22
-        @($4004) = 99
-        az[4]--
-        @(az + offset)--
-        txt.print_ub(@($4004))
-        txt.nl()
-        az[4]++
-        @(az+offset)++
-        txt.print_ub(@($4004))
-        txt.nl()
+
+        cx16.r0H = value*4 + az[value]
+        cx16.r0L = az[value] + value*4
+
+;        @($4004) = 99
+;        az[4]--
+;        @(az + offset)--
+;        txt.print_ub(@($4004))
+;        txt.nl()
+;        az[4]++
+;        @(az+offset)++
+;        txt.print_ub(@($4004))
+;        txt.nl()
 ;        cx16.r0L = az[4] + value*5
 ;        cx16.r1L = value*5 + az[4]
 
