@@ -9,8 +9,6 @@ import kotlin.math.truncate
 sealed class PtExpression(val type: DataType, position: Position) : PtNode(position) {
 
     init {
-        if(type==DataType.BOOL)
-            throw IllegalArgumentException("bool should have become ubyte @$position")
         if(type==DataType.UNDEFINED) {
             @Suppress("LeakingThis")
             when(this) {

@@ -75,7 +75,7 @@ sub  print_b  (byte value)   {
 
 sub  print_ubhex  (ubyte value, ubyte prefix)  {
     ; ---- print the ubyte in hex form
-    if prefix
+    if prefix!=0
         chrout('$')
     conv.str_ubhex(value)
     print(conv.string_out)
@@ -83,7 +83,7 @@ sub  print_ubhex  (ubyte value, ubyte prefix)  {
 
 sub  print_ubbin  (ubyte value, ubyte prefix) {
     ; ---- print the ubyte in binary form
-    if prefix
+    if prefix!=0
         chrout('%')
     conv.str_ubbin(value)
     print(conv.string_out)
@@ -91,7 +91,7 @@ sub  print_ubbin  (ubyte value, ubyte prefix) {
 
 sub  print_uwbin  (uword value, ubyte prefix)  {
     ; ---- print the uword in binary form
-    if prefix
+    if prefix!=0
         chrout('%')
     conv.str_uwbin(value)
     print(conv.string_out)
@@ -99,7 +99,7 @@ sub  print_uwbin  (uword value, ubyte prefix)  {
 
 sub  print_uwhex  (uword value, ubyte prefix) {
     ; ---- print the uword in hexadecimal form (4 digits)
-    if prefix
+    if prefix!=0
         chrout('$')
     conv.str_uwhex(value)
     print(conv.string_out)

@@ -134,7 +134,7 @@ psg {
                 }
                 1 -> {
                     ; sustain
-                    if envelope_sustains[cx16.r1L] {
+                    if envelope_sustains[cx16.r1L]!=0 {
                         envelope_sustains[cx16.r1L]--
                     } else {
                         envelope_states[cx16.r1L] = 2  ; start release
@@ -143,7 +143,7 @@ psg {
                 2 -> {
                     ; release
                     cx16.r0 = envelope_volumes[cx16.r1L] - envelope_releases[cx16.r1L] * $0040
-                    if msb(cx16.r0) & %11000000 {
+                    if msb(cx16.r0) & %11000000 !=0 {
                         cx16.r0 = 0
                         envelope_releases[cx16.r1L] = 0
                     }

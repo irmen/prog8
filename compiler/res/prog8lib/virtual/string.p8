@@ -10,7 +10,7 @@ string {
         ; This value is determined during runtime and counts upto the first terminating 0 byte in the string,
         ; regardless of the size of the string during compilation time. Don’t confuse this with len and sizeof!
         ubyte count = 0
-        while st[count]
+        while st[count]!=0
             count++
         return count
     }
@@ -114,7 +114,7 @@ string {
         ubyte ix
         repeat {
             ubyte char=st[ix]
-            if not char
+            if char==0
                 return ix
             if char >= 'A' and char <= 'Z'
                 st[ix] = char | %00100000
@@ -127,7 +127,7 @@ string {
         ubyte ix
         repeat {
             ubyte char=st[ix]
-            if not char
+            if char==0
                 return ix
             if char >= 97 and char <= 122
                 st[ix] = char & %11011111
@@ -175,7 +175,7 @@ string {
         ubyte ix
         sys.clear_carry()
         repeat {
-            if st[ix] {
+            if st[ix]!=0 {
                 rol(hashcode)
                 hashcode ^= st[ix]
                 ix++

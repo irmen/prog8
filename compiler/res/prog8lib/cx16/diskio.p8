@@ -70,7 +70,7 @@ diskio {
             void cbm.CHRIN()     ; skip 2 bytes
             void cbm.CHRIN()
             status = cbm.READST()
-            if cbm.STOP2()
+            if cbm.STOP2()!=0
                 break
         }
         status = cbm.READST()
@@ -79,7 +79,7 @@ io_error:
         cbm.CLRCHN()        ; restore default i/o devices
         cbm.CLOSE(READ_IO_CHANNEL)
 
-        if status and status & $40 == 0 {            ; bit 6=end of file
+        if status!=0 and status & $40 == 0 {            ; bit 6=end of file
             txt.print("\ni/o error, status: ")
             txt.print_ub(status)
             txt.nl()
@@ -121,7 +121,7 @@ io_error:
 io_error:
         cbm.CLRCHN()
         cbm.CLOSE(READ_IO_CHANNEL)
-        if status and status & $40 == 0
+        if status!=0 and status & $40 == 0
             return 0
         return list_filename
     }
@@ -210,14 +210,14 @@ io_error:
             ubyte blocks_lsb = cbm.CHRIN()
             ubyte blocks_msb = cbm.CHRIN()
 
-            if cbm.READST()
+            if cbm.READST()!=0
                 goto close_end
 
             list_blocks = mkword(blocks_msb, blocks_lsb)
 
             ; read until the filename starts after the first "
             while cbm.CHRIN()!='\"'  {
-                if cbm.READST()
+                if cbm.READST()!=0
                     goto close_end
             }
 
@@ -240,7 +240,7 @@ io_error:
             list_filetype[0] = cx16.r15L
             list_filetype[1] = cbm.CHRIN()
             list_filetype[2] = cbm.CHRIN()
-            while cbm.CHRIN() {
+            while cbm.CHRIN()!=0 {
                 ; read the rest of the entry until the end
             }
 
@@ -248,7 +248,7 @@ io_error:
             void cbm.CHRIN()
 
             if not list_skip_disk_name {
-                if not list_pattern
+                if list_pattern==0
                     return true
                 if string.pattern_match(list_filename, list_pattern)
                     return true
@@ -308,14 +308,14 @@ close_end:
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
         ;    NOTE: cannot be used to load into VRAM.  Use vload() or call cx16.MACPTR() yourself with the vera data register as address.
-        if not iteration_in_progress or not num_bytes
+        if not iteration_in_progress or num_bytes==0
             return 0
 
         reset_read_channel()
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
 
         uword readsize
-        while num_bytes {
+        while num_bytes!=0 {
             readsize = 255
             if num_bytes<readsize
                 readsize = num_bytes
@@ -327,7 +327,7 @@ close_end:
             if msb(bufferpointer) == $c0
                 bufferpointer = mkword($a0, lsb(bufferpointer))  ; wrap over bank boundary
             num_bytes -= readsize
-            if cbm.READST() & $40 {
+            if cbm.READST() & $40 !=0 {
                 f_close()       ; end of file, close it
                 break
             }
@@ -341,10 +341,10 @@ byte_read_loop:         ; fallback if MACPTR isn't supported on the device
             lda  bufferpointer+1
             sta  m_in_buffer+2
         }}
-        while num_bytes {
-            if cbm.READST() {
+        while num_bytes!=0 {
+            if cbm.READST()!=0 {
                 f_close()
-                if cbm.READST() & $40    ; eof?
+                if cbm.READST() & $40 !=0    ; eof?
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
             }
@@ -371,7 +371,7 @@ m_in_buffer     sta  $ffff
 
         reset_read_channel()
         uword total_read = 0
-        while not cbm.READST() {
+        while cbm.READST()==0 {
             cx16.r0 = f_read(bufferpointer, 256)
             total_read += cx16.r0
             bufferpointer += cx16.r0
@@ -444,7 +444,7 @@ _end        rts
         cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, WRITE_IO_CHANNEL)
         void cbm.OPEN()             ; open 13,8,13,"filename"
         if_cc {
-            return not cbm.READST()
+            return cbm.READST()==0
         }
         cbm.CLOSE(WRITE_IO_CHANNEL)
         f_close_w()
@@ -466,7 +466,7 @@ _end        rts
                 if cbm.READST()!=0
                     return false
             } until num_bytes==0
-            return not cbm.READST()
+            return cbm.READST()==0
 
 no_mciout:
             ; the device doesn't support MCIOUT, use a normal per-byte write loop
@@ -474,7 +474,7 @@ no_mciout:
                 cbm.CHROUT(@(bufferpointer))
                 bufferpointer++
             }
-            return not cbm.READST()
+            return cbm.READST()==0
         }
         return true
     }
@@ -506,7 +506,7 @@ no_mciout:
             goto io_error
         void cbm.CHKIN(15)        ; use #15 as input channel
 
-        while not cbm.READST() {
+        while cbm.READST()==0 {
             cx16.r5L = cbm.CHRIN()
             if cx16.r5L=='\r' or cx16.r5L=='\n'
                 break
@@ -562,9 +562,9 @@ io_error:
         }}
 
         if_cc
-            cx16.r0L = cbm.READST()==0
+            cx16.r0L = cbm.READST()==0 as ubyte
 
-        return cx16.r0L
+        return cx16.r0L as bool
     }
 
     ; Use kernal LOAD routine to load the given program file in memory.
@@ -596,7 +596,7 @@ io_error:
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
-        if address_override
+        if address_override!=0
             secondary = 0
         if headerless
             secondary |= %00000010  ; activate cx16 kernal headerless load support
@@ -755,7 +755,7 @@ internal_vload:
         repeat 6 {
             void cbm.CHRIN()
         }
-        while cbm.CHRIN() {
+        while cbm.CHRIN()!=0 {
             ; skip first line (drive label)
         }
         while cbm.CHRIN()!='"' {
@@ -786,7 +786,7 @@ internal_vload:
 io_error:
         cbm.CLRCHN()
         cbm.CLOSE(READ_IO_CHANNEL)
-        if status and status & $40 == 0
+        if status!=0 and status & $40 == 0
             return 0
         if @(cx16.r12)==0 {
             cx16.r12--

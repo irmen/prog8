@@ -47,7 +47,7 @@ sprites {
         sprite_reg = VERA_SPRITEREGS + spritenum*$0008
         cx16.r0L = cx16.vpeek(1, sprite_reg)
         cx16.r0H = cx16.vpeek(1, sprite_reg+1)
-        cx16.r1L = cx16.r0H & %00001000 !=0     ; bank
+        cx16.r1L = cx16.r0H & %00001000 !=0 as ubyte     ; bank
         cx16.r0 <<= 5                           ; address
     }
 
@@ -96,8 +96,8 @@ sprites {
     sub move(ubyte spritenum, word dx, word dy) {
         ; move a sprite based on its current position
         sprite_reg = VERA_SPRITEREGS + 2 + spritenum*$0008
-        cx16.r1 = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dx
-        cx16.r2 = mkword(cx16.vpeek(1, sprite_reg+3), cx16.vpeek(1, sprite_reg+2)) as word + dy
+        cx16.r1s = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dx
+        cx16.r2s = mkword(cx16.vpeek(1, sprite_reg+3), cx16.vpeek(1, sprite_reg+2)) as word + dy
         cx16.vpoke(1, sprite_reg, cx16.r1L)
         cx16.vpoke(1, sprite_reg+1, cx16.r1H)
         cx16.vpoke(1, sprite_reg+2, cx16.r2L)
@@ -107,7 +107,7 @@ sprites {
     sub movex(ubyte spritenum, word dx) {
         ; move a sprite horizontally based on its current position
         sprite_reg = VERA_SPRITEREGS + 2 + spritenum*$0008
-        cx16.r1 = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dx
+        cx16.r1s = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dx
         cx16.vpoke(1, sprite_reg, cx16.r1L)
         cx16.vpoke(1, sprite_reg+1, cx16.r1H)
     }
@@ -115,7 +115,7 @@ sprites {
     sub movey(ubyte spritenum, word dy) {
         ; move a sprite vertically based on its current position
         sprite_reg = VERA_SPRITEREGS + 4 + spritenum*$0008
-        cx16.r1 = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dy
+        cx16.r1s = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word + dy
         cx16.vpoke(1, sprite_reg, cx16.r1L)
         cx16.vpoke(1, sprite_reg+1, cx16.r1H)
     }
@@ -135,11 +135,11 @@ sprites {
     }
 
     sub flipx(ubyte spritenum, bool flipped) {
-        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11111110, flipped)
+        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11111110, flipped as ubyte)
     }
 
     sub flipy(ubyte spritenum, bool flipped) {
-        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11111101, flipped<<1)
+        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11111101, (flipped as ubyte)<<1)
     }
 
     sub set_palette_offset(ubyte spritenum, ubyte offset) {
