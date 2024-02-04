@@ -164,32 +164,6 @@ class TestCompilerOnRanges: FunSpec({
         }
     }
 
-    test("testForLoopWithRange_bool_to_bool") {
-        val platform = Cx16Target()
-        val result = compileText(platform, optimize = true, """
-            main {
-                sub start() {
-                    ubyte i
-                    for i in false to true {
-                        i += i ; keep optimizer from removing it
-                    }
-                }
-            }
-        """)!!
-
-        val program = result.compilerAst
-        val startSub = program.entrypoint
-        val rangeExpr = startSub
-            .statements.filterIsInstance<ForLoop>()
-            .map { it.iterable }
-            .filterIsInstance<RangeExpression>()[0]
-
-        rangeExpr.size() shouldBe 2
-        val intProgression = rangeExpr.toConstantIntegerRange()
-        intProgression?.first shouldBe 0
-        intProgression?.last shouldBe 1
-    }
-
     test("testForLoopWithRange_ubyte_to_ubyte") {
         val platform = Cx16Target()
         val result = compileText(platform, optimize = true, """
@@ -421,7 +395,7 @@ class TestCompilerOnRanges: FunSpec({
             C64Target(), false, """
             main {
                 sub start() {
-                    ubyte xx
+                    bool xx
                     uword ww
                     str name = "irmen"
                     ubyte[] values = [1,2,3,4,5,6,7]

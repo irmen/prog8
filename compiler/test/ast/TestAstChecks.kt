@@ -85,14 +85,15 @@ class TestAstChecks: FunSpec({
                 sub start() {
                     ubyte[] array = [1,2,3,4]
                     str s1 = "test"
+                    bool bb1, bb2
                     ubyte ff = 1
                     txt.print(&s1+ff)
                     txt.print(&array+ff)
                     txt.print_uwhex(&s1+ff, true)
                     txt.print_uwhex(&array+ff, true)
                     ; also good:
-                    ff = (s1 == "derp")
-                    ff = (s1 != "derp")
+                    bb1 = (s1 == "derp")
+                    bb2 = (s1 != "derp")
                 }
             }
             """

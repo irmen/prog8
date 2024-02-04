@@ -11,4 +11,6 @@ interface IErrorReporter {
         if(numErrors>0)
             throw ErrorsReportedException("There are $numErrors errors, $numWarnings warnings, and $numInfos infos.")
     }
+
+    fun noErrorForLine(position: Position): Boolean
 }
