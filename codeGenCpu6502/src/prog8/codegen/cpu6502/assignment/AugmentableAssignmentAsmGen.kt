@@ -163,6 +163,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                     else -> {
+                        if(memory.address is PtBinaryExpression && tryOptimizedMemoryInplace(memory.address as PtBinaryExpression, operator, value))
+                            return
                         asmgen.assignExpressionToRegister(memory.address, RegisterOrPair.AY, false)
                         asmgen.saveRegisterStack(CpuRegister.A, true)
                         asmgen.saveRegisterStack(CpuRegister.Y, true)
@@ -472,6 +474,48 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
         }
+    }
+
+    private fun tryOptimizedMemoryInplace(address: PtBinaryExpression, operator: String, value: AsmAssignSource): Boolean {
+        if(value.datatype !in ByteDatatypes || operator !in "|&^+-")
+            return false
+        val rightTc = address.right as? PtTypeCast
+        val constOffset = (address.right as? PtNumber)?.number?.toInt()
+        if(address.operator=="+" && (address.right.type in ByteDatatypes || (rightTc!=null && rightTc.value.type in ByteDatatypes) || (constOffset!=null && constOffset<256)) ) {
+            if(rightTc!=null)
+                asmgen.assignExpressionToRegister(rightTc.value, RegisterOrPair.A, false)
+            else if(constOffset!=null)
+                asmgen.out("  lda  #${constOffset}")
+            else
+                asmgen.assignExpressionToRegister(address.right, RegisterOrPair.A, false)
+            asmgen.out("  pha")     // offset on stack
+            val zpPointerVarName: String
+            if(address.left is PtIdentifier && asmgen.isZpVar(address.left as PtIdentifier)) {
+                zpPointerVarName = (address.left as PtIdentifier).name
+            } else {
+                zpPointerVarName = "P8ZP_SCRATCH_W2"
+                asmgen.assignExpressionToRegister(address.left, RegisterOrPair.AY, false)
+                asmgen.out("  sta  $zpPointerVarName |  sty  $zpPointerVarName+1")
+            }
+            // calculate value into A
+            val assignValue = AsmAssignment(value,
+                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE,
+                    address.definingISub(), Position.DUMMY, register = RegisterOrPair.A),
+                program.memsizer, Position.DUMMY)
+            assignmentAsmGen.translateNormalAssignment(assignValue, address.definingISub())
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)   // offset into Y
+            when(operator) {
+                "|" -> asmgen.out("  ora  ($zpPointerVarName),y")
+                "&" -> asmgen.out("  and  ($zpPointerVarName),y")
+                "^" -> asmgen.out("  eor  ($zpPointerVarName),y")
+                "+" -> asmgen.out("  clc |  adc  ($zpPointerVarName),y")
+                "-" -> asmgen.out("  sta  P8ZP_SCRATCH_REG |  lda  ($zpPointerVarName),y |  sec |  sbc  P8ZP_SCRATCH_REG")
+                else -> throw AssemblyError("invalid op")
+            }
+            asmgen.out("  sta  ($zpPointerVarName),y")
+            return true
+        }
+        return false
     }
 
     private fun inplacemodificationSplitWordWithR0(arrayVar: String, index: Int, operator: String) {

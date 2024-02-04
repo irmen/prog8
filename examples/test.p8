@@ -11,10 +11,15 @@ main {
         uword @shared az = $4000
         ubyte @shared value = 22
 
-        az[20] = 99
-        az[2000] = 99
-        az[value] = 99
-        az[cx16.r0] = 99
+        az[20] |= 99
+        az[21] &= 99
+        az[22] ^= 99
+        az[23] += 99
+        az[24] -= 99
+;        az[2000] |= 99
+;        az[value] |= 99
+;        az[cx16.r0] |= 99
+
 ;        cx16.r0L = az[200]
 ;        cx16.r1L = az[2000]
 ;        cx16.r0L = az[value]
