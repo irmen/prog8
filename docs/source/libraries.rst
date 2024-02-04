@@ -106,7 +106,6 @@ sys (part of syslib)
     including the uninitialized ones ("BSS" variables) and the uninitialized memory blocks reserved by the `memory()` function.
     Can be used to load dynamic data after the program, instead of hardcoding something.
 
-
 ``wait (uword jiffies)``
     wait approximately the given number of jiffies (1/60th seconds)
     Note: the regular system irq handler has run for this to work as it depends on the system jiffy clock.
@@ -527,15 +526,23 @@ The compiler needs it for various built-in system routines.
 cx16
 ----
 This is available on *all targets*, it is always imported as part of syslib.
-On the Commander X16 this module contains a whole bunch of things specific to that machine.
+On the Commander X16 this module contains a *whole bunch* of things specific to that machine.
+It's way too much to include here, you have to study the
+`source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/syslib.p8>`_
+to see what is there.
+
 On the other targets, it only contains the definition of the 16 memory mapped virtual registers
-(cx16.r0 - cx16.r15) and the following two utility routines:
+(cx16.r0 - cx16.r15) and the following utility routines:
 
 ``save_virtual_registers()``
     save the values of all 16 virtual registers r0 - r15 in a buffer. Might be useful in an IRQ handler to avoid clobbering them.
 
 ``restore_virtual_registers()``
     restore the values of all 16 virtual registers r0 - r15 from the buffer. Might be useful in an IRQ handler to avoid clobbering them.
+
+``cpu_is_65816()``
+    Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
+
 
 bmx  (cx16 only)
 ----------------
