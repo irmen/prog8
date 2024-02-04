@@ -333,8 +333,8 @@ Provides string manipulation routines.
 ``endswith (string, suffix) -> bool``
     Returns true if string ends with suffix, otherwise false
 
-``pattern_match (string, pattern) -> ubyte`` (not on Virtual target)
-    Returns 1 (true) if the string matches the pattern, 0 (false) if not.
+``pattern_match (string, pattern) -> bool`` (not on Virtual target)
+    Returns true if the string matches the pattern, false if not.
     '?' in the pattern matches any one character. '*' in the pattern matches any substring.
 
 ``hash (string) -> ubyte``

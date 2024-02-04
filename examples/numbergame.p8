@@ -49,7 +49,7 @@ main {
         return
 
 
-        sub ending(ubyte success) {
+        sub ending(bool success) {
             if success
                 txt.print("\n\nYou guessed it, impressive!\n")
             else {

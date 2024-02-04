@@ -47,12 +47,12 @@ main {
 
     sub store_logo() {
         vtui.gotoxy(0, 0)
-        vtui.save_rect($80, 1, $0000, 7, 7)
+        vtui.save_rect($80, true, $0000, 7, 7)
     }
 
     sub store_where_logo_was() {
         vtui.gotoxy(0, 0)
-        vtui.save_rect($80, 1, $0100, 7, 7)
+        vtui.save_rect($80, true, $0100, 7, 7)
     }
 
     sub logo_mover() {
@@ -67,12 +67,12 @@ main {
 
 char_loop:
         ubyte char = cbm.GETIN()
-        if not char
+        if char==0
             goto char_loop
 
         when char {
             $91 -> {
-                if newy {
+                if newy!=0 {
                     newy--
                     move_logo()
                 }
@@ -84,7 +84,7 @@ char_loop:
                 }
             }
             $9d -> {
-                if newx {
+                if newx!=0 {
                     newx--
                     move_logo()
                 }
@@ -101,11 +101,11 @@ char_loop:
 
         sub move_logo() {
             vtui.gotoxy(xcoord, ycoord)
-            vtui.rest_rect($80, 1, $0100, 7, 7)
+            vtui.rest_rect($80, true, $0100, 7, 7)
             vtui.gotoxy(newx, newy)
-            vtui.save_rect($80, 1, $0100, 7, 7)
+            vtui.save_rect($80, true, $0100, 7, 7)
             vtui.gotoxy(newx, newy)
-            vtui.rest_rect($80, 1, $0000, 7, 7)
+            vtui.rest_rect($80, true, $0000, 7, 7)
             xcoord = newx
             ycoord = newy
         }

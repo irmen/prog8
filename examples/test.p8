@@ -1,37 +1,24 @@
 %import textio
-%option no_sysinit
 %zeropage basicsafe
+%option no_sysinit
 
 main {
-    sub rrrr() -> ubyte {
-        cx16.r0L++
-        return cx16.r0L
-    }
-
     sub start() {
-        cx16.r0L = rrrr() >= 128
+        bool[3] barr
+        bool @shared bb
 
-;        ubyte[] flakes = [1,2,3]
-;
-;        ubyte @shared idx = 2
-;
-;        if flakes[idx]==239 {
-;            txt.print("yes")
-;        } else {
-;            txt.print("nope")
-;        }
-;
-;        ubyte @shared xx = 16
-;        ubyte @shared yy = 20
-;
-;        txt.print_ub(xx>79 or yy > 49)
+        barr[1] = barr[0] and barr[2]
+        barr[1] = barr[0] or barr[2]
+        barr[1] = barr[0] xor barr[2]
+        barr[1] = not barr[0]
+        barr[1] = not barr[1]
+        barr[1] = barr[1] and bb
+        barr[1] = barr[1] or bb
+        barr[1] = barr[1] xor bb
 
-        ; if xx>79 or yy > 49 {
-;        if xx>79 or yy > 49 {
-;            txt.print("no\n")
-;        }
-;        else {
-;            txt.print("yes\n")
-;        }
+        bb = bb and barr[1]
+        bb = bb or barr[1]
+        bb = bb xor barr[1]
+        bb = not bb
     }
 }

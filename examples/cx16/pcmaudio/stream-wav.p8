@@ -172,7 +172,7 @@ interrupts {
     }
 
     sub handler() {
-        if cx16.VERA_ISR & %00001000 {
+        if cx16.VERA_ISR & %00001000 !=0 {
             ; Filling the fifo is the only way to clear the Aflow irq.
             ; So we do this here, otherwise the aflow irq will keep triggering.
             ; Note that filling the buffer with fresh audio samples is NOT done here,
@@ -182,7 +182,7 @@ interrupts {
             cx16.restore_virtual_registers()
             aflow = true
         }
-        if cx16.VERA_ISR & %00000001 {
+        if cx16.VERA_ISR & %00000001 !=0 {
             cx16.VERA_ISR = %00000001
             vsync = true
         }

@@ -128,7 +128,7 @@ main {
         }
 
 done:
-        if exponent
+        if exponent!=0
             result *= floats.pow(10, exponent)
 
         if negative

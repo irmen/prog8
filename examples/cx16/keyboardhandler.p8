@@ -34,7 +34,7 @@ main {
         ;       loop figure out what to do with it, rather than putting it all in the handler routine
         txt.print_ubhex(keynum, true)
         txt.spc()
-        if keynum & $80
+        if keynum & $80 !=0
             txt.chrout('u')
         else
             txt.chrout('d')
