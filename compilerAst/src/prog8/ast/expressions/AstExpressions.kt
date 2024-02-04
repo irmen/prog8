@@ -128,18 +128,14 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
             "+" -> inferred
             "not" -> InferredTypes.knownFor(DataType.BOOL)
             "~" -> {
-                when(inferred.getOr(DataType.UNDEFINED)) {
-                    in ByteDatatypes -> InferredTypes.knownFor(DataType.UBYTE)
-                    in WordDatatypes -> InferredTypes.knownFor(DataType.UWORD)
-                    else -> inferred
-                }
+                if(inferred.isBytes) InferredTypes.knownFor(DataType.UBYTE)
+                else if(inferred.isWords) InferredTypes.knownFor(DataType.UWORD)
+                else InferredTypes.InferredType.unknown()
             }
             "-" -> {
-                when(inferred.getOr(DataType.UNDEFINED)) {
-                    in ByteDatatypes -> InferredTypes.knownFor(DataType.BYTE)
-                    in WordDatatypes -> InferredTypes.knownFor(DataType.WORD)
-                    else -> inferred
-                }
+                if(inferred.isBytes) InferredTypes.knownFor(DataType.BYTE)
+                else if(inferred.isWords) InferredTypes.knownFor(DataType.WORD)
+                else inferred
             }
             else -> throw FatalAstException("weird prefix expression operator")
         }
@@ -225,7 +221,12 @@ class BinaryExpression(
                     }
                 }
             }
-            "&", "|", "^" -> if(leftDt istype DataType.BOOL) InferredTypes.knownFor(DataType.UBYTE) else leftDt
+            "&", "|", "^" -> when(leftDt.getOr(DataType.UNDEFINED)) {
+                DataType.BYTE -> InferredTypes.knownFor(DataType.UBYTE)
+                DataType.WORD -> InferredTypes.knownFor(DataType.UWORD)
+                DataType.BOOL -> InferredTypes.knownFor(DataType.UBYTE)
+                else -> leftDt
+            }
             "and", "or", "xor", "not", "in", "not in",
             "<", ">",
             "<=", ">=",
@@ -246,6 +247,12 @@ class BinaryExpression(
             // a combination with a float will be float (but give a warning about this!)
 
             return when (leftDt) {
+                DataType.BOOL -> {
+                    if(rightDt==DataType.BOOL)
+                        return Pair(DataType.BOOL, null)
+                    else
+                        return Pair(DataType.BOOL, right)
+                }
                 DataType.UBYTE -> {
                     when (rightDt) {
                         DataType.UBYTE -> Pair(DataType.UBYTE, null)
@@ -348,6 +355,10 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         expression.linkParents(this)
     }
 
+    init {
+        if(type==DataType.BOOL) require(!implicit) {"no implicit cast to boolean allowed"}
+    }
+
     override val isSimple = expression.isSimple
 
     override fun replaceChildNode(node: Node, replacement: Node) {
@@ -364,9 +375,9 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun inferType(program: Program) = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteral? {
         val cv = expression.constValue(program) ?: return null
-        val cast = cv.cast(type)
+        val cast = cv.cast(type, implicit)
         return if(cast.isValid) {
-            val newval = cast.value!!
+            val newval = cast.valueOrZero()
             newval.linkParents(parent)
             return newval
         }
@@ -482,7 +493,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
-                NumericLiteral(DataType.UBYTE, if(bool) 1.0 else 0.0, position)
+                NumericLiteral(DataType.BOOL, if(bool) 1.0 else 0.0, position)
 
         fun optimalNumeric(value: Number, position: Position): NumericLiteral {
             val digits = floor(value.toDouble()) - value.toDouble()
@@ -523,11 +534,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         }
     }
 
-    init {
-        if(type==DataType.BOOL)
-            throw FatalAstException("should not create NumericLiteral with BOOL type @$position")
-    }
-
     val asBooleanValue: Boolean = number != 0.0
 
     override fun linkParents(parent: Node) {
@@ -566,17 +572,29 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     operator fun compareTo(other: NumericLiteral): Int = number.compareTo(other.number)
 
-    data class ValueAfterCast(val isValid: Boolean, val whyFailed: String?, val value: NumericLiteral?)
+    class ValueAfterCast(val isValid: Boolean, val whyFailed: String?, private val value: NumericLiteral?) {
+        fun valueOrZero() = if(isValid) value!! else NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        fun linkParent(parent: Node) {
+            value?.linkParents(parent)
+        }
+    }
 
-    fun cast(targettype: DataType): ValueAfterCast {
-        val result = internalCast(targettype)
-        result.value?.linkParents(this.parent)
+    fun cast(targettype: DataType, implicit: Boolean): ValueAfterCast {
+        val result = internalCast(targettype, implicit)
+        result.linkParent(this.parent)
         return result
     }
 
-    private fun internalCast(targettype: DataType): ValueAfterCast {
+    private fun internalCast(targettype: DataType, implicit: Boolean): ValueAfterCast {
         if(type==targettype)
             return ValueAfterCast(true, null, this)
+        if (implicit) {
+            if (targettype == DataType.BOOL)
+                return ValueAfterCast(false, "no implicit cast to boolean allowed", this)
+            if (targettype in IntegerDatatypes && type==DataType.BOOL)
+                return ValueAfterCast(false, "no implicit cast from boolean to integer allowed", this)
+        }
+
         when(type) {
             DataType.UBYTE -> {
                 if(targettype==DataType.BYTE)
@@ -660,14 +678,15 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                     if(targettype==DataType.LONG && number >=0 && number <= 2147483647)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if(targettype==DataType.BOOL)
-                        return ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
                 } catch (x: ExpressionError) {
                     return ValueAfterCast(false, x.message,null)
                 }
             }
             DataType.BOOL -> {
-                return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
+                if(implicit)
+                    return ValueAfterCast(false, "no implicit cast from boolean to integer allowed", null)
+                else if(targettype in IntegerDatatypes)
+                    return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
             DataType.LONG -> {
                 try {
@@ -679,8 +698,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                     if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if(targettype==DataType.BOOL)
-                        return ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
                     if(targettype==DataType.FLOAT)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 } catch (x: ExpressionError) {
@@ -691,7 +708,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 throw FatalAstException("type cast of weird type $type")
             }
         }
-        return ValueAfterCast(false, "no cast available between these types", null)
+        return ValueAfterCast(false, "no cast available from $type to $targettype", null)
     }
 }
 
@@ -839,6 +856,12 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             DataType.WORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_W)
             DataType.UWORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
             DataType.BYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_B)
+            DataType.BOOL in dts -> {
+                if(dts.all { it==DataType.BOOL})
+                    InferredTypes.InferredType.known(DataType.ARRAY_BOOL)
+                else
+                    InferredTypes.InferredType.unknown()
+            }
             DataType.UBYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UB)
             DataType.ARRAY_UW in dts ||
                 DataType.ARRAY_W in dts ||
@@ -862,24 +885,33 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             // otherwise: return null (cast cannot be done)
 
             if(value.all { it is NumericLiteral }) {
-                val castArray = value.map {
-                    val cast = (it as NumericLiteral).cast(elementType)
-                    if(cast.isValid)
-                        cast.value!! as Expression
-                    else
-                        return null // abort
-                }.toTypedArray()
-                return ArrayLiteral(InferredTypes.InferredType.known(targettype), castArray, position = position)
+                val castArray = if(elementType==DataType.BOOL) {
+                    value.map {
+                        if((it as NumericLiteral).type==DataType.BOOL)
+                            it
+                        else
+                            return null // abort
+                    }
+                } else {
+                    value.map {
+                        val cast = (it as NumericLiteral).cast(elementType, true)
+                        if(cast.isValid)
+                            cast.valueOrZero()
+                        else
+                            return null // abort
+                    }
+                }
+                return ArrayLiteral(InferredTypes.InferredType.known(targettype), castArray.toTypedArray(), position = position)
             }
             else if(elementType in WordDatatypes && value.all { it is NumericLiteral || it is AddressOf || it is IdentifierReference}) {
                 val castArray = value.map {
                     when(it) {
-                        is AddressOf -> it
-                        is IdentifierReference -> it
+                        is AddressOf -> it as Expression
+                        is IdentifierReference -> it as Expression
                         is NumericLiteral -> {
-                            val numcast = it.cast(elementType)
+                            val numcast = it.cast(elementType, true)
                             if(numcast.isValid)
-                                numcast.value!!
+                                numcast.valueOrZero() as Expression
                             else
                                 return null     // abort
                         }
