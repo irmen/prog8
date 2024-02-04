@@ -93,21 +93,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
                 ExpressionCodeResult(result, vmDt, resultRegister, -1)
             }
-            is PtMemoryByte -> {
-                val result = mutableListOf<IRCodeChunkBase>()
-                if(expr.address is PtNumber) {
-                    val address = (expr.address as PtNumber).number.toInt()
-                    val resultRegister = codeGen.registers.nextFree()
-                    addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, address = address), null)
-                    ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
-                } else {
-                    val tr = translateExpression(expr.address)
-                    addToResult(result, tr, tr.resultReg, -1)
-                    val resultReg = codeGen.registers.nextFree()
-                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=resultReg, reg2=tr.resultReg), null)
-                    ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
-                }
-            }
+            is PtMemoryByte -> translate(expr)
             is PtTypeCast -> translate(expr)
             is PtPrefix -> translate(expr)
             is PtArrayIndexer -> translate(expr)
@@ -120,6 +106,49 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
             else -> throw AssemblyError("weird expression")
         }
+    }
+
+    private fun translate(mem: PtMemoryByte): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val resultRegister = codeGen.registers.nextFree()
+
+        val constAddress = mem.address as? PtNumber
+        if(constAddress!=null) {
+            addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, address = constAddress.number.toInt()), null)
+            return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+        }
+
+        val ptrWithOffset = mem.address as? PtBinaryExpression
+        if(ptrWithOffset!=null && ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier) {
+            if((ptrWithOffset.right as? PtNumber)?.number?.toInt() in 0..255) {
+                // LOADIX only works with byte index.
+                val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                val offsetReg = codeGen.registers.nextFree()
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = ptrWithOffset.right.asConstInteger())
+                    it += IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=resultRegister, reg2=offsetReg, labelSymbol = ptrName)
+                }
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+            }
+        }
+        val offsetTypecast = ptrWithOffset?.right as? PtTypeCast
+        if(ptrWithOffset!=null && ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier
+            && (ptrWithOffset.right.type in ByteDatatypes || offsetTypecast?.value?.type in ByteDatatypes)) {
+            // LOADIX only works with byte index.
+            val tr = if(offsetTypecast?.value?.type in ByteDatatypes)
+                translateExpression(offsetTypecast!!.value)
+            else
+                translateExpression(ptrWithOffset.right)
+            addToResult(result, tr, tr.resultReg, -1)
+            val ptrName = (ptrWithOffset.left as PtIdentifier).name
+            addInstr(result, IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=resultRegister, reg2=tr.resultReg, labelSymbol = ptrName), null)
+            return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+        }
+
+        val tr = translateExpression(mem.address)
+        addToResult(result, tr, tr.resultReg, -1)
+        addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=resultRegister, reg2=tr.resultReg), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
     }
 
     private fun translate(check: PtContainmentCheck): ExpressionCodeResult {

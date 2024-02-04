@@ -1516,19 +1516,54 @@ class IRCodeGen(
             if(ident!=null) {
                 addInstr(result, IRInstruction(operationMem, irDt, labelSymbol = ident.name), null)
             } else if(memory!=null) {
-                if(memory.address is PtNumber) {
-                    val address = (memory.address as PtNumber).number.toInt()
-                    addInstr(result, IRInstruction(operationMem, irDt, address = address), null)
-                } else {
-                    val tr = expressionEval.translateExpression(memory.address)
-                    addToResult(result, tr, tr.resultReg, -1)
-                    result += IRCodeChunk(null, null).also {
+                val constAddress = memory.address as? PtNumber
+                if(constAddress!=null) {
+                    addInstr(result, IRInstruction(operationMem, irDt, address = constAddress.number.toInt()), null)
+                    return result
+                }
+                val ptrWithOffset = memory.address as? PtBinaryExpression
+                if(ptrWithOffset!=null && ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier) {
+                    if((ptrWithOffset.right as? PtNumber)?.number?.toInt() in 0..255) {
+                        // LOADIX only works with byte index.
+                        val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                        val offsetReg = registers.nextFree()
                         val incReg = registers.nextFree()
-                        it += IRInstruction(Opcode.LOADI, irDt, reg1 = incReg, reg2 = tr.resultReg)
-                        it += IRInstruction(operationRegister, irDt, reg1 = incReg)
-                        it += IRInstruction(Opcode.STOREI, irDt, reg1 = incReg, reg2 = tr.resultReg)
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = ptrWithOffset.right.asConstInteger())
+                            it += IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=incReg, reg2=offsetReg, labelSymbol = ptrName)
+                            it += IRInstruction(operationRegister, irDt, reg1 = incReg)
+                            it += IRInstruction(Opcode.STOREIX, IRDataType.BYTE, reg1=incReg, reg2=offsetReg, labelSymbol = ptrName)
+                        }
+                        return result
                     }
                 }
+                val offsetTypecast = ptrWithOffset?.right as? PtTypeCast
+                if(ptrWithOffset!=null && ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier
+                    && (ptrWithOffset.right.type in ByteDatatypes || offsetTypecast?.value?.type in ByteDatatypes)) {
+                    // LOADIX only works with byte index.
+                    val tr = if(offsetTypecast?.value?.type in ByteDatatypes)
+                        expressionEval.translateExpression(offsetTypecast!!.value)
+                    else
+                        expressionEval.translateExpression(ptrWithOffset.right)
+                    addToResult(result, tr, tr.resultReg, -1)
+                    val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                    result += IRCodeChunk(null, null).also {
+                        val incReg = registers.nextFree()
+                        it += IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=incReg, reg2=tr.resultReg, labelSymbol = ptrName)
+                        it += IRInstruction(operationRegister, irDt, reg1 = incReg)
+                        it += IRInstruction(Opcode.STOREIX, IRDataType.BYTE, reg1=incReg, reg2=tr.resultReg, labelSymbol = ptrName)
+                    }
+                    return result
+                }
+                val tr = expressionEval.translateExpression(memory.address)
+                addToResult(result, tr, tr.resultReg, -1)
+                result += IRCodeChunk(null, null).also {
+                    val incReg = registers.nextFree()
+                    it += IRInstruction(Opcode.LOADI, irDt, reg1 = incReg, reg2 = tr.resultReg)
+                    it += IRInstruction(operationRegister, irDt, reg1 = incReg)
+                    it += IRInstruction(Opcode.STOREI, irDt, reg1 = incReg, reg2 = tr.resultReg)
+                }
+                return result
             } else if (array!=null) {
                 val variable = array.variable.name
                 val itemsize = program.memsizer.memorySize(array.type)

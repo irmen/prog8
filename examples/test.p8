@@ -11,9 +11,16 @@ main {
         uword @shared az = $4000
         ubyte @shared value = 22
 
-        cx16.r0H = value*4 + az[value]
-        cx16.r0L = az[value] + value*4
-
+        az[20] = 99
+        az[2000] = 99
+        az[value] = 99
+        az[cx16.r0] = 99
+;        cx16.r0L = az[200]
+;        cx16.r1L = az[2000]
+;        cx16.r0L = az[value]
+;        cx16.r0H = value*4 + az[value]
+;        cx16.r0L = az[value] + value*4
+;
 ;        @($4004) = 99
 ;        az[4]--
 ;        @(az + offset)--
@@ -26,15 +33,6 @@ main {
 ;        cx16.r0L = az[4] + value*5
 ;        cx16.r1L = value*5 + az[4]
 
-;        ubyte @shared idx = 1
-;        txt.print_w(array[idx])
-;        txt.nl()
-;        txt.print_w(-array[idx])
-;        txt.nl()
-;        array[idx] = -array[idx]
-;        txt.print_w(array[idx])
-;        txt.nl()
-;
 
 ;        ubyte @shared xx
 ;        ubyte[3] ubarr
