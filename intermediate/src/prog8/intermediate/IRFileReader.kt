@@ -214,9 +214,10 @@ class IRFileReader {
                     in ArrayDatatypes -> {
                         initArray = value.split(',').map {
                             if (it.startsWith('@'))
-                                StArrayElement(null, it.drop(1))
+                                StArrayElement(null, it.drop(1), null)
                             else
-                                StArrayElement(parseIRValue(it).toDouble(), null)
+                                StArrayElement(parseIRValue(it), null, null)
+                            // TODO Boolean IR value?
                         }
                     }
                     DataType.STR -> throw IRParseException("STR should have been converted to byte array")

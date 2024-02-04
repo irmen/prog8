@@ -726,7 +726,7 @@ internal class ProgramAndVarsGen(
     private fun zeroFilledArray(numElts: Int): StArray {
         val values = mutableListOf<StArrayElement>()
         repeat(numElts) {
-            values.add(StArrayElement(0.0, null))
+            values.add(StArrayElement(0.0, null, null))
         }
         return values
     }

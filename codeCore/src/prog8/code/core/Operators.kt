@@ -2,7 +2,7 @@ package prog8.code.core
 
 val AssociativeOperators = setOf("+", "*", "&", "|", "^", "==", "!=", "and", "or", "xor")
 val ComparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
-val LogicalOperators = setOf("and", "or", "xor", "not")
+val LogicalOperators = setOf("and", "or", "xor", "not", "in")
 val BitwiseOperators = setOf("&", "|", "^", "~")
 val PrefixOperators = setOf("+", "-", "~", "not")
 

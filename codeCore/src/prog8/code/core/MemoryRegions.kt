@@ -71,7 +71,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
 
         val size: Int =
                 when (datatype) {
-                    in IntegerDatatypes -> options.compTarget.memorySize(datatype)
+                    in IntegerDatatypesWithBoolean -> options.compTarget.memorySize(datatype)
                     DataType.STR, in ArrayDatatypes  -> {
                         val memsize = options.compTarget.memorySize(datatype, numElements!!)
                         if(position!=null)
@@ -119,7 +119,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
         free.removeAll(address until address+size.toUInt())
         if(name.isNotEmpty()) {
             allocatedVariables[name] = when(datatype) {
-                in NumericDatatypes -> VarAllocation(address, datatype, size)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
+                in NumericDatatypes, DataType.BOOL -> VarAllocation(address, datatype, size)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
                 DataType.STR -> VarAllocation(address, datatype, size)
                 in ArrayDatatypes -> VarAllocation(address, datatype, size)
                 else -> throw AssemblyError("invalid dt")
@@ -151,7 +151,7 @@ class GoldenRam(options: CompilationOptions, val region: UIntRange): MemoryAlloc
 
         val size: Int =
             when (datatype) {
-                in IntegerDatatypes -> options.compTarget.memorySize(datatype)
+                in IntegerDatatypesWithBoolean -> options.compTarget.memorySize(datatype)
                 DataType.STR, in ArrayDatatypes  -> {
                     options.compTarget.memorySize(datatype, numElements!!)
                 }
