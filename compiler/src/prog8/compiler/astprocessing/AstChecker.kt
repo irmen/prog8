@@ -1100,7 +1100,7 @@ internal class AstChecker(private val program: Program,
             errors.err("this expression doesn't return a value", typecast.expression.position)
 
         if(typecast.expression is NumericLiteral) {
-            val castResult = (typecast.expression as NumericLiteral).cast(typecast.type)
+            val castResult = (typecast.expression as NumericLiteral).cast(typecast.type, typecast.implicit)
             if(castResult.isValid)
                 throw FatalAstException("cast should have been performed in const eval already")
             errors.err(castResult.whyFailed!!, typecast.expression.position)
@@ -1673,11 +1673,11 @@ internal class AstChecker(private val program: Program,
                 is IdentifierReference -> it.nameInSource.hashCode() and 0xffff
                 is TypecastExpression -> {
                     val constVal = it.expression.constValue(program)
-                    val cast = constVal?.cast(it.type)
+                    val cast = constVal?.cast(it.type, true)
                     if(cast==null || !cast.isValid)
                         -9999999
                     else
-                        cast.value!!.number.toInt()
+                        cast.valueOrZero().number.toInt()
                 }
                 else -> -9999999
             }

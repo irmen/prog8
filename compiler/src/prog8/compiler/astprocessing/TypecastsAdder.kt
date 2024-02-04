@@ -205,9 +205,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     return modifications
                 } else {
                     fun castLiteral(cvalue2: NumericLiteral): List<IAstModification.ReplaceNode> {
-                        val cast = cvalue2.cast(targettype)
+                        val cast = cvalue2.cast(targettype, true)
                         return if(cast.isValid)
-                            listOf(IAstModification.ReplaceNode(assignment.value, cast.value!!, assignment))
+                            listOf(IAstModification.ReplaceNode(assignment.value, cast.valueOrZero(), assignment))
                         else
                             emptyList()
                     }
@@ -314,7 +314,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val modifications = mutableListOf<IAstModification>()
         val dt = memread.addressExpression.inferType(program)
         if(dt.isKnown && dt.getOr(DataType.UWORD)!=DataType.UWORD) {
-            val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(DataType.UWORD)?.value
+            val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(DataType.UWORD, true)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memread.addressExpression, castedValue, memread)
             else
@@ -328,7 +328,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val modifications = mutableListOf<IAstModification>()
         val dt = memwrite.addressExpression.inferType(program)
         if(dt.isKnown && dt.getOr(DataType.UWORD)!=DataType.UWORD) {
-            val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(DataType.UWORD)?.value
+            val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(DataType.UWORD, true)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memwrite.addressExpression, castedValue, memwrite)
             else
@@ -349,9 +349,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
                     return noModifications
                 if (returnValue is NumericLiteral) {
-                    val cast = returnValue.cast(subReturnType)
+                    val cast = returnValue.cast(subReturnType, true)
                     if(cast.isValid)
-                        returnStmt.value = cast.value
+                        returnStmt.value = cast.valueOrZero()
                 } else {
                     val modifications = mutableListOf<IAstModification>()
                     addTypecastOrCastedValueModification(modifications, returnValue, subReturnType, returnStmt)
@@ -399,12 +399,12 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         if(sourceDt == requiredType)
             return
         if(expressionToCast is NumericLiteral && expressionToCast.type!=DataType.FLOAT) { // refuse to automatically truncate floats
-            val castedValue = expressionToCast.cast(requiredType)
+            val castedValue = expressionToCast.cast(requiredType, true)
             if (castedValue.isValid) {
                 val signOriginal = sign(expressionToCast.number)
-                val signCasted = sign(castedValue.value!!.number)
+                val signCasted = sign(castedValue.valueOrZero().number)
                 if(signOriginal==signCasted) {
-                    modifications += IAstModification.ReplaceNode(expressionToCast, castedValue.value!!, parent)
+                    modifications += IAstModification.ReplaceNode(expressionToCast, castedValue.valueOrZero(), parent)
                 }
                 return
             }
