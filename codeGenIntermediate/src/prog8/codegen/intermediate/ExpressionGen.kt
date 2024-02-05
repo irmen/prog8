@@ -1092,7 +1092,30 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorLogicalAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("and")
+            val result = mutableListOf<IRCodeChunkBase>()
+            val constIndex = array.index.asConstInteger()
+            val constValue = operand.asConstInteger()
+            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            if(constIndex!=null && constValue!=null) {
+                if(array.splitWords) {
+                    val valueRegLsb = codeGen.registers.nextFree()
+                    val valueRegMsb = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegLsb, immediate=constValue and 255)
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegMsb, immediate=constValue shr 8)
+                        it += IRInstruction(Opcode.ANDM, vmDt, reg1=valueRegLsb, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex)
+                        it += IRInstruction(Opcode.ANDM, vmDt, reg1=valueRegMsb, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex)
+                    }
+                } else {
+                    val valueReg = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate=constValue)
+                        it += IRInstruction(Opcode.ANDM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                }
+                return Ok(result)
+            }
+            return Err(NotImplementedError("inplace word array and"))  // TODO?
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place and"))  // TODO
@@ -1169,7 +1192,30 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorLogicalOrInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("or")
+            val result = mutableListOf<IRCodeChunkBase>()
+            val constIndex = array.index.asConstInteger()
+            val constValue = operand.asConstInteger()
+            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            if(constIndex!=null && constValue!=null) {
+                if(array.splitWords) {
+                    val valueRegLsb = codeGen.registers.nextFree()
+                    val valueRegMsb = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegLsb, immediate=constValue and 255)
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueRegMsb, immediate=constValue shr 8)
+                        it += IRInstruction(Opcode.ORM, vmDt, reg1=valueRegLsb, labelSymbol = array.variable.name+"_lsb", symbolOffset = constIndex)
+                        it += IRInstruction(Opcode.ORM, vmDt, reg1=valueRegMsb, labelSymbol = array.variable.name+"_msb", symbolOffset = constIndex)
+                    }
+                } else {
+                    val valueReg = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate=constValue)
+                        it += IRInstruction(Opcode.ORM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                }
+                return Ok(result)
+            }
+            return Err(NotImplementedError("inplace word array or"))  // TODO?
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place or"))  // TODO
@@ -1206,7 +1252,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorDivideInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("/")
+            TODO("/ in array")
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place /"))  // TODO
@@ -1261,7 +1307,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorMultiplyInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("*")
+            TODO("* in array")
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place *"))  // TODO
@@ -1475,7 +1521,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorShiftRightInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO(">>")
+            TODO(">> in array")
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place >>"))  // TODO
@@ -1503,7 +1549,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorShiftLeftInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("<<")
+            TODO("<< in array")
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place <<"))  // TODO
@@ -1552,7 +1598,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
                 return Ok(result)
             }
-            return Err(NotImplementedError("inplace word array ^"))  // TODO?
+            return Err(NotImplementedError("inplace word array xor"))  // TODO?
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place xor"))  // TODO
@@ -1570,7 +1616,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun operatorModuloInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): Result<IRCodeChunks, NotImplementedError> {
         if(array!=null) {
-            TODO("%")
+            TODO("% in array")
         }
         if(constAddress==null && memory!=null)
             return Err(NotImplementedError("optimized memory in-place %"))  // TODO
