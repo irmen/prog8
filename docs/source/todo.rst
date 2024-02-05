@@ -1,6 +1,9 @@
 TODO
 ====
 
+while not cx16.mouse_pos()  should give error
+
+
 ConstantFoldingOptimizer (after merging master):
    after(numLiteral..) :  check that cast to/from BOOL is not done??
 
@@ -27,6 +30,7 @@ ok    ok     boolean values in ubyte array should give type error
 ok    ok     while booleanvar==42    should give type error
 ok    ok     do..until booleanvar==42    should give type error
 ok    ok     while not <integervar>   should give type error
+FAIL  .      while not <integer functioncall>   should give type error
 ok    .      while boolean  should produce identical code as  while integer!=0
 ok    .      while not guessed  -> can we get rid of the cmp?
 ok    .      if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint
@@ -46,10 +50,6 @@ boolean trick to go from a compare >= value, to a bool
     cmp #value
 	rol  a
 	and  #1
-
-maze 6502:
-  if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0
-              ^^ adding this !=0 caused a weird beq + / lda #1 / +  to appear in front of the shortcircuit beq...
 
 
 IR: add TEST instruction to test memory content and set N/Z flags, without affecting any register.

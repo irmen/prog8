@@ -222,6 +222,7 @@ class IRCodeGen(
             is PtTypeCast,
             is PtSubroutineParameter,
             is PtNumber,
+            is PtBool,
             is PtArray,
             is PtBlock,
             is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
@@ -869,96 +870,62 @@ class IRCodeGen(
     }
 
     private fun translate(ifElse: PtIfElse): IRCodeChunks {
-        val condition = ifElse.condition
         val goto = ifElse.ifScope.children.firstOrNull() as? PtJump
-        when (condition) {
-            is PtBinaryExpression -> {
-                if(condition.operator !in ComparisonOperators)
-                    throw AssemblyError("if condition should only be a binary comparison expression")
-
-                val signed = condition.left.type in SignedDatatypes
-                val irDtLeft = irType(condition.left.type)
-                return when {
-                    goto!=null && ifElse.elseScope.children.isEmpty() -> translateIfFollowedByJustGoto(ifElse, goto, irDtLeft, signed)
-                    constValue(condition.right) == 0.0 -> translateIfElseZeroComparison(ifElse, irDtLeft, signed)
-                    else -> translateIfElseNonZeroComparison(ifElse, irDtLeft, signed)
-                }
-            }
-            else -> {
-                // if X   --> meaning:  if X!=0
-                val irDt = irType(condition.type)
-                val signed = condition.type in SignedDatatypes
-                return if(goto!=null && ifElse.elseScope.children.isEmpty()) {
-                    translateIfFollowedByJustGoto(ifElse, goto, irDt, signed)
-                } else {
-                    translateIfElseNonZeroComparison(ifElse, irDt, signed)
-                }
-            }
+        return if(goto!=null && ifElse.elseScope.children.isEmpty()) {
+            translateIfFollowedByJustGoto(ifElse, goto)
+        } else {
+            translateIfElse(ifElse)
         }
     }
 
-
-    private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump, irDtLeft: IRDataType, signed: Boolean): MutableList<IRCodeChunkBase> {
+    private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump): MutableList<IRCodeChunkBase> {
         if(isIndirectJump(goto))
             TODO("indirect jump after if ${ifElse.position}")
 
         val condition = ifElse.condition as? PtBinaryExpression
+        if(condition==null || condition.left.type!=DataType.FLOAT)
+            return ifWithOnlyJump_IntegerCond(ifElse, goto)
+
+        // we assume only a binary expression can contain a floating point.
         val result = mutableListOf<IRCodeChunkBase>()
-        if(condition==null) {
-            if(irDtLeft==IRDataType.FLOAT)
-                throw AssemblyError("condition value should not be float")
-            ifNonZeroIntThenJump(result, ifElse, signed, irDtLeft, goto)
-            return result
-        } else {
-            if (irDtLeft == IRDataType.FLOAT) {
-                val leftTr = expressionEval.translateExpression(condition.left)
-                addToResult(result, leftTr, -1, leftTr.resultFpReg)
-                val rightTr = expressionEval.translateExpression(condition.right)
-                addToResult(result, rightTr, -1, rightTr.resultFpReg)
-                result += IRCodeChunk(null, null).also {
-                    val compResultReg = registers.nextFree()
-                    it += IRInstruction(
-                        Opcode.FCOMP,
-                        IRDataType.FLOAT,
-                        reg1 = compResultReg,
-                        fpReg1 = leftTr.resultFpReg,
-                        fpReg2 = rightTr.resultFpReg
-                    )
-                    when(condition.operator) {
-                        "==" -> {
-                            it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
-                            it += branchInstr(goto, Opcode.BSTEQ)
-                        }
-                        "!=" -> {
-                            it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
-                            it += branchInstr(goto, Opcode.BSTNE)
-                        }
-                        else -> {
-                            val gotoOpcode = when (condition.operator) {
-                                "<" -> Opcode.BLTS
-                                ">" -> Opcode.BGTS
-                                "<=" -> Opcode.BLES
-                                ">=" -> Opcode.BGES
-                                else -> throw AssemblyError("weird operator")
-                            }
-                            it += if (goto.address != null)
-                                IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, address = goto.address?.toInt())
-                            else
-                                IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = goto.identifier!!.name)
-                        }
+        val leftTr = expressionEval.translateExpression(condition.left)
+        addToResult(result, leftTr, -1, leftTr.resultFpReg)
+        val rightTr = expressionEval.translateExpression(condition.right)
+        addToResult(result, rightTr, -1, rightTr.resultFpReg)
+        result += IRCodeChunk(null, null).also {
+            val compResultReg = registers.nextFree()
+            it += IRInstruction(
+                Opcode.FCOMP,
+                IRDataType.FLOAT,
+                reg1 = compResultReg,
+                fpReg1 = leftTr.resultFpReg,
+                fpReg2 = rightTr.resultFpReg
+            )
+            when(condition.operator) {
+                "==" -> {
+                    it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
+                    it += branchInstr(goto, Opcode.BSTEQ)
+                }
+                "!=" -> {
+                    it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
+                    it += branchInstr(goto, Opcode.BSTNE)
+                }
+                else -> {
+                    val gotoOpcode = when (condition.operator) {
+                        "<" -> Opcode.BLTS
+                        ">" -> Opcode.BGTS
+                        "<=" -> Opcode.BLES
+                        ">=" -> Opcode.BGES
+                        else -> throw AssemblyError("weird operator")
                     }
+                    it += if (goto.address != null)
+                        IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, address = goto.address?.toInt())
+                    else
+                        IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = goto.identifier!!.name)
                 }
-                return result
-            } else {
-                val rightConst = condition.right.asConstInteger()
-                if (rightConst == 0)
-                    ifZeroIntThenJump(result, ifElse, signed, irDtLeft, goto)
-                else {
-                    ifNonZeroIntThenJump(result, ifElse, signed, irDtLeft, goto)
-                }
-                return result
             }
         }
+        return result
     }
 
     private fun branchInstr(goto: PtJump, branchOpcode: Opcode): IRInstruction {
@@ -970,74 +937,31 @@ class IRCodeGen(
         }
     }
 
-    private fun ifZeroIntThenJump(
-        result: MutableList<IRCodeChunkBase>,
-        ifElse: PtIfElse,
-        signed: Boolean,
-        irDtLeft: IRDataType,
-        goto: PtJump
-    ) {
-        val condition = ifElse.condition as PtBinaryExpression
-        val leftTr = expressionEval.translateExpression(condition.left)
-        addToResult(result, leftTr, leftTr.resultReg, -1)
-        val lastInstruction = leftTr.chunks.last().instructions.lastOrNull()
-        val requireCompareZero = lastInstruction?.opcode !in OpcodesThatSetStatusbits
-        when(condition.operator) {
-            "==" -> {
-                if(requireCompareZero)
-                    addInstr(result, IRInstruction(Opcode.CMPI, irDtLeft, reg1 = leftTr.resultReg, immediate = 0), null)
-                addInstr(result, branchInstr(goto, Opcode.BSTEQ), null)
-            }
-            "!=" -> {
-                if(requireCompareZero)
-                    addInstr(result, IRInstruction(Opcode.CMPI, irDtLeft, reg1 = leftTr.resultReg, immediate = 0), null)
-                addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
-            }
-            else -> {
-                val opcode = when (condition.operator) {
-                    "<" -> if (signed) Opcode.BLTS else Opcode.BLT
-                    ">" -> if (signed) Opcode.BGTS else Opcode.BGT
-                    "<=" -> if (signed) Opcode.BLES else Opcode.BLE
-                    ">=" -> if (signed) Opcode.BGES else Opcode.BGE
-                    else -> throw AssemblyError("invalid comparison operator")
-                }
-                if (goto.address != null)
-                    addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = leftTr.resultReg, immediate = 0, address = goto.address?.toInt()), null)
-                else
-                    addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = leftTr.resultReg, immediate = 0, labelSymbol = goto.identifier!!.name), null)
-            }
-        }
-    }
+    private fun ifWithOnlyJump_IntegerCond(ifElse: PtIfElse, goto: PtJump): MutableList<IRCodeChunkBase> {
+        val result = mutableListOf<IRCodeChunkBase>()
 
-    private fun ifNonZeroIntThenJump(
-        result: MutableList<IRCodeChunkBase>,
-        ifElse: PtIfElse,
-        signed: Boolean,
-        irDtLeft: IRDataType,
-        goto: PtJump
-    ) {
-        val condition = ifElse.condition as? PtBinaryExpression
-        if(condition==null) {
-            throw AssemblyError("expected condition")
-//            val tr = expressionEval.translateExpression(ifElse.condition)
-//            result += tr.chunks
-//            result += IRCodeChunk(null, null).also {
-//                it += IRInstruction(Opcode.CMPI, irDtLeft, reg1 = tr.resultReg, immediate = 0)      // was redundant CMP most likely
-//                it += branchInstr(goto, Opcode.BSTNE)
-//            }
-        } else {
+        fun ifNonZeroIntThenJump_BinExpr(condition: PtBinaryExpression) {
+            if(condition.operator in LogicalOperators) {
+                val trCond = expressionEval.translateExpression(condition)
+                result += trCond.chunks
+                addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
+                return
+            }
+
             val leftTr = expressionEval.translateExpression(condition.left)
+            val irDt = leftTr.dt
+            val signed = condition.left.type in SignedDatatypes
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val number = (condition.right as? PtNumber)?.number?.toInt()
             if(number!=null) {
                 val firstReg = leftTr.resultReg
                 when(condition.operator) {
                     "==" -> {
-                        addInstr(result, IRInstruction(Opcode.CMPI, irDtLeft, reg1 = firstReg, immediate = number), null)
+                        addInstr(result, IRInstruction(Opcode.CMPI, irDt, reg1 = firstReg, immediate = number), null)
                         addInstr(result, branchInstr(goto, Opcode.BSTEQ), null)
                     }
                     "!=" -> {
-                        addInstr(result, IRInstruction(Opcode.CMPI, irDtLeft, reg1 = firstReg, immediate = number), null)
+                        addInstr(result, IRInstruction(Opcode.CMPI, irDt, reg1 = firstReg, immediate = number), null)
                         addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
                     }
                     else -> {
@@ -1049,9 +973,9 @@ class IRCodeGen(
                             else -> throw AssemblyError("invalid comparison operator")
                         }
                         if (goto.address != null)
-                            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, immediate = number, address = goto.address?.toInt()), null)
+                            addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, address = goto.address?.toInt()), null)
                         else
-                            addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, immediate = number, labelSymbol = goto.identifier!!.name), null)
+                            addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, labelSymbol = goto.identifier!!.name), null)
                     }
                 }
             } else {
@@ -1101,121 +1025,141 @@ class IRCodeGen(
 
                 if(useCmp) {
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.CMP, irDtLeft, reg1 = firstReg, reg2 = secondReg)
+                        it += IRInstruction(Opcode.CMP, irDt, reg1 = firstReg, reg2 = secondReg)
                         it += branchInstr(goto, opcode)
                     }
                 } else {
                     if (goto.address != null)
-                        addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, address = goto.address?.toInt()), null)
+                        addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, address = goto.address?.toInt()), null)
                     else
-                        addInstr(result, IRInstruction(opcode, irDtLeft, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.identifier!!.name), null)
+                        addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, labelSymbol = goto.identifier!!.name), null)
                 }
             }
         }
+
+        when(val cond = ifElse.condition) {
+            is PtTypeCast -> {
+                require(cond.type==DataType.BOOL && cond.value.type in NumericDatatypes)
+                val tr = expressionEval.translateExpression(cond)
+                result += tr.chunks
+                addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
+            }
+            is PtIdentifier, is PtArrayIndexer, is PtBuiltinFunctionCall, is PtFunctionCall, is PtContainmentCheck -> {
+                val tr = expressionEval.translateExpression(cond)
+                result += tr.chunks
+                addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
+            }
+            is PtPrefix -> {
+                require(cond.operator=="not")
+                val tr = expressionEval.translateExpression(cond.value)
+                result += tr.chunks
+                addInstr(result, branchInstr(goto, Opcode.BSTEQ), null)
+            }
+            is PtBinaryExpression -> ifNonZeroIntThenJump_BinExpr(cond)
+            else -> throw AssemblyError("weird if condition ${ifElse.condition}")
+        }
+        return result
     }
 
-    private fun translateIfElseZeroComparison(ifElse: PtIfElse, irDtLeft: IRDataType, signed: Boolean): IRCodeChunks {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val elseBranch: Opcode
-        var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
-        val compResultReg: Int
-        val branchDt: IRDataType
-        val condition = ifElse.condition as PtBinaryExpression
-        if(irDtLeft==IRDataType.FLOAT) {
-            branchDt = IRDataType.BYTE
-            compResultReg = registers.nextFree()
-            val leftTr = expressionEval.translateExpression(condition.left)
-            addToResult(result, leftTr, -1, leftTr.resultFpReg)
-            result += IRCodeChunk(null, null).also {
-                val rightFpReg = registers.nextFreeFloat()
-                it += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = rightFpReg, immediateFp = 0.0)
-                it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightFpReg)
-            }
-            when (condition.operator) {
-                "==" -> {
-                    elseBranch = Opcode.BSTNE
-                    useCmpi = true
-                }
-                "!=" -> {
-                    elseBranch = Opcode.BSTEQ
-                    useCmpi = true
-                }
-                "<" -> elseBranch = Opcode.BGES
-                ">" -> elseBranch = Opcode.BLES
-                "<=" -> elseBranch = Opcode.BGTS
-                ">=" -> elseBranch = Opcode.BLTS
-                else -> throw AssemblyError("weird operator")
-            }
-        } else {
-            // integer comparisons
-            branchDt = irDtLeft
-            val tr = expressionEval.translateExpression(condition.left)
-            compResultReg = tr.resultReg
-            addToResult(result, tr, tr.resultReg, -1)
-            when (condition.operator) {
-                "==" -> {
-                    elseBranch = Opcode.BSTNE
-                    useCmpi = true
-                }
-                "!=" -> {
-                    elseBranch = Opcode.BSTEQ
-                    useCmpi = true
-                }
-                "<" -> elseBranch = if (signed) Opcode.BGES else Opcode.BGE
-                ">" -> elseBranch = if (signed) Opcode.BLES else Opcode.BLE
-                "<=" -> elseBranch = if (signed) Opcode.BGTS else Opcode.BGT
-                ">=" -> elseBranch = if (signed) Opcode.BLTS else Opcode.BLT
-                else -> throw AssemblyError("weird operator")
-            }
+    private fun translateIfElse(ifElse: PtIfElse): IRCodeChunks {
+        val condition = ifElse.condition as? PtBinaryExpression
+        if(condition==null || condition.left.type != DataType.FLOAT) {
+            return ifWithElse_IntegerCond(ifElse)
         }
 
-        if(ifElse.elseScope.children.isEmpty()) {
-            // just if
-            val afterIfLabel = createLabelName()
-            if(useCmpi) {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.CMPI, branchDt, reg1=compResultReg, immediate = 0)
-                    it += IRInstruction(elseBranch, labelSymbol = afterIfLabel)
-                }
-            } else
-                addInstr(result, IRInstruction(elseBranch, branchDt, reg1=compResultReg, immediate = 0, labelSymbol = afterIfLabel), null)
-            result += translateNode(ifElse.ifScope)
-            result += IRCodeChunk(afterIfLabel, null)
-        } else {
-            // if and else
+        // we assume only a binary expression can contain a floating point.
+        val result = mutableListOf<IRCodeChunkBase>()
+        val leftTr = expressionEval.translateExpression(condition.left)
+        addToResult(result, leftTr, -1, leftTr.resultFpReg)
+        val rightTr = expressionEval.translateExpression(condition.right)
+        addToResult(result, rightTr, -1, rightTr.resultFpReg)
+        val compResultReg = registers.nextFree()
+        addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1 = compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
+        val elseBranch: Opcode
+        var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
+        when (condition.operator) {
+            "==" -> {
+                elseBranch = Opcode.BSTNE
+                useCmpi = true
+            }
+            "!=" -> {
+                elseBranch = Opcode.BSTEQ
+                useCmpi = true
+            }
+            "<" -> elseBranch = Opcode.BGES
+            ">" -> elseBranch = Opcode.BLES
+            "<=" -> elseBranch = Opcode.BGTS
+            ">=" -> elseBranch = Opcode.BLTS
+            else -> throw AssemblyError("weird operator")
+        }
+
+        if (ifElse.elseScope.children.isNotEmpty()) {
+            // if and else parts
             val elseLabel = createLabelName()
             val afterIfLabel = createLabelName()
             if(useCmpi) {
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.CMPI, branchDt, reg1=compResultReg, immediate = 0)
+                    it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
                     it += IRInstruction(elseBranch, labelSymbol = elseLabel)
                 }
             } else
-                addInstr(result, IRInstruction(elseBranch, branchDt, reg1=compResultReg, immediate = 0, labelSymbol = elseLabel), null)
+                addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = elseLabel), null)
             result += translateNode(ifElse.ifScope)
             addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
             result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+            result += IRCodeChunk(afterIfLabel, null)
+        } else {
+            // only if part
+            val afterIfLabel = createLabelName()
+            if(useCmpi) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
+                    it += IRInstruction(elseBranch, labelSymbol = afterIfLabel)
+                }
+            } else
+                addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = afterIfLabel), null)
+            result += translateNode(ifElse.ifScope)
             result += IRCodeChunk(afterIfLabel, null)
         }
         return result
     }
 
-    private fun translateIfElseNonZeroComparison(ifElse: PtIfElse, irDtLeft: IRDataType, signed: Boolean): IRCodeChunks {
+    private fun ifWithElse_IntegerCond(ifElse: PtIfElse): List<IRCodeChunkBase> {
         val result = mutableListOf<IRCodeChunkBase>()
-        val elseBranchFirstReg: Int
-        val elseBranchSecondReg: Int
-        val branchDt: IRDataType
-        val condition = ifElse.condition as? PtBinaryExpression
-        if(condition==null) {
-            throw AssemblyError("if-else condition is not a binaryexpression, should have been converted?")
-        } else {
-            if (irDtLeft == IRDataType.FLOAT) {
-                val leftTr = expressionEval.translateExpression(condition.left)
-                addToResult(result, leftTr, -1, leftTr.resultFpReg)
-                val rightTr = expressionEval.translateExpression(condition.right)
-                addToResult(result, rightTr, -1, rightTr.resultFpReg)
-                val compResultReg = registers.nextFree()
-                addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1 = compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
+        val hasElse = ifElse.elseScope.children.isNotEmpty()
+
+        fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode) {
+            val tr = expressionEval.translateExpression(condition)
+            result += tr.chunks
+            if(hasElse) {
+                val elseLabel = createLabelName()
+                val afterIfLabel = createLabelName()
+                addInstr(result, IRInstruction(jumpFalseOpcode, labelSymbol = elseLabel), null)
+                result += translateNode(ifElse.ifScope)
+                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
+                result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+                result += IRCodeChunk(afterIfLabel, null)
+            } else {
+                val afterIfLabel = createLabelName()
+                addInstr(result, IRInstruction(jumpFalseOpcode, labelSymbol = afterIfLabel), null)
+                result += translateNode(ifElse.ifScope)
+                result += IRCodeChunk(afterIfLabel, null)
+            }
+        }
+
+        fun translateBinExpr(condition: PtBinaryExpression) {
+            if(condition.operator in LogicalOperators)
+                return translateSimple(condition, Opcode.BSTEQ)
+
+            val signed = condition.left.type in SignedDatatypes
+            val elseBranchFirstReg: Int
+            val elseBranchSecondReg: Int
+            val number = (condition.right as? PtNumber)?.number?.toInt()
+
+            val leftTr = expressionEval.translateExpression(condition.left)
+            val branchDt = leftTr.dt
+            addToResult(result, leftTr, leftTr.resultReg, -1)
+            if (number!=null) {
                 val elseBranch: Opcode
                 var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
                 when (condition.operator) {
@@ -1227,23 +1171,25 @@ class IRCodeGen(
                         elseBranch = Opcode.BSTEQ
                         useCmpi = true
                     }
-                    "<" -> elseBranch = Opcode.BGES
-                    ">" -> elseBranch = Opcode.BLES
-                    "<=" -> elseBranch = Opcode.BGTS
-                    ">=" -> elseBranch = Opcode.BLTS
-                    else -> throw AssemblyError("weird operator")
+                    "<" -> elseBranch = if(signed) Opcode.BGES else Opcode.BGE
+                    ">" -> elseBranch = if(signed) Opcode.BLES else Opcode.BLE
+                    "<=" -> elseBranch = if(signed) Opcode.BGTS else Opcode.BGT
+                    ">=" -> elseBranch = if(signed) Opcode.BLTS else Opcode.BLT
+                    else -> throw AssemblyError("invalid comparison operator")
                 }
-                if (ifElse.elseScope.children.isNotEmpty()) {
+
+                if (hasElse) {
                     // if and else parts
                     val elseLabel = createLabelName()
                     val afterIfLabel = createLabelName()
                     if(useCmpi) {
                         result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
+                            it += IRInstruction(Opcode.CMPI, branchDt, reg1 = leftTr.resultReg, immediate = number)
                             it += IRInstruction(elseBranch, labelSymbol = elseLabel)
                         }
-                    } else
-                        addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = elseLabel), null)
+                    } else {
+                        addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = leftTr.resultReg, immediate = number, labelSymbol = elseLabel), null)
+                    }
                     result += translateNode(ifElse.ifScope)
                     addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
                     result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
@@ -1253,145 +1199,110 @@ class IRCodeGen(
                     val afterIfLabel = createLabelName()
                     if(useCmpi) {
                         result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = compResultReg, immediate = 0)
+                            it += IRInstruction(Opcode.CMPI, branchDt, reg1 = leftTr.resultReg, immediate = number)
                             it += IRInstruction(elseBranch, labelSymbol = afterIfLabel)
                         }
                     } else
-                        addInstr(result, IRInstruction(elseBranch, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = afterIfLabel), null)
+                        addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = leftTr.resultReg, immediate = number, labelSymbol = afterIfLabel), null)
                     result += translateNode(ifElse.ifScope)
                     result += IRCodeChunk(afterIfLabel, null)
                 }
             } else {
-                // integer comparisons
-                branchDt = irDtLeft
-                val leftTr = expressionEval.translateExpression(condition.left)
-                addToResult(result, leftTr, leftTr.resultReg, -1)
-                val number = (condition.right as? PtNumber)?.number?.toInt()
-                if (number!=null) {
-                    val elseBranch: Opcode
-                    var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
-                    when (condition.operator) {
-                        "==" -> {
-                            elseBranch = Opcode.BSTNE
-                            useCmpi = true
-                        }
-                        "!=" -> {
-                            elseBranch = Opcode.BSTEQ
-                            useCmpi = true
-                        }
-                        "<" -> elseBranch = if(signed) Opcode.BGES else Opcode.BGE
-                        ">" -> elseBranch = if(signed) Opcode.BLES else Opcode.BLE
-                        "<=" -> elseBranch = if(signed) Opcode.BGTS else Opcode.BGT
-                        ">=" -> elseBranch = if(signed) Opcode.BLTS else Opcode.BLT
-                        else -> throw AssemblyError("invalid comparison operator")
+                val rightTr = expressionEval.translateExpression(condition.right)
+                val elseBranch: Opcode
+                var useCmp = false
+                addToResult(result, rightTr, rightTr.resultReg, -1)
+                when (condition.operator) {
+                    "==" -> {
+                        useCmp = true
+                        elseBranch = Opcode.BSTNE
+                        elseBranchFirstReg = leftTr.resultReg
+                        elseBranchSecondReg = rightTr.resultReg
                     }
-                    if (ifElse.elseScope.children.isNotEmpty()) {
-                        // if and else parts
-                        val elseLabel = createLabelName()
-                        val afterIfLabel = createLabelName()
-                        if(useCmpi) {
-                            result += IRCodeChunk(null, null).also {
-                                it += IRInstruction(Opcode.CMPI, branchDt, reg1 = leftTr.resultReg, immediate = number)
-                                it += IRInstruction(elseBranch, labelSymbol = elseLabel)
-                            }
-                        } else
-                            addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = leftTr.resultReg, immediate = number, labelSymbol = elseLabel), null)
-                        result += translateNode(ifElse.ifScope)
-                        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
-                        result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
-                        result += IRCodeChunk(afterIfLabel, null)
-                    } else {
-                        // only if part
-                        val afterIfLabel = createLabelName()
-                        if(useCmpi) {
-                            result += IRCodeChunk(null, null).also {
-                                it += IRInstruction(Opcode.CMPI, branchDt, reg1 = leftTr.resultReg, immediate = number)
-                                it += IRInstruction(elseBranch, labelSymbol = afterIfLabel)
-                            }
-                        } else
-                            addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = leftTr.resultReg, immediate = number, labelSymbol = afterIfLabel), null)
-                        result += translateNode(ifElse.ifScope)
-                        result += IRCodeChunk(afterIfLabel, null)
+                    "!=" -> {
+                        useCmp = true
+                        elseBranch = Opcode.BSTEQ
+                        elseBranchFirstReg = leftTr.resultReg
+                        elseBranchSecondReg = rightTr.resultReg
                     }
-                } else {
-                    val rightTr = expressionEval.translateExpression(condition.right)
-                    val elseBranch: Opcode
-                    var useCmp = false
-                    addToResult(result, rightTr, rightTr.resultReg, -1)
-                    when (condition.operator) {
-                        "==" -> {
-                            useCmp = true
-                            elseBranch = Opcode.BSTNE
-                            elseBranchFirstReg = leftTr.resultReg
-                            elseBranchSecondReg = rightTr.resultReg
-                        }
-                        "!=" -> {
-                            useCmp = true
-                            elseBranch = Opcode.BSTEQ
-                            elseBranchFirstReg = leftTr.resultReg
-                            elseBranchSecondReg = rightTr.resultReg
-                        }
-                        "<" -> {
-                            // else part when left >= right
-                            elseBranch = if (signed) Opcode.BGESR else Opcode.BGER
-                            elseBranchFirstReg = leftTr.resultReg
-                            elseBranchSecondReg = rightTr.resultReg
-                        }
-                        ">" -> {
-                            // else part when left <= right --> right >= left
-                            elseBranch = if (signed) Opcode.BGESR else Opcode.BGER
-                            elseBranchFirstReg = rightTr.resultReg
-                            elseBranchSecondReg = leftTr.resultReg
-                        }
-                        "<=" -> {
-                            // else part when left > right
-                            elseBranch = if (signed) Opcode.BGTSR else Opcode.BGTR
-                            elseBranchFirstReg = leftTr.resultReg
-                            elseBranchSecondReg = rightTr.resultReg
-                        }
+                    "<" -> {
+                        // else part when left >= right
+                        elseBranch = if (signed) Opcode.BGESR else Opcode.BGER
+                        elseBranchFirstReg = leftTr.resultReg
+                        elseBranchSecondReg = rightTr.resultReg
+                    }
+                    ">" -> {
+                        // else part when left <= right --> right >= left
+                        elseBranch = if (signed) Opcode.BGESR else Opcode.BGER
+                        elseBranchFirstReg = rightTr.resultReg
+                        elseBranchSecondReg = leftTr.resultReg
+                    }
+                    "<=" -> {
+                        // else part when left > right
+                        elseBranch = if (signed) Opcode.BGTSR else Opcode.BGTR
+                        elseBranchFirstReg = leftTr.resultReg
+                        elseBranchSecondReg = rightTr.resultReg
+                    }
+                    ">=" -> {
+                        // else part when left < right --> right > left
+                        elseBranch = if (signed) Opcode.BGTSR else Opcode.BGTR
+                        elseBranchFirstReg = rightTr.resultReg
+                        elseBranchSecondReg = leftTr.resultReg
+                    }
+                    else -> throw AssemblyError("invalid comparison operator")
+                }
 
-                        ">=" -> {
-                            // else part when left < right --> right > left
-                            elseBranch = if (signed) Opcode.BGTSR else Opcode.BGTR
-                            elseBranchFirstReg = rightTr.resultReg
-                            elseBranchSecondReg = leftTr.resultReg
+                if (hasElse) {
+                    // if and else parts
+                    val elseLabel = createLabelName()
+                    val afterIfLabel = createLabelName()
+                    if(useCmp) {
+                        result += IRCodeChunk(null,null).also {
+                            it += IRInstruction(Opcode.CMP, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg)
+                            it += IRInstruction(elseBranch, labelSymbol = elseLabel)
                         }
-                        else -> throw AssemblyError("invalid comparison operator")
-                    }
-                    if (ifElse.elseScope.children.isNotEmpty()) {
-                        // if and else parts
-                        val elseLabel = createLabelName()
-                        val afterIfLabel = createLabelName()
-                        if(useCmp) {
-                            result += IRCodeChunk(null,null).also {
-                                it += IRInstruction(Opcode.CMP, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg)
-                                it += IRInstruction(elseBranch, labelSymbol = elseLabel)
-                            }
-                        } else {
-                            addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg, labelSymbol = elseLabel), null)
-                        }
-                        result += translateNode(ifElse.ifScope)
-                        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
-                        result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
-                        result += IRCodeChunk(afterIfLabel, null)
                     } else {
-                        // only if part
-                        val afterIfLabel = createLabelName()
-                        if(useCmp) {
-                            result += IRCodeChunk(null,null).also {
-                                it += IRInstruction(Opcode.CMP, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg)
-                                it += IRInstruction(elseBranch, labelSymbol = afterIfLabel)
-                            }
-                        } else {
-                            addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg, labelSymbol = afterIfLabel), null)
-                        }
-                        result += translateNode(ifElse.ifScope)
-                        result += IRCodeChunk(afterIfLabel, null)
+                        addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg, labelSymbol = elseLabel), null)
                     }
+                    result += translateNode(ifElse.ifScope)
+                    addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
+                    result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+                    result += IRCodeChunk(afterIfLabel, null)
+                } else {
+                    // only if part
+                    val afterIfLabel = createLabelName()
+                    if(useCmp) {
+                        result += IRCodeChunk(null,null).also {
+                            it += IRInstruction(Opcode.CMP, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg)
+                            it += IRInstruction(elseBranch, labelSymbol = afterIfLabel)
+                        }
+                    } else {
+                        addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = elseBranchFirstReg, reg2 = elseBranchSecondReg, labelSymbol = afterIfLabel), null)
+                    }
+                    result += translateNode(ifElse.ifScope)
+                    result += IRCodeChunk(afterIfLabel, null)
                 }
             }
-            return result
         }
+
+        when(val cond=ifElse.condition) {
+            is PtTypeCast -> {
+                require(cond.type==DataType.BOOL && cond.value.type in NumericDatatypes)
+                translateSimple(cond, Opcode.BSTEQ)
+            }
+            is PtIdentifier, is PtArrayIndexer, is PtBuiltinFunctionCall, is PtFunctionCall, is PtContainmentCheck -> {
+                translateSimple(cond, Opcode.BSTEQ)
+            }
+            is PtPrefix -> {
+                require(cond.operator=="not")
+                translateSimple(cond.value, Opcode.BSTNE)
+            }
+            is PtBinaryExpression -> {
+                translateBinExpr(cond)
+            }
+            else -> throw AssemblyError("weird if condition ${ifElse.condition}")
+        }
+        return result
     }
 
     private fun translate(repeat: PtRepeatLoop): IRCodeChunks {
@@ -1542,6 +1453,8 @@ class IRCodeGen(
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
             val flattenedName = it.definingSub()!!.name + "." + it.name
+            if(symbolTable.lookup(flattenedName)==null)
+                TODO("fix missing lookup for: $flattenedName   parameter")
             val orig = symbolTable.lookup(flattenedName) as StStaticVariable
             IRSubroutine.IRParam(flattenedName, orig.dt)
         }
@@ -1563,9 +1476,9 @@ class IRCodeGen(
     internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall): ExpressionCodeResult
         = builtinFuncGen.translate(call)
 
-    internal fun isZero(expression: PtExpression): Boolean = expression is PtNumber && expression.number==0.0
+    internal fun isZero(expression: PtExpression): Boolean = (expression as? PtNumber)?.number==0.0 || (expression as? PtBool)?.value==false
 
-    internal fun isOne(expression: PtExpression): Boolean = expression is PtNumber && expression.number==1.0
+    internal fun isOne(expression: PtExpression): Boolean = (expression as? PtNumber)?.number==1.0 || (expression as? PtBool)?.value==true
 
     fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
         return IRCodeChunk(label, null).also {

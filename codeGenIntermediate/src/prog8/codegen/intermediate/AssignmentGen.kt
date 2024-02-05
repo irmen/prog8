@@ -116,7 +116,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             when (operator) {
                 "-" -> addInstr(result, IRInstruction(Opcode.NEGM, vmDt, address = constAddress, labelSymbol = symbol), null)
                 "~" -> addInstr(result, IRInstruction(Opcode.INVM, vmDt, address = constAddress, labelSymbol = symbol), null)
-                // TODO: in boolean branch, how is 'not' handled here?
+                "not" -> {
+                    val regMask = codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, vmDt, reg1=regMask, immediate = 1)
+                        it += IRInstruction(Opcode.XORM, vmDt, reg1=regMask, address = constAddress, labelSymbol = symbol)
+                    }
+                }
                 else -> throw AssemblyError("weird prefix operator")
             }
         }
