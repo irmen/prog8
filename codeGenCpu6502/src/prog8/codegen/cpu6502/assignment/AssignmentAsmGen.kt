@@ -33,6 +33,16 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
     fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(assign.source.kind) {
+            SourceStorageKind.LITERALBOOLEAN -> {
+                // simple case: assign a constant number
+                val num = assign.source.boolean!!.asInt()
+                when (assign.target.datatype) {
+                    DataType.BOOL, DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num)
+                    DataType.UWORD, DataType.WORD -> assignConstantWord(assign.target, num)
+                    DataType.FLOAT -> assignConstantFloat(assign.target, num.toDouble())
+                    else -> throw AssemblyError("weird numval type")
+                }
+            }
             SourceStorageKind.LITERALNUMBER -> {
                 // simple case: assign a constant number
                 val num = assign.source.number!!.number

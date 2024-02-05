@@ -18,13 +18,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
                 assignmentAsmGen.inplaceNegate(a2, false, scope)
             }
-            "~" -> {
+            "~", "not" -> {
                 val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
                 assignmentAsmGen.inplaceInvert(a2, scope)
             }
             "+" -> { /* is a nop */ }
             else -> {
-                require(assign.operator in ComparisonOperators || assign.operator.length>=2) { "invalid aug assign operator ${assign.operator}" }
                 augmentedAssignExpr(assign)
             }
         }
@@ -64,11 +63,15 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         fun regName(v: AsmAssignSource) = "cx16.${v.register!!.name.lowercase()}"
 
+        if(value.kind==SourceStorageKind.LITERALBOOLEAN)
+            TODO("inplace modification literalboolean")
+
         when (target.kind) {
             TargetStorageKind.VARIABLE -> {
                 when (target.datatype) {
-                    in ByteDatatypes -> {
+                    in ByteDatatypesWithBoolean -> {
                         when(value.kind) {
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(target.asmVarname, target.datatype, operator, value.boolean!!.asInt())
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(target.asmVarname, target.datatype, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(target.asmVarname, target.datatype, operator, regName(value))
@@ -87,6 +90,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     in WordDatatypes -> {
                         val block = target.origAstTarget?.definingBlock()
                         when(value.kind) {
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationWordWithLiteralval(target.asmVarname, target.datatype, operator, value.boolean!!.asInt(), block)
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt(), block)
                             SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, value.asmVarname, value.datatype, block)
                             SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, regName(value), value.datatype, block)
@@ -105,6 +109,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     DataType.FLOAT -> {
                         when(value.kind) {
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationFloatWithLiteralval(target.asmVarname, operator, value.boolean!!.asInt().toDouble())
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(target.asmVarname, operator, value.number!!.number)
                             SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(target.asmVarname, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(target.asmVarname, operator, regName(value))
@@ -129,6 +134,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     is PtNumber -> {
                         val addr = (memory.address as PtNumber).number.toInt()
                         when(value.kind) {
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.UBYTE, operator, value.boolean!!.asInt())
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.UBYTE, operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(addr.toHex(), DataType.UBYTE, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(addr.toHex(), DataType.UBYTE, operator, regName(value))
@@ -147,6 +153,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     is PtIdentifier -> {
                         val pointer = memory.address as PtIdentifier
                         when(value.kind) {
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationBytePointerWithLiteralval(pointer, operator, value.boolean!!.asInt())
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationBytePointerWithLiteralval(pointer, operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplacemodificationBytePointerWithVariable(pointer, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationBytePointerWithVariable(pointer, operator, regName(value))
@@ -170,6 +177,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.saveRegisterStack(CpuRegister.Y, true)
                         asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY_into_A")
                         when(value.kind) {
+                            SourceStorageKind.LITERALBOOLEAN -> {
+                                inplacemodificationRegisterAwithVariable(operator, "#${value.boolean!!.asInt()}", false)
+                                asmgen.out("  tax")
+                            }
                             SourceStorageKind.LITERALNUMBER -> {
                                 inplacemodificationRegisterAwithVariable(operator, "#${value.number!!.number.toInt()}", false)
                                 asmgen.out("  tax")
@@ -231,6 +242,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     when (target.datatype) {
                         in ByteDatatypes -> {
                             when(value.kind) {
+                                SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.boolean!!.asInt())
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt())
                                 SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, regName(value))
@@ -250,6 +262,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         in WordDatatypes -> {
                             val block = target.origAstTarget?.definingBlock()
                             when(value.kind) {
+                                SourceStorageKind.LITERALBOOLEAN -> inplacemodificationWordWithLiteralval(targetVarName, target.datatype, operator, value.boolean!!.asInt(), block)
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt(), block)
                                 SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, value.asmVarname, value.datatype, block)
                                 SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(targetVarName, target.datatype, operator, regName(value), value.datatype, block)
@@ -268,6 +281,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
                         DataType.FLOAT -> {
                             when(value.kind) {
+                                SourceStorageKind.LITERALBOOLEAN -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.boolean!!.asInt().toDouble())
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.number!!.number)
                                 SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(targetVarName, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(targetVarName, operator, regName(value))
@@ -304,6 +318,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             asmgen.saveRegisterStack(CpuRegister.Y, false)
                             asmgen.out("  lda  ${target.array.variable.name},y")
                             when(value.kind) {
+                                SourceStorageKind.LITERALBOOLEAN -> {
+                                    inplacemodificationRegisterAwithVariable(operator, "#${value.boolean!!.asInt()}", target.datatype in SignedDatatypes)
+                                    asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                                }
                                 SourceStorageKind.LITERALNUMBER -> {
                                     inplacemodificationRegisterAwithVariable(operator, "#${value.number!!.number.toInt()}", target.datatype in SignedDatatypes)
                                     asmgen.restoreRegisterStack(CpuRegister.Y, true)
@@ -363,6 +381,14 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             val block = target.origAstTarget?.definingBlock()
                             when(value.kind) {
+                                SourceStorageKind.LITERALBOOLEAN -> {
+                                    val number = value.boolean!!.asInt()
+                                    if(!inplacemodificationRegisterAXwithLiteralval(operator, number)) {
+                                        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
+                                        inplacemodificationWordWithLiteralval("P8ZP_SCRATCH_W1", target.datatype, operator, number, block)
+                                        asmgen.out("  lda  P8ZP_SCRATCH_W1 |  ldx  P8ZP_SCRATCH_W1+1")
+                                    }
+                                }
                                 SourceStorageKind.LITERALNUMBER -> {
                                     val number = value.number!!.number.toInt()
                                     if(!inplacemodificationRegisterAXwithLiteralval(operator, number)) {
@@ -446,6 +472,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
                             // calculate on tempvar
                             when(value.kind) {
+                                SourceStorageKind.LITERALBOOLEAN -> inplacemodificationFloatWithLiteralval(tempvar, operator, value.boolean!!.asInt().toDouble())
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(tempvar, operator, value.number!!.number)
                                 SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(tempvar, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(tempvar, operator, regName(value))
@@ -953,7 +980,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +                   lda  #1
 +""")
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer?
+            // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?
             "<", "<=", ">", ">=" -> TODO("byte-var-to-pointer comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -1058,7 +1085,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +""")
                 asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer?:
+            // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?:
             "<", "<=", ">", ">=" -> TODO("byte-litval-to-pointer comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -2400,7 +2427,7 @@ $shortcutLabel:""")
                             lda  #0
                             sta  $name+1""")
                     }
-                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    // pretty uncommon, who's going to assign a comparison boolean expression to a word var?:
                     "<", "<=", ">", ">=" -> TODO("word-bytevar-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -2827,7 +2854,7 @@ $shortcutLabel:""")
                             lda  #0
                             sta  $name+1""")
                     }
-                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    // pretty uncommon, who's going to assign a comparison boolean expression to a word var?:
                     "<", "<=", ">", ">=" -> TODO("word-bytevalue-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -2907,7 +2934,7 @@ $shortcutLabel:""")
                             lda  #0
                             sta  $name+1""")
                     }
-                    // pretty uncommon, who's going to assign a comparison boolean expresion to a word var?:
+                    // pretty uncommon, who's going to assign a comparison boolean expression to a word var?:
                     "<", "<=", ">", ">=" -> TODO("word-value-to-var comparisons")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
@@ -2947,7 +2974,7 @@ $shortcutLabel:""")
                     jsr  floats.FDIV
                 """)
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
+            // pretty uncommon, who's going to assign a comparison boolean expression to a float var:
             "==" -> TODO("float-value-to-var comparison ==")
             "!=" -> TODO("float-value-to-var comparison !=")
             "<", "<=", ">", ">=" -> TODO("float-value-to-var comparisons")
@@ -3003,7 +3030,7 @@ $shortcutLabel:""")
                     jsr  floats.FDIV
                 """)
             }
-            // pretty uncommon, who's going to assign a comparison boolean expresion to a float var:
+            // pretty uncommon, who's going to assign a comparison boolean expression to a float var:
             "==" -> {
                 asmgen.out("""
                     lda  #<$name

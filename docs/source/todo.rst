@@ -1,8 +1,8 @@
 TODO
 ====
 
-while not cx16.mouse_pos()  should give error
 
+merge last 2 codegen files from booleans-tryout branch:   AssignmentAsmGen, ExpressionGen  (everything else was merged)
 
 ConstantFoldingOptimizer (after merging master):
    after(numLiteral..) :  check that cast to/from BOOL is not done??
@@ -29,6 +29,7 @@ ok    .      type error for bool[3] derp = 99    and also for init value [1,0,1]
 ok    .      while booleanvar==42  and   do..until booleanvar==42    should give type error
 ok    .      while not <integervar>   should give type error
 ok    .      while not <integer functioncall>   should give type error
+ok    .      while not cx16.mouse_pos()  should give condition type error
 ok    .      while boolean  should produce identical code as  while integer!=0
 ok    .      while not boolvar  -> can we get rid of the cmp? (6502 only?)
 ok    .      if someint==0 / ==1  should stil produce good asm same as what it used to be with if not someint/if someint

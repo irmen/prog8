@@ -315,6 +315,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
                         asmgen.out("  cmp  #${arg2.number.toInt()}")
                     }
+                    is PtBool -> {
+                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
+                        asmgen.out("  cmp  #${arg2.asInt()}")
+                    }
                     is PtMemoryByte -> {
                         if(arg2.address is PtNumber) {
                             asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
@@ -343,6 +347,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             cmp  ${asmgen.asmVariableName(arg2)}
 +""")
                     }
+                    is PtBool -> TODO("word compare against bool")
                     is PtNumber -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
                         asmgen.out("""

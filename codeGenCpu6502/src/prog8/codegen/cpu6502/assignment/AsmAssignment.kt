@@ -14,6 +14,7 @@ internal enum class TargetStorageKind {
 }
 
 internal enum class SourceStorageKind {
+    LITERALBOOLEAN,
     LITERALNUMBER,
     VARIABLE,
     ARRAY,
@@ -133,6 +134,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                                val memory: PtMemoryByte? = null,
                                val register: RegisterOrPair? = null,
                                val number: PtNumber? = null,
+                               val boolean: PtBool? = null,
                                val expression: PtExpression? = null
 )
 {
@@ -147,6 +149,9 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
             val cv = value as? PtNumber
             if(cv!=null)
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
+            val bv = value as? PtBool
+            if(bv!=null)
+                return AsmAssignSource(SourceStorageKind.LITERALBOOLEAN, program, asmgen, DataType.BOOL, boolean = bv)
 
             return when(value) {
                 // checked above:   is PtNumber -> throw AssemblyError("should have been constant value")
@@ -194,7 +199,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
         // allow some signed/unsigned relaxations
 
         fun withAdjustedDt(newType: DataType) =
-                AsmAssignSource(kind, program, asmgen, newType, variableAsmName, array, memory, register, number, expression)
+                AsmAssignSource(kind, program, asmgen, newType, variableAsmName, array, memory, register, number, boolean, expression)
 
         if(target.datatype!=datatype) {
             if(target.datatype in ByteDatatypes && datatype in ByteDatatypes) {
