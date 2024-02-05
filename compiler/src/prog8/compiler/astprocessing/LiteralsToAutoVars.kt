@@ -76,8 +76,8 @@ internal class LiteralsToAutoVars(private val program: Program,
         if(decl.names.size>1) {
             // note: the desugaring of a multi-variable vardecl has to be done here
             // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
-            if(decl.datatype !in NumericDatatypes)
-                errors.err("can only multi declare numeric variables", decl.position)
+            if(decl.datatype !in NumericDatatypesWithBoolean)
+                errors.err("can only multi declare numeric and boolean variables", decl.position)
             if(errors.noErrors()) {
                 // desugar into individual vardecl per name.
                 return decl.desugarMultiDecl().map {

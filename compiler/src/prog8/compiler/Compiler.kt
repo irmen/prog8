@@ -98,8 +98,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             importedFiles = imported
 
             processAst(program, args.errors, compilationOptions)
-//                println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
-//                printProgram(program)
+//            println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
+//            printProgram(program)
 
             if (compilationOptions.optimize) {
                 optimizeAst(

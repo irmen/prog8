@@ -44,7 +44,7 @@ internal class StatementReorderer(
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if (decl.type == VarDeclType.VAR) {
-            if (decl.datatype in NumericDatatypes) {
+            if (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL) {
                 if(decl !in declsProcessedWithInitAssignment) {
                     declsProcessedWithInitAssignment.add(decl)
                     if (decl.value == null) {

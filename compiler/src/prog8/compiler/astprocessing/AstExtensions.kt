@@ -22,10 +22,6 @@ internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: Compila
 }
 
 internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter) {
-    val boolRemover = BoolRemover(this)
-    boolRemover.visit(this)
-    boolRemover.applyModifications()
-
     val fixer = BeforeAsmAstChanger(this, compilerOptions)
     fixer.visit(this)
     while (errors.noErrors() && fixer.applyModifications() > 0) {

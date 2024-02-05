@@ -174,7 +174,7 @@ class IRFileReader {
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
-                val dt: DataType = parseDatatype(type, arraysize!=null)
+                val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
                 val newVar = StStaticVariable(name, dt, null, null, null, arraysize, zp, dummyNode)
@@ -210,7 +210,8 @@ class IRFileReader {
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
                 when(dt) {
-                    in NumericDatatypes -> initNumeric = parseIRValue(value).toDouble()
+                    DataType.BOOL -> TODO("parse boolean $value")
+                    in NumericDatatypes -> initNumeric = parseIRValue(value)
                     in ArrayDatatypes -> {
                         initArray = value.split(',').map {
                             if (it.startsWith('@'))
@@ -496,24 +497,24 @@ class IRFileReader {
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
             return when(type) {
+                // note: there are no BOOLEANS anymore in the IR. Only UBYTE.
                 "byte" -> DataType.ARRAY_B
                 "ubyte", "str" -> DataType.ARRAY_UB
                 "word" -> DataType.ARRAY_W
                 "uword" -> DataType.ARRAY_UW
                 "float" -> DataType.ARRAY_F
-                "bool" -> DataType.ARRAY_B
                 "uword_split" -> DataType.ARRAY_UW_SPLIT
                 "word_split" -> DataType.ARRAY_W_SPLIT
                 else -> throw IRParseException("invalid dt")
             }
         } else {
             return when(type) {
+                // note: there are no BOOLEANS anymore in the IR. Only UBYTE.
                 "byte" -> DataType.BYTE
                 "ubyte" -> DataType.UBYTE
                 "word" -> DataType.WORD
                 "uword" -> DataType.UWORD
                 "float" -> DataType.FLOAT
-                "bool" -> DataType.BOOL
                 // note: 'str' should not occur anymore in IR. Should be 'uword'
                 else -> throw IRParseException("invalid dt")
             }

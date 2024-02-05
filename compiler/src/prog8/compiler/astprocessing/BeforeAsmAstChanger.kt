@@ -26,7 +26,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype in NumericDatatypes)
+        if (decl.type == VarDeclType.VAR && decl.value != null && (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL))
             throw InternalCompilerException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
 
         return noModifications
@@ -104,17 +104,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 
     override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
         val binExpr = ifElse.condition as? BinaryExpression
-        if(binExpr==null) {
-            // if x  ->  if x!=0
-            val booleanExpr = BinaryExpression(
-                ifElse.condition,
-                "!=",
-                NumericLiteral.optimalInteger(0, ifElse.condition.position),
-                ifElse.condition.position
-            )
-            return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
-        }
-
+        if(binExpr!=null) {
         if(binExpr.operator !in ComparisonOperators) {
             val constRight = binExpr.right.constValue(program)
             if(constRight!=null) {
@@ -131,20 +121,13 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
                 }
             }
-
-            // if x*5  ->  if x*5 != 0
-            val booleanExpr = BinaryExpression(
-                ifElse.condition,
-                "!=",
-                NumericLiteral.optimalInteger(0, ifElse.condition.position),
-                ifElse.condition.position
-            )
-            return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
         }
 
         if((binExpr.left as? NumericLiteral)?.number==0.0 &&
             (binExpr.right as? NumericLiteral)?.number!=0.0)
-            throw InternalCompilerException("0==X should have been swapped to if X==0")
+            throw InternalCompilerException("0==X should be just X")
+
+        }
 
         return noModifications
     }

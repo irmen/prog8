@@ -123,12 +123,6 @@ internal class AstChecker(private val program: Program,
                     if(valueDt istype DataType.BOOL && expectedReturnValues[0] == DataType.UBYTE) {
                         // if the return value is a bool and the return type is ubyte, allow this. But give a warning.
                         errors.info("return type of the subroutine should probably be bool instead of ubyte", returnStmt.position)
-                    } else if(valueDt istype DataType.UBYTE && expectedReturnValues[0] == DataType.BOOL) {
-                        // if the return value is ubyte and the return type is bool, allow this only if value is 0 or 1
-                        val returnValue = returnStmt.value as? NumericLiteral
-                        if (returnValue == null || returnValue.type != DataType.UBYTE || (returnValue.number!=0.0 && returnValue.number!=1.0)) {
-                            errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}",returnStmt.value!!.position)
-                        }
                     } else if(valueDt.isIterable && expectedReturnValues[0]==DataType.UWORD) {
                         // you can return a string or array when an uword (pointer) is returned
                     } else if(valueDt istype DataType.UWORD && expectedReturnValues[0]==DataType.STR) {
@@ -156,12 +150,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(ifElse: IfElse) {
-        val dt = ifElse.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
-            val identifier = ifElse.condition as? IdentifierReference
-            if(identifier==null || identifier.targetStatement(program)!=null)
-                errors.err("condition value should be an integer type or bool", ifElse.condition.position)
-        }
+        if(!ifElse.condition.inferType(program).isBool)
+            errors.err("condition should be a boolean", ifElse.condition.position)
+
         super.visit(ifElse)
     }
 
@@ -480,22 +471,16 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(untilLoop: UntilLoop) {
-        val dt = untilLoop.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
-            val identifier = untilLoop.condition as? IdentifierReference
-            if(identifier==null || identifier.targetStatement(program)!=null)
-                errors.err("condition value should be an integer type or bool", untilLoop.condition.position)
-        }
+        if(!untilLoop.condition.inferType(program).isBool)
+            errors.err("condition should be a boolean", untilLoop.condition.position)
+
         super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        val dt = whileLoop.condition.inferType(program)
-        if(!dt.isInteger && !dt.istype(DataType.BOOL)) {
-            val identifier = whileLoop.condition as? IdentifierReference
-            if(identifier==null || identifier.targetStatement(program)!=null)
-                errors.err("condition value should be an integer type or bool", whileLoop.condition.position)
-        }
+        if(!whileLoop.condition.inferType(program).isBool)
+            errors.err("condition should be a boolean", whileLoop.condition.position)
+
         super.visit(whileLoop)
     }
 
@@ -539,20 +524,10 @@ internal class AstChecker(private val program: Program,
         if(numvalue!=null && targetDt.isKnown)
             checkValueTypeAndRange(targetDt.getOr(DataType.UNDEFINED), numvalue)
 
-// for now, don't enforce bool type with only logical operators...
-//        if(assignment.isAugmentable && targetDt istype DataType.BOOL) {
-//            val operator = (assignment.value as? BinaryExpression)?.operator
-//            if(operator in InvalidOperatorsForBoolean)
-//                errors.err("can't use boolean operand with this operator $operator", assignment.position)
-//        }
-
         super.visit(assignment)
     }
 
     override fun visit(assignTarget: AssignTarget) {
-        if(assignTarget.inferType(program).istype(DataType.LONG))
-            errors.err("integer overflow", assignTarget.position)
-
         super.visit(assignTarget)
 
         val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
@@ -586,16 +561,13 @@ internal class AstChecker(private val program: Program,
         if (assignment is Assignment) {
             val targetDatatype = assignTarget.inferType(program)
             if (targetDatatype.isKnown) {
-                val constVal = assignment.value.constValue(program)
-                if(constVal==null) {
-                    val sourceDatatype = assignment.value.inferType(program)
-                    if (sourceDatatype.isUnknown) {
-                        if (assignment.value !is FunctionCallExpression)
-                            errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
-                    } else {
-                        checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
-                                sourceDatatype.getOr(DataType.UNDEFINED), assignment.value)
-                    }
+                val sourceDatatype = assignment.value.inferType(program)
+                if (sourceDatatype.isUnknown) {
+                    if (assignment.value !is BinaryExpression && assignment.value !is PrefixExpression && assignment.value !is ContainmentCheck)
+                        errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
+                } else {
+                    checkAssignmentCompatible(targetDatatype.getOr(DataType.UNDEFINED),
+                            sourceDatatype.getOr(DataType.UNDEFINED), assignment.value)
                 }
             }
         }
@@ -619,6 +591,10 @@ internal class AstChecker(private val program: Program,
 
         if(decl.datatype==DataType.LONG)
             errors.err("integer overflow", decl.position)
+        if(decl.type==VarDeclType.MEMORY) {
+            if (decl.datatype == DataType.BOOL || decl.datatype == DataType.ARRAY_BOOL)
+                errors.err("variables mapped in memory should be numeric", decl.position)
+        }
 
         fun err(msg: String) = errors.err(msg, decl.position)
 
@@ -628,8 +604,8 @@ internal class AstChecker(private val program: Program,
 
         // CONST can only occur on simple types (byte, word, float)
         if(decl.type== VarDeclType.CONST) {
-            if (decl.datatype !in NumericDatatypes)
-                err("const can only be used on numeric types (byte, word, float)")
+            if (decl.datatype !in NumericDatatypesWithBoolean)
+                err("const can only be used on numeric types or booleans")
         }
 
         // FLOATS enabled?
@@ -717,11 +693,11 @@ internal class AstChecker(private val program: Program,
                     val eltDt = ArrayToElementTypes.getValue(decl.datatype)
                     if(iDt isnot eltDt) {
                         if(!(iDt.isBool && eltDt==DataType.UBYTE || iDt.istype(DataType.UBYTE) && eltDt==DataType.BOOL))
-                            err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                            err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                     }
                 } else {
                     if(!(iDt.isBool && decl.datatype==DataType.UBYTE || iDt.istype(DataType.UBYTE) && decl.datatype==DataType.BOOL))
-                        err("initialisation value has incompatible type (${declValue.inferType(program)}) for the variable (${decl.datatype})")
+                        err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 }
             }
         }
@@ -971,8 +947,12 @@ internal class AstChecker(private val program: Program,
         else if(expr.operator == "~") {
             if(dt !in IntegerDatatypes)
                 errors.err("can only use bitwise invert on integer types", expr.position)
-            if(dt==DataType.BOOL)
+            else if(dt==DataType.BOOL)
                 errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
+        }
+        else if(expr.operator == "not") {
+            if(dt!=DataType.BOOL)
+                errors.err("logical not is for booleans", expr.position)
         }
         super.visit(expr)
     }
@@ -1014,11 +994,6 @@ internal class AstChecker(private val program: Program,
                         errors.err("remainder can only be used on unsigned integer operands", expr.right.position)
                 }
             }
-            "&", "|", "^" -> {
-                // only integer numeric operands accepted
-                if(leftDt !in IntegerDatatypes || rightDt !in IntegerDatatypes)
-                    errors.err("bitwise operator can only be used on integer operands", expr.right.position)
-            }
             "in" -> throw FatalAstException("in expression should have been replaced by containmentcheck")
             "<<", ">>" -> {
                 if(rightDt in WordDatatypes) {
@@ -1043,10 +1018,12 @@ internal class AstChecker(private val program: Program,
                 // expression with one side BOOL other side (U)BYTE is allowed; bool==byte
             } else if((expr.operator == "<<" || expr.operator == ">>") && (leftDt in WordDatatypes && rightDt in ByteDatatypes)) {
                 // exception allowed: shifting a word by a byte
+            } else if((expr.operator in BitwiseOperators) && (leftDt in IntegerDatatypes && rightDt in IntegerDatatypes)) {
+                // exception allowed: bitwise operations with any integers
             } else if((leftDt==DataType.UWORD && rightDt==DataType.STR) || (leftDt==DataType.STR && rightDt==DataType.UWORD)) {
                 // exception allowed: comparing uword (pointer) with string
             } else {
-                errors.err("left and right operands aren't the same type", expr.left.position)
+                errors.err("left and right operands aren't the same type", expr.position)
             }
         }
 
@@ -1087,6 +1064,18 @@ internal class AstChecker(private val program: Program,
             }
             if((expr.operator == "/" || expr.operator == "%") && ( rightDt==DataType.BOOL || (expr.right as? TypecastExpression)?.expression?.inferType(program)?.istype(DataType.BOOL)==true)) {
                 errors.err("can't use boolean operand with this operator ${expr.operator}", expr.right.position)
+            }
+        }
+
+
+        if(expr.operator in LogicalOperators) {
+            if (leftDt != DataType.BOOL || rightDt != DataType.BOOL)
+                errors.err("logical operator requires boolean operands", expr.right.position)
+        }
+        else {
+            if (leftDt == DataType.BOOL || rightDt == DataType.BOOL) {
+                if(expr.operator!="==" && expr.operator!="!=")
+                    errors.err("operator requires numeric operands", expr.right.position)
             }
         }
     }
@@ -1289,14 +1278,7 @@ internal class AstChecker(private val program: Program,
         if(target is Label && args.isNotEmpty())
             errors.err("cannot use arguments when calling a label", position)
 
-        if(target is BuiltinFunctionPlaceholder) {
-            if(target.name=="all" || target.name=="any") {
-                if((args[0] as? AddressOf)?.identifier?.targetVarDecl(program)?.datatype == DataType.STR
-                    || args[0].inferType(program).getOr(DataType.STR) == DataType.STR) {
-                    errors.err("any/all on a string is useless (is always true unless the string is empty)", position)
-                }
-            }
-        } else if(target is Subroutine) {
+        if(target is Subroutine) {
             if(target.isAsmSubroutine) {
                 for (arg in args.zip(target.parameters)) {
                     val argIDt = arg.first.inferType(program)
@@ -1375,7 +1357,10 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(whenStmt: When) {
-        if(!whenStmt.condition.inferType(program).isInteger)
+        val conditionDt = whenStmt.condition.inferType(program)
+        if(conditionDt.isBool)
+            errors.err("condition is boolean, use if statement instead", whenStmt.position)
+        else if(!conditionDt.isInteger)
             errors.err("when condition must be an integer value", whenStmt.position)
         val tally = mutableSetOf<Int>()
         for((choices, choiceNode) in whenStmt.choiceValues(program)) {
@@ -1406,7 +1391,7 @@ internal class AstChecker(private val program: Program,
             for((constvalue, pos) in constvalues) {
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", pos)
-                    constvalue.type !in IntegerDatatypes -> errors.err("choice value must be a byte or word", pos)
+                    constvalue.type !in IntegerDatatypesWithBoolean -> errors.err("choice value must be a byte or word", pos)
                     conditionType isnot constvalue.type -> {
                         if(conditionType.isKnown) {
                             if(conditionType.istype(DataType.BOOL)) {
@@ -1492,7 +1477,8 @@ internal class AstChecker(private val program: Program,
 
     private fun checkLongType(expression: Expression) {
         if(expression.inferType(program).istype(DataType.LONG)) {
-            errors.err("integer overflow", expression.position)
+            if(errors.noErrorForLine(expression.position))
+                errors.err("integer overflow", expression.position)
         }
     }
 
@@ -1654,13 +1640,14 @@ internal class AstChecker(private val program: Program,
                     return err("value '$number' out of range for word")
             }
             DataType.BOOL -> {
-                return true
+                if(value.type!=DataType.BOOL)
+                    err("type of value ${value.type} doesn't match target $targetDt")
             }
             in ArrayDatatypes -> {
                 val eltDt = ArrayToElementTypes.getValue(targetDt)
                 return checkValueTypeAndRange(eltDt, value)
             }
-            else -> return err("value of type ${value.type} not compatible with $targetDt")
+            else -> return err("type of value ${value.type} doesn't match target $targetDt")
         }
         return true
     }
@@ -1723,11 +1710,11 @@ internal class AstChecker(private val program: Program,
         }
 
         val result =  when(targetDatatype) {
-            DataType.BOOL -> sourceDatatype in NumericDatatypes
-            DataType.BYTE -> sourceDatatype == DataType.BYTE || sourceDatatype == DataType.BOOL
-            DataType.UBYTE -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.BOOL
-            DataType.WORD -> sourceDatatype in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD, DataType.BOOL)
-            DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD || sourceDatatype == DataType.BOOL
+            DataType.BOOL -> sourceDatatype==DataType.BOOL
+            DataType.BYTE -> sourceDatatype == DataType.BYTE
+            DataType.UBYTE -> sourceDatatype == DataType.UBYTE
+            DataType.WORD -> sourceDatatype in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD)
+            DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype == DataType.STR
             else -> {
@@ -1747,12 +1734,14 @@ internal class AstChecker(private val program: Program,
         }
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
             errors.err("cannot assign float to ${targetDatatype.name.lowercase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
+        else if((sourceValue as? BinaryExpression)?.operator in BitwiseOperators && targetDatatype.equalsSize(sourceDatatype)) {
+            // this is allowed: bitwise operation between different types as long as they're the same size.
+        }
+        else if(targetDatatype==DataType.UWORD && sourceDatatype in PassByReferenceDatatypes) {
+            // this is allowed: a pass-by-reference datatype into a uword (pointer value).
+        }
         else {
-            if(targetDatatype!=DataType.UWORD && sourceDatatype !in PassByReferenceDatatypes) {
-                // allow bitwise operations on different types as long as the size is the same
-                if (!((sourceValue as? BinaryExpression)?.operator in BitwiseOperators && targetDatatype.equalsSize(sourceDatatype)))
-                    errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
-            }
+            errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
 
         return false
