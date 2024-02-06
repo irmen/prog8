@@ -87,6 +87,14 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                                 } else
                                                     false
                                             targetInline || valueInline
+                                        } else if(stmt.target.identifier!=null && stmt.isAugmentable) {
+                                            val binExpr = stmt.value as BinaryExpression
+                                            if(binExpr.operator in "+-" && binExpr.right.constValue(program)?.number==1.0) {
+                                                makeFullyScoped(stmt.target.identifier!!)
+                                                makeFullyScoped(binExpr.left as IdentifierReference)
+                                                true
+                                            } else
+                                                false
                                         } else
                                             false
                                     }

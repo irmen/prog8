@@ -443,6 +443,33 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
+        // xx+=3 -> xx++ xx++ xx++
+        // note: ideally this optimization should be done by the code generator, but doing it there
+        // requires doing it multiple times (because lots of different things can be incremented/decremented)
+        if(assignment.target.identifier!=null
+            || assignment.target.arrayindexed?.isSimple==true
+            || assignment.target.memoryAddress?.addressExpression?.isSimple==true) {
+            if(assignment.value.inferType(program).isBytes && assignment.isAugmentable) {
+                val binExpr = assignment.value as? BinaryExpression
+                if(binExpr!=null) {
+                    if(binExpr.operator in "+-") {
+                        val value = binExpr.right.constValue(program)?.number?.toInt()
+                        if(value!=null && value in 2..4) {
+                            val stmts = mutableListOf<Statement>()
+                            repeat(value) {
+                                val incrdecr = Assignment(assignment.target.copy(),
+                                    BinaryExpression(assignment.target.toExpression(), binExpr.operator, NumericLiteral.optimalInteger(1, assignment.position), assignment.position),
+                                    AssignmentOrigin.OPTIMIZER, assignment.position)
+                                stmts.add(incrdecr)
+                            }
+                            val incrdecrs = AnonymousScope(stmts, assignment.position)
+                            return listOf(IAstModification.ReplaceNode(assignment, incrdecrs, parent))
+                        }
+                    }
+                }
+            }
+        }
+
         return noModifications
     }
 

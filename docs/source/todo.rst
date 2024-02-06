@@ -1,10 +1,6 @@
 TODO
 ====
 
-- remove ++/-- (just use Pythonesque x+=1): optimize codegen for +=1/-=1
-- eventually remove ++/-- from the parser? Or keep it?
-
-
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 
 ...

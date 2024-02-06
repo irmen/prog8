@@ -96,8 +96,8 @@ private fun StatementContext.toAst() : Statement {
         val tgt = it.assign_target().toAst()
         val operator = it.operator.text
         val pos = it.toPosition()
-        print("\u001b[92mINFO\u001B[0m  ")  // bright green
-        println("${pos}: ++ and -- will be removed in a future version, please use +=1 or -=1 instead.")
+//        print("\u001b[92mINFO\u001B[0m  ")  // bright green
+//        println("${pos}: ++ and -- will be removed in a future version, please use +=1 or -=1 instead.")    // TODO
         val addSubOne = BinaryExpression(tgt.toExpression(), if(operator=="++") "+" else "-", NumericLiteral.optimalInteger(1, pos), pos, false)
         return Assignment(tgt, addSubOne, AssignmentOrigin.USERCODE, pos)
     }

@@ -587,8 +587,11 @@ augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``&=``  ``|=``  ``^=``  ``
     This is syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``
 
 postfix increment and decrement: ``++``  ``--``
-    Syntactic sugar; ``aa++`` is equivalent to ``aa = aa + 1``, and ``aa--`` is equivalent to ``aa = aa - 1``.
-    Because these operations are so common, we have these short forms.
+    Syntactic sugar: ``aa++`` is equivalent to ``aa += 1``, and ``aa--`` is equivalent to ``aa -= 1``.
+    Because these operations are so common, and often used in other languages, we have these short forms.
+    *Notes:* unlike some other languages, they are *not* expressions in prog8, but statements. You cannot
+    increment or decrement something inside an expression like, for example, ``x = value[aa++]`` is invalid.
+    Also because of this, there is no *prefix* increment and decrement.
 
 comparison: ``==``  ``!=``  ``<``  ``>``  ``<=``  ``>=``
     Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.

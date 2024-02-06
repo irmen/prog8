@@ -288,6 +288,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                 }
                 else {
+                    if(value.kind==SourceStorageKind.LITERALNUMBER
+                        && operator in "+-"
+                        && value.number!!.number==1.0
+                        && tryIndexedIncDec(target.array, operator))
+                        return
+
                     when (target.datatype) {
                         in ByteDatatypes -> {
                             if(value.kind==SourceStorageKind.EXPRESSION
@@ -476,6 +482,67 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun tryIndexedIncDec(array: PtArrayIndexer, operator: String): Boolean {
+        val arrayvar = asmgen.asmVariableName(array.variable)
+        when (array.type) {
+            in ByteDatatypes -> {
+                asmgen.loadScaledArrayIndexIntoRegister(array, CpuRegister.X)
+                if (operator == "+")
+                    asmgen.out("  inc  $arrayvar,x")
+                else
+                    asmgen.out("  dec  $arrayvar,x")
+                return true
+            }
+            in WordDatatypes -> {
+                asmgen.loadScaledArrayIndexIntoRegister(array, CpuRegister.X)
+                if(array.splitWords) {
+                    if(operator=="+") {
+                        asmgen.out("""
+                            inc  ${arrayvar}_lsb,x
+                            bne  +
+                            inc  ${arrayvar}_msb,x
++""")
+                    } else {
+                        asmgen.out("""
+                            lda  ${arrayvar}_lsb,x
+                            bne  +
+                            dec  ${arrayvar}_msb,x
++                           dec  ${arrayvar}_lsb,x""")
+                    }
+                    return true
+                } else {
+                    if(operator=="+") {
+                        asmgen.out("""
+                            inc  $arrayvar,x
+                            bne  +
+                            inc  $arrayvar+1,x
++""")
+                    } else {
+                        asmgen.out("""
+                            lda  $arrayvar,x
+                            bne  +
+                            dec  $arrayvar+1,x
++                           dec  $arrayvar,x""")
+                    }
+                    return true
+                }
+            }
+            DataType.FLOAT -> {
+                asmgen.loadScaledArrayIndexIntoRegister(array, CpuRegister.A)
+                asmgen.out("""
+                    ldy  #>$arrayvar
+                    clc
+                    adc  #<$arrayvar
+                    bcc  +
+                    iny
++""")
+                asmgen.out(if(operator=="+") "  jsr  floats.inc_var_f" else "  jsr  floats.dec_var_f")
+                return true
+            }
+            else -> return false
+        }
+    }
+
     private fun tryOptimizedMemoryInplace(address: PtBinaryExpression, operator: String, value: AsmAssignSource): Boolean {
         if(value.datatype !in ByteDatatypes || operator !in "|&^+-")
             return false
@@ -550,6 +617,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "+" -> {
                 when {
                     value==0 -> {}
+                    value==1 -> {
+                        asmgen.out("""
+                            inc  ${arrayVar}_lsb+$index
+                            bne  +
+                            inc  ${arrayVar}_msb+$index
++""")
+                    }
                     value in 1..0xff -> asmgen.out("""
                         lda  ${arrayVar}_lsb+$index
                         clc
@@ -576,6 +650,13 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "-" -> {
                 when {
                     value==0 -> {}
+                    value==1 -> {
+                        asmgen.out("""
+                            lda  ${arrayVar}_lsb+$index
+                            bne  +
+                            dec  ${arrayVar}_msb+$index
++                           dec  ${arrayVar}_lsb+$index""")
+                    }
                     value in 1..0xff -> asmgen.out("""
                         lda  ${arrayVar}_lsb+$index
                         sec
@@ -693,6 +774,23 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun inplacemodificationRegisterAXwithLiteralval(operator: String, number: Int): Boolean {
         when(operator) {
             "+" -> {
+                if(number==1) {
+                    if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                        asmgen.out("""
+                            inc  a
+                            bne  +
+                            iny
++""")
+                    } else {
+                        asmgen.out("""
+                            clc
+                            adc  #1
+                            bne  +
+                            iny
++""")
+                    }
+                    return true
+                }
                 return if(number in -128..255) {
                     asmgen.out("""
                         clc
@@ -714,6 +812,23 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             "-" -> {
+                if(number==1) {
+                    if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                        asmgen.out("""
+                            cmp  #0
+                            bne  +
+                            dey
++                           dec  a""")
+                    } else {
+                        asmgen.out("""
+                            cmp  #0
+                            bne  +
+                            dey
++                           sec
+                            sbc  #1""")
+                    }
+                    return true
+                }
                 return if(number in -128..255) {
                     asmgen.out("""
                         sec
@@ -849,14 +964,26 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         when (operator) {
             "+" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out("  clc |  adc  #$value")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                if(value==1) {
+                    asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
+                    asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                    asmgen.out("+\tinc  ${'$'}ffff\t; modified")
+                } else {
+                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                    asmgen.out("  clc |  adc  #$value")
+                    asmgen.storeAIntoZpPointerVar(sourceName)
+                }
             }
             "-" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out("  sec |  sbc  #$value")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                if(value==1) {
+                    asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
+                    asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                    asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                } else {
+                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                    asmgen.out("  sec |  sbc  #$value")
+                    asmgen.storeAIntoZpPointerVar(sourceName)
+                }
             }
             "*" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -976,6 +1103,21 @@ $shortcutLabel:""")
     }
 
     private fun inplacemodificationRegisterAwithVariable(operator: String, variable: String, signed: Boolean) {
+        if(operator in "+-" && variable in arrayOf("#1", "#$1", "#$01", "#%1", "#%00000001")) {
+            if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                if(operator=="+")
+                    asmgen.out("  inc  a")
+                else
+                    asmgen.out("  dec  a")
+            } else {
+                if(operator=="+")
+                    asmgen.out("  clc |  adc  #1")
+                else
+                    asmgen.out("  sec |  sbc  #1")
+            }
+            return
+        }
+
         // A = A <operator> variable
         when (operator) {
             "+" -> asmgen.out("  clc |  adc  $variable")
@@ -1305,8 +1447,14 @@ $shortcutLabel:""")
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         // note: no logical and/or shortcut here, not worth it due to simple right operand
         when (operator) {
-            "+" -> asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
-            "-" -> asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
+            "+" -> {
+                if(value==1) asmgen.out("  inc  $name")
+                else asmgen.out(" lda  $name |  clc |  adc  #$value |  sta  $name")
+            }
+            "-" -> {
+                if(value==1) asmgen.out("  dec  $name")
+                else asmgen.out(" lda  $name |  sec |  sbc  #$value |  sta  $name")
+            }
             "*" -> {
                 if(value in asmgen.optimizedByteMultiplications)
                     asmgen.out("  lda  $name |  jsr  math.mul_byte_$value |  sta  $name")
@@ -1560,6 +1708,13 @@ $shortcutLabel:""")
             "+" -> {
                 when {
                     value==0 -> {}
+                    value==1 -> {
+                        asmgen.out("""
+                            inc  $name
+                            bne  +
+                            inc  $name+1
++""")
+                    }
                     value in 1..0xff -> asmgen.out("""
                         lda  $name
                         clc
@@ -1586,6 +1741,13 @@ $shortcutLabel:""")
             "-" -> {
                 when {
                     value==0 -> {}
+                    value==1 -> {
+                        asmgen.out("""
+                            lda  $name
+                            bne  +
+                            dec  $name+1
++                           dec  $name""")
+                    }
                     value in 1..0xff -> asmgen.out("""
                         lda  $name
                         sec
@@ -2920,6 +3082,10 @@ $shortcutLabel:""")
             "+" -> {
                 when (value) {
                     0.0 -> return
+                    1.0 -> {
+                        asmgen.out("  lda  #<($name) |  ldy  #>($name) |  jsr  floats.inc_var_f")
+                        return
+                    }
                     0.5 -> asmgen.out("""
                         lda  #<$name
                         ldy  #>$name
@@ -2939,6 +3105,10 @@ $shortcutLabel:""")
             "-" -> {
                 if (value == 0.0)
                     return
+                if(value==1.0) {
+                    asmgen.out("  lda  #<($name) |  ldy  #>($name) |  jsr  floats.dec_var_f")
+                    return
+                }
                 asmgen.out("""
                     lda  #<$constValueName
                     ldy  #>$constValueName
