@@ -15,23 +15,23 @@ main {
         xx -= 3
         yy -= 3
 
-;        txt.print_ub(array[1])
-;        txt.spc()
-;        array[1]++
-;        txt.print_ub(array[1])
-;        txt.spc()
-;        array[1]--
-;        txt.print_ub(array[1])
-;        txt.nl()
-;
-;        txt.print_ub(array[1])
-;        txt.spc()
-;        array[xx]++
-;        txt.print_ub(array[1])
-;        txt.spc()
-;        array[xx]--
-;        txt.print_ub(array[1])
-;        txt.nl()
+        txt.print_ub(array[1])
+        txt.spc()
+        array[1]++
+        txt.print_ub(array[1])
+        txt.spc()
+        array[1]--
+        txt.print_ub(array[1])
+        txt.nl()
+
+        txt.print_ub(array[1])
+        txt.spc()
+        array[xx]++
+        txt.print_ub(array[1])
+        txt.spc()
+        array[xx]--
+        txt.print_ub(array[1])
+        txt.nl()
 
     }
 }
