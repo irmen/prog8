@@ -653,7 +653,7 @@ class TestProg8Parser: FunSpec( {
                 sub start() {
                     repeat {
                         ubyte xx = 99
-                        xx++
+                        rol(xx)
                     }
                 }
             }
@@ -673,7 +673,7 @@ class TestProg8Parser: FunSpec( {
         }
         val initvalue = (repeatbody.statements[0] as VarDecl).value as? NumericLiteral
         initvalue?.number?.toInt() shouldBe 99
-        repeatbody.statements[1] shouldBe instanceOf<PostIncrDecr>()
+        repeatbody.statements[1] shouldBe instanceOf<FunctionCallStatement>()
         // the ast processing steps used in the compiler, will eventually move the var up to the containing scope (subroutine).
     }
 

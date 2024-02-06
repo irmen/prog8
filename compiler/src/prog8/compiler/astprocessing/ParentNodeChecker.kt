@@ -149,12 +149,6 @@ internal class ParentNodeChecker: AstWalker() {
         return noModifications
     }
 
-    override fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> {
-        if(postIncrDecr.parent!==parent)
-            throw FatalAstException("parent node mismatch at $postIncrDecr")
-        return noModifications
-    }
-
     override fun before(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         if(range.parent!==parent)
             throw FatalAstException("parent node mismatch at $range")

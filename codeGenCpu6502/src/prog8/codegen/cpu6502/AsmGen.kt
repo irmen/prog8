@@ -227,7 +227,6 @@ class AsmGen6502Internal (
     private val assembly = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
     private val forloopsAsmGen = ForLoopsAsmGen(this, zeropage)
-    private val postincrdecrAsmGen = PostIncrDecrAsmGen(program, this)
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
     private val anyExprGen = AnyExprAsmGen(this)
@@ -535,7 +534,6 @@ class AsmGen6502Internal (
                 val (asmLabel, indirect) = getJumpTarget(stmt)
                 jmp(asmLabel, indirect)
             }
-            is PtPostIncrDecr -> postincrdecrAsmGen.translate(stmt)
             is PtLabel -> translate(stmt)
             is PtConditionalBranch -> translate(stmt)
             is PtIfElse -> translate(stmt)

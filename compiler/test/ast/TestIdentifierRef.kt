@@ -8,7 +8,10 @@ import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
-import prog8.ast.statements.*
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.Block
+import prog8.ast.statements.Subroutine
+import prog8.ast.statements.VarDecl
 import prog8.code.core.Position
 import prog8.code.core.SourceCode
 import prog8.parser.Prog8Parser
@@ -56,7 +59,7 @@ class TestIdentifierRef: FunSpec({
         program.addModule(module)
         val mstmts = (module.statements.single() as Block).statements
         val stmts = mstmts.filterIsInstance<Subroutine>().single().statements
-        val wwref = (stmts[0] as PostIncrDecr).target.identifier!!
+        val wwref = (stmts[0] as Assignment).target.identifier!!
         val mainref = ((stmts[1] as Assignment).value as AddressOf).identifier
         wwref.nameInSource shouldBe listOf("ww")
         wwref.wasStringLiteral(program) shouldBe false

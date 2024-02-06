@@ -92,7 +92,7 @@ internal class AstChecker(private val program: Program,
             if (iterations < 0 || iterations > 65535)
                 errors.err("invalid number of unrolls", unrollLoop.position)
             unrollLoop.body.statements.forEach {
-                if (it !is InlineAssembly && it !is Assignment && it !is BuiltinFunctionCallStatement && it !is FunctionCallStatement && it !is PostIncrDecr)
+                if (it !is InlineAssembly && it !is Assignment && it !is BuiltinFunctionCallStatement && it !is FunctionCallStatement)
                     errors.err("invalid statement in unroll loop", it.position)
             }
             if (iterations * unrollLoop.body.statements.size > 256) {
@@ -1327,41 +1327,6 @@ internal class AstChecker(private val program: Program,
         args.forEach{
             checkLongType(it)
         }
-    }
-
-    override fun visit(postIncrDecr: PostIncrDecr) {
-        if(postIncrDecr.target.identifier != null) {
-            val targetName = postIncrDecr.target.identifier!!.nameInSource
-            val target = postIncrDecr.definingScope.lookup(targetName)
-            if(target==null) {
-                val symbol = postIncrDecr.target.identifier!!
-                errors.undefined(symbol.nameInSource, symbol.position)
-            } else {
-                if(target !is VarDecl || target.type== VarDeclType.CONST) {
-                    errors.err("can only increment or decrement a variable", postIncrDecr.position)
-                } else if(target.datatype !in NumericDatatypes) {
-                    errors.err("cannot increment/decrement this", postIncrDecr.position)
-                }
-            }
-        } else if(postIncrDecr.target.arrayindexed != null) {
-            val indexed = postIncrDecr.target.arrayindexed!!
-            val target = indexed.arrayvar.targetStatement(program)
-            if(target==null) {
-                errors.undefined(indexed.arrayvar.nameInSource, indexed.arrayvar.position)
-            }
-            else {
-                val dt = (target as VarDecl).datatype
-                if(dt !in NumericDatatypes && dt !in ArrayDatatypes && dt!=DataType.STR)
-                    errors.err("cannot increment/decrement this", postIncrDecr.position)
-            }
-        }
-        // else if(postIncrDecr.target.memoryAddress != null) { } // a memory location can always be ++/--
-
-        if(postIncrDecr.target.inferType(program) istype DataType.BOOL) {
-            errors.err("can't use boolean operand with this operator ${postIncrDecr.operator}", postIncrDecr.position)
-        }
-
-        super.visit(postIncrDecr)
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {

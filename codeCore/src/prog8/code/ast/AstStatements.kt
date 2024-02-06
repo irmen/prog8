@@ -110,12 +110,6 @@ class PtJump(val identifier: PtIdentifier?,     // note: even ad-hoc labels are 
 }
 
 
-class PtPostIncrDecr(val operator: String, position: Position) : PtNode(position) {
-    val target: PtAssignTarget
-        get() = children.single() as PtAssignTarget
-}
-
-
 class PtRepeatLoop(position: Position) : PtNode(position) {
     val count: PtExpression
         get() = children[0] as PtExpression

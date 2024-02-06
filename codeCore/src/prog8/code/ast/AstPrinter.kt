@@ -123,7 +123,6 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             }
             is PtNodeGroup -> "<group>"
             is PtNop -> "nop"
-            is PtPostIncrDecr -> "<post> ${node.operator}"
             is PtProgram -> "PROGRAM ${node.name}"
             is PtRepeatLoop -> "repeat"
             is PtReturn -> "return"

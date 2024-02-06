@@ -52,7 +52,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             is InlineAssembly -> transform(statement)
             is Jump -> transform(statement)
             is Label -> transform(statement)
-            is PostIncrDecr -> transform(statement)
             is RepeatLoop -> transform(statement)
             is UnrollLoop -> transform(statement)
             is Return -> transform(statement)
@@ -396,12 +395,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(label: Label): PtLabel =
         PtLabel(label.name, label.position)
-
-    private fun transform(src: PostIncrDecr): PtPostIncrDecr {
-        val post = PtPostIncrDecr(src.operator, src.position)
-        post.add(transform(src.target))
-        return post
-    }
 
     private fun transform(srcRepeat: RepeatLoop): PtRepeatLoop {
         if(srcRepeat.iterations==null)

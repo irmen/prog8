@@ -5,9 +5,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.AssociativeOperators
+import prog8.code.core.CompilationOptions
+import prog8.code.core.DataType
+import prog8.code.core.IErrorReporter
 import prog8.code.target.VMTarget
-import kotlin.math.floor
 
 
 class StatementOptimizer(private val program: Program,
@@ -185,13 +187,21 @@ class StatementOptimizer(private val program: Program,
 
         val loopvarDt = forLoop.loopVarDt(program)
         if(loopvarDt.istype(DataType.UWORD) || loopvarDt.istype(DataType.UBYTE)) {
+
+            fun incOrDec(inc: Boolean): Assignment {
+                val pos = forLoop.position
+                val loopVar = forLoop.loopVar
+                val addSubOne = BinaryExpression(loopVar.copy(), if(inc) "+" else "-", NumericLiteral.optimalInteger(1, pos), pos, false)
+                return Assignment(AssignTarget(loopVar.copy(), null, null, pos), addSubOne, AssignmentOrigin.USERCODE, pos)
+            }
+
             if (range != null && range.from.constValue(program)?.number == 0.0 && range.step.constValue(program)?.number==1.0) {
                 val toBinExpr = range.to as? BinaryExpression
                 if(toBinExpr!=null && toBinExpr.operator=="-" && toBinExpr.right.constValue(program)?.number==1.0) {
                     // FOR var IN 0 TO X-1 .... ---> var=0, DO {... , var++} UNTIL var==X
                     val pos = forLoop.position
                     val condition = BinaryExpression(forLoop.loopVar.copy(), "==", toBinExpr.left, pos)
-                    val incOne = PostIncrDecr(AssignTarget(forLoop.loopVar.copy(), null, null, pos), "++", pos)
+                    val incOne = incOrDec(true)
                     forLoop.body.statements.add(incOne)
                     val replacement = AnonymousScope(mutableListOf(
                         Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, pos),
@@ -208,7 +218,7 @@ class StatementOptimizer(private val program: Program,
                     if (toConst == null) {
                         // FOR var in 0 TO X ... --->  var=0, REPEAT { ... , IF var==X break , var++ }
                         val pos = forLoop.position
-                        val incOne = PostIncrDecr(AssignTarget(forLoop.loopVar.copy(), null, null, pos), "++", pos)
+                        val incOne = incOrDec(true)
                         val breakCondition = IfElse(
                             BinaryExpression(forLoop.loopVar, "==", range.to, pos),
                             AnonymousScope(mutableListOf(Break(pos)), pos),
@@ -235,7 +245,7 @@ class StatementOptimizer(private val program: Program,
                     val pos = forLoop.position
                     val checkValue = NumericLiteral(loopvarDt.getOr(DataType.UNDEFINED), if(loopvarDt.istype(DataType.UBYTE)) 255.0 else 65535.0, pos)
                     val condition = BinaryExpression(forLoop.loopVar.copy(), "==", checkValue, pos)
-                    val decOne = PostIncrDecr(AssignTarget(forLoop.loopVar.copy(), null, null, pos), "--", pos)
+                    val decOne = incOrDec(false)
                     forLoop.body.statements.add(decOne)
                     val replacement = AnonymousScope(mutableListOf(
                         Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, pos),
@@ -390,35 +400,15 @@ class StatementOptimizer(private val program: Program,
                 // assignments of the form:  X = X <operator> <expr>
                 // remove assignments that have no effect (such as X=X+0)
                 // optimize/rewrite some other expressions
-                val targetDt = targetIDt.getOr(DataType.UNDEFINED)
-                val vardeclDt = (assignment.target.identifier?.targetVarDecl(program))?.type
                 when (bexpr.operator) {
                     "+" -> {
                         if (rightCv == 0.0) {
                             return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
-                        } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
-                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..3.0 && options.compTarget.name!=VMTarget.NAME) {
-                                // replace by several INCs if it's not a memory address (inc on a memory mapped register doesn't work very well)
-                                val incs = AnonymousScope(mutableListOf(), assignment.position)
-                                repeat(rightCv.toInt()) {
-                                    incs.statements.add(PostIncrDecr(assignment.target.copy(), "++", assignment.position))
-                                }
-                                return listOf(IAstModification.ReplaceNode(assignment, if(incs.statements.size==1) incs.statements[0] else incs, parent))
-                            }
                         }
                     }
                     "-" -> {
                         if (rightCv == 0.0) {
                             return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
-                        } else if (targetDt in IntegerDatatypes && floor(rightCv) == rightCv) {
-                            if (vardeclDt != VarDeclType.MEMORY && rightCv in 1.0..3.0 && options.compTarget.name!=VMTarget.NAME) {
-                                // replace by several DECs if it's not a memory address (dec on a memory mapped register doesn't work very well)
-                                val decs = AnonymousScope(mutableListOf(), assignment.position)
-                                repeat(rightCv.toInt()) {
-                                    decs.statements.add(PostIncrDecr(assignment.target.copy(), "--", assignment.position))
-                                }
-                                return listOf(IAstModification.ReplaceNode(assignment, decs, parent))
-                            }
                         }
                     }
                     "*" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))

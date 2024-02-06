@@ -108,10 +108,6 @@ interface IAstVisitor {
         assignment.value.accept(this)
     }
 
-    fun visit(postIncrDecr: PostIncrDecr) {
-        postIncrDecr.target.accept(this)
-    }
-
     fun visit(breakStmt: Break) {
     }
 

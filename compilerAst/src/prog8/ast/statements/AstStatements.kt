@@ -630,27 +630,6 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
 }
 
-class PostIncrDecr(var target: AssignTarget, val operator: String, override val position: Position) : Statement() {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        target.linkParents(this)
-    }
-
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is AssignTarget && node===target)
-        target = replacement
-        replacement.parent = this
-    }
-
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource)
-    override fun copy() = PostIncrDecr(target.copy(), operator, position)
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun toString() = "PostIncrDecr(op: $operator, target: $target, pos=$position)"
-}
-
 class Jump(var address: UInt?,
            val identifier: IdentifierReference?,
            val generatedLabel: String?,             // can be used in code generation scenarios

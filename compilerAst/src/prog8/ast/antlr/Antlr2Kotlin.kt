@@ -93,7 +93,13 @@ private fun StatementContext.toAst() : Statement {
     if(augassign!=null) return augassign
 
     postincrdecr()?.let {
-        return PostIncrDecr(it.assign_target().toAst(), it.operator.text, it.toPosition())
+        val tgt = it.assign_target().toAst()
+        val operator = it.operator.text
+        val pos = it.toPosition()
+        print("\u001b[92mINFO\u001B[0m  ")  // bright green
+        println("${pos}: ++ and -- will be removed in a future version, please use +=1 or -=1 instead.")
+        val addSubOne = BinaryExpression(tgt.toExpression(), if(operator=="++") "+" else "-", NumericLiteral.optimalInteger(1, pos), pos, false)
+        return Assignment(tgt, addSubOne, AssignmentOrigin.USERCODE, pos)
     }
 
     val directive = directive()?.toAst()

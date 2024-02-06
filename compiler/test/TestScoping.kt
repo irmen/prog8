@@ -39,7 +39,7 @@ class TestScoping: FunSpec({
                 sub start() {
                     repeat 10 {
                         ubyte xx = 99
-                        xx++
+                        rol(xx)
                     }
                 }
             }
@@ -68,7 +68,7 @@ class TestScoping: FunSpec({
         withClue("vardecl in repeat should be replaced by init assignment") {
             (initassign?.value as? NumericLiteral)?.number?.toInt() shouldBe 99
         }
-        repeatbody.statements[1] shouldBe instanceOf<PostIncrDecr>()
+        repeatbody.statements[1] shouldBe instanceOf<FunctionCallStatement>()
     }
 
     test("labels with anon scopes") {

@@ -122,7 +122,6 @@ abstract class AstWalker {
     open fun before(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(module: Module, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(program: Program): Iterable<IAstModification> = noModifications
     open fun before(range: RangeExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
@@ -167,7 +166,6 @@ abstract class AstWalker {
     open fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(module: Module, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(postIncrDecr: PostIncrDecr, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(program: Program): Iterable<IAstModification> = noModifications
     open fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
@@ -365,12 +363,6 @@ abstract class AstWalker {
         assignment.target.accept(this, assignment)
         assignment.value.accept(this, assignment)
         track(after(assignment, parent), assignment, parent)
-    }
-
-    fun visit(postIncrDecr: PostIncrDecr, parent: Node) {
-        track(before(postIncrDecr, parent), postIncrDecr, parent)
-        postIncrDecr.target.accept(this, postIncrDecr)
-        track(after(postIncrDecr, parent), postIncrDecr, parent)
     }
 
     fun visit(breakStmt: Break, parent: Node) {

@@ -358,11 +358,6 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         chainedAssignment.nested.accept(this)
     }
 
-    override fun visit(postIncrDecr: PostIncrDecr) {
-        postIncrDecr.target.accept(this)
-        output(postIncrDecr.operator)
-    }
-
     override fun visit(breakStmt: Break) {
         output("break")
     }

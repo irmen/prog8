@@ -107,18 +107,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                         inline
                                     }
 
-                                    is PostIncrDecr -> {
-                                        if (stmt.target.identifier != null) {
-                                            makeFullyScoped(stmt.target.identifier!!)
-                                            true
-                                        } else if (stmt.target.memoryAddress?.addressExpression is NumericLiteral || stmt.target.memoryAddress?.addressExpression is IdentifierReference) {
-                                            if (stmt.target.memoryAddress?.addressExpression is IdentifierReference)
-                                                makeFullyScoped(stmt.target.memoryAddress?.addressExpression as IdentifierReference)
-                                            true
-                                        } else
-                                            false
-                                    }
-
                                     is Jump -> true
                                     else -> false
                                 }

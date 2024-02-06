@@ -225,7 +225,7 @@ class TestOptimization: FunSpec({
                          uword yy           ; to be removed
                          yy=99              ; to be removed
                          cx16.r0 = 0
-                         cx16.r0++
+                         rol(cx16.r0)
                     }
                 }
             }"""
