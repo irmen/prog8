@@ -1,5 +1,7 @@
 ; 0-terminated string manipulation routines. For the Virtual Machine target.
 
+%import shared_string_functions
+
 string {
     %option ignore_unused
 
@@ -182,69 +184,6 @@ string {
             } else
                 return hashcode
         }
-    }
-
-
-    sub strip(str s) {
-        ; -- gets rid of whitespace and other non-visible characters at the edges of the string
-        rstrip(s)
-        lstrip(s)
-    }
-
-    sub rstrip(str s) {
-        ; -- gets rid of whitespace and other non-visible characters at the end of the string
-        if s[0]==0
-            return
-        cx16.r0L = length(s)
-        do {
-            cx16.r0L--
-            cx16.r1L = s[cx16.r0L]
-        } until cx16.r0L==0 or isprint(cx16.r1L) and not isspace(cx16.r1L)
-        s[cx16.r0L+1] = 0
-    }
-
-    sub lstrip(str s) {
-        ; -- gets rid of whitespace and other non-visible characters at the start of the string
-        if s[0]==0
-            return
-        cx16.r0L = 255
-        do {
-            cx16.r0L++
-            cx16.r1L = s[cx16.r0L]
-        } until cx16.r1L==0 or isprint(cx16.r1L) and not isspace(cx16.r1L)
-        if cx16.r0L>0
-            copy(s+cx16.r0L, s)
-    }
-
-    sub trim(str s) {
-        ; -- gets rid of whitespace characters at the edges of the string
-        rtrim(s)
-        ltrim(s)
-    }
-
-    sub rtrim(str s) {
-        ; -- gets rid of whitespace characters at the end of the string
-        if s[0]==0
-            return
-        cx16.r0L = length(s)
-        do {
-            cx16.r0L--
-            cx16.r1L = s[cx16.r0L]
-        } until cx16.r0L==0 or not isspace(cx16.r1L)
-        s[cx16.r0L+1] = 0
-    }
-
-    sub ltrim(str s) {
-        ; -- gets rid of whitespace characters at the start of the string
-        if s[0]==0
-            return
-        cx16.r0L = 255
-        do {
-            cx16.r0L++
-            cx16.r1L = s[cx16.r0L]
-        } until not isspace(cx16.r1L)
-        if cx16.r0L>0
-            copy(s+cx16.r0L, s)
     }
 
     sub isdigit(ubyte character) -> bool {

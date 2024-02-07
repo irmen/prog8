@@ -292,22 +292,28 @@ Provides string manipulation routines.
     Returns uppercased PETSCII character.
 
 ``strip (string)``
-    Gets rid of whitespace and other non-visible characters at the edges of the string.
+    Gets rid of whitespace and other non-visible characters at the edges of the string. (destructive)
 
 ``rstrip (string)``
-    Gets rid of whitespace and other non-visible characters at the end of the string.
+    Gets rid of whitespace and other non-visible characters at the end of the string. (destructive)
 
 ``lstrip (string)``
-    Gets rid of whitespace and other non-visible characters at the start of the string.
+    Gets rid of whitespace and other non-visible characters at the start of the string. (destructive)
+
+``lstripped (string) -> str``
+    Returns pointer to first non-whitespace and non-visible character at the start of the string (non-destructive lstrip)
 
 ``trim (string)``
-    Gets rid of whitespace characters at the edges of the string.
+    Gets rid of whitespace characters at the edges of the string. (destructive)
 
 ``rtrim (string)``
-    Gets rid of whitespace characters at the end of the string.
+    Gets rid of whitespace characters at the end of the string. (destructive)
 
 ``ltrim (string)``
-    Gets rid of whitespace characters at the start of the string.
+    Gets rid of whitespace characters at the start of the string. (destructive)
+
+``ltrimmed (string) -> str``
+    Returns pointer to first non-whitespace character at the start of the string (non-destructive ltrim)
 
 ``isdigit (char)``
     Returns boolean if the character is a numerical digit 0-9

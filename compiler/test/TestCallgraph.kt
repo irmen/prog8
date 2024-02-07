@@ -22,7 +22,7 @@ import kotlin.io.path.readText
 class TestCallgraph: FunSpec({
     test("testGraphForEmptySubs") {
         val sourcecode = """
-            %import string
+            %import conv
             main {
                 sub start() {
                 }
@@ -37,7 +37,7 @@ class TestCallgraph: FunSpec({
         graph.importedBy.size shouldBe 1
         val toplevelModule = result.compilerAst.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
-        importedModule.name shouldBe "string"
+        importedModule.name shouldBe "conv"
         val importedBy = graph.importedBy.getValue(importedModule).single()
         importedBy.name.startsWith("on_the_fly_test") shouldBe true
 
@@ -61,7 +61,7 @@ class TestCallgraph: FunSpec({
 
     test("reference to empty sub") {
         val sourcecode = """
-            %import string
+            %import conv
             main {
                 sub start() {
                     uword xx = &empty
@@ -78,7 +78,7 @@ class TestCallgraph: FunSpec({
         graph.importedBy.size shouldBe 1
         val toplevelModule = result.compilerAst.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
-        importedModule.name shouldBe "string"
+        importedModule.name shouldBe "conv"
         val importedBy = graph.importedBy.getValue(importedModule).single()
         importedBy.name.startsWith("on_the_fly_test") shouldBe true
 

@@ -6,24 +6,38 @@
 
 main {
     sub start() {
-        str namestring = petscii:"The Quick Brown Fox Jumps Over The Lazy Dog\n0123456789!#$%^&*()-=_+[]{};:'<>,./?\n"
-        str namestring2 = petscii:"The Quick Brown Fox Jumps Over The Lazy Dog\n0123456789!#$%^&*()-=_+[]{};:'<>,./?\n"
-        txt.petscii2scr_str(namestring2)
-        for cx16.r0L in 0 to len(namestring) {
-            txt.print_ubhex(namestring[cx16.r0L], false)
-            txt.spc()
-            txt.print_ubhex(namestring2[cx16.r0L], false)
-            txt.nl()
-        }
-        txt.nl()
-        sys.exit(1)
-
         str name1 = ""
-        str name2 = "hello \r\n"
+        str name2 = "hello"
         str name3 = "  \n\rhello"
-        str name4 = "  \n\r\xa0\xa0\xff\xffhello\x02\x02\x02  \n  "
+        str name4 = "  \x02\x02\x02\n\r\xa0\xa0\xff\xffhello"
 
-        foo(name2)
+        txt.chrout('[')
+        txt.print(string.ltrimmed(name1))
+        txt.print("]\n")
+        txt.chrout('[')
+        txt.print(string.ltrimmed(name2))
+        txt.print("]\n")
+        txt.chrout('[')
+        txt.print(string.ltrimmed(name3))
+        txt.print("]\n")
+        txt.chrout('[')
+        txt.print(string.ltrimmed(name4))
+        txt.print("]\n\n")
+
+        txt.chrout('[')
+        txt.print(string.lstripped(name1))
+        txt.print("]\n")
+        txt.chrout('[')
+        txt.print(string.lstripped(name2))
+        txt.print("]\n")
+        txt.chrout('[')
+        txt.print(string.lstripped(name3))
+        txt.print("]\n")
+        txt.chrout('[')
+        txt.print(string.lstripped(name4))
+        txt.print("]\n")
+
+        ; foo(name2)
     }
 
     sub foo (str s2) {
