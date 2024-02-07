@@ -1,8 +1,9 @@
 TODO
 ====
 
-&pointervar[x]  isn't correct?? (at least in IR)
-
+&pointervar[x]  isn't the correct value
+&pointervar[x]  AST doesn't print correctly
+@(s) where s is a str parameter, doesn't work
 
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 
@@ -13,6 +14,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- can we support singed % (remainder) somehow?
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.

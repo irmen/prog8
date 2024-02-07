@@ -6,50 +6,42 @@
 
 main {
     sub start() {
+        str namestring = petscii:"The Quick Brown Fox Jumps Over The Lazy Dog\n0123456789!#$%^&*()-=_+[]{};:'<>,./?\n"
+        str namestring2 = petscii:"The Quick Brown Fox Jumps Over The Lazy Dog\n0123456789!#$%^&*()-=_+[]{};:'<>,./?\n"
+        txt.petscii2scr_str(namestring2)
+        for cx16.r0L in 0 to len(namestring) {
+            txt.print_ubhex(namestring[cx16.r0L], false)
+            txt.spc()
+            txt.print_ubhex(namestring2[cx16.r0L], false)
+            txt.nl()
+        }
+        txt.nl()
+        sys.exit(1)
+
         str name1 = ""
         str name2 = "hello \r\n"
         str name3 = "  \n\rhello"
         str name4 = "  \n\r\xa0\xa0\xff\xffhello\x02\x02\x02  \n  "
 
-        txt.print("strip:\n")
-        string.strip(name1)
-        txt.chrout('[')
-        txt.print(name1)
-        txt.print("]\n")
-        string.strip(name2)
-        txt.chrout('[')
-        txt.print(name2)
-        txt.print("]\n")
-        string.strip(name3)
-        txt.chrout('[')
-        txt.print(name3)
-        txt.print("]\n")
-        string.strip(name4)
-        txt.chrout('[')
-        txt.print(name4)
-        txt.print("]\n")
+        foo(name2)
+    }
 
-        str tname1 = ""
-        str tname2 = "hello \r\n"
-        str tname3 = "  \n\r\x09hello"
-        str tname4 = "  \n\x09\x0b\r\xa0\xa0\xff\xffhello\x05\x05\x05  \n  "
-
-        txt.print("trim:\n")
-        string.trim(tname1)
-        txt.chrout('[')
-        txt.print(tname1)
-        txt.print("]\n")
-        string.trim(tname2)
-        txt.chrout('[')
-        txt.print(tname2)
-        txt.print("]\n")
-        string.trim(tname3)
-        txt.chrout('[')
-        txt.print(tname3)
-        txt.print("]\n")
-        string.trim(tname4)
-        txt.chrout('[')
-        txt.print(tname4)
-        txt.print("]\n")
+    sub foo (str s2) {
+        str s = "irmen"
+        txt.print_uwhex(s, true)
+        txt.nl()
+        txt.print_uwhex(&s, true)
+        txt.nl()
+        txt.print_uwhex(&s[2], true)    ; TODO doesn't print correctly in the AST!
+        txt.nl()
+        txt.nl()
+        txt.print_uwhex(s2, true)
+        txt.nl()
+        txt.print_uwhex(&s2, true)
+        txt.nl()
+        txt.print_uwhex(s2+2, true)
+        txt.nl()
+        txt.print_uwhex(&s2[2], true)   ; TODO should be the same as the previous one!  TODO doesn't print correctly in the AST!
+        txt.nl()
     }
 }

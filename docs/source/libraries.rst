@@ -177,6 +177,7 @@ dealing with text-based input and output (to the screen). Such as
 - filling or clearing the screen and colors
 - scrolling the text on the screen
 - placing individual characters on the screen
+- convert petscii to screencode characters
 
 All routines work with Screencode character encoding, except `print`, `chrout` and `input_chars`,
 these work with PETSCII encoding instead.

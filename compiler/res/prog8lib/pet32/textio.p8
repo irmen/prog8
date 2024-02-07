@@ -4,7 +4,7 @@
 
 %import syslib
 %import conv
-
+%import shared_textio_functions
 
 txt {
     %option no_symbol_prefixing, ignore_unused

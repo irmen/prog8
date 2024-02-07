@@ -145,4 +145,19 @@ sub setchr (ubyte col, ubyte row, ubyte char) {
     txt.chrout(char)
 }
 
+sub petscii2scr(ubyte petscii_char) -> ubyte {
+    ; -- convert petscii character to screencode
+    byte[8] offsets = [128, 0, 64, 32, 64, 192, 128, 128]
+    return petscii_char ^ offsets[petscii_char>>5]
+}
+
+sub petscii2scr_str(str petscii_string) {
+    ; -- convert petscii string to screencodes string
+    cx16.r0 = petscii_string
+    while @(cx16.r0)!=0 {
+        @(cx16.r0) = petscii2scr(@(cx16.r0))
+        cx16.r0++
+    }
+}
+
 }
