@@ -290,6 +290,24 @@ Provides string manipulation routines.
 ``upperchar (char)``
     Returns uppercased PETSCII character.
 
+``strip (string)``
+    Gets rid of whitespace and other non-visible characters at the edges of the string.
+
+``rstrip (string)``
+    Gets rid of whitespace and other non-visible characters at the end of the string.
+
+``lstrip (string)``
+    Gets rid of whitespace and other non-visible characters at the start of the string.
+
+``trim (string)``
+    Gets rid of whitespace characters at the edges of the string.
+
+``rtrim (string)``
+    Gets rid of whitespace characters at the end of the string.
+
+``ltrim (string)``
+    Gets rid of whitespace characters at the start of the string.
+
 ``isdigit (char)``
     Returns boolean if the character is a numerical digit 0-9
 

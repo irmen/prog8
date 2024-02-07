@@ -1,6 +1,9 @@
 TODO
 ====
 
+&pointervar[x]  isn't correct?? (at least in IR)
+
+
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 
 ...

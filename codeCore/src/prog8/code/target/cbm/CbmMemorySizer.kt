@@ -14,5 +14,8 @@ internal object CbmMemorySizer: IMemSizer {
     }
 
     override fun memorySize(arrayDt: DataType, numElements: Int) =
-        memorySize(ArrayToElementTypes.getValue(arrayDt)) * numElements
+        if(arrayDt==DataType.UWORD)
+            numElements    // pointer to bytes.
+        else
+            memorySize(ArrayToElementTypes.getValue(arrayDt)) * numElements
 }
