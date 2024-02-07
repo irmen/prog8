@@ -957,7 +957,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<", "<=", ">", ">=" -> TODO("byte-var-to-pointer comparisons")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
-        asmgen.storeAIntoZpPointerVar(sourceName)
+        asmgen.storeAIntoZpPointerVar(sourceName, false)
     }
 
     private fun inplacemodificationBytePointerWithLiteralval(pointervar: PtIdentifier, operator: String, value: Int) {
@@ -971,7 +971,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 } else {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     asmgen.out("  clc |  adc  #$value")
-                    asmgen.storeAIntoZpPointerVar(sourceName)
+                    asmgen.storeAIntoZpPointerVar(sourceName, false)
                 }
             }
             "-" -> {
@@ -982,7 +982,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 } else {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     asmgen.out("  sec |  sbc  #$value")
-                    asmgen.storeAIntoZpPointerVar(sourceName)
+                    asmgen.storeAIntoZpPointerVar(sourceName, false)
                 }
             }
             "*" -> {
@@ -991,50 +991,50 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("  jsr  math.mul_byte_${value}")
                 else
                     asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "/" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
                 asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  tya")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "%" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
                 asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "<<" -> {
                 if (value > 0) {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     repeat(value) { asmgen.out("  asl  a") }
-                    asmgen.storeAIntoZpPointerVar(sourceName)
+                    asmgen.storeAIntoZpPointerVar(sourceName, false)
                 }
             }
             ">>" -> {
                 if (value > 0) {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     repeat(value) { asmgen.out("  lsr  a") }
-                    asmgen.storeAIntoZpPointerVar(sourceName)
+                    asmgen.storeAIntoZpPointerVar(sourceName, false)
                 }
             }
             "&" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  and  #$value")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "|"-> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  ora  #$value")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "^" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 asmgen.out("  eor  #$value")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "==" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -1045,7 +1045,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     beq  ++
 +                   lda  #1
 +""")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "!=" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -1056,7 +1056,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     beq  ++
 +                   lda  #1
 +""")
-                asmgen.storeAIntoZpPointerVar(sourceName)
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             // pretty uncommon, who's going to assign a comparison boolean expresion to a pointer?:
             "<", "<=", ">", ">=" -> TODO("byte-litval-to-pointer comparisons")

@@ -400,7 +400,7 @@ class AsmGen6502Internal (
                 } else {
                     return if (allocator.isZpVar((target as PtNamedNode).scopedName)) {
                         // pointervar is already in the zero page, no need to copy
-                        out("  ldy  #0 |  lda  ($sourceName),y")
+                        loadAFromZpPointerVar(sourceName, true)
                         sourceName
                     } else {
                         out("""
@@ -448,18 +448,26 @@ class AsmGen6502Internal (
         }
     }
 
-    internal fun storeAIntoZpPointerVar(zpPointerVar: String) {
+    internal fun storeAIntoZpPointerVar(zpPointerVar: String, keepY: Boolean) {
         if (isTargetCpu(CpuType.CPU65c02))
             out("  sta  ($zpPointerVar)")
-        else
-            out("  ldy  #0 |  sta  ($zpPointerVar),y")
+        else {
+            if(keepY)
+                out("  sty  P8ZP_SCRATCH_REG |  ldy  #0 |  sta  ($zpPointerVar),y |  ldy  P8ZP_SCRATCH_REG")
+            else
+                out("  ldy  #0 |  sta  ($zpPointerVar),y")
+        }
     }
 
-    internal fun loadAFromZpPointerVar(zpPointerVar: String) {
+    internal fun loadAFromZpPointerVar(zpPointerVar: String, keepY: Boolean) {
         if (isTargetCpu(CpuType.CPU65c02))
             out("  lda  ($zpPointerVar)")
-        else
-            out("  ldy  #0 |  lda  ($zpPointerVar),y")
+        else {
+            if(keepY)
+                out("  sty  P8ZP_SCRATCH_REG |  ldy  #0 |  lda  ($zpPointerVar),y |  php |  ldy  P8ZP_SCRATCH_REG |  plp")
+            else
+                out("  ldy  #0 |  lda  ($zpPointerVar),y")
+        }
     }
 
     private  fun fixNameSymbols(name: String): String {

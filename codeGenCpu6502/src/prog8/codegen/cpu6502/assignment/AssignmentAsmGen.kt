@@ -129,7 +129,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             SourceStorageKind.MEMORY -> {
                 fun assignViaExprEval(expression: PtExpression) {
                     assignExpressionToVariable(expression, "P8ZP_SCRATCH_W2", DataType.UWORD)
-                    asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
+                    asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
                     assignRegisterByte(assign.target, CpuRegister.A, false, true)
                 }
 
@@ -2037,7 +2037,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
                     fun assignViaExprEval(addressExpression: PtExpression) {
                         asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD)
-                        asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
+                        asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
                         asmgen.out("  ldy  #0")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                     }
@@ -3880,14 +3880,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             when(addressExpr) {
                 is PtNumber, is PtIdentifier -> {
                     assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD)
-                    asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
+                    asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
                 }
                 else -> {
                     // same as above but we need to save the A register
                     asmgen.out("  pha")
                     assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD)
                     asmgen.out("  pla")
-                    asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
+                    asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
                 }
             }
         }
@@ -3989,7 +3989,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                         lda  (P8ZP_SCRATCH_W2),y
                                         eor  #255""")
                                 }
-                                asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2")
+                                asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
                             }
                         }
                     }
