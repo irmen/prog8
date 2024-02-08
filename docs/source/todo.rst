@@ -1,7 +1,7 @@
 TODO
 ====
 
-&pointervar[x]  isn't the correct value
+&pointervar[x]  isn't the correct value (6502, IR is fixed)
 @(s) where s is a str parameter, doesn't work
 
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.

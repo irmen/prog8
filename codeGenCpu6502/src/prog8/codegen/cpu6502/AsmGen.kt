@@ -154,6 +154,8 @@ private fun PtVariable.prefix(st: SymbolTable): PtVariable {
                     else {
                         val newAddr = PtAddressOf(elt.position)
                         newAddr.children.add(elt.identifier.prefix(newAddr, st))
+                        if(elt.arrayIndexExpr!=null)
+                            newAddr.children.add(elt.arrayIndexExpr!!)
                         newAddr.parent = arrayValue
                         newValue.add(newAddr)
                     }

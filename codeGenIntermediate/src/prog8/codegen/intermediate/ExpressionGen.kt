@@ -66,33 +66,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     ExpressionCodeResult(code, vmDt, resultRegister, -1)
                 }
             }
-            is PtAddressOf -> {
-                val vmDt = irType(expr.type)
-                val symbol = expr.identifier.name
-                // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
-                val result = mutableListOf<IRCodeChunkBase>()
-                val resultRegister = codeGen.registers.nextFree()
-                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
-                if(expr.isFromArrayElement) {
-                    val indexTr = translateExpression(expr.arrayIndexExpr!!)
-                    addToResult(result, indexTr, indexTr.resultReg, -1)
-                    if(expr.identifier.type in SplitWordArrayTypes) {
-                        result += IRCodeChunk(null, null).also {
-                            // multiply indexTr resultreg by the eltSize and add this to the resultRegister.
-                            it += IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=resultRegister, reg2=indexTr.resultReg)
-                        }
-                    } else {
-                        val eltSize = codeGen.program.memsizer.memorySize(expr.identifier.type, 1)
-                        result += IRCodeChunk(null, null).also {
-                            // multiply indexTr resultreg by the eltSize and add this to the resultRegister.
-                            if(eltSize>1)
-                                it += IRInstruction(Opcode.MUL, IRDataType.BYTE, reg1=indexTr.resultReg, immediate = eltSize)
-                            it += IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=resultRegister, reg2=indexTr.resultReg)
-                        }
-                    }
-                }
-                ExpressionCodeResult(result, vmDt, resultRegister, -1)
-            }
+            is PtAddressOf -> translate(expr)
             is PtMemoryByte -> translate(expr)
             is PtTypeCast -> translate(expr)
             is PtPrefix -> translate(expr)
@@ -106,6 +80,44 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
             else -> throw AssemblyError("weird expression")
         }
+    }
+
+    private fun translate(expr: PtAddressOf): ExpressionCodeResult {
+        val vmDt = irType(expr.type)
+        val symbol = expr.identifier.name
+        // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
+        val result = mutableListOf<IRCodeChunkBase>()
+        val resultRegister = codeGen.registers.nextFree()
+        if(expr.isFromArrayElement) {
+            addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
+            val indexTr2 = translateExpression(expr.arrayIndexExpr!!)
+            addToResult(result, indexTr2, indexTr2.resultReg, -1)
+            val indexWordReg = codeGen.registers.nextFree()
+            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexTr2.resultReg), null)
+            if(expr.identifier.type in SplitWordArrayTypes) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
+                }
+            } else if(expr.identifier.type == DataType.UWORD) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
+                }
+            } else {
+                val eltSize = codeGen.program.memsizer.memorySize(expr.identifier.type, 1)
+                result += IRCodeChunk(null, null).also {
+                    // multiply indexTr resultreg by the eltSize and add this to the resultRegister.
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol)
+                    if(eltSize>1) {
+                        it += IRInstruction(Opcode.MUL, IRDataType.WORD, reg1=indexWordReg, immediate = eltSize)
+                    }
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
+                }
+            }
+        } else {
+            addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
+        }
+        return ExpressionCodeResult(result, vmDt, resultRegister, -1)
     }
 
     private fun translate(mem: PtMemoryByte): ExpressionCodeResult {
