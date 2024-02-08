@@ -26,6 +26,22 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - pointer[word] replaced by @(pointer+word)
     // - @(&var) and @(&var+1) replaced by lsb(var) and msb(var) if var is a word
     // - flatten chained assignments
+    // - replace array assignments by a call to the builtin function that does this: prog8_lib_arraycopy
+
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        val targetArray = assignment.target.identifier?.targetVarDecl(program)
+        val sourceArray = (assignment.value as? IdentifierReference)?.targetVarDecl(program)
+        if(targetArray?.isArray==true && sourceArray?.isArray==true) {
+            val copy = FunctionCallStatement(
+                IdentifierReference(listOf("prog8_lib_arraycopy"), assignment.position),
+                mutableListOf(
+                    IdentifierReference(listOf(sourceArray.name), assignment.position),
+                    IdentifierReference(listOf(targetArray.name), assignment.position)
+                ), true, assignment.position)
+            return listOf(IAstModification.ReplaceNode(assignment, copy, parent))
+        }
+        return noModifications
+    }
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {

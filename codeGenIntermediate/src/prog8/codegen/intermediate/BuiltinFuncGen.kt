@@ -48,7 +48,31 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_stringcompare" -> funcStringCompare(call)
             "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
             "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)
+            "prog8_lib_arraycopy" -> funcArrayCopy(call)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
+        }
+    }
+
+    private fun funcArrayCopy(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val source = call.args[0] as PtIdentifier
+        val target = call.args[1] as PtIdentifier
+        val sourceLength = codeGen.symbolTable.getLength(source.name)
+        val targetLength = codeGen.symbolTable.getLength(target.name)
+        require(sourceLength==targetLength)
+        if(source.type in SplitWordArrayTypes && target.type in SplitWordArrayTypes) {
+            TODO("split to split array copy $source, $target")
+        }
+        else if(source.type in SplitWordArrayTypes) {
+            require(target.type==DataType.ARRAY_UW || target.type==DataType.ARRAY_W)
+            TODO("split array to normal array copy $source -> $target")
+        }
+        else if(target.type in SplitWordArrayTypes) {
+            require(source.type==DataType.ARRAY_UW || source.type==DataType.ARRAY_W)
+            TODO("normal array to split array copy $source -> $target")
+        }
+        else {
+            // normal array to array copy
+            TODO("normal array to array copy $source -> $target")
         }
     }
 

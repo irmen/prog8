@@ -1,7 +1,9 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.*
-import prog8.ast.expressions.*
+import prog8.ast.expressions.ArrayLiteral
+import prog8.ast.expressions.BinaryExpression
+import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -258,27 +260,7 @@ internal class StatementReorderer(
                 errors.err("element size mismatch", assign.position)
             }
         }
-
-        if(!errors.noErrors())
-            return noModifications
-
-        if(sourceVar.splitArray && targetVar.splitArray)
-            TODO("copy split to split array")
-        if(sourceVar.splitArray)
-            TODO("copy from split source array to normal")
-        if(targetVar.splitArray)
-            TODO("copy from normal to split source array")
-
-        val numelements = targetVar.arraysize!!.constIndex()!!
-        val eltsize = program.memsizer.memorySize(ArrayToElementTypes.getValue(sourceVar.datatype))
-        val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assign.position),
-            mutableListOf(
-                AddressOf(sourceIdent, null, assign.position),
-                AddressOf(identifier, null, assign.position),
-                NumericLiteral.optimalInteger(numelements*eltsize, assign.position)
-            ), false, assign.position
-        )
-        return listOf(IAstModification.ReplaceNode(assign, memcopy, assign.parent))
+        return noModifications
     }
 
     private fun copyStringValue(assign: Assignment): List<IAstModification> {

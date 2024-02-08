@@ -71,10 +71,33 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
             "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE, resultRegister)
             "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD, resultRegister)
+            "prog8_lib_arraycopy" -> funcArrayCopy(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
+    }
+
+    private fun funcArrayCopy(fcall: PtBuiltinFunctionCall) {
+        val source = fcall.args[0] as PtIdentifier
+        val target = fcall.args[1] as PtIdentifier
+//        outputAddressAndLengthOfArray(source)     // address goes in P8ZP_SCRATCH_W1,  number of elements in A
+//        outputAddressAndLengthOfArray(target)     // address goes in P8ZP_SCRATCH_W1,  number of elements in A
+        if(source.type in SplitWordArrayTypes && target.type in SplitWordArrayTypes) {
+            TODO("split to split array copy $source, $target")
+        }
+        else if(source.type in SplitWordArrayTypes) {
+            require(target.type==DataType.ARRAY_UW || target.type==DataType.ARRAY_W)
+            TODO("split array to normal array copy $source -> $target")
+        }
+        else if(target.type in SplitWordArrayTypes) {
+            require(source.type==DataType.ARRAY_UW || source.type==DataType.ARRAY_W)
+            TODO("normal array to split array copy $source -> $target")
+        }
+        else {
+            // normal array to array copy
+            TODO("normal array to array copy $source -> $target")
+        }
     }
 
     private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataType, resultRegister: RegisterOrPair?) {

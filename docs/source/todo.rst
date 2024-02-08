@@ -1,7 +1,9 @@
 TODO
 ====
 
-fix TODO's to assign from and to split arrays (StatementReorderer) -- cannot use simple single memcopy here  (6502 + IR)
+fix bug: txt.setchr(x, y, @(bytes+$1000))  bytes++   doesn't fill the whole screen only the first 256 bytes or something
+
+fix TODO's to assign from and to split arrays (BuiltinFuncGen + BuiltinFunctionAsmGen) -- cannot use simple single memcopy here  (6502 + IR)
 assembler, imageviewer is bigger than before  (since commit "added string.lstripped() and string.ltrimmed()" )
 
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
