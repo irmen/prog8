@@ -1,0 +1,66 @@
+## Prog8 syntax
+
+## Created by Adiee5
+## If issues encountered, make an issue on prog8 github page and ping @Adiee5
+## Licensed under GPL v3
+
+syntax prog8 "\.p8$"
+comment ";"
+
+# Index thing and Array literals
+##color teal "\[[^]]*\]" ## nword
+color teal "\]"
+color teal "\["
+
+# Scope Parents
+color lightblack "[[:alpha:]][[:alnum:]_]*\."
+
+# function
+color brightyellow "[[:alpha:]][[:alnum:]_]*[[:blank:]]*\("
+
+# Key Words
+color lightgreen "\<(true|if_cs|if_eq|if_mi|if_vs|if_z|if_neg)\>"
+color lightred "\<(false|if_cc|if_ne|if_pl|if_vc|if_nz|if_pos)\>"
+color red "\<if(\>|_)"
+color red "\<(sub|(inline[[:space:]]+)?asmsub|romsub|else|void|not|and|x?or|for|in|(down)?to|return|while|repeat|break|continue|step|goto|when|as|const|do|until|unroll)\>"
+
+# Labels
+color sky "^[[:alpha:]][[:alnum:]_]*:"
+
+# Data Types
+color crimson "\<(u?byte|u?word|str|bool|float)\>"
+
+# Brackets
+color yellow "[()]"
+
+# @
+color brightmagenta "@[[:blank:]]*[[:alnum:]_]*"
+
+# &
+color brick "&"
+
+# Arrows
+color lagoon "->"
+
+# Encoding
+color cyan "[[:alnum:]_]+:["']"
+
+# char literal
+color brightcyan "'([^\\]|\\([^ux]|u[0-9A-Fa-f]{4}|x[[:alnum:]]{2}))'"
+
+# %asm handling
+color normal start="%[Aa][Ss][Mm]" end="}}"
+color magenta "%[Aa][Sm][Mm]"
+
+# Directives
+color magenta "^[[:space:]]*%[[:alpha:]]+"
+
+# Strings
+color brightblue ""([^"]|\\")*""
+
+# Comments
+color green ";.*"
+color green start="/\*" end="\*/"
+
+# Trailing Whitespace
+color ,green "[[:space:]]+$"
