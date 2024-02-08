@@ -262,6 +262,13 @@ internal class StatementReorderer(
         if(!errors.noErrors())
             return noModifications
 
+        if(sourceVar.splitArray && targetVar.splitArray)
+            TODO("copy split to split array")
+        if(sourceVar.splitArray)
+            TODO("copy from split source array to normal")
+        if(targetVar.splitArray)
+            TODO("copy from normal to split source array")
+
         val numelements = targetVar.arraysize!!.constIndex()!!
         val eltsize = program.memsizer.memorySize(ArrayToElementTypes.getValue(sourceVar.datatype))
         val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assign.position),

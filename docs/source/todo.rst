@@ -1,8 +1,8 @@
 TODO
 ====
 
-&pointervar[x]  isn't the correct value (6502, IR is fixed)
-@(s) where s is a str parameter, doesn't work
+fix TODO's to assign from and to split arrays (StatementReorderer) -- cannot use simple single memcopy here  (6502 + IR)
+assembler, imageviewer is bigger than before  (since commit "added string.lstripped() and string.ltrimmed()" )
 
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 

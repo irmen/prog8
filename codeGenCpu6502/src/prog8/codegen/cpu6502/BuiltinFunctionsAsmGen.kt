@@ -665,6 +665,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
             is PtAddressOf -> {
                 val mem = PtMemoryByte(fcall.position)
+                if((fcall.args[0] as PtAddressOf).isFromArrayElement)
+                    TODO("address-of arrayelement")
                 if(msb) {
                     val address = PtBinaryExpression("+", DataType.UWORD, fcall.args[0].position)
                     address.add(fcall.args[0])

@@ -2522,67 +2522,87 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
-        val offset = if(arrayIndexExpr!=null) {
+        if(arrayIndexExpr!=null) {
+            require(arrayDt !in SplitWordArrayTypes)
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
-                if(arrayDt in SplitWordArrayTypes)
-                    constIndex
-                else
-                    program.memsizer.memorySize(arrayDt!!, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
-            } else {
-                val eltSize = if(arrayDt==DataType.UWORD) 1 else program.memsizer.memorySize(ArrayToElementTypes.getValue(arrayDt!!))
-                assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_W1", DataType.UWORD)
-                when(eltSize) {
-                    1 -> {}
-                    2 -> {
-                        if(arrayDt !in SplitWordArrayTypes)
-                            asmgen.out("  asl  P8ZP_SCRATCH_W1 |  rol  P8ZP_SCRATCH_W1+1")
-                    }
-                    else -> TODO("address-of array element $sourceName size $eltSize with non-const index at ${target.position}")
+                if (arrayDt == DataType.UWORD) {
+                    assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
+                    if(constIndex>0)
+                        asmgen.out("""
+                            clc
+                            adc  #$constIndex
+                            bne  +
+                            iny
++""")
                 }
-                asmgen.out("""
-                    lda  #<$sourceName
-                    clc
-                    adc  P8ZP_SCRATCH_W1
-                    tax
-                    lda  #>$sourceName
-                    adc  P8ZP_SCRATCH_W1+1
-                    tay
-                    txa""")
+                else {
+                    if(constIndex>0) {
+                        val offset = program.memsizer.memorySize(arrayDt!!, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
+                        asmgen.out("  lda  #<($sourceName + $offset) |  ldy  #>($sourceName + $offset)")
+                    } else {
+                        asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
+                    }
+                }
+                assignRegisterpairWord(target, RegisterOrPair.AY)
+                return
+            } else {
+                if (arrayDt == DataType.UWORD) {
+                    assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
+                    asmgen.saveRegisterStack(CpuRegister.A, false)
+                    asmgen.saveRegisterStack(CpuRegister.Y, false)
+                    assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataType.UBYTE)
+                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                    asmgen.restoreRegisterStack(CpuRegister.A, false)
+                    asmgen.out("""
+                        clc
+                        adc  P8ZP_SCRATCH_REG
+                        bne  +
+                        iny                            
++""")
+                }
+                else {
+                    assignExpressionToRegister(arrayIndexExpr, RegisterOrPair.A, false)
+                    asmgen.out("""
+                        ldy  #>$sourceName
+                        clc
+                        adc  #<$sourceName
+                        bne  +
+                        iny
++""")
+                }
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return
             }
-        } else 0
+        }
 
+        // address of a normal variable
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
-                        lda  #<$sourceName+$offset
-                        ldy  #>$sourceName+$offset
+                        lda  #<$sourceName
+                        ldy  #>$sourceName
                         sta  ${target.asmVarname}
-                        sty  ${target.asmVarname}+1
-                    """)
+                        sty  ${target.asmVarname}+1""")
             }
             TargetStorageKind.MEMORY -> {
                 throw AssemblyError("can't store word into memory byte")
             }
             TargetStorageKind.ARRAY -> {
-                asmgen.out("  lda  #<$sourceName+$offset |  ldy #>$sourceName+$offset")
+                asmgen.out("  lda  #<$sourceName |  ldy #>$sourceName")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.AX -> asmgen.out("  ldx  #>$sourceName+$offset |  lda  #<$sourceName+$offset")
-                    RegisterOrPair.AY -> asmgen.out("  ldy  #>$sourceName+$offset |  lda  #<$sourceName+$offset")
-                    RegisterOrPair.XY -> asmgen.out("  ldy  #>$sourceName+$offset |  ldx  #<$sourceName+$offset")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #>$sourceName |  lda  #<$sourceName")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #>$sourceName |  lda  #<$sourceName")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #>$sourceName |  ldx  #<$sourceName")
                     in Cx16VirtualRegisters -> {
-                        asmgen.out(
-                            """
-                            lda  #<$sourceName+$offset
+                        asmgen.out("""
+                            lda  #<$sourceName
+                            ldy  #>$sourceName
                             sta  cx16.${target.register.toString().lowercase()}
-                            lda  #>$sourceName+$offset
-                            sta  cx16.${target.register.toString().lowercase()}+1
-                        """)
+                            sty  cx16.${target.register.toString().lowercase()}+1""")
                     }
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }

@@ -89,16 +89,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val resultRegister = codeGen.registers.nextFree()
         if(expr.isFromArrayElement) {
+            require(expr.identifier.type !in SplitWordArrayTypes)
             addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
             val indexTr2 = translateExpression(expr.arrayIndexExpr!!)
             addToResult(result, indexTr2, indexTr2.resultReg, -1)
             val indexWordReg = codeGen.registers.nextFree()
             addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexTr2.resultReg), null)
-            if(expr.identifier.type in SplitWordArrayTypes) {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
-                }
-            } else if(expr.identifier.type == DataType.UWORD) {
+            if(expr.identifier.type == DataType.UWORD) {
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)

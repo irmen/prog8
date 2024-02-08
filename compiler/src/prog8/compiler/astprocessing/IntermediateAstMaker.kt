@@ -533,11 +533,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(src: AddressOf): PtAddressOf {
         val addr = PtAddressOf(src.position)
-        val (name, dt) = src.identifier.targetNameAndType(program)
-        if(dt in SplitWordArrayTypes)
-            addr.add(PtIdentifier(name+"_lsb", dt, src.identifier.position))        // NOTE: assumes _lsb is first in memory! (immediately followed by _msb)
-        else
-            addr.add(transform(src.identifier))
+        addr.add(transform(src.identifier))
         if(src.arrayIndex!=null)
             addr.add(transformExpression(src.arrayIndex!!.indexExpr))
         return addr
