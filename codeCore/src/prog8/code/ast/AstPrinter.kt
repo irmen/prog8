@@ -15,7 +15,12 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtAugmentedAssign -> "<inplace-assign> ${node.operator}"
             is PtBreakpoint -> "%breakpoint"
             is PtConditionalBranch -> "if_${node.condition.name.lowercase()}"
-            is PtAddressOf -> "&"
+            is PtAddressOf -> {
+                if(node.isFromArrayElement)
+                    "& array-element"
+                else
+                    "&"
+            }
             is PtArray -> "array len=${node.children.size} ${type(node.type)}"
             is PtArrayIndexer -> "<arrayindexer> ${type(node.type)} ${if(node.splitWords) "[splitwords]" else ""}"
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
