@@ -81,10 +81,41 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcArrayCopy(fcall: PtBuiltinFunctionCall) {
         val source = fcall.args[0] as PtIdentifier
         val target = fcall.args[1] as PtIdentifier
-//        outputAddressAndLengthOfArray(source)     // address goes in P8ZP_SCRATCH_W1,  number of elements in A
-//        outputAddressAndLengthOfArray(target)     // address goes in P8ZP_SCRATCH_W1,  number of elements in A
+
+        val sourceSymbol = asmgen.symbolTable.lookup(source.name)
+        val numElements = when(sourceSymbol) {
+            is StStaticVariable -> sourceSymbol.length!!
+            is StMemVar -> sourceSymbol.length!!
+            else -> 0
+        }
+        val sourceAsm = asmgen.asmVariableName(source)
+        val targetAsm = asmgen.asmVariableName(target)
+
         if(source.type in SplitWordArrayTypes && target.type in SplitWordArrayTypes) {
-            TODO("split to split array copy $source, $target")
+            // split -> split words (copy lsb and msb arrays separately)
+            asmgen.out("""
+                lda  #<${sourceAsm}_lsb
+                ldy  #>${sourceAsm}_lsb
+                sta  cx16.r0L
+                sty  cx16.r0H
+                lda  #<${targetAsm}_lsb
+                ldy  #>${targetAsm}_lsb
+                sta  cx16.r1L
+                sty  cx16.r1H
+                lda  #<${numElements}
+                ldy  #>${numElements}
+                jsr  sys.memcopy
+                lda  #<${sourceAsm}_msb
+                ldy  #>${sourceAsm}_msb
+                sta  cx16.r0L
+                sty  cx16.r0H
+                lda  #<${targetAsm}_msb
+                ldy  #>${targetAsm}_msb
+                sta  cx16.r1L
+                sty  cx16.r1H
+                lda  #<${numElements}
+                ldy  #>${numElements}
+                jsr  sys.memcopy""")
         }
         else if(source.type in SplitWordArrayTypes) {
             require(target.type==DataType.ARRAY_UW || target.type==DataType.ARRAY_W)
@@ -95,8 +126,21 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             TODO("normal array to split array copy $source -> $target")
         }
         else {
-            // normal array to array copy
-            TODO("normal array to array copy $source -> $target")
+            // normal array to array copy, various element types
+            val eltsize = asmgen.options.compTarget.memorySize(source.type)
+            val numBytes = numElements * eltsize
+            asmgen.out("""
+                lda  #<${sourceAsm}
+                ldy  #>${sourceAsm}
+                sta  cx16.r0L
+                sty  cx16.r0H
+                lda  #<${targetAsm}
+                ldy  #>${targetAsm}
+                sta  cx16.r1L
+                sty  cx16.r1H
+                lda  #<${numBytes}
+                ldy  #>${numBytes}
+                jsr  sys.memcopy""")
         }
     }
 

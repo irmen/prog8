@@ -56,23 +56,50 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcArrayCopy(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val source = call.args[0] as PtIdentifier
         val target = call.args[1] as PtIdentifier
-        val sourceLength = codeGen.symbolTable.getLength(source.name)
-        val targetLength = codeGen.symbolTable.getLength(target.name)
+        val sourceLength = codeGen.symbolTable.getLength(source.name)!!
+        val targetLength = codeGen.symbolTable.getLength(target.name)!!
         require(sourceLength==targetLength)
+        val result = mutableListOf<IRCodeChunkBase>()
         if(source.type in SplitWordArrayTypes && target.type in SplitWordArrayTypes) {
-            TODO("split to split array copy $source, $target")
+            // split words -> split words, copy lsb and msb arrays separately
+            val fromReg = codeGen.registers.nextFree()
+            val toReg = codeGen.registers.nextFree()
+            val countReg = codeGen.registers.nextFree()
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=fromReg, labelSymbol = source.name+"_lsb")
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=toReg, labelSymbol = target.name+"_lsb")
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=countReg, immediate = sourceLength)
+                it += codeGen.makeSyscall(IMSyscall.MEMCOPY, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.WORD to countReg), returns = null)
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=fromReg, labelSymbol = source.name+"_msb")
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=toReg, labelSymbol = target.name+"_msb")
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=countReg, immediate = sourceLength)
+                it += codeGen.makeSyscall(IMSyscall.MEMCOPY, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.WORD to countReg), returns = null)
+            }
+            return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
         }
         else if(source.type in SplitWordArrayTypes) {
+            // split -> normal words
             require(target.type==DataType.ARRAY_UW || target.type==DataType.ARRAY_W)
             TODO("split array to normal array copy $source -> $target")
         }
         else if(target.type in SplitWordArrayTypes) {
+            // normal -> split words
             require(source.type==DataType.ARRAY_UW || source.type==DataType.ARRAY_W)
             TODO("normal array to split array copy $source -> $target")
         }
         else {
-            // normal array to array copy
-            TODO("normal array to array copy $source -> $target")
+            // normal array to array copy (various element types)
+            val fromReg = codeGen.registers.nextFree()
+            val toReg = codeGen.registers.nextFree()
+            val countReg = codeGen.registers.nextFree()
+            val eltsize = codeGen.options.compTarget.memorySize(source.type)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=fromReg, labelSymbol = source.name)
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=toReg, labelSymbol = target.name)
+                it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=countReg, immediate = sourceLength * eltsize)
+            }
+            result += codeGen.makeSyscall(IMSyscall.MEMCOPY, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.WORD to countReg), returns = null)
+            return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
         }
     }
 

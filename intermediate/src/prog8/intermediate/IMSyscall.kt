@@ -29,4 +29,5 @@ enum class IMSyscall(val number: Int) {
     CLAMP_WORD(0x1015),
     CLAMP_FLOAT(0x1016),
     CALLFAR(0x1017),
+    MEMCOPY(0x1018),
 }

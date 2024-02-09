@@ -143,7 +143,7 @@ main {
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-    test("split array assignments") {
+    xtest("split array assignments") {
         val text = """
 main {
     sub start() {

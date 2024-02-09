@@ -37,7 +37,7 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
                 mutableListOf(
                     IdentifierReference(listOf(sourceArray.name), assignment.position),
                     IdentifierReference(listOf(targetArray.name), assignment.position)
-                ), true, assignment.position)
+                ), false, assignment.position)
             return listOf(IAstModification.ReplaceNode(assignment, copy, parent))
         }
         return noModifications

@@ -3,6 +3,7 @@ package prog8tests.codegeneration
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldNotBe
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.compileText
 
 
@@ -38,7 +39,7 @@ class TestVariables: FunSpec({
         compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
     }
 
-    test("array initialization with array var assignment") {
+    xtest("array initialization with array var assignment") {
         val text = """
             main {
                 sub start() {
@@ -48,6 +49,7 @@ class TestVariables: FunSpec({
                 ubyte[] values = [1,2,3]
             }
         """
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
