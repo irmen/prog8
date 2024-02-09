@@ -82,7 +82,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             is PtAddressOf -> false
             is PtIdentifier -> false
             is PtMachineRegister -> false
-            is PtMemoryByte -> false
+            is PtMemoryByte -> return usesOtherRegistersWhileEvaluating(arg.address)
             is PtNumber -> false
             else -> true
         }

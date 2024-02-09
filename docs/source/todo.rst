@@ -1,8 +1,6 @@
 TODO
 ====
 
-fix bug: txt.setchr(x, y, @(bytes+$1000))  bytes++   doesn't fill the whole screen only the first 256 bytes or something
-
 fix TODO's to assign from and to split arrays (BuiltinFuncGen + BuiltinFunctionAsmGen) -- cannot use simple single memcopy here  (6502 + IR)
 assembler, imageviewer is bigger than before  (since commit "added string.lstripped() and string.ltrimmed()" )
 
