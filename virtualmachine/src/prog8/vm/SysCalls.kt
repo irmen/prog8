@@ -56,6 +56,10 @@ SYSCALLS:
 46 = MUL16_LAST_UPPER
 47 = float to str
 48 = FLOATARRAY_CONTAINS
+49 = memcopy
+50 = memset
+51 = memsetw
+52 = stringcopy
 */
 
 enum class Syscall {
@@ -108,6 +112,10 @@ enum class Syscall {
     MUL16_LAST_UPPER,
     FLOAT_TO_STR,
     FLOATARRAY_CONTAINS,
+    MEMCOPY,
+    MEMSET,
+    MEMSETW,
+    STRINGCOPY,
     ;
 
     companion object {
@@ -531,6 +539,41 @@ object SysCalls {
                 val numf = number as Double
                 val numStr = if(numf.toInt().toDouble()==numf) numf.toInt().toString() else numf.toString()
                 vm.memory.setString(bufferAddr, numStr, true)
+            }
+            Syscall.MEMCOPY -> {
+                val (fromA, toA, countA) = getArgValues(callspec.arguments, vm)
+                val from = (fromA as UShort).toInt()
+                val to = (toA as UShort).toInt()
+                val count = (countA as UShort).toInt()
+                for(offset in 0..<count) {
+                    vm.memory.setUB(to+offset, vm.memory.getUB(from+offset))
+                }
+            }
+            Syscall.MEMSET -> {
+                val (memA, numbytesA, valueA) = getArgValues(callspec.arguments, vm)
+                val mem = (memA as UShort).toInt()
+                val numbytes = (numbytesA as UShort).toInt()
+                val value = valueA as UByte
+                for(addr in mem..<mem+numbytes) {
+                    vm.memory.setUB(addr, value)
+                }
+            }
+            Syscall.MEMSETW -> {
+                val (memA, numwordsA, valueA) = getArgValues(callspec.arguments, vm)
+                val mem = (memA as UShort).toInt()
+                val numwords = (numwordsA as UShort).toInt()
+                val value = valueA as UShort
+                for(addr in mem..<mem+numwords*2 step 2) {
+                    vm.memory.setUW(addr, value)
+                }
+            }
+            Syscall.STRINGCOPY -> {
+                val (sourceA, targetA) = getArgValues(callspec.arguments, vm)
+                val source = (sourceA as UShort).toInt()
+                val target = (targetA as UShort).toInt()
+                val string = vm.memory.getString(source)
+                vm.memory.setString(target, string, true)
+                returnValue(callspec.returns!!, string.length, vm)
             }
         }
     }

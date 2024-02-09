@@ -79,14 +79,12 @@ string {
         ; Returns the length of the string that was copied.
         ; Often you don’t have to call this explicitly and can just write string1 = string2
         ; but this function is useful if you’re dealing with addresses for instance.
-        ubyte ix
-        repeat {
-            ubyte char=source[ix]
-            target[ix]=char
-            if not char
-                return ix
-            ix++
-        }
+        %ir {{
+            loadm.w r65534,string.copy.source
+            loadm.w r65535,string.copy.target
+            syscall 52 (r65534.w, r65535.w): r0.b
+            returnr.b r0
+        }}
     }
 
     sub append(str target, str suffix) -> ubyte {

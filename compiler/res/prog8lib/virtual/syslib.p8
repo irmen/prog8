@@ -31,34 +31,38 @@ sys {
 
     sub internal_stringcopy(uword source, uword tgt) {
         ; Called when the compiler wants to assign a string value to another string.
-        while @(source) {
-            @(tgt) = @(source)
-            source++
-            tgt++
-        }
-        @(tgt)=0
+        %ir {{
+            loadm.w r65534,sys.internal_stringcopy.source
+            loadm.w r65535,sys.internal_stringcopy.tgt
+            syscall 52 (r65534.w, r65535.w): r0.b
+        }}
     }
 
     sub memcopy(uword source, uword tgt, uword count)  {
-        repeat count {
-            @(tgt) = @(source)
-            source++
-            tgt++
-        }
+        %ir {{
+            loadm.w r65533,sys.memcopy.source
+            loadm.w r65534,sys.memcopy.tgt
+            loadm.w r65535,sys.memcopy.count
+            syscall 49 (r65533.w, r65534.w, r65535.w)
+        }}
     }
 
     sub memset(uword mem, uword numbytes, ubyte value)  {
-        repeat numbytes {
-            @(mem) = value
-            mem++
-        }
+        %ir {{
+            loadm.w r65533,sys.memset.mem
+            loadm.w r65534,sys.memset.numbytes
+            loadm.b r65535,sys.memset.value
+            syscall 50 (r65533.w, r65534.w, r65535.b)
+        }}
     }
 
     sub memsetw(uword mem, uword numwords, uword value)  {
-        repeat numwords {
-            pokew(mem, value)
-            mem+=2
-        }
+        %ir {{
+            loadm.w r65533,sys.memsetw.mem
+            loadm.w r65534,sys.memsetw.numwords
+            loadm.w r65535,sys.memsetw.value
+            syscall 51 (r65533.w, r65534.w, r65535.w)
+        }}
     }
 
     sub exit(ubyte returnvalue) {
