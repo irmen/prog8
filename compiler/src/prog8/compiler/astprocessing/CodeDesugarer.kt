@@ -35,8 +35,8 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
             val copy = FunctionCallStatement(
                 IdentifierReference(listOf("prog8_lib_arraycopy"), assignment.position),
                 mutableListOf(
-                    IdentifierReference(listOf(sourceArray.name), assignment.position),
-                    IdentifierReference(listOf(targetArray.name), assignment.position)
+                    IdentifierReference(sourceArray.scopedName, assignment.position),
+                    IdentifierReference(targetArray.scopedName, assignment.position)
                 ), false, assignment.position)
             return listOf(IAstModification.ReplaceNode(assignment, copy, parent))
         }

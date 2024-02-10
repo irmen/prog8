@@ -39,14 +39,16 @@ class TestVariables: FunSpec({
         compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
     }
 
-    xtest("array initialization with array var assignment") {
+    test("array initialization with array var assignment") {
         val text = """
             main {
                 sub start() {
-                    ubyte[3] @shared arrayvar = main.values
+                    ubyte[3] @shared arrayvar=main.values1
+                    arrayvar = main.values2
                 }
-                
-                ubyte[] values = [1,2,3]
+            
+                ubyte[] values1 = [1,2,3]
+                ubyte[] values2 = [1,2,3]
             }
         """
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null

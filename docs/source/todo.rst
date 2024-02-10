@@ -1,9 +1,12 @@
 TODO
 ====
 
-fix TODO's to assign from and to split arrays (BuiltinFuncGen + BuiltinFunctionAsmGen) -- cannot use simple single memcopy here  (6502 + IR)
+add an option to dump what variables ended up where (zp, normal ram, etc)
+
+chess is larger than on 10.1  (other variables ended up in zeropage)
+rockrunner is larger than on 10.1
+medemo is quite a bit larger than on 10.1
 assembler, imageviewer is bigger than before  (since commit "added string.lstripped() and string.ltrimmed()" )
-vm/pixelshader is larger than on 10.1
 
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 

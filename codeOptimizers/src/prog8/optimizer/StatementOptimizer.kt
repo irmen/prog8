@@ -454,7 +454,7 @@ class StatementOptimizer(private val program: Program,
                 if(binExpr!=null) {
                     if(binExpr.operator in "+-") {
                         val value = binExpr.right.constValue(program)?.number?.toInt()
-                        if(value!=null && value in 2..4) {
+                        if(value!=null && value in 2..3) {
                             val stmts = mutableListOf<Statement>()
                             repeat(value) {
                                 val incrdecr = Assignment(assignment.target.copy(),

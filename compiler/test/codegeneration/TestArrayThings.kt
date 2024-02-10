@@ -143,16 +143,19 @@ main {
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-    xtest("split array assignments") {
+    test("split array assignments") {
         val text = """
 main {
     sub start() {
         str name1 = "name1"
         str name2 = "name2"
         uword[] @split names = [name1, name2, "name3"]
+        uword[] @split names2 = [name1, name2, "name3"]
         uword[] addresses = [0,0,0]
         names = [1111,2222,3333]
         addresses = names
+        names = addresses
+        names2 = names
     } 
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null

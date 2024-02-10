@@ -118,12 +118,38 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 jsr  sys.memcopy""")
         }
         else if(source.type in SplitWordArrayTypes) {
+            // split word array to normal word array (copy lsb and msb arrays separately)
             require(target.type==DataType.ARRAY_UW || target.type==DataType.ARRAY_W)
-            TODO("split array to normal array copy $source -> $target")
+            asmgen.out("""
+                lda  #<${sourceAsm}_lsb
+                ldy  #>${sourceAsm}_lsb
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<${sourceAsm}_msb
+                ldy  #>${sourceAsm}_msb
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<${targetAsm}
+                ldy  #>${targetAsm}
+                ldx  #${numElements and 255}
+                jsr  prog8_lib.arraycopy_split_to_normal_words""")
         }
         else if(target.type in SplitWordArrayTypes) {
+            // normal word array to split array
             require(source.type==DataType.ARRAY_UW || source.type==DataType.ARRAY_W)
-            TODO("normal array to split array copy $source -> $target")
+            asmgen.out("""
+                lda  #<${targetAsm}_lsb
+                ldy  #>${targetAsm}_lsb
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  #<${targetAsm}_msb
+                ldy  #>${targetAsm}_msb
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<${sourceAsm}
+                ldy  #>${sourceAsm}
+                ldx  #${numElements and 255}
+                jsr  prog8_lib.arraycopy_normal_to_split_words""")
         }
         else {
             // normal array to array copy, various element types

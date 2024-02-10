@@ -127,6 +127,8 @@ class VmProgramLoader {
                         IMSyscall.CLAMP_FLOAT.number -> Syscall.CLAMP_FLOAT
                         IMSyscall.CALLFAR.number -> throw IRParseException("vm doesn't support the callfar() syscall")
                         IMSyscall.MEMCOPY.number -> Syscall.MEMCOPY
+                        IMSyscall.ARRAYCOPY_SPLITW_TO_NORMAL.number -> Syscall.ARRAYCOPY_SPLITW_TO_NORMAL
+                        IMSyscall.ARRAYCOPY_NORMAL_TO_SPLITW.number -> Syscall.ARRAYCOPY_NORMAL_TO_SPLITW
                         else -> null
                     }
 

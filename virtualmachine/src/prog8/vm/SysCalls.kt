@@ -60,6 +60,8 @@ SYSCALLS:
 50 = memset
 51 = memsetw
 52 = stringcopy
+53 = ARRAYCOPY_SPLITW_TO_NORMAL
+54 = ARRAYCOPY_NORMAL_TO_SPLITW
 */
 
 enum class Syscall {
@@ -116,6 +118,8 @@ enum class Syscall {
     MEMSET,
     MEMSETW,
     STRINGCOPY,
+    ARRAYCOPY_SPLITW_TO_NORMAL,
+    ARRAYCOPY_NORMAL_TO_SPLITW,
     ;
 
     companion object {
@@ -574,6 +578,28 @@ object SysCalls {
                 val string = vm.memory.getString(source)
                 vm.memory.setString(target, string, true)
                 returnValue(callspec.returns!!, string.length, vm)
+            }
+            Syscall.ARRAYCOPY_SPLITW_TO_NORMAL -> {
+                val (fromLsbA, fromMsbA, targetA, bytecountA) = getArgValues(callspec.arguments, vm)
+                val fromLsb = (fromLsbA as UShort).toInt()
+                val fromMsb = (fromMsbA as UShort).toInt()
+                val target = (targetA as UShort).toInt()
+                val bytecount = (bytecountA as UByte).toInt()
+                for(offset in 0..<bytecount) {
+                    vm.memory.setUB(target+offset*2, vm.memory.getUB(fromLsb+offset))
+                    vm.memory.setUB(target+offset*2+1, vm.memory.getUB(fromMsb+offset))
+                }
+            }
+            Syscall.ARRAYCOPY_NORMAL_TO_SPLITW -> {
+                val (fromA, targetLsbA, targetMsbA, bytecountA) = getArgValues(callspec.arguments, vm)
+                val from = (fromA as UShort).toInt()
+                val targetLsb = (targetLsbA as UShort).toInt()
+                val targetMsb = (targetMsbA as UShort).toInt()
+                val bytecount = (bytecountA as UByte).toInt()
+                for(offset in 0..<bytecount) {
+                    vm.memory.setUB(targetLsb+offset, vm.memory.getUB(from+offset*2))
+                    vm.memory.setUB(targetMsb+offset, vm.memory.getUB(from+offset*2+1))
+                }
             }
         }
     }
