@@ -17,7 +17,7 @@ class Program(val name: String,
     private val _modules = mutableListOf<Module>()
 
     val modules: List<Module> = _modules
-    val namespace: GlobalNamespace = GlobalNamespace(modules)
+    val namespace: GlobalNamespace = GlobalNamespace(_modules)
 
     init {
         // insert a container module for all interned strings later

@@ -330,7 +330,7 @@ open class Module(final override var statements: MutableList<Statement>,
 }
 
 
-class GlobalNamespace(val modules: Iterable<Module>): Node, INameScope {
+class GlobalNamespace(val modules: MutableList<Module>): Node, INameScope {
     override val name = "<<<global>>>"
     override val position = Position("<<<global>>>", 0, 0, 0)
     override val statements = mutableListOf<Statement>()        // not used

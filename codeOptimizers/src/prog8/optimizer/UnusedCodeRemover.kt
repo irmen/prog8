@@ -20,7 +20,12 @@ class UnusedCodeRemover(private val program: Program,
                         private val compTarget: ICompilationTarget
 ): AstWalker() {
 
-    private val callgraph = CallGraph(program)
+    private lateinit var callgraph: CallGraph
+
+    override fun before(program: Program): Iterable<IAstModification> {
+        callgraph = CallGraph(program)
+        return noModifications
+    }
 
     override fun before(module: Module, parent: Node): Iterable<IAstModification> {
         return if (!module.isLibrary && (module.containsNoCodeNorVars || callgraph.unused(module)))

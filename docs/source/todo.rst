@@ -1,10 +1,7 @@
 TODO
 ====
 
-chess is larger than on 10.1  (other variables ended up in zeropage)
-rockrunner is larger than on 10.1
-medemo is quite a bit larger than on 10.1
-assembler, imageviewer is bigger than before  (since commit "added string.lstripped() and string.ltrimmed()" )
+rockrunner cave load/decode is now broken (even with -noopt)
 
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
 

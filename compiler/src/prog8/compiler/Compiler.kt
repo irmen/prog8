@@ -419,9 +419,15 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
 }
 
 private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, errors: IErrorReporter, functions: IBuiltinFunctions) {
-    val remover = UnusedCodeRemover(program, errors, compilerOptions.compTarget)
-    remover.visit(program)
-    remover.applyModifications()
+    fun removeUnusedCode(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
+        val remover = UnusedCodeRemover(program, errors, compilerOptions.compTarget)
+        remover.visit(program)
+        while (errors.noErrors() && remover.applyModifications() > 0) {
+            remover.visit(program)
+        }
+    }
+
+    removeUnusedCode(program, errors,compilerOptions)
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors, compilerOptions.compTarget)
@@ -435,9 +441,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         if (optsDone1 + optsDone2 + optsDone3 == 0)
             break
     }
-    val remover2 = UnusedCodeRemover(program, errors, compilerOptions.compTarget)
-    remover2.visit(program)
-    remover2.applyModifications()
+    removeUnusedCode(program, errors, compilerOptions)
     if(errors.noErrors())
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
     errors.report()

@@ -12,8 +12,11 @@ interface IAstModification {
 
     class Remove(val node: Node, val parent: IStatementContainer) : IAstModification {
         override fun perform() {
-            if (!parent.statements.remove(node) && parent !is GlobalNamespace)
-                throw FatalAstException("attempt to remove non-existing node $node")
+            if (!parent.statements.remove(node)) {
+                val glob = parent as? GlobalNamespace
+                if(glob!=null && !glob.modules.remove(node))
+                    throw FatalAstException("attempt to remove non-existing node $node")
+            }
         }
     }
 

@@ -239,6 +239,37 @@ class TestOptimization: FunSpec({
         (func2.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
     }
 
+    test("unused subroutine removal") {
+        val src="""
+main {
+    sub strip() {
+        lstrip()
+    }
+
+    sub lstrip() {
+        lstripped()
+    }
+
+    sub lstripped() {
+        cx16.r0++
+        evenmore()
+        cx16.r1++
+    }
+
+    sub evenmore() {
+        cx16.r1++
+        cx16.r2++
+    }
+
+    sub start() {
+        ; nothing
+    }
+}"""
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        result.compilerAst.entrypoint.statements.size shouldBe 0
+        result.compilerAst.entrypoint.definingScope.statements.size shouldBe 1
+    }
+
     test("test simple augmented assignment optimization correctly initializes all variables") {
         val src="""
             main {
