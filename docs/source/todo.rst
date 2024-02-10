@@ -1,9 +1,9 @@
 TODO
 ====
 
-rockrunner cave load/decode is now broken (even with -noopt)
-
 (after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
+
+replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
 
 ...
 
@@ -12,7 +12,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- can we support singed % (remainder) somehow?
+- can we support signed % (remainder) somehow?
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.

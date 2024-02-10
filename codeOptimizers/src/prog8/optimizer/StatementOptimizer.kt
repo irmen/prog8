@@ -443,7 +443,7 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
-        // xx+=3 -> xx++ xx++ xx++
+        // xx+=2 -> xx++ xx++
         // note: ideally this optimization should be done by the code generator, but doing it there
         // requires doing it multiple times (because lots of different things can be incremented/decremented)
         if(assignment.target.identifier!=null
@@ -454,7 +454,7 @@ class StatementOptimizer(private val program: Program,
                 if(binExpr!=null) {
                     if(binExpr.operator in "+-") {
                         val value = binExpr.right.constValue(program)?.number?.toInt()
-                        if(value!=null && value in 2..3) {
+                        if(value!=null && value==2) {
                             val stmts = mutableListOf<Statement>()
                             repeat(value) {
                                 val incrdecr = Assignment(assignment.target.copy(),
