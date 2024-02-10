@@ -75,7 +75,7 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         }}
     }
 
-    asmsub rnd() -> ubyte @A {
+    asmsub rnd() clobbers(Y) -> ubyte @A {
         %asm {{
             jmp  math.randbyte
         }}
@@ -85,6 +85,24 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         %asm {{
             jmp  math.randword
         }}
+    }
+
+    sub randrange(ubyte n) -> ubyte {
+        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+        cx16.r0H = 255 / n * n
+        do {
+            cx16.r0L = math.rnd()
+        } until cx16.r0L < cx16.r0H
+        return cx16.r0L % n
+    }
+
+    sub randrangew(uword n) -> uword {
+        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+        cx16.r1 = 65535 / n * n
+        do {
+            cx16.r0 = math.rndw()
+        } until cx16.r0 < cx16.r1
+        return cx16.r0 % n
     }
 
     asmsub rndseed(uword seed1 @AY, uword seed2 @R0) clobbers(A,Y) {

@@ -1,25 +1,43 @@
 %import textio
-%import string
-
+%import math
 %zeropage basicsafe
 %option no_sysinit
 
 main {
-
     sub start() {
-        screen.text_colors = [6,5,4,3,2,1]
+        uword[7] rolls
 
-        for cx16.r0L in screen.text_colors {
+        txt.print("wait...\n")
+        repeat 30 {
+            repeat 1000 {
+                unroll 10 rolls[math.rnd() % len(rolls)]++
+            }
+        }
+
+        for cx16.r0L in 0 to len(rolls)-1 {
             txt.print_ub(cx16.r0L)
             txt.spc()
+            txt.print_uw(rolls[cx16.r0L])
+            txt.nl()
         }
-        txt.nl()
+
+        txt.print("wait...\n")
+        rolls = [0,0,0,0,0,0,0]
+        repeat 30 {
+            repeat 1000 {
+                unroll 10 rolls[math.randrange(len(rolls))]++
+            }
+        }
+
+        for cx16.r0L in 0 to len(rolls)-1 {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+            txt.print_uw(rolls[cx16.r0L])
+            txt.nl()
+        }
     }
 }
 
-screen {
-    ubyte[6] text_colors
-}
 
 /*main222 {
     sub start() {

@@ -458,6 +458,12 @@ but perhaps the provided ones can be of service too.
 ``rndw ()``
     Returns next random word 0-65535 from the pseudo-RNG sequence.
 
+``randrange (ubyte n) -> ubyte``
+    Returns random byte uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+
+``randrangew (uword n) -> uword``
+    Returns random word uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+
 ``rndseed (uword seed1, uword seed2)``
     Sets a new seed for the pseudo-RNG sequence (both rnd and rndw). The seed consists of two words.
     Do not use zeros for the seed!
