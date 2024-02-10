@@ -153,7 +153,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
         else {
             // normal array to array copy, various element types
-            val eltsize = asmgen.options.compTarget.memorySize(source.type)
+            val eltsize = asmgen.options.compTarget.memorySize(ArrayToElementTypes.getValue(source.type))
             val numBytes = numElements * eltsize
             asmgen.out("""
                 lda  #<${sourceAsm}

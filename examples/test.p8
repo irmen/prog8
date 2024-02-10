@@ -5,36 +5,17 @@
 
 main {
     sub start() {
-        uword[7] rolls
+        ubyte[5] cave_times
+        ubyte[5] diamonds_needed
 
-        txt.print("wait...\n")
-        repeat 30 {
-            repeat 1000 {
-                unroll 10 rolls[math.rnd() % len(rolls)]++
-            }
-        }
+        cave_times = [1,2,3,4,5]
+        diamonds_needed = [1,2,3,4,5]
 
-        for cx16.r0L in 0 to len(rolls)-1 {
-            txt.print_ub(cx16.r0L)
+        for cx16.r0L in 0 to len(cave_times)-1 {
+            txt.print_ub(cave_times[cx16.r0L])
             txt.spc()
-            txt.print_uw(rolls[cx16.r0L])
-            txt.nl()
         }
-
-        txt.print("wait...\n")
-        rolls = [0,0,0,0,0,0,0]
-        repeat 30 {
-            repeat 1000 {
-                unroll 10 rolls[math.randrange(len(rolls))]++
-            }
-        }
-
-        for cx16.r0L in 0 to len(rolls)-1 {
-            txt.print_ub(cx16.r0L)
-            txt.spc()
-            txt.print_uw(rolls[cx16.r0L])
-            txt.nl()
-        }
+        txt.nl()
     }
 }
 

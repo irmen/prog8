@@ -1,10 +1,7 @@
 package prog8.codegen.intermediate
 
 import prog8.code.ast.*
-import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
-import prog8.code.core.SignedDatatypes
-import prog8.code.core.SplitWordArrayTypes
+import prog8.code.core.*
 import prog8.intermediate.*
 
 
@@ -102,7 +99,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         }
         else {
             // normal array to array copy (various element types)
-            val eltsize = codeGen.options.compTarget.memorySize(source.type)
+            val eltsize = codeGen.options.compTarget.memorySize(ArrayToElementTypes.getValue(source.type))
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=fromReg, labelSymbol = source.name)
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=toReg, labelSymbol = target.name)
