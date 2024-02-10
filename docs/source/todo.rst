@@ -1,8 +1,6 @@
 TODO
 ====
 
-add an option to dump what variables ended up where (zp, normal ram, etc)
-
 chess is larger than on 10.1  (other variables ended up in zeropage)
 rockrunner is larger than on 10.1
 medemo is quite a bit larger than on 10.1

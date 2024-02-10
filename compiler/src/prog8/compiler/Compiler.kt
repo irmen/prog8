@@ -38,6 +38,7 @@ class CompilerArguments(val filepath: Path,
                         val asmListfile: Boolean,
                         val includeSourcelines: Boolean,
                         val experimentalCodegen: Boolean,
+                        val dumpVariables: Boolean,
                         val varsHighBank: Int?,
                         val varsGolden: Boolean,
                         val slabsHighBank: Int?,
@@ -83,6 +84,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 asmListfile = args.asmListfile
                 includeSourcelines = args.includeSourcelines
                 experimentalCodegen = args.experimentalCodegen
+                dumpVariables = args.dumpVariables
                 breakpointCpuInstruction = args.breakpointCpuInstruction
                 varsHighBank = args.varsHighBank
                 varsGolden = args.varsGolden

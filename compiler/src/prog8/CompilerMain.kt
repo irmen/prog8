@@ -42,6 +42,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
+    val dumpVariables by cli.option(ArgType.Boolean, fullName = "dumpvars", description = "print a dump of the variables in the program")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform code optimizations")
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
@@ -152,6 +153,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     includeSourcelines == true,
                     experimentalCodegen == true,
+                    dumpVariables == true,
                     varsHighBank,
                     varsGolden == true,
                     slabsHighBank,
@@ -230,6 +232,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     asmListfile == true,
                     includeSourcelines == true,
                     experimentalCodegen == true,
+                    dumpVariables == true,
                     varsHighBank,
                     varsGolden == true,
                     slabsHighBank,

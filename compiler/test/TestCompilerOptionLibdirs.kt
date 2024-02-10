@@ -30,6 +30,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             asmListfile = false,
             includeSourcelines = false,
             experimentalCodegen = false,
+            dumpVariables = false,
             varsHighBank = null,
             varsGolden = false,
             slabsHighBank = null,

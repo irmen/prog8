@@ -48,7 +48,8 @@ class RequestParser : Take {
             varsHighBank = null,
             varsGolden = false,
             slabsHighBank = null,
-            slabsGolden = false
+            slabsGolden = false,
+            dumpVariables = false
         )
         compileProgram(args)
         return RsJson(Jsonding())

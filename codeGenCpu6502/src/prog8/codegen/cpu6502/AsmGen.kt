@@ -262,11 +262,57 @@ class AsmGen6502Internal (
                 // write the unmodified code
                 output.writeLines(assembly)
             }
+
+            if(options.dumpVariables)
+                dumpVariables()
+
             return AssemblyProgram(program.name, options.outputDir, options.compTarget)
         } else {
             errors.report()
             return null
         }
+    }
+
+    private fun dumpVariables() {
+        println("---- VARIABLES DUMP ----")
+        if(allocator.globalFloatConsts.isNotEmpty()) {
+            println("Floats:")
+            allocator.globalFloatConsts.forEach { (value, name) ->
+                println("  $name = $value")
+            }
+        }
+        if(symbolTable.allMemorySlabs.isNotEmpty()) {
+            println("Memory slabs:")
+            symbolTable.allMemorySlabs.sortedBy { it.name }.forEach { slab ->
+                println("  ${slab.name}  ${slab.size}  align ${slab.align}")
+            }
+        }
+        if(symbolTable.allMemMappedVariables.isNotEmpty()) {
+            println("Memory mapped:")
+            symbolTable.allMemMappedVariables
+                .sortedWith( compareBy( {it.address}, {it.scopedName} ))
+                .forEach { mvar ->
+                    println("  ${'$'}${mvar.address.toString(16).padStart(4, '0')}\t${mvar.dt}\t${mvar.scopedName}")
+                }
+        }
+        if(allocator.zeropageVars.isNotEmpty()) {
+            println("ZeroPage:")
+            allocator.zeropageVars
+                .asSequence()
+                .sortedWith( compareBy( {it.value.address}, {it.key} ))
+                .forEach { (name, alloc) ->
+                    println("  ${'$'}${alloc.address.toString(16).padStart(2, '0')}\t${alloc.dt}\t$name")
+                }
+        }
+        if(symbolTable.allVariables.isNotEmpty()) {
+            println("Static variables (not in ZeroPage):")
+            symbolTable.allVariables
+                .filterNot { allocator.isZpVar(it.scopedName) }
+                .sortedBy { it.scopedName }.forEach {
+                    println("  ${it.dt}\t${it.scopedName}\t")
+                }
+        }
+        println("---- VARIABLES DUMP END ----")
     }
 
     private fun scanInvalid65816instructions(asmLines: MutableList<String>) {
