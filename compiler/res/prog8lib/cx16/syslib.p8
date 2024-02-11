@@ -1492,20 +1492,14 @@ _loop       lda  P8ZP_SCRATCH_W1
             rts     ; nothing to copy
 
 _copyshort
-            ; decrease source and target pointers so we can simply index by Y
-            lda  cx16.r0
-            bne  +
-            dec  cx16.r0+1
-+           dec  cx16.r0
-            lda  cx16.r1
-            bne  +
-            dec  cx16.r1+1
-+           dec  cx16.r1
-
+            dey
+            beq  +
 -           lda  (cx16.r0),y
             sta  (cx16.r1),y
             dey
             bne  -
++           lda  (cx16.r0),y
+            sta  (cx16.r1),y
             rts
 
 _longcopy

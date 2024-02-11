@@ -66,11 +66,11 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=fromReg, labelSymbol = source.name+"_lsb")
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=toReg, labelSymbol = target.name+"_lsb")
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=countReg, immediate = sourceLength)
-                it += codeGen.makeSyscall(IMSyscall.MEMCOPY, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.WORD to countReg), returns = null)
+                it += codeGen.makeSyscall(IMSyscall.MEMCOPY_SMALL, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.BYTE to (countReg and 255)), returns = null)
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=fromReg, labelSymbol = source.name+"_msb")
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=toReg, labelSymbol = target.name+"_msb")
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=countReg, immediate = sourceLength)
-                it += codeGen.makeSyscall(IMSyscall.MEMCOPY, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.WORD to countReg), returns = null)
+                it += codeGen.makeSyscall(IMSyscall.MEMCOPY_SMALL, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.BYTE to (countReg and 255)), returns = null)
             }
         }
         else if(source.type in SplitWordArrayTypes) {
@@ -105,7 +105,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=toReg, labelSymbol = target.name)
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=countReg, immediate = sourceLength * eltsize)
             }
-            result += codeGen.makeSyscall(IMSyscall.MEMCOPY, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.WORD to countReg), returns = null)
+            result += codeGen.makeSyscall(IMSyscall.MEMCOPY_SMALL, listOf(IRDataType.WORD to fromReg, IRDataType.WORD to toReg, IRDataType.BYTE to (countReg and 255)), returns = null)
         }
 
         return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
@@ -244,7 +244,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
         val tr = exprGen.translateExpression(arrayName)
         addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength), null)
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength!! and 255), null)
         result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }
@@ -272,7 +272,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val tr = exprGen.translateExpression(arrayName)
         addToResult(result, tr, tr.resultReg, -1)
         val lengthReg = codeGen.registers.nextFree()
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength), null)
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength!! and 255), null)
         result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
         return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }

@@ -5,14 +5,37 @@
 
 main {
     sub start() {
-        ubyte[5] cave_times
-        ubyte[5] diamonds_needed
+        ubyte[256] @shared arr1 = 99
+        ubyte[256] @shared arr2 = 0
+        uword[128] @shared warr1 = 9999
+        uword[128] @shared warr2 = 0
 
-        cave_times = [1,2,3,4,5]
-        diamonds_needed = [1,2,3,4,5]
+        txt.print_ub(all(arr2))
+        txt.nl()
+        txt.print_ub(all(warr2))
+        txt.nl()
+        arr2 = arr1
+        warr2 = warr1
+        txt.print_ub(all(arr2))
+        txt.nl()
+        txt.print_ub(all(warr2))
+        txt.nl()
+
+
+        uword[] @split cave_times = [1111,2222,3333,4444]
+        cave_times = [9999,8888,7777,6666]
 
         for cx16.r0L in 0 to len(cave_times)-1 {
-            txt.print_ub(cave_times[cx16.r0L])
+            txt.print_uw(cave_times[cx16.r0L])
+            txt.spc()
+        }
+        txt.nl()
+
+        ubyte[] cave_times2 = [11,22,33,44]
+        cave_times2 = [99,88,77,66]
+
+        for cx16.r0L in 0 to len(cave_times2)-1 {
+            txt.print_ub(cave_times2[cx16.r0L])
             txt.spc()
         }
         txt.nl()

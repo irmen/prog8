@@ -96,26 +96,24 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.out("""
                 lda  #<${sourceAsm}_lsb
                 ldy  #>${sourceAsm}_lsb
-                sta  cx16.r0L
-                sty  cx16.r0H
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
                 lda  #<${targetAsm}_lsb
                 ldy  #>${targetAsm}_lsb
-                sta  cx16.r1L
-                sty  cx16.r1H
-                lda  #<${numElements}
-                ldy  #>${numElements}
-                jsr  sys.memcopy
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                ldy  #${numElements and 255}
+                jsr  prog8_lib.memcopy_small
                 lda  #<${sourceAsm}_msb
                 ldy  #>${sourceAsm}_msb
-                sta  cx16.r0L
-                sty  cx16.r0H
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
                 lda  #<${targetAsm}_msb
                 ldy  #>${targetAsm}_msb
-                sta  cx16.r1L
-                sty  cx16.r1H
-                lda  #<${numElements}
-                ldy  #>${numElements}
-                jsr  sys.memcopy""")
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                ldy  #${numElements and 255}
+                jsr  prog8_lib.memcopy_small""")
         }
         else if(source.type in SplitWordArrayTypes) {
             // split word array to normal word array (copy lsb and msb arrays separately)
@@ -158,15 +156,14 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.out("""
                 lda  #<${sourceAsm}
                 ldy  #>${sourceAsm}
-                sta  cx16.r0L
-                sty  cx16.r0H
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
                 lda  #<${targetAsm}
                 ldy  #>${targetAsm}
-                sta  cx16.r1L
-                sty  cx16.r1H
-                lda  #<${numBytes}
-                ldy  #>${numBytes}
-                jsr  sys.memcopy""")
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                ldy  #${numBytes and 255}
+                jsr  prog8_lib.memcopy_small""")
         }
     }
 
@@ -1408,8 +1405,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     ldy  #>$identifierName
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
-                    lda  #$numElements
-                    """)
+                    lda  #${numElements and 255}""")
     }
 
     private fun translateArguments(call: PtBuiltinFunctionCall, scope: IPtSubroutine?) {

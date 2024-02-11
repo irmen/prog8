@@ -405,3 +405,27 @@ _modsrcmsb      lda  $ffff      ; modnfied msb read
 		bne  _modsrclsb
 		rts
 		.pend
+
+memcopy_small   .proc
+		; copy up to a single page (256 bytes) of memory.
+		; note: only works for NON-OVERLAPPING memory regions!
+		; P8ZP_SCRATCH_W1 = from address
+		; P8ZP_SCRATCH_W2 = destination address
+		; Y = number of bytes to copy  (where 0 means 256)
+		cpy  #0
+		beq  _fullpage
+		dey
+		beq  _lastbyte
+_loop           lda  (P8ZP_SCRATCH_W1),y
+                sta  (P8ZP_SCRATCH_W2),y
+                dey
+                bne  _loop
+_lastbyte       lda  (P8ZP_SCRATCH_W1),y
+                sta  (P8ZP_SCRATCH_W2),y
+                rts
+_fullpage       lda  (P8ZP_SCRATCH_W1),y
+                sta  (P8ZP_SCRATCH_W2),y
+                dey
+                bne  _fullpage
+                rts
+		.pend

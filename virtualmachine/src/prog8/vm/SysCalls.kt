@@ -62,6 +62,7 @@ SYSCALLS:
 52 = stringcopy
 53 = ARRAYCOPY_SPLITW_TO_NORMAL
 54 = ARRAYCOPY_NORMAL_TO_SPLITW
+55 = memcopy_small
 */
 
 enum class Syscall {
@@ -120,6 +121,7 @@ enum class Syscall {
     STRINGCOPY,
     ARRAYCOPY_SPLITW_TO_NORMAL,
     ARRAYCOPY_NORMAL_TO_SPLITW,
+    MEMCOPY_SMALL
     ;
 
     companion object {
@@ -306,7 +308,8 @@ object SysCalls {
                 val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
                 val address = (addressV as UShort).toInt()
                 val length = (lengthV as UByte).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length-1, 1)
+                val endAddressExcl = address + if(length==0) 256 else length
+                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-1, 1)
                 if(addresses.any { vm.memory.getUB(it).toInt()!=0 })
                     returnValue(callspec.returns!!, 1, vm)
                 else
@@ -316,7 +319,8 @@ object SysCalls {
                 val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
                 val address = (addressV as UShort).toInt()
                 val length = (lengthV as UByte).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
+                val endAddressExcl = address + if(length==0) 256*2 else length*2
+                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-2, 2)
                 if(addresses.any { vm.memory.getUW(it).toInt()!=0 })
                     returnValue(callspec.returns!!, 1, vm)
                 else
@@ -326,7 +330,8 @@ object SysCalls {
                 val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
                 val address = (addressV as UShort).toInt()
                 val length = (lengthV as UByte).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*4-2, 4)
+                val endAddressExcl = address + (if(length==0) 256*vm.machinedef.FLOAT_MEM_SIZE else length*vm.machinedef.FLOAT_MEM_SIZE)
+                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-vm.machinedef.FLOAT_MEM_SIZE, 4)
                 if(addresses.any { vm.memory.getFloat(it).toInt()!=0 })
                     returnValue(callspec.returns!!, 1, vm)
                 else
@@ -336,7 +341,8 @@ object SysCalls {
                 val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
                 val address = (addressV as UShort).toInt()
                 val length = (lengthV as UByte).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length-1, 1)
+                val endAddressExcl = address + if(length==0) 256 else length
+                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-1, 1)
                 if(addresses.all { vm.memory.getUB(it).toInt()!=0 })
                     returnValue(callspec.returns!!, 1, vm)
                 else
@@ -346,7 +352,8 @@ object SysCalls {
                 val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
                 val address = (addressV as UShort).toInt()
                 val length = (lengthV as UByte).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*2-2, 2)
+                val endAddressExcl = address + if(length==0) 256*2 else length*2
+                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-2, 2)
                 if(addresses.all { vm.memory.getUW(it).toInt()!=0 })
                     returnValue(callspec.returns!!, 1, vm)
                 else
@@ -356,7 +363,8 @@ object SysCalls {
                 val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
                 val address = (addressV as UShort).toInt()
                 val length = (lengthV as UByte).toInt()
-                val addresses = IntProgression.fromClosedRange(address, address+length*4-2, 4)
+                val endAddressExcl = address + (if(length==0) 256*vm.machinedef.FLOAT_MEM_SIZE else length*vm.machinedef.FLOAT_MEM_SIZE)
+                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-vm.machinedef.FLOAT_MEM_SIZE, 4)
                 if(addresses.all { vm.memory.getFloat(it).toInt()!=0 })
                     returnValue(callspec.returns!!, 1, vm)
                 else
@@ -549,6 +557,16 @@ object SysCalls {
                 val from = (fromA as UShort).toInt()
                 val to = (toA as UShort).toInt()
                 val count = (countA as UShort).toInt()
+                for(offset in 0..<count) {
+                    vm.memory.setUB(to+offset, vm.memory.getUB(from+offset))
+                }
+            }
+            Syscall.MEMCOPY_SMALL -> {
+                val (fromA, toA, countA) = getArgValues(callspec.arguments, vm)
+                val from = (fromA as UShort).toInt()
+                val to = (toA as UShort).toInt()
+                val countV = (countA as UByte).toInt()
+                val count = if(countV==0) 256 else countV
                 for(offset in 0..<count) {
                     vm.memory.setUB(to+offset, vm.memory.getUB(from+offset))
                 }
