@@ -18,10 +18,11 @@ main {
 ;        bools_in_intarray_errors()
 ;        ints_in_boolarray_errors()
 ;        while_until_int_errors()
-        while_equiv()
         bools_in_array_assigns()
         bools_in_array_assigns_inplace()
         if_code()
+  ;;sys.exit(1)
+        while_equiv()
 
 ;        bool[3] barr
 ;        bool @shared bb

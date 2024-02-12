@@ -1,15 +1,6 @@
 TODO
 ====
 
-
-merge last 2 codegen files from booleans-tryout branch:   AssignmentAsmGen, ExpressionGen  (everything else was merged)
-
-ConstantFoldingOptimizer (after merging master):
-   after(numLiteral..) :  check that cast to/from BOOL is not done??
-
-
-
-
 ===== ====== =======
 VM    6502   what
 ===== ====== =======
