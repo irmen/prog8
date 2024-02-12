@@ -8,7 +8,7 @@ syntax prog8 "\.p8$"
 comment ";"
 
 # Index thing and Array literals
-##color teal "\[[^]]*\]" ## nword
+##color teal "\[[^]]*\]"
 color teal "\]"
 color teal "\["
 
@@ -46,7 +46,7 @@ color lagoon "->"
 color cyan "[[:alnum:]_]+:["']"
 
 # char literal
-color brightcyan "'([^\\]|\\([^ux]|u[0-9A-Fa-f]{4}|x[[:alnum:]]{2}))'"
+color brightcyan "'([^\\]|\\([^ux]|u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]{2}))'"
 
 # %asm handling
 color normal start="%[Aa][Ss][Mm]" end="}}"

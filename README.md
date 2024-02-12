@@ -29,6 +29,8 @@ How to get it/build it
 - Or, if you want/need a bleeding edge development version, you can:
   - download a build artifact zipfile from a recent [github action build](https://github.com/irmen/prog8/actions).
   - you can also compile it yourself from source. [Instructions here](https://prog8.readthedocs.io/en/latest/compiling.html).
+- Alternatively, you can also install the compiler as a package on some linux distros:
+  - Arch (via AUR): [`prog8`](https://aur.archlinux.org/packages/prog8)
 
 Community
 ---------
