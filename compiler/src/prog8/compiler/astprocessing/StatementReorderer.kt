@@ -1,9 +1,7 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.*
-import prog8.ast.expressions.ArrayLiteral
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -173,15 +171,18 @@ internal class StatementReorderer(
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
-        // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
+        // simplething <associative> X -> X <associative> simplething
         // (this should be done by the ExpressionSimplifier when optimizing is enabled,
         //  but the current assembly code generator for IF statements now also depends on it, so we do it here regardless of optimization.)
-        if (expr.left.constValue(program) != null
-            && expr.operator in AssociativeOperators
-            && expr.right.constValue(program) == null
-            && maySwapOperandOrder(expr))
-            return listOf(IAstModification.SwapOperands(expr))
-
+        if(expr.operator in AssociativeOperators) {
+            if(expr.left is IdentifierReference || expr.left is NumericLiteral || expr.left is DirectMemoryRead || (expr.left as? ArrayIndexedExpression)?.indexer?.constIndex()!=null) {
+                if(expr.right !is IdentifierReference && expr.right !is NumericLiteral && expr.right !is DirectMemoryRead) {
+                    if(maySwapOperandOrder(expr)) {
+                        return listOf(IAstModification.SwapOperands(expr))
+                    }
+                }
+            }
+        }
         return noModifications
     }
 

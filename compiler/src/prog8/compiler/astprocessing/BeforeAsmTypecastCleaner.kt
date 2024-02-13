@@ -103,7 +103,9 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             val arg2 = bfcs.args[1]
             val dt1 = arg1.inferType(program).getOr(DataType.UNDEFINED)
             val dt2 = arg2.inferType(program).getOr(DataType.UNDEFINED)
-            if(dt1 in ByteDatatypes) {
+            if(dt1==DataType.BOOL && dt2==DataType.BOOL)
+                return noModifications
+            else if(dt1 in ByteDatatypes) {
                 if(dt2 in ByteDatatypes)
                     return noModifications
                 val (replaced, cast) = arg1.typecastTo(if(dt1== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt1, true)

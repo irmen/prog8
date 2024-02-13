@@ -63,9 +63,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         fun regName(v: AsmAssignSource) = "cx16.${v.register!!.name.lowercase()}"
 
-        if(value.kind==SourceStorageKind.LITERALBOOLEAN)
-            TODO("inplace modification literalboolean")
-
         when (target.kind) {
             TargetStorageKind.VARIABLE -> {
                 when (target.datatype) {
@@ -240,7 +237,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     // normal array
                     val targetVarName = "${target.asmVarname} + ${index*program.memsizer.memorySize(target.datatype)}"
                     when (target.datatype) {
-                        in ByteDatatypes -> {
+                        in ByteDatatypesWithBoolean -> {
                             when(value.kind) {
                                 SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.boolean!!.asInt())
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt())
@@ -309,7 +306,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         return
 
                     when (target.datatype) {
-                        in ByteDatatypes -> {
+                        in ByteDatatypesWithBoolean -> {
                             if(value.kind==SourceStorageKind.EXPRESSION
                                 && value.expression is PtTypeCast
                                 && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
@@ -1092,27 +1089,31 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
-        val shortcutLabel = asmgen.makeLabel("shortcut")
-        when (operator) {
-            "and" -> {
-                // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
-                asmgen.out("  lda  $name |  beq  $shortcutLabel")
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
-                asmgen.out("""
-                     and  $name
-                     sta  $name
+        if(!value.isSimple()) {
+            // attempt short-circuit (McCarthy) evaluation
+            when (operator) {
+                "and" -> {
+                    // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
+                    val shortcutLabel = asmgen.makeLabel("shortcut")
+                    asmgen.out("  lda  $name |  beq  $shortcutLabel")
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                    asmgen.out("""
+                         and  $name
+                         sta  $name
 $shortcutLabel:""")
-                return
-            }
-            "or" -> {
-                // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
-                asmgen.out("  lda  $name |  bne  $shortcutLabel")
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
-                asmgen.out("""
-                     ora  $name
-                     sta  $name
+                    return
+                }
+                "or" -> {
+                    // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
+                    val shortcutLabel = asmgen.makeLabel("shortcut")
+                    asmgen.out("  lda  $name |  bne  $shortcutLabel")
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                    asmgen.out("""
+                         ora  $name
+                         sta  $name
 $shortcutLabel:""")
-                return
+                    return
+                }
             }
         }
 

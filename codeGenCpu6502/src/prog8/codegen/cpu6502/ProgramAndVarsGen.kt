@@ -173,6 +173,7 @@ internal class ProgramAndVarsGen(
                 for(num in 1..count) {
                     val name = asmgen.buildTempVarName(dt, num)
                     when (dt) {
+                        DataType.BOOL  -> asmgen.out("$name    .byte  ?")
                         DataType.BYTE  -> asmgen.out("$name    .char  ?")
                         DataType.UBYTE -> asmgen.out("$name    .byte  ?")
                         DataType.WORD  -> asmgen.out("$name    .sint  ?")

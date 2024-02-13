@@ -44,8 +44,8 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     init {
-        if(register!=null && datatype !in NumericDatatypes)
-            throw AssemblyError("register must be integer or float type")
+        if(register!=null && datatype !in NumericDatatypesWithBoolean)
+            throw AssemblyError("must be numeric type")
     }
 
     companion object {

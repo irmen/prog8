@@ -112,10 +112,6 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if (!leftIDt.isKnown || !rightIDt.isKnown)
             throw FatalAstException("can't determine datatype of both expression operands $expr")
 
-        // ConstValue <associativeoperator> X -->  X <associativeoperator> ConstValue
-        if (leftVal != null && expr.operator in AssociativeOperators && rightVal == null && maySwapOperandOrder(expr))
-            return listOf(IAstModification.SwapOperands(expr))
-
         // NonBinaryExpression  <associativeoperator>  BinaryExpression  -->  BinaryExpression  <associativeoperator>  NonBinaryExpression
         if (expr.operator in AssociativeOperators && expr.left !is BinaryExpression && expr.right is BinaryExpression) {
             if(parent !is Assignment || !(expr.left isSameAs parent.target) && maySwapOperandOrder(expr))

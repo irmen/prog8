@@ -103,25 +103,40 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
-        // remove obvious dangling elses (else after a return)
-        if(ifElse.elsepart.isNotEmpty() && ifElse.truepart.statements.singleOrNull() is Return) {
-            val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
-            return listOf(
-                IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope(mutableListOf(), ifElse.elsepart.position), ifElse),
-                IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
-            )
-        }
+        if(ifElse.elsepart.isNotEmpty()) {
+            // remove obvious dangling elses (else after a return)
+            if(ifElse.truepart.statements.singleOrNull() is Return) {
+                val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
+                return listOf(
+                    IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope(mutableListOf(), ifElse.elsepart.position), ifElse),
+                    IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
+                )
+            }
 
-        // switch if/else around if the else is just a jump or branch
-        if(ifElse.elsepart.isNotEmpty() && ifElse.elsepart.statements.size==1) {
-            val jump = ifElse.elsepart.statements[0]
-            if(jump is Jump) {
-                val newTruePart = AnonymousScope(mutableListOf(jump), ifElse.elsepart.position)
+            // switch if/else around if the else is just a jump or branch
+            if(ifElse.elsepart.statements.size==1) {
+                val jump = ifElse.elsepart.statements[0]
+                if(jump is Jump) {
+                    val newTruePart = AnonymousScope(mutableListOf(jump), ifElse.elsepart.position)
+                    val newElsePart = AnonymousScope(ifElse.truepart.statements, ifElse.truepart.position)
+                    return listOf(
+                        IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
+                        IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
+                        IAstModification.ReplaceNode(ifElse.condition, invertCondition(ifElse.condition, program), ifElse)
+                    )
+                }
+            }
+
+            // switch if/else around if the condition is a not
+            val prefixCond = ifElse.condition as? PrefixExpression
+            if(prefixCond?.operator=="not") {
+                errors.info("invert conditon and swap if/else blocks", ifElse.condition.position)
+                val newTruePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
                 val newElsePart = AnonymousScope(ifElse.truepart.statements, ifElse.truepart.position)
                 return listOf(
                     IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
                     IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
-                    IAstModification.ReplaceNode(ifElse.condition, invertCondition(ifElse.condition, program), ifElse)
+                    IAstModification.ReplaceNode(ifElse.condition, prefixCond.expression, ifElse)
                 )
             }
         }

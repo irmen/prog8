@@ -98,6 +98,8 @@ class PtIfElse(position: Position) : PtNode(position) {
         get() = children[1] as PtNodeGroup
     val elseScope: PtNodeGroup
         get() = children[2] as PtNodeGroup
+
+    fun hasElse(): Boolean = children.size==3 && elseScope.children.isNotEmpty()
 }
 
 

@@ -247,8 +247,8 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
 
         val goto = branch.trueScope.children.firstOrNull() as? PtJump
-        if(goto is PtJump && branch.falseScope.children.isEmpty()) {
-            // special case the form:   if_cc <condition> goto <place>
+        if (goto is PtJump) {
+            // special case the form:   if_cc  goto <place>   (with optional else)
             val address = goto.address?.toInt()
             if(address!=null) {
                 val branchIns = when(branch.condition) {
@@ -276,9 +276,10 @@ class IRCodeGen(
                 }
                 addInstr(result, branchIns, null)
             }
+            if(branch.falseScope.children.isNotEmpty())
+                result += translateNode(branch.falseScope)
             return result
         }
-
 
         val elseLabel = createLabelName()
         // note that the branch opcode used is the opposite as the branch condition, because the generated code jumps to the 'else' part
@@ -1093,7 +1094,7 @@ class IRCodeGen(
             else -> throw AssemblyError("weird operator")
         }
 
-        if (ifElse.elseScope.children.isNotEmpty()) {
+        if (ifElse.hasElse()) {
             // if and else parts
             val elseLabel = createLabelName()
             val afterIfLabel = createLabelName()
@@ -1126,12 +1127,11 @@ class IRCodeGen(
 
     private fun ifWithElse_IntegerCond(ifElse: PtIfElse): List<IRCodeChunkBase> {
         val result = mutableListOf<IRCodeChunkBase>()
-        val hasElse = ifElse.elseScope.children.isNotEmpty()
 
         fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode) {
             val tr = expressionEval.translateExpression(condition)
             result += tr.chunks
-            if(hasElse) {
+            if(ifElse.hasElse()) {
                 val elseLabel = createLabelName()
                 val afterIfLabel = createLabelName()
                 addInstr(result, IRInstruction(jumpFalseOpcode, labelSymbol = elseLabel), null)
@@ -1178,7 +1178,7 @@ class IRCodeGen(
                     else -> throw AssemblyError("invalid comparison operator")
                 }
 
-                if (hasElse) {
+                if (ifElse.hasElse()) {
                     // if and else parts
                     val elseLabel = createLabelName()
                     val afterIfLabel = createLabelName()
@@ -1252,7 +1252,7 @@ class IRCodeGen(
                     else -> throw AssemblyError("invalid comparison operator")
                 }
 
-                if (hasElse) {
+                if (ifElse.hasElse()) {
                     // if and else parts
                     val elseLabel = createLabelName()
                     val afterIfLabel = createLabelName()

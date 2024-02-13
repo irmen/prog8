@@ -46,7 +46,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         else if(sub is PtSub) {
             if(optimizeIntArgsViaRegisters(sub)) {
                 if(sub.parameters.size==1) {
-                    val register = if (sub.parameters[0].type in ByteDatatypes) RegisterOrPair.A else RegisterOrPair.AY
+                    val register = if (sub.parameters[0].type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
                     argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], register)
                 } else {
                     // 2 byte params, second in Y, first in A
@@ -221,6 +221,8 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
 
     private fun isArgumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
         if(argType isAssignableTo paramType)
+            return true
+        if(argType==DataType.BOOL && paramType==DataType.BOOL)
             return true
         if(argType in ByteDatatypes && paramType in ByteDatatypes)
             return true

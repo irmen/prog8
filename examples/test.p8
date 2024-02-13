@@ -1,4 +1,5 @@
 %import textio
+%import floats
 %zeropage basicsafe
 %option no_sysinit
 
@@ -7,22 +8,29 @@ main {
     bool @shared staticbool2
 
     sub start() {
-        boolean_const_and_var(true)
-        staticbool1 = boolean_arrays_and_return()
-        txt.print_ub(staticbool1 as ubyte)
-        txt.nl()
-        and_or_xor_not()
+;        boolean_const_and_var(true)
+;        staticbool1 = boolean_arrays_and_return()
+;        txt.print_ub(staticbool1 as ubyte)
+;        txt.nl()
+;        and_or_xor_not()
+;        logical_operand_swap()
 ;        bitwise_on_bools_errors()
 ;        arith_on_bools_errors()
 ;        logical_on_ints_errors()
 ;        bools_in_intarray_errors()
 ;        ints_in_boolarray_errors()
 ;        while_until_int_errors()
-        bools_in_array_assigns()
-        bools_in_array_assigns_inplace()
-        if_code()
+;        bools_in_array_assigns()
+;        bools_in_array_assigns_inplace()
+;        while_bool_efficient()
+;        efficient_compare_0()
+;        efficient_compare_99()
+;        efficient_assign_cmp_0()
+;        efficient_assign_cmp_99()
+        if_gotos()
+;        if_code()
   ;;sys.exit(1)
-        while_equiv()
+;        while_equiv()
 
 ;        bool[3] barr
 ;        bool @shared bb
@@ -40,6 +48,108 @@ main {
 ;        bb = bb or barr[1]
 ;        bb = bb xor barr[1]
 ;        bb = not bb
+    }
+
+    sub while_bool_efficient() {
+        while staticbool1 {
+            cx16.r0++
+        }
+        while not staticbool1 {
+            cx16.r0++
+        }
+        while cx16.r0L==0 {
+            cx16.r0++
+        }
+        while cx16.r0L!=0 {
+            cx16.r0++
+        }
+    }
+
+
+    sub efficient_assign_cmp_0() {
+        ubyte @shared ub
+        uword @shared uw
+        float @shared fl
+        bool @shared bb1, bb2
+
+        bb1 = ub==0
+        bb2 = ub!=0
+        bb1 = uw==0
+        bb2 = uw!=0
+        bb1 = fl==0.0
+        bb2 = fl!=0.0
+    }
+
+
+    sub efficient_assign_cmp_99() {
+        ubyte @shared ub
+        uword @shared uw
+        float @shared fl
+        bool @shared bb1, bb2
+
+        bb1 = ub==99
+        bb2 = ub!=99
+        bb1 = uw==99
+        bb2 = uw!=99
+        bb1 = fl==99.0
+        bb2 = fl!=99.0
+    }
+
+    sub efficient_compare_0() {
+        ubyte @shared ub
+        uword @shared uw
+        float @shared fl
+
+        if ub==0
+            cx16.r0++
+        if uw==0
+            cx16.r0++
+        if fl==0
+            cx16.r0++
+        if ub!=0
+            cx16.r0++
+        else
+            cx16.r1++
+        if uw!=0
+            cx16.r0++
+        else
+            cx16.r1++
+        if fl!=0
+            cx16.r0++
+        else
+            cx16.r1++
+    }
+
+    sub efficient_compare_99() {
+        ubyte @shared ub
+        uword @shared uw
+        float @shared fl
+
+        if ub==99
+            cx16.r0++
+        if uw==99
+            cx16.r0++
+        if fl==99.99
+            cx16.r0++
+        if ub!=99
+            cx16.r0++
+        else
+            cx16.r1++
+        if uw!=99
+            cx16.r0++
+        else
+            cx16.r1++
+        if fl!=99.99
+            cx16.r0++
+        else
+            cx16.r1++
+    }
+
+    sub logical_operand_swap() {
+        bool[] ba = [true, false, true]
+        bool @shared bb = staticbool1 xor ba[0]
+        ubyte @shared zz
+        cx16.r0L = 99+zz
     }
 
     sub boolean_const_and_var(bool barg) {
@@ -212,6 +322,20 @@ main {
         ba[2] = ba[0] and ba[1]
         ba[1] = ba[0] or ba[2]
         ba[1] = not ba[2]
+        ba[1] = ba[0] xor ba[cx16.r0L]
+        ba[2] = ba[0] and ba[cx16.r0L]
+        ba[1] = ba[0] or ba[cx16.r0L]
+        ba[1] = not ba[cx16.r0L]
+
+        ubyte[] uba = [11,22,33]
+        uba[1] = uba[0] ^ uba[2]
+        uba[2] = uba[0] & uba[1]
+        uba[1] = uba[0] | uba[2]
+        uba[1] = ~uba[2]
+        uba[1] = uba[0] ^ uba[cx16.r0L]
+        uba[2] = uba[0] & uba[cx16.r0L]
+        uba[1] = uba[0] | uba[cx16.r0L]
+        uba[1] = ~uba[cx16.r0L]
     }
 
     sub bools_in_array_assigns_inplace() {
@@ -228,6 +352,55 @@ main {
         ba[1] = ba[1] and ba[2]
         ba[2] = ba[2] or ba[1]
         ba[2] = not ba[2]
+        ba[2] = ba[2] xor ba[cx16.r0L]
+        ba[1] = ba[1] and ba[cx16.r0L]
+        ba[2] = ba[2] or ba[cx16.r0L]
+
+        ubyte[] uba = [11,22,33]
+        uba[2] = uba[2] ^ uba[1]
+        uba[1] = uba[1] & uba[2]
+        uba[2] = uba[2] | uba[1]
+        uba[2] = ~ uba[2]
+        uba[2] = uba[2] ^ uba[cx16.r0L]
+        uba[1] = uba[1] & uba[cx16.r0L]
+        uba[2] = uba[2] | uba[cx16.r0L]
+    }
+
+    sub if_gotos() {
+            ubyte @shared ub
+
+            if_cc
+                goto label
+            if_cc
+                goto label
+            else
+                cx16.r0++
+            if_cs
+                goto label
+            else
+                cx16.r0++
+
+
+            if ub==0
+                goto label
+            if ub!=0
+                goto label
+            if not ub==99
+                goto label
+
+            if ub==0
+                goto label
+            else
+                cx16.r0++
+            if ub!=0
+                goto label
+            else
+                cx16.r0++
+            if not ub==98
+                goto label
+            else
+                cx16.r0++
+    label:
     }
 
     sub if_code() {
