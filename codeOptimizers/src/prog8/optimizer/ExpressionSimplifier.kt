@@ -402,18 +402,42 @@ class ExpressionSimplifier(private val program: Program,
                     return expr.left
                 }
             }
+            else if(expr.operator=="or" && rightB.operator=="or") {
+                if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
+                    // a or (a or b) -> a or b
+                    return expr.right
+                }
+            }
+            else if(expr.operator=="and" && rightB.operator=="and") {
+                if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
+                    // a and (a and b) -> a and b
+                    return expr.right
+                }
+            }
         }
         val leftB = expr.left as? BinaryExpression
         if(leftB!=null) {
             // absorption laws:  (a and b) or a --> a,  (a or b) and a --> a
             if(expr.operator=="or" && leftB.operator=="and") {
-                if(expr.right isSameAs leftB.left || expr.left isSameAs leftB.right) {
+                if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
                     return expr.right
                 }
             }
             else if(expr.operator=="and" && leftB.operator=="or") {
                 if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
                     return expr.right
+                }
+            }
+            else if(expr.operator=="or" && leftB.operator=="or") {
+                if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
+                    // (a or b) or a -> a or b
+                    return expr.left
+                }
+            }
+            else if(expr.operator=="and" && leftB.operator=="and") {
+                if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
+                    // (a and b) or a -> a and b
+                    return expr.left
                 }
             }
         }

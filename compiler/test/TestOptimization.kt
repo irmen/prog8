@@ -825,16 +825,19 @@ main {
         if a and (b or a)
             cx16.r0 ++
 
-        ; no opt:
         if a and (b and a)
             cx16.r0 ++
         if a or (b or a)
+            cx16.r0 ++
+        if (b and a) and b
+            cx16.r0 ++
+        if (b or a) or b
             cx16.r0 ++
     }
 }"""
         val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 10
+        st.size shouldBe 12
         val if1 = st[4] as IfElse
         val if2 = st[5] as IfElse
         val if3 = st[6] as IfElse
@@ -845,8 +848,20 @@ main {
         (if4.condition as IdentifierReference).nameInSource shouldBe listOf("a")
         val if5 = st[8] as IfElse
         val if6 = st[9] as IfElse
-        if5.condition shouldBe instanceOf<BinaryExpression>()
-        if6.condition shouldBe instanceOf<BinaryExpression>()
+        val if7 = st[10] as IfElse
+        val if8 = st[11] as IfElse
+        val if5bc = if5.condition as BinaryExpression
+        val if6bc = if6.condition as BinaryExpression
+        val if7bc = if7.condition as BinaryExpression
+        val if8bc = if8.condition as BinaryExpression
+        if5bc.left shouldBe instanceOf<IdentifierReference>()
+        if5bc.right shouldBe instanceOf<IdentifierReference>()
+        if6bc.left shouldBe instanceOf<IdentifierReference>()
+        if6bc.right shouldBe instanceOf<IdentifierReference>()
+        if7bc.left shouldBe instanceOf<IdentifierReference>()
+        if7bc.right shouldBe instanceOf<IdentifierReference>()
+        if8bc.left shouldBe instanceOf<IdentifierReference>()
+        if8bc.right shouldBe instanceOf<IdentifierReference>()
     }
 
     test("funky bitshifts") {
