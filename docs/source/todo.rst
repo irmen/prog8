@@ -55,7 +55,6 @@ boolean trick to go from a compare >= value, to a bool
 	and  #1
 
 
-Chess: cannot click mouse to start. nothing happens.
 Already broken in 10.0: textelite on c64, info on diso -> jams the cpu after printing
 
 IR: add TEST instruction to test memory content and set N/Z flags, without affecting any register.

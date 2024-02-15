@@ -556,7 +556,7 @@ asmsub mouse_config2(byte shape @A) clobbers (A, X, Y) {
 
 asmsub mouse_pos() clobbers(X) -> ubyte @A {
     ; -- short wrapper around mouse_get() kernal routine:
-    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status.
+    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status in A.
     %asm {{
         ldx  #cx16.r0
         jmp  cx16.mouse_get

@@ -8,6 +8,15 @@ main {
     bool @shared staticbool2
 
     sub start() {
+            cx16.mouse_config2(1)   ; enable mouse cursor (sprite 0)
+            while cx16.mouse_pos()==0 {
+                cx16.r0L++
+            }
+            while cx16.mouse_pos()!=0 {
+                cx16.r0L++
+            }
+
+
 ;        boolean_const_and_var(true)
 ;        staticbool1 = boolean_arrays_and_return()
 ;        txt.print_ub(staticbool1 as ubyte)
@@ -25,9 +34,11 @@ main {
 ;        while_bool_efficient()
 ;        efficient_compare_0()
 ;        efficient_compare_99()
+;        efficient_compare_var()
 ;        efficient_assign_cmp_0()
 ;        efficient_assign_cmp_99()
-        if_gotos()
+;        efficient_assign_cmp_var()
+;        if_gotos()
 ;        if_code()
   ;;sys.exit(1)
 ;        while_equiv()
@@ -52,16 +63,16 @@ main {
 
     sub while_bool_efficient() {
         while staticbool1 {
-            cx16.r0++
+            cx16.r0L++
         }
         while not staticbool1 {
-            cx16.r0++
+            cx16.r0L++
         }
         while cx16.r0L==0 {
-            cx16.r0++
+            cx16.r0L++
         }
         while cx16.r0L!=0 {
-            cx16.r0++
+            cx16.r0L++
         }
     }
 
@@ -95,29 +106,49 @@ main {
         bb2 = fl!=99.0
     }
 
+    sub efficient_assign_cmp_var() {
+        ubyte @shared ub
+        uword @shared uw
+        float @shared fl
+        bool @shared bb1, bb2
+        float @shared fval
+
+        bb1 = ub==cx16.r0L
+        bb2 = ub!=cx16.r0L
+        bb1 = uw==cx16.r0
+        bb2 = uw!=cx16.r0
+        bb1 = fl==0.0
+        bb2 = fl!=0.0
+        bb1 = fl==fval
+        bb2 = fl!=fval
+
+        bb1 = bb2==uw[cx16.r0L]
+        bb2 = bb1!=uw[cx16.r1L]
+    }
+
     sub efficient_compare_0() {
         ubyte @shared ub
         uword @shared uw
         float @shared fl
 
         if ub==0
-            cx16.r0++
+            cx16.r0L++
         if uw==0
-            cx16.r0++
+            cx16.r0L++
         if fl==0
-            cx16.r0++
+            cx16.r0L++
         if ub!=0
-            cx16.r0++
+            cx16.r0L++
         else
-            cx16.r1++
+            cx16.r1L++
         if uw!=0
-            cx16.r0++
+            cx16.r0L++
         else
-            cx16.r1++
+            cx16.r1L++
         if fl!=0
-            cx16.r0++
+            cx16.r0L++
         else
-            cx16.r1++
+            cx16.r1L++
     }
 
     sub efficient_compare_99() {
@@ -126,23 +157,63 @@ main {
         float @shared fl
 
         if ub==99
-            cx16.r0++
+            cx16.r0L++
         if uw==99
-            cx16.r0++
+            cx16.r0L++
         if fl==99.99
-            cx16.r0++
+            cx16.r0L++
         if ub!=99
-            cx16.r0++
+            cx16.r0L++
         else
-            cx16.r1++
+            cx16.r1L++
         if uw!=99
-            cx16.r0++
+            cx16.r0L++
         else
-            cx16.r1++
+            cx16.r1L++
         if fl!=99.99
-            cx16.r0++
+            cx16.r0L++
         else
-            cx16.r1++
+            cx16.r1L++
+    }
+
+    sub efficient_compare_var() {
+        ubyte @shared ub
+        uword @shared uw
+        float @shared fl
+        float @shared fval
+
+        if ub==cx16.r0L
+            cx16.r0L++
+        if uw==cx16.r0
+            cx16.r0L++
+        if fl==fval
+            cx16.r0L++
+        if fl==0.0
+            cx16.r0L++
+        if ub!=cx16.r0L
+            cx16.r0L++
+        else
+            cx16.r1L++
+        if uw!=cx16.r0
+            cx16.r0L++
+        else
+            cx16.r1L++
+        if fl!=fval
+            cx16.r0L++
+        else
+            cx16.r1L++
+        if fl!=0.0
+            cx16.r0L++
+        else
+            cx16.r1L++
+
+        if ub==uw[cx16.r0L]
+            cx16.r0L++
+        if ub!=uw[cx16.r0L]
+            cx16.r0L++
+
+        if staticbool2 or staticbool1
+            cx16.r0L++
     }
 
     sub logical_operand_swap() {
@@ -264,29 +335,29 @@ main {
 ;
 ;    sub while_until_int_errors() {
 ;;        while staticbool1==42 {
-;;            cx16.r0++
+;;            cx16.r0L++
 ;;        }
 ;;
 ;;        do {
-;;            cx16.r0++
+;;            cx16.r0L++
 ;;        } until staticbool1==42
 ;
 ;        ubyte @shared ub1
 ;
 ;        while not ub1 {
-;            cx16.r0++
+;            cx16.r0L++
 ;        }
 ;
 ;        while intfunc() {
-;            cx16.r0++
+;            cx16.r0L++
 ;        }
 ;
 ;        while not intfunc() {
-;            cx16.r0++
+;            cx16.r0L++
 ;        }
 ;
 ;;        while not cx16.mouse_pos() {
-;;            cx16.r0++
+;;            cx16.r0L++
 ;;        }
 ;    }
 
@@ -295,16 +366,16 @@ main {
         bool @shared bb
 
         while bb {
-            cx16.r0++
+            cx16.r0L++
         }
         while ub!=0 {
-            cx16.r0++
+            cx16.r0L++
         }
         while not bb {
-            cx16.r0++
+            cx16.r0L++
         }
         while ub==0 {
-            cx16.r0++
+            cx16.r0L++
         }
     }
 
@@ -340,7 +411,7 @@ main {
 
     sub bools_in_array_assigns_inplace() {
         bool[] ba = [true, false, true]
-        cx16.r0++
+        cx16.r0L++
         ba[1] = ba[1] xor staticbool2
         ba[2] = staticbool2 xor ba[2]
         ba[1] = ba[1] and staticbool2
@@ -374,32 +445,37 @@ main {
             if_cc
                 goto label
             else
-                cx16.r0++
+                cx16.r0L++
             if_cs
                 goto label
             else
-                cx16.r0++
+                cx16.r0L++
 
 
-            if ub==0
-                goto label
-            if ub!=0
-                goto label
             if not ub==99
                 goto label
-
             if ub==0
                 goto label
-            else
-                cx16.r0++
             if ub!=0
                 goto label
-            else
-                cx16.r0++
+
             if not ub==98
                 goto label
             else
-                cx16.r0++
+                cx16.r0L++
+            if ub==0
+                goto label
+            else
+                cx16.r0L++
+            if ub!=0
+                goto label
+            else
+                cx16.r0L++
+
+            if staticbool1
+                goto label
+            if not staticbool2
+                goto label
     label:
     }
 
@@ -407,28 +483,28 @@ main {
         ubyte @shared ub
         bool @shared bb
         if ub==0
-            cx16.r0++
+            cx16.r0L++
         if ub!=0
-            cx16.r0++
+            cx16.r0L++
         if bb
-            cx16.r0++
+            cx16.r0L++
         if not bb
-            cx16.r0++
+            cx16.r0L++
 
         if ub==0
-            cx16.r0++
+            cx16.r0L++
         else
             cx16.r0--
         if ub!=0
-            cx16.r0++
+            cx16.r0L++
         else
             cx16.r0--
         if bb
-            cx16.r0++
+            cx16.r0L++
         else
             cx16.r0--
         if not bb
-            cx16.r0++
+            cx16.r0L++
         else
             cx16.r0--
     }
@@ -438,6 +514,6 @@ main {
     }
 
     sub voidfuncub(ubyte arg) {
-        cx16.r0++
+        cx16.r0L++
     }
 }

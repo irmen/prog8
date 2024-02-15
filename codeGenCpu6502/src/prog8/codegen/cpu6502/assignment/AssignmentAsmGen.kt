@@ -568,7 +568,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return true
     }
 
-    private fun directIntoY(expr: PtExpression): Boolean {
+    internal fun directIntoY(expr: PtExpression): Boolean {
         return when(expr) {
             is PtIdentifier -> true
             is PtMachineRegister -> true
