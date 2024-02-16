@@ -235,7 +235,7 @@ class AsmGen6502Internal (
     private val anyExprGen = AnyExprAsmGen(this)
     private val assignmentAsmGen = AssignmentAsmGen(program, this, anyExprGen, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
-    private val ifElseAsmgen = IfElseAsmGen(program, this, assignmentAsmGen)
+    private val ifElseAsmgen = IfElseAsmGen(program, this, allocator, assignmentAsmGen)
 
     fun compileToAssembly(): IAssemblyProgram? {
 

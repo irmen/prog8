@@ -30,10 +30,10 @@ ok    .      efficient code for if float comparisons against 0 (== and !=)
 ok    .      efficient code for if byte comparisons against a value
 ok    .      efficient code for if word comparisons against a value
 ok    .      efficient code for if float comparisons against a value
-ok    .      efficient code for assignment byte comparisons against 0 (== and !=)
+ok    ok     efficient code for assignment byte comparisons against 0 (== and !=)
 ok    .      efficient code for assignment word comparisons against 0 (== and !=)
 ok    .      efficient code for assignment float comparisons against 0 (== and !=)
-ok    .      efficient code for assignment byte comparisons against a value
+ok    FAIL   efficient code for assignment byte comparisons against a value         ("float if ==" and "float if !=")
 ok    .      efficient code for assignment word comparisons against a value
 ok    .      efficient code for assignment float comparisons against a value
 ok    ok     efficient code for if_cc conditional expressions

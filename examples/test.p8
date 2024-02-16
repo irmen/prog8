@@ -8,15 +8,6 @@ main {
     bool @shared staticbool2
 
     sub start() {
-            cx16.mouse_config2(1)   ; enable mouse cursor (sprite 0)
-            while cx16.mouse_pos()==0 {
-                cx16.r0L++
-            }
-            while cx16.mouse_pos()!=0 {
-                cx16.r0L++
-            }
-
-
 ;        boolean_const_and_var(true)
 ;        staticbool1 = boolean_arrays_and_return()
 ;        txt.print_ub(staticbool1 as ubyte)
@@ -36,7 +27,7 @@ main {
 ;        efficient_compare_99()
 ;        efficient_compare_var()
 ;        efficient_assign_cmp_0()
-;        efficient_assign_cmp_99()
+        efficient_assign_cmp_99()
 ;        efficient_assign_cmp_var()
 ;        if_gotos()
 ;        if_code()

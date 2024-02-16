@@ -6,6 +6,7 @@ import prog8.codegen.cpu6502.assignment.AssignmentAsmGen
 
 internal class IfElseAsmGen(private val program: PtProgram,
                             private val asmgen: AsmGen6502Internal,
+                            private val allocator: VariableAllocator,
                             private val assignmentAsmGen: AssignmentAsmGen) {
 
     fun translate(stmt: PtIfElse) {
@@ -141,24 +142,54 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     translateIfElseBodies("beq", stmt)
             }
             "<" -> {
-                // TODO()
-                println("byte if <")
-                fallbackTranslate(stmt)
+                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+                cmpAwithByteValue(condition.right)
+                return if(signed) {
+                    if(jumpAfterIf!=null)
+                        translateJumpElseBodies("bmi", "bpl", jumpAfterIf, stmt.elseScope)
+                    else
+                        translateIfElseBodies("bpl", stmt)
+                } else {
+                    if(jumpAfterIf!=null)
+                        translateJumpElseBodies("bcc", "bcs", jumpAfterIf, stmt.elseScope)
+                    else
+                        translateIfElseBodies("bcs", stmt)
+                }
             }
             "<=" -> {
-                // TODO()
-                println("byte if <=")
-                fallbackTranslate(stmt)
+                fallbackTranslate(stmt, true)
+//                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+//                cmpAwithByteValue(condition.right)
+//                if(signed) {
+//                    TODO("byte if <=")
+//                } else {
+//                    TODO("ubyte if <=")
+//                }
             }
             ">" -> {
-                // TODO()
-                println("byte if >")
-                fallbackTranslate(stmt)
+                fallbackTranslate(stmt, true)
+//                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+//                cmpAwithByteValue(condition.right)
+//                return if(signed) {
+//                    TODO("byte if >")
+//                } else {
+//                    TODO("ubyte if >")
+//                }
             }
             ">=" -> {
-                // TODO()
-                println("byte if >=")
-                fallbackTranslate(stmt)
+                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+                cmpAwithByteValue(condition.right)
+                return if(signed) {
+                    if(jumpAfterIf!=null)
+                        translateJumpElseBodies("bpl", "bmi", jumpAfterIf, stmt.elseScope)
+                    else
+                        translateIfElseBodies("bmi", stmt)
+                } else {
+                    if(jumpAfterIf!=null)
+                        translateJumpElseBodies("bcs", "bcc", jumpAfterIf, stmt.elseScope)
+                    else
+                        translateIfElseBodies("bcc", stmt)
+                }
             }
             else -> fallbackTranslate(stmt, false)
         }
@@ -293,36 +324,133 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
         when(condition.operator) {
             "==" -> {
-                // TODO
-                println("float if ==")
-                fallbackTranslate(stmt)
+                translateFloatsEqualsConditionIntoA(condition.left, condition.right)
+                return if (jumpAfterIf != null)
+                    translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
+                else
+                    translateIfElseBodies("beq", stmt)
             }
             "!=" -> {
-                // TODO
-                println("float if !=")
-                fallbackTranslate(stmt)
+                translateFloatsEqualsConditionIntoA(condition.left, condition.right)
+                return if (jumpAfterIf != null)
+                    translateJumpElseBodies("beq", "bne", jumpAfterIf, stmt.elseScope)
+                else
+                    translateIfElseBodies("bne", stmt)
             }
             "<" -> {
-                // TODO()
-                println("float if <")
-                fallbackTranslate(stmt)
+                translateFloatsLessConditionIntoA(condition.left, condition.right, false)
+                return if (jumpAfterIf != null)
+                    translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
+                else
+                    translateIfElseBodies("beq", stmt)
             }
             "<=" -> {
-                // TODO()
-                println("float if <=")
-                fallbackTranslate(stmt)
+                translateFloatsLessConditionIntoA(condition.left, condition.right, true)
+                return if (jumpAfterIf != null)
+                    translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
+                else
+                    translateIfElseBodies("beq", stmt)
             }
             ">" -> {
-                // TODO()
-                println("float if >")
-                fallbackTranslate(stmt)
+                translateFloatsLessConditionIntoA(condition.left, condition.right, true)
+                return if (jumpAfterIf != null)
+                    translateJumpElseBodies("beq", "bne", jumpAfterIf, stmt.elseScope)
+                else
+                    translateIfElseBodies("bne", stmt)
             }
             ">=" -> {
-                // TODO()
-                println("float if >=")
-                fallbackTranslate(stmt)
+                translateFloatsLessConditionIntoA(condition.left, condition.right, false)
+                return if (jumpAfterIf != null)
+                    translateJumpElseBodies("beq", "bne", jumpAfterIf, stmt.elseScope)
+                else
+                    translateIfElseBodies("bne", stmt)
             }
             else -> fallbackTranslate(stmt, false)
         }
     }
+
+    private fun translateFloatsEqualsConditionIntoA(left: PtExpression, right: PtExpression) {
+        fun equalf(leftName: String, rightName: String) {
+            asmgen.out("""
+                    lda  #<$leftName
+                    ldy  #>$leftName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<$rightName
+                    ldy  #>$rightName
+                    jsr  floats.vars_equal_f""")
+        }
+        fun equalf(expr: PtExpression, rightName: String) {
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.FAC1, true)
+            asmgen.out("""
+                    lda  #<$rightName
+                    ldy  #>$rightName
+                    jsr  floats.var_fac1_equal_f""")
+        }
+        if(left is PtIdentifier) {
+            when (right) {
+                is PtIdentifier -> equalf(asmgen.asmVariableName(left), asmgen.asmVariableName(right))
+                is PtNumber -> equalf(asmgen.asmVariableName(left), allocator.getFloatAsmConst(right.number))
+                else -> {
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
+                    equalf(asmgen.asmVariableName(left), subroutineFloatEvalResultVar1)
+                    asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
+                }
+            }
+        } else {
+            when (right) {
+                is PtIdentifier -> equalf(left, asmgen.asmVariableName(right))
+                is PtNumber -> equalf(left, allocator.getFloatAsmConst(right.number))
+                else -> {
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
+                    equalf(left, subroutineFloatEvalResultVar1)
+                    asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
+                }
+            }
+        }
+    }
+
+    private fun translateFloatsLessConditionIntoA(left: PtExpression, right: PtExpression, lessOrEquals: Boolean) {
+        fun lessf(leftName: String, rightName: String) {
+            asmgen.out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName""")
+            if(lessOrEquals)
+                asmgen.out("jsr  floats.vars_lesseq_f")
+            else
+                asmgen.out("jsr  floats.vars_less_f")
+        }
+        fun lessf(expr: PtExpression, rightName: String) {
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.FAC1, true)
+            asmgen.out("  lda  #<$rightName |  ldy  #>$rightName")
+            if(lessOrEquals)
+                asmgen.out("  jsr  floats.var_fac1_lesseq_f")
+            else
+                asmgen.out("  jsr  floats.var_fac1_less_f")
+        }
+        if(left is PtIdentifier) {
+            when (right) {
+                is PtIdentifier -> lessf(asmgen.asmVariableName(left), asmgen.asmVariableName(right))
+                is PtNumber -> lessf(asmgen.asmVariableName(left), allocator.getFloatAsmConst(right.number))
+                else -> {
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
+                    lessf(asmgen.asmVariableName(left), subroutineFloatEvalResultVar1)
+                }
+            }
+        } else {
+            when (right) {
+                is PtIdentifier -> lessf(left, asmgen.asmVariableName(right))
+                is PtNumber -> lessf(left, allocator.getFloatAsmConst(right.number))
+                else -> {
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
+                    lessf(left, subroutineFloatEvalResultVar1)
+                }
+            }
+        }
+    }
+
 }

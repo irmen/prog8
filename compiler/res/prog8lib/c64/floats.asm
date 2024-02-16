@@ -221,7 +221,7 @@ var_fac1_greatereq_f	.proc
 		.pend
 
 var_fac1_equal_f	.proc
-		; -- are the floats numbers in FAC1 and the variable AY *not* identical?   Result in A. Clobbers X.
+		; -- are the floats numbers in FAC1 and the variable AY identical?   Result in A. Clobbers X.
 		jsr  FCOMP
 		and  #1
 		eor  #1
