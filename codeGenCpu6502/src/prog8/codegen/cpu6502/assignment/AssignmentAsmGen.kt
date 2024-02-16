@@ -2091,7 +2091,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 throw AssemblyError("can't store word into memory byte")
             }
             TargetStorageKind.ARRAY -> {
-                asmgen.out("  lda  #<$sourceName |  ldy #>$sourceName")
+                asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
             }
             TargetStorageKind.REGISTER -> {

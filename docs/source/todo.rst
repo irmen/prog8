@@ -1,6 +1,12 @@
 TODO
 ====
 
+examples/primes is larger than on 10.1
+examples/maze is larger than on 10.1
+examples/textelite is larger than on 10.1
+
+
+
 ===== ====== =======
 VM    6502   what
 ===== ====== =======
@@ -43,6 +49,9 @@ ok    .      testmonogfx works
 ok    .      check program sizes vs. master branch
 ===== ====== =======
 
+
+retest all comparisons in if statements (byte, word, signed and unsigned) + all comparison assignments.  Against 0 and something else as 0.
+with jump, indirect jump, no else block, and both if+else blocks.
 
 check that the flood fill routine in gfx2 and paint still works.
 re-allow typecast of const true/false back to ubytes 1 and 0.

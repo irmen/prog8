@@ -6,8 +6,98 @@
 main {
     bool @shared staticbool1 = true
     bool @shared staticbool2
+    word[4] words
+
+    byte @shared sbb
 
     sub start() {
+
+        while cx16.r0s < 1234
+            cx16.r0L++
+loop:
+        if cx16.r0s >= 1234
+            goto skip
+        cx16.r0L++
+        goto loop
+skip:
+
+        ; TODO all this for uwords
+
+;        if sbb<0
+;            cx16.r0L++
+;        if sbb>0
+;            cx16.r0L++
+;        if sbb<=0
+;            cx16.r0L++
+;        if sbb>=0
+;            cx16.r0L++
+;        if cx16.r0s<0
+;            cx16.r0L++
+;        if cx16.r0s>0
+;            cx16.r0L++
+;        if cx16.r0s>0
+;            goto start
+;        if cx16.r0s>0
+;            goto cx16.r0
+;        if cx16.r0s<=0
+;            cx16.r0L++
+;        else
+;            cx16.r0L++
+;        if cx16.r0s>=0
+;            cx16.r0L++
+;        if words[2]<0
+;            cx16.r0L++
+;        if words[2]>0
+;            cx16.r0L++
+;        if words[2]<=0
+;            cx16.r0L++
+;        if words[2]>=0
+;            cx16.r0L++
+;        if words[cx16.r0L]<0
+;            cx16.r0L++
+;        if words[cx16.r0L]>0
+;            cx16.r0L++
+;        if words[cx16.r0L]<=0
+;            cx16.r0L++
+;        if words[cx16.r0L]>=0
+;            cx16.r0L++
+
+;        staticbool2 = sbb < 0
+;        staticbool2 = sbb > 0
+;        staticbool1 = sbb <= 0
+;        staticbool1 = sbb >= 0
+;        staticbool2 = cx16.r0s <0
+;        staticbool2 = cx16.r0s >0
+;        staticbool1 = cx16.r0s <=0
+;        staticbool1 = cx16.r0s >=0
+;        staticbool2 = words[2]<0
+;        staticbool2 = words[2]>0
+;        staticbool1 = words[2]<=0
+;        staticbool1 = words[2]>=0
+;        staticbool2 = words[cx16.r0L]<0
+;        staticbool2 = words[cx16.r0L]>0
+;        staticbool1 = words[cx16.r0L]<=0
+;        staticbool1 = words[cx16.r0L]>=0
+
+
+;        if cx16.r0 > 1234
+;            cx16.r0L++
+;        if cx16.r0s > 1234
+;            cx16.r0L++
+;        if cx16.r0 < 1234
+;            cx16.r0L++
+;        if cx16.r0s < 1234
+;            cx16.r0L++
+;        if cx16.r0 >= 1234
+;            cx16.r0L++
+;        if cx16.r0s >= 1234
+;            cx16.r0L++
+;        if cx16.r0 <= 1234
+;            cx16.r0L++
+;        if cx16.r0s <= 1234
+;            cx16.r0L++
+
+
 ;        boolean_const_and_var(true)
 ;        staticbool1 = boolean_arrays_and_return()
 ;        txt.print_ub(staticbool1 as ubyte)
@@ -27,7 +117,7 @@ main {
 ;        efficient_compare_99()
 ;        efficient_compare_var()
 ;        efficient_assign_cmp_0()
-        efficient_assign_cmp_99()
+;        efficient_assign_cmp_99()
 ;        efficient_assign_cmp_var()
 ;        if_gotos()
 ;        if_code()
@@ -472,6 +562,7 @@ main {
 
     sub if_code() {
         ubyte @shared ub
+        byte @shared sb
         bool @shared bb
         if ub==0
             cx16.r0L++
@@ -498,6 +589,23 @@ main {
             cx16.r0L++
         else
             cx16.r0--
+
+        if ub>10
+            cx16.r0++
+        if ub>=10
+            cx16.r0++
+        if ub<10
+            cx16.r0++
+        if ub<=10
+            cx16.r0++
+        if sb>10
+            cx16.r0++
+        if sb>=10
+            cx16.r0++
+        if sb<10
+            cx16.r0++
+        if sb<=10
+            cx16.r0++
     }
 
     sub intfunc() -> ubyte {
