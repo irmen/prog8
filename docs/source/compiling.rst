@@ -311,7 +311,7 @@ To avoid the reset from happening, use an empty ``repeat`` loop at the end of yo
 Alternatively, if you want your program to exit cleanly back to the BASIC prompt,
 you have to use ``%zeropage basicsafe``, see :ref:`directives`.
 The reason this is not the default is that it is very beneficial to have more zeropage space available to the program,
-and programs that have to reaturn cleanly to the BASIC prompt are considered to be the exception.
+and programs that have to return cleanly to the BASIC prompt are considered to be the exception.
 
 
 Odd text and screen colors at start
