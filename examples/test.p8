@@ -9,17 +9,16 @@ main {
     word[4] words
 
     byte @shared sbb
+    float @shared fl=3.3
+    float @shared fl2=4.3
 
     sub start() {
 
-        while cx16.r0s < 1234
+        while not staticbool2
             cx16.r0L++
-loop:
-        if cx16.r0s >= 1234
-            goto skip
-        cx16.r0L++
-        goto loop
-skip:
+
+        while cx16.r0L==0
+            cx16.r0L++
 
         ; TODO all this for uwords
 

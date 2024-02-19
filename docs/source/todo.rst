@@ -1,9 +1,18 @@
 TODO
 ====
 
-examples/primes is larger than on 10.1
+efficient code for assignment float comparisons against a value (it now copies the floats around too many times) 10.1 created efficient code.
+
 examples/maze is larger than on 10.1
-examples/textelite is larger than on 10.1
+rockrunner is a lot bigger still than on 10.1
+paint is bigger than on 10.1
+
+cx16/testmonogfx is broken
+assembler is broken
+imageviewer is broken
+paint flood fill is broken
+rockrunner load caveset list is broken
+medemo and dsdemo are broken
 
 
 
@@ -29,23 +38,23 @@ ok    ok     while not <integervar>   should give type error
 ok    ok     while not <integer functioncall>   should give type error
 ok    ok     while not cx16.mouse_pos()  should give condition type error
 ok    ok     efficient code for manipulating bools in an array (normal and agumented assigns)
-ok    WIP    efficient code for if with only a goto in it
-ok    .      efficient code for if byte comparisons against 0 (== and !=)
-ok    .      efficient code for if word comparisons against 0 (== and !=)
-ok    .      efficient code for if float comparisons against 0 (== and !=)
-ok    .      efficient code for if byte comparisons against a value
-ok    .      efficient code for if word comparisons against a value
-ok    .      efficient code for if float comparisons against a value
+ok    ok     efficient code for if with only a goto in it
+ok    ok     efficient code for if byte comparisons against 0 (== and !=)
+ok    ok     efficient code for if word comparisons against 0 (== and !=)
+ok    ok     efficient code for if float comparisons against 0 (== and !=)
+ok    ok     efficient code for if byte comparisons against a value
+ok    ok     efficient code for if word comparisons against a value
+ok    ok     efficient code for if float comparisons against a value
 ok    ok     efficient code for assignment byte comparisons against 0 (== and !=)
-ok    .      efficient code for assignment word comparisons against 0 (== and !=)
-ok    .      efficient code for assignment float comparisons against 0 (== and !=)
-ok    FAIL   efficient code for assignment byte comparisons against a value         ("float if ==" and "float if !=")
-ok    .      efficient code for assignment word comparisons against a value
-ok    .      efficient code for assignment float comparisons against a value
+ok    ok     efficient code for assignment word comparisons against 0 (== and !=)
+ok    ok     efficient code for assignment float comparisons against 0 (== and !=)
+ok    ok     efficient code for assignment byte comparisons against a value
+ok    ok     efficient code for assignment word comparisons against a value
+ok    FAIL   efficient code for assignment float comparisons against a value
 ok    ok     efficient code for if_cc conditional expressions
-ok    FAIL   while boolean  should produce identical code as  while integer!=0  and code should be efficient
-ok    .      while not boolvar  -> can we get rid of the cmp? (6502 only?)
-ok    .      testmonogfx works
+ok    ok     while boolean  should produce identical code as  while integer!=0  and code should be efficient
+ok    ok     while not boolvar  -> can we get rid of the cmp? (6502 only?)
+ok    FAIL   testmonogfx works
 ok    .      check program sizes vs. master branch
 ===== ====== =======
 
@@ -54,17 +63,9 @@ retest all comparisons in if statements (byte, word, signed and unsigned) + all 
 with jump, indirect jump, no else block, and both if+else blocks.
 
 check that the flood fill routine in gfx2 and paint still works.
-re-allow typecast of const true/false back to ubytes 1 and 0.
-re-allow typecast of const ubyte 0/1 to false/true boolean.
+re-allow typecast of const true/false back to ubytes 1 and 0?
+re-allow typecast of const ubyte 0/1 to false/true boolean?
 
-
-boolean trick to go from a compare >= value, to a bool
-    cmp #value
-	rol  a
-	and  #1
-
-
-Already broken in 10.0: textelite on c64, info on diso -> jams the cpu after printing
 
 IR: add TEST instruction to test memory content and set N/Z flags, without affecting any register.
     replace all LOADM+CMPI #0  / LOAD #0+LOADM+CMP+BRANCH   by this instruction

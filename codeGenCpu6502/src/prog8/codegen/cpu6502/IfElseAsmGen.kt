@@ -402,24 +402,537 @@ internal class IfElseAsmGen(private val program: PtProgram,
     }
 
     private fun wordLessValue(left: PtExpression, right: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
-        println("word if <")    // TODO
-        fallbackTranslate(stmt)
+        fun code(valueLsb: String, valueMsb: String) {
+            if(signed) {
+                if(jump!=null) {
+                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
+                    if(indirect) {
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bvs  +
+                            eor  #128
++                           bpl  +
+                            jmp  ($asmLabel)
++""")
+                    } else {
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bvc  +
+                            eor  #128
++                           bmi  $asmLabel""")
+                    }
+                } else {
+                    val afterIfLabel = asmgen.makeLabel("afterif")
+                    if(stmt.hasElse()) {
+                        // if and else blocks
+                        val elseLabel = asmgen.makeLabel("else")
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bvs  +
+                            eor  #128
++                           bmi  $elseLabel""")
+                        asmgen.translate(stmt.ifScope)
+                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.out(elseLabel)
+                        asmgen.translate(stmt.elseScope)
+                    } else {
+                        // no else block
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bvs  +
+                            eor  #128
++                           bmi  $afterIfLabel""")
+                        asmgen.translate(stmt.ifScope)
+                    }
+                    asmgen.out(afterIfLabel)
+                }
+            } else {
+                if(jump!=null) {
+                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
+                    if(indirect) {
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bcc   +
+                            jmp  ($asmLabel)
++""")
+                    } else {
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bcc  $asmLabel""")
+                    }
+                } else {
+                    val afterIfLabel = asmgen.makeLabel("afterif")
+                    if(stmt.hasElse()) {
+                        // if and else blocks
+                        val elseLabel = asmgen.makeLabel("else")
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bcs  $elseLabel""")
+                        asmgen.translate(stmt.ifScope)
+                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.out(elseLabel)
+                        asmgen.translate(stmt.elseScope)
+                    } else {
+                        // no else block
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bcs  $afterIfLabel""")
+                        asmgen.translate(stmt.ifScope)
+                    }
+                    asmgen.out(afterIfLabel)
+                }
+            }
+        }
+
+        if(right is PtNumber) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+            val number = right.number.toHex()
+            return code("#<$number", "#>$number")
+        }
+
+        if(right is PtIdentifier) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+            val variable = asmgen.asmVariableName(right)
+            return code("#<$variable", "#>$variable")
+        }
+
+        // TODO optimize for simple array value
+
+        // generic case via scratch register
+        asmgen.assignWordOperandsToAYAndVar(left, right, "P8ZP_SCRATCH_W2")
+        code("P8ZP_SCRATCH_W2", "P8ZP_SCRATCH_W2+1")
     }
 
     private fun wordGreaterValue(left: PtExpression, right: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
-        println("word if >")        // TODO
-        fallbackTranslate(stmt)
+        fun code(valueLsb: String, valueMsb: String) {
+            if(signed) {
+                if(jump!=null) {
+                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
+                    if(indirect) {
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  $valueLsb
+                            lda  $valueMsb
+                            cpy  P8ZP_SCRATCH_W1
+                            sbc  P8ZP_SCRATCH_W1+1
+                            bvc  +
+                            eor  #128
++                           bmi  +
+                            jmp  ($asmLabel)
++""")
+                    } else {
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  $valueLsb
+                            lda  $valueMsb
+                            cpy  P8ZP_SCRATCH_W1       
+                            sbc  P8ZP_SCRATCH_W1+1
+                            bvc  +
+                            eor  #128
++                           bpl  $asmLabel""")
+                    }
+                } else {
+                    val afterIfLabel = asmgen.makeLabel("afterif")
+                    if(stmt.hasElse()) {
+                        // if and else blocks
+                        val elseLabel = asmgen.makeLabel("else")
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  $valueLsb
+                            lda  $valueMsb
+                            cpy  P8ZP_SCRATCH_W1
+                            sbc  P8ZP_SCRATCH_W1+1
+                            bvc  +
+                            eor  #128
++                           bmi  $elseLabel""")
+                        asmgen.translate(stmt.ifScope)
+                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.out(elseLabel)
+                        asmgen.translate(stmt.elseScope)
+                    } else {
+                        // no else block
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  $valueLsb
+                            lda  $valueMsb
+                            cpy  P8ZP_SCRATCH_W1
+                            sbc  P8ZP_SCRATCH_W1+1
+                            bvc  +
+                            eor  #128
++                           bmi  $afterIfLabel""")
+                        asmgen.translate(stmt.ifScope)
+                    }
+                    asmgen.out(afterIfLabel)
+                }
+            } else {
+                if(jump!=null) {
+                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
+                    if(indirect) {
+                        asmgen.out("""
+                            cpy  $valueMsb
+                            beq  +
+                            bcc  _gt
+                            bcs  _not
++                           cmp  $valueLsb
+                            bcc  _gt
+                            bne  _not
+_gt                         jmp  ($asmLabel)
+_not""")
+                    } else {
+                        asmgen.out("""
+                            sec
+                            sbc  $valueLsb
+                            sta  P8ZP_SCRATCH_REG
+                            tya
+                            sbc  $valueMsb
+                            ora  P8ZP_SCRATCH_REG
+                            beq  +
+                            bcs  $asmLabel
++""")
+                    }
+                } else {
+                    val afterIfLabel = asmgen.makeLabel("afterif")
+                    if(stmt.hasElse()) {
+                        // if and else blocks
+                        val elseLabel = asmgen.makeLabel("else")
+                        asmgen.out("""
+                            cpy  $valueMsb
+                            beq  +
+                            bcc  _gt
+                            bcs  $elseLabel
++                           cmp  $valueLsb
+                            bcc  _gt
+                            bne  $elseLabel
+_gt""")
+                        asmgen.translate(stmt.ifScope)
+                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.out(elseLabel)
+                        asmgen.translate(stmt.elseScope)
+                    } else {
+                        // no else block
+                        asmgen.out("""
+                            cpy  $valueMsb
+                            beq  +
+                            bcc  _gt
+                            bcs  $afterIfLabel
++                           cmp  $valueLsb
+                            bcc  _gt
+                            bne  $afterIfLabel
+_gt""")
+                        asmgen.translate(stmt.ifScope)
+                    }
+                    asmgen.out(afterIfLabel)
+                }
+            }
+        }
+
+        if(right is PtNumber) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+            val number = right.number.toHex()
+            return code("#<$number", "#>$number")
+        }
+
+        if(right is PtIdentifier) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+            val variable = asmgen.asmVariableName(right)
+            return code("#<$variable", "#>$variable")
+        }
+
+        // TODO optimize for simple array value
+
+        // generic case via scratch register
+        asmgen.assignWordOperandsToAYAndVar(left, right, "P8ZP_SCRATCH_W2")
+        code("P8ZP_SCRATCH_W2", "P8ZP_SCRATCH_W2+1")
     }
 
     private fun wordLessEqualsValue(left: PtExpression, right: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
-        println("word if <=")   // TODO
-        fallbackTranslate(stmt)
+        fun code(valueLsb: String, valueMsb: String) {
+            if(signed) {
+                if(jump!=null) {
+                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
+                    if(indirect) {
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  $valueLsb
+                            lda  $valueMsb
+                            cpy  P8ZP_SCRATCH_W1
+                            sbc  P8ZP_SCRATCH_W1+1
+                            bvc  +
+                            eor  #128
++                           bmi  +
+                            jmp  ($asmLabel)
++""")
+                    } else {
+                        asmgen.out("""
+                            sta    P8ZP_SCRATCH_W1
+                            sty    P8ZP_SCRATCH_W1+1
+                            ldy    $valueLsb
+                            lda    $valueMsb
+                            cpy    P8ZP_SCRATCH_W1
+                            sbc    P8ZP_SCRATCH_W1+1
+                            bvc    +
+                            eor    #128
++                           bpl    $asmLabel""")
+                    }
+                } else {
+                    val afterIfLabel = asmgen.makeLabel("afterif")
+                    if(stmt.hasElse()) {
+                        // if and else blocks
+                        val elseLabel = asmgen.makeLabel("else")
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  $valueLsb
+                            lda  $valueMsb
+                            cpy  P8ZP_SCRATCH_W1
+                            sbc  P8ZP_SCRATCH_W1+1
+                            bvc  +
+                            eor  #128
++                           bmi  $elseLabel""")
+                        asmgen.translate(stmt.ifScope)
+                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.out(elseLabel)
+                        asmgen.translate(stmt.elseScope)
+                    } else {
+                        // no else block
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            ldy  $valueLsb
+                            lda  $valueMsb
+                            cpy  P8ZP_SCRATCH_W1
+                            sbc  P8ZP_SCRATCH_W1+1
+                            bvc  +
+                            eor  #128
++                           bmi  $afterIfLabel""")
+                        asmgen.translate(stmt.ifScope)
+                    }
+                    asmgen.out(afterIfLabel)
+                }
+            } else {
+                if(jump!=null) {
+                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
+                    if(indirect) {
+                        asmgen.out("""
+                            sec
+                            sbc  $valueLsb
+                            sta  P8ZP_SCRATCH_REG
+                            tya
+                            sbc  $valueMsb
+                            ora  P8ZP_SCRATCH_REG
+                            beq  +
+                            bcc  +
+                            jmp  $(asmLabel)
++""")
+                    } else {
+                        asmgen.out("""
+                            sec
+                            sbc  $valueLsb
+                            sta  P8ZP_SCRATCH_REG
+                            tya
+                            sbc  $valueMsb
+                            ora  P8ZP_SCRATCH_REG
+                            beq  +
+                            bcs  $asmLabel
++""")
+                    }
+                } else {
+                    val afterIfLabel = asmgen.makeLabel("afterif")
+                    if(stmt.hasElse()) {
+                        // if and else blocks
+                        val elseLabel = asmgen.makeLabel("else")
+                        asmgen.out("""
+                            sec
+                            sbc  $valueLsb
+                            sta  P8ZP_SCRATCH_REG
+                            tya
+                            sbc  $valueMsb
+                            ora  P8ZP_SCRATCH_REG
+                            beq  +
+                            bcc  $elseLabel
++""")
+                        asmgen.translate(stmt.ifScope)
+                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.out(elseLabel)
+                        asmgen.translate(stmt.elseScope)
+                    } else {
+                        // no else block
+                        asmgen.out("""
+                            sec
+                            sbc  $valueLsb
+                            sta  P8ZP_SCRATCH_REG
+                            tya
+                            sbc  $valueMsb
+                            ora  P8ZP_SCRATCH_REG
+                            beq  +
+                            bcc  $afterIfLabel
++""")
+                        asmgen.translate(stmt.ifScope)
+                    }
+                    asmgen.out(afterIfLabel)
+                }
+            }
+        }
+
+        if(right is PtNumber) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+            val number = right.number.toHex()
+            return code("#<$number", "#>$number")
+        }
+
+        if(right is PtIdentifier) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+            val variable = asmgen.asmVariableName(right)
+            return code("#<$variable", "#>$variable")
+        }
+
+        // TODO optimize for simple array value
+
+        // generic case via scratch register
+        asmgen.assignWordOperandsToAYAndVar(left, right, "P8ZP_SCRATCH_W2")
+        code("P8ZP_SCRATCH_W2", "P8ZP_SCRATCH_W2+1")
     }
 
     private fun wordGreaterEqualsValue(left: PtExpression, right: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
-        println("word if >=")   // TODO
-        fallbackTranslate(stmt)
+
+        fun code(valueLsb: String, valueMsb: String) {
+            if(signed) {
+                if(jump!=null) {
+                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
+                    if(indirect) {
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bvc  +
+                            eor  #128
++                           bpl  +
+                            jmp  ($asmLabel)
++""")
+                    } else {
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bvs  +
+                            eor  #128
++                           bmi  $asmLabel""")
+                    }
+                } else {
+                    val afterIfLabel = asmgen.makeLabel("afterif")
+                    if(stmt.hasElse()) {
+                        // if and else blocks
+                        val elseLabel = asmgen.makeLabel("else")
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bvc  +
+                            eor  #128
++                           bmi  $elseLabel""")
+                        asmgen.translate(stmt.ifScope)
+                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.out(elseLabel)
+                        asmgen.translate(stmt.elseScope)
+                    } else {
+                        // no else block
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bvc  +
+                            eor  #128
++                           bmi  $afterIfLabel""")
+                        asmgen.translate(stmt.ifScope)
+                    }
+                    asmgen.out(afterIfLabel)
+                }
+            } else {
+                if(jump!=null) {
+                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
+                    if(indirect) {
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bcs  +
+                            jmp  ($asmLabel)
++""")
+                    } else {
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bcs  $asmLabel""")
+                    }
+                } else {
+                    val afterIfLabel = asmgen.makeLabel("afterif")
+                    if(stmt.hasElse()) {
+                        // if and else blocks
+                        val elseLabel = asmgen.makeLabel("else")
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bcc  $elseLabel""")
+                        asmgen.translate(stmt.ifScope)
+                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.out(elseLabel)
+                        asmgen.translate(stmt.elseScope)
+                    } else {
+                        // no else block
+                        asmgen.out("""
+                            cmp  $valueLsb
+                            tya
+                            sbc  $valueMsb
+                            bcc  $afterIfLabel""")
+                        asmgen.translate(stmt.ifScope)
+                    }
+                    asmgen.out(afterIfLabel)
+                }
+            }
+        }
+
+        if(right is PtNumber) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+            val number = right.number.toHex()
+            return code("#<$number", "#>$number")
+        }
+
+        if(right is PtIdentifier) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+            val variable = asmgen.asmVariableName(right)
+            return code("#<$variable", "#>$variable")
+        }
+
+        // TODO optimize for simple array value
+
+        // generic case via scratch register
+        asmgen.assignWordOperandsToAYAndVar(left, right, "P8ZP_SCRATCH_W2")
+        code("P8ZP_SCRATCH_W2", "P8ZP_SCRATCH_W2+1")
     }
+
 
     private fun loadAndCmp0MSB(value: PtExpression) {
         when(value) {
