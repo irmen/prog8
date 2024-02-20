@@ -126,7 +126,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 else
                     str
             }
-            is PtNodeGroup -> "<group>"
+            is PtNodeGroup -> if(node.children.isNotEmpty()) "<group>" else ""
             is PtNop -> "nop"
             is PtProgram -> "PROGRAM ${node.name}"
             is PtRepeatLoop -> "repeat"
