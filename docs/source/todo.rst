@@ -1,7 +1,6 @@
 TODO
 ====
 
-examples/maze is larger than on 10.1
 rockrunner is a lot bigger still than on 10.1
 paint is bigger than on 10.1
 

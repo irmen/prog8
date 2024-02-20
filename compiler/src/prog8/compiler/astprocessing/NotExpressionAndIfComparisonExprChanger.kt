@@ -6,6 +6,7 @@ import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
+import prog8.ast.expressions.invertCondition
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
@@ -73,6 +74,22 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                         }
                     }
                 }
+            }
+
+            // mixed cases
+            if(leftC!=null && rightP!=null && leftC.operator=="==" && rightP.operator=="not") {
+                // mixed case 1:   x==V or not y  ->  not(x!=V and y)
+                val invertedLeftExpression = invertCondition(leftC, program)
+                val inner = BinaryExpression(invertedLeftExpression, newOper, rightP.expression, expr.position)
+                val notExpr = PrefixExpression("not", inner, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
+            }
+            else if(rightC!=null && leftP!=null && rightC.operator=="==" && leftP.operator=="not") {
+                // mixed case 1:   not x or y==V  ->  not(x and y!=V)
+                val invertedRightExpression = invertCondition(rightC, program)
+                val inner = BinaryExpression(leftP.expression, newOper, invertedRightExpression, expr.position)
+                val notExpr = PrefixExpression("not", inner, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
             }
         }
 

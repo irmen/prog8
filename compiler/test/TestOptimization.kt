@@ -782,17 +782,29 @@ main {
             cx16.r0++
         if not a1 and not a2
             cx16.r0++
+            
+        if cx16.r0L==42 or not a2
+            cx16.r0L++
+        if not a2 or cx16.r0L==42
+            cx16.r0L++
+            
     }
 }"""
         val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 6
+        st.size shouldBe 8
         val if1c = (st[4] as IfElse).condition as PrefixExpression
         val if2c = (st[5] as IfElse).condition as PrefixExpression
+        val if3c = (st[6] as IfElse).condition as PrefixExpression
+        val if4c = (st[7] as IfElse).condition as PrefixExpression
         if1c.operator shouldBe "not"
         if2c.operator shouldBe "not"
+        if3c.operator shouldBe "not"
+        if4c.operator shouldBe "not"
         (if1c.expression as BinaryExpression).operator shouldBe "and"
         (if2c.expression as BinaryExpression).operator shouldBe "or"
+        (if3c.expression as BinaryExpression).operator shouldBe "and"
+        (if4c.expression as BinaryExpression).operator shouldBe "and"
     }
 
     test("absorption laws") {

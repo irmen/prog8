@@ -9,17 +9,11 @@ main {
     word[4] words
 
     byte @shared sbb
-    float @shared fl=3.3
-    float @shared fl2=4.3
 
     sub start() {
 
-;        cx16.r0L = fl==fl2 as ubyte
-;        cx16.r1L = fl!=fl2 as ubyte
-        cx16.r0L = cx16.r0 == cx16.r1   as ubyte
-        cx16.r1L = cx16.r0 != cx16.r1   as ubyte
-        cx16.r0L = cx16.r0L == cx16.r1L as ubyte
-        cx16.r1L = cx16.r0L != cx16.r1L as ubyte
+        if cx16.r0 > cx16.r1
+            cx16.r0L++
 
         ; TODO all this for uwords
 
