@@ -1,8 +1,6 @@
 TODO
 ====
 
-(after merge in boolean): move all "OperatorXinplace" from expressionGen to AssignmentGen, see if we can get rid of the Result return type.
-
 replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
 
 ...
