@@ -1,8 +1,6 @@
 TODO
 ====
 
-efficient code for assignment float comparisons against a value (it now copies the floats around too many times) 10.1 created efficient code.
-
 examples/maze is larger than on 10.1
 rockrunner is a lot bigger still than on 10.1
 paint is bigger than on 10.1
@@ -50,7 +48,7 @@ ok    ok     efficient code for assignment word comparisons against 0 (== and !=
 ok    ok     efficient code for assignment float comparisons against 0 (== and !=)
 ok    ok     efficient code for assignment byte comparisons against a value
 ok    ok     efficient code for assignment word comparisons against a value
-ok    FAIL   efficient code for assignment float comparisons against a value
+ok    ok     efficient code for assignment float comparisons against a value
 ok    ok     efficient code for if_cc conditional expressions
 ok    ok     while boolean  should produce identical code as  while integer!=0  and code should be efficient
 ok    ok     while not boolvar  -> can we get rid of the cmp? (6502 only?)

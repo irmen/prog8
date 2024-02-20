@@ -1035,12 +1035,12 @@ internal class AstChecker(private val program: Program,
         } else {
             if(expr.left is TypecastExpression && expr.right is NumericLiteral && !expr.right.inferType(program).istype(DataType.FLOAT)) {
                 val origLeftDt = (expr.left as TypecastExpression).expression.inferType(program).getOr(DataType.UNDEFINED)
-                if(rightDt.largerThan(origLeftDt) && !(expr.right as NumericLiteral).cast(origLeftDt).isValid)
+                if(rightDt.largerThan(origLeftDt) && !(expr.right as NumericLiteral).cast(origLeftDt, true).isValid)
                     errors.err("operands are not the same type", expr.right.position)
             }
             if(expr.right is TypecastExpression && expr.left is NumericLiteral && !expr.left.inferType(program).istype(DataType.FLOAT)) {
                 val origRightDt = (expr.right as TypecastExpression).expression.inferType(program).getOr(DataType.UNDEFINED)
-                if(leftDt.largerThan(origRightDt) && !(expr.left as NumericLiteral).cast(origRightDt).isValid)
+                if(leftDt.largerThan(origRightDt) && !(expr.left as NumericLiteral).cast(origRightDt, true).isValid)
                     errors.err("operands are not the same type", expr.right.position)
             }
         }

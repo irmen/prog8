@@ -1562,7 +1562,21 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 
             when (valueDt) {
-                in ByteDatatypesWithBoolean -> {
+                DataType.BOOL -> {
+                    if(targetDt in ByteDatatypes) {
+                        // optimization to assign boolean expression to byte target (just assign the 0 or 1 directly, no cast needed)
+                        val assignDirect = AsmAssignment(
+                            AsmAssignSource.fromAstSource(value, program, asmgen),
+                            target,
+                            program.memsizer,
+                            target.position
+                        )
+                        assignExpression(assignDirect, target.scope)
+                    } else {
+                        throw AssemblyError("expected bool or byte target type")
+                    }
+                }
+                in ByteDatatypes -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, valueDt==DataType.BYTE)
                     assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.A, valueDt)
                 }

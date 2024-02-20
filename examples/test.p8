@@ -14,11 +14,12 @@ main {
 
     sub start() {
 
-        while not staticbool2
-            cx16.r0L++
-
-        while cx16.r0L==0
-            cx16.r0L++
+;        cx16.r0L = fl==fl2 as ubyte
+;        cx16.r1L = fl!=fl2 as ubyte
+        cx16.r0L = cx16.r0 == cx16.r1   as ubyte
+        cx16.r1L = cx16.r0 != cx16.r1   as ubyte
+        cx16.r0L = cx16.r0L == cx16.r1L as ubyte
+        cx16.r1L = cx16.r0L != cx16.r1L as ubyte
 
         ; TODO all this for uwords
 
