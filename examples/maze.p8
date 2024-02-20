@@ -267,7 +267,7 @@ solve_loop:
             else {
                 ; dead end, pop stack
                 pathstackptr--
-                if stackptr==65535 {
+                if pathstackptr==65535 {
                     txt.print("no solution?!")
                     return
                 }
