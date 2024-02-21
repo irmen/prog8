@@ -14,15 +14,19 @@ const ubyte DEFAULT_HEIGHT = 24
 
 
 sub  clear_screen() {
-    txt.chrout(125)
+    chrout(125)
 }
 
 sub nl() {
-    txt.chrout('\n')
+    chrout('\n')
 }
 
 sub spc() {
-    txt.chrout(' ')
+    chrout(' ')
+}
+
+sub bell() {
+    chrout($fd)
 }
 
 sub column(ubyte col) {

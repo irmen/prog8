@@ -15,19 +15,23 @@ const ubyte DEFAULT_HEIGHT = 25
 
 
 sub  clear_screen() {
-    txt.chrout(147)
+    chrout(147)
 }
 
 sub home() {
-    txt.chrout(19)
+    chrout(19)
 }
 
 sub nl() {
-    txt.chrout('\n')
+    chrout('\n')
 }
 
 sub spc() {
-    txt.chrout(' ')
+    chrout(' ')
+}
+
+sub bell() {
+    chrout(7)
 }
 
 asmsub column(ubyte col @A) clobbers(A, X, Y) {

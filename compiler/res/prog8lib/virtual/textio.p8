@@ -22,11 +22,11 @@ sub  clear_screen() {
 }
 
 sub nl() {
-    txt.chrout('\n')
+    chrout('\n')
 }
 
 sub spc() {
-    txt.chrout(' ')
+    chrout(' ')
 }
 
 sub lowercase() {
@@ -42,6 +42,10 @@ sub chrout(ubyte char) {
         loadm.b r65535,txt.chrout.char
         syscall 2 (r65535.b)
     }}
+}
+
+sub bell() {
+    chrout(7)
 }
 
 sub  print (str text) {

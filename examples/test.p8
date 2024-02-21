@@ -11,9 +11,11 @@ main {
         if pointer>value {
             cx16.r0L++
         }
-        if pointer>50000 {
-            cx16.r0L++
-        }
+;        if pointer>50000 {
+;            cx16.r0L++
+;        }
+
+        txt.bell()
     }
 }
 
