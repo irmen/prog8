@@ -36,7 +36,7 @@ Many of these definitions overlap for the C64 and Commander X16 targets so it is
 to write programs that work on both targets without modifications.
 
 This module is usually imported automatically and can provide definitions in the ``sys``, ``cbm``, ``c64``, ``cx16``, ``c128``, ``atari`` blocks
-depending on the chosen compilation target. Read the `syslib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib>`_ for the correct compilation target to see exactly what is there.
+depending on the chosen compilation target. Read the `sys lib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib>`_ for the correct compilation target to see exactly what is there.
 
 
 sys (part of syslib)
@@ -163,7 +163,7 @@ Routines to convert strings to numbers or vice versa.
 - numbers to strings, in various formats (binary, hex, decimal)
 - strings in decimal, hex and binary format into numbers (bytes, words)
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/conv.p8>`_
+Read the `conv source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/conv.p8>`_
 to see what's in there.
 
 
@@ -182,7 +182,7 @@ dealing with text-based input and output (to the screen). Such as
 All routines work with Screencode character encoding, except `print`, `chrout` and `input_chars`,
 these work with PETSCII encoding instead.
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/textio.p8>`_
+Read the `textio source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/textio.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)
 
 
@@ -206,7 +206,7 @@ to 16 bits, 64Kb)
 Als contains routines for operating on subdirectories (chdir, mkdir, rmdir), to relabel the disk,
 and to seek in open files.
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/diskio.p8>`_
+Read the `diskio source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/diskio.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)
 
 .. note::
@@ -434,7 +434,7 @@ This library is available both on the C64 and the cx16.
 It uses the ROM based graphics routines on the latter, and it is a very small library because of that.
 On the cx16 there's also the ``gfx2`` library if you want full-screen graphics or non-monochrome drawing. See below for that one.
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/c64/graphics.p8>`_
+Read the `graphics source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/c64/graphics.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)
 
 
@@ -559,7 +559,7 @@ cx16
 This is available on *all targets*, it is always imported as part of syslib.
 On the Commander X16 this module contains a *whole bunch* of things specific to that machine.
 It's way too much to include here, you have to study the
-`source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/syslib.p8>`_
+`syslib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/syslib.p8>`_
 to see what is there.
 
 On the other targets, it only contains the definition of the 16 memory mapped virtual registers
@@ -585,7 +585,7 @@ The routines are designed to be fast and bulk load/save the data directly into o
 without the need to buffer something in main memory.
 
 For details about what routines are available, have a look at
-the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/bmx.p8>`_ .
+the `bmx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/bmx.p8>`_ .
 There's also the "showbmx" example to look at.
 
 
@@ -596,7 +596,7 @@ Allows you to interface with the emulator's debug routines/registers.
 There's stuff like ``is_emulator`` to detect if running in the emulator,
 and ``console_write`` to write a (iso) string to the emulator's console (stdout) etc.
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/emudbg.p8>`_
+Read the `emudbg source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/emudbg.p8>`_
 to see what's in there.
 Information about the exposed debug registers is in the `emulator's documentation <https://github.com/X16Community/x16-emulator#debug-io-registers>`_.
 
@@ -614,7 +614,7 @@ Same interface as gfx2, but is optimized for monochrome (1 bpp) screens.
 - drawing text inside the bitmap
 - can draw using a stipple pattern (alternate black/white pixels)
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/monogfx.p8>`_
+Read the `monogfx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/monogfx.p8>`_
 to see what's in there.
 
 
@@ -630,7 +630,7 @@ Same interface as monogfx, but for color screens. For 1 bpp monochrome screens, 
 - flood fill
 - drawing text inside the bitmap
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx2.p8>`_
+Read the `gfx2 source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx2.p8>`_
 to see what's in there.
 
 
@@ -641,7 +641,7 @@ There are also a few better looking Commodore 64 color palettes available here,
 because the Commander X16's default colors for this (the first 16 colors) are too saturated
 and are quite different than how they looked on a VIC-II chip in a C64.
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/palette.p8>`_
+Read the `palette source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/palette.p8>`_
 to see what's in there.
 
 
@@ -652,7 +652,7 @@ Contains a simple abstraction for the Vera's PSG (programmable sound generator) 
 It includes an interrupt routine to handle simple Attack/Release envelopes as well.
 See the examples/cx16/bdmusic.p8  program for ideas how to use it.
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/psg.p8>`_
+Read the `psg source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/psg.p8>`_
 to see what's in there.
 
 
@@ -664,7 +664,7 @@ That's why they control one sprite at a time. The exception is the ``pos_batch``
 which is quite efficient to update sprite positions of multiple sprites in one go.
 See the examples/cx16/sprites/dragon.p8 and dragons.p8 programs for ideas how to use it.
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/sprites.p8>`_
+Read the `sprites source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/sprites.p8>`_
 to see what's in there.
 
 
@@ -699,5 +699,5 @@ the emulators already support it).
 ``transparency``
     Enable or disable transparent writes (color 0 will be transparent if enabled).
 
-Read the `source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/verafx.p8>`_
+Read the `verafx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/verafx.p8>`_
 to see what's in there.
