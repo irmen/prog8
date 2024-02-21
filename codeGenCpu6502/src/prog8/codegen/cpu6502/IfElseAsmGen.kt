@@ -1412,6 +1412,7 @@ _gt""")
                 else -> {
                     asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
                     lessf(asmgen.asmVariableName(left), subroutineFloatEvalResultVar1)
+                    asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
             }
         } else {
@@ -1421,6 +1422,7 @@ _gt""")
                 else -> {
                     asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
                     lessf(left, subroutineFloatEvalResultVar1)
+                    asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
             }
         }

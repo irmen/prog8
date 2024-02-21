@@ -73,6 +73,13 @@ sub  print_b  (byte value)   {
     print(conv.string_out)
 }
 
+sub print_bool(bool value) {
+    if value
+        print("true")
+    else
+        print("false")
+}
+
 sub  print_ubhex  (ubyte value, ubyte prefix)  {
     ; ---- print the ubyte in hex form
     if prefix!=0

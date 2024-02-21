@@ -172,7 +172,7 @@ textio (txt.*)
 This will probably be the most used library module. It contains a whole lot of routines
 dealing with text-based input and output (to the screen). Such as
 
-- printing strings and numbers
+- printing strings, numbers and booleans
 - reading text input from the user via the keyboard
 - filling or clearing the screen and colors
 - scrolling the text on the screen

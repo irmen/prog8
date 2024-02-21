@@ -1,5 +1,5 @@
 %import textio
-%import floats
+; %import floats
 %zeropage basicsafe
 %option no_sysinit
 
@@ -12,8 +12,13 @@ main {
 
     sub start() {
 
+        if cx16.r0L==0 or not staticbool2
+            cx16.r0L++
+
         if cx16.r0 > cx16.r1
             cx16.r0L++
+
+        txt.print_bool(true)
 
         ; TODO all this for uwords
 
@@ -135,6 +140,8 @@ main {
 ;        bb = bb xor barr[1]
 ;        bb = not bb
     }
+
+/*
 
     sub while_bool_efficient() {
         while staticbool1 {
@@ -608,5 +615,5 @@ main {
 
     sub voidfuncub(ubyte arg) {
         cx16.r0L++
-    }
+    }*/
 }

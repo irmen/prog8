@@ -351,59 +351,59 @@ main {
         txt.print_w(ww)
         txt.nl()
         
-        ub = any(ubarr)
+        ub = any(ubarr) as ubyte
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+any(ubarr)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = any(barr)
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+any(barr)*1+zero
+        ub = zero+(any(ubarr) as ubyte)*1+zero
         txt.print_ub(ub)
         txt.nl()
 
-        ub = any(uwarr)
+        ub = any(barr) as ubyte
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+any(uwarr)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = any(warr)
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+any(warr)*1+zero
+        ub = zero+(any(barr) as ubyte)*1+zero
         txt.print_ub(ub)
         txt.nl()
 
-        ub = all(ubarr)
+        ub = any(uwarr) as ubyte
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+all(ubarr)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = all(barr)
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+all(barr)*1+zero
+        ub = zero+(any(uwarr) as ubyte)*1+zero
         txt.print_ub(ub)
         txt.nl()
 
-        ub = all(uwarr)
+        ub = any(warr) as ubyte
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+all(uwarr)*1+zero
+        ub = zero+(any(warr) as ubyte)*1+zero
         txt.print_ub(ub)
         txt.nl()
 
-        ub = all(warr)
+        ub = all(ubarr) as ubyte
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+all(warr)*1+zero
+        ub = zero+(all(ubarr) as ubyte)*1+zero
+        txt.print_ub(ub)
+        txt.nl()
+
+        ub = all(barr) as ubyte
+        txt.print_ub(ub)
+        txt.nl()
+        ub = zero+(all(barr) as ubyte)*1+zero
+        txt.print_ub(ub)
+        txt.nl()
+
+        ub = all(uwarr) as ubyte
+        txt.print_ub(ub)
+        txt.nl()
+        ub = zero+(all(uwarr) as ubyte)*1+zero
+        txt.print_ub(ub)
+        txt.nl()
+
+        ub = all(warr) as ubyte
+        txt.print_ub(ub)
+        txt.nl()
+        ub = zero+(all(warr) as ubyte)*1+zero
         txt.print_ub(ub)
         txt.nl()
 
@@ -436,16 +436,16 @@ main {
         txt.print_b(bb)
         txt.nl()
 
-        ub = any(flarr)
+        ub = any(flarr) as ubyte
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+any(flarr)*1+zero
+        ub = zero+(any(flarr) as ubyte)*1+zero
         txt.print_ub(ub)
         txt.nl()
-        ub = all(flarr)
+        ub = all(flarr) as ubyte
         txt.print_ub(ub)
         txt.nl()
-        ub = zero+all(flarr)*1+zero
+        ub = zero+(all(flarr) as ubyte)*1+zero
         txt.print_ub(ub)
         txt.nl()
 

@@ -410,9 +410,9 @@ def gen_comp_greaterequal(dt):
 def generate_test_routine_equalsnotequals(dt):
     print(f"""
     sub test_comparisons() {{
-        {dt}  left
-        {dt}  right
-        {dt}  zero = 0
+        {dt}  @shared left
+        {dt}  @shared right
+        {dt}  @shared zero = 0
 """)
     gen_comp_equal(dt)
     gen_comp_notequal(dt)
@@ -422,9 +422,9 @@ def generate_test_routine_equalsnotequals(dt):
 def generate_test_routine_lessgreater(dt):
     print(f"""
     sub test_comparisons() {{
-        {dt}  left
-        {dt}  right
-        {dt}  zero = 0
+        {dt}  @shared left
+        {dt}  @shared right
+        {dt}  @shared zero = 0
 """)
     gen_comp_less(dt)
     gen_comp_greater(dt)
@@ -434,9 +434,9 @@ def generate_test_routine_lessgreater(dt):
 def generate_test_routine_lessequalsgreaterequals(dt):
     print(f"""
     sub test_comparisons() {{
-        {dt}  left
-        {dt}  right
-        {dt}  zero = 0
+        {dt} @shared left
+        {dt} @shared right
+        {dt} @shared zero = 0
 """)
     gen_comp_lessequal(dt)
     gen_comp_greaterequal(dt)
@@ -456,7 +456,7 @@ main {{
     uword num_errors = 0
     uword num_successes = 0
     str datatype = "{dt}"
-    uword comparison
+    uword @shared comparison
 
     sub start() {{
         test_comparisons()

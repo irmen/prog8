@@ -36,4 +36,11 @@ _offsets    .byte  128, 0, 64, 32, 64, 192, 128, 128
 }
 
 
+    sub print_bool(bool value) {
+        if value
+            txt.print("true")
+        else
+            txt.print("false")
+    }
+
 }
