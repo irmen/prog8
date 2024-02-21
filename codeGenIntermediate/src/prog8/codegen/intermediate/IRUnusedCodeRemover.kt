@@ -168,7 +168,7 @@ class IRUnusedCodeRemover(
                 it.instructions.forEach { instr ->
                     if (instr.branchTarget == null)
                         instr.labelSymbol?.let { label ->
-                            val chunk = allLabeledChunks[label.substringBeforeLast('.')]
+                            val chunk = allLabeledChunks[label] ?: allLabeledChunks[label.substringBeforeLast('.')]
                             if(chunk!=null)
                                 new+=chunk
                             else

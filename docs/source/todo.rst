@@ -1,6 +1,8 @@
 TODO
 ====
 
+make it possible to do indirect jumps in VM?  (associate values with labels and if it jumps to a "address value" it looks up the label with that value again?)
+
 replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
 
 ...
@@ -28,6 +30,7 @@ Compiler:
     - (need separate step in codegen and IR to write the "golden" variables)
 
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
+- VM: implement diskio support (let's start with the basics load, save, delete, rename, status?. no streaming, no directory listing)
 - ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
 - ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
