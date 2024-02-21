@@ -18,14 +18,14 @@ Then you can choose a few ways to get a compiler:
 
 **Or, install via a Package Manager:**
 
-Currently, it's only available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch and compatible systems. 
-The package's called ```prog8`` <https://aur.archlinux.org/packages/prog8>`_.
+Currently, it's only available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch Linux and compatible systems.
+The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_.
 
 This package, alongside the compiler itself, also globally installs syntax highlighting for ``vim`` and ``nano``.
-In order to run compiler, you can type either ``p8compile`` or ``prog8c``. The usage of those commands is exatcly the same as with ``java -jar`` method.
+In order to run compiler, you can type either ``p8compile`` or ``prog8c``. The usage of those commands is exatcly the same as with the ``java -jar`` method.
 
-In case you prefer to install AUR packages in a traditional manner, make sure to install ```tass64`` package <https://aur.archlinux.org/packages/tass64>`_ 
-before installing prog8, as ```makepkg`` <https://wiki.archlinux.org/title/Makepkg>`_ itself doesn't fetch AUR dependencies.
+In case you prefer to install AUR packages in a traditional manner, make sure to install `"tass64" package <https://aur.archlinux.org/packages/tass64>`_
+before installing prog8, as `makepkg <https://wiki.archlinux.org/title/Makepkg>`_ itself doesn't fetch AUR dependencies.
 
 **Or, download a bleeding edge development version from Github:**
 
