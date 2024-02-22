@@ -17,6 +17,9 @@ internal class IfElseAsmGen(private val program: PtProgram,
         if(stmt.condition is PtIdentifier ||
             stmt.condition is PtFunctionCall ||
             stmt.condition is PtBuiltinFunctionCall ||
+            stmt.condition is PtArrayIndexer ||
+            stmt.condition is PtTypeCast ||
+            stmt.condition is PtMemoryByte ||
             stmt.condition is PtContainmentCheck)
                 return fallbackTranslate(stmt, false)  // the fallback code for these is optimal, so no warning.
 
@@ -39,9 +42,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 translateIfElseBodies("bne", stmt)
         }
 
-        // TODO more optimized ifs
-        println("(if with special condition... ${stmt.condition})")
-        fallbackTranslate(stmt)
+        fallbackTranslate(stmt, true)
     }
 
     private fun assignConditionValueToRegisterAndTest(condition: PtExpression) {
@@ -54,12 +55,16 @@ internal class IfElseAsmGen(private val program: PtProgram,
             is PtArrayIndexer,
             is PtPrefix,
             is PtBinaryExpression -> { /* no cmp necessary the lda has been done just prior */ }
+            is PtTypeCast -> {
+                if(condition.value.type !in ByteDatatypes)
+                    asmgen.out("  cmp  #0")
+            }
             else -> asmgen.out("  cmp  #0")
         }
     }
 
-    private fun fallbackTranslate(stmt: PtIfElse, warning: Boolean=true) {
-        if(warning) println("WARN: FALLBACK IF: ${stmt.position}")      // TODO no more of these
+    private fun fallbackTranslate(stmt: PtIfElse, warning: Boolean) {
+        if(warning) println("WARN: FALLBACK IF: ${stmt.position}")      // TODO should have no more of these
         val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
         assignConditionValueToRegisterAndTest(stmt.condition)
         if(jumpAfterIf!=null)
@@ -390,6 +395,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
     }
 
     private fun wordLessZero(value: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
+        // special case for word<0
         if(signed) {
             loadAndCmp0MSB(value)
             if (jump != null)
@@ -404,6 +410,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
     private fun wordLessValue(left: PtExpression, right: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
         fun code(valueLsb: String, valueMsb: String) {
             if(signed) {
+                // word < X
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
@@ -411,7 +418,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             cmp  $valueLsb
                             tya
                             sbc  $valueMsb
-                            bvs  +
+                            bvc  +
                             eor  #128
 +                           bpl  +
                             jmp  ($asmLabel)
@@ -455,22 +462,26 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     asmgen.out(afterIfLabel)
                 }
             } else {
+                // uword < X
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
                         asmgen.out("""
+                            cpy  $valueMsb
+                            bcc  _jump
++                           bne  +
                             cmp  $valueLsb
-                            tya
-                            sbc  $valueMsb
-                            bcc   +
-                            jmp  ($asmLabel)
+                            bcs  +
+_jump                       jmp  ($asmLabel)
 +""")
                     } else {
                         asmgen.out("""
+                            cpy  $valueMsb
+                            bcc  $asmLabel
+                            bne  +
                             cmp  $valueLsb
-                            tya
-                            sbc  $valueMsb
-                            bcc  $asmLabel""")
+                            bcc  $asmLabel
++""")
                     }
                 } else {
                     val afterIfLabel = asmgen.makeLabel("afterif")
@@ -522,6 +533,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
     private fun wordGreaterValue(left: PtExpression, right: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
         fun code(valueLsb: String, valueMsb: String) {
             if(signed) {
+                // word > X
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
@@ -534,7 +546,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             sbc  P8ZP_SCRATCH_W1+1
                             bvc  +
                             eor  #128
-+                           bmi  +
++                           bpl  +
                             jmp  ($asmLabel)
 +""")
                     } else {
@@ -547,7 +559,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             sbc  P8ZP_SCRATCH_W1+1
                             bvc  +
                             eor  #128
-+                           bpl  $asmLabel""")
++                           bmi  $asmLabel""")
                     }
                 } else {
                     val afterIfLabel = asmgen.makeLabel("afterif")
@@ -563,7 +575,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             sbc  P8ZP_SCRATCH_W1+1
                             bvc  +
                             eor  #128
-+                           bmi  $elseLabel""")
++                           bpl  $elseLabel""")
                         asmgen.translate(stmt.ifScope)
                         asmgen.jmp(afterIfLabel, false)
                         asmgen.out(elseLabel)
@@ -579,51 +591,50 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             sbc  P8ZP_SCRATCH_W1+1
                             bvc  +
                             eor  #128
-+                           bmi  $afterIfLabel""")
++                           bpl  $afterIfLabel""")
                         asmgen.translate(stmt.ifScope)
                     }
                     asmgen.out(afterIfLabel)
                 }
             } else {
+                // uword > X
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
                         asmgen.out("""
                             cpy  $valueMsb
                             beq  +
-                            bcc  _gt
-                            bcs  _not
-+                           cmp  $valueLsb
-                            bcc  _gt
-                            bne  _not
-_gt                         jmp  ($asmLabel)
-_not""")
+                            bcc  ++
+                            jmp  ($asmLabel)
++                           cmp  $valueLsb  
+                            bcc  +
+                            beq  +
+                            jmp  ($asmLabel)
++""")
                     } else {
                         asmgen.out("""
-                            sec
-                            sbc  $valueLsb
-                            sta  P8ZP_SCRATCH_REG
-                            tya
-                            sbc  $valueMsb
-                            ora  P8ZP_SCRATCH_REG
+                            cpy  $valueMsb
                             beq  +
+                            bcc  ++
                             bcs  $asmLabel
++                           cmp  $valueLsb  
+                            bcc  +
+                            beq  +
+                            bne  $asmLabel
 +""")
                     }
                 } else {
                     val afterIfLabel = asmgen.makeLabel("afterif")
                     if(stmt.hasElse()) {
-                        // if and else blocks
                         val elseLabel = asmgen.makeLabel("else")
                         asmgen.out("""
                             cpy  $valueMsb
-                            beq  +
-                            bcc  _gt
-                            bcs  $elseLabel
-+                           cmp  $valueLsb
-                            bcc  _gt
-                            bne  $elseLabel
-_gt""")
+                            bcc  $elseLabel
+                            bne  +
+                            cmp  $valueLsb
+                            bcc  $elseLabel
+                            beq  $elseLabel
++""")
                         asmgen.translate(stmt.ifScope)
                         asmgen.jmp(afterIfLabel, false)
                         asmgen.out(elseLabel)
@@ -632,13 +643,12 @@ _gt""")
                         // no else block
                         asmgen.out("""
                             cpy  $valueMsb
-                            beq  +
-                            bcc  _gt
-                            bcs  $afterIfLabel
-+                           cmp  $valueLsb
-                            bcc  _gt
-                            bne  $afterIfLabel
-_gt""")
+                            bcc  $afterIfLabel
+                            bne  +
+                            cmp  $valueLsb
+                            bcc  $afterIfLabel
+                            beq  $afterIfLabel
++""")
                         asmgen.translate(stmt.ifScope)
                     }
                     asmgen.out(afterIfLabel)
@@ -668,6 +678,7 @@ _gt""")
     private fun wordLessEqualsValue(left: PtExpression, right: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
         fun code(valueLsb: String, valueMsb: String) {
             if(signed) {
+                // word <= X
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
@@ -731,6 +742,7 @@ _gt""")
                     asmgen.out(afterIfLabel)
                 }
             } else {
+                // uword <= X
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
@@ -818,6 +830,7 @@ _gt""")
 
         fun code(valueLsb: String, valueMsb: String) {
             if(signed) {
+                // word >= X
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
@@ -869,6 +882,7 @@ _gt""")
                     asmgen.out(afterIfLabel)
                 }
             } else {
+                // uword >= X
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
@@ -947,13 +961,14 @@ _gt""")
             }
             else -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
-                asmgen.out("  cmp  #0")
+                asmgen.out("  cpy  #0")
             }
         }
     }
 
     private fun wordLessEqualsZero(value: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
         return if(signed) {
+            // word <= 0
             asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)  // TODO optimize this even further by doing MSB/LSB separately
             if(jump!=null) {
                 val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
@@ -1006,12 +1021,14 @@ _gt""")
                 asmgen.out(afterIfLabel)
             }
         } else {
+            // uword <= 0 --> uword == 0
             wordEqualsZero(value, true, false, jump, stmt)
         }
     }
 
     private fun wordGreaterZero(value: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
         if(signed) {
+            // word > 0
             asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)  // TODO optimize this even further by doing MSB/LSB separately
             if(jump!=null) {
                 val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
@@ -1064,11 +1081,14 @@ _gt""")
                 asmgen.out(afterIfLabel)
             }
         } else {
+            // uword > 0 --> uword != 0
             wordEqualsZero(value, true, false, jump, stmt)
         }
     }
 
     private fun wordEqualsZero(value: PtExpression, notEquals: Boolean, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
+
+        // special case for (u)word == 0
 
         fun viaScratchReg(branchInstr: String, falseBranch: String) {
             asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, signed)
@@ -1134,6 +1154,8 @@ _gt""")
         jump: PtJump?,
         stmt: PtIfElse
     ) {
+
+        // special case for (u)word == X  and (u)word != X
 
         fun translateLoadFromVarNotEquals(varname: String) {
             if(jump!=null) {

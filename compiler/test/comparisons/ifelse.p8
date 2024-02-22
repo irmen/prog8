@@ -6,6 +6,8 @@
 
 main {
     sub start() {
+        if sys.target!=255
+            repeat 25 { txt.nl() }
 
         test_stack.test()
         broken_word_gt()

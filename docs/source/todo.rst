@@ -1,10 +1,20 @@
 TODO
 ====
 
+fix casting uword to bool (don't take only the lsb!)
+fix IR adding snz in bool casts inside if
+
+
+fix "wordGreaterValue"
+
+improve code size for "wordGreaterValue"  et al.
+
+
 rockrunner is a lot bigger still than on 10.1
 paint is bigger than on 10.1
 
 cx16/testmonogfx is broken
+cx16/amiga is broken
 assembler is broken
 imageviewer is broken
 paint flood fill is broken
@@ -40,7 +50,7 @@ ok    ok     efficient code for if byte comparisons against 0 (== and !=)
 ok    ok     efficient code for if word comparisons against 0 (== and !=)
 ok    ok     efficient code for if float comparisons against 0 (== and !=)
 ok    ok     efficient code for if byte comparisons against a value
-ok    ok     efficient code for if word comparisons against a value
+ok    FAIL   efficient code for if word comparisons against a value
 ok    ok     efficient code for if float comparisons against a value
 ok    ok     efficient code for assignment byte comparisons against 0 (== and !=)
 ok    ok     efficient code for assignment word comparisons against 0 (== and !=)
