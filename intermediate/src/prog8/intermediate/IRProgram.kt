@@ -149,7 +149,7 @@ class IRProgram(val name: String,
 
                         // link all jump and branching instructions to their target
                         chunk.instructions.forEach {
-                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.labelSymbol!=null) {
+                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.labelSymbol!=null) {
                                 if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
                                     // it's a call to an address (romsub most likely)
                                     require(it.address!=null)
@@ -215,7 +215,15 @@ class IRProgram(val name: String,
                         }
                         chunk.instructions.withIndex().forEach { (index, instr) ->
                             if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
-                                if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())
+                                if(instr.opcode==Opcode.JUMPI) {
+                                    val pointervar = st.lookup(instr.labelSymbol)!!
+                                    when(pointervar) {
+                                        is IRStStaticVariable -> require(pointervar.dt==DataType.UWORD)
+                                        is IRStMemVar -> require(pointervar.dt==DataType.UWORD)
+                                        else -> throw AssemblyError("weird pointervar type")
+                                    }
+                                }
+                                else if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())
                                     require(instr.branchTarget != null) { "branching instruction to label should have branchTarget set" }
                             }
 

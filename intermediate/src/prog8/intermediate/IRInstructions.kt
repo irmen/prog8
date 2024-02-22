@@ -53,7 +53,7 @@ storezx     reg1,         address     - store zero at memory address, indexed by
 CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction at 'location' (label/memory address)
-jumpi       reg1                      - continue running at memory address in reg1 (indirect jump)
+jumpi                   pointervar    - continue running at memory address contained in the pointer variable  (indirect jump)
 preparecall numparams                 - indicator that the next instructions are the param setup and function call/syscall with <numparams> parameters
 calli       reg1                      - calls a subroutine (without arguments and without return valus) at memory addres in reg1 (indirect jsr)
 call   label(argument register list) [: resultreg.type]
@@ -576,7 +576,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
-    Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
+    Opcode.JUMPI      to InstructionFormat.from("N,<a"),
     Opcode.PREPARECALL to InstructionFormat.from("N,<i"),
     Opcode.CALLI      to InstructionFormat.from("N,<r1"),
     Opcode.CALL       to InstructionFormat.from("N,call"),

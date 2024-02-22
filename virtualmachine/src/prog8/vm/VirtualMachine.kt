@@ -37,6 +37,7 @@ class VirtualMachine(irProgram: IRProgram) {
     val memory = Memory()
     val machinedef = VirtualMachineDefinition()
     val program: List<IRCodeChunk>
+    val artificialLabelAddresses: Map<Int, IRCodeChunk>
     val registers = Registers()
     val callStack = Stack<CallSiteContext>()
     val valueStack = Stack<UByte>()       // max 128 entries
@@ -52,7 +53,12 @@ class VirtualMachine(irProgram: IRProgram) {
     internal var mul16_last_upper = 0u
 
     init {
-        program = VmProgramLoader().load(irProgram, memory)
+        val (prg, labelAddr) = VmProgramLoader().load(irProgram, memory)
+        program = prg
+        artificialLabelAddresses = mutableMapOf()
+        labelAddr.forEach { labelname, artificialAddress ->
+            artificialLabelAddresses[artificialAddress] = program.single { it.label==labelname }
+        }
         require(irProgram.st.getAsmSymbols().isEmpty()) { "virtual machine can't yet process asmsymbols defined on command line" }
         reset(false)
     }
@@ -151,7 +157,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 else if(i.labelSymbol!=null)
                     throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.labelSymbol})")
                 else if(i.reg1!=null)
-                    throw IllegalArgumentException("vm program can't jump to system memory address (${i})")
+                    throw IllegalArgumentException("vm program can't jump to system memory address (${i} = ${registers.getUW(i.reg1!!)})")
                 else
                     throw IllegalArgumentException("no branchtarget in $i")
             }
@@ -179,7 +185,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
-            Opcode.JUMP, Opcode.JUMPI -> InsJUMP(ins)
+            Opcode.JUMP -> InsJUMP(ins)
+            Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.PREPARECALL -> nextPc()
             Opcode.CALLI -> throw IllegalArgumentException("VM cannot run code from memory")
             Opcode.CALL -> InsCALL(ins)
@@ -591,6 +598,12 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsJUMP(i: IRInstruction) {
         branchTo(i)
+    }
+
+    private fun InsJUMPI(i: IRInstruction) {
+        val artificialAddress = memory.getUW(i.address!!).toInt()
+        pcChunk = artificialLabelAddresses.getValue(artificialAddress)
+        pcIndex = 0
     }
 
     private class SyscallParamValue(var dt: IRDataType?, var value: Comparable<*>?)

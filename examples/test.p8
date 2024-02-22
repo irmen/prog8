@@ -5,14 +5,10 @@
 main {
     sub start() {
         uword @shared pointer
-
-;        if cx16.r0L>10
-;            goto label1
-;        if cx16.r0L>11
-;            goto label2
-
+        cx16.r0L = 10
         pointer = &label2
-        goto pointer
+        if cx16.r0L!=0
+            goto pointer
 
 label1:
         txt.print("fail\n")

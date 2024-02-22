@@ -1,8 +1,6 @@
 TODO
 ====
 
-make it possible to do indirect jumps in VM?  (associate values with labels and if it jumps to a "address value" it looks up the label with that value again?)
-
 replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
 
 ...

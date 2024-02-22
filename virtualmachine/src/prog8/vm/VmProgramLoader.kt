@@ -9,8 +9,9 @@ import prog8.intermediate.*
 class VmProgramLoader {
     private val placeholders = mutableMapOf<Pair<IRCodeChunk, Int>, String>()      // program chunk+index to symbolname
     private val subroutines = mutableMapOf<String, IRSubroutine>()                 // label to subroutine node
+    private val artificialLabelAddresses = mutableMapOf<String, Int>()
 
-    fun load(irProgram: IRProgram, memory: Memory): List<IRCodeChunk> {
+    fun load(irProgram: IRProgram, memory: Memory): Pair<List<IRCodeChunk>, Map<String, Int>> {
         irProgram.validate()
         placeholders.clear()
         subroutines.clear()
@@ -73,7 +74,7 @@ class VmProgramLoader {
             }
         }
 
-        return programChunks
+        return programChunks to artificialLabelAddresses
     }
 
     private fun phase2relinkReplacedChunks(
@@ -138,7 +139,7 @@ class VmProgramLoader {
                 }
 
                 val label = ins.labelSymbol
-                if (label != null && ins.opcode !in OpcodesThatBranch) {
+                if (label != null && (ins.opcode !in OpcodesThatBranch || ins.opcode==Opcode.JUMPI)) {
                     placeholders[Pair(chunk, index)] = label
                 }
             }
@@ -167,8 +168,14 @@ class VmProgramLoader {
                         throw IRParseException("placeholder not found in variables nor labels: $label")
                     else if(instr.opcode in OpcodesThatBranch)
                         chunk.instructions[line] = instr.copy(branchTarget = target, address = null)
-                    else
-                        throw IRParseException("vm cannot yet load a label address as a value: ${instr}")
+                    else {
+                        var address = artificialLabelAddresses[label]
+                        if(address==null) {
+                            address = 0xa000 + artificialLabelAddresses.size
+                            artificialLabelAddresses[label] = address
+                        }
+                        chunk.instructions[line] = instr.copy(address=address, branchTarget = target)
+                    }
                 }
             } else {
                 chunk.instructions[line] = instr.copy(address = replacement + offset)

@@ -899,6 +899,9 @@ class IRCodeGen(
 
 
     private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump, irDtLeft: IRDataType, signed: Boolean): MutableList<IRCodeChunkBase> {
+        if(isIndirectJump(goto))
+            TODO("indirect jump after if ${ifElse.position}")
+
         val condition = ifElse.condition as? PtBinaryExpression
         val result = mutableListOf<IRCodeChunkBase>()
         if(condition==null) {
@@ -958,10 +961,14 @@ class IRCodeGen(
         }
     }
 
-    private fun branchInstr(goto: PtJump, branchOpcode: Opcode) = if (goto.address != null)
-        IRInstruction(branchOpcode, address = goto.address?.toInt())
-    else
-        IRInstruction(branchOpcode, labelSymbol = goto.identifier!!.name)
+    private fun branchInstr(goto: PtJump, branchOpcode: Opcode): IRInstruction {
+        return if (goto.address != null)
+            IRInstruction(branchOpcode, address = goto.address?.toInt())
+        else {
+            require(!isIndirectJump(goto)) { "indirect jumps cannot be expressed using a branch opcode"}
+            IRInstruction(branchOpcode, labelSymbol = goto.identifier!!.name)
+        }
+    }
 
     private fun ifZeroIntThenJump(
         result: MutableList<IRCodeChunkBase>,
@@ -1423,11 +1430,8 @@ class IRCodeGen(
             chunk += IRInstruction(Opcode.JUMP, address = jump.address!!.toInt())
         } else {
             if (jump.identifier != null) {
-                val symbol = symbolTable.lookup(jump.identifier!!.name)
-                if(symbol?.type==StNodeType.MEMVAR || symbol?.type==StNodeType.STATICVAR) {
-                    val jumpReg = registers.nextFree()
-                    chunk += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = jumpReg, labelSymbol = jump.identifier!!.name)
-                    chunk += IRInstruction(Opcode.JUMPI, reg1 = jumpReg)
+                if(isIndirectJump(jump)) {
+                    chunk += IRInstruction(Opcode.JUMPI, labelSymbol = jump.identifier!!.name)
                 } else {
                     chunk += IRInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.name)
                 }
@@ -1437,6 +1441,13 @@ class IRCodeGen(
         }
         result += chunk
         return result
+    }
+
+    private fun isIndirectJump(jump: PtJump): Boolean {
+        if(jump.identifier==null)
+            return false
+        val symbol = symbolTable.lookup(jump.identifier!!.name)
+        return symbol?.type==StNodeType.MEMVAR || symbol?.type==StNodeType.STATICVAR
     }
 
     private fun translateGroup(group: List<PtNode>): IRCodeChunks {
