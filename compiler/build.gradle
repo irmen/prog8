@@ -2,8 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'org.jetbrains.kotlin.jvm'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id 'io.kotest' version '0.3.9'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
     id 'com.peterabeles.gversion' version '1.10.2'
 }
 
@@ -39,8 +38,12 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-cli:0.3.6'
     implementation "com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.18"
 
+    testImplementation project(':codeCore')
     testImplementation project(':intermediate')
     testImplementation 'io.kotest:kotest-runner-junit5-jvm:5.8.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 }
 
 configurations.all {
