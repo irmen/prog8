@@ -1,9 +1,7 @@
 TODO
 ====
 
-fix casting uword to bool (don't take only the lsb!)
-fix IR adding snz in bool casts inside if
-
+fix 6502 casting uword to bool (don't take only the lsb!)
 
 fix "wordGreaterValue"
 

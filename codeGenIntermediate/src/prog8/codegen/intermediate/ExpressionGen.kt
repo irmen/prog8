@@ -310,18 +310,24 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         var actualResultFpReg2 = -1
         when(cast.type) {
             DataType.BOOL -> {
-                if (cast.value.type in IntegerDatatypes) {
-                    actualResultReg2 = codeGen.registers.nextFree()
-                    addInstr(result, IRInstruction(Opcode.SNZ, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg), null)
-                }
-                else if(cast.value.type==DataType.FLOAT) {
-                    actualResultReg2 = codeGen.registers.nextFree()
-                    result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.SGN, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg)
-                        it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=actualResultReg2, immediate = 1)
+                when (cast.value.type) {
+                    in ByteDatatypes -> {
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.SNZ, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg), null)
                     }
+                    in WordDatatypes -> {
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.SNZ, IRDataType.WORD, reg1=actualResultReg2, reg2=tr.resultReg), null)
+                    }
+                    DataType.FLOAT -> {
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        result += IRCodeChunk(null, null).also {
+                            it += IRInstruction(Opcode.SGN, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg)
+                            it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=actualResultReg2, immediate = 1)
+                        }
+                    }
+                    else -> throw AssemblyError("weird cast value type")
                 }
-                else throw AssemblyError("weird cast value type")
             }
             DataType.UBYTE -> {
                 when(cast.value.type) {

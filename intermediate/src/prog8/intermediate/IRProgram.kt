@@ -536,6 +536,9 @@ class RegistersUsed(
 
     fun isEmpty() = readRegs.isEmpty() && writeRegs.isEmpty() && readFpRegs.isEmpty() && writeFpRegs.isEmpty()
     fun isNotEmpty() = !isEmpty()
+
+    fun used(register: Int) = register in readRegs || register in writeRegs
+    fun usedFp(fpRegister: Int) = fpRegister in readFpRegs || fpRegister in writeFpRegs
 }
 
 private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {

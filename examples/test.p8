@@ -7,20 +7,29 @@
 main {
     sub start() {
 
-        test_stack.test()
-        broken_word_gt()
-        broken_word_lt()
-        broken_uword_gt()
-        broken_uword_lt()
+        if cx16.r0L as bool
+            cx16.r0L++
 
-        test_bool()
-        test_float()
-        test_byte()
-        test_ubyte()
-        test_word()
-        test_uword()
+        if cx16.r0 as bool
+            cx16.r0L++
 
-        test_stack.test()
+        if @(cx16.r0) as bool
+            cx16.r0L++
+
+;        test_stack.test()
+;        broken_word_gt()
+;        broken_word_lt()
+;        broken_uword_gt()
+;        broken_uword_lt()
+;
+;        test_bool()
+;        test_float()
+;        test_byte()
+;        test_ubyte()
+;        test_word()
+;        test_uword()
+;
+;        test_stack.test()
 
         if sys.target!=255
             repeat { }
