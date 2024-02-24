@@ -755,7 +755,7 @@ _jump                       jmp  ($asmLabel)
                             ora  P8ZP_SCRATCH_REG
                             beq  +
                             bcc  +
-                            jmp  $(asmLabel)
+                            jmp  ($asmLabel)
 +""")
                     } else {
                         asmgen.out("""

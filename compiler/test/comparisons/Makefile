@@ -9,6 +9,7 @@ test: clean generate test_prgs
 
 generate:
 	python make_eq_tests.py
+	python make_cmp_tests.py
 	p8compile -target cx16 -sourcelines *.p8 >/dev/null
 
 test_prgs:

@@ -1,10 +1,24 @@
 TODO
 ====
 
-retest all comparisons in if statements (byte, word, signed and unsigned) + all comparison assignments.  Against 0 and something else as 0.
-with jump, indirect jump, no else block, and both if+else blocks.
+fix IR codegen error:  type FLOAT invalid for SGTS
 
-fix "wordGreaterValue"
+add tests for comparison that do an assignment rather than an if.
+
+fix ifelse codegens:
+byte >= (all 4 paths)
+byte > (all 4 paths)
+byte <= (all 4 paths)
+byte < (all 4 paths)
+uword >= (all 4 paths)
+uword > (var and array)
+uword <= (all 4 paths)
+uword < (var)
+word >= (all 4 paths)
+word > (var, array)
+word <= (var)
+word < (var)
+
 
 improve code size for "wordGreaterValue"  et al.
 
