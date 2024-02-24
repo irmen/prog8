@@ -595,7 +595,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 if (greaterEquals) Opcode.SGE else Opcode.SGT
             }
-            addInstr(result, IRInstruction(ins, vmDt, reg1=cmpResultReg, reg2 = resultRegister, reg3 = zeroRegister), null)
+            addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1=cmpResultReg, reg2 = resultRegister, reg3 = zeroRegister), null)
             return ExpressionCodeResult(result, IRDataType.BYTE, cmpResultReg, -1)
         } else {
             if(binExpr.left.type==DataType.STR || binExpr.right.type==DataType.STR) {

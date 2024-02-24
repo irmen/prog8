@@ -6,41 +6,27 @@
 
 main {
     sub start() {
-        cx16.r0 = $2200
         float @shared fl = 1123.56
+        bool @shared bb
 
-        if fl as bool
+        bb=fl<12345.6
+        cx16.r0L++
+        bb=fl<=12345.6
+        cx16.r0L++
+        bb=fl>12345.6
+        cx16.r0L++
+        bb=fl>=12345.6
+        cx16.r0L++
+        if bb
+            txt.print("yep ")
+        else
+            txt.print("nope ")
+        bb=fl>12345.6
+        if bb
             txt.print("yep ")
         else
             txt.print("nope ")
 
-        bool @shared qq = fl as bool
-        if qq
-            txt.print("yep ")
-        else
-            txt.print("nope ")
-
-        if cx16.r0 as bool
-            txt.print("yep ")
-        else
-            txt.print("nope ")
-
-        qq = cx16.r0 as bool
-        if qq
-            txt.print("yep ")
-        else
-            txt.print("nope ")
-
-        if cx16.r0s as bool
-            txt.print("yep ")
-        else
-            txt.print("nope ")
-
-        qq = cx16.r0s as bool
-        if qq
-            txt.print("yep ")
-        else
-            txt.print("nope ")
 
 ;        test_stack.test()
 ;        broken_word_gt()

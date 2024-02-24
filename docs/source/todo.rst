@@ -1,8 +1,6 @@
 TODO
 ====
 
-fix IR codegen error:  type FLOAT invalid for SGTS
-
 add tests for comparison that do an assignment rather than an if.
 
 fix ifelse codegens:
