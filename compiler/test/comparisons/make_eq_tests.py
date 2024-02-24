@@ -1,4 +1,5 @@
-# generates various Prog8 files with a huge amount of number equality tests.
+# generates various Prog8 files with a large amount of number equality tests,
+# using various forms of the if statement (because these forms have their own code gen paths)
 
 import sys
 

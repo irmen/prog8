@@ -56,8 +56,8 @@ internal class IfElseAsmGen(private val program: PtProgram,
             is PtPrefix,
             is PtBinaryExpression -> { /* no cmp necessary the lda has been done just prior */ }
             is PtTypeCast -> {
-                if(condition.value.type !in ByteDatatypes)
-                    asmgen.out("  cmp  #0")     // maybe can be eliminated altogether? depends on how the actual type cast is done...
+                if(condition.value.type !in ByteDatatypes && condition.value.type !in WordDatatypes)
+                    asmgen.out("  cmp  #0")
             }
             else -> asmgen.out("  cmp  #0")
         }

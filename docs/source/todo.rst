@@ -1,7 +1,8 @@
 TODO
 ====
 
-fix 6502 casting uword to bool (don't take only the lsb!)
+retest all comparisons in if statements (byte, word, signed and unsigned) + all comparison assignments.  Against 0 and something else as 0.
+with jump, indirect jump, no else block, and both if+else blocks.
 
 fix "wordGreaterValue"
 
@@ -63,9 +64,6 @@ ok    FAIL   testmonogfx works
 ok    .      check program sizes vs. master branch
 ===== ====== =======
 
-
-retest all comparisons in if statements (byte, word, signed and unsigned) + all comparison assignments.  Against 0 and something else as 0.
-with jump, indirect jump, no else block, and both if+else blocks.
 
 check that the flood fill routine in gfx2 and paint still works.
 re-allow typecast of const true/false back to ubytes 1 and 0?

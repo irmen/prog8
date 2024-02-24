@@ -1550,6 +1550,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(targetDt in ByteDatatypes && valueDt in WordDatatypes) {
                     // just assign the lsb from the array value
                     return assignCastViaLsbFunc(value, target)
+                } else if(targetDt==DataType.BOOL && valueDt in WordDatatypes) {
+                    return assignWordToBool(value, target)
                 }
             }
             else -> {}
@@ -1629,9 +1631,12 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 RegisterOrPair.A,
                 RegisterOrPair.X,
                 RegisterOrPair.Y -> {
-                    // cast an uword to a byte register, do this via lsb(value)
-                    // generate code for lsb(value) here instead of the ubyte typecast
-                    return assignCastViaLsbFunc(value, target)
+                    return if(targetDt==DataType.BOOL)
+                        assignWordToBool(value, target)
+                    else
+                        // cast an uword to a byte register, do this via lsb(value)
+                        // generate code for lsb(value) here instead of the ubyte typecast
+                        assignCastViaLsbFunc(value, target)
                 }
                 RegisterOrPair.AX,
                 RegisterOrPair.AY,
@@ -1647,15 +1652,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         if(target.kind==TargetStorageKind.REGISTER) {
             if(valueDt==DataType.FLOAT && target.datatype!=DataType.FLOAT) {
                 // have to typecast the float number on the fly down to an integer
-                assignExpressionToRegister(value, RegisterOrPair.FAC1, target.datatype in SignedDatatypes)
-                assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", target.datatype)
-                assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, target.datatype in SignedDatatypes, origTypeCastExpression.definingISub(), target.position)
+                assignExpressionToRegister(value, RegisterOrPair.FAC1, targetDt in SignedDatatypes)
+                assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", targetDt)
+                assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, targetDt in SignedDatatypes, origTypeCastExpression.definingISub(), target.position)
                 return
             } else {
                 if(!(valueDt isAssignableTo targetDt)) {
                     return if(valueDt in WordDatatypes && targetDt in ByteDatatypes) {
                         // word to byte, just take the lsb
                         assignCastViaLsbFunc(value, target)
+                    } else if(valueDt in WordDatatypes && targetDt==DataType.BOOL) {
+                        // word to bool
+                        assignWordToBool(value, target)
                     } else if(valueDt in WordDatatypes && targetDt in WordDatatypes) {
                         // word to word, just assign
                         assignExpressionToRegister(value, target.register!!, valueDt in SignedDatatypes)
@@ -1742,12 +1750,24 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         translateNormalAssignment(assign, value.definingISub())
     }
 
+    private fun assignWordToBool(value: PtExpression, target: AsmAssignTarget) {
+        assignExpressionToRegister(value, RegisterOrPair.AY, false)
+        asmgen.out("""
+            sty  P8ZP_SCRATCH_REG
+            ora  P8ZP_SCRATCH_REG
+            beq  +
+            lda  #1
++""")
+        assignRegisterByte(target, CpuRegister.A, false, false)
+    }
+
     private fun assignTypeCastedFloatFAC1(targetAsmVarName: String, targetDt: DataType) {
 
         if(targetDt==DataType.FLOAT)
             throw AssemblyError("typecast to identical type")
 
         when(targetDt) {
+            DataType.BOOL -> asmgen.out("  jsr  floats.cast_FAC1_as_bool_into_a |  sta  $targetAsmVarName")
             DataType.UBYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName")
             DataType.BYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName")
             DataType.UWORD -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
@@ -1796,7 +1816,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.BYTE -> {
                 when(targetDt) {
-                    DataType.UBYTE -> {
+                    DataType.UBYTE, DataType.BOOL -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
                     DataType.UWORD -> {
@@ -1823,6 +1843,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.UWORD -> {
                 when(targetDt) {
+                    DataType.BOOL -> {
+                        asmgen.out("""
+                            lda  $sourceAsmVarName
+                            ora  $sourceAsmVarName+1
+                            beq  +
+                            lda  #1
++                           sta  $targetAsmVarName""")
+                    }
                     DataType.BYTE, DataType.UBYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
@@ -1844,6 +1872,14 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             DataType.WORD -> {
                 when(targetDt) {
+                    DataType.BOOL -> {
+                        asmgen.out("""
+                            lda  $sourceAsmVarName
+                            ora  $sourceAsmVarName+1
+                            beq  +
+                            lda  #1
++                           sta  $targetAsmVarName""")
+                    }
                     DataType.BYTE, DataType.UBYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
@@ -1866,6 +1902,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             DataType.FLOAT -> {
                 asmgen.out("  lda  #<$sourceAsmVarName |  ldy  #>$sourceAsmVarName")
                 when(targetDt) {
+                    DataType.BOOL -> asmgen.out("  jsr  floats.cast_as_bool_into_a |  sta  $targetAsmVarName")
                     DataType.UBYTE -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName")
                     DataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")
                     DataType.UWORD -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")

@@ -98,6 +98,21 @@ cast_as_w_into_ay	.proc               ; also used for float 2 b
 		jmp  cast_FAC1_as_w_into_ay
 		.pend
 
+cast_as_bool_into_a	.proc
+		; -- cast float at A/Y to bool into A
+		;    clobbers X
+		jsr  MOVFM
+		jmp  cast_FAC1_as_bool_into_a
+		.pend
+
+cast_FAC1_as_bool_into_a	.proc
+		; -- cast fac1 to bool into A
+		;    clobbers X
+		jsr  SIGN
+		and  #1
+		rts
+		.pend
+
 cast_FAC1_as_uw_into_ya	.proc               ; also used for float 2 ub
 		; -- cast fac1 to uword into Y/A
 		;    clobbers X
