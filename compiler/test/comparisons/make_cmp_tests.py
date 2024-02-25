@@ -54,53 +54,33 @@ main {{
         }}
     }}
     
-    sub fail_byte(uword idx, byte v1, byte v2) {{
+    sub fail_byte(uword idx) {{
         txt.print(" **fail#")
         txt.print_uw(idx)
-        txt.chrout(':')
-        txt.print_b(v1)
-        txt.chrout(',')
-        txt.print_b(v2)
         txt.print(" **")
     }}
 
-    sub fail_ubyte(uword idx, ubyte v1, ubyte v2) {{
+    sub fail_ubyte(uword idx) {{
         txt.print(" **fail#")
         txt.print_uw(idx)
-        txt.chrout(':')
-        txt.print_ub(v1)
-        txt.chrout(',')
-        txt.print_ub(v2)
         txt.print(" **")
     }}
     
-    sub fail_word(uword idx, word v1, word v2) {{
+    sub fail_word(uword idx) {{
         txt.print(" **fail#")
         txt.print_uw(idx)
-        txt.chrout(':')
-        txt.print_w(v1)
-        txt.chrout(',')
-        txt.print_w(v2)
         txt.print(" **")
     }}
 
-    sub fail_uword(uword idx, uword v1, uword v2) {{
+    sub fail_uword(uword idx) {{
         txt.print(" **fail#")
         txt.print_uw(idx)
-        txt.chrout(':')
-        txt.print_uw(v1)
-        txt.chrout(',')
-        txt.print_uw(v2)
         txt.print(" **")
     }}
     
-    sub fail_float(uword idx, float v1, float v2) {{
+    sub fail_float(uword idx) {{
         txt.print(" **fail#")
         txt.print_uw(idx)
-        txt.chrout(':')
-        floats.print(v1)
-        txt.chrout(',')
-        floats.print(v2)
         txt.print(" **")
     }}    
 
@@ -115,9 +95,9 @@ def tc(value):
 
 
 testnumbers = {
-    "byte": [-100, 0, 100],
+    "byte": [-1, 0, 1],
     "ubyte": [0, 1, 255],
-    "word": [tc(0xaabb), 0, 0x00aa, 0x7700, 0x7fff],
+    "word": [tc(0xaabb), -1, 0, 1, 0x00aa, 0x7700, 0x7fff],
     "uword": [0, 1, 0x7700, 0xffff],
     "float": [0.0, 1234.56]
 }
@@ -143,15 +123,18 @@ def make_test_number(datatype, comparison: C):
                 true_action2 = "success++"
                 true_action3 = "success++"
                 true_action4 = "success++"
+                fail_action4 = "cx16.r0L++"
             else:
                 fail_index += 1
-                true_action1 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action1 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action2 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action2 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action3 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action3 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action4 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action4 = f"fail_{datatype}({fail_index})"
+                fail_action4 = "success++"
+                expected += 1
             print(f"""    ; direct jump
         if x{comp}{value}
             goto lbl{test_index}a
@@ -173,7 +156,7 @@ skip{test_index}b:
         if x{comp}{value}
             {true_action4}
         else
-            cx16.r0L++
+            {fail_action4}
 """)
     print(f"    verify_success({expected})\n}}")
 
@@ -189,8 +172,6 @@ def make_test_var(datatype, comparison: C):
     for x in numbers:
         print(f"    x={x}")
         for value in numbers:
-            if value == 0:
-                continue  # 0 already tested separately
             print(f"    value={value}")
             result = comparison.compare(x, value)
             comp = comparison.operator
@@ -201,15 +182,18 @@ def make_test_var(datatype, comparison: C):
                 true_action2 = "success++"
                 true_action3 = "success++"
                 true_action4 = "success++"
+                fail_action4 = "cx16.r0L++"
             else:
                 fail_index += 1
-                true_action1 = f"fail_{datatype}({fail_index},x,value)"
+                true_action1 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action2 = f"fail_{datatype}({fail_index},x,value)"
+                true_action2 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action3 = f"fail_{datatype}({fail_index},x,value)"
+                true_action3 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action4 = f"fail_{datatype}({fail_index},x,value)"
+                true_action4 = f"fail_{datatype}({fail_index})"
+                fail_action4 = "success++"
+                expected += 1
             print(f"""    ; direct jump
         if x{comp}value
             goto lbl{test_index}a
@@ -231,7 +215,7 @@ skip{test_index}b:
         if x{comp}value
             {true_action4}
         else
-            cx16.r0L++
+            {fail_action4}
 """)
     print(f"    verify_success({expected})\n}}")
 
@@ -248,8 +232,6 @@ def make_test_array(datatype, comparison: C):
     for x in numbers:
         print(f"    x={x}")
         for value in numbers:
-            if value == 0:
-                continue  # 0 already tested separately
             print(f"    values[1]={value}")
             result = comparison.compare(x, value)
             comp = comparison.operator
@@ -260,15 +242,18 @@ def make_test_array(datatype, comparison: C):
                 true_action2 = "success++"
                 true_action3 = "success++"
                 true_action4 = "success++"
+                fail_action4 = "cx16.r0L++"
             else:
                 fail_index += 1
-                true_action1 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action1 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action2 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action2 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action3 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action3 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action4 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action4 = f"fail_{datatype}({fail_index})"
+                fail_action4 = "success++"
+                expected += 1
             print(f"""    ; direct jump
         if x{comp}values[1]
             goto lbl{test_index}a
@@ -290,7 +275,7 @@ skip{test_index}b:
         if x{comp}values[1]
             {true_action4}
         else
-            cx16.r0L++
+            {fail_action4}
 """)
     print(f"    verify_success({expected})\n}}")
 
@@ -310,8 +295,6 @@ def make_test_expr(datatype, comparison: C):
     for x in numbers:
         print(f"    x={x}")
         for value in numbers:
-            if value == 0:
-                continue  # 0 already tested separately
             if datatype=="byte":
                 expr = f"cx16.r4sL+{value}-cx16.r5sL"
             elif datatype=="ubyte":
@@ -331,15 +314,18 @@ def make_test_expr(datatype, comparison: C):
                 true_action2 = "success++"
                 true_action3 = "success++"
                 true_action4 = "success++"
+                fail_action4 = "cx16.r0L++"
             else:
                 fail_index += 1
-                true_action1 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action1 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action2 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action2 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action3 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action3 = f"fail_{datatype}({fail_index})"
                 fail_index += 1
-                true_action4 = f"fail_{datatype}({fail_index},x,{value})"
+                true_action4 = f"fail_{datatype}({fail_index})"
+                fail_action4 = "success++"
+                expected += 1
             print(f"""    ; direct jump
         if x{comp}{expr}
             goto lbl{test_index}a
@@ -361,7 +347,7 @@ skip{test_index}b:
         if x{comp}{expr}
             {true_action4}
         else
-            cx16.r0L++
+            {fail_action4}
 """)
     print(f"    verify_success({expected})\n}}")
 

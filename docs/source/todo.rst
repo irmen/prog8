@@ -1,36 +1,32 @@
 TODO
 ====
 
-add tests for comparison that do an assignment rather than an if.
-
-fix ifelse codegens:
-byte >= (all 4 paths)
-byte > (all 4 paths)
-byte <= (all 4 paths)
-byte < (all 4 paths)
-uword >= (all 4 paths)
-uword > (var and array)
-uword <= (all 4 paths)
-uword < (var)
-word >= (all 4 paths)
-word > (var, array)
-word <= (var)
-word < (var)
+verify ifelse codegens to be shortest code:  (some are using too many scratch vars?)
+uword >=
+uword >
+uword <=
+uword <
+word >=
+word >
+word <=
+word <
 
 
-improve code size for "wordGreaterValue"  et al.
+plasma is a bit larger
+floatparse is a bit larger
+testgfx2 is a bit larger
+amiga is a bit larger
+halloween is 1 byte larger
+rockrunner is bigger than on 10.1
+paint is slightly bigger than on 10.1
+chess is bigger than on 10.1
+imageviewer is a lot bigger
+shell is a couple of bytes bigger
 
 
-rockrunner is a lot bigger still than on 10.1
-paint is bigger than on 10.1
-
-cx16/testmonogfx is broken
-cx16/amiga is broken
-assembler is broken
-imageviewer is broken
-paint flood fill is broken
-rockrunner load caveset list is broken
-medemo and dsdemo are broken
+add tests for comparison that do an assignment rather than an if
+assign to variable, and barray[indexvar], test if they're both correct
+(bb = value > -100   --> contains a beq +++ that shouldn't be there??)
 
 
 
@@ -72,7 +68,7 @@ ok    ok     efficient code for assignment float comparisons against a value
 ok    ok     efficient code for if_cc conditional expressions
 ok    ok     while boolean  should produce identical code as  while integer!=0  and code should be efficient
 ok    ok     while not boolvar  -> can we get rid of the cmp? (6502 only?)
-ok    FAIL   testmonogfx works
+ok    ok     testmonogfx works
 ok    .      check program sizes vs. master branch
 ===== ====== =======
 

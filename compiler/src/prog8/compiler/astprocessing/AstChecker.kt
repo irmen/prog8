@@ -153,6 +153,11 @@ internal class AstChecker(private val program: Program,
         if(!ifElse.condition.inferType(program).isBool)
             errors.err("condition should be a boolean", ifElse.condition.position)
 
+        val constvalue = ifElse.condition.constValue(program)
+        if(constvalue!=null) {
+            errors.warn("condition is always ${constvalue.asBooleanValue}", ifElse.condition.position)
+        }
+
         super.visit(ifElse)
     }
 
