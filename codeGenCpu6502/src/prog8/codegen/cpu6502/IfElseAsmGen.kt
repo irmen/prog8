@@ -133,7 +133,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 else
                     translateIfElseBodies("beq", stmt)
             }
-            "<" -> translateByteGreater(condition.right, condition.left, stmt, signed, jumpAfterIf)
+            "<" -> translateByteLess(stmt, signed, jumpAfterIf)
             "<=" -> {
                 // X<=Y -> Y>=X (reverse of >=)
                 asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, signed)
@@ -150,7 +150,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                         translateIfElseBodies("bcc", stmt)
                 }
             }
-            ">" -> translateByteGreater(condition.left, condition.right, stmt, signed, jumpAfterIf)
+            ">" -> translateByteGreater(stmt, signed, jumpAfterIf)
             ">=" -> {
                 asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
                 cmpAwithByteValue(condition.right, false)
@@ -323,7 +323,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 if(constIndex!=null) {
                     val offset = constIndex * program.memsizer.memorySize(value.type)
                     if(offset<256) {
-                        return asmgen.out("  ldy  #$offset |  $compare  ${asmgen.asmVariableName(value.variable.name)},y")
+                        return asmgen.out("  ldy  #$offset |  $compare  ${asmgen.asmVariableName(value.variable)},y")
                     }
                 }
                 cmpViaScratch()
@@ -337,7 +337,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 }
             }
             is PtIdentifier -> {
-                asmgen.out("  $compare  ${asmgen.asmVariableName(value.name)}")
+                asmgen.out("  $compare  ${asmgen.asmVariableName(value)}")
             }
             is PtNumber -> {
                 if(value.number!=0.0)
@@ -349,26 +349,50 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteGreater(leftOperand: PtExpression, rightOperand: PtExpression, stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
+    private fun translateByteLess(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
+        val condition = stmt.condition as PtBinaryExpression
+        asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+        cmpAwithByteValue(condition.right, false)
         if(signed) {
-            // X>Y -> Y<X
-            asmgen.assignExpressionToRegister(rightOperand, RegisterOrPair.A, signed)
-            cmpAwithByteValue(leftOperand, true)
+            if(jumpAfterIf!=null)
+                translateJumpElseBodies("bmi", "bpl", jumpAfterIf, stmt.elseScope)
+            else
+                translateIfElseBodies("bpl", stmt)
+        } else {
+            if(jumpAfterIf!=null)
+                translateJumpElseBodies("bcc", "bcs", jumpAfterIf, stmt.elseScope)
+            else
+                translateIfElseBodies("bcs", stmt)
+        }
+    }
+
+    private fun translateByteGreater(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
+        val condition = stmt.condition as PtBinaryExpression
+        if(signed) {
+            // TODO if compared to a number, a more optimized routine is possible (X>=Y+1)
+            // X>Y --> Y<X
+            asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, signed)
+            cmpAwithByteValue(condition.left, true)
+            if (jumpAfterIf != null)
+                translateJumpElseBodies("bmi", "bpl", jumpAfterIf, stmt.elseScope)
+            else
+                translateIfElseBodies("bpl", stmt)
+        } else {
+            asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+            cmpAwithByteValue(condition.right, false)
             if(jumpAfterIf!=null) {
                 val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
                 if(indirect) {
-                    // X>Y -> Y<X
                     asmgen.out("""
-                        bvc  +
-                        eor  #128
-+                       bpl  +
+                        bcc  +
+                        beq  +
                         jmp  ($asmLabel)
 +""")
                 } else {
                     asmgen.out("""
-                        bvc  +
-                        eor  #128
-+                       bmi  $asmLabel""")
+                        beq  +
+                        bcs  $asmLabel
++""")
                 }
                 asmgen.translate(stmt.elseScope)
             } else {
@@ -376,32 +400,17 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 if(stmt.hasElse()) {
                     // if and else blocks
                     val elseLabel = asmgen.makeLabel("else")
-                    asmgen.out("""
-                        bvc  +
-                        eor  #128
-+                       bpl  $elseLabel""")
+                    asmgen.out("  bcc  $elseLabel |  beq  $elseLabel")
                     asmgen.translate(stmt.ifScope)
                     asmgen.jmp(afterIfLabel, false)
                     asmgen.out(elseLabel)
                     asmgen.translate(stmt.elseScope)
                 } else {
                     // no else block
-                    asmgen.out("""
-                        bvc  +
-                        eor  #128
-+                       bpl  $afterIfLabel""")
+                    asmgen.out("  bcc  $afterIfLabel |  beq  $afterIfLabel")
                     asmgen.translate(stmt.ifScope)
                 }
                 asmgen.out(afterIfLabel)
-            }
-        } else {
-            // X>Y -> Y<X
-            asmgen.assignExpressionToRegister(rightOperand, RegisterOrPair.A, signed)
-            cmpAwithByteValue(leftOperand, false)
-            if(jumpAfterIf!=null) {
-                translateJumpElseBodies("bcc", "bcs", jumpAfterIf, stmt.elseScope)
-            } else {
-                translateIfElseBodies("bcs", stmt)
             }
         }
     }

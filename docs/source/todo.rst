@@ -1,6 +1,13 @@
 TODO
 ====
 
+fix large code for  while wptr!=&buffer
+
+explore possible optimizations when comparing to a constant number:
+X < N --> X<=N-1
+X > N --> X>=N+1   etc etc   some yield shorter code!!
+
+
 verify ifelse codegens to be shortest code:  (some are using too many scratch vars?)
 uword >=
 uword >
@@ -12,7 +19,6 @@ word <=
 word <
 
 
-plasma is a bit larger
 floatparse is a bit larger
 testgfx2 is a bit larger
 amiga is a bit larger
