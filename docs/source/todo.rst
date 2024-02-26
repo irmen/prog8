@@ -10,6 +10,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- IR: add TEST instruction to test memory content and set N/Z flags, without affecting any register. Replace all LOADM+CMPI #0  / LOAD #0+LOADM+CMP+BRANCH   by this instruction
 - can we support signed % (remainder) somehow?
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
@@ -51,6 +52,7 @@ Compiler:
 
 Libraries:
 
+- monogfx: add EOR mode support next to Stipple. See PAINT for inspiration.  Can this also be added to gfx2?  Self modifying code to keep it optimized?
 - conv: the routines could return the address of conv.string_out, and/or there could be versions that take the address of a different buffer and use it instead.
 - once kernal rom v47 is released, remove most of the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
@@ -87,3 +89,4 @@ Other language/syntax features to think about
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
   How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
+

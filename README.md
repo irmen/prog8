@@ -51,8 +51,8 @@ GNU GPL 3.0 (see file LICENSE), with exception for generated code:
 What does Prog8 provide?
 ------------------------
 
-- reduction of source code length over raw assembly
-- fast execution speed due to compilation to native assembly code. It's possible to write certain raster interrupt 'demoscene' effects purely in Prog8.
+- all advantages of a higher level language over having to write assembly code manually
+- programs run very fast because compilation to native machine code. It's possible to write games purely in Prog8, and even certain raster interrupt 'demoscene' effects.
 - modularity, symbol scoping, subroutines
 - various data types other than just bytes (16-bit words, floats, strings)
 - floating point math is supported if the target system provides floating point library routines (C64 and Cx16 both do)
@@ -60,6 +60,7 @@ What does Prog8 provide?
 - automatic static variable allocations, automatic string and array variables and string sharing
 - subroutines with input parameters and result values
 - high-level program optimizations
+- no need for forward declarations
 - small program boilerplate/compilersupport overhead
 - programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - conditional branches

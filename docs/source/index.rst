@@ -70,19 +70,19 @@ Language features
 -----------------
 
 - It is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
-  It generates a machine code program runnable on actual 8-bit 6502 hardware.
-- Fast execution speed due to compilation to native assembly code. It's possible to write games purely in Prog8, and even certain raster interrupt 'demoscene' effects.
+- Programs run very fast because compilation to native machine code. It's possible to write games purely in Prog8, and even certain raster interrupt 'demoscene' effects.
 - Provides a very convenient edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to this emulator.
 - Based on simple and familiar imperative structured programming (it looks like a mix of C and Python)
 - Modular programming and scoping via modules, code blocks, and subroutines.
+- No need for forward declarations.
 - Provide high level programming constructs but at the same time stay close to the metal;
   still able to directly use memory addresses and ROM subroutines,
   and inline assembly to have full control when every register, cycle or byte matters
 - Subroutines with parameters and return values
 - Complex nested expressions are possible
 - Variables are all allocated statically
-- Conditional branches to map directly on processor branch instructions
+- Conditional branches for status flags that map 1:1 to processor branch instructions
 - ``when`` statement to avoid if-else chains
 - ``in`` expression for concise and efficient multi-value/containment test
 - Several powerful built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``, ``sort`` and ``reverse``
@@ -92,7 +92,7 @@ Language features
 - Identifiers can contain Unicode Letters, so ``knäckebröd``, ``приблизительно``, ``見せしめ`` and ``π`` are all valid identifiers.
 - Advanced code optimizations, such as const-folding (zero-allocation constants that are optimized away in expressions), expression and statement simplifications/rewriting.
 - Programs can be run multiple times without reloading because of automatic variable (re)initializations.
-- Supports the sixteen 'virtual' 16-bit registers R0 .. R15 as defined on the Commander X16, also on the other machines.
+- Supports the sixteen 'virtual' 16-bit registers R0 to R15 as defined on the Commander X16, also on the other machines.
 - Support for low level system features such as Vera Fx hardware word multiplication on the Commander X16
 - If you only use standard Kernal and core prog8 library routines, it is sometimes possible to compile the *exact same program* for different machines (just change the compilation target flag)
 
