@@ -1019,6 +1019,14 @@ _jump                       jmp  ($asmLabel)
                 val varname = asmgen.asmVariableName(value)
                 asmgen.out("  lda  $varname+1")
             }
+            is PtAddressOf -> {
+                if(value.isFromArrayElement) {
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
+                    asmgen.out("  cpy  #0")
+                } else {
+                    asmgen.out("  lda  #>${asmgen.asmVariableName(value.identifier)}")
+                }
+            }
             else -> {
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
                 asmgen.out("  cpy  #0")
@@ -1217,22 +1225,22 @@ _jump                       jmp  ($asmLabel)
 
         // special case for (u)word == X  and (u)word != X
 
-        fun translateLoadFromVarNotEquals(varname: String) {
+        fun translateNotEquals(valueLsb: String, valueMsb: String) {
             if(jump!=null) {
                 val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                 if(indirect) {
                     asmgen.out("""
-                        cmp  $varname
+                        cmp  $valueLsb
                         bne  +
-                        cpy  $varname+1
+                        cpy  $valueMsb
                         beq  ++
 +                       jmp  ($asmLabel)
 +""")
                 } else {
                     asmgen.out("""
-                        cmp  $varname
+                        cmp  $valueLsb
                         bne  $asmLabel
-                        cpy  $varname+1
+                        cpy  $valueMsb
                         bne  $asmLabel""")
                 }
                 asmgen.translate(stmt.elseScope)
@@ -1242,9 +1250,9 @@ _jump                       jmp  ($asmLabel)
                     // if and else blocks
                     val elseLabel = asmgen.makeLabel("else")
                     asmgen.out("""
-                        cmp  $varname
+                        cmp  $valueLsb
                         bne  +
-                        cpy  $varname+1
+                        cpy  $valueMsb
                         beq  $elseLabel
 +""")
                     asmgen.translate(stmt.ifScope)
@@ -1254,9 +1262,9 @@ _jump                       jmp  ($asmLabel)
                 } else {
                     // no else block
                     asmgen.out("""
-                        cmp  $varname
+                        cmp  $valueLsb
                         bne  +
-                        cpy  $varname+1
+                        cpy  $valueMsb
                         beq  $afterIfLabel
 +""")
                     asmgen.translate(stmt.ifScope)
@@ -1265,22 +1273,22 @@ _jump                       jmp  ($asmLabel)
             }
         }
 
-        fun translateLoadFromVarEquals(varname: String) {
+        fun translateEquals(valueLsb: String, valueMsb: String) {
             return if(jump!=null) {
                 val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                 if(indirect) {
                     asmgen.out("""
-                        cmp  $varname
+                        cmp  $valueLsb
                         bne  +
-                        cpy  $varname+1
+                        cpy  $valueMsb
                         bne  +
                         jmp  ($asmLabel)
 +""")
                 } else {
                     asmgen.out("""
-                        cmp  $varname
+                        cmp  $valueLsb
                         bne  +
-                        cpy  $varname+1
+                        cpy  $valueMsb
                         beq  $asmLabel
 +""")
                 }
@@ -1291,9 +1299,9 @@ _jump                       jmp  ($asmLabel)
                     // if and else blocks
                     val elseLabel = asmgen.makeLabel("else")
                     asmgen.out("""
-                        cmp  $varname
+                        cmp  $valueLsb
                         bne  $elseLabel
-                        cpy  $varname+1
+                        cpy  $valueMsb
                         bne  $elseLabel""")
                     asmgen.translate(stmt.ifScope)
                     asmgen.jmp(afterIfLabel, false)
@@ -1302,9 +1310,9 @@ _jump                       jmp  ($asmLabel)
                 } else {
                     // no else block
                     asmgen.out("""
-                        cmp  $varname
+                        cmp  $valueLsb
                         bne  $afterIfLabel
-                        cpy  $varname+1
+                        cpy  $valueMsb
                         bne  $afterIfLabel""")
                     asmgen.translate(stmt.ifScope)
                 }
@@ -1321,14 +1329,28 @@ _jump                       jmp  ($asmLabel)
                         val offset = constIndex * program.memsizer.memorySize(left.type)
                         if(offset<256) {
                             val varName = asmgen.asmVariableName(left.variable)
-                            return translateLoadFromVarNotEquals("$varName+$offset")
+                            return translateNotEquals("$varName+$offset", "$varName+$offset+1")
                         }
                     }
                     fallbackTranslate(stmt, false)
                 }
                 is PtIdentifier -> {
                     asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                    return translateLoadFromVarNotEquals(asmgen.asmVariableName(left))
+                    val varname = asmgen.asmVariableName(left)
+                    return translateNotEquals(varname, varname+"+1")
+                }
+                is PtAddressOf -> {
+                    if(left.isFromArrayElement)
+                        fallbackTranslate(stmt, false)
+                    else {
+                        if(left.isFromArrayElement)
+                            fallbackTranslate(stmt, false)
+                        else {
+                            asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                            val varname = asmgen.asmVariableName(left.identifier)
+                            return translateNotEquals("#<$varname", "#>$varname")
+                        }
+                    }
                 }
                 else -> fallbackTranslate(stmt, false)
             }
@@ -1341,14 +1363,24 @@ _jump                       jmp  ($asmLabel)
                         val offset = constIndex * program.memsizer.memorySize(left.type)
                         if(offset<256) {
                             val varName = asmgen.asmVariableName(left.variable)
-                            return translateLoadFromVarEquals("$varName+$offset")
+                            return translateEquals("$varName+$offset", "$varName+$offset+1")
                         }
                     }
                     fallbackTranslate(stmt, false)
                 }
                 is PtIdentifier -> {
                     asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                    return translateLoadFromVarEquals(asmgen.asmVariableName(left))
+                    val varname = asmgen.asmVariableName(left)
+                    return translateEquals(varname, varname+"+1")
+                }
+                is PtAddressOf -> {
+                    if(left.isFromArrayElement)
+                        fallbackTranslate(stmt, false)
+                    else {
+                        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                        val varname = asmgen.asmVariableName(left.identifier)
+                        return translateEquals("#<$varname", "#>$varname")
+                    }
                 }
                 else -> fallbackTranslate(stmt, false)
             }

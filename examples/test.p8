@@ -5,34 +5,14 @@
 
 main {
     sub start() {
-        uword @shared wptr
-        str buffer="    "
-
-        ; TODO: these generate LARGE code
-        while wptr!=&buffer
-            cx16.r0L++
-        while wptr==&buffer
-            cx16.r0L++
-
-        ; ... these are fine:
-        while wptr!=cx16.r0
-            cx16.r0L++
-        while wptr==cx16.r0
-            cx16.r0L++
-
-
-        if ub() > 5
-            cx16.r0L++
-
-        if ub() < 5
-            cx16.r0L++
-
-        if sb() > 5
-            cx16.r0L++
-
-        if sb() < 5
-            cx16.r0L++
-
+        if cx16.r0sL > 10
+            cx16.r1L++
+        if cx16.r0sL >= 10
+            cx16.r1L++
+        if cx16.r0sL < 10
+            cx16.r1L++
+        if cx16.r0sL <= 10
+            cx16.r1L++
     }
 
     sub ub() -> ubyte {

@@ -1,12 +1,8 @@
 TODO
 ====
 
-fix large code for  while wptr!=&buffer
-
-explore possible optimizations when comparing to a constant number:
-X < N --> X<=N-1
-X > N --> X>=N+1   etc etc   some yield shorter code!!
-
+optimize signed word wordGreaterValue, wordLessEqualsValue (can it be without scratch vars?)
+optimize signed word wordGreaterZero, wordLessEqualsZero (by comparing msb/lsb separately?)
 
 verify ifelse codegens to be shortest code:  (some are using too many scratch vars?)
 uword >=
@@ -18,9 +14,11 @@ word >
 word <=
 word <
 
+explore possible optimizations for words when comparing to a constant number (BeforeAsmAstChanger)
+
 
 floatparse is a bit larger
-testgfx2 is a bit larger
+testgfx2 is a quite a bit larger
 amiga is a bit larger
 halloween is 1 byte larger
 rockrunner is bigger than on 10.1

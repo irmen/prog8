@@ -131,4 +131,37 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 
         return noModifications
     }
+
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(options.compTarget.name!=VMTarget.NAME) {
+            val rightNum = expr.right.constValue(program)
+            if(rightNum!=null && rightNum.type in IntegerDatatypes) {
+                //val signed = expr.left.inferType(program).getOr(DataType.UNDEFINED) in SignedDatatypes
+                when(expr.operator) {
+                    ">" -> {
+                        // X>N  ->  X>=N+1,   easier to do in 6502
+                        // TODO check if useful for words as well
+                        val maximum = if(rightNum.type in ByteDatatypes) 255 else 65535
+                        if(rightNum.number<maximum) {
+                            val numPlusOne = rightNum.number.toInt()+1
+                            val newExpr = BinaryExpression(expr.left, ">=", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        }
+                    }
+                    "<=" -> {
+                        // X<=N ->  X<N+1,    easier to do in 6502
+                        // TODO check if useful for words as well
+                        val maximum = if(rightNum.type in ByteDatatypes) 255 else 65535
+                        if(rightNum.number<maximum) {
+                            val numPlusOne = rightNum.number.toInt()+1
+                            val newExpr = BinaryExpression(expr.left, "<", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        }
+                    }
+                }
+            }
+        }
+
+        return noModifications
+    }
 }
