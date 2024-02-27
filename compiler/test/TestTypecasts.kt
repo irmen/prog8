@@ -367,8 +367,8 @@ main {
             
             main {
                 sub start() {
-                    byte bb = -10
-                    word ww = -1000
+                    byte @shared bb = -10
+                    word @shared ww = -1000
                     
                     if bb>0 {
                         bb++
@@ -413,11 +413,11 @@ main {
         val text = """
             main {
                 sub start() {
-                    byte bb
-                    word ww
+                    byte @shared bb
+                    word @shared ww
             
-                    bool iteration_in_progress
-                    uword num_bytes
+                    bool @shared iteration_in_progress
+                    uword @shared num_bytes
 
                     if not iteration_in_progress or num_bytes==0 {
                         num_bytes++
@@ -455,10 +455,10 @@ main {
         val text = """
             main {
                 sub start() {
-                    byte ub1 = -50
-                    byte ub2 = -51
-                    byte ub3 = -52
-                    byte ub4 = 100
+                    byte @shared ub1 = -50
+                    byte @shared ub2 = -51
+                    byte @shared ub3 = -52
+                    byte @shared ub4 = 100
                     word @shared ww = func(ub1, ub2, ub3, ub4)
                     ww = func(ub4, ub2, ub3, ub1)
                     ww=afunc(ub1, ub2, ub3, ub4)

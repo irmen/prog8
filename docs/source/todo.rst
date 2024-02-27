@@ -1,31 +1,14 @@
 TODO
 ====
 
-optimize signed word wordGreaterValue, wordLessEqualsValue (can it be without scratch vars?)
-optimize signed word wordGreaterZero, wordLessEqualsZero (by comparing msb/lsb separately?)
+floatparse is a lot larger
+snow is a lot larger
+neofetch is larger
+chess is larger
 
-verify ifelse codegens to be shortest code:  (some are using too many scratch vars?)
-uword >=
-uword >
-uword <=
-uword <
-word >=
-word >
-word <=
-word <
+
 
 explore possible optimizations for words when comparing to a constant number (BeforeAsmAstChanger)
-
-
-floatparse is a bit larger
-testgfx2 is a quite a bit larger
-amiga is a bit larger
-halloween is 1 byte larger
-rockrunner is bigger than on 10.1
-paint is slightly bigger than on 10.1
-chess is bigger than on 10.1
-imageviewer is a lot bigger
-shell is a couple of bytes bigger
 
 
 add tests for comparison that do an assignment rather than an if

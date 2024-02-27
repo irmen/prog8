@@ -5,24 +5,10 @@
 
 main {
     sub start() {
-        if cx16.r0sL > 10
+        if cx16.r0s > 0
             cx16.r1L++
-        if cx16.r0sL >= 10
+        if cx16.r0s <= 0
             cx16.r1L++
-        if cx16.r0sL < 10
-            cx16.r1L++
-        if cx16.r0sL <= 10
-            cx16.r1L++
-    }
-
-    sub ub() -> ubyte {
-        cx16.r0++
-        return cx16.r0L
-    }
-
-    sub sb() -> byte {
-        cx16.r0++
-        return cx16.r0sL
     }
 }
 
