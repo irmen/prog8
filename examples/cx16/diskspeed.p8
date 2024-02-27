@@ -50,7 +50,7 @@ main {
 
         txt.print("\nreading 64kb using vload() into vram")
         cbm.SETTIM(0,0,0)
-        if diskio.vload("benchmark.dat", 0, $0000)==0
+        if not diskio.vload("benchmark.dat", 0, $0000)
             sys.exit(1)
         print_speed(cbm.RDTIM16())
 

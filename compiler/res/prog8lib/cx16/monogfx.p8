@@ -606,7 +606,7 @@ _done
         plot(xx, yy, draw)
     }
 
-    sub pget(uword @zp xx, uword yy) -> ubyte {
+    sub pget(uword @zp xx, uword yy) -> bool {
         %asm {{
             lda  p8v_xx
             and  #7
@@ -708,7 +708,7 @@ _done
             }}
             yy+=dy
         }
-        cx16.r11L = pget(xx as uword, yy as uword)        ; old_color
+        cx16.r11L = pget(xx as uword, yy as uword) as ubyte        ; old_color
         if cx16.r11L == cx16.r10L
             return
         if xx<0 or xx>width-1 or yy<0 or yy>height-1
@@ -720,7 +720,7 @@ _done
             pop_stack()
             xx = x1
             while xx >= 0 {
-                if pget(xx as uword, yy as uword) != cx16.r11L
+                if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
                     break
                 xx--
             }
@@ -737,7 +737,7 @@ _done
             do {
                 cx16.r9s = xx
                 while xx <= width-1 {
-                    if pget(xx as uword, yy as uword) != cx16.r11L
+                    if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
                         break
                     xx++
                 }
@@ -750,7 +750,7 @@ _done
 skip:
                 xx++
                 while xx <= x2 {
-                    if pget(xx as uword, yy as uword) == cx16.r11L
+                    if pget(xx as uword, yy as uword) as ubyte == cx16.r11L
                         break
                     xx++
                 }

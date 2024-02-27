@@ -359,8 +359,8 @@ monogfx {
         plot(xx, yy, draw)
     }
 
-    sub pget(uword @zp xx, uword yy) -> ubyte {
-        return sys.gfx_getpixel(xx, yy)
+    sub pget(uword @zp xx, uword yy) -> bool {
+        return sys.gfx_getpixel(xx, yy) as bool
     }
 
     sub fill(uword x, uword y, bool draw) {
@@ -411,7 +411,7 @@ monogfx {
             pop_stack()
             xx = x1
             while xx >= 0 {
-                if pget(xx as uword, yy as uword) != cx16.r11L
+                if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
                     break
                 xx--
             }
@@ -428,7 +428,7 @@ monogfx {
             do {
                 cx16.r9 = xx as uword
                 while xx <= width-1 {
-                    if pget(xx as uword, yy as uword) != cx16.r11L
+                    if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
                         break
                     xx++
                 }
@@ -441,7 +441,7 @@ monogfx {
 skip:
                 xx++
                 while xx <= x2 {
-                    if pget(xx as uword, yy as uword) == cx16.r11L
+                    if pget(xx as uword, yy as uword) as ubyte == cx16.r11L
                         break
                     xx++
                 }

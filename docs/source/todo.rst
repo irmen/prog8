@@ -1,10 +1,9 @@
 TODO
 ====
 
-floatparse is a lot larger
+floatparse is a lot larger (if string.isdigit() -> uses rols instead of just bcc)
 snow is a lot larger
 neofetch is larger
-chess is larger
 
 
 

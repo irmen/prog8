@@ -70,7 +70,7 @@ diskio {
             void cbm.CHRIN()     ; skip 2 bytes
             void cbm.CHRIN()
             status = cbm.READST()
-            if cbm.STOP2()!=0
+            if cbm.STOP2()
                 break
         }
         status = cbm.READST()
@@ -659,7 +659,7 @@ io_error:
         return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
     }
 
-    asmsub vload(str name @R0, ubyte bank @A, uword startaddress @R1) clobbers(X, Y) -> ubyte @A {
+    asmsub vload(str name @R0, ubyte bank @A, uword startaddress @R1) clobbers(X, Y) -> bool @A {
         ; -- like the basic command VLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file has to have the usual 2 byte header (which will be skipped)
@@ -698,7 +698,7 @@ internal_vload:
         }}
     }
 
-    asmsub vload_raw(str name @R0, ubyte bank @A, uword startaddress @R1) clobbers(X, Y) -> ubyte @A {
+    asmsub vload_raw(str name @R0, ubyte bank @A, uword startaddress @R1) clobbers(X, Y) -> bool @A {
         ; -- like the basic command BVLOAD "filename",drivenumber,bank,address
         ;    loads a file into Vera's video memory in the given bank:address, returns success in A
         ;    the file is read fully including the first two bytes.

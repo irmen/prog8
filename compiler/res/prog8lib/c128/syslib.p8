@@ -105,7 +105,7 @@ romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base addr
 
 ; ---- utilities -----
 
-asmsub STOP2() clobbers(X) -> ubyte @A  {
+asmsub STOP2() clobbers(X) -> bool @A  {
     ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
     %asm {{
         jsr  cbm.STOP
