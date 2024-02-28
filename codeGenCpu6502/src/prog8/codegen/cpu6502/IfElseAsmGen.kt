@@ -1,24 +1,28 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.StRomSub
+import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AssignmentAsmGen
 
 internal class IfElseAsmGen(private val program: PtProgram,
+                            private val st: SymbolTable,
                             private val asmgen: AsmGen6502Internal,
                             private val allocator: VariableAllocator,
                             private val assignmentAsmGen: AssignmentAsmGen) {
 
     fun translate(stmt: PtIfElse) {
         require(stmt.condition.type== DataType.BOOL)
+        checkNotRomsubReturnsStatusReg(stmt.condition)
 
         val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
 
         if(stmt.condition is PtIdentifier ||
-            stmt.condition is PtFunctionCall ||
-            stmt.condition is PtBuiltinFunctionCall ||
             stmt.condition is PtArrayIndexer ||
             stmt.condition is PtTypeCast ||
+            stmt.condition is PtBuiltinFunctionCall ||
+            stmt.condition is PtFunctionCall ||
             stmt.condition is PtMemoryByte ||
             stmt.condition is PtContainmentCheck)
                 return fallbackTranslate(stmt, false)  // the fallback code for these is optimal, so no warning.
@@ -35,6 +39,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
         val prefixCond = stmt.condition as? PtPrefix
         if(prefixCond?.operator=="not") {
+            checkNotRomsubReturnsStatusReg(prefixCond.value)
             assignConditionValueToRegisterAndTest(prefixCond.value)
             return if(jumpAfterIf!=null)
                 translateJumpElseBodies("beq", "bne", jumpAfterIf, stmt.elseScope)
@@ -43,6 +48,16 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
 
         fallbackTranslate(stmt, true)
+    }
+
+    private fun checkNotRomsubReturnsStatusReg(condition: PtExpression) {
+        val fcall = condition as? PtFunctionCall
+        if(fcall!=null && fcall.type==DataType.BOOL) {
+            val romsub = st.lookup(fcall.name) as? StRomSub
+            if(romsub!=null && romsub.returns.any { it.register.statusflag!=null }) {
+                throw AssemblyError("if romsub() that returns a status register boolean should have been changed into a Conditional branch such as if_cc")
+            }
+        }
     }
 
     private fun assignConditionValueToRegisterAndTest(condition: PtExpression) {

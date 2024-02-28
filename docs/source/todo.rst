@@ -1,9 +1,12 @@
 TODO
 ====
 
-floatparse is a lot larger (if string.isdigit() -> uses rols instead of just bcc)
+test if any()... code size
+
+
+floatparse is slightly larger
 snow is a lot larger
-neofetch is larger
+neofetch is sligthly larger
 
 
 

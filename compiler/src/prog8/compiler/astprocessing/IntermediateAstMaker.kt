@@ -349,6 +349,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             }
         }
 
+        // if something_returning_Pc()   ->  if_cc
         val binexpr = srcIf.condition as? BinaryExpression
         if(binexpr!=null && binexpr.right.constValue(program)?.number==0.0) {
             if(binexpr.operator=="==" || binexpr.operator=="!=") {
@@ -366,6 +367,17 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 val returnRegs = fcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
                 if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
                     return codeForStatusflag(fcall, returnRegs[0].statusflag!!, false)
+                }
+            }
+
+            val prefix = srcIf.condition as? PrefixExpression
+            if(prefix!=null && prefix.operator=="not") {
+                val prefixedFcall = prefix.expression as? FunctionCallExpression
+                if (prefixedFcall != null) {
+                    val returnRegs = prefixedFcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
+                    if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
+                        return codeForStatusflag(prefixedFcall, returnRegs[0].statusflag!!, true)
+                    }
                 }
             }
         }
