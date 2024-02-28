@@ -79,7 +79,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
     }
 
     private fun fallbackTranslate(stmt: PtIfElse, warning: Boolean) {
-        if(warning) println("WARN: FALLBACK IF: ${stmt.position}")      // TODO should have no more of these
+        if(warning) println("WARN: SLOW FALLBACK IF: ${stmt.position}. Ask for support.")      // TODO should have no more of these
         val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
         assignConditionValueToRegisterAndTest(stmt.condition)
         if(jumpAfterIf!=null)
@@ -733,7 +733,10 @@ _jump                       jmp  ($asmLabel)
             is PtArrayIndexer -> {
                 val varname = asmgen.asmVariableName(value.variable)
                 asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
-                asmgen.out("  lda  $varname+1,y")
+                if(value.splitWords)
+                    asmgen.out("  lda  ${varname}_msb,y")
+                else
+                    asmgen.out("  lda  $varname+1,y")
             }
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(value)
@@ -1013,10 +1016,14 @@ _jump                       jmp  ($asmLabel)
                 is PtArrayIndexer -> {
                     val constIndex = value.index.asConstInteger()
                     if(constIndex!=null) {
-                        val offset = constIndex * program.memsizer.memorySize(value.type)
-                        if(offset<256) {
-                            val varName = asmgen.asmVariableName(value.variable)
-                            return translateLoadFromVar("$varName+$offset", "bne", "beq")
+                        if(value.splitWords) {
+                            TODO("split word array != 0")
+                        } else {
+                            val offset = constIndex * program.memsizer.memorySize(value.type)
+                            if (offset < 256) {
+                                val varName = asmgen.asmVariableName(value.variable)
+                                return translateLoadFromVar("$varName+$offset", "bne", "beq")
+                            }
                         }
                     }
                     viaScratchReg("bne", "beq")
@@ -1029,15 +1036,19 @@ _jump                       jmp  ($asmLabel)
         } else {
             when (value) {
                 is PtArrayIndexer -> {
-                    val constIndex = value.index.asConstInteger()
-                    if(constIndex!=null) {
-                        val offset = constIndex * program.memsizer.memorySize(value.type)
-                        if(offset<256) {
-                            val varName = asmgen.asmVariableName(value.variable)
-                            return translateLoadFromVar("$varName+$offset", "beq", "bne")
+                    if(value.splitWords) {
+                        TODO("split word array ==0")
+                    } else {
+                        val constIndex = value.index.asConstInteger()
+                        if (constIndex != null) {
+                            val offset = constIndex * program.memsizer.memorySize(value.type)
+                            if (offset < 256) {
+                                val varName = asmgen.asmVariableName(value.variable)
+                                return translateLoadFromVar("$varName+$offset", "beq", "bne")
+                            }
                         }
+                        viaScratchReg("beq", "bne")
                     }
-                    viaScratchReg("beq", "bne")
                 }
                 is PtIdentifier -> {
                     return translateLoadFromVar(asmgen.asmVariableName(value), "beq", "bne")
@@ -1156,16 +1167,19 @@ _jump                       jmp  ($asmLabel)
         if(notEquals) {
             when(left) {
                 is PtArrayIndexer -> {
-                    asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
                     val constIndex = left.index.asConstInteger()
                     if(constIndex!=null) {
+                        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                        if(left.splitWords) {
+                            TODO("split word array !=")
+                        }
                         val offset = constIndex * program.memsizer.memorySize(left.type)
                         if(offset<256) {
                             val varName = asmgen.asmVariableName(left.variable)
                             return translateNotEquals("$varName+$offset", "$varName+$offset+1")
                         }
                     }
-                    fallbackTranslate(stmt, false)
+                    fallbackTranslate(stmt, true)
                 }
                 is PtIdentifier -> {
                     asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
@@ -1176,13 +1190,9 @@ _jump                       jmp  ($asmLabel)
                     if(left.isFromArrayElement)
                         fallbackTranslate(stmt, false)
                     else {
-                        if(left.isFromArrayElement)
-                            fallbackTranslate(stmt, false)
-                        else {
-                            asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                            val varname = asmgen.asmVariableName(left.identifier)
-                            return translateNotEquals("#<$varname", "#>$varname")
-                        }
+                        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                        val varname = asmgen.asmVariableName(left.identifier)
+                        return translateNotEquals("#<$varname", "#>$varname")
                     }
                 }
                 else -> fallbackTranslate(stmt, false)
@@ -1190,16 +1200,19 @@ _jump                       jmp  ($asmLabel)
         } else {
             when(left) {
                 is PtArrayIndexer -> {
-                    asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
                     val constIndex = left.index.asConstInteger()
                     if(constIndex!=null) {
+                        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                        if(left.splitWords) {
+                            TODO("split word array ==")
+                        }
                         val offset = constIndex * program.memsizer.memorySize(left.type)
                         if(offset<256) {
                             val varName = asmgen.asmVariableName(left.variable)
                             return translateEquals("$varName+$offset", "$varName+$offset+1")
                         }
                     }
-                    fallbackTranslate(stmt, false)
+                    fallbackTranslate(stmt, true)
                 }
                 is PtIdentifier -> {
                     asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)

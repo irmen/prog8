@@ -1,13 +1,13 @@
 TODO
 ====
 
-test if any()... code size
+add peephole asm optimizer that removes a cmp #0 directly after a lda  (same for cpx cpy)
+check all comparisons for split word arrays (signed+unsigned, all 4 variants)
 
 
 floatparse is slightly larger
 snow is a lot larger
 neofetch is sligthly larger
-
 
 
 explore possible optimizations for words when comparing to a constant number (BeforeAsmAstChanger)
@@ -16,6 +16,10 @@ explore possible optimizations for words when comparing to a constant number (Be
 add tests for comparison that do an assignment rather than an if
 assign to variable, and barray[indexvar], test if they're both correct
 (bb = value > -100   --> contains a beq +++ that shouldn't be there??)
+
+optimize assignOptimizedComparisonWords for when comparing to simple things like number and identifier.
+optimize optimizedPlusMinExpr for when comparing to simple things like number and identifier.
+optimize the IfElseAsmgen's fallbackTranslate even more (for arrays without const index for example?)
 
 
 
