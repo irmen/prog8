@@ -1,14 +1,9 @@
 TODO
 ====
 
-add peephole asm optimizer that removes a cmp #0 directly after a lda  (same for cpx cpy)
 check all comparisons for split word arrays (signed+unsigned, all 4 variants)
 
-
-floatparse is slightly larger
-snow is a lot larger
-neofetch is sligthly larger
-
+snow example is a lot larger!
 
 explore possible optimizations for words when comparing to a constant number (BeforeAsmAstChanger)
 
