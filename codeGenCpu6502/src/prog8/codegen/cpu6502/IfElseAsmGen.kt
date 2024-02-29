@@ -4,13 +4,16 @@ import prog8.code.StRomSub
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.AssignmentAsmGen
+import prog8.codegen.cpu6502.assignment.TargetStorageKind
 
 internal class IfElseAsmGen(private val program: PtProgram,
                             private val st: SymbolTable,
                             private val asmgen: AsmGen6502Internal,
                             private val allocator: VariableAllocator,
-                            private val assignmentAsmGen: AssignmentAsmGen) {
+                            private val assignmentAsmGen: AssignmentAsmGen,
+                            private val errors: IErrorReporter) {
 
     fun translate(stmt: PtIfElse) {
         require(stmt.condition.type== DataType.BOOL)
@@ -19,13 +22,14 @@ internal class IfElseAsmGen(private val program: PtProgram,
         val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
 
         if(stmt.condition is PtIdentifier ||
+            stmt.condition is PtBool ||
             stmt.condition is PtArrayIndexer ||
             stmt.condition is PtTypeCast ||
             stmt.condition is PtBuiltinFunctionCall ||
             stmt.condition is PtFunctionCall ||
             stmt.condition is PtMemoryByte ||
             stmt.condition is PtContainmentCheck)
-                return fallbackTranslate(stmt, false)  // the fallback code for these is optimal, so no warning.
+                return fallbackTranslateForSimpleCondition(stmt)
 
         val compareCond = stmt.condition as? PtBinaryExpression
         if(compareCond!=null) {
@@ -47,7 +51,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 translateIfElseBodies("bne", stmt)
         }
 
-        fallbackTranslate(stmt, true)
+        throw AssemblyError("weird non-boolean condition node type ${stmt.condition} at ${stmt.condition.position}")
     }
 
     private fun checkNotRomsubReturnsStatusReg(condition: PtExpression) {
@@ -78,15 +82,26 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun fallbackTranslate(stmt: PtIfElse, warning: Boolean) {
-        if(warning) println("WARN: SLOW FALLBACK IF: ${stmt.position}. Ask for support.")      // TODO should have no more of these
-        val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
+    private fun fallbackTranslate(stmt: PtIfElse) {
+        errors.warn("SLOW FALLBACK FOR 'IF' CODEGEN - ask for support", stmt.position)      // TODO should have no more of these
         assignConditionValueToRegisterAndTest(stmt.condition)
+        val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
         if(jumpAfterIf!=null)
             translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
         else
             translateIfElseBodies("beq", stmt)
     }
+
+    private fun fallbackTranslateForSimpleCondition(ifElse: PtIfElse) {
+        // the condition is "simple" enough to just assign its 0/1 value to a register and branch on that
+        assignConditionValueToRegisterAndTest(ifElse.condition)
+        val jumpAfterIf = ifElse.ifScope.children.singleOrNull() as? PtJump
+        if(jumpAfterIf!=null)
+            translateJumpElseBodies("bne", "beq", jumpAfterIf, ifElse.elseScope)
+        else
+            translateIfElseBodies("beq", ifElse)
+    }
+
 
     private fun translateIfElseBodies(elseBranchInstr: String, stmt: PtIfElse) {
         // comparison value is already in A
@@ -181,7 +196,18 @@ internal class IfElseAsmGen(private val program: PtProgram,
                         translateIfElseBodies("bcc", stmt)
                 }
             }
-            else -> fallbackTranslate(stmt, false)
+            in LogicalOperators -> {
+                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, stmt.definingISub(), condition.position, register=RegisterOrPair.A)
+                // TODO optimize this better for if statements to not require the A register to hold the intermediate boolean result
+                if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
+                    if (jumpAfterIf != null)
+                        translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
+                    else
+                        translateIfElseBodies("beq", stmt)
+                } else
+                    fallbackTranslate(stmt)
+            }
+            else -> throw AssemblyError("expected comparison or logical operator")
         }
     }
 
@@ -314,7 +340,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                         translateIfElseBodies("bne", stmt)
                 }
             }
-            else -> throw AssemblyError("weird operator")
+            else -> throw AssemblyError("expected comparison operator")
         }
     }
 
@@ -435,13 +461,14 @@ internal class IfElseAsmGen(private val program: PtProgram,
         val constValue = condition.right.asConstInteger()
         if(constValue==0) {
             // optimized comparisons with zero
-            when (condition.operator) {
-                "==" -> return wordEqualsZero(condition.left, false, signed, jumpAfterIf, stmt)
-                "!=" -> return wordEqualsZero(condition.left, true, signed, jumpAfterIf, stmt)
-                "<" -> return wordLessZero(condition.left, signed, jumpAfterIf, stmt)
-                "<=" -> return wordLessEqualsZero(condition.left, signed, jumpAfterIf, stmt)
-                ">" -> return wordGreaterZero(condition.left, signed, jumpAfterIf, stmt)
-                ">=" -> return wordGreaterEqualsZero(condition.left, signed, jumpAfterIf, stmt)
+            return when (condition.operator) {
+                "==" -> wordEqualsZero(condition.left, false, signed, jumpAfterIf, stmt)
+                "!=" -> wordEqualsZero(condition.left, true, signed, jumpAfterIf, stmt)
+                "<" -> wordLessZero(condition.left, signed, jumpAfterIf, stmt)
+                "<=" -> wordLessEqualsZero(condition.left, signed, jumpAfterIf, stmt)
+                ">" -> wordGreaterZero(condition.left, signed, jumpAfterIf, stmt)
+                ">=" -> wordGreaterEqualsZero(condition.left, signed, jumpAfterIf, stmt)
+                else -> throw AssemblyError("expected comparison operator")
             }
         }
 
@@ -453,7 +480,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             "<=" -> throw AssemblyError("X<=Y should have been replaced by Y>=X")
             ">" -> throw AssemblyError("X>Y should have been replaced by Y<X")
             ">=" -> wordGreaterEqualsValue(condition.left, condition.right, signed, jumpAfterIf, stmt)
-            else -> fallbackTranslate(stmt, false)
+            else -> throw AssemblyError("expected comparison operator")
         }
     }
 
@@ -1010,20 +1037,26 @@ _jump                       jmp  ($asmLabel)
             else
                 translateIfElseBodies(falseBranch, stmt)
         }
+        fun translateLoadFromVarSplitw(variable: String, constIndex: Int, branch: String, falseBranch: String) {
+            asmgen.out("  lda  ${variable}_lsb+$constIndex |  ora  ${variable}_msb+$constIndex")
+            return if(jump!=null)
+                translateJumpElseBodies(branch, falseBranch, jump, stmt.elseScope)
+            else
+                translateIfElseBodies(falseBranch, stmt)
+        }
 
         if(notEquals) {
             when(value) {
                 is PtArrayIndexer -> {
                     val constIndex = value.index.asConstInteger()
                     if(constIndex!=null) {
+                        val varName = asmgen.asmVariableName(value.variable)
                         if(value.splitWords) {
-                            TODO("split word array != 0")
-                        } else {
-                            val offset = constIndex * program.memsizer.memorySize(value.type)
-                            if (offset < 256) {
-                                val varName = asmgen.asmVariableName(value.variable)
-                                return translateLoadFromVar("$varName+$offset", "bne", "beq")
-                            }
+                            return translateLoadFromVarSplitw(varName, constIndex, "bne", "beq")
+                        }
+                        val offset = constIndex * program.memsizer.memorySize(value.type)
+                        if (offset < 256) {
+                            return translateLoadFromVar("$varName+$offset", "bne", "beq")
                         }
                     }
                     viaScratchReg("bne", "beq")
@@ -1036,19 +1069,18 @@ _jump                       jmp  ($asmLabel)
         } else {
             when (value) {
                 is PtArrayIndexer -> {
-                    if(value.splitWords) {
-                        TODO("split word array ==0")
-                    } else {
-                        val constIndex = value.index.asConstInteger()
-                        if (constIndex != null) {
-                            val offset = constIndex * program.memsizer.memorySize(value.type)
-                            if (offset < 256) {
-                                val varName = asmgen.asmVariableName(value.variable)
-                                return translateLoadFromVar("$varName+$offset", "beq", "bne")
-                            }
+                    val constIndex = value.index.asConstInteger()
+                    if (constIndex != null) {
+                        val varName = asmgen.asmVariableName(value.variable)
+                        if(value.splitWords) {
+                            return translateLoadFromVarSplitw(varName, constIndex, "beq", "bne")
                         }
-                        viaScratchReg("beq", "bne")
+                        val offset = constIndex * program.memsizer.memorySize(value.type)
+                        if (offset < 256) {
+                            return translateLoadFromVar("$varName+$offset", "beq", "bne")
+                        }
                     }
+                    viaScratchReg("beq", "bne")
                 }
                 is PtIdentifier -> {
                     return translateLoadFromVar(asmgen.asmVariableName(value), "beq", "bne")
@@ -1170,16 +1202,16 @@ _jump                       jmp  ($asmLabel)
                     val constIndex = left.index.asConstInteger()
                     if(constIndex!=null) {
                         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                        val varName = asmgen.asmVariableName(left.variable)
                         if(left.splitWords) {
-                            TODO("split word array !=")
+                            return translateNotEquals("${varName}_lsb+$constIndex", "${varName}_msb+$constIndex")
                         }
                         val offset = constIndex * program.memsizer.memorySize(left.type)
                         if(offset<256) {
-                            val varName = asmgen.asmVariableName(left.variable)
                             return translateNotEquals("$varName+$offset", "$varName+$offset+1")
                         }
                     }
-                    fallbackTranslate(stmt, true)
+                    fallbackTranslate(stmt)
                 }
                 is PtIdentifier -> {
                     asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
@@ -1188,14 +1220,14 @@ _jump                       jmp  ($asmLabel)
                 }
                 is PtAddressOf -> {
                     if(left.isFromArrayElement)
-                        fallbackTranslate(stmt, false)
+                        fallbackTranslateForSimpleCondition(stmt)
                     else {
                         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
                         val varname = asmgen.asmVariableName(left.identifier)
                         return translateNotEquals("#<$varname", "#>$varname")
                     }
                 }
-                else -> fallbackTranslate(stmt, false)
+                else -> fallbackTranslate(stmt)
             }
         } else {
             when(left) {
@@ -1203,16 +1235,16 @@ _jump                       jmp  ($asmLabel)
                     val constIndex = left.index.asConstInteger()
                     if(constIndex!=null) {
                         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                        val varName = asmgen.asmVariableName(left.variable)
                         if(left.splitWords) {
-                            TODO("split word array ==")
+                            return translateEquals("${varName}_lsb+$constIndex", "${varName}_msb+$constIndex")
                         }
                         val offset = constIndex * program.memsizer.memorySize(left.type)
                         if(offset<256) {
-                            val varName = asmgen.asmVariableName(left.variable)
                             return translateEquals("$varName+$offset", "$varName+$offset+1")
                         }
                     }
-                    fallbackTranslate(stmt, true)
+                    fallbackTranslate(stmt)
                 }
                 is PtIdentifier -> {
                     asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
@@ -1221,14 +1253,14 @@ _jump                       jmp  ($asmLabel)
                 }
                 is PtAddressOf -> {
                     if(left.isFromArrayElement)
-                        fallbackTranslate(stmt, false)
+                        fallbackTranslateForSimpleCondition(stmt)
                     else {
                         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
                         val varname = asmgen.asmVariableName(left.identifier)
                         return translateEquals("#<$varname", "#>$varname")
                     }
                 }
-                else -> fallbackTranslate(stmt, false)
+                else -> fallbackTranslate(stmt)
             }
         }
     }
@@ -1298,7 +1330,7 @@ _jump                       jmp  ($asmLabel)
                 else
                     translateIfElseBodies("bne", stmt)
             }
-            else -> fallbackTranslate(stmt, false)
+            else -> throw AssemblyError("expected comparison operator")
         }
     }
 

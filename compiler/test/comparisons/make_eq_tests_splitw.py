@@ -20,7 +20,7 @@ main {{
     uword @shared comparison
 
     sub start() {{
-        txt.print("\\n(in)equality tests for datatype: ")
+        txt.print("\\n(in)equality tests for split words datatype: ")
         txt.print(datatype)
         txt.nl()
         test_stack.test()
@@ -36,10 +36,10 @@ main {{
         test_is_var()
         txt.print("\\n!=var: ")
         test_not_var()
-        txt.print("\\n==array[]: ")
-        test_is_array()
-        txt.print("\\n!=array[]: ")
-        test_not_array()
+        txt.print("\\n==array[] @split: ")
+        test_is_array_splitw()
+        txt.print("\\n!=array[] @split: ")
+        test_not_array_splitw()
         txt.print("\\n==expr: ")
         test_is_expr()
         txt.print("\\n!=expr: ")
@@ -58,22 +58,6 @@ main {{
         }}
     }}
     
-    sub fail_byte(uword idx, byte v1) {{
-        txt.print(" **fail#")
-        txt.print_uw(idx)
-        txt.chrout(':')
-        txt.print_b(v1)
-        txt.print(" **")
-    }}
-
-    sub fail_ubyte(uword idx, ubyte v1) {{
-        txt.print(" **fail#")
-        txt.print_uw(idx)
-        txt.chrout(':')
-        txt.print_ub(v1)
-        txt.print(" **")
-    }}
-    
     sub fail_word(uword idx, word v1) {{
         txt.print(" **fail#")
         txt.print_uw(idx)
@@ -90,14 +74,6 @@ main {{
         txt.print(" **")
     }}
     
-    sub fail_float(uword idx, float v1) {{
-        txt.print(" **fail#")
-        txt.print_uw(idx)
-        txt.chrout(':')
-        floats.print(v1)
-        txt.print(" **")
-    }}    
-
 """)
 
 
@@ -121,52 +97,52 @@ nonzero_values = {
 def make_test_is_zero(datatype):
     print(f"""
     sub test_is_zero() {{
-        {datatype} @shared x
+        {datatype}[] @split sources = [9999, 9999]
         success = 0
 
-        x={zero_values[datatype]}
+        sources[1]={zero_values[datatype]}
         ; direct jump
-        if x==0
+        if sources[1]==0
             goto lbl1
         goto skip1
 lbl1:   success++
 skip1:
         ; indirect jump
         cx16.r3 = &lbl2
-        if x==0
+        if sources[1]==0
             goto cx16.r3
         goto skip2
 lbl2:   success++
 skip2:
         ; no else
-        if x==0
+        if sources[1]==0
             success++
 
         ; with else
-        if x==0
+        if sources[1]==0
             success++
         else
             cx16.r0L++     
             
-        x = {nonzero_values[datatype]}
+        sources[1] = {nonzero_values[datatype]}
         ; direct jump
-        if x==0
+        if sources[1]==0
             goto skip3
         success++
 skip3:
         ; indirect jump
         cx16.r3 = &skip4
-        if x==0
+        if sources[1]==0
             goto cx16.r3
         success++
 skip4:
         ; no else
         success++
-        if x==0
+        if sources[1]==0
             success--
 
         ; with else
-        if x==0
+        if sources[1]==0
             cx16.r0L++                      
         else
             success++
@@ -179,52 +155,52 @@ skip4:
 def make_test_not_zero(datatype):
     print(f"""
     sub test_not_zero() {{
-        {datatype} @shared x
+        {datatype}[] @split sources = [9999, 9999]
         success = 0
 
-        x={nonzero_values[datatype]}
+        sources[1]={nonzero_values[datatype]}
         ; direct jump
-        if x!=0
+        if sources[1]!=0
             goto lbl1
         goto skip1
 lbl1:   success++
 skip1:
         ; indirect jump
         cx16.r3 = &lbl2
-        if x!=0
+        if sources[1]!=0
             goto cx16.r3
         goto skip2
 lbl2:   success++
 skip2:
         ; no else
-        if x!=0
+        if sources[1]!=0
             success++
 
         ; with else
-        if x!=0
+        if sources[1]!=0
             success++
         else
             cx16.r0L++     
             
-        x = {zero_values[datatype]}
+        sources[1] = {zero_values[datatype]}
         ; direct jump
-        if x!=0
+        if sources[1]!=0
             goto skip3
         success++
 skip3:
         ; indirect jump
         cx16.r3 = &skip4
-        if x!=0
+        if sources[1]!=0
             goto cx16.r3
         success++
 skip4:
         ; no else
         success++
-        if x!=0
+        if sources[1]!=0
             success--
 
         ; with else
-        if x!=0
+        if sources[1]!=0
             cx16.r0L++                      
         else
             success++
@@ -253,13 +229,13 @@ testnumbers = {
 def make_test_is_number(datatype, equals):
     numbers = testnumbers[datatype]
     print("    sub test_is_number() {" if equals else "    sub test_not_number() {")
-    print(f"""    {datatype} @shared x
+    print(f"""    {datatype}[] @split sources = [9999, 9999]
         success = 0""")
     expected = 0
     test_index = 0
     global fail_index
     for x in numbers:
-        print(f"    x={x}")
+        print(f"    sources[1]={x}")
         for value in numbers:
             if value == 0:
                 continue  # 0 already tested separately
@@ -282,24 +258,24 @@ def make_test_is_number(datatype, equals):
                 fail_index += 1
                 true_action4 = f"fail_{datatype}({fail_index},{x})"
             print(f"""    ; direct jump
-        if x{comp}{value}
+        if sources[1]{comp}{value}
             goto lbl{test_index}a
         goto skip{test_index}a
 lbl{test_index}a:   {true_action1}
 skip{test_index}a:
         ; indirect jump
         cx16.r3 = &lbl{test_index}b
-        if x{comp}{value}
+        if sources[1]{comp}{value}
             goto cx16.r3
         goto skip{test_index}b
 lbl{test_index}b:   {true_action2}
 skip{test_index}b:
         ; no else
-        if x{comp}{value}
+        if sources[1]{comp}{value}
             {true_action3}
 
         ; with else
-        if x{comp}{value}
+        if sources[1]{comp}{value}
             {true_action4}
         else
             cx16.r0L++
@@ -310,17 +286,18 @@ skip{test_index}b:
 def make_test_is_var(datatype, equals):
     numbers = testnumbers[datatype]
     print("    sub test_is_var() {" if equals else "    sub test_not_var() {")
-    print(f"""    {datatype} @shared x, value
+    print(f"""    {datatype}[] @split sources = [9999, 9999]
+        {datatype}[] @split values = [8888,8888]
         success = 0""")
     expected = 0
     test_index = 0
     global fail_index
     for x in numbers:
-        print(f"    x={x}")
+        print(f"    sources[1]={x}")
         for value in numbers:
             if value == 0:
                 continue  # 0 already tested separately
-            print(f"    value={value}")
+            print(f"    values[1]={value}")
             result = (x == value) if equals else (x != value)
             comp = "==" if equals else "!="
             test_index += 1
@@ -340,24 +317,24 @@ def make_test_is_var(datatype, equals):
                 fail_index += 1
                 true_action4 = f"fail_{datatype}({fail_index},{x})"
             print(f"""    ; direct jump
-        if x{comp}value
+        if sources[1]{comp}values[1]
             goto lbl{test_index}a
         goto skip{test_index}a
 lbl{test_index}a:   {true_action1}
 skip{test_index}a:
         ; indirect jump
         cx16.r3 = &lbl{test_index}b
-        if x{comp}value
+        if sources[1]{comp}values[1]
             goto cx16.r3
         goto skip{test_index}b
 lbl{test_index}b:   {true_action2}
 skip{test_index}b:
         ; no else
-        if x{comp}value
+        if sources[1]{comp}values[1]
             {true_action3}
 
         ; with else
-        if x{comp}value
+        if sources[1]{comp}values[1]
             {true_action4}
         else
             cx16.r0L++
@@ -367,16 +344,16 @@ skip{test_index}b:
 
 def make_test_is_array(datatype, equals):
     numbers = testnumbers[datatype]
-    print("    sub test_is_array() {" if equals else "    sub test_not_array() {")
-    print(f"""    {datatype} @shared x
-        {datatype}[] values = [0, 0]
-        {datatype}[] sources = [0, 0]
+    print("    sub test_is_array_splitw() {" if equals else "    sub test_not_array_splitw() {")
+    print(f"""    
+        {datatype}[] @split values = [9999, 8888]
+        {datatype}[] @split sources = [9999, 8888]
         success = 0""")
     expected = 0
     test_index = 0
     global fail_index
     for x in numbers:
-        print(f"    x={x}")
+        print(f"    values[1]={x}")
         print(f"    sources[1]={x}")
         for value in numbers:
             if value == 0:
@@ -413,24 +390,24 @@ def make_test_is_array(datatype, equals):
                 fail_index += 1
                 true_action8 = f"fail_{datatype}({fail_index},{x})"
             print(f"""    ; direct jump
-        if x{comp}values[1]
+        if sources[1]{comp}values[1]
             goto lbl{test_index}a
         goto skip{test_index}a
 lbl{test_index}a:   {true_action1}
 skip{test_index}a:
         ; indirect jump
         cx16.r3 = &lbl{test_index}b
-        if x{comp}values[1]
+        if sources[1]{comp}values[1]
             goto cx16.r3
         goto skip{test_index}b
 lbl{test_index}b:   {true_action2}
 skip{test_index}b:
         ; no else
-        if x{comp}values[1]
+        if sources[1]{comp}values[1]
             {true_action3}
 
         ; with else
-        if x{comp}values[1]
+        if sources[1]{comp}values[1]
             {true_action4}
         else
             cx16.r0L++
@@ -464,17 +441,15 @@ skip{test_index}d:
 def make_test_is_expr(datatype, equals):
     numbers = testnumbers[datatype]
     print("    sub test_is_expr() {" if equals else "    sub test_not_expr() {")
-    print(f"""    {datatype} @shared x
+    print(f"""    {datatype}[] @split sources = [9999, 9999]
         cx16.r4 = 1
         cx16.r5 = 1
-        float @shared f4 = 1.0
-        float @shared f5 = 1.0
         success = 0""")
     expected = 0
     test_index = 0
     global fail_index
     for x in numbers:
-        print(f"    x={x}")
+        print(f"    sources[1]={x}")
         for value in numbers:
             if value == 0:
                 continue  # 0 already tested separately
@@ -507,24 +482,24 @@ def make_test_is_expr(datatype, equals):
                 fail_index += 1
                 true_action4 = f"fail_{datatype}({fail_index},{x})"
             print(f"""    ; direct jump
-        if x{comp}{expr}
+        if sources[1]{comp}{expr}
             goto lbl{test_index}a
         goto skip{test_index}a
 lbl{test_index}a:   {true_action1}
 skip{test_index}a:
         ; indirect jump
         cx16.r3 = &lbl{test_index}b
-        if x{comp}{expr}
+        if sources[1]{comp}{expr}
             goto cx16.r3
         goto skip{test_index}b
 lbl{test_index}b:   {true_action2}
 skip{test_index}b:
         ; no else
-        if x{comp}{expr}
+        if sources[1]{comp}{expr}
             {true_action3}
 
         ; with else
-        if x{comp}{expr}
+        if sources[1]{comp}{expr}
             {true_action4}
         else
             cx16.r0L++
@@ -550,6 +525,6 @@ def generate(datatype):
 
 
 if __name__ == '__main__':
-    for dt in ["ubyte", "uword", "byte", "word", "float"]:
-        sys.stdout = open(f"test_{dt}_equalities.p8", "wt")
+    for dt in ["uword", "word"]:
+        sys.stdout = open(f"test_{dt}_splitw_equalities.p8", "wt")
         generate(dt)

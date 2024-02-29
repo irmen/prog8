@@ -1207,7 +1207,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         return false
     }
 
-    private fun optimizedLogicalExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
+    internal fun optimizedLogicalExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
 
         fun swapOperands(): Boolean =
             if(expr.right is PtIdentifier || expr.right is PtMemoryByte)

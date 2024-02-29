@@ -1,20 +1,16 @@
 TODO
 ====
 
-check all comparisons for split word arrays (signed+unsigned, all 4 variants)
-
-snow example is a lot larger!
-
-explore possible optimizations for words when comparing to a constant number (BeforeAsmAstChanger)
-
-
-add tests for comparison that do an assignment rather than an if
-assign to variable, and barray[indexvar], test if they're both correct
-(bb = value > -100   --> contains a beq +++ that shouldn't be there??)
-
 optimize assignOptimizedComparisonWords for when comparing to simple things like number and identifier.
 optimize optimizedPlusMinExpr for when comparing to simple things like number and identifier.
 optimize the IfElseAsmgen's fallbackTranslate even more (for arrays without const index for example?)
+
+optimize byte < and byte >= assignment to use the rol trick instead of branching:
+        bool @shared bb = cx16.r0L >= 128
+        bool @shared bb2 = cx16.r0L < 99
+
+
+snow example is a lot larger!
 
 
 
@@ -45,7 +41,7 @@ ok    ok     efficient code for if byte comparisons against 0 (== and !=)
 ok    ok     efficient code for if word comparisons against 0 (== and !=)
 ok    ok     efficient code for if float comparisons against 0 (== and !=)
 ok    ok     efficient code for if byte comparisons against a value
-ok    FAIL   efficient code for if word comparisons against a value
+ok    ok     efficient code for if word comparisons against a value
 ok    ok     efficient code for if float comparisons against a value
 ok    ok     efficient code for assignment byte comparisons against 0 (== and !=)
 ok    ok     efficient code for assignment word comparisons against 0 (== and !=)
@@ -61,11 +57,8 @@ ok    .      check program sizes vs. master branch
 ===== ====== =======
 
 
-check that the flood fill routine in gfx2 and paint still works.
 re-allow typecast of const true/false back to ubytes 1 and 0?
 re-allow typecast of const ubyte 0/1 to false/true boolean?
 
 
-IR: add TEST instruction to test memory content and set N/Z flags, without affecting any register.
-    replace all LOADM+CMPI #0  / LOAD #0+LOADM+CMP+BRANCH   by this instruction
-
+optimize translateIfByte() handling of shortcircuiting logical operators.
