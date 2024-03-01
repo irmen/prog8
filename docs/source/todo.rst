@@ -1,6 +1,12 @@
 TODO
 ====
 
+textelite is larger
+
+
+optimize assignOptimizedComparisonWords for when comparing to simple things like number and identifier.  (get rid of it completely by just rewriting everything into an if-else statement?)
+optimize optimizedPlusMinExpr for when comparing to simple things like number and identifier.
+
 replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
 
 ...
