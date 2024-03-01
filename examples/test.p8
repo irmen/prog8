@@ -4,6 +4,16 @@
 
 main {
     sub start() {
+        ubyte[] flakes = [1,2,3]
+
+        ubyte @shared idx = 2
+
+        if flakes[idx]==239 {
+            txt.print("yes")
+        } else {
+            txt.print("nope")
+        }
+
         ubyte @shared xx = 16
         ubyte @shared yy = 20
 

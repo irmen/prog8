@@ -1,10 +1,30 @@
 TODO
 ====
 
-textelite is larger
+add asm optimizer:
+    LDA NUM1
+    CMP NUM2
+    BCC LABEL
+    BEQ LABEL
+
+(or something similar) which branches to LABEL when NUM1 <= NUM2. (In this case NUM1 and NUM2 are unsigned numbers.) However, consider the following sequence:
+
+    LDA NUM2
+    CMP NUM1
+    BCS LABEL
 
 
-optimize assignOptimizedComparisonWords for when comparing to simple things like number and identifier.  (get rid of it completely by just rewriting everything into an if-else statement?)
+
+
+larger programs:
+automatons
+mandelbrot (quite a bit larger)
+mandelbrot-gfx
+maze
+textelite
+rockrunner is quite a bit larger
+
+
 optimize optimizedPlusMinExpr for when comparing to simple things like number and identifier.
 
 replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
