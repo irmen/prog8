@@ -439,6 +439,7 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: List<List<IndexedVal
     // jsr Sub + rts -> jmp Sub
     // rts + jmp -> remove jmp
     // rts + bxx -> remove bxx
+    // and some other optimizations.
 
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
@@ -469,6 +470,32 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: List<List<IndexedVal
                 mods += Modification(lines[1].index, true, null)
             else if (" bvc" in second || "\tbvc" in second)
                 mods += Modification(lines[1].index, true, null)
+        }
+
+        /*
+    LDA NUM1
+    CMP NUM2
+    BCC LABEL
+    BEQ LABEL
+
+(or something similar) which branches to LABEL when NUM1 <= NUM2. (In this case NUM1 and NUM2 are unsigned numbers.) However, consider the following sequence:
+
+    LDA NUM2
+    CMP NUM1
+    BCS LABEL
+         */
+        val tfirst = first.trimStart()
+        val tsecond = second.trimStart()
+        val tthird = lines[2].value.trimStart()
+        val tfourth = lines[3].value.trimStart()
+        if(tfirst.startsWith("lda") && tsecond.startsWith("cmp") && tthird.startsWith("bcc") && tfourth.startsWith("beq")) {
+            val label = tthird.substring(4)
+            if(label==tfourth.substring(4)) {
+                mods += Modification(lines[0].index, false, "  lda  ${tsecond.substring(4)}")
+                mods += Modification(lines[1].index, false, "  cmp  ${tfirst.substring(4)}")
+                mods += Modification(lines[2].index, false, "  bcs  $label")
+                mods += Modification(lines[3].index, true, null)
+            }
         }
     }
     return mods
@@ -523,8 +550,8 @@ private fun optimizeUnneededTempvarInAdd(linesByFour: List<List<IndexedValue<Str
         val fourth = lines[3].value.trimStart()
         if(first.startsWith("sta  P8ZP_SCRATCH_") && second.startsWith("lda") && third.startsWith("clc") && fourth.startsWith("adc  P8ZP_SCRATCH_") ) {
             if(fourth.substring(4)==first.substring(4)) {
-                mods.add(Modification(lines[0].index, false, "    clc"))
-                mods.add(Modification(lines[1].index, false, "    adc  ${second.substring(3).trimStart()}"))
+                mods.add(Modification(lines[0].index, false, "  clc"))
+                mods.add(Modification(lines[1].index, false, "  adc  ${second.substring(3).trimStart()}"))
                 mods.add(Modification(lines[2].index, true, null))
                 mods.add(Modification(lines[3].index, true, null))
             }

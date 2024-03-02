@@ -1,21 +1,6 @@
 TODO
 ====
 
-add asm optimizer:
-    LDA NUM1
-    CMP NUM2
-    BCC LABEL
-    BEQ LABEL
-
-(or something similar) which branches to LABEL when NUM1 <= NUM2. (In this case NUM1 and NUM2 are unsigned numbers.) However, consider the following sequence:
-
-    LDA NUM2
-    CMP NUM1
-    BCS LABEL
-
-
-
-
 larger programs:
 automatons
 mandelbrot (quite a bit larger)
