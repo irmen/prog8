@@ -2,6 +2,9 @@ TODO
 ====
 
 larger programs:
+dirlist
+bobs
+cobramk3-gfx
 automatons
 mandelbrot (quite a bit larger)
 mandelbrot-gfx
