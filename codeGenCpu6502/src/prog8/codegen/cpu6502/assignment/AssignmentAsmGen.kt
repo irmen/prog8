@@ -454,6 +454,101 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
+        if(expr.left.type==DataType.UBYTE) {
+            if(expr.operator=="<") {
+                assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                when(val right = expr.right) {
+                    is PtIdentifier -> {
+                        asmgen.out("""
+                            cmp  ${right.name}
+                            rol  a
+                            and  #1
+                            eor  #1""")
+                        assignRegisterByte(assign.target, CpuRegister.A, false, false)
+                        return true
+                    }
+                    is PtMemoryByte -> {
+                        val addr = right.address as? PtNumber
+                        if(addr!=null) {
+                            asmgen.out("""
+                                cmp  ${addr.number.toHex()}
+                                rol  a
+                                and  #1
+                                eor  #1""")
+                            assignRegisterByte(assign.target, CpuRegister.A, false, false)
+                            return true
+                        }
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                            val ptrvar = right.address as? PtIdentifier
+                            if (ptrvar != null && asmgen.isZpVar(ptrvar)) {
+                                asmgen.out("""
+                                    cmp  (${ptrvar.name})
+                                    rol  a
+                                    and  #1
+                                    eor  #1""")
+                                assignRegisterByte(assign.target, CpuRegister.A, false, false)
+                                return true
+                            }
+                        }
+                    }
+                    is PtNumber -> {
+                        asmgen.out("""
+                            cmp  #${right.number.toInt()}
+                            rol  a
+                            and  #1
+                            eor  #1""")
+                        assignRegisterByte(assign.target, CpuRegister.A, false, false)
+                        return true
+                    }
+                    else -> { /* not optimizable */ }
+                }
+            }
+            else if(expr.operator==">=") {
+                assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                when(val right = expr.right) {
+                    is PtIdentifier -> {
+                        asmgen.out("""
+                            cmp  ${right.name}
+                            rol  a
+                            and  #1""")
+                        assignRegisterByte(assign.target, CpuRegister.A, false, false)
+                        return true
+                    }
+                    is PtMemoryByte -> {
+                        val addr = right.address as? PtNumber
+                        if(addr!=null) {
+                            asmgen.out("""
+                                cmp  ${addr.number.toHex()}
+                                rol  a
+                                and  #1""")
+                            assignRegisterByte(assign.target, CpuRegister.A, false, false)
+                            return true
+                        }
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                            val ptrvar = right.address as? PtIdentifier
+                            if (ptrvar != null && asmgen.isZpVar(ptrvar)) {
+                                asmgen.out("""
+                                    cmp  (${ptrvar.name})
+                                    rol  a
+                                    and  #1""")
+                                assignRegisterByte(assign.target, CpuRegister.A, false, false)
+                                return true
+                            }
+                        }
+                    }
+                    is PtNumber -> {
+                        asmgen.out("""
+                            cmp  #${right.number.toInt()}
+                            rol  a
+                            and  #1""")
+                        assignRegisterByte(assign.target, CpuRegister.A, false, false)
+                        return true
+                    }
+                    else -> { /* not optimizable */ }
+                }
+            }
+        }
+
         // b = v > 99  -->  b=false ,  if v>99  b=true
         val targetReg=assign.target.register
         if(targetReg!=null) {

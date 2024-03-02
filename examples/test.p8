@@ -6,37 +6,16 @@
 
 main {
     sub start() {
+        bool @shared ba1, ba2, ba3, ba4, bb1, bb2, bb3, bb4
+        ba1 = cx16.r0L >= 128
+        ba2 = cx16.r0L >= cx16.r1L
+        ba3 = cx16.r0L >= @($2000)
+        ba4 = cx16.r0L >= @(cx16.r1)
+        bb1 = cx16.r0L < 128
+        bb2 = cx16.r0L < cx16.r1L
+        bb3 = cx16.r0L < @($2000)
+        bb4 = cx16.r0L < @(cx16.r1)
 
-        uword[] flakes = [1,2,3,4]
-
-        if cx16.r0==5555
-            cx16.r0L++
-        if cx16.r0!=5555
-            cx16.r0L++
-
-        if max(cx16.r0, cx16.r1)==9999
-            cx16.r0L++
-
-        if max(cx16.r0, cx16.r1)!=9999
-            cx16.r0L++
-
-        if derp()==1000
-            cx16.r0L++
-
-        if derp()!=1000
-            cx16.r0L++
-
-        cx16.r0=2
-        if flakes[cx16.r0L]==239
-            cx16.r0L++
-
-        if flakes[cx16.r0L]!=239
-            cx16.r0L++
-
-        sub derp() -> uword {
-            cx16.r0++
-            return cx16.r0
-        }
 
 ;
 ;        ubyte[] barray = [11,22,33]

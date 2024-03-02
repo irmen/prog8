@@ -1,23 +1,8 @@
 TODO
 ====
 
-After merging master:
-optimize byte < and byte >= assignment to use the rol trick instead of branching:
-        bool @shared bb = cx16.r0L >= 128
-        bool @shared bb2 = cx16.r0L < 99
-; source: examples/test.p8:10   bool @shared bb = cx16.r0L >= 128
-	lda  cx16.r0L
-	cmp  #128
-	rol  a
-	and  #1
-	sta  p8v_bb
-; source: examples/test.p8:11   bool @shared bb2 = cx16.r0L < 99
-	lda  cx16.r0L
-	cmp  #99
-	rol  a
-	and  #1
-	eor  #1
-	sta  p8v_bb2
+imageviewer is larger after the master-rebase!
+
 
 
 ===== ====== =======
