@@ -1,17 +1,23 @@
 TODO
 ====
 
-optimize assignOptimizedComparisonWords for when comparing to simple things like number and identifier.
-optimize optimizedPlusMinExpr for when comparing to simple things like number and identifier.
-optimize the IfElseAsmgen's fallbackTranslate even more (for arrays without const index for example?)
-
+After merging master:
 optimize byte < and byte >= assignment to use the rol trick instead of branching:
         bool @shared bb = cx16.r0L >= 128
         bool @shared bb2 = cx16.r0L < 99
-
-
-snow example is a lot larger!
-
+; source: examples/test.p8:10   bool @shared bb = cx16.r0L >= 128
+	lda  cx16.r0L
+	cmp  #128
+	rol  a
+	and  #1
+	sta  p8v_bb
+; source: examples/test.p8:11   bool @shared bb2 = cx16.r0L < 99
+	lda  cx16.r0L
+	cmp  #99
+	rol  a
+	and  #1
+	eor  #1
+	sta  p8v_bb2
 
 
 ===== ====== =======

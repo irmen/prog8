@@ -7,10 +7,35 @@
 main {
     sub start() {
 
-        ubyte[] envelope_attacks = [1,2,3,4]
+        uword[] flakes = [1,2,3,4]
 
-        if msb(cx16.r0) > cx16.r2L or envelope_attacks[cx16.r1L]==0 {
-            txt.print("yep")
+        if cx16.r0==5555
+            cx16.r0L++
+        if cx16.r0!=5555
+            cx16.r0L++
+
+        if max(cx16.r0, cx16.r1)==9999
+            cx16.r0L++
+
+        if max(cx16.r0, cx16.r1)!=9999
+            cx16.r0L++
+
+        if derp()==1000
+            cx16.r0L++
+
+        if derp()!=1000
+            cx16.r0L++
+
+        cx16.r0=2
+        if flakes[cx16.r0L]==239
+            cx16.r0L++
+
+        if flakes[cx16.r0L]!=239
+            cx16.r0L++
+
+        sub derp() -> uword {
+            cx16.r0++
+            return cx16.r0
         }
 
 ;
