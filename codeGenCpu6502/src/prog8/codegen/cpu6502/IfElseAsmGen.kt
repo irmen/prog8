@@ -187,7 +187,6 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
             in LogicalOperators -> {
                 val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, stmt.definingISub(), condition.position, register=RegisterOrPair.A)
-                // TODO optimize this better for if statements to not require the A register to hold the intermediate boolean result
                 if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
                     if (jumpAfterIf != null)
                         translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
@@ -779,29 +778,27 @@ _jump                       jmp  ($asmLabel)
     }
 
     private fun wordLessEqualsZero(value: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
-        return if(signed) {
+        if(signed) {
             // word <= 0
 
-            if(value is PtIdentifier) {
-                // special optimization to compare msb/lsb separately
-                // TODO also do this for array?
+            fun compareLsbMsb(valueLsb: String, valueMsb: String) {
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
                         asmgen.out("""
-                            lda  ${value.name}+1
+                            lda  $valueMsb
                             bmi  +
                             bne  ++
-                            lda  ${value.name}
+                            lda  $valueLsb
                             bne  ++
 +                           jmp  ($asmLabel)
 +""")
                     } else {
                         asmgen.out("""
-                            lda  ${value.name}+1
+                            lda  $valueMsb
                             bmi  $asmLabel
                             bne  +
-                            lda  ${value.name}
+                            lda  $valueLsb
                             beq  $asmLabel
 +""")
                     }
@@ -812,10 +809,10 @@ _jump                       jmp  ($asmLabel)
                         // if and else blocks
                         val elseLabel = asmgen.makeLabel("else")
                         asmgen.out("""
-                            lda  ${value.name}+1
+                            lda  $valueMsb
                             bmi  +
                             bne  $elseLabel
-                            lda  ${value.name}
+                            lda  $valueLsb
                             bne  $elseLabel
 +""")
                         asmgen.translate(stmt.ifScope)
@@ -825,19 +822,40 @@ _jump                       jmp  ($asmLabel)
                     } else {
                         // no else block
                         asmgen.out("""
-                            lda  ${value.name}+1
+                            lda  $valueMsb
                             bmi  +
                             bne  $afterIfLabel
-                            lda  ${value.name}
+                            lda  $valueLsb
                             bne  $afterIfLabel
 +""")
                         asmgen.translate(stmt.ifScope)
                     }
                     asmgen.out(afterIfLabel)
                 }
-                return
             }
-
+            
+            if(value is PtIdentifier)
+                return compareLsbMsb(value.name, value.name+"+1")
+            if(value is PtArrayIndexer) {
+                val constIndex = value.index.asConstInteger()
+                val varname = asmgen.asmVariableName(value.variable)
+                if(constIndex!=null) {
+                    if(value.splitWords) {
+                        return compareLsbMsb("${varname}_lsb+$constIndex", "${varname}_msb+$constIndex")
+                    } else {
+                        val offset = constIndex * program.memsizer.memorySize(value.type)
+                        return compareLsbMsb("$varname+$offset", "$varname+$offset+1")
+                    }
+                } else {
+                    asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
+                    if(value.splitWords) {
+                        return compareLsbMsb("${varname}_lsb,y", "${varname}_msb,y")
+                    } else {
+                        return compareLsbMsb("$varname,y", "$varname+1,y")
+                    }
+                }
+            }
+                
             asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
             if(jump!=null) {
                 val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
@@ -898,26 +916,25 @@ _jump                       jmp  ($asmLabel)
     private fun wordGreaterZero(value: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
         if(signed) {
             // word > 0
-            if(value is PtIdentifier) {
-                // special optimization to compare msb/lsb separately
-                // TODO also do this for array?
+
+            fun compareLsbMsb(valueLsb: String, valueMsb: String) {
                 if(jump!=null) {
                     val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
                     if(indirect) {
                         asmgen.out("""
-                            lda  ${value.name}+1
+                            lda  $valueMsb
                             bmi  ++
                             bne  +
-                            lda  ${value.name}
+                            lda  $valueLsb
                             beq  ++
 +                           jmp  ($asmLabel)
 +""")
                     } else {
                         asmgen.out("""
-                            lda  ${value.name}+1
+                            lda  $valueMsb
                             bmi  +
                             bne  $asmLabel
-                            lda  ${value.name}
+                            lda  $valueLsb
                             bne  $asmLabel
 +""")
                     }
@@ -928,10 +945,10 @@ _jump                       jmp  ($asmLabel)
                         // if and else blocks
                         val elseLabel = asmgen.makeLabel("else")
                         asmgen.out("""
-                            lda  ${value.name}+1
+                            lda  $valueMsb
                             bmi  $elseLabel
                             bne  +
-                            lda  ${value.name}
+                            lda  $valueLsb
                             beq  $elseLabel
 +""")
                         asmgen.translate(stmt.ifScope)
@@ -941,10 +958,10 @@ _jump                       jmp  ($asmLabel)
                     } else {
                         // no else block
                         asmgen.out("""
-                            lda  ${value.name}+1
+                            lda  $valueMsb
                             bmi  $afterIfLabel
                             bne  +
-                            lda  ${value.name}
+                            lda  $valueLsb
                             beq  $afterIfLabel
 +""")
                         asmgen.translate(stmt.ifScope)
@@ -952,6 +969,28 @@ _jump                       jmp  ($asmLabel)
                     asmgen.out(afterIfLabel)
                 }
                 return
+            }
+
+            if(value is PtIdentifier)
+                return compareLsbMsb(value.name, value.name+"+1")
+            if(value is PtArrayIndexer) {
+                val constIndex = value.index.asConstInteger()
+                val varname = asmgen.asmVariableName(value.variable)
+                if(constIndex!=null) {
+                    if(value.splitWords) {
+                        return compareLsbMsb("${varname}_lsb+$constIndex", "${varname}_msb+$constIndex")
+                    } else {
+                        val offset = constIndex * program.memsizer.memorySize(value.type)
+                        return compareLsbMsb("$varname+$offset", "$varname+$offset+1")
+                    }
+                } else {
+                    asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
+                    if(value.splitWords) {
+                        return compareLsbMsb("${varname}_lsb,y", "${varname}_msb,y")
+                    } else {
+                        return compareLsbMsb("$varname,y", "$varname+1,y")
+                    }
+                }
             }
 
             asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
@@ -1291,7 +1330,7 @@ _jump                       jmp  ($asmLabel)
                             lda  ${left.name}
                             cmp  ${right.name}
                             bne  $afterIfLabel
-                            lda  ${left.name}
+                            lda  ${left.name}+1
                             cmp  ${right.name}+1
                             bne  $afterIfLabel""")
                         asmgen.translate(stmt.ifScope)
@@ -1432,26 +1471,33 @@ _jump                       jmp  ($asmLabel)
                         translateAYEquals("$varName+$offset", "$varName+$offset+1")
                 }
             }
-            else {
-                when(right) {
-                    is PtNumber -> {
-                        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                        val value = right.number.toInt()
-                        if(notEquals)
-                            translateAYNotEquals("#<$value", "#>$value")
-                        else
-                            translateAYEquals("#<$value", "#>$value")
-                    }
-                    is PtIdentifier -> {
-                        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                        if(notEquals)
-                            translateAYNotEquals(right.name,right.name + "+1")
-                        else
-                            translateAYEquals(right.name, right.name + "+1")
-                    }
-                    else -> {
-                        TODO("non-fallback code for array ${left.index}  ${left.position}")
-                    }
+            else return when(right) {
+                is PtNumber -> {
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+                    val value = right.number.toInt()
+                    if(notEquals)
+                        translateAYNotEquals("#<$value", "#>$value")
+                    else
+                        translateAYEquals("#<$value", "#>$value")
+                }
+                is PtIdentifier -> {
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+                    if(notEquals)
+                        translateAYNotEquals(right.name,right.name + "+1")
+                    else
+                        translateAYEquals(right.name, right.name + "+1")
+                }
+                else -> {
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+                    asmgen.saveRegisterStack(CpuRegister.A, false)
+                    asmgen.saveRegisterStack(CpuRegister.Y, false)
+                    asmgen.assignExpressionToVariable(right,"P8ZP_SCRATCH_W1", right.type)
+                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                    asmgen.restoreRegisterStack(CpuRegister.A, false)
+                    if(notEquals)
+                        translateAYNotEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
+                    else
+                        translateAYNotEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
                 }
             }
         }
@@ -1493,7 +1539,13 @@ _jump                       jmp  ($asmLabel)
                             translateAYNotEquals(right.name, right.name + "+1")
                         }
                         else -> {
-                            TODO("non-fallback code for ${left}  ${left.position}")
+                            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+                            asmgen.saveRegisterStack(CpuRegister.A, false)
+                            asmgen.saveRegisterStack(CpuRegister.Y, false)
+                            asmgen.assignExpressionToVariable(right,"P8ZP_SCRATCH_W1", right.type)
+                            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                            asmgen.restoreRegisterStack(CpuRegister.A, false)
+                            translateAYNotEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
                         }
                     }
                 }
@@ -1535,7 +1587,13 @@ _jump                       jmp  ($asmLabel)
                             translateAYEquals(right.name, right.name + "+1")
                         }
                         else -> {
-                            TODO("non-fallback code for ${left}  ${left.position}")
+                            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+                            asmgen.saveRegisterStack(CpuRegister.A, false)
+                            asmgen.saveRegisterStack(CpuRegister.Y, false)
+                            asmgen.assignExpressionToVariable(right,"P8ZP_SCRATCH_W1", right.type)
+                            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                            asmgen.restoreRegisterStack(CpuRegister.A, false)
+                            translateAYEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
                         }
                     }
                 }

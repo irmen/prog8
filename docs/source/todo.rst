@@ -1,7 +1,10 @@
 TODO
 ====
 
-imageviewer is larger after the master-rebase!
+behind a -nostrictbool command line option:
+    re-allow conversion of const true/false back to ubytes 1 and 0?
+    re-allow conversion of const ubyte 0/1 to false/true boolean?
+    re-allow implicit typecast of boolean type to ubyte, and vice versa?
 
 
 
@@ -47,9 +50,3 @@ ok    ok     testmonogfx works
 ok    .      check program sizes vs. master branch
 ===== ====== =======
 
-
-re-allow typecast of const true/false back to ubytes 1 and 0?
-re-allow typecast of const ubyte 0/1 to false/true boolean?
-
-
-optimize translateIfByte() handling of shortcircuiting logical operators.
