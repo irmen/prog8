@@ -8,6 +8,7 @@
 ; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
 ;       You'll have to make sure yourself that you're not writing outside of bitmap boundaries!
 ;
+;  TODO: implement invert mode for horizontal lines (will fix disc and fillrect as well)
 
 monogfx {
 
@@ -16,7 +17,10 @@ monogfx {
     ; read-only control variables:
     uword width = 0
     uword height = 0
-    bool dont_stipple_flag = true            ; set to false to enable stippling mode
+    ubyte mode
+    const ubyte MODE_NORMAL  = %00000000
+    const ubyte MODE_STIPPLE = %00000001
+    const ubyte MODE_INVERT  = %00000010
 
     sub lores() {
         ; enable 320*240 bitmap mode
@@ -29,6 +33,7 @@ monogfx {
         cx16.VERA_L1_TILEBASE = 0
         width = 320
         height = 240
+        mode = MODE_NORMAL
         clear_screen(0)
     }
 
@@ -43,6 +48,7 @@ monogfx {
         cx16.VERA_L1_TILEBASE = %00000001
         width = 640
         height = 480
+        mode = MODE_NORMAL
         clear_screen(0)
     }
 
@@ -53,8 +59,11 @@ monogfx {
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
     }
 
+    sub drawmode(ubyte dm) {
+        mode = dm
+    }
+
     sub clear_screen(ubyte color) {
-        stipple(false)
         position(0, 0)
         when width {
             320 -> {
@@ -67,10 +76,6 @@ monogfx {
             }
         }
         position(0, 0)
-    }
-
-    sub stipple(bool enable) {
-        dont_stipple_flag = not enable
     }
 
     sub rect(uword xx, uword yy, uword rwidth, uword rheight, bool draw) {
@@ -122,8 +127,9 @@ monogfx {
                 bne  -
                 sta  cx16.r0L           ; new left byte
 +
-                lda  p8v_dont_stipple_flag
-                bne  _dontstipple
+                lda  p8v_mode
+                lsr  a
+                bcc  _dontstipple
                 ; determine stipple pattern
                 lda  p8v_yy
                 and  #1
@@ -163,7 +169,7 @@ _clear
 
         ubyte separate_pixels = (8-lsb(xx)) & 7
         if separate_pixels {
-            if dont_stipple_flag {
+            if mode!=MODE_STIPPLE {
                 position(xx,yy)
                 cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
                 if draw
@@ -194,8 +200,9 @@ _clear
                 bne  +
                 ldy  #0     ; black
                 bra  _loop
-+               lda  p8v_dont_stipple_flag
-                beq  _stipple
++               lda  p8v_mode
+                lsr  a
+                bcs  _stipple
                 ldy  #255       ; don't stipple
                 bra  _loop
 _stipple        lda  p8v_yy
@@ -216,7 +223,7 @@ _loop           lda  p8v_length
 _done
             }}
 
-            if dont_stipple_flag {
+            if mode!=MODE_STIPPLE {
                 cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
                 if draw
                     cx16.VERA_DATA0 |= masked_ends[separate_pixels]
@@ -253,7 +260,18 @@ _done
     sub vertical_line(uword xx, uword yy, uword lheight, bool draw) {
         cx16.r15L = monogfx.plot.maskbits[xx as ubyte & 7]           ; bitmask
         if draw {
-            if dont_stipple_flag {
+            %asm {{
+                lda  p8v_mode
+                and  #p8c_MODE_INVERT
+                beq  +
+                lda  #$45       ; eor ZP
+                sta  drawmode
+                bra  ++
++               lda  #$05       ; ora ZP
+                sta  drawmode
++
+         }}
+            if mode!=MODE_STIPPLE {
                 ; draw continuous line.
                 position2(xx,yy,true)
                 if width==320
@@ -263,7 +281,7 @@ _done
                 repeat lheight {
                     %asm {{
                         lda  cx16.VERA_DATA0
-                        ora  cx16.r15L
+drawmode:               ora  cx16.r15L
                         sta  cx16.VERA_DATA1
                     }}
                 }
@@ -554,8 +572,13 @@ _done
         if draw {
             ; solid color or perhaps stipple
             %asm {{
-                lda  p8v_dont_stipple_flag
-                bne  p8l_nostipple
+                lda  p8v_mode
+                lsr  a
+                bcs  +
+                lsr  a
+                bcs  p8l_invert
+                bra  p8l_nostipple
++               ; stipple mode
                 lda  p8v_xx
                 eor  p8v_yy
                 and  #1
@@ -574,6 +597,16 @@ nostipple:
                 trb  cx16.VERA_DATA0
             }}
         }
+        return
+
+invert:
+        prepare()
+        %asm {{
+            lda  cx16.VERA_DATA0
+            eor  p8v_maskbits,y
+            sta  cx16.VERA_DATA0
+        }}
+        return
 
         sub prepare() {
             %asm {{

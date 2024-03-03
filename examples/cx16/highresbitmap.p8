@@ -23,17 +23,17 @@ main {
 
         yy = 20
         xx = 20
-        monogfx.stipple(false)
+        monogfx.drawmode(monogfx.MODE_NORMAL)
         monogfx.rect(xx, yy, 250, 80, 1)
-        monogfx.stipple(true)
+        monogfx.drawmode(monogfx.MODE_STIPPLE)
         monogfx.fillrect(xx+2, yy+2, 250-4, 80-4, 1)
-        monogfx.stipple(false)
+        monogfx.drawmode(monogfx.MODE_NORMAL)
         monogfx.fillrect(xx+20, yy+20, 200, 30, 1)
         monogfx.rect(xx+21, yy+21, 200-2, 30-2, 0)
 
         monogfx.text(xx+30, yy+32, 0, sc:"High Res Bitmap Example")
 
-        ; monogfx.stipple(true)
+        ; monogfx.drawmode(monogfx.MODE_STIPPLE)
         monogfx.horizontal_line(10, 240, 620, 1)
         monogfx.vertical_line(320, 10, 460, 1)
         monogfx.text(320, 242, 1, sc:"0,0")
@@ -48,7 +48,7 @@ main {
             monogfx.horizontal_line(319, yy, 3, 1)
         }
 
-        monogfx.stipple(false)
+        monogfx.drawmode(monogfx.MODE_NORMAL)
         float y_f
         for ww in -600 to 600 {
             y_f = floats.sin(ww as float / 60.0)*150
@@ -68,14 +68,15 @@ main {
         monogfx.circle(320, 240, 210, 1)
         monogfx.circle(320, 240, 200, 1)
         monogfx.circle(320, 240, 190, 1)
-        monogfx.stipple(true)
+        monogfx.drawmode(monogfx.MODE_STIPPLE)
         monogfx.disc(320, 240, 140, 1)
-        monogfx.stipple(false)
+        monogfx.drawmode(monogfx.MODE_NORMAL)
         monogfx.disc(320, 240, 90, 1)
         monogfx.disc(320, 240, 40, 0)
 
         sys.wait(2*60)
 
+        monogfx.drawmode(monogfx.MODE_INVERT)
         repeat 255
             monogfx.line(math.rndw() % 640, math.rndw() % 480, math.rndw() % 640, math.rndw() % 480, 1)
 

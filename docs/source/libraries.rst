@@ -612,7 +612,7 @@ Same interface as gfx2, but is optimized for monochrome (1 bpp) screens.
 - drawing lines, rectangles, filled rectangles, circles, discs
 - flood fill
 - drawing text inside the bitmap
-- can draw using a stipple pattern (alternate black/white pixels)
+- can draw using a stipple pattern (alternate black/white pixels) and in invert mode (toggle pixels)
 
 Read the `monogfx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/monogfx.p8>`_
 to see what's in there.

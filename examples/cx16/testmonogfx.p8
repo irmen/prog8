@@ -9,12 +9,12 @@
 main {
 
     sub start() {
-        monogfx.lores()
-        demofill()
-        sys.wait(2*60)
-        monogfx.hires()
-        demo1()
-        sys.wait(2*60)
+;        monogfx.lores()
+;        demofill()
+;        sys.wait(2*60)
+;        monogfx.hires()
+;        demo1()
+;        sys.wait(2*60)
         demo2()
 
         monogfx.textmode()
@@ -26,7 +26,7 @@ main {
         monogfx.rect(180, 5, 25, 190, true)
         monogfx.line(100, 150, 240, 10, true)
         monogfx.line(101, 150, 241, 10, true)
-        monogfx.stipple(true)
+        monogfx.drawmode(monogfx.MODE_STIPPLE)
         sys.wait(60)
         monogfx.fill(100,100,true)
     }
@@ -36,7 +36,7 @@ main {
         uword xx
         uword cnt
 
-        monogfx.stipple(true)
+        monogfx.drawmode(monogfx.MODE_STIPPLE)
         monogfx.disc(320,240,200,true)
         for xx in 0 to 639 {
             monogfx.vertical_line(xx, 0, 480, true)
@@ -47,10 +47,10 @@ main {
 
         xx=monogfx.width/2
         yy=10
-        monogfx.stipple(false)
+        monogfx.drawmode(monogfx.MODE_NORMAL)
         linesy()
         linesx()
-        monogfx.stipple(true)
+        monogfx.drawmode(monogfx.MODE_STIPPLE)
         linesy()
         linesx()
 
@@ -145,10 +145,16 @@ main {
         monogfx.text_charset(3)
         monogfx.lores()
         draw()
-        sys.wait(200)
+        sys.wait(100)
         monogfx.hires()
         draw()
-        sys.wait(200)
+        sys.wait(100)
+        monogfx.drawmode(monogfx.MODE_INVERT)
+        repeat 7 {
+            for cx16.r8 in 100 to 400 {
+                monogfx.vertical_line(cx16.r8, 0, 400, true)
+            }
+        }
     }
 
     sub draw() {

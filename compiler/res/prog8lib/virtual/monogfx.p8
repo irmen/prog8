@@ -12,13 +12,17 @@ monogfx {
     ; read-only control variables:
     uword width = 0
     uword height = 0
-    bool dont_stipple_flag = true            ; set to false to enable stippling mode
+    ubyte mode
+    const ubyte MODE_NORMAL  = %00000000
+    const ubyte MODE_STIPPLE = %00000001
+    const ubyte MODE_INVERT  = %00000010
 
     sub lores() {
         ; enable 320*240 bitmap mode
         sys.gfx_enable(0)
         width = 320
         height = 240
+        mode = MODE_NORMAL
         clear_screen(0)
     }
 
@@ -27,6 +31,7 @@ monogfx {
         sys.gfx_enable(1)
         width = 640
         height = 480
+        mode = MODE_NORMAL
         clear_screen(0)
     }
 
@@ -34,15 +39,14 @@ monogfx {
         ; back to normal text mode
     }
 
+    sub drawmode(ubyte dm) {
+        mode = dm
+    }
+
     sub clear_screen(ubyte color) {
-        stipple(false)
         if color
             color=255
         sys.gfx_clear(color)
-    }
-
-    sub stipple(bool enable) {
-        dont_stipple_flag = not enable
     }
 
     sub rect(uword xx, uword yy, uword rwidth, uword rheight, bool draw) {
@@ -337,13 +341,19 @@ monogfx {
 
     sub plot(uword @zp xx, uword @zp yy, bool @zp draw) {
         if draw {
-            if dont_stipple_flag
-                sys.gfx_plot(xx, yy, 255)
-            else {
-                if (xx ^ yy)&1
+            when mode {
+                MODE_NORMAL -> {
                     sys.gfx_plot(xx, yy, 255)
-                else
-                    sys.gfx_plot(xx, yy, 0)
+                }
+                MODE_STIPPLE -> {
+                    if (xx ^ yy)&1
+                        sys.gfx_plot(xx, yy, 255)
+                    else
+                        sys.gfx_plot(xx, yy, 0)
+                }
+                MODE_INVERT -> {
+                    sys.gfx_plot(xx, yy, 255 ^ sys.gfx_getpixel(xx, yy))
+                }
             }
         }
         else

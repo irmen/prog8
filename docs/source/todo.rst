@@ -1,17 +1,7 @@
 TODO
 ====
 
-larger programs:
-dirlist
-bobs
-cobramk3-gfx
-automatons
-mandelbrot (quite a bit larger)
-mandelbrot-gfx
-maze
-textelite
-rockrunner is quite a bit larger
-
+cx16.monogfx: add invert mode support to horizontal line routine, and text routine
 
 replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
 
@@ -64,7 +54,7 @@ Compiler:
 
 Libraries:
 
-- monogfx: add EOR mode support next to Stipple. See PAINT for inspiration.  Can this also be added to gfx2?  Self modifying code to keep it optimized?
+- gfx2: add EOR mode support line in monogfx and see PAINT for inspiration.  Self modifying code to keep it optimized?
 - conv: the routines could return the address of conv.string_out, and/or there could be versions that take the address of a different buffer and use it instead.
 - once kernal rom v47 is released, remove most of the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
