@@ -13,8 +13,6 @@ textelite
 rockrunner is quite a bit larger
 
 
-optimize optimizedPlusMinExpr for when comparing to simple things like number and identifier.
-
 replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
 
 ...

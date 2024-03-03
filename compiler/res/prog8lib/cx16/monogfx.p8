@@ -554,12 +554,14 @@ _done
         if draw {
             ; solid color or perhaps stipple
             %asm {{
+                lda  p8v_dont_stipple_flag
+                bne  p8l_nostipple
                 lda  p8v_xx
                 eor  p8v_yy
-                ora  p8v_dont_stipple_flag
                 and  #1
             }}
             if_nz {
+nostipple:
                 prepare()
                 %asm {{
                     tsb  cx16.VERA_DATA0
