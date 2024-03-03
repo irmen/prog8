@@ -1,13 +1,6 @@
 TODO
 ====
 
-behind a -nostrictbool command line option:
-    re-allow conversion of const true/false back to ubytes 1 and 0?
-    re-allow conversion of const ubyte 0/1 to false/true boolean?
-    re-allow implicit typecast of boolean type to ubyte, and vice versa?
-
-
-
 ===== ====== =======
 VM    6502   what
 ===== ====== =======
@@ -47,6 +40,6 @@ ok    ok     efficient code for if_cc conditional expressions
 ok    ok     while boolean  should produce identical code as  while integer!=0  and code should be efficient
 ok    ok     while not boolvar  -> can we get rid of the cmp? (6502 only?)
 ok    ok     testmonogfx works
-ok    .      check program sizes vs. master branch
+ok    o      check program sizes vs. master branch
 ===== ====== =======
 
