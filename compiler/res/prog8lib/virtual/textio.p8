@@ -158,7 +158,7 @@ sub setchr (ubyte col, ubyte row, ubyte char) {
 
 sub petscii2scr(ubyte petscii_char) -> ubyte {
     ; -- convert petscii character to screencode
-    byte[8] offsets = [128, 0, 64, 32, 64, 192, 128, 128]
+    ubyte[8] offsets = [128, 0, 64, 32, 64, 192, 128, 128]
     return petscii_char ^ offsets[petscii_char>>5]
 }
 

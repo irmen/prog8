@@ -233,7 +233,7 @@ class AsmGen6502Internal (
     private val functioncallAsmGen = FunctionCallAsmGen(program, this)
     private val programGen = ProgramAndVarsGen(program, options, errors, symbolTable, functioncallAsmGen, this, allocator, zeropage)
     private val anyExprGen = AnyExprAsmGen(this)
-    private val assignmentAsmGen = AssignmentAsmGen(program, this, anyExprGen, allocator)
+    private val assignmentAsmGen = AssignmentAsmGen(program, this, options, anyExprGen, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, allocator, assignmentAsmGen, errors)
 

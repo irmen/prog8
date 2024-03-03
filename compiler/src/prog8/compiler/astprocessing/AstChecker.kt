@@ -967,8 +967,10 @@ internal class AstChecker(private val program: Program,
                 errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
         }
         else if(expr.operator == "not") {
-            if(dt!=DataType.BOOL)
-                errors.err("logical not is for booleans", expr.position)
+            if(dt!=DataType.BOOL) {
+                if(compilerOptions.strictBool || dt !in ByteDatatypes)
+                    errors.err("logical not is for booleans", expr.position)
+            }
         }
         super.visit(expr)
     }
@@ -1085,8 +1087,10 @@ internal class AstChecker(private val program: Program,
 
 
         if(expr.operator in LogicalOperators) {
-            if (leftDt != DataType.BOOL || rightDt != DataType.BOOL)
-                errors.err("logical operator requires boolean operands", expr.right.position)
+            if (leftDt != DataType.BOOL || rightDt != DataType.BOOL) {
+                if(compilerOptions.strictBool || leftDt !in ByteDatatypes || rightDt !in ByteDatatypes)
+                    errors.err("logical operator requires boolean operands", expr.right.position)
+            }
         }
         else {
             if (leftDt == DataType.BOOL || rightDt == DataType.BOOL) {

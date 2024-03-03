@@ -11,6 +11,7 @@ import prog8.codegen.cpu6502.returnsWhatWhere
 
 internal class AssignmentAsmGen(private val program: PtProgram,
                                 private val asmgen: AsmGen6502Internal,
+                                private val options: CompilationOptions,
                                 private val anyExprGen: AnyExprAsmGen,
                                 private val allocator: VariableAllocator) {
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
@@ -59,7 +60,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 val variable = assign.source.asmVarname
                 when (assign.target.datatype) {
                     DataType.BOOL -> {
-                        if (assign.source.datatype == DataType.BOOL) assignVariableByte(assign.target, variable)
+                        if (assign.source.datatype == DataType.BOOL || !options.strictBool) assignVariableByte(assign.target, variable)
                         else throw AssemblyError("assigning non-bool variable to boolean, should have been typecasted")
                     }
                     DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
