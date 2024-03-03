@@ -24,6 +24,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val valueDt = declValue.inferType(program)
             if(valueDt isnot decl.datatype) {
 
+                if(decl.isArray && !options.strictBool) {
+                    tryConvertBooleanArrays(decl, declValue, parent)
+                }
+
                 if(valueDt.isInteger && decl.isArray) {
                     if(decl.datatype == DataType.ARRAY_BOOL) {
                         val integer = declValue.constValue(program)?.number
@@ -47,6 +51,62 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             }
         }
         return noModifications
+    }
+
+    private fun tryConvertBooleanArrays(decl: VarDecl, declValue: Expression, parent: Node) {
+        val valueNumber = declValue.constValue(program)
+        val valueArray = declValue as? ArrayLiteral
+        when (decl.datatype) {
+            DataType.ARRAY_BOOL -> {
+                if(valueNumber!=null) {
+                    decl.value = NumericLiteral.fromBoolean(valueNumber.number!=0.0, declValue.position)
+                    decl.linkParents(parent)
+                } else if(valueArray!=null) {
+                    val newArray = valueArray.value.map {
+                        if(it.inferType(program).isBytes) {
+                            TypecastExpression(it, DataType.BOOL, false, it.position)
+                        } else {
+                            it
+                        }
+                    }
+                    decl.value = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_BOOL), newArray.toTypedArray(), valueArray.position)
+                    decl.linkParents(parent)
+                }
+            }
+            DataType.ARRAY_B -> {
+                if(valueNumber!=null) {
+                    decl.value = NumericLiteral(DataType.BYTE, if(valueNumber.asBooleanValue) 1.0 else 0.0, declValue.position)
+                    decl.linkParents(parent)
+                } else if(valueArray!=null) {
+                    val newArray = valueArray.value.map {
+                        if(it.inferType(program).isBool) {
+                            TypecastExpression(it, DataType.BYTE, false, it.position)
+                        } else {
+                            it
+                        }
+                    }
+                    decl.value = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_B), newArray.toTypedArray(), valueArray.position)
+                    decl.linkParents(parent)
+                }
+            }
+            DataType.ARRAY_UB -> {
+                if(valueNumber!=null) {
+                    decl.value = NumericLiteral(DataType.UBYTE, if(valueNumber.asBooleanValue) 1.0 else 0.0, declValue.position)
+                    decl.linkParents(parent)
+                } else if(valueArray!=null) {
+                    val newArray = valueArray.value.map {
+                        if(it.inferType(program).isBool) {
+                            TypecastExpression(it, DataType.UBYTE, false, it.position)
+                        } else {
+                            it
+                        }
+                    }
+                    decl.value = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), newArray.toTypedArray(), valueArray.position)
+                    decl.linkParents(parent)
+                }
+            }
+            else -> { /* no casting possible */ }
+        }
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
@@ -192,6 +252,17 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(cvalue!=null) {
                         val number = cvalue.number
                         // more complex comparisons if the type is different, but the constant value is compatible
+                        if(!options.strictBool) {
+                            if (targettype == DataType.BOOL && valuetype in ByteDatatypes) {
+                                return castLiteral(cvalue)
+                            }
+                            if (targettype == DataType.UBYTE && valuetype == DataType.BOOL) {
+                                return castLiteral(cvalue)
+                            }
+                            if (targettype == DataType.BYTE && valuetype == DataType.BOOL) {
+                                return castLiteral(cvalue)
+                            }
+                        }
                         if (valuetype == DataType.BYTE && targettype == DataType.UBYTE) {
                             if(number>0)
                                 return castLiteral(cvalue)

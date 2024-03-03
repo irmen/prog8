@@ -41,7 +41,8 @@ internal fun compileFile(
         splitWordArrays = false,
         breakpointCpuInstruction = null,
         printAst1 = false,
-        printAst2 = false
+        printAst2 = false,
+        strictBool = true
     )
     return compileProgram(args)
 }

@@ -40,6 +40,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             breakpointCpuInstruction = null,
             printAst1 = false,
             printAst2 = false,
+            strictBool = true,
             symbolDefs = emptyMap(),
             sourceDirs,
             outputDir

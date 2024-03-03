@@ -5,13 +5,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.ComparisonOperators
-import prog8.code.core.DataType
-import prog8.code.core.IErrorReporter
-import prog8.code.core.Position
+import prog8.code.core.*
 
 
-internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {
+internal class CodeDesugarer(val program: Program, private val options: CompilationOptions, private val errors: IErrorReporter) : AstWalker() {
 
     // Some more code shuffling to simplify the Ast that the codegenerator has to process.
     // Several changes have already been done by the StatementReorderer !
@@ -125,8 +122,11 @@ if not CONDITION
 
     override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
 
-        if(!whileLoop.condition.inferType(program).isBool)
-            errors.err("condition should be a boolean", whileLoop.condition.position)
+        if(!whileLoop.condition.inferType(program).isBool) {
+            val ctype = whileLoop.condition.inferType(program).getOr(DataType.UNDEFINED)
+            if(options.strictBool || ctype !in ByteDatatypes)
+                errors.err("condition should be a boolean", whileLoop.condition.position)
+        }
 
         /*
         while true -> repeat

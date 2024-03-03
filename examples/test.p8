@@ -5,22 +5,34 @@
 
 main {
     sub start() {
-        word @shared w = -20
-        word[] warr = [-1111, -2222, -3333]
-        word[] @split swarr = [-1111, -2222, -3333]
+        cx16.r0L = true
+        cx16.r1L = false
 
-        cx16.r0L=1
-        if warr[cx16.r0L] > 0
-            txt.print("yep1")
+        bool @shared bzz = 1
+        ubyte @shared ubb = true
 
-        if warr[cx16.r0L] <= 0
-            txt.print("yep2")
+        bool @shared bb1, bb2
+        bb1 = 0
+        bb2 = 44
 
-        if swarr[cx16.r0L] > 0
-            txt.print("yep3")
+        ; bool[3] barr1 = 42
+        byte[3] @shared sbarr1 = true
+        ubyte[3] @shared ubarr1 = true
 
-        if swarr[cx16.r0L] <= 0
-            txt.print("yep4")
+        bool[] @shared boolarray = [1,0]
+        bool[] @shared boolarray2 = [42,0,false]
+        byte[] @shared sba = [true, false]
+        byte[] @shared sba2 = [true, false, 42]
+        ubyte[] @shared uba = [true, false]
+        ubyte[] @shared uba2 = [true, false, 42]
+
+        txt.print_ubhex(bb1, 1)
+        txt.print_ubhex(bb2, 42)
+        txt.print_ubhex(bb2, cx16.r0L)
+
+        if cx16.r0L {
+            cx16.r0L++
+        }
     }
 }
 

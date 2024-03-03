@@ -270,7 +270,11 @@ class VarConstantValueTypeAdjuster(
 // Replace all constant identifiers with their actual value,
 // and the array var initializer values and sizes.
 // This is needed because further constant optimizations depend on those.
-internal class ConstantIdentifierReplacer(private val program: Program, private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
+internal class ConstantIdentifierReplacer(
+    private val program: Program,
+    private val options: CompilationOptions,
+    private val errors: IErrorReporter
+) : AstWalker() {
 
     override fun before(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
         val constValue = addressOf.constValue(program)
@@ -472,7 +476,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                 if(rangeExpr==null && numericLv!=null) {
                     // arraysize initializer is a single int, and we know the array size.
                     val fillvalue = numericLv.number
-                    if (fillvalue < compTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > compTarget.machine.FLOAT_MAX_POSITIVE)
+                    if (fillvalue < options.compTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > options.compTarget.machine.FLOAT_MAX_POSITIVE)
                         errors.err("float value overflow", numericLv.position)
                     else {
                         val array = Array(size) {fillvalue}.map { NumericLiteral(DataType.FLOAT, it, numericLv.position) }.toTypedArray<Expression>()
@@ -486,7 +490,8 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                 if(numericLv!=null) {
                     // arraysize initializer is a single value, and we know the array size.
                     if(numericLv.type!=DataType.BOOL) {
-                        errors.err("initializer value is not a boolean", numericLv.position)
+                        if(options.strictBool || numericLv.type !in ByteDatatypes)
+                            errors.err("initializer value is not a boolean", numericLv.position)
                         return null
                     }
                     val array = Array(size) {numericLv.number}.map { NumericLiteral(DataType.BOOL, it, numericLv.position) }.toTypedArray<Expression>()

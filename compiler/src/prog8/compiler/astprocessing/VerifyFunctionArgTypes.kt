@@ -7,7 +7,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
 
-internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorReporter) : IAstVisitor {
+internal class VerifyFunctionArgTypes(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : IAstVisitor {
 
     override fun visit(program: Program) {
         super.visit(program)
@@ -41,7 +41,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
     private val memorySlabs = mutableListOf<Slab>()
 
     override fun visit(functionCallExpr: FunctionCallExpression) {
-        val error = checkTypes(functionCallExpr as IFunctionCall, program)
+        val error = checkTypes(functionCallExpr as IFunctionCall, program, options)
         if(error!=null)
             errors.err(error.first, error.second)
         else {
@@ -62,7 +62,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
-        val error = checkTypes(functionCallStatement as IFunctionCall, program)
+        val error = checkTypes(functionCallStatement as IFunctionCall, program, options)
         if(error!=null)
             errors.err(error.first, error.second)
 
@@ -85,7 +85,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
             return false
         }
 
-        fun checkTypes(call: IFunctionCall, program: Program): Pair<String, Position>? {
+        fun checkTypes(call: IFunctionCall, program: Program, options: CompilationOptions): Pair<String, Position>? {
             val argITypes = call.args.map { it.inferType(program) }
             val firstUnknownDt = argITypes.indexOfFirst { it.isUnknown }
             if(firstUnknownDt>=0) {
@@ -105,7 +105,12 @@ internal class VerifyFunctionArgTypes(val program: Program, val errors: IErrorRe
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch]
                     val expected = consideredParamTypes[mismatch]
-                    return Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
+                    return if(expected==DataType.BOOL && !options.strictBool && actual in ByteDatatypes)
+                        null
+                    else if(expected in ByteDatatypes && !options.strictBool && actual==DataType.BOOL)
+                        null
+                    else
+                        Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
                 }
                 if(target.isAsmSubroutine) {
                     if(target.asmReturnvaluesRegisters.size>1) {

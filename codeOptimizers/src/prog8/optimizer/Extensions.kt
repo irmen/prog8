@@ -12,7 +12,7 @@ fun Program.constantFold(errors: IErrorReporter, options: CompilationOptions) {
     if(errors.noErrors()) {
         valuetypefixer.applyModifications()
 
-        val replacer = ConstantIdentifierReplacer(this, errors, options.compTarget)
+        val replacer = ConstantIdentifierReplacer(this, options, errors)
         replacer.visit(this)
         if (errors.noErrors()) {
             replacer.applyModifications()

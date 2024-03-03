@@ -150,8 +150,11 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(ifElse: IfElse) {
-        if(!ifElse.condition.inferType(program).isBool)
-            errors.err("condition should be a boolean", ifElse.condition.position)
+        if(!ifElse.condition.inferType(program).isBool) {
+            val ctype = ifElse.condition.inferType(program).getOr(DataType.UNDEFINED)
+            if(compilerOptions.strictBool || ctype !in ByteDatatypes)
+                errors.err("condition should be a boolean", ifElse.condition.position)
+        }
 
         val constvalue = ifElse.condition.constValue(program)
         if(constvalue!=null) {
@@ -476,15 +479,21 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(untilLoop: UntilLoop) {
-        if(!untilLoop.condition.inferType(program).isBool)
-            errors.err("condition should be a boolean", untilLoop.condition.position)
+        if(!untilLoop.condition.inferType(program).isBool) {
+            val ctype = untilLoop.condition.inferType(program).getOr(DataType.UNDEFINED)
+            if(compilerOptions.strictBool || ctype !in ByteDatatypes)
+                errors.err("condition should be a boolean", untilLoop.condition.position)
+        }
 
         super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        if(!whileLoop.condition.inferType(program).isBool)
-            errors.err("condition should be a boolean", whileLoop.condition.position)
+        if(!whileLoop.condition.inferType(program).isBool) {
+            val ctype = whileLoop.condition.inferType(program).getOr(DataType.UNDEFINED)
+            if(compilerOptions.strictBool || ctype !in ByteDatatypes)
+                errors.err("condition should be a boolean", whileLoop.condition.position)
+        }
 
         super.visit(whileLoop)
     }
@@ -697,7 +706,9 @@ internal class AstChecker(private val program: Program,
                 if(decl.isArray) {
                     val eltDt = ArrayToElementTypes.getValue(decl.datatype)
                     if(iDt isnot eltDt) {
-                        if(!(iDt.isBool && eltDt==DataType.UBYTE || iDt.istype(DataType.UBYTE) && eltDt==DataType.BOOL))
+                        if(compilerOptions.strictBool)
+                            err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                        else if(!(iDt.isBool && eltDt==DataType.UBYTE || iDt.istype(DataType.UBYTE) && eltDt==DataType.BOOL))
                             err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                     }
                 } else {
@@ -1153,7 +1164,7 @@ internal class AstChecker(private val program: Program,
                 errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCallExpr.args.first().position)
         }
 
-        val error = VerifyFunctionArgTypes.checkTypes(functionCallExpr, program)
+        val error = VerifyFunctionArgTypes.checkTypes(functionCallExpr, program, compilerOptions)
         if(error!=null)
             errors.err(error.first, error.second)
 
@@ -1256,7 +1267,7 @@ internal class AstChecker(private val program: Program,
 
         }
 
-        val error = VerifyFunctionArgTypes.checkTypes(functionCallStatement, program)
+        val error = VerifyFunctionArgTypes.checkTypes(functionCallStatement, program, compilerOptions)
         if(error!=null)
             errors.err(error.first, error.second)
 
@@ -1645,8 +1656,10 @@ internal class AstChecker(private val program: Program,
                     return err("value '$number' out of range for word")
             }
             DataType.BOOL -> {
-                if(value.type!=DataType.BOOL)
-                    err("type of value ${value.type} doesn't match target $targetDt")
+                if (value.type!=DataType.BOOL) {
+                    if (compilerOptions.strictBool || value.type !in ByteDatatypes)
+                        err("type of value ${value.type} doesn't match target $targetDt")
+                }
             }
             in ArrayDatatypes -> {
                 val eltDt = ArrayToElementTypes.getValue(targetDt)
@@ -1744,6 +1757,14 @@ internal class AstChecker(private val program: Program,
         }
         else if(targetDatatype==DataType.UWORD && sourceDatatype in PassByReferenceDatatypes) {
             // this is allowed: a pass-by-reference datatype into a uword (pointer value).
+        }
+        else if(sourceDatatype==DataType.BOOL && targetDatatype!=DataType.BOOL) {
+            if(compilerOptions.strictBool || targetDatatype !in ByteDatatypes)
+                errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
+        }
+        else if(targetDatatype==DataType.BOOL && sourceDatatype!=DataType.BOOL) {
+            if(compilerOptions.strictBool || sourceDatatype !in ByteDatatypes)
+                errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
         else {
             errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)

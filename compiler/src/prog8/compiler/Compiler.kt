@@ -48,6 +48,7 @@ class CompilerArguments(val filepath: Path,
                         val breakpointCpuInstruction: String?,
                         val printAst1: Boolean,
                         val printAst2: Boolean,
+                        val strictBool: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -93,6 +94,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 splitWordArrays = args.splitWordArrays
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
+                strictBool = args.strictBool
             }
             program = programresult
             importedFiles = imported
@@ -404,7 +406,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.reorderStatements(errors)
     errors.report()
-    program.desugaring(errors)
+    program.desugaring(errors, compilerOptions)
     errors.report()
     program.changeNotExpressionAndIfComparisonExpr(errors, compilerOptions.compTarget)
     errors.report()
@@ -448,13 +450,13 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
 }
 
 private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    program.desugaring(errors)
+    program.desugaring(errors, compilerOptions)
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(errors, compilerOptions)
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
-    program.verifyFunctionArgTypes(errors)
+    program.verifyFunctionArgTypes(errors, compilerOptions)
     errors.report()
     program.moveMainBlockAsFirst()
     program.checkValid(errors, compilerOptions)          // check if final tree is still valid
