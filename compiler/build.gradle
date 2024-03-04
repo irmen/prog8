@@ -105,7 +105,7 @@ test {
 gversion {
     srcDir       = "src/"           // path is relative to the sub-project by default
     classPackage = "prog8.buildversion"
-    className    = "BuildVersion"
+    className    = "Version"
     language     = "kotlin"
 }
 

@@ -54,7 +54,7 @@ Compiler:
 
 Libraries:
 
-- gfx2: add EOR mode support line in monogfx and see PAINT for inspiration.  Self modifying code to keep it optimized?
+- gfx2: add EOR mode support like in monogfx and see PAINT for inspiration.  Self modifying code to keep it optimized?
 - conv: the routines could return the address of conv.string_out, and/or there could be versions that take the address of a different buffer and use it instead.
 - once kernal rom v47 is released, remove most of the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
