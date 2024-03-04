@@ -25,7 +25,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if(valueDt isnot decl.datatype) {
 
                 if(decl.isArray && !options.strictBool) {
-                    tryConvertBooleanArrays(decl, declValue, parent)
+                    if(tryConvertBooleanArrays(decl, declValue, parent))
+                        return noModifications
                 }
 
                 if(valueDt.isInteger && decl.isArray) {
@@ -53,7 +54,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         return noModifications
     }
 
-    private fun tryConvertBooleanArrays(decl: VarDecl, declValue: Expression, parent: Node) {
+    private fun tryConvertBooleanArrays(decl: VarDecl, declValue: Expression, parent: Node): Boolean {
         val valueNumber = declValue.constValue(program)
         val valueArray = declValue as? ArrayLiteral
         when (decl.datatype) {
@@ -61,6 +62,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 if(valueNumber!=null) {
                     decl.value = NumericLiteral.fromBoolean(valueNumber.number!=0.0, declValue.position)
                     decl.linkParents(parent)
+                    return true
                 } else if(valueArray!=null) {
                     val newArray = valueArray.value.map {
                         if(it.inferType(program).isBytes) {
@@ -71,12 +73,14 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                     decl.value = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_BOOL), newArray.toTypedArray(), valueArray.position)
                     decl.linkParents(parent)
+                    return true
                 }
             }
             DataType.ARRAY_B -> {
                 if(valueNumber!=null) {
                     decl.value = NumericLiteral(DataType.BYTE, if(valueNumber.asBooleanValue) 1.0 else 0.0, declValue.position)
                     decl.linkParents(parent)
+                    return true
                 } else if(valueArray!=null) {
                     val newArray = valueArray.value.map {
                         if(it.inferType(program).isBool) {
@@ -87,12 +91,14 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                     decl.value = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_B), newArray.toTypedArray(), valueArray.position)
                     decl.linkParents(parent)
+                    return true
                 }
             }
             DataType.ARRAY_UB -> {
                 if(valueNumber!=null) {
                     decl.value = NumericLiteral(DataType.UBYTE, if(valueNumber.asBooleanValue) 1.0 else 0.0, declValue.position)
                     decl.linkParents(parent)
+                    return true
                 } else if(valueArray!=null) {
                     val newArray = valueArray.value.map {
                         if(it.inferType(program).isBool) {
@@ -103,10 +109,12 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                     decl.value = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), newArray.toTypedArray(), valueArray.position)
                     decl.linkParents(parent)
+                    return true
                 }
             }
             else -> { /* no casting possible */ }
         }
+        return false
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
@@ -486,7 +494,6 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         }
         return noModifications
     }
-
 
     private fun addTypecastOrCastedValueModification(
         modifications: MutableList<IAstModification>,

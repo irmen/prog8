@@ -1,6 +1,11 @@
 TODO
 ====
 
+the not changed (master branch) Petaxian compiled with -nostrictbool is a lot smaller than the updated (boolean branch) compiled without.
+What is the difference!
+
+
+
 ===== ====== =======
 VM    6502   what
 ===== ====== =======
