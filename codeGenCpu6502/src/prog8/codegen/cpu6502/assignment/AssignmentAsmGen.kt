@@ -1396,6 +1396,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             // non short-circuit evaluation is *likely* shorter and faster because of the simple operands.
             assignResultIntoA(expr.right, expr.operator, expr.left)
         } else {
+            // non short-circuit evaluation is *likely* shorter and faster because of the simple operands.
             assignResultIntoA(expr.left, expr.operator, expr.right)
         }
 

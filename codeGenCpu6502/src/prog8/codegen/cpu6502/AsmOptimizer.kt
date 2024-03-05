@@ -540,6 +540,24 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
                 mods += Modification(lines[3].index, true, null)
             }
         }
+
+        /*
+    beq  +
+    lda  #1
++
+    beq  label_xxxx_shortcut   /  bne label_xxxx_shortcut
+or *_afterif labels.
+
+This gets generated after certain if conditions, and only the branch instruction is needed in these cases.
+         */
+
+        if(tfirst=="beq  +" && tsecond=="lda  #1" && tthird=="+") {
+            if((tfourth.startsWith("beq  label_") || tfourth.startsWith("bne  label_")) && (tfourth.endsWith("_shortcut") || tfourth.endsWith("_afterif"))) {
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, true, null))
+                mods.add(Modification(lines[2].index, true, null))
+            }
+        }
     }
     return mods
 }
