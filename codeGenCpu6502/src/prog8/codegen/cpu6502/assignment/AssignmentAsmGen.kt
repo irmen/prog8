@@ -282,7 +282,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
             is PtPrefix -> {
                 if(assign.target.array==null) {
-                    if(assign.source.datatype==assign.target.datatype) {
+                    if(assign.source.datatype isAssignableTo assign.target.datatype || (assign.source.datatype==DataType.BOOL && assign.target.datatype in ByteDatatypes)) {
                         if(assign.source.datatype in IntegerDatatypesWithBoolean) {
                             val signed = assign.source.datatype in SignedDatatypes
                             if(assign.source.datatype in ByteDatatypesWithBoolean) {

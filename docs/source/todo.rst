@@ -2,7 +2,19 @@ TODO
 ====
 
 the not changed (master branch) Petaxian compiled with -nostrictbool is a lot smaller than the updated (boolean branch) compiled without.
-What is the difference!
+What is the difference! ...:
+
+    beq  +
+    lda  #1
+[possibly another label here]
++   beq  label_xxxx_shortcut   /  bne label_xxxx_shortcut
+or *_afterif labels.
+
+if x>=GUN_MAX_RIGHT and not leftmost          ; uses many Scratch vars ...
+    ...
+
+--> add more special cases for PrefixExpression "not" to IfElseAsmgen?  AssignmentAsmgen?
+
 
 
 

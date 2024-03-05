@@ -19,7 +19,7 @@ import kotlin.math.pow
 
 // TODO add more peephole expression optimizations? Investigate what optimizations binaryen has?
 
-class ExpressionSimplifier(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
+class ExpressionSimplifier(private val program: Program, private val options: CompilationOptions, private val errors: IErrorReporter) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
 
@@ -249,50 +249,94 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
         }
 
-        if(leftDt==DataType.BOOL) {
-            // optimize boolean constant comparisons
-            if(expr.operator=="==" && rightVal?.number==1.0)
-                return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
-            if(expr.operator=="!=" && rightVal?.number==0.0)
-                return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+        // optimize boolean constant comparisons
+        if(expr.operator=="==") {
+            if(rightDt==DataType.BOOL && leftDt==DataType.BOOL) {
+                if(rightVal?.asBooleanValue==true)
+                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                else
+                    return listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+            }
+            if (rightVal?.number == 1.0) {
+                if (options.strictBool) {
+                    if (rightDt != leftDt) {
+                        val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
+                        return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                    }
+                } else
+                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+            }
+            else if (rightVal?.number == 0.0) {
+                if (options.strictBool) {
+                    if (rightDt != leftDt) {
+                        val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
+                        return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                    }
+                }
+            }
+        }
+        if (expr.operator=="!=") {
+            if(rightDt==DataType.BOOL && leftDt==DataType.BOOL) {
+                if(rightVal?.asBooleanValue==false)
+                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                else
+                    return listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+            }
+            if (rightVal?.number == 1.0) {
+                if(options.strictBool) {
+                    if(rightDt!=leftDt) {
+                        val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
+                        return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                    }
+                }
+            }
+            else if (rightVal?.number == 0.0) {
+                if(options.strictBool) {
+                    if(rightDt!=leftDt) {
+                        val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
+                        return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                    }
+                } else
+                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+            }
+        }
 
-            if(rightDt==DataType.BOOL && expr.operator in arrayOf("and", "or", "xor")) {
-                if(leftVal!=null) {
-                    val result = if(leftVal.asBooleanValue) {
-                        when(expr.operator) {
-                            "and" -> expr.right
-                            "or" -> NumericLiteral.fromBoolean(true, expr.position)
-                            "xor" -> PrefixExpression("not", expr.right, expr.position)
-                            else -> throw FatalAstException("weird op")
-                        }
-                    } else {
-                        when(expr.operator) {
-                            "and" -> NumericLiteral.fromBoolean(false, expr.position)
-                            "or" -> expr.right
-                            "xor" -> expr.right
-                            else -> throw FatalAstException("weird op")
-                        }
+        if(expr.operator in arrayOf("and", "or", "xor")) {
+            if(leftVal!=null) {
+                val result = if(leftVal.asBooleanValue) {
+                    when(expr.operator) {
+                        "and" -> expr.right
+                        "or" -> NumericLiteral.fromBoolean(true, expr.position)
+                        "xor" -> PrefixExpression("not", expr.right, expr.position)
+                        else -> throw FatalAstException("weird op")
                     }
-                    return listOf(IAstModification.ReplaceNode(expr, result, parent))
-                }
-                else if(rightVal!=null) {
-                    val result = if(rightVal.asBooleanValue) {
-                        when(expr.operator) {
-                            "and" -> expr.left
-                            "or" -> NumericLiteral.fromBoolean(true, expr.position)
-                            "xor" -> PrefixExpression("not", expr.left, expr.position)
-                            else -> throw FatalAstException("weird op")
-                        }
-                    } else {
-                        when(expr.operator) {
-                            "and" -> NumericLiteral.fromBoolean(false, expr.position)
-                            "or" -> expr.left
-                            "xor" -> expr.left
-                            else -> throw FatalAstException("weird op")
-                        }
+                } else {
+                    when(expr.operator) {
+                        "and" -> NumericLiteral.fromBoolean(false, expr.position)
+                        "or" -> expr.right
+                        "xor" -> expr.right
+                        else -> throw FatalAstException("weird op")
                     }
-                    return listOf(IAstModification.ReplaceNode(expr, result, parent))
                 }
+                return listOf(IAstModification.ReplaceNode(expr, result, parent))
+            }
+            else if(rightVal!=null) {
+                val result = if(rightVal.asBooleanValue) {
+                    when(expr.operator) {
+                        "and" -> expr.left
+                        "or" -> NumericLiteral.fromBoolean(true, expr.position)
+                        "xor" -> PrefixExpression("not", expr.left, expr.position)
+                        else -> throw FatalAstException("weird op")
+                    }
+                } else {
+                    when(expr.operator) {
+                        "and" -> NumericLiteral.fromBoolean(false, expr.position)
+                        "or" -> expr.left
+                        "xor" -> expr.left
+                        else -> throw FatalAstException("weird op")
+                    }
+                }
+                return listOf(IAstModification.ReplaceNode(expr, result, parent))
             }
         }
 
