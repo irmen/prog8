@@ -1,8 +1,6 @@
 TODO
 ====
 
-replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
-
 ...
 
 

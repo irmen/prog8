@@ -1,13 +1,10 @@
 <component name="libraryTable">
   <library name="michael.bull.kotlin.result.jvm" type="repository">
-    <properties maven-id="com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.18" />
+    <properties maven-id="com.michael-bull.kotlin-result:kotlin-result-jvm:1.1.20" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/com/michael-bull/kotlin-result/kotlin-result-jvm/1.1.18/kotlin-result-jvm-1.1.18.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/1.8.10/kotlin-stdlib-jdk8-1.8.10.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.8.10/kotlin-stdlib-1.8.10.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/michael-bull/kotlin-result/kotlin-result-jvm/1.1.20/kotlin-result-jvm-1.1.20.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib/1.9.22/kotlin-stdlib-1.9.22.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk7/1.8.10/kotlin-stdlib-jdk7-1.8.10.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-common/1.8.10/kotlin-stdlib-common-1.8.10.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

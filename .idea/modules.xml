@@ -10,10 +10,8 @@
       <module fileurl="file://$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" filepath="$PROJECT_DIR$/codeOptimizers/codeOptimizers.iml" />
       <module fileurl="file://$PROJECT_DIR$/compiler/compiler.iml" filepath="$PROJECT_DIR$/compiler/compiler.iml" />
       <module fileurl="file://$PROJECT_DIR$/compilerAst/compilerAst.iml" filepath="$PROJECT_DIR$/compilerAst/compilerAst.iml" />
-      <module fileurl="file://$PROJECT_DIR$/dbusCompilerService/dbusCompilerService.iml" filepath="$PROJECT_DIR$/dbusCompilerService/dbusCompilerService.iml" />
       <module fileurl="file://$PROJECT_DIR$/docs/docs.iml" filepath="$PROJECT_DIR$/docs/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />
-      <module fileurl="file://$PROJECT_DIR$/httpCompilerService/httpCompilerService.iml" filepath="$PROJECT_DIR$/httpCompilerService/httpCompilerService.iml" />
       <module fileurl="file://$PROJECT_DIR$/intermediate/intermediate.iml" filepath="$PROJECT_DIR$/intermediate/intermediate.iml" />
       <module fileurl="file://$PROJECT_DIR$/parser/parser.iml" filepath="$PROJECT_DIR$/parser/parser.iml" />
       <module fileurl="file://$PROJECT_DIR$/virtualmachine/virtualmachine.iml" filepath="$PROJECT_DIR$/virtualmachine/virtualmachine.iml" />
