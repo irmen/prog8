@@ -1,8 +1,6 @@
 TODO
 ====
 
-cx16.monogfx: add invert mode support to horizontal line routine, and text routine
-
 replace Takes by Http4k in httpCompilerService project.  https://github.com/http4k/examples/blob/master/hello-world/README.md
 
 ...

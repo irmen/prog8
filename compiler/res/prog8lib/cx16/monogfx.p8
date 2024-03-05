@@ -169,18 +169,30 @@ _clear
 
         ubyte separate_pixels = (8-lsb(xx)) & 7
         if separate_pixels {
-            if mode!=MODE_STIPPLE {
-                position(xx,yy)
-                cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
-                if draw
-                    cx16.VERA_DATA0 |= masked_starts[separate_pixels]
-                else
-                    cx16.VERA_DATA0 &= ~masked_starts[separate_pixels]
-                xx += separate_pixels
-            } else {
-                repeat separate_pixels {
-                    plot(xx, yy, draw)
-                    xx++
+            when mode {
+                MODE_NORMAL -> {
+                    position(xx,yy)
+                    cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
+                    if draw
+                        cx16.VERA_DATA0 |= masked_starts[separate_pixels]
+                    else
+                        cx16.VERA_DATA0 &= ~masked_starts[separate_pixels]
+                    xx += separate_pixels
+                }
+                MODE_STIPPLE -> {
+                    repeat separate_pixels {
+                        plot(xx, yy, draw)
+                        xx++
+                    }
+                }
+                MODE_INVERT -> {
+                    position(xx,yy)
+                    cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
+                    if draw
+                        cx16.VERA_DATA0 ^= masked_starts[separate_pixels]
+                    else
+                        cx16.VERA_DATA0 &= masked_starts[separate_pixels]
+                    xx += separate_pixels
                 }
             }
             length -= separate_pixels
@@ -203,8 +215,25 @@ _clear
 +               lda  p8v_mode
                 lsr  a
                 bcs  _stipple
-                ldy  #255       ; don't stipple
+                lsr  a
+                bcs  _inverted
+                ldy  #255       ; normal drawing mode
                 bra  _loop
+
+_inverted       lda  #0
+                jsr  cx16.vaddr_clone
+_invertedloop   lda  p8v_length
+                ora  p8v_length+1
+                beq  _done
+                lda  cx16.VERA_DATA1
+                eor  #255
+                sta  cx16.VERA_DATA0
+                lda  p8v_length
+                bne  +
+                dec  p8v_length+1
++               dec  p8v_length
+                bra  _invertedloop
+
 _stipple        lda  p8v_yy
                 and  #1         ; determine stipple pattern to use
                 bne  +
@@ -223,16 +252,26 @@ _loop           lda  p8v_length
 _done
             }}
 
-            if mode!=MODE_STIPPLE {
+            when mode {
+                MODE_NORMAL -> {
+                    cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
+                    if draw
+                        cx16.VERA_DATA0 |= masked_ends[separate_pixels]
+                    else
+                        cx16.VERA_DATA0 &= ~masked_ends[separate_pixels]
+                }
+                MODE_STIPPLE -> {
+                    repeat separate_pixels {
+                        plot(xx, yy, draw)
+                        xx++
+                    }
+                }
+                MODE_INVERT -> {
                 cx16.VERA_ADDR_H &= %00000111   ; vera auto-increment off
                 if draw
-                    cx16.VERA_DATA0 |= masked_ends[separate_pixels]
+                    cx16.VERA_DATA0 ^= masked_ends[separate_pixels]
                 else
-                    cx16.VERA_DATA0 &= ~masked_ends[separate_pixels]
-            } else {
-                repeat separate_pixels {
-                    plot(xx, yy, draw)
-                    xx++
+                    cx16.VERA_DATA0 &= masked_ends[separate_pixels]
                 }
             }
         }
@@ -264,12 +303,10 @@ _done
                 lda  p8v_mode
                 and  #p8c_MODE_INVERT
                 beq  +
-                lda  #$45       ; eor ZP
-                sta  drawmode
-                bra  ++
-+               lda  #$05       ; ora ZP
-                sta  drawmode
-+
+                lda  #$45       ; eor ZP modifying code
+                bne  ++
++               lda  #$05       ; ora ZP modifying code
++               sta  drawmode
          }}
             if mode!=MODE_STIPPLE {
                 ; draw continuous line.
@@ -818,7 +855,7 @@ skip:
         cx16.screen_set_charset(charset, 0)
     }
 
-    sub text(uword @zp xx, uword yy, bool draw, uword sctextptr) {
+    sub text(uword @zp xx, uword yy, bool draw, str sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
         uword chardataptr
@@ -826,6 +863,17 @@ skip:
         ubyte[8] @shared char_bitmap_bytes_right
 
         cx16.r3 = sctextptr
+        %asm {{
+            lda  p8v_mode
+            cmp  #p8c_MODE_INVERT
+            beq  +
+            lda  #$0d       ; ORA abs   modifying code
+            bne  ++
++           lda  #$4d       ; EOR abs   modifying code
++           sta  cdraw_mod1
+            sta  cdraw_mod2
+        }}
+
         while @(cx16.r3) {
             chardataptr = charset_addr + @(cx16.r3) * $0008
             ; copy the character bitmap into RAM
@@ -859,7 +907,7 @@ skip:
                 %asm {{
                     ldy  #0
 -                   lda  p8v_char_bitmap_bytes_left,y
-                    ora  cx16.VERA_DATA1
+cdraw_mod1          ora  cx16.VERA_DATA1
                     sta  cx16.VERA_DATA0
                     iny
                     cpy  #8
@@ -885,7 +933,7 @@ skip:
                     %asm {{
                         ldy  #0
 -                       lda  p8v_char_bitmap_bytes_right,y
-                        ora  cx16.VERA_DATA1
+cdraw_mod2              ora  cx16.VERA_DATA1
                         sta  cx16.VERA_DATA0
                         iny
                         cpy  #8

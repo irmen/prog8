@@ -467,7 +467,7 @@ skip:
         ; TODO vm bitmap charset
     }
 
-    sub text(uword @zp xx, uword yy, bool draw, uword sctextptr) {
+    sub text(uword @zp xx, uword yy, bool draw, str sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
         ; TODO vm bitmap charset

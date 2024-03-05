@@ -6,30 +6,23 @@ main {
         monogfx.lores()
         monogfx.drawmode(monogfx.MODE_INVERT)
 
-        uword x1, x2
-        uword y1, y2
-
-        repeat 200 {
-            x1 = math.rnd()
-            y1 = math.rnd() % 240
-            x2 = math.rnd()
-            y2 = math.rnd() % 240
-            monogfx.line(x1, y1, x2, y2, true)
-        }
-
-        repeat 5 {
-            for cx16.r9L in 0 to 200 {
-                monogfx.vertical_line(cx16.r9L, 10, 200, true)
-            }
-        }
-
-
-        monogfx.disc(160, 120, 100, true)
-        monogfx.fillrect(20, 100, 280, 50, true)
-        monogfx.drawmode(monogfx.MODE_STIPPLE)
-        monogfx.fillrect(80, 10, 50, 220, true)
+        ubyte tt
 
         repeat {
+            ubyte tts=tt
+            word x1 = math.sin8(tts) / 2
+            byte y1 = math.cos8(tts) / 2
+            tts += 256/3
+            word x2 = math.sin8(tts) / 2
+            byte y2 = math.cos8(tts) / 2
+            tts += 256/3
+            word x3 = math.sin8(tts) / 2
+            byte y3 = math.cos8(tts) / 2
+            monogfx.line(160+x1 as uword, 120+y1 as ubyte, 160+x2 as uword, 120+y2 as ubyte, true)
+            monogfx.line(160+x2 as uword, 120+y2 as ubyte, 160+x3 as uword, 120+y3 as ubyte, true)
+            monogfx.line(160+x3 as uword, 120+y3 as ubyte, 160+x1 as uword, 120+y1 as ubyte, true)
+            sys.waitvsync()
+            tt++
         }
     }
 }
