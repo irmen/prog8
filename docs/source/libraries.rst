@@ -432,7 +432,7 @@ Bitmap graphics routines:
 
 This library is available both on the C64 and the cx16.
 It uses the ROM based graphics routines on the latter, and it is a very small library because of that.
-On the cx16 there's also the ``gfx2`` library if you want full-screen graphics or non-monochrome drawing. See below for that one.
+On the cx16 there's also the ``gfx2`` library if you want more features and different screen modes. See below for that one.
 
 Read the `graphics source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/c64/graphics.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)
