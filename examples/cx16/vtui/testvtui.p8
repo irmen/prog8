@@ -117,7 +117,7 @@ char_loop:
 vtui $1000 {
 
     %option no_symbol_prefixing
-    %asmbinary "VTUI1.0.BIN", 2     ; skip the 2 dummy load address bytes
+    %asmbinary "VTUI1.2.BIN", 2     ; skip the 2 dummy load address bytes
 
     ; NOTE: base address $1000 here must be the same as the block's memory address, for obvious reasons!
     ; The routines below are for VTUI 1.0
@@ -139,7 +139,7 @@ vtui $1000 {
     romsub $102c  =  border(ubyte mode @A, ubyte width @R1, ubyte height @R2, ubyte colors @X) clobbers(Y)       ; NOTE: mode 6 means 'custom' characters taken from r3 - r6
     romsub $102f  =  save_rect(ubyte ramtype @A, bool vbank1 @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
     romsub $1032  =  rest_rect(ubyte ramtype @A, bool vbank1 @Pc, uword address @R0, ubyte width @R1, ubyte height @R2) clobbers(A, X, Y)
-    romsub $1035  =  input_str(uword buffer @R0, ubyte buflen @Y, ubyte colors @X) clobbers (A) -> ubyte @Y
+    romsub $1035  =  input_str(uword buffer @R0, ubyte buflen @Y, ubyte colors @X) clobbers (A) -> ubyte @Y     ; Y=length of input
     romsub $1038  =  get_bank() clobbers (A) -> bool @Pc
     romsub $103b  =  get_stride() -> ubyte @A
     romsub $103e  =  get_decr() clobbers (A) -> bool @Pc
