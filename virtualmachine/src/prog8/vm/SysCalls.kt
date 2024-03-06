@@ -2,6 +2,7 @@ package prog8.vm
 
 import prog8.intermediate.FunctionCallArgs
 import prog8.intermediate.IRDataType
+import java.io.File
 import kotlin.math.*
 
 /*
@@ -63,6 +64,10 @@ SYSCALLS:
 53 = ARRAYCOPY_SPLITW_TO_NORMAL
 54 = ARRAYCOPY_NORMAL_TO_SPLITW
 55 = memcopy_small
+56 = load
+57 = load_raw
+58 = save
+59 = delete
 */
 
 enum class Syscall {
@@ -121,7 +126,11 @@ enum class Syscall {
     STRINGCOPY,
     ARRAYCOPY_SPLITW_TO_NORMAL,
     ARRAYCOPY_NORMAL_TO_SPLITW,
-    MEMCOPY_SMALL
+    MEMCOPY_SMALL,
+    LOAD,
+    LOAD_RAW,
+    SAVE,
+    DELETE
     ;
 
     companion object {
@@ -618,6 +627,45 @@ object SysCalls {
                     vm.memory.setUB(targetLsb+offset, vm.memory.getUB(from+offset*2))
                     vm.memory.setUB(targetMsb+offset, vm.memory.getUB(from+offset*2+1))
                 }
+            }
+
+            Syscall.LOAD -> {
+                val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
+                val filename = vm.memory.getString((filenameA as UShort).toInt())
+                val data = File(filename).readBytes()
+                val addr = if(addrA==0) data[0] + data[1]*256 else (addrA as UShort).toInt()
+                for(i in 0..<data.size-2) {
+                    vm.memory.setUB(addr+i, data[i+2].toUByte())
+                }
+                vm.registers.setUW(0, (addr+data.size-2).toUShort())
+            }
+            Syscall.LOAD_RAW -> {
+                val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
+                val filename = vm.memory.getString((filenameA as UShort).toInt())
+                val addr = (addrA as UShort).toInt()
+                val data = File(filename).readBytes()
+                for(i in 0..<data.size) {
+                    vm.memory.setUB(addr+i, data[i].toUByte())
+                }
+                vm.registers.setUW(0, (addr+data.size).toUShort())
+            }
+            Syscall.SAVE -> {
+                val (filenamePtr, startA, sizeA) = getArgValues(callspec.arguments, vm)
+                val size = (sizeA as UShort).toInt()
+                val data = ByteArray(size+2)
+                val startPtr = (startA as UShort).toInt()
+                data[0] = (startPtr and 255).toByte()
+                data[1] = (startPtr shr 8).toByte()
+                for(i in 0..<size) {
+                    data[i+2] = vm.memory.getUB(startPtr+i).toByte()
+                }
+                val filename = vm.memory.getString((filenamePtr as UShort).toInt())
+                File(filename).writeBytes(data)
+            }
+            Syscall.DELETE -> {
+                val filenamePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val filename = vm.memory.getString(filenamePtr.toInt())
+                File(filename).delete()
             }
         }
     }

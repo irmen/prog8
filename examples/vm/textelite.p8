@@ -1,9 +1,13 @@
 %import textio
+%import diskio
 %import conv
 %import string
 
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
 ; Original C-version obtained from: http://www.elitehomepage.org/text/index.htm
+
+; This version is almost identical to the "original" textelite.p8 example,
+; except for a few tiny changes specific to running this in the prog8 VM.
 
 main {
 
@@ -14,8 +18,8 @@ main {
 
     sub start() {
         txt.lowercase()
+        txt.clear_screen()
         txt.print("\n--- TextElite v1.2 ---\n")
-        txt.print("VirtualMachine edition: no disk saving, bad market table layout!\n")
 
         planet.set_seed(0, 0)
         galaxy.travel_to(1, numforLave)
@@ -34,9 +38,9 @@ main {
                 when input[0] {
                     '?' -> {
                         txt.print("\nCommands are:\n"+
-                            "buy   jump      info    map    quit\n"+
-                            "sell  teleport  market  cash\n"+
-                            "fuel  galhyp    local   hold\n")
+                            "buy   jump      info    map    >=save\n"+
+                            "sell  teleport  market  cash   <=load\n"+
+                            "fuel  galhyp    local   hold   quit\n")
                     }
                     'q' -> break
                     'b' -> trader.do_buy()
@@ -55,6 +59,8 @@ main {
                     'l' -> trader.do_local()
                     'c' -> trader.do_cash()
                     'h' -> trader.do_hold()
+                    '<' -> trader.do_load()
+                    '>' -> trader.do_save()
                 }
             }
         }
@@ -62,8 +68,58 @@ main {
 }
 
 trader {
+    str Savegame = "_commander.save"
     str input = "??????????"
     ubyte num_chars
+
+    ubyte[23]  savedata
+    ; format:
+    ;  0 ubyte galaxy
+    ;  1 ubyte planet
+    ;  2-18  ubyte cargo0..cargo16
+    ; 19 uword cash
+    ; 21 ubyte max_cargo
+    ; 22 ubyte fuel
+
+    sub do_load() {
+        txt.print("\nLoading universe...")
+        if diskio.load(Savegame, &savedata) {
+            txt.print("ok\n")
+        } else {
+            txt.print("\ni/o error: ")
+            txt.print(diskio.status())
+            txt.nl()
+            return
+        }
+
+        ship.cash = mkword(savedata[20], savedata[19])
+        ship.Max_cargo = savedata[21]
+        ship.fuel = savedata[22]
+        sys.memcopy(&savedata + 2, ship.cargohold, len(ship.cargohold))
+        galaxy.travel_to(savedata[0], savedata[1])
+
+        planet.display(false, 0)
+    }
+
+    sub do_save() {
+        savedata[0] = galaxy.number
+        savedata[1] = planet.number
+        savedata[19] = lsb(ship.cash)
+        savedata[20] = msb(ship.cash)
+        savedata[21] = ship.Max_cargo
+        savedata[22] = ship.fuel
+        sys.memcopy(ship.cargohold, &savedata + 2, len(ship.cargohold))
+
+        txt.print("\nSaving universe...")
+        diskio.delete(Savegame)
+        if diskio.save(Savegame, &savedata, sizeof(savedata)) {
+            txt.print("ok\n")
+        } else {
+            txt.print("\ni/o error: ")
+            txt.print(diskio.status())
+            txt.nl()
+        }
+    }
 
     sub do_jump() {
         txt.print("\nJump to what system? ")
@@ -301,7 +357,7 @@ market {
             util.print_right(13, names[ci])
             txt.print("   ")
             util.print_10s(current_price[ci])
-            txt.print("   ")
+            txt.column(24)
             txt.print_ub(current_quantity[ci])
             txt.chrout(' ')
             when units[ci] {
@@ -309,7 +365,7 @@ market {
                 1 -> txt.print("kg")
                 2 -> txt.chrout('g')
             }
-            txt.print("   ")
+            txt.column(32)
             txt.print_ub(ship.cargohold[ci])
             txt.nl()
         }

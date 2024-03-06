@@ -20,7 +20,8 @@ main {
 
     sub start() {
         txt.lowercase()
-        txt.print("\u000c\n --- TextElite v1.2 ---\n")
+        txt.clear_screen()
+        txt.print("\n --- TextElite v1.2 ---\n")
 
         planet.set_seed(0, 0)
         galaxy.travel_to(1, numforLave)

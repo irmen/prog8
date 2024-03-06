@@ -29,6 +29,10 @@ sub spc() {
     chrout(' ')
 }
 
+sub home() {
+    print("\x1b[H")
+}
+
 sub lowercase() {
     ; not supported
 }
@@ -132,6 +136,14 @@ sub  input_chars  (uword buffer) -> ubyte  {
         syscall 6 (r65534.w, r65535.b): r0.b
         returnr.b r0
     }}
+}
+
+sub column(ubyte col) {
+    txt.chrout(27)
+    txt.chrout('[')
+    txt.print_ub(col+1)
+    txt.chrout(';')
+    txt.chrout('G')
 }
 
 sub  plot  (ubyte col, ubyte row) {
