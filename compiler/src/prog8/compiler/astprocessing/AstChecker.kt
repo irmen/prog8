@@ -1041,7 +1041,7 @@ internal class AstChecker(private val program: Program,
             } else if((leftDt==DataType.UWORD && rightDt==DataType.STR) || (leftDt==DataType.STR && rightDt==DataType.UWORD)) {
                 // exception allowed: comparing uword (pointer) with string
             } else {
-                errors.err("left and right operands aren't the same type", expr.position)
+                errors.err("left and right operands aren't the same type: $leftDt vs $rightDt", expr.position)
             }
         }
 

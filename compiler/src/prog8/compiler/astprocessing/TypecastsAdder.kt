@@ -235,7 +235,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(toFix!=null) {
                         if(commonDt==DataType.BOOL) {
                             // don't automatically cast to bool
-                            errors.err("left and right operands aren't the same type", expr.position)
+                            errors.err("left and right operands aren't the same type: $leftDt vs $rightDt", expr.position)
                         } else {
                             val modifications = mutableListOf<IAstModification>()
                             when {
