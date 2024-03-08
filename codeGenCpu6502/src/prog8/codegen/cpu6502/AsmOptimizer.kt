@@ -58,7 +58,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
-    mods = optimizeSamePointerIndexing(linesByFourteen)
+    mods = optimizeSamePointerIndexingAndUselessBeq(linesByFourteen)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFourteen = getLinesBy(lines, 14)
@@ -306,7 +306,7 @@ private fun optimizeSameAssignments(
     return mods
 }
 
-private fun optimizeSamePointerIndexing(linesByFourteen: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<List<IndexedValue<String>>>): List<Modification> {
 
     // Optimize same pointer indexing where for instance we load and store to the same ptr index in Y
     // if Y isn't modified in between we can omit the second LDY:
@@ -341,6 +341,35 @@ private fun optimizeSamePointerIndexing(linesByFourteen: Sequence<List<IndexedVa
             val sixthvalue = sixth.substring(4)
             if("y" !in third && "y" !in fourth && firstvalue==fifthvalue && secondvalue==sixthvalue && secondvalue.endsWith(",y") && sixthvalue.endsWith(",y")) {
                 mods.add(Modification(lines[4].index, true, null))
+            }
+        }
+
+
+        /*
+    beq  +
+    lda  #1
++
+[ optional:  label_xxxx_shortcut   line here]
+    beq  label_xxxx_shortcut   /  bne label_xxxx_shortcut
+or *_afterif labels.
+
+This gets generated after certain if conditions, and only the branch instruction is needed in these cases.
+         */
+
+        if(first=="beq  +" && second=="lda  #1" && third=="+") {
+            if((fourth.startsWith("beq  label_") || fourth.startsWith("bne  label_")) &&
+                (fourth.endsWith("_shortcut") || fourth.endsWith("_afterif") || fourth.endsWith("_shortcut:") || fourth.endsWith("_afterif:"))) {
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, true, null))
+                mods.add(Modification(lines[2].index, true, null))
+            }
+            else if(fourth.startsWith("label_") && (fourth.endsWith("_shortcut") || fourth.endsWith("_shortcut:"))) {
+                if((fifth.startsWith("beq  label_") || fifth.startsWith("bne  label_")) &&
+                    (fifth.endsWith("_shortcut") || fifth.endsWith("_afterif") || fifth.endsWith("_shortcut:") || fifth.endsWith("_afterif:"))) {
+                    mods.add(Modification(lines[0].index, true, null))
+                    mods.add(Modification(lines[1].index, true, null))
+                    mods.add(Modification(lines[2].index, true, null))
+                }
             }
         }
     }
@@ -538,24 +567,6 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
                 mods += Modification(lines[1].index, false, "  cmp  ${tfirst.substring(4)}")
                 mods += Modification(lines[2].index, false, "  bcs  $label")
                 mods += Modification(lines[3].index, true, null)
-            }
-        }
-
-        /*
-    beq  +
-    lda  #1
-+
-    beq  label_xxxx_shortcut   /  bne label_xxxx_shortcut
-or *_afterif labels.
-
-This gets generated after certain if conditions, and only the branch instruction is needed in these cases.
-         */
-
-        if(tfirst=="beq  +" && tsecond=="lda  #1" && tthird=="+") {
-            if((tfourth.startsWith("beq  label_") || tfourth.startsWith("bne  label_")) && (tfourth.endsWith("_shortcut") || tfourth.endsWith("_afterif"))) {
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, true, null))
-                mods.add(Modification(lines[2].index, true, null))
             }
         }
     }
