@@ -179,7 +179,9 @@ internal class AstChecker(private val program: Program,
         }
 
         val iterableDt = forLoop.iterable.inferType(program).getOr(DataType.BYTE)
-        if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpression) {
+        if(forLoop.iterable is IFunctionCall) {
+            errors.err("can not loop over function call return value", forLoop.position)
+        } else if(iterableDt !in IterableDatatypes && forLoop.iterable !is RangeExpression) {
             errors.err("can only loop over an iterable type", forLoop.position)
         } else {
             val loopvar = forLoop.loopVar.targetVarDecl(program)

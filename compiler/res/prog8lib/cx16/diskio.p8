@@ -493,8 +493,7 @@ no_mciout:
         str device_not_present_error = "device not present #xx"
         if cbm.READST()==128 {
             device_not_present_error[len(device_not_present_error)-2] = 0
-            conv.str_ub(drivenumber)
-            void string.copy(conv.string_out, &device_not_present_error+len(device_not_present_error)-2)
+            void string.copy(conv.str_ub(drivenumber), &device_not_present_error+len(device_not_present_error)-2)
             return device_not_present_error
         }
 

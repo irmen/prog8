@@ -60,9 +60,11 @@ main {
     }
 
     sub print_number_gfx(ubyte num) {
-        conv.str_ub(num)
-        for cx16.r9L in conv.string_out
-            cx16.GRAPH_put_next_char(cx16.r9L)
+        uword num_str = conv.str_ub(num)
+        do {
+            cx16.GRAPH_put_next_char(@(num_str))
+            num_str++
+        } until @(num_str)==0
     }
 
     const uword screen_width = 320

@@ -179,8 +179,8 @@ main {
         uword vmem = vmembase * 2048        ; mkword(vmembase,0) * 8
         ubyte bank = vmembase>=32
         vmem += 35
-        conv.str_uw0(number)
-        uword pixelsptr = &numberpixels + (conv.string_out[1] & 15)*7
+        uword number_str = conv.str_uw0(number)
+        uword pixelsptr = &numberpixels + (number_str[1] & 15)*7
         ubyte pix
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_L = lsb(vmem)
@@ -191,19 +191,19 @@ main {
         vmem++
         cx16.VERA_ADDR_L = lsb(vmem)
         cx16.VERA_ADDR_M = msb(vmem)
-        pixelsptr = &numberpixels + (conv.string_out[2] & 15)*7
+        pixelsptr = &numberpixels + (number_str[2] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
         vmem++
         cx16.VERA_ADDR_L = lsb(vmem)
         cx16.VERA_ADDR_M = msb(vmem)
-        pixelsptr = &numberpixels + (conv.string_out[3] & 15)*7
+        pixelsptr = &numberpixels + (number_str[3] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
         vmem++
         cx16.VERA_ADDR_L = lsb(vmem)
         cx16.VERA_ADDR_M = msb(vmem)
-        pixelsptr = &numberpixels + (conv.string_out[4] & 15)*7
+        pixelsptr = &numberpixels + (number_str[4] & 15)*7
         for pix in 0 to 6
             cx16.VERA_DATA0 = pixelsptr[pix]
     }

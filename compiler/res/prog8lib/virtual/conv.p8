@@ -8,7 +8,7 @@ conv {
 
     str  string_out = "????????????????"       ; result buffer for the string conversion routines
 
-sub  str_ub0(ubyte value)   {
+sub  str_ub0(ubyte value) -> str {
     ; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)
     ubyte hundreds = value / 100
     value -= hundreds*100
@@ -18,14 +18,16 @@ sub  str_ub0(ubyte value)   {
     string_out[1] = tens+'0'
     string_out[2] = value+'0'
     string_out[3] = 0
+    return string_out
 }
 
-sub  str_ub(ubyte value) {
+sub  str_ub(ubyte value) -> str {
     ; ---- convert the ubyte in A in decimal string form, without left padding 0s
     internal_str_ub(value, string_out)
+    return string_out
 }
 
-sub  str_b(byte value) {
+sub  str_b(byte value) -> str {
     ; ---- convert the byte in A in decimal string form, without left padding 0s
     uword out_ptr = &string_out
     if value<0 {
@@ -34,6 +36,7 @@ sub  str_b(byte value) {
         value = -value
     }
     internal_str_ub(value as ubyte, out_ptr)
+    return string_out
 }
 
 sub internal_str_ub(ubyte value, uword out_ptr) {
@@ -60,14 +63,15 @@ output_ones:
 
 str hex_digits = "0123456789abcdef"
 
-sub  str_ubhex  (ubyte value)  {
+sub  str_ubhex  (ubyte value) -> str {
     ; ---- convert the ubyte in A in hex string form
     string_out[0] = hex_digits[value>>4]
     string_out[1] = hex_digits[value&15]
     string_out[2] = 0
+    return string_out
 }
 
-sub  str_ubbin  (ubyte value)  {
+sub  str_ubbin  (ubyte value) -> str {
     ; ---- convert the ubyte in A in binary string form
     uword out_ptr = &string_out
     repeat 8 {
@@ -79,9 +83,10 @@ sub  str_ubbin  (ubyte value)  {
         out_ptr++
     }
     @(out_ptr) = 0
+    return string_out
 }
 
-sub  str_uwbin  (uword value) {
+sub  str_uwbin  (uword value) -> str {
     ; ---- convert the uword in A/Y in binary string form
     uword out_ptr = &string_out
     repeat 16 {
@@ -93,9 +98,10 @@ sub  str_uwbin  (uword value) {
         out_ptr++
     }
     @(out_ptr) = 0
+    return string_out
 }
 
-sub  str_uwhex  (uword value) {
+sub  str_uwhex  (uword value) -> str {
     ; ---- convert the uword in A/Y in hexadecimal string form (4 digits)
     ubyte bits = msb(value)
     string_out[0] = hex_digits[bits>>4]
@@ -104,9 +110,10 @@ sub  str_uwhex  (uword value) {
     string_out[2] = hex_digits[bits>>4]
     string_out[3] = hex_digits[bits&15]
     string_out[4] = 0
+    return string_out
 }
 
-sub  str_uw0  (uword value) {
+sub  str_uw0  (uword value) -> str {
     ; ---- convert the uword in A/Y in decimal string form, with left padding 0s (5 positions total)
     uword value2 = value/10
     ubyte digits = value-value2*10 as ubyte
@@ -124,14 +131,16 @@ sub  str_uw0  (uword value) {
     string_out[3] = tens+'0'
     string_out[4] = digits+'0'
     string_out[5] = 0
+    return string_out
 }
 
-sub  str_uw  (uword value)  {
+sub  str_uw  (uword value) -> str {
     ; ---- convert the uword in A/Y in decimal string form, without left padding 0s
     internal_str_uw(value, string_out)
+    return string_out
 }
 
-sub  str_w  (word value)  {
+sub  str_w  (word value) -> str {
     ; ---- convert the (signed) word in A/Y in decimal string form, without left padding 0's
     uword out_ptr = &string_out
     if value<0 {
@@ -140,6 +149,7 @@ sub  str_w  (word value)  {
         value = -value
     }
     internal_str_uw(value as uword, out_ptr)
+    return string_out
 }
 
 sub internal_str_uw(uword value, uword out_ptr) {

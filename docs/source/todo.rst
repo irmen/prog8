@@ -1,6 +1,10 @@
 TODO
 ====
 
+add a zsmkit example (next to zsound example)
+
+fix compiler crash for         for cx16.r9L in conv.str_ub(number) {...}    : can't iterate over class prog8.code.ast.PtFunctionCall - should have been replaced by a variable
+
 ...
 
 
@@ -26,14 +30,14 @@ Compiler:
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
 
+- VM: implement more diskio support
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
-- VM: implement diskio support (let's start with the basics load, save, delete, rename, status?. no streaming, no directory listing)
 - ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
+- ir: fix call() return value handling
 - ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
-- ir: fix call() return value handling
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
@@ -51,7 +55,6 @@ Compiler:
 Libraries:
 
 - gfx2: add EOR mode support like in monogfx and see PAINT for inspiration.  Self modifying code to keep it optimized?
-- conv: the routines could return the address of conv.string_out, and/or there could be versions that take the address of a different buffer and use it instead.
 - once kernal rom v47 is released, remove most of the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
