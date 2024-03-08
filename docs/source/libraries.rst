@@ -58,6 +58,14 @@ sys (part of syslib)
     Immediately stops the program and exits it, with the returncode in the A register.
     Note: custom interrupt handlers remain active unless manually cleared first!
 
+``exit2 (resultA, resultX, resultY)``
+    Immediately stops the program and exits it, with the result values in the A, X and Y registers.
+    Note: custom interrupt handlers remain active unless manually cleared first!
+
+``exit3 (resultA, resultX, resultY, carry)``
+    Immediately stops the program and exits it, with the result values in the A, X and Y registers, and the carry flag in the status register.
+    Note: custom interrupt handlers remain active unless manually cleared first!
+
 ``memcopy (from, to, numbytes)``
     Efficiently copy a number of bytes from a memory location to another.
     *Warning:* can only copy *non-overlapping* memory areas correctly!

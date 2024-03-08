@@ -1,10 +1,6 @@
 TODO
 ====
 
-add a zsmkit example (next to zsound example)
-
-fix compiler crash for         for cx16.r9L in conv.str_ub(number) {...}    : can't iterate over class prog8.code.ast.PtFunctionCall - should have been replaced by a variable
-
 ...
 
 

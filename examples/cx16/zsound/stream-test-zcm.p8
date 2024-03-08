@@ -2,6 +2,9 @@
 %import diskio
 %zpreserved $22,$2d     ; zsound lib uses this region
 
+; NOTE: the ZSound library is DEPRECATED and ZSMKIT is its successor.
+;       find prog8 examples with ZSMKIT here: https://github.com/mooinglemur/zsmkit/tree/main/p8demo
+
 ; NOTE: this is a proof of concept to stream ZCM digi from disk while playing.
 ;       currently there's no real streaming API / circular buffer in zsound,
 ;       so it simply loads the whole ZCM file in chunks in memory sequentially.

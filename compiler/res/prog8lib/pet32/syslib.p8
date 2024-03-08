@@ -110,8 +110,15 @@ asmsub  init_system_phase2()  {
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
     %asm {{
+_exitcodeCarry = *+1
+        lda  #0
+        lsr  a
 _exitcode = *+1
         lda  #0        ; exit code possibly modified in exit()
+_exitcodeX = *+1
+        ldx  #0
+_exitcodeY = *+1
+        ldy  #0
         rts
     }}
 }
@@ -345,6 +352,33 @@ save_SCRATCH_ZPWORD2	.word  0
         ; -- immediately exit the program with a return code in the A register
         %asm {{
             sta  cleanup_at_exit._exitcode
+            ldx  prog8_lib.orig_stackpointer
+            txs
+            jmp  cleanup_at_exit
+        }}
+    }
+
+    asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
+        ; -- immediately exit the program with result values in the A, X and Y registers.
+        %asm {{
+            sta  cleanup_at_exit._exitcode
+            stx  cleanup_at_exit._exitcodeX
+            sty  cleanup_at_exit._exitcodeY
+            ldx  prog8_lib.orig_stackpointer
+            txs
+            jmp  cleanup_at_exit
+        }}
+    }
+
+    asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
+        ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
+        %asm {{
+            sta  cleanup_at_exit._exitcode
+            lda  #0
+            rol  a
+            sta  cleanup_at_exit._exitcodeCarry
+            stx  cleanup_at_exit._exitcodeX
+            sty  cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
             txs
             jmp  cleanup_at_exit

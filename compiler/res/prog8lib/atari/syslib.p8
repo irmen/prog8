@@ -256,6 +256,22 @@ save_SCRATCH_ZPWORD2	.word  0
         }}
     }
 
+    asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
+        ; -- immediately exit the program with result values in the A, X and Y registers.
+        ;    TODO where to store A,X,Y as exit code?
+        %asm {{
+            jmp  exit
+        }}
+    }
+
+    asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
+        ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
+        ;    TODO where to store A,X,Y,Carry as exit code?
+        %asm {{
+            jmp  exit
+        }}
+    }
+
     inline asmsub progend() -> uword @AY {
         %asm {{
             lda  #<prog8_program_end

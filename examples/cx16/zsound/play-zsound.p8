@@ -8,6 +8,9 @@
 ;; Proof Of Concept Zsound player using a binary blob version of zsound library by ZeroByte relocated to something usable here.
 ;; Can play ZSM (music) and ZCM (pcm samples).
 
+; NOTE: the ZSound library is DEPRECATED and ZSMKIT is its successor.
+;       find prog8 examples with ZSMKIT here: https://github.com/mooinglemur/zsmkit/tree/main/p8demo
+
 ; "issues":
 ; - prog8 (or rather, 64tass) cannot "link" other assembly object files so we have to incbin a binary blob.
 ; - zsound player ZP usage is only known after compilation of zsound lib. And then this has to be blocked off in the prog8 program.
