@@ -3,6 +3,8 @@ package prog8.vm
 import prog8.intermediate.FunctionCallArgs
 import prog8.intermediate.IRDataType
 import java.io.File
+import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
 import kotlin.math.*
 
 /*
@@ -68,6 +70,8 @@ SYSCALLS:
 57 = load_raw
 58 = save
 59 = delete
+60 = rename
+61 = directory
 */
 
 enum class Syscall {
@@ -130,7 +134,9 @@ enum class Syscall {
     LOAD,
     LOAD_RAW,
     SAVE,
-    DELETE
+    DELETE,
+    RENAME,
+    DIRECTORY
     ;
 
     companion object {
@@ -632,40 +638,78 @@ object SysCalls {
             Syscall.LOAD -> {
                 val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
                 val filename = vm.memory.getString((filenameA as UShort).toInt())
-                val data = File(filename).readBytes()
-                val addr = if(addrA==0) data[0] + data[1]*256 else (addrA as UShort).toInt()
-                for(i in 0..<data.size-2) {
-                    vm.memory.setUB(addr+i, data[i+2].toUByte())
+                if(File(filename).exists()) {
+                    val data = File(filename).readBytes()
+                    val addr = if (addrA == 0) data[0] + data[1] * 256 else (addrA as UShort).toInt()
+                    for (i in 0..<data.size - 2) {
+                        vm.memory.setUB(addr + i, data[i + 2].toUByte())
+                    }
+                    vm.registers.setUW(0, (addr + data.size - 2).toUShort())
+                } else {
+                    vm.registers.setUW(0, 0u)
                 }
-                vm.registers.setUW(0, (addr+data.size-2).toUShort())
             }
             Syscall.LOAD_RAW -> {
                 val (filenameA, addrA) = getArgValues(callspec.arguments, vm)
                 val filename = vm.memory.getString((filenameA as UShort).toInt())
                 val addr = (addrA as UShort).toInt()
-                val data = File(filename).readBytes()
-                for(i in 0..<data.size) {
-                    vm.memory.setUB(addr+i, data[i].toUByte())
+                if(File(filename).exists()) {
+                    val data = File(filename).readBytes()
+                    for (i in 0..<data.size) {
+                        vm.memory.setUB(addr + i, data[i].toUByte())
+                    }
+                    vm.registers.setUW(0, (addr + data.size).toUShort())
+                } else {
+                    vm.registers.setUW(0, 0u)
                 }
-                vm.registers.setUW(0, (addr+data.size).toUShort())
             }
             Syscall.SAVE -> {
-                val (filenamePtr, startA, sizeA) = getArgValues(callspec.arguments, vm)
+                val (raw, filenamePtr, startA, sizeA) = getArgValues(callspec.arguments, vm)
                 val size = (sizeA as UShort).toInt()
-                val data = ByteArray(size+2)
                 val startPtr = (startA as UShort).toInt()
-                data[0] = (startPtr and 255).toByte()
-                data[1] = (startPtr shr 8).toByte()
-                for(i in 0..<size) {
-                    data[i+2] = vm.memory.getUB(startPtr+i).toByte()
+                val data: ByteArray
+                if(raw==0) {
+                    // save with 2 byte PRG load address header
+                    data = ByteArray(size+2)
+                    data[0] = (startPtr and 255).toByte()
+                    data[1] = (startPtr shr 8).toByte()
+                    for (i in 0..<size) {
+                        data[i + 2] = vm.memory.getUB(startPtr + i).toByte()
+                    }
+                } else {
+                    // 'raw' save, without header
+                    data = ByteArray(size)
+                    for (i in 0..<size) {
+                        data[i] = vm.memory.getUB(startPtr + i).toByte()
+                    }
                 }
                 val filename = vm.memory.getString((filenamePtr as UShort).toInt())
-                File(filename).writeBytes(data)
+                if (File(filename).exists())
+                    vm.registers.setUB(0, 0u)
+                else {
+                    File(filename).writeBytes(data)
+                    vm.registers.setUB(0, 1u)
+                }
             }
             Syscall.DELETE -> {
                 val filenamePtr = getArgValues(callspec.arguments, vm).single() as UShort
                 val filename = vm.memory.getString(filenamePtr.toInt())
                 File(filename).delete()
+            }
+            Syscall.RENAME -> {
+                val (origFilenamePtr, newFilenamePtr) = getArgValues(callspec.arguments, vm)
+                val origFilename = vm.memory.getString((origFilenamePtr as UShort).toInt())
+                val newFilename = vm.memory.getString((newFilenamePtr as UShort).toInt())
+                File(origFilename).renameTo(File(newFilename))
+            }
+            Syscall.DIRECTORY -> {
+                // no arguments
+                val directory = Path(".")
+                println("Directory listing for ${directory.toAbsolutePath().normalize()}")
+                directory.listDirectoryEntries().sorted().forEach {
+                    println("${it.toFile().length()}\t${it.normalize()}")
+                }
+                vm.registers.setUB(0, 1u)
             }
         }
     }

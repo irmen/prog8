@@ -8,8 +8,12 @@ diskio {
 
     sub directory() -> bool {
         ; -- Prints the directory contents to the screen. Returns success.
-        txt.print("@TODO: directory\n")
-        return false
+        %ir {{
+            loadm.w r65534,diskio.load.filenameptr
+            loadm.w r65535,diskio.load.address_override
+            syscall 61 (): r0.b
+            returnr.b r0
+        }}
     }
 
     sub list_filenames(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
@@ -18,7 +22,7 @@ diskio {
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
         ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
         ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
-        txt.print("@TODO: list_flienames\n")
+        txt.print("@TODO: list_filenames\n")
         sys.clear_carry()
         return 0
     }
@@ -115,17 +119,51 @@ diskio {
 
     ; ---- other functions ----
 
+    sub chdir(str path) {
+        ; -- change current directory.
+        txt.print("@TODO: chdir\n")
+    }
+
+    sub mkdir(str name) {
+        ; -- make a new subdirectory.
+        txt.print("@TODO: mkdir\n")
+    }
+
+    sub rmdir(str name) {
+        ; -- remove a subdirectory.
+        txt.print("@TODO: rmdir\n")
+    }
+
+    sub curdir() -> uword {
+        ; return current directory name or 0 if error
+        txt.print("@TODO: curdir\n")
+        return 0
+    }
+
     sub status() -> str {
         ; -- retrieve the disk drive's current status message
-        return "ok"
+        return "unknown"
     }
 
     sub save(uword filenameptr, uword start_address, uword savesize) -> bool {
         %ir {{
+            load.b r65532,0
             loadm.w r65533,diskio.save.filenameptr
             loadm.w r65534,diskio.save.start_address
             loadm.w r65535,diskio.save.savesize
-            syscall 58 (r65533.w, r65534.w, r65535.w): r0.b
+            syscall 58 (r65532.b, r65533.w, r65534.w, r65535.w): r0.b
+            returnr.b r0
+        }}
+    }
+
+    ; like save() but omits the 2 byte prg header.
+    sub save_raw(uword filenameptr, uword startaddress, uword savesize) -> bool {
+        %ir {{
+            load.b r65532,1
+            loadm.w r65533,diskio.save.filenameptr
+            loadm.w r65534,diskio.save.start_address
+            loadm.w r65535,diskio.save.savesize
+            syscall 58 (r65532.b, r65533.w, r65534.w, r65535.w): r0.b
             returnr.b r0
         }}
     }
@@ -167,6 +205,10 @@ diskio {
 
     sub rename(uword oldfileptr, uword newfileptr) {
         ; -- rename a file on the drive
-        txt.print("@TODO: rename\n")
+        %ir {{
+            loadm.w r65534,diskio.rename.oldfileptr
+            loadm.w r65535,diskio.rename.newfileptr
+            syscall 60 (r65534.w, r65535.w)
+        }}
     }
 }

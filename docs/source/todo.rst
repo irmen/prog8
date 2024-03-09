@@ -26,7 +26,6 @@ Compiler:
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
 
-- VM: implement more diskio support
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
 - ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
 - ir: fix call() return value handling
@@ -55,6 +54,7 @@ Libraries:
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?
+- VM: implement more diskio support
 
 
 Optimizations:
