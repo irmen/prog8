@@ -142,6 +142,11 @@ internal class StatementReorderer(
             val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.position)
             IAstModification.ReplaceNode(it, uwordParam, subroutine)
         }
+        // change 'str' and 'ubyte[]' return types into 'uword' (just treat it as an address)
+        subroutine.returntypes.withIndex().forEach { (index, type) ->
+            if(type==DataType.STR || type==DataType.ARRAY_UB)
+                subroutine.returntypes[index] = DataType.UWORD
+        }
 
         val varsChanges = mutableListOf<IAstModification>()
         if(!subroutine.isAsmSubroutine) {

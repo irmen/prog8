@@ -755,7 +755,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
 // (multiple return types can only occur for the latter type)
 class Subroutine(override val name: String,
                  val parameters: MutableList<SubroutineParameter>,
-                 val returntypes: List<DataType>,
+                 val returntypes: MutableList<DataType>,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
                  val asmClobbers: Set<CpuRegister>,

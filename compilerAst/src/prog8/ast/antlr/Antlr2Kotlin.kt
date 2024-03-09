@@ -163,7 +163,7 @@ private fun AsmsubroutineContext.toAst(): Subroutine {
     val inline = this.inline()!=null
     val subdecl = asmsub_decl().toAst()
     val statements = statement_block()?.toAst() ?: mutableListOf()
-    return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes,
+    return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes.toMutableList(),
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, null, true, inline, false, statements, toPosition())
 }
@@ -171,7 +171,7 @@ private fun AsmsubroutineContext.toAst(): Subroutine {
 private fun RomsubroutineContext.toAst(): Subroutine {
     val subdecl = asmsub_decl().toAst()
     val address = integerliteral().toAst().number.toUInt()
-    return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes,
+    return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes.toMutableList(),
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, address, true, inline = false, statements = mutableListOf(), position = toPosition()
     )
@@ -295,7 +295,7 @@ private fun SubroutineContext.toAst() : Subroutine {
     return Subroutine(
         identifier().text,
         sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
-        if (returntype == null) emptyList() else listOf(returntype),
+        if (returntype == null) mutableListOf() else mutableListOf(returntype),
         emptyList(),
         emptyList(),
         emptySet(),

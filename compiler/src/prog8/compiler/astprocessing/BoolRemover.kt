@@ -59,7 +59,7 @@ internal class BoolRemover(val program: Program) : AstWalker() {
         if(subroutine.returntypes.any { it==DataType.BOOL } || subroutine.parameters.any {it.type==DataType.BOOL}) {
             val newReturnTypes = subroutine.returntypes.map {
                 if(it==DataType.BOOL) DataType.UBYTE else it
-            }
+            }.toMutableList()
             val newParams = subroutine.parameters.map {
                 if(it.type==DataType.BOOL) SubroutineParameter(it.name, DataType.UBYTE, it.position) else it
             }.toMutableList()
