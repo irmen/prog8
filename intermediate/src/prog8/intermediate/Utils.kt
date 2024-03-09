@@ -283,13 +283,21 @@ private fun parseCall(rest: String): ParsedCall {
 }
 
 
-internal fun parseRegisterOrStatusflag(regs: String): RegisterOrStatusflag {
+internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag {
     var reg: RegisterOrPair? = null
     var sf: Statusflag? = null
+
+    val regs = if(sourceregs.endsWith(".b") || sourceregs.endsWith(".w") || sourceregs.endsWith(".f"))
+        sourceregs.dropLast(2) else sourceregs
+
     try {
         reg = RegisterOrPair.valueOf(regs)
     } catch (x: IllegalArgumentException) {
-        sf = Statusflag.valueOf(regs)
+        try {
+            sf = Statusflag.valueOf(regs)
+        } catch(x: IllegalArgumentException) {
+            throw IRParseException("invalid IR register or statusflag: $regs")
+        }
     }
     return RegisterOrStatusflag(reg, sf)
 }
