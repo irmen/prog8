@@ -30,80 +30,80 @@ main {
     }
 
     sub test_compare_literal() {
-        byte b = -100
-        ubyte ub = 20
-        word w = -20000
-        uword uw = 2000
-        float f = -100
+        byte @shared b = -100
+        ubyte @shared ub = 20
+        word @shared w = -20000
+        uword @shared uw = 2000
+        float @shared f = -100
 
         txt.print("all 1: ")
-        txt.print_ub(b == -100)
-        txt.print_ub(b != -99)
-        txt.print_ub(b < -99)
-        txt.print_ub(b <= -100)
-        txt.print_ub(b > -101)
-        txt.print_ub(b >= -100)
-        txt.print_ub(ub ==20)
-        txt.print_ub(ub !=19)
-        txt.print_ub(ub <21)
-        txt.print_ub(ub <=20)
-        txt.print_ub(ub>19)
-        txt.print_ub(ub>=20)
+        txt.print_ub(b == -100 as ubyte)
+        txt.print_ub(b != -99 as ubyte)
+        txt.print_ub(b < -99 as ubyte)
+        txt.print_ub(b <= -100 as ubyte)
+        txt.print_ub(b > -101 as ubyte)
+        txt.print_ub(b >= -100 as ubyte)
+        txt.print_ub(ub ==20 as ubyte)
+        txt.print_ub(ub !=19 as ubyte)
+        txt.print_ub(ub <21 as ubyte)
+        txt.print_ub(ub <=20 as ubyte)
+        txt.print_ub(ub>19 as ubyte)
+        txt.print_ub(ub>=20 as ubyte)
         txt.spc()
-        txt.print_ub(w == -20000)
-        txt.print_ub(w != -19999)
-        txt.print_ub(w < -19999)
-        txt.print_ub(w <= -20000)
-        txt.print_ub(w > -20001)
-        txt.print_ub(w >= -20000)
-        txt.print_ub(uw == 2000)
-        txt.print_ub(uw != 2001)
-        txt.print_ub(uw < 2001)
-        txt.print_ub(uw <= 2000)
-        txt.print_ub(uw > 1999)
-        txt.print_ub(uw >= 2000)
+        txt.print_ub(w == -20000 as ubyte)
+        txt.print_ub(w != -19999 as ubyte)
+        txt.print_ub(w < -19999 as ubyte)
+        txt.print_ub(w <= -20000 as ubyte)
+        txt.print_ub(w > -20001 as ubyte)
+        txt.print_ub(w >= -20000 as ubyte)
+        txt.print_ub(uw == 2000 as ubyte)
+        txt.print_ub(uw != 2001 as ubyte)
+        txt.print_ub(uw < 2001 as ubyte)
+        txt.print_ub(uw <= 2000 as ubyte)
+        txt.print_ub(uw > 1999 as ubyte)
+        txt.print_ub(uw >= 2000 as ubyte)
         txt.spc()
-        txt.print_ub(f == -100.0)
-        txt.print_ub(f != -99.0)
-        txt.print_ub(f < -99.0)
-        txt.print_ub(f <= -100.0)
-        txt.print_ub(f > -101.0)
-        txt.print_ub(f >= -100.0)
+        txt.print_ub(f == -100.0 as ubyte)
+        txt.print_ub(f != -99.0 as ubyte)
+        txt.print_ub(f < -99.0 as ubyte)
+        txt.print_ub(f <= -100.0 as ubyte)
+        txt.print_ub(f > -101.0 as ubyte)
+        txt.print_ub(f >= -100.0 as ubyte)
         txt.nl()
 
         txt.print("all 0: ")
-        txt.print_ub(b == -99)
-        txt.print_ub(b != -100)
-        txt.print_ub(b < -100)
-        txt.print_ub(b <= -101)
-        txt.print_ub(b > -100)
-        txt.print_ub(b >= -99)
-        txt.print_ub(ub ==21)
-        txt.print_ub(ub !=20)
-        txt.print_ub(ub <20)
-        txt.print_ub(ub <=19)
-        txt.print_ub(ub>20)
-        txt.print_ub(ub>=21)
+        txt.print_ub(b == -99 as ubyte)
+        txt.print_ub(b != -100 as ubyte)
+        txt.print_ub(b < -100 as ubyte)
+        txt.print_ub(b <= -101 as ubyte)
+        txt.print_ub(b > -100 as ubyte)
+        txt.print_ub(b >= -99 as ubyte)
+        txt.print_ub(ub ==21 as ubyte)
+        txt.print_ub(ub !=20 as ubyte)
+        txt.print_ub(ub <20 as ubyte)
+        txt.print_ub(ub <=19 as ubyte)
+        txt.print_ub(ub>20 as ubyte)
+        txt.print_ub(ub>=21 as ubyte)
         txt.spc()
-        txt.print_ub(w == -20001)
-        txt.print_ub(w != -20000)
-        txt.print_ub(w < -20000)
-        txt.print_ub(w <= -20001)
-        txt.print_ub(w > -20000)
-        txt.print_ub(w >= -19999)
-        txt.print_ub(uw == 1999)
-        txt.print_ub(uw != 2000)
-        txt.print_ub(uw < 2000)
-        txt.print_ub(uw <= 1999)
-        txt.print_ub(uw > 2000)
-        txt.print_ub(uw >= 2001)
+        txt.print_ub(w == -20001 as ubyte)
+        txt.print_ub(w != -20000 as ubyte)
+        txt.print_ub(w < -20000 as ubyte)
+        txt.print_ub(w <= -20001 as ubyte)
+        txt.print_ub(w > -20000 as ubyte)
+        txt.print_ub(w >= -19999 as ubyte)
+        txt.print_ub(uw == 1999 as ubyte)
+        txt.print_ub(uw != 2000 as ubyte)
+        txt.print_ub(uw < 2000 as ubyte)
+        txt.print_ub(uw <= 1999 as ubyte)
+        txt.print_ub(uw > 2000 as ubyte)
+        txt.print_ub(uw >= 2001 as ubyte)
         txt.spc()
-        txt.print_ub(f == -99.0)
-        txt.print_ub(f != -100.0)
-        txt.print_ub(f < -100.0)
-        txt.print_ub(f <= -101.0)
-        txt.print_ub(f > -100.0)
-        txt.print_ub(f >= -99.0)
+        txt.print_ub(f == -99.0 as ubyte)
+        txt.print_ub(f != -100.0 as ubyte)
+        txt.print_ub(f < -100.0 as ubyte)
+        txt.print_ub(f <= -101.0 as ubyte)
+        txt.print_ub(f > -100.0 as ubyte)
+        txt.print_ub(f >= -99.0 as ubyte)
         txt.nl()
 
         txt.print("all .: ")
@@ -306,102 +306,102 @@ main {
     }
 
     sub test_compare_variable() {
-        byte b = -100
-        ubyte ub = 20
-        word w = -20000
-        uword uw = 2000
-        float f = -100
+        byte @shared b = -100
+        ubyte @shared ub = 20
+        word @shared w = -20000
+        uword @shared uw = 2000
+        float @shared f = -100
 
-        byte minus_100 = -100
-        byte minus_99 = -99
-        byte minus_20 = -20
-        byte minus_101 = -101
-        ubyte nineteen = 19
-        ubyte twenty = 20
-        ubyte twenty1 = 21
-        ubyte twohundred = 200
-        float f_minus_100 = -100.0
-        float f_minus_101 = -101.0
-        float f_minus_99 = -99.0
-        float twodottwo = 2.2
-        word minus8000 = -8000
-        word eightthousand = 8000
-        word w_min_20000 = -20000
-        word w_min_19999 = -19999
-        word w_min_20001 = -20001
-        uword twothousand = 2000
-        uword twothousand1 = 2001
-        uword nineteen99 = 1999
+        byte @shared minus_100 = -100
+        byte @shared minus_99 = -99
+        byte @shared minus_20 = -20
+        byte @shared minus_101 = -101
+        ubyte @shared nineteen = 19
+        ubyte @shared twenty = 20
+        ubyte @shared twenty1 = 21
+        ubyte @shared twohundred = 200
+        float @shared f_minus_100 = -100.0
+        float @shared f_minus_101 = -101.0
+        float @shared f_minus_99 = -99.0
+        float @shared twodottwo = 2.2
+        word @shared minus8000 = -8000
+        word @shared eightthousand = 8000
+        word @shared w_min_20000 = -20000
+        word @shared w_min_19999 = -19999
+        word @shared w_min_20001 = -20001
+        uword @shared twothousand = 2000
+        uword @shared twothousand1 = 2001
+        uword @shared nineteen99 = 1999
 
 
         txt.print("all 1: ")
-        txt.print_ub(b == minus_100)
-        txt.print_ub(b != minus_99)
-        txt.print_ub(b < minus_99)
-        txt.print_ub(b <= minus_100)
-        txt.print_ub(b > minus_101)
-        txt.print_ub(b >= minus_100)
-        txt.print_ub(ub ==twenty)
-        txt.print_ub(ub !=nineteen)
-        txt.print_ub(ub <twenty1)
-        txt.print_ub(ub <=twenty)
-        txt.print_ub(ub>nineteen)
-        txt.print_ub(ub>=twenty)
+        txt.print_ub(b == minus_100 as ubyte)
+        txt.print_ub(b != minus_99 as ubyte)
+        txt.print_ub(b < minus_99 as ubyte)
+        txt.print_ub(b <= minus_100 as ubyte)
+        txt.print_ub(b > minus_101 as ubyte)
+        txt.print_ub(b >= minus_100 as ubyte)
+        txt.print_ub(ub ==twenty as ubyte)
+        txt.print_ub(ub !=nineteen as ubyte)
+        txt.print_ub(ub <twenty1 as ubyte)
+        txt.print_ub(ub <=twenty as ubyte)
+        txt.print_ub(ub>nineteen as ubyte)
+        txt.print_ub(ub>=twenty as ubyte)
         txt.spc()
-        txt.print_ub(w == w_min_20000)
-        txt.print_ub(w != w_min_19999)
-        txt.print_ub(w < w_min_19999)
-        txt.print_ub(w <= w_min_20000)
-        txt.print_ub(w > w_min_20001)
-        txt.print_ub(w >= w_min_20000)
-        txt.print_ub(uw == twothousand)
-        txt.print_ub(uw != twothousand1)
-        txt.print_ub(uw < twothousand1)
-        txt.print_ub(uw <= twothousand)
-        txt.print_ub(uw > nineteen99)
-        txt.print_ub(uw >= twothousand)
+        txt.print_ub(w == w_min_20000 as ubyte)
+        txt.print_ub(w != w_min_19999 as ubyte)
+        txt.print_ub(w < w_min_19999 as ubyte)
+        txt.print_ub(w <= w_min_20000 as ubyte)
+        txt.print_ub(w > w_min_20001 as ubyte)
+        txt.print_ub(w >= w_min_20000 as ubyte)
+        txt.print_ub(uw == twothousand as ubyte)
+        txt.print_ub(uw != twothousand1 as ubyte)
+        txt.print_ub(uw < twothousand1 as ubyte)
+        txt.print_ub(uw <= twothousand as ubyte)
+        txt.print_ub(uw > nineteen99 as ubyte)
+        txt.print_ub(uw >= twothousand as ubyte)
         txt.spc()
-        txt.print_ub(f == f_minus_100)
-        txt.print_ub(f != f_minus_99)
-        txt.print_ub(f < f_minus_99)
-        txt.print_ub(f <= f_minus_100)
-        txt.print_ub(f > f_minus_101)
-        txt.print_ub(f >= f_minus_100)
+        txt.print_ub(f == f_minus_100 as ubyte)
+        txt.print_ub(f != f_minus_99 as ubyte)
+        txt.print_ub(f < f_minus_99 as ubyte)
+        txt.print_ub(f <= f_minus_100 as ubyte)
+        txt.print_ub(f > f_minus_101 as ubyte)
+        txt.print_ub(f >= f_minus_100 as ubyte)
         txt.nl()
 
         txt.print("all 0: ")
-        txt.print_ub(b == minus_99)
-        txt.print_ub(b != minus_100)
-        txt.print_ub(b < minus_100)
-        txt.print_ub(b <= minus_101)
-        txt.print_ub(b > minus_100)
-        txt.print_ub(b >= minus_99)
-        txt.print_ub(ub ==twenty1)
-        txt.print_ub(ub !=twenty)
-        txt.print_ub(ub <twenty)
-        txt.print_ub(ub <=nineteen)
-        txt.print_ub(ub>twenty)
-        txt.print_ub(ub>=twenty1)
+        txt.print_ub(b == minus_99 as ubyte)
+        txt.print_ub(b != minus_100 as ubyte)
+        txt.print_ub(b < minus_100 as ubyte)
+        txt.print_ub(b <= minus_101 as ubyte)
+        txt.print_ub(b > minus_100 as ubyte)
+        txt.print_ub(b >= minus_99 as ubyte)
+        txt.print_ub(ub ==twenty1 as ubyte)
+        txt.print_ub(ub !=twenty as ubyte)
+        txt.print_ub(ub <twenty as ubyte)
+        txt.print_ub(ub <=nineteen as ubyte)
+        txt.print_ub(ub>twenty as ubyte)
+        txt.print_ub(ub>=twenty1 as ubyte)
         txt.spc()
-        txt.print_ub(w == w_min_20001)
-        txt.print_ub(w != w_min_20000)
-        txt.print_ub(w < w_min_20000)
-        txt.print_ub(w <= w_min_20001)
-        txt.print_ub(w > w_min_20000)
-        txt.print_ub(w >= w_min_19999)
-        txt.print_ub(uw == nineteen99)
-        txt.print_ub(uw != twothousand)
-        txt.print_ub(uw < twothousand)
-        txt.print_ub(uw <= nineteen99)
-        txt.print_ub(uw > twothousand)
-        txt.print_ub(uw >= twothousand1)
+        txt.print_ub(w == w_min_20001 as ubyte)
+        txt.print_ub(w != w_min_20000 as ubyte)
+        txt.print_ub(w < w_min_20000 as ubyte)
+        txt.print_ub(w <= w_min_20001 as ubyte)
+        txt.print_ub(w > w_min_20000 as ubyte)
+        txt.print_ub(w >= w_min_19999 as ubyte)
+        txt.print_ub(uw == nineteen99 as ubyte)
+        txt.print_ub(uw != twothousand as ubyte)
+        txt.print_ub(uw < twothousand as ubyte)
+        txt.print_ub(uw <= nineteen99 as ubyte)
+        txt.print_ub(uw > twothousand as ubyte)
+        txt.print_ub(uw >= twothousand1 as ubyte)
         txt.spc()
-        txt.print_ub(f == f_minus_99)
-        txt.print_ub(f != f_minus_100)
-        txt.print_ub(f < f_minus_100)
-        txt.print_ub(f <= f_minus_101)
-        txt.print_ub(f > f_minus_100)
-        txt.print_ub(f >= f_minus_99)
+        txt.print_ub(f == f_minus_99 as ubyte)
+        txt.print_ub(f != f_minus_100 as ubyte)
+        txt.print_ub(f < f_minus_100 as ubyte)
+        txt.print_ub(f <= f_minus_101 as ubyte)
+        txt.print_ub(f > f_minus_100 as ubyte)
+        txt.print_ub(f >= f_minus_99 as ubyte)
         txt.nl()
 
         txt.print("all .: ")

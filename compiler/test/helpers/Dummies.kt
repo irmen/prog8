@@ -22,7 +22,7 @@ internal object DummyFunctions : IBuiltinFunctions {
 
 internal object DummyMemsizer : IMemSizer {
     override fun memorySize(dt: DataType) = when(dt) {
-        in ByteDatatypes -> 1
+        in ByteDatatypesWithBoolean -> 1
         DataType.FLOAT -> 5
         else -> 2
     }

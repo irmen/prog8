@@ -168,7 +168,7 @@ _clear
         }
 
         ubyte separate_pixels = (8-lsb(xx)) & 7
-        if separate_pixels {
+        if separate_pixels!=0 {
             when mode {
                 MODE_NORMAL -> {
                     position(xx,yy)
@@ -197,7 +197,7 @@ _clear
             }
             length -= separate_pixels
         }
-        if length {
+        if length!=0 {
             position(xx, yy)
             separate_pixels = lsb(length) & 7
             xx += length & $fff8
@@ -395,17 +395,17 @@ drawmode:               ora  cx16.r15L
         }
 
         word @zp d = 0
-        cx16.r1L = true      ; 'positive_ix'
+        cx16.r1L = 1 ;; true      ; 'positive_ix'
         if dx < 0 {
             dx = -dx
-            cx16.r1L = false
+            cx16.r1L = 0 ;; false
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
         cx16.r14 = x1       ; internal plot X
 
         if dx >= dy {
-            if cx16.r1L {
+            if cx16.r1L!=0 {
                 repeat {
                     plot(cx16.r14, y1, draw)
                     if cx16.r14==x2
@@ -432,7 +432,7 @@ drawmode:               ora  cx16.r15L
             }
         }
         else {
-            if cx16.r1L {
+            if cx16.r1L!=0 {
                 repeat {
                     plot(cx16.r14, y1, draw)
                     if y1 == y2
@@ -678,7 +678,7 @@ invert:
         plot(xx, yy, draw)
     }
 
-    sub pget(uword @zp xx, uword yy) -> ubyte {
+    sub pget(uword @zp xx, uword yy) -> bool {
         %asm {{
             lda  p8v_xx
             and  #7
@@ -780,7 +780,7 @@ invert:
             }}
             yy+=dy
         }
-        cx16.r11L = pget(xx as uword, yy as uword)        ; old_color
+        cx16.r11L = pget(xx as uword, yy as uword) as ubyte        ; old_color
         if cx16.r11L == cx16.r10L
             return
         if xx<0 or xx>width-1 or yy<0 or yy>height-1
@@ -788,16 +788,16 @@ invert:
         push_stack(xx, xx, yy, 1)
         push_stack(xx, xx, yy + 1, -1)
         word left = 0
-        while cx16.r12L {
+        while cx16.r12L!=0 {
             pop_stack()
             xx = x1
             while xx >= 0 {
-                if pget(xx as uword, yy as uword) != cx16.r11L
+                if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
                     break
                 xx--
             }
             if x1!=xx
-                horizontal_line(xx as uword+1, yy as uword, x1-xx as uword, cx16.r10L)
+                horizontal_line(xx as uword+1, yy as uword, x1-xx as uword, cx16.r10L as bool)
             else
                 goto skip
 
@@ -807,14 +807,14 @@ invert:
             xx = x1 + 1
 
             do {
-                cx16.r9 = xx
+                cx16.r9s = xx
                 while xx <= width-1 {
-                    if pget(xx as uword, yy as uword) != cx16.r11L
+                    if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
                         break
                     xx++
                 }
-                if cx16.r9!=xx
-                    horizontal_line(cx16.r9, yy as uword, (xx as uword)-cx16.r9, cx16.r10L)
+                if cx16.r9s!=xx
+                    horizontal_line(cx16.r9, yy as uword, xx-cx16.r9s as uword, cx16.r10L as bool)
 
                 push_stack(left, xx - 1, yy, dy)
                 if xx > x2 + 1
@@ -822,7 +822,7 @@ invert:
 skip:
                 xx++
                 while xx <= x2 {
-                    if pget(xx as uword, yy as uword) == cx16.r11L
+                    if pget(xx as uword, yy as uword) as ubyte == cx16.r11L
                         break
                     xx++
                 }
@@ -874,7 +874,7 @@ skip:
             sta  cdraw_mod2
         }}
 
-        while @(cx16.r3) {
+        while @(cx16.r3)!=0 {
             chardataptr = charset_addr + @(cx16.r3) * $0008
             ; copy the character bitmap into RAM
             cx16.vaddr_autoincr(charset_bank, chardataptr, 0, 1)
@@ -926,7 +926,7 @@ cdraw_mod1          ora  cx16.VERA_DATA1
                 }}
             }
             ; right part of shifted char
-            if lsb(xx) & 7 {
+            if lsb(xx) & 7 !=0 {
                 position2(xx+8, yy, true)
                 set_autoincrs()
                 if draw {

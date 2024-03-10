@@ -73,7 +73,7 @@ graphics {
         }
 
         word @zp d = 0
-        ubyte positive_ix = true
+        bool positive_ix = true
         if dx < 0 {
             dx = -dx
             positive_ix = false
@@ -173,7 +173,7 @@ graphics {
         ubyte separate_pixels = lsb(xx) & 7
         uword pixaddr = get_y_lookup(yy) + (xx&$fff8)
 
-        if separate_pixels {
+        if separate_pixels!=0 {
             %asm {{
                 lda  p8v_pixaddr
                 sta  P8ZP_SCRATCH_W1
@@ -191,7 +191,7 @@ graphics {
             length -= 8
         }
 
-        if length {
+        if length!=0 {
             %asm {{
                 lda  p8v_length
                 and  #7

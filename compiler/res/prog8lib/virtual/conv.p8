@@ -44,9 +44,9 @@ sub internal_str_ub(ubyte value, uword out_ptr) {
     value -= hundreds*100
     ubyte tens = value / 10
     value -= tens*10
-    if hundreds
+    if hundreds!=0
         goto output_hundreds
-    if tens
+    if tens!=0
         goto output_tens
     goto output_ones
 output_hundreds:
@@ -163,13 +163,13 @@ sub internal_str_uw(uword value, uword out_ptr) {
     ubyte thousands = value4-value5*10 as ubyte
     uword value6 = value5/10
     ubyte tenthousands = value5-value6*10 as ubyte
-    if tenthousands
+    if tenthousands!=0
         goto output_tenthousands
-    if thousands
+    if thousands!=0
         goto output_thousands
-    if hundreds
+    if hundreds!=0
         goto output_hundreds
-    if tens
+    if tens!=0
         goto output_tens
     goto output_ones
 output_tenthousands:

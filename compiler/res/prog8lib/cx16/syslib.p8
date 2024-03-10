@@ -53,8 +53,8 @@ romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base addr
 
 ; ---- utility
 
-asmsub STOP2() clobbers(X) -> ubyte @A  {
-    ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the carry status flag.
+asmsub STOP2() clobbers(X) -> bool @A  {
+    ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the zero status flag.
     %asm {{
         jsr  cbm.STOP
         beq  +
@@ -556,7 +556,7 @@ asmsub mouse_config2(byte shape @A) clobbers (A, X, Y) {
 
 asmsub mouse_pos() clobbers(X) -> ubyte @A {
     ; -- short wrapper around mouse_get() kernal routine:
-    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status.
+    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status in A.
     %asm {{
         ldx  #cx16.r0
         jmp  cx16.mouse_get

@@ -74,30 +74,37 @@ sub  print_b  (byte value)   {
     print(conv.str_b(value))
 }
 
+sub print_bool(bool value) {
+    if value
+        print("true")
+    else
+        print("false")
+}
+
 sub  print_ubhex  (ubyte value, ubyte prefix)  {
     ; ---- print the ubyte in hex form
-    if prefix
+    if prefix!=0
         chrout('$')
     print(conv.str_ubhex(value))
 }
 
 sub  print_ubbin  (ubyte value, ubyte prefix) {
     ; ---- print the ubyte in binary form
-    if prefix
+    if prefix!=0
         chrout('%')
     print(conv.str_ubbin(value))
 }
 
 sub  print_uwbin  (uword value, ubyte prefix)  {
     ; ---- print the uword in binary form
-    if prefix
+    if prefix!=0
         chrout('%')
     print(conv.str_uwbin(value))
 }
 
 sub  print_uwhex  (uword value, ubyte prefix) {
     ; ---- print the uword in hexadecimal form (4 digits)
-    if prefix
+    if prefix!=0
         chrout('$')
     print(conv.str_uwhex(value))
 }
@@ -153,7 +160,7 @@ sub setchr (ubyte col, ubyte row, ubyte char) {
 
 sub petscii2scr(ubyte petscii_char) -> ubyte {
     ; -- convert petscii character to screencode
-    byte[8] offsets = [128, 0, 64, 32, 64, 192, 128, 128]
+    ubyte[8] offsets = [128, 0, 64, 32, 64, 192, 128, 128]
     return petscii_char ^ offsets[petscii_char>>5]
 }
 

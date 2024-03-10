@@ -99,7 +99,7 @@ main {
     }
 
     sub blit(ubyte vmembase) {
-        ubyte bank = vmembase>=32
+        ubyte bank = vmembase>=32 as ubyte
         uword vmem = vmembase * 2048        ; mkword(vmembase,0) * 8
         uword blit_x = (math.cos8u(msb(anim1)) as uword) + math.sin8u(msb(anim2))/6
         ubyte blit_y = math.sin8u(msb(anim3))/2  + math.cos8u(msb(anim4))/5
@@ -177,7 +177,7 @@ main {
 
     sub draw_number(ubyte vmembase, uword number) {
         uword vmem = vmembase * 2048        ; mkword(vmembase,0) * 8
-        ubyte bank = vmembase>=32
+        ubyte bank = vmembase>=32 as ubyte
         vmem += 35
         uword number_str = conv.str_uw0(number)
         uword pixelsptr = &numberpixels + (number_str[1] & 15)*7

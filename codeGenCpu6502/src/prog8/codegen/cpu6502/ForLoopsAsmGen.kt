@@ -359,7 +359,7 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
                     bne  $loopLabel
 $endLabel""")
             }
-            DataType.ARRAY_UB, DataType.ARRAY_B -> {
+            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {
                 val indexVar = asmgen.makeLabel("for_index")
                 asmgen.out("""
                     ldy  #0

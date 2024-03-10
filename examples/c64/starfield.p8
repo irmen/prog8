@@ -65,7 +65,7 @@ main {
         @(starfieldPtr3) = 0
         @(starfieldPtr4) = 0
 
-        if rasterCount & 1 {
+        if rasterCount & 1 !=0 {
             starfieldPtr1++
             if starfieldPtr1==star1Limit
                 starfieldPtr1=star1Reset

@@ -128,10 +128,11 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtAddressOf -> {
                     if(it.isFromArrayElement)
                         TODO("address-of array element $it in initial array value")
-                    StArrayElement(null, it.identifier.name)
+                    StArrayElement(null, it.identifier.name, null)
                 }
-                is PtIdentifier -> StArrayElement(null, it.name)
-                is PtNumber -> StArrayElement(it.number, null)
+                is PtIdentifier -> StArrayElement(null, it.name, null)
+                is PtNumber -> StArrayElement(it.number, null, null)
+                is PtBool -> StArrayElement(null, null, it.value)
                 else -> throw AssemblyError("invalid array element $it")
             }
         }

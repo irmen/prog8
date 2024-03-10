@@ -9,7 +9,7 @@ main {
     ubyte candidate_prime = 2       ; is increased in the loop
 
     sub start() {
-        sys.memset(sieve, 256, false)   ; clear the sieve, to reset starting situation on subsequent runs
+        sys.memset(sieve, 256, 0)   ; clear the sieve, to reset starting situation on subsequent runs
 
         ; calculate primes
         txt.print("prime numbers up to 255:\n\n")

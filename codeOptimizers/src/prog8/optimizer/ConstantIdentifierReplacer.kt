@@ -35,12 +35,12 @@ class VarConstantValueTypeAdjuster(
                 // avoid silent float roundings
                 if(decl.datatype in IntegerDatatypes && declConstValue.type == DataType.FLOAT) {
                     errors.err("refused truncating of float to avoid loss of precision", decl.value!!.position)
-                } else {
-                    // cast the numeric literal to the appropriate datatype of the variable
+                } else if(decl.datatype!=DataType.BOOL) {
+                    // cast the numeric literal to the appropriate datatype of the variable if it's not boolean
                     declConstValue.linkParents(decl)
-                    val cast = declConstValue.cast(decl.datatype)
+                    val cast = declConstValue.cast(decl.datatype, true)
                     if (cast.isValid)
-                        return listOf(IAstModification.ReplaceNode(decl.value!!, cast.value!!, decl))
+                        return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
                 }
             }
         } catch (x: UndefinedSymbolError) {
@@ -270,7 +270,11 @@ class VarConstantValueTypeAdjuster(
 // Replace all constant identifiers with their actual value,
 // and the array var initializer values and sizes.
 // This is needed because further constant optimizations depend on those.
-internal class ConstantIdentifierReplacer(private val program: Program, private val errors: IErrorReporter, private val compTarget: ICompilationTarget) : AstWalker() {
+internal class ConstantIdentifierReplacer(
+    private val program: Program,
+    private val options: CompilationOptions,
+    private val errors: IErrorReporter
+) : AstWalker() {
 
     override fun before(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
         val constValue = addressOf.constValue(program)
@@ -292,7 +296,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
             return noModifications
 
         val dt = identifier.inferType(program)
-        if(!dt.isKnown || !dt.isNumeric)
+        if(!dt.isKnown || !dt.isNumeric && !dt.isBool)
             return noModifications
 
         try {
@@ -313,7 +317,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                 }
             }
             when (cval.type) {
-                in NumericDatatypes -> {
+                in NumericDatatypesWithBoolean -> {
                     if(parent is AddressOf)
                         return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
                     return listOf(
@@ -369,7 +373,7 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                 DataType.FLOAT -> {
                     // vardecl: for scalar float vars, promote constant integer initialization values to floats
                     val litval = decl.value as? NumericLiteral
-                    if (litval!=null && litval.type in IntegerDatatypes) {
+                    if (litval!=null && litval.type in IntegerDatatypesWithBoolean) {
                         val newValue = NumericLiteral(DataType.FLOAT, litval.number, litval.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
                     }
@@ -470,12 +474,11 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                 val numericLv = decl.value as? NumericLiteral
                 val size = decl.arraysize?.constIndex() ?: return null
                 if(rangeExpr==null && numericLv!=null) {
-                    // arraysize initializer is a single int, and we know the size.
+                    // arraysize initializer is a single int, and we know the array size.
                     val fillvalue = numericLv.number
-                    if (fillvalue < compTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > compTarget.machine.FLOAT_MAX_POSITIVE)
+                    if (fillvalue < options.compTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > options.compTarget.machine.FLOAT_MAX_POSITIVE)
                         errors.err("float value overflow", numericLv.position)
                     else {
-                        // create the array itself, filled with the fillvalue.
                         val array = Array(size) {fillvalue}.map { NumericLiteral(DataType.FLOAT, it, numericLv.position) }.toTypedArray<Expression>()
                         return ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_F), array, position = numericLv.position)
                     }
@@ -485,9 +488,13 @@ internal class ConstantIdentifierReplacer(private val program: Program, private 
                 val numericLv = decl.value as? NumericLiteral
                 val size = decl.arraysize?.constIndex() ?: return null
                 if(numericLv!=null) {
-                    // arraysize initializer is a single int, and we know the size.
-                    val fillvalue = if(numericLv.number==0.0) 0.0 else 1.0
-                    val array = Array(size) {fillvalue}.map { NumericLiteral(DataType.UBYTE, fillvalue, numericLv.position) }.toTypedArray<Expression>()
+                    // arraysize initializer is a single value, and we know the array size.
+                    if(numericLv.type!=DataType.BOOL) {
+                        if(options.strictBool || numericLv.type !in ByteDatatypes)
+                            errors.err("initializer value is not a boolean", numericLv.position)
+                        return null
+                    }
+                    val array = Array(size) {numericLv.number}.map { NumericLiteral(DataType.BOOL, it, numericLv.position) }.toTypedArray<Expression>()
                     return ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_BOOL), array, position = numericLv.position)
                 }
             }

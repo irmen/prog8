@@ -43,6 +43,7 @@ internal class ErrorReporter: IErrorReporter {
             if(msg !in alreadyReportedMessages) {
                 when(it.severity) {
                     MessageSeverity.ERROR -> {
+                        System.out.flush()
                         printer.print("\u001b[91mERROR\u001B[0m ")  // bright red
                         numErrors++
                     }
@@ -66,4 +67,6 @@ internal class ErrorReporter: IErrorReporter {
     }
 
     override fun noErrors() = messages.none { it.severity==MessageSeverity.ERROR }
+    override fun noErrorForLine(position: Position) = !messages.any { it.position.line==position.line && it.severity!=MessageSeverity.INFO }
+
 }

@@ -8,6 +8,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
+import prog8.ast.printProgram
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
 import prog8.ast.statements.VarDecl
@@ -41,29 +42,28 @@ class TestTypecasts: FunSpec({
 
     test("not casting bool operands to logical operators") {
         val text="""
-            %import textio
-            %zeropage basicsafe
-            
             main {
                 sub start() {
                     bool @shared bb2=true
-                    bool @shared bb = bb2 and true
+                    bool @shared bb3=false
+                    bool @shared bb = bb2 and bb3
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 4
-        val expr = (stmts[3] as Assignment).value as BinaryExpression
+        stmts.size shouldBe 6
+        val expr = (stmts[5] as Assignment).value as BinaryExpression
         expr.operator shouldBe "and"
-        expr.right shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
         (expr.left as IdentifierReference).nameInSource shouldBe listOf("bb2")  // no cast
+        (expr.right as IdentifierReference).nameInSource shouldBe listOf("bb3")  // no cast
 
         val result2 = compileText(C64Target(), true, text, writeAssembly = true)!!
         val stmts2 = result2.compilerAst.entrypoint.statements
-        stmts2.size shouldBe 5
-        val expr2 = (stmts2[3] as Assignment).value as BinaryExpression
+        stmts2.size shouldBe 7
+        val expr2 = (stmts2[5] as Assignment).value as BinaryExpression
         expr2.operator shouldBe "and"
-        expr2.right shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
+        (expr2.left as IdentifierReference).nameInSource shouldBe listOf("bb2")  // no cast
+        (expr2.right as IdentifierReference).nameInSource shouldBe listOf("bb3")  // no cast
     }
 
     test("bool expressions with functioncalls") {
@@ -86,23 +86,24 @@ main {
         bool @shared bvalue
 
         bvalue = ub1 xor ub2 xor ub3 xor true
-        bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)
-        bvalue = ub1 and ub2 and ftrue(99)
+        bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)!=0
+        bvalue = ub1 and ub2 and ftrue(99)!=0
         bvalue = ub1 xor ub2 xor ub3 xor btrue(99)
         bvalue = ub1 and ub2 and btrue(99)        
     }
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
+        printProgram(result.compilerAst)
         /*
-        ubyte @shared ub1
-        ub1 = 1
-        ubyte @shared ub2
-        ub2 = 1
-        ubyte @shared ub3
-        ub3 = 1
-        ubyte @shared bvalue
-        bvalue = (((ub1 xor ub2) xor ub3) xor 1)
+        bool @shared ub1
+        ub1 = true
+        bool @shared ub2
+        ub2 = true
+        bool @shared ub3
+        ub3 = true
+        bool @shared bvalue
+        bvalue =  not ((ub1 xor ub2) xor ub3)
         bvalue = (((ub1 xor ub2) xor ub3) xor (ftrue(99)!=0))
         bvalue = ((ub1 and ub2) and (ftrue(99)!=0))
         bvalue = (((ub1 xor ub2) xor ub3) xor btrue(99))
@@ -110,12 +111,12 @@ main {
         return
          */
         stmts.size shouldBe 13
-        val assignValue1 = (stmts[7] as Assignment).value as BinaryExpression
+        val assignValue1 = (stmts[7] as Assignment).value as PrefixExpression
         val assignValue2 = (stmts[8] as Assignment).value as BinaryExpression
         val assignValue3 = (stmts[9] as Assignment).value as BinaryExpression
         val assignValue4 = (stmts[10] as Assignment).value as BinaryExpression
         val assignValue5 = (stmts[11] as Assignment).value as BinaryExpression
-        assignValue1.operator shouldBe "xor"
+        assignValue1.operator shouldBe "not"
         assignValue2.operator shouldBe "xor"
         assignValue3.operator shouldBe "and"
         assignValue4.operator shouldBe "xor"
@@ -132,478 +133,6 @@ main {
         assignValue5.right shouldBe instanceOf<IFunctionCall>()
     }
 
-    test("simple logical with byte instead of bool ok with typecasting") {
-        val text="""
-main  {
-    ubyte ubb
-
-    sub start() {
-        ubb = ubb and 123
-    }
-}"""
-        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 2
-        val assignValue = (stmts[0] as Assignment).value as BinaryExpression
-        assignValue.left shouldBe instanceOf<BinaryExpression>()        // as a result of the cast to boolean
-        assignValue.operator shouldBe "and"
-        (assignValue.right as NumericLiteral).number shouldBe 1.0
-    }
-
-    test("logical with byte instead of bool") {
-        val text="""
-%import textio
-
-main  {
-
-    sub ftrue(ubyte arg) -> ubyte {
-        arg++
-        return 128
-    }
-
-    sub ffalse(ubyte arg) -> ubyte {
-        arg++
-        return 0
-    }
-
-    sub start() {
-        ubyte ub1 = 2
-        ubyte ub2 = 4
-        ubyte ub3 = 8
-        ubyte ub4 = 0
-        ubyte bvalue
-
-        txt.print("const not 0: ")
-        txt.print_ub(not 129)
-        txt.nl()
-        txt.print("const not 1: ")
-        txt.print_ub(not 0)
-        txt.nl()
-        txt.print("const inv 126: ")
-        txt.print_ub(~ 129)
-        txt.nl()
-        txt.print("const inv 255: ")
-        txt.print_ub(~ 0)
-        txt.nl()
-        bvalue = 129
-        txt.print("bitwise inv 126: ")
-        bvalue = ~ bvalue
-        txt.print_ub(bvalue)
-        txt.nl()
-        bvalue = 0
-        txt.print("bitwise inv 255: ")
-        bvalue = ~ bvalue
-        txt.print_ub(bvalue)
-        txt.nl()
-
-        txt.print("bitwise or  14: ")
-        txt.print_ub(ub1 | ub2 | ub3 | ub4)
-        txt.nl()
-        txt.print("bitwise or 142: ")
-        txt.print_ub(ub1 | ub2 | ub3 | ub4 | 128)
-        txt.nl()
-        txt.print("bitwise and  0: ")
-        txt.print_ub(ub1 & ub2 & ub3 & ub4)
-        txt.nl()
-        txt.print("bitwise and  8: ")
-        txt.print_ub(ub3 & ub3 & 127)
-        txt.nl()
-        txt.print("bitwise xor 14: ")
-        txt.print_ub(ub1 ^ ub2 ^ ub3 ^ ub4)
-        txt.nl()
-        txt.print("bitwise xor  6: ")
-        txt.print_ub(ub1 ^ ub2 ^ ub3 ^ 8)
-        txt.nl()
-        txt.print("bitwise not 247: ")
-        txt.print_ub(~ub3)
-        txt.nl()
-        txt.print("bitwise not 255: ")
-        txt.print_ub(~ub4)
-        txt.nl()
-
-        txt.print("not 0: ")
-        bvalue = 3 * (ub4 | not (ub3 | ub3 | ub3))
-        txt.print_ub(bvalue)
-        if 3*(ub4 | not (ub1 | ub1 | ub1))
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-
-        txt.print("not 0: ")
-        bvalue = not ub3
-        txt.print_ub(bvalue)
-        if not ub1
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-
-        txt.print("not 1: ")
-        bvalue = not ub4
-        txt.print_ub(bvalue)
-        if not ub4
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-
-        bvalue = bvalue and 128
-        txt.print("bvl 1: ")
-        txt.print_ub(bvalue)
-        if bvalue and 128
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-
-        txt.print("and 1: ")
-        bvalue = ub1 and ub2 and ub3
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print("and 1: ")
-        bvalue = ub1 and ub2 and ub3 and 64
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3 and 64
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print("and 1: ")
-        bvalue = ub1 and ub2 and ub3 and ftrue(99)
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3 and ftrue(99)
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print("and 0: ")
-        bvalue = ub1 and ub2 and ub3 and ub4
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3 and ub4
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-        txt.print("and 0: ")
-        bvalue = ub1 and ub2 and ub3 and ffalse(99)
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3 and ffalse(99)
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-
-        txt.print(" or 1: ")
-        bvalue = ub1 or ub2 or ub3 or ub4
-        txt.print_ub(bvalue)
-        if ub1 or ub2 or ub3 or ub4
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print(" or 1: ")
-        bvalue = ub4 or ub4 or ub1
-        txt.print_ub(bvalue)
-        if ub4 or ub4 or ub1
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print(" or 1: ")
-        bvalue = ub1 or ub2 or ub3 or ftrue(99)
-        txt.print_ub(bvalue)
-        if ub1 or ub2 or ub3 or ftrue(99)
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-
-        txt.print("xor 1: ")
-        bvalue = ub1 xor ub2 xor ub3 xor ub4
-        txt.print_ub(bvalue)
-        if ub1 xor ub2 xor ub3 xor ub4
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print("xor 1: ")
-        bvalue = ub1 xor ub2 xor ub3 xor ffalse(99)
-        txt.print_ub(bvalue)
-        if ub1 xor ub2 xor ub3 xor ffalse(99)
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-
-        txt.print("xor 0: ")
-        bvalue = ub1 xor ub2 xor ub3 xor ub4 xor true
-        txt.print_ub(bvalue)
-        if ub1 xor ub2 xor ub3 xor ub4 xor true
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-        txt.print("xor 0: ")
-        bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)
-        txt.print_ub(bvalue)
-        if ub1 xor ub2 xor ub3 xor ftrue(99)
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-    }
-}
-        """
-        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBeGreaterThan 10
-    }
-
-    test("logical with bools") {
-        val text="""
-%import textio
-
-main  {
-
-    sub ftrue(ubyte arg) -> ubyte {
-        arg++
-        return 128
-    }
-
-    sub ffalse(ubyte arg) -> ubyte {
-        arg++
-        return 0
-    }
-
-    sub start() {
-        bool ub1 = 2
-        bool ub2 = 4
-        bool ub3 = 8
-        bool ub4 = 0
-        bool bvalue
-
-        txt.print("const not 0: ")
-        txt.print_ub(not 129)
-        txt.nl()
-        txt.print("const not 1: ")
-        txt.print_ub(not 0)
-        txt.nl()
-        txt.print("const inv 126: ")
-        txt.print_ub(~ 129)
-        txt.nl()
-        txt.print("const inv 255: ")
-        txt.print_ub(~ 0)
-        txt.nl()
-        ; bvalue = 129
-        ; txt.print("bitwise inv 126: ")
-        ; bvalue = ~ bvalue
-        ; txt.print_ub(bvalue)
-        ; txt.nl()
-        ; bvalue = 0
-        ; txt.print("bitwise inv 255: ")
-        ; bvalue = ~ bvalue
-        ; txt.print_ub(bvalue)
-        ; txt.nl()
-
-        txt.print("bitwise or  14: ")
-        txt.print_ub(ub1 | ub2 | ub3 | ub4)
-        txt.nl()
-        txt.print("bitwise or 142: ")
-        txt.print_ub(ub1 | ub2 | ub3 | ub4 | 128)
-        txt.nl()
-        txt.print("bitwise and  0: ")
-        txt.print_ub(ub1 & ub2 & ub3 & ub4)
-        txt.nl()
-        txt.print("bitwise and  8: ")
-        txt.print_ub(ub3 & ub3 & 127)
-        txt.nl()
-        txt.print("bitwise xor 14: ")
-        txt.print_ub(ub1 ^ ub2 ^ ub3 ^ ub4)
-        txt.nl()
-        txt.print("bitwise xor  6: ")
-        txt.print_ub(ub1 ^ ub2 ^ ub3 ^ 8)
-        txt.nl()
-        ;txt.print("bitwise not 247: ")
-        ;txt.print_ub(~ub3)
-        ;txt.nl()
-        ;txt.print("bitwise not 255: ")
-        ;txt.print_ub(~ub4)
-        ;txt.nl()
-
-        txt.print("not 0: ")
-        bvalue = 3 * (ub4 | not (ub3 | ub3 | ub3))
-        txt.print_ub(bvalue)
-        if 3*(ub4 | not (ub1 | ub1 | ub1))
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-
-        txt.print("not 0: ")
-        bvalue = not ub3
-        txt.print_ub(bvalue)
-        if not ub1
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-
-        txt.print("not 1: ")
-        bvalue = not ub4
-        txt.print_ub(bvalue)
-        if not ub4
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-
-        bvalue = bvalue and 128
-        txt.print("bvl 1: ")
-        txt.print_ub(bvalue)
-        if bvalue and 128
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-
-        txt.print("and 1: ")
-        bvalue = ub1 and ub2 and ub3
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print("and 1: ")
-        bvalue = ub1 and ub2 and ub3 and 64
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3 and 64
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print("and 1: ")
-        bvalue = ub1 and ub2 and ub3 and ftrue(99)
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3 and ftrue(99)
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print("and 0: ")
-        bvalue = ub1 and ub2 and ub3 and ub4
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3 and ub4
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-        txt.print("and 0: ")
-        bvalue = ub1 and ub2 and ub3 and ffalse(99)
-        txt.print_ub(bvalue)
-        if ub1 and ub2 and ub3 and ffalse(99)
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-
-        txt.print(" or 1: ")
-        bvalue = ub1 or ub2 or ub3 or ub4
-        txt.print_ub(bvalue)
-        if ub1 or ub2 or ub3 or ub4
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print(" or 1: ")
-        bvalue = ub4 or ub4 or ub1
-        txt.print_ub(bvalue)
-        if ub4 or ub4 or ub1
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print(" or 1: ")
-        bvalue = ub1 or ub2 or ub3 or ftrue(99)
-        txt.print_ub(bvalue)
-        if ub1 or ub2 or ub3 or ftrue(99)
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-
-        txt.print("xor 1: ")
-        bvalue = ub1 xor ub2 xor ub3 xor ub4
-        txt.print_ub(bvalue)
-        if ub1 xor ub2 xor ub3 xor ub4
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-        txt.print("xor 1: ")
-        bvalue = ub1 xor ub2 xor ub3 xor ffalse(99)
-        txt.print_ub(bvalue)
-        if ub1 xor ub2 xor ub3 xor ffalse(99)
-            txt.print(" / ok")
-        else
-            txt.print(" / fail")
-        txt.nl()
-
-        txt.print("xor 0: ")
-        bvalue = ub1 xor ub2 xor ub3 xor ub4 xor true
-        txt.print_ub(bvalue)
-        if ub1 xor ub2 xor ub3 xor ub4 xor true
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-        txt.nl()
-        txt.print("xor 0: ")
-        bvalue = ub1 xor ub2 xor ub3 xor ftrue(99)
-        txt.print_ub(bvalue)
-        if ub1 xor ub2 xor ub3 xor ftrue(99)
-            txt.print(" / fail")
-        else
-            txt.print(" / ok")
-    }
-}
-        """
-        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBeGreaterThan 10
-    }
-
-    test("bool arrays") {
-        val text="""
-            main {
-                sub start() {
-                    bool[] barray = [true, false, 1, 0, 222]
-                    bool bb
-                    ubyte xx
-            
-                    for bb in barray {
-                        if bb
-                            xx++
-                    }
-                 }
-             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 6
-        val arraydecl = stmts[0] as VarDecl
-        arraydecl.datatype shouldBe DataType.ARRAY_BOOL
-        val values = (arraydecl.value as ArrayLiteral).value
-        values.size shouldBe 5
-        values[0] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        values[1] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        values[2] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        values[3] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        values[4] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-    }
-
     test("correct handling of bool parameters") {
         val text="""
             main  {
@@ -615,10 +144,9 @@ main  {
                 sub start() {
                     bool boolvalue1 = true
                     bool boolvalue2 = false
-                    uword xx
             
                     boolvalue1 = thing(true, false)
-                    boolvalue2 = thing(xx, xx)
+                    boolvalue2 = thing(false, true)
             
                     if boolvalue1 and boolvalue2
                         boolvalue1=false
@@ -626,14 +154,14 @@ main  {
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 9
-        val fcall1 = ((stmts[6] as Assignment).value as IFunctionCall)
-        fcall1.args[0] shouldBe NumericLiteral(DataType.UBYTE, 1.0, Position.DUMMY)
-        fcall1.args[1] shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
-        val fcall2 = ((stmts[7] as Assignment).value as IFunctionCall)
-        (fcall2.args[0] as TypecastExpression).type shouldBe DataType.BOOL
-        (fcall2.args[1] as TypecastExpression).type shouldBe DataType.BOOL
-        val ifCond = (stmts[8] as IfElse).condition as BinaryExpression
+        stmts.size shouldBe 7
+        val fcall1 = ((stmts[4] as Assignment).value as IFunctionCall)
+        fcall1.args[0] shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
+        fcall1.args[1] shouldBe NumericLiteral(DataType.BOOL, 0.0, Position.DUMMY)
+        val fcall2 = ((stmts[5] as Assignment).value as IFunctionCall)
+        fcall2.args[0] shouldBe NumericLiteral(DataType.BOOL, 0.0, Position.DUMMY)
+        fcall2.args[1] shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
+        val ifCond = (stmts[6] as IfElse).condition as BinaryExpression
         ifCond.operator shouldBe "and" // no asm writing so logical expressions haven't been replaced with bitwise equivalents yet
         (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("boolvalue1")
         (ifCond.right as IdentifierReference).nameInSource shouldBe listOf("boolvalue2")
@@ -644,17 +172,17 @@ main  {
             main {
                 sub start() {
                     uword camg
-                    ubyte @shared interlaced
+                    bool @shared interlaced
                     interlaced = (camg & ${'$'}0004) != 0
-                    interlaced++
+                    cx16.r0L++
                     interlaced = (${'$'}0004 & camg) != 0
-                    interlaced++
+                    cx16.r0L++
                     uword @shared ww
                     ww = (camg & ${'$'}0004)
                     ww++
                     ww = (${'$'}0004 & camg)
-                    
-                    ubyte @shared wordNr2 = (interlaced >= ${'$'}33) + (interlaced >= ${'$'}66) + (interlaced >= ${'$'}99) + (interlaced >= ${'$'}CC)
+                    ubyte @shared value
+                    bool @shared collected = (value >= ${'$'}33) or (value >= ${'$'}66) or (value >= ${'$'}99) or (value >= ${'$'}CC)
                 }
             }"""
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
@@ -842,8 +370,8 @@ main {
             
             main {
                 sub start() {
-                    byte bb = -10
-                    word ww = -1000
+                    byte @shared bb = -10
+                    word @shared ww = -1000
                     
                     if bb>0 {
                         bb++
@@ -851,13 +379,13 @@ main {
                     if bb < 0 {
                         bb ++
                     }
-                    if bb & 1 {
+                    if bb & 1 !=0 {
                         bb++
                     }
-                    if bb & 128 {
+                    if bb & 128 !=0 {
                         bb++
                     }
-                    if bb & 255 {
+                    if bb & 255 !=0 {
                         bb++
                     }
 
@@ -867,13 +395,13 @@ main {
                     if ww < 0 {
                         ww ++
                     }
-                    if ww & 1 {
+                    if ww & 1 !=0 {
                         ww++
                     }
-                    if ww & 32768 {
+                    if ww & 32768 != 0 {
                         ww++
                     }
-                    if ww & 65535 {
+                    if ww & 65535 != 0 {
                         ww++
                     }
                 }
@@ -888,20 +416,20 @@ main {
         val text = """
             main {
                 sub start() {
-                    byte bb
-                    word ww
+                    byte @shared bb
+                    word @shared ww
             
-                    ubyte iteration_in_progress
-                    uword num_bytes
+                    bool @shared iteration_in_progress
+                    uword @shared num_bytes
 
-                    if not iteration_in_progress or not num_bytes {
+                    if not iteration_in_progress or num_bytes==0 {
                         num_bytes++
                     }
         
-                    if bb as ubyte  {
+                    if bb as ubyte !=0  {
                         bb++
                     }
-                    if ww as uword  {
+                    if ww as uword !=0 {
                         ww++
                     }
                 }
@@ -930,10 +458,10 @@ main {
         val text = """
             main {
                 sub start() {
-                    byte ub1 = -50
-                    byte ub2 = -51
-                    byte ub3 = -52
-                    byte ub4 = 100
+                    byte @shared ub1 = -50
+                    byte @shared ub2 = -51
+                    byte @shared ub3 = -52
+                    byte @shared ub4 = 100
                     word @shared ww = func(ub1, ub2, ub3, ub4)
                     ww = func(ub4, ub2, ub3, ub1)
                     ww=afunc(ub1, ub2, ub3, ub4)
@@ -1073,8 +601,8 @@ main {
         thing(large)
         thing(320*240/8/8)
         thing(320*HEIGHT/8/8)
-        thing(320*HEIGHT)        ; overflow
-        large = 12345678         ; overflow
+        thing(320*HEIGHT)       ; overflow
+        large = 12345678        ; overflow
     }
 
     sub thing(uword value) {
@@ -1083,32 +611,170 @@ main {
 }"""
         val errors=ErrorReporterForTests()
         compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 4
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain ":9:"
         errors.errors[0] shouldContain "no cast"
-        errors.errors[1] shouldContain "overflow"
-        errors.errors[2] shouldContain "out of range"
-        errors.errors[3] shouldContain "overflow"
+        errors.errors[1] shouldContain ":10:"
+        errors.errors[1] shouldContain "out of range"
+        errors.errors[2] shouldContain ":10:"
+        errors.errors[2] shouldContain "doesn't match"
     }
 
-    test("type fitting of const assignment values") {
+    test("various bool typecasts and type mismatches") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+
+        float @shared fl
+        ubyte @shared flags
+        byte @shared flagss
+        uword @shared flagsw
+        word @shared flagssw
+        bool @shared bflags = 123
+        cx16.r0++
+        bflags = 123
+        cx16.r0++
+        bflags = 123 as bool
+
+        flags = bflags
+        flagss = bflags
+        flagsw = bflags
+        flagssw = bflags
+        fl = bflags
+        bflags = flags
+        bflags = flagss
+        bflags = flagsw
+        bflags = flagssw
+        bflags = fl
+
+        flags = bflags as ubyte
+        flagss = bflags as byte
+        flagsw = bflags as uword
+        flagssw = bflags as word
+        fl = bflags as float
+        bflags = flags as bool
+        bflags = flagss as bool
+        bflags = flagsw as bool
+        bflags = flagssw as bool
+        bflags = fl as bool
+    }
+}"""
+        val errors=ErrorReporterForTests()
+        compileText(VMTarget(), false, src, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 12
+        errors.errors.all { "type of value" in it } shouldBe true
+        errors.errors.all { "doesn't match" in it } shouldBe true
+    }
+
+    test("bool to byte cast in expression is not allowed") {
+        val text="""
+main {
+    sub start() {
+        ubyte[3] values
+        func1(22 in values)
+        func2(22 in values)
+        ubyte @shared qq = 22 in values
+        byte @shared ww = 22 in values
+    }
+    sub func1(ubyte arg) {
+        arg++
+    }
+    sub func2(byte arg) {
+        arg++
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, writeAssembly = true, errors = errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain("argument 1 type mismatch")
+        errors.errors[1] shouldContain("argument 1 type mismatch")
+        errors.errors[2] shouldContain("type of value BOOL doesn't match target")
+        errors.errors[3] shouldContain("type of value BOOL doesn't match target")
+    }
+
+    test("bool function parameters correct typing") {
+        val src = """
+main {
+    sub start() {
+        bool bb = func(true)
+        void func(true)
+        ; all these should fail:
+        void func(0)
+        void func(1)
+        void func(42)
+        void func(65535)
+        void func(655.444)
+        cx16.r0L = func(true)
+    }
+
+    sub func(bool draw) -> bool {
+        cx16.r0++
+        return true
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 6
+        errors.errors[0] shouldContain("type mismatch")
+        errors.errors[1] shouldContain("type mismatch")
+        errors.errors[2] shouldContain("type mismatch")
+        errors.errors[3] shouldContain("type mismatch")
+        errors.errors[4] shouldContain("type mismatch")
+        errors.errors[5] shouldContain("type of value BOOL doesn't match target")
+    }
+
+    test("no implicit bool-to-int cast") {
         val src="""
 main {
     sub start() {
-        &ubyte mapped = 8000
-        mapped = 6144 >> 9
-        ubyte @shared ubb = 6144 >> 9
-        bool @shared bb = 6144
+        func(true)
+        func(true as ubyte)
+        cx16.r0L = true
+        cx16.r0L = true as ubyte
+    }
+
+    sub func(bool b) {
+        cx16.r0++
     }
 }"""
-        compileText(C64Target(), true, src, writeAssembly = false) shouldNotBe null
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain(":5:14: argument 1 type mismatch")
+        errors.errors[1] shouldContain(":6:20: type of value BOOL doesn't match target")
+    }
 
-        val src2="""
+    test("no implicit int-to-bool cast") {
+        val src="""
 main {
     sub start() {
-        ubyte @shared ubb = 6144 >> 2       ; should still be type error
+        func1(true)
+        func2(true)
+        func1(true as ubyte)
+        func2(true as uword)
+        bool @shared bb1 = 1
+        bool @shared bb2 = 12345
+        bool @shared bb3 = 1 as bool
+        bool @shared bb4 = 12345 as bool
+    }
+
+    sub func1(ubyte ub) {
+        cx16.r0++
+    }
+
+    sub func2(uword uw) {
+        cx16.r0++
     }
 }"""
-        compileText(C64Target(), true, src2, writeAssembly = false) shouldBe null
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain(":4:15: no implicit cast")
+        errors.errors[1] shouldContain(":5:15: no implicit cast")
+        errors.errors[2] shouldContain(":8:28: type of value UBYTE doesn't match target")
+        errors.errors[3] shouldContain(":9:28: type of value UWORD doesn't match target")
     }
 
     test("str replaced with uword in subroutine params and return types") {

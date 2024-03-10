@@ -5,7 +5,7 @@ import prog8.code.core.*
 
 internal object DummyMemsizer : IMemSizer {
     override fun memorySize(dt: DataType) = when(dt) {
-        in ByteDatatypes -> 1
+        in ByteDatatypesWithBoolean -> 1
         DataType.FLOAT -> 5
         else -> 2
     }
@@ -58,6 +58,7 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
     }
 
     override fun noErrors(): Boolean  = errors.isEmpty()
+    override fun noErrorForLine(position: Position) = !errors.any { ":${position.line}:" in it }
 
     override fun report() {
         infos.forEach { println("UNITTEST COMPILATION REPORT: INFO: $it") }

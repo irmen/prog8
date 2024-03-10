@@ -173,6 +173,7 @@ internal class ProgramAndVarsGen(
                 for(num in 1..count) {
                     val name = asmgen.buildTempVarName(dt, num)
                     when (dt) {
+                        DataType.BOOL  -> asmgen.out("$name    .byte  ?")
                         DataType.BYTE  -> asmgen.out("$name    .char  ?")
                         DataType.UBYTE -> asmgen.out("$name    .byte  ?")
                         DataType.WORD  -> asmgen.out("$name    .sint  ?")
@@ -404,7 +405,7 @@ internal class ProgramAndVarsGen(
             if(sub.parameters.size==1) {
                 val dt = sub.parameters[0].type
                 val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, sub.parameters[0].position, variableAsmName = sub.parameters[0].name)
-                if(dt in ByteDatatypes)
+                if(dt in ByteDatatypesWithBoolean)
                     asmgen.assignRegister(RegisterOrPair.A, target)
                 else
                     asmgen.assignRegister(RegisterOrPair.AY, target)
@@ -604,7 +605,7 @@ internal class ProgramAndVarsGen(
 
     private fun uninitializedVariable2asm(variable: StStaticVariable) {
         when (variable.dt) {
-            DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ?")
+            DataType.BOOL, DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ?")
             DataType.BYTE -> asmgen.out("${variable.name}\t.char  ?")
             DataType.UWORD -> asmgen.out("${variable.name}\t.word  ?")
             DataType.WORD -> asmgen.out("${variable.name}\t.sint  ?")
@@ -634,6 +635,7 @@ internal class ProgramAndVarsGen(
             } else 0
 
         when (variable.dt) {
+            DataType.BOOL -> TODO("bool var to asm")
             DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
             DataType.BYTE -> asmgen.out("${variable.name}\t.char  $initialValue")
             DataType.UWORD -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
@@ -658,7 +660,7 @@ internal class ProgramAndVarsGen(
 
     private fun arrayVariable2asm(varname: String, dt: DataType, value: StArray?, orNumberOfZeros: Int?) {
         when(dt) {
-            DataType.ARRAY_UB -> {
+            DataType.ARRAY_UB, DataType.ARRAY_BOOL -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
                     asmgen.out("$varname\t.byte  ${data.joinToString()}")
@@ -726,7 +728,7 @@ internal class ProgramAndVarsGen(
     private fun zeroFilledArray(numElts: Int): StArray {
         val values = mutableListOf<StArrayElement>()
         repeat(numElts) {
-            values.add(StArrayElement(0.0, null))
+            values.add(StArrayElement(0.0, null, null))
         }
         return values
     }
@@ -763,6 +765,16 @@ internal class ProgramAndVarsGen(
     private fun makeArrayFillDataUnsigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
         val array = value ?: zeroFilledArray(orNumberOfZeros!!)
         return when (dt) {
+            DataType.ARRAY_BOOL ->
+                // byte array can never contain pointer-to types, so treat values as all integers
+                array.map {
+                    if(it.boolean!=null)
+                        if(it.boolean==true) "1" else "0"
+                    else {
+                        val number = it.number!!
+                        if(number==0.0) "0" else "1"
+                    }
+                }
             DataType.ARRAY_UB ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {

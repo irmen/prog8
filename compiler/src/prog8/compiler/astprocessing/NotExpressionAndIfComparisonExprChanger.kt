@@ -9,10 +9,7 @@ import prog8.ast.expressions.PrefixExpression
 import prog8.ast.expressions.invertCondition
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.DataType
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IErrorReporter
-import prog8.code.core.IntegerDatatypes
+import prog8.code.core.*
 
 internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
 
@@ -21,7 +18,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             val left = expr.left as? BinaryExpression
             if (left != null) {
                 val rightValue = expr.right.constValue(program)
-                if (rightValue?.number == 0.0 && rightValue.type in IntegerDatatypes) {
+                if (rightValue?.number == 0.0 && rightValue.type in IntegerDatatypesWithBoolean) {
                     if (left.operator == "==" && expr.operator == "==") {
                         // (x==something)==0  -->  x!=something
                         left.operator = "!="
@@ -43,15 +40,11 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             }
         }
 
-        if(expr.operator=="^" && expr.left.inferType(program) istype DataType.BOOL && expr.right.constValue(program)?.number == 1.0) {
-            // boolean ^ 1 --> not boolean
-            return listOf(IAstModification.ReplaceNode(expr, invertCondition(expr.left, program), parent))
-        }
-
-
         // applying De Morgan's laws proved beneficial for the code generator,
         // when the code has one outer 'not' instead of two inner ones.
         if(expr.operator=="or" || expr.operator=="and") {
+
+            // boolean case
             val newOper = if(expr.operator=="or") "and" else "or"
             val leftP = expr.left as? PrefixExpression
             val rightP = expr.right as? PrefixExpression
@@ -62,16 +55,40 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                 val notExpr = PrefixExpression("not", inner, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
             }
-            val leftB = expr.left as? BinaryExpression
-            val rightB = expr.right as? BinaryExpression
-            if(leftB!=null && leftB.operator=="==" && (leftB.right as? NumericLiteral)?.number==0.0
-                && rightB!=null && rightB.operator=="==" && (rightB.right as? NumericLiteral)?.number==0.0) {
-                // a==0 or b==0  --> (a!=0 and b!=0)==0
-                // a==0 and b==0 --> (a!=0 or b!=0)==0
-                leftB.operator = "!="
-                rightB.operator = "!="
-                val inner = BinaryExpression(leftB, newOper, rightB, expr.position)
-                val notExpr = BinaryExpression(inner, "==", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+
+            // integer case (only if both are the same type)
+            val leftC = expr.left as? BinaryExpression
+            val rightC = expr.right as? BinaryExpression
+            if(leftC!=null && rightC!=null && leftC.operator=="==" && rightC.operator=="==") {
+                if (leftC.right.constValue(program)?.number == 0.0 && rightC.right.constValue(program)?.number == 0.0) {
+                    val leftDt = leftC.left.inferType(program).getOr(DataType.UNDEFINED)
+                    val rightDt = rightC.left.inferType(program).getOr(DataType.UNDEFINED)
+                    if(leftDt==rightDt && leftDt in IntegerDatatypes) {
+                        if (rightC.left.isSimple) {
+                            // x==0 or y==0    ->  (x & y)==0
+                            // x==0 and y==0   ->  (x | y)==0
+                            val newOperator = if(expr.operator=="or") "&" else "|"
+                            val inner = BinaryExpression(leftC.left, newOperator, rightC.left, expr.position)
+                            val compare = BinaryExpression(inner, "==", NumericLiteral(leftDt, 0.0, expr.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr, compare, parent))
+                        }
+                    }
+                }
+            }
+
+            // mixed cases
+            if(leftC!=null && rightP!=null && leftC.operator=="==" && rightP.operator=="not") {
+                // mixed case 1:   x==V or not y  ->  not(x!=V and y)
+                val invertedLeftExpression = invertCondition(leftC, program)
+                val inner = BinaryExpression(invertedLeftExpression, newOper, rightP.expression, expr.position)
+                val notExpr = PrefixExpression("not", inner, expr.position)
+                return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
+            }
+            else if(rightC!=null && leftP!=null && rightC.operator=="==" && leftP.operator=="not") {
+                // mixed case 1:   not x or y==V  ->  not(x and y!=V)
+                val invertedRightExpression = invertCondition(rightC, program)
+                val inner = BinaryExpression(leftP.expression, newOper, invertedRightExpression, expr.position)
+                val notExpr = PrefixExpression("not", inner, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, notExpr, parent))
             }
         }
@@ -82,17 +99,50 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
     override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
         if(expr.operator == "not") {
 
-            // first check if we're already part of a "boolean" expresion (i.e. comparing against 0)
+            // first check if we're already part of a "boolean" expression (i.e. comparing against 0 or 1)
             // if so, simplify THAT whole expression rather than making it more complicated
-            if(parent is BinaryExpression && parent.right.constValue(program)?.number==0.0) {
-                if(parent.operator=="==") {
-                    // (NOT X)==0 --> X!=0
-                    val replacement = BinaryExpression(expr.expression, "!=", NumericLiteral.optimalInteger(0, expr.position), expr.position)
-                    return listOf(IAstModification.ReplaceNode(parent, replacement, parent.parent))
-                } else if(parent.operator=="!=") {
-                    // (NOT X)!=0 --> X==0
-                    val replacement = BinaryExpression(expr.expression, "==", NumericLiteral.optimalInteger(0, expr.position), expr.position)
-                    return listOf(IAstModification.ReplaceNode(parent, replacement, parent.parent))
+            if (parent is BinaryExpression) {
+                if (parent.right.constValue(program)?.number == 0.0) {
+                    if(parent.right.inferType(program).isBool) {
+                        if(parent.operator=="==") {
+                            // (NOT X)==false --> X==true --> X
+                            return listOf(IAstModification.ReplaceNode(parent, expr.expression, parent.parent))
+                        } else if(parent.operator=="!=") {
+                            // (NOT X)!=false --> X!=true -> not X
+                            return listOf(IAstModification.ReplaceNode(parent, expr, parent.parent))
+                        }
+                    } else {
+                        if(parent.operator=="==") {
+                            // (NOT X)==0 --> X!=0
+                            val replacement = BinaryExpression(expr.expression, "!=", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(parent, replacement, parent.parent))
+                        } else if(parent.operator=="!=") {
+                            // (NOT X)!=0 --> X==0
+                            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(parent, replacement, parent.parent))
+                        }
+                    }
+                }
+                else if (parent.right.constValue(program)?.number == 1.0) {
+                    if(parent.right.inferType(program).isBool) {
+                        if(parent.operator=="==") {
+                            // (NOT X)==true --> X==false --> not X
+                            return listOf(IAstModification.ReplaceNode(parent, expr, parent.parent))
+                        } else if(parent.operator=="!=") {
+                            // (NOT X)!=true --> X!=false -> X
+                            return listOf(IAstModification.ReplaceNode(parent, expr.expression, parent.parent))
+                        }
+                    } else {
+                        if(parent.operator=="==") {
+                            // (NOT X)==1 --> X==0
+                            val replacement = BinaryExpression(expr.expression, "==", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(parent, replacement, parent.parent))
+                        } else if(parent.operator=="!=") {
+                            // (NOT X)!=1 --> X!=0
+                            val replacement = BinaryExpression(expr.expression, "!=", NumericLiteral.optimalInteger(0, expr.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(parent, replacement, parent.parent))
+                        }
+                    }
                 }
             }
 
@@ -120,13 +170,8 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                     return listOf(IAstModification.ReplaceNode(expr, subBinExpr, parent))
                 }
             }
-
-            // not simpleX -> simpleX==0
-            if(expr.expression.isSimple) {
-                val replacement = BinaryExpression(expr.expression.copy(),"==", NumericLiteral(DataType.UBYTE, 0.0, expr.position), expr.position)
-                return listOf(IAstModification.ReplaceNodeSafe(expr, replacement, parent))
-            }
         }
+
         return noModifications
     }
 }

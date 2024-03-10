@@ -57,12 +57,12 @@ zsound_lib:
 
         cbm.SETMSG(%10000000)       ; enable kernal status messages for load
         cx16.rambank(song_bank)
-        if not diskio.load_raw("colony.zsm", song_address) {
+        if diskio.load_raw("colony.zsm", song_address)==0 {
             txt.print("?can't load\n")
             return
         }
         cx16.rambank(digi_bank)
-        if not diskio.load_raw("terminator2.zcm", digi_address) {
+        if diskio.load_raw("terminator2.zcm", digi_address)==0 {
             txt.print("?can't load\n")
             return
         } else {
@@ -82,7 +82,7 @@ zsound_lib:
         zsm_init()
         pcm_init()
         zsm_setcallback(&end_of_song_cb)
-        if zsm_start(song_bank, song_address)==0 {
+        if zsm_start(song_bank, song_address)==false {
             txt.print("\nmusic speed: ")
             txt.print_uw(zsm_get_music_speed())
             txt.print(" hz\nplaying song! hit enter to also play a digi sample!\n")

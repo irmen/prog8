@@ -91,7 +91,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             if(errors.noErrors()) {
                 val sortedList = varsDontCare.sortedByDescending { it.scopedName }
                 for (variable in sortedList) {
-                    if(variable.dt in IntegerDatatypes) {
+                    if(variable.dt in IntegerDatatypesWithBoolean) {
                         if(zeropage.free.isEmpty()) {
                             break
                         } else {

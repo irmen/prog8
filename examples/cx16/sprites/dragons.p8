@@ -41,7 +41,7 @@ main {
             for sprite_num in 0 to NUM_DRAGONS*2-2 step 2 {
                 xpositions[sprite_num]++
                 xpositions[sprite_num+1]++
-                if sprite_num & 2 {
+                if sprite_num & 2 !=0 {
                     xpositions[sprite_num]++
                     xpositions[sprite_num+1]++
                 }

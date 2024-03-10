@@ -195,7 +195,7 @@ class StStaticVariable(name: String,
                 require(onetimeInitializationArrayValue.isEmpty() ||onetimeInitializationArrayValue.size==length)
         }
         if(onetimeInitializationNumericValue!=null) {
-            require(dt in NumericDatatypes)
+            require(dt in NumericDatatypes || dt==DataType.BOOL)
         }
         if(onetimeInitializationArrayValue!=null) {
             require(dt in ArrayDatatypes)
@@ -221,6 +221,7 @@ class StMemVar(name: String,
     StNode(name, StNodeType.MEMVAR, astNode) {
 
     init{
+        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
         if(dt in ArrayDatatypes || dt == DataType.STR)
             require(length!=null) { "memory mapped array or string must have known length" }
     }
@@ -250,7 +251,7 @@ class StRomSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType)
 class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOfSymbol: String?)
+class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?)
 
 typealias StString = Pair<String, Encoding>
 typealias StArray = List<StArrayElement>

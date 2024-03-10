@@ -294,10 +294,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(numLiteral: NumericLiteral) {
-        if(numLiteral.type==DataType.FLOAT)
-            output(numLiteral.number.toString())
-        else
-            output(numLiteral.number.toInt().toString())
+        when (numLiteral.type) {
+            DataType.BOOL -> output(if(numLiteral.number==0.0) "false" else "true")
+            DataType.FLOAT -> output(numLiteral.number.toString())
+            else -> output(numLiteral.number.toInt().toString())
+        }
     }
 
     override fun visit(char: CharLiteral) {

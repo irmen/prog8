@@ -42,6 +42,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         breakpointCpuInstruction = null,
         printAst1 = false,
         printAst2 = false,
+        strictBool = true,
         symbolDefs = emptyMap(),
         outputDir = outputDir
     )

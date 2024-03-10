@@ -208,7 +208,7 @@ math {
         ubyte result = 7
         ubyte compare = $80
         repeat {
-            if value&compare
+            if value&compare!=0
                 return result
             result--
             if_z
@@ -221,7 +221,7 @@ math {
         ubyte result = 15
         uword compare = $8000
         repeat {
-            if value&compare
+            if value&compare!=0
                 return result
             result--
             if_z
@@ -317,7 +317,7 @@ math {
         repeat length {
             cx16.r0H ^= @(data)
             repeat 8 {
-                if cx16.r0H & $80
+                if cx16.r0H & $80 !=0
                     cx16.r0 = (cx16.r0<<1)^$1021
                 else
                     cx16.r0<<=1
@@ -336,7 +336,7 @@ math {
         repeat length {
             cx16.r1H ^= @(data)
             repeat 8 {
-                if cx16.r1H & $80 {
+                if cx16.r1H & $80 !=0 {
                     cx16.r0 <<= 1
                     rol(cx16.r1)
                     cx16.r1 ^= $04c1

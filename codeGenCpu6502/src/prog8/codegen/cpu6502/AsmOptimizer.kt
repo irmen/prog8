@@ -58,7 +58,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
-    mods = optimizeSamePointerIndexing(linesByFourteen)
+    mods = optimizeSamePointerIndexingAndUselessBeq(linesByFourteen)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFourteen = getLinesBy(lines, 14)
@@ -75,23 +75,48 @@ private fun String.isStoreReg() = this.startsWith("sta") || this.startsWith("sty
 private fun String.isStoreRegOrZero() = this.isStoreReg() || this.startsWith("stz")
 private fun String.isLoadReg() = this.startsWith("lda") || this.startsWith("ldy") || this.startsWith("ldx")
 
-private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?)
+private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?, val removeLabel: Boolean=false)
 
 private fun apply(modifications: List<Modification>, lines: MutableList<String>) {
     for (modification in modifications.sortedBy { it.lineIndex }.reversed()) {
-        if(modification.remove)
-            lines.removeAt(modification.lineIndex)
+        if(modification.remove) {
+            if(modification.removeLabel)
+                lines.removeAt(modification.lineIndex)
+            else {
+                val line = lines[modification.lineIndex]
+                if (line.length < 2 || line[0] == ';' || line.trimStart()[0] == ';')
+                    lines.removeAt(modification.lineIndex)
+                else if (haslabel(line)) {
+                    val label = keeplabel(line)
+                    if (label.isNotEmpty())
+                        lines[modification.lineIndex] = label
+                    else
+                        lines.removeAt(modification.lineIndex)
+                } else lines.removeAt(modification.lineIndex)
+            }
+        }
         else
             lines[modification.lineIndex] = modification.replacement!!
     }
 }
 
+private fun haslabel(line: String): Boolean {
+    return line.length>1 && line[0]!=';' && (!line[0].isWhitespace() || ':' in line)
+}
+
+private fun keeplabel(line: String): String {
+    if(':' in line)
+        return line.substringBefore(':') + ':'
+    val splits = line.split('\t', ' ', limit=2)
+    return if(splits.size>1) splits[0] + ':' else ""
+}
+
 private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
 // all lines (that aren't empty or comments) in sliding windows of certain size
-        lines.withIndex().filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }.windowed(windowSize, partialWindows = false)
+        lines.asSequence().withIndex().filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }.windowed(windowSize, partialWindows = false)
 
 private fun optimizeSameAssignments(
-    linesByFourteen: List<List<IndexedValue<String>>>,
+    linesByFourteen: Sequence<List<IndexedValue<String>>>,
     machine: IMachineDefinition,
     symbolTable: SymbolTable
 ): List<Modification> {
@@ -281,7 +306,7 @@ private fun optimizeSameAssignments(
     return mods
 }
 
-private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<List<IndexedValue<String>>>): List<Modification> {
 
     // Optimize same pointer indexing where for instance we load and store to the same ptr index in Y
     // if Y isn't modified in between we can omit the second LDY:
@@ -318,13 +343,42 @@ private fun optimizeSamePointerIndexing(linesByFourteen: List<List<IndexedValue<
                 mods.add(Modification(lines[4].index, true, null))
             }
         }
+
+
+        /*
+    beq  +
+    lda  #1
++
+[ optional:  label_xxxx_shortcut   line here]
+    beq  label_xxxx_shortcut   /  bne label_xxxx_shortcut
+or *_afterif labels.
+
+This gets generated after certain if conditions, and only the branch instruction is needed in these cases.
+         */
+
+        if(first=="beq  +" && second=="lda  #1" && third=="+") {
+            if((fourth.startsWith("beq  label_") || fourth.startsWith("bne  label_")) &&
+                (fourth.endsWith("_shortcut") || fourth.endsWith("_afterif") || fourth.endsWith("_shortcut:") || fourth.endsWith("_afterif:"))) {
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, true, null))
+                mods.add(Modification(lines[2].index, true, null))
+            }
+            else if(fourth.startsWith("label_") && (fourth.endsWith("_shortcut") || fourth.endsWith("_shortcut:"))) {
+                if((fifth.startsWith("beq  label_") || fifth.startsWith("bne  label_")) &&
+                    (fifth.endsWith("_shortcut") || fifth.endsWith("_afterif") || fifth.endsWith("_shortcut:") || fifth.endsWith("_afterif:"))) {
+                    mods.add(Modification(lines[0].index, true, null))
+                    mods.add(Modification(lines[1].index, true, null))
+                    mods.add(Modification(lines[2].index, true, null))
+                }
+            }
+        }
     }
 
     return mods
 }
 
 private fun optimizeStoreLoadSame(
-    linesByFour: List<List<IndexedValue<String>>>,
+    linesByFour: Sequence<List<IndexedValue<String>>>,
     machine: IMachineDefinition,
     symbolTable: SymbolTable
 ): List<Modification> {
@@ -414,7 +468,7 @@ private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
     }
 }
 
-private fun optimizeIncDec(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeIncDec(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
     // sometimes, iny+dey / inx+dex / dey+iny / dex+inx sequences are generated, these can be eliminated.
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
@@ -435,10 +489,11 @@ private fun optimizeIncDec(linesByFour: List<List<IndexedValue<String>>>): List<
     return mods
 }
 
-private fun optimizeJsrRtsAndOtherCombinations(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
     // jsr Sub + rts -> jmp Sub
     // rts + jmp -> remove jmp
     // rts + bxx -> remove bxx
+    // lda  + cmp #0 -> remove cmp,  same for cpy and cpx.
     // and some other optimizations.
 
     val mods = mutableListOf<Modification>()
@@ -472,6 +527,23 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: List<List<IndexedVal
                 mods += Modification(lines[1].index, true, null)
         }
 
+        if (!haslabel(second)) {
+            if ((" lda" in first || "\tlda" in first) && (" cmp  #0" in second || "\tcmp  #0" in second) ||
+                (" ldx" in first || "\tldx" in first) && (" cpx  #0" in second || "\tcpx  #0" in second) ||
+                (" ldy" in first || "\tldy" in first) && (" cpy  #0" in second || "\tcpy  #0" in second)
+            ) {
+                mods.add(Modification(lines[1].index, true, null))
+            }
+            else if(" cmp  #0" in second || "\tcmp  #0" in second) {
+                // there are many instructions that modify A and set the bits...
+                for(instr in arrayOf("lda", "ora", "and", "eor", "adc", "sbc", "asl", "cmp", "inc  a", "lsr", "pla", "rol", "ror", "txa", "tya")) {
+                    if(" $instr" in first || "\t$instr" in first) {
+                        mods.add(Modification(lines[1].index, true, null))
+                    }
+                }
+            }
+        }
+
         /*
     LDA NUM1
     CMP NUM2
@@ -501,7 +573,7 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: List<List<IndexedVal
     return mods
 }
 
-private fun optimizeUselessPushPopStack(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
     val mods = mutableListOf<Modification>()
 
     fun optimize(register: Char, lines: List<IndexedValue<String>>) {
@@ -538,7 +610,7 @@ private fun optimizeUselessPushPopStack(linesByFour: List<List<IndexedValue<Stri
     return mods
 }
 
-private fun optimizeUnneededTempvarInAdd(linesByFour: List<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeUnneededTempvarInAdd(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
     // sequence:  sta  P8ZP_SCRATCH_XX  / lda  something / clc / adc  P8ZP_SCRATCH_XX
     // this can be performed without the scratch variable:  clc  /  adc  something
     val mods = mutableListOf<Modification>()

@@ -3,7 +3,6 @@ package prog8.optimizer
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
 import prog8.code.core.CompilationOptions
-import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 
 
@@ -13,7 +12,7 @@ fun Program.constantFold(errors: IErrorReporter, options: CompilationOptions) {
     if(errors.noErrors()) {
         valuetypefixer.applyModifications()
 
-        val replacer = ConstantIdentifierReplacer(this, errors, options.compTarget)
+        val replacer = ConstantIdentifierReplacer(this, options, errors)
         replacer.visit(this)
         if (errors.noErrors()) {
             replacer.applyModifications()
@@ -60,8 +59,8 @@ fun Program.inlineSubroutines(options: CompilationOptions): Int {
     return inliner.applyModifications()
 }
 
-fun Program.simplifyExpressions(errors: IErrorReporter, target: ICompilationTarget) : Int {
-    val opti = ExpressionSimplifier(this, errors, target)
+fun Program.simplifyExpressions(errors: IErrorReporter, options: CompilationOptions) : Int {
+    val opti = ExpressionSimplifier(this, options, errors)
     opti.visit(this)
     return opti.applyModifications()
 }

@@ -349,6 +349,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             }
         }
 
+        // if something_returning_Pc()   ->  if_cc
         val binexpr = srcIf.condition as? BinaryExpression
         if(binexpr!=null && binexpr.right.constValue(program)?.number==0.0) {
             if(binexpr.operator=="==" || binexpr.operator=="!=") {
@@ -366,6 +367,17 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 val returnRegs = fcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
                 if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
                     return codeForStatusflag(fcall, returnRegs[0].statusflag!!, false)
+                }
+            }
+
+            val prefix = srcIf.condition as? PrefixExpression
+            if(prefix!=null && prefix.operator=="not") {
+                val prefixedFcall = prefix.expression as? FunctionCallExpression
+                if (prefixedFcall != null) {
+                    val returnRegs = prefixedFcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
+                    if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
+                        return codeForStatusflag(prefixedFcall, returnRegs[0].statusflag!!, true)
+                    }
                 }
             }
         }
@@ -558,8 +570,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcExpr: BinaryExpression): PtBinaryExpression {
         val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val actualType = if(type==DataType.BOOL) DataType.UBYTE else type
-        val expr = PtBinaryExpression(srcExpr.operator, actualType, srcExpr.position)
+        val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
         expr.add(transformExpression(srcExpr.left))
         expr.add(transformExpression(srcExpr.right))
         return expr
@@ -578,27 +589,27 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
         fun desugar(range: RangeExpression): PtExpression {
             require(range.from.inferType(program)==range.to.inferType(program))
-            val expr = PtBinaryExpression("and", DataType.UBYTE, srcCheck.position)
+            val expr = PtBinaryExpression("and", DataType.BOOL, srcCheck.position)
             val x1 = transformExpression(srcCheck.element)
             val x2 = transformExpression(srcCheck.element)
             val eltDt = srcCheck.element.inferType(program)
             if(eltDt.isInteger) {
-                val low = PtBinaryExpression("<=", DataType.UBYTE, srcCheck.position)
+                val low = PtBinaryExpression("<=", DataType.BOOL, srcCheck.position)
                 low.add(transformExpression(range.from))
                 low.add(x1)
                 expr.add(low)
-                val high = PtBinaryExpression("<=", DataType.UBYTE, srcCheck.position)
+                val high = PtBinaryExpression("<=", DataType.BOOL, srcCheck.position)
                 high.add(x2)
                 high.add(transformExpression(range.to))
                 expr.add(high)
             } else {
-                val low = PtBinaryExpression("<=", DataType.UBYTE, srcCheck.position)
+                val low = PtBinaryExpression("<=", DataType.BOOL, srcCheck.position)
                 val lowFloat = PtTypeCast(DataType.FLOAT, range.from.position)
                 lowFloat.add(transformExpression(range.from))
                 low.add(lowFloat)
                 low.add(x1)
                 expr.add(low)
-                val high = PtBinaryExpression("<=", DataType.UBYTE, srcCheck.position)
+                val high = PtBinaryExpression("<=", DataType.BOOL, srcCheck.position)
                 high.add(x2)
                 val highFLoat = PtTypeCast(DataType.FLOAT, range.to.position)
                 highFLoat.add(transformExpression(range.to))
@@ -655,8 +666,12 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         return mem
     }
 
-    private fun transform(number: NumericLiteral): PtNumber =
-        PtNumber(number.type, number.number, number.position)
+    private fun transform(number: NumericLiteral): PtExpression {
+        return if(number.type==DataType.BOOL)
+            PtBool(number.asBooleanValue, number.position)
+        else
+            PtNumber(number.type, number.number, number.position)
+    }
 
     private fun transform(srcPrefix: PrefixExpression): PtPrefix {
         val type = srcPrefix.inferType(program).getOrElse { throw FatalAstException("unknown dt") }

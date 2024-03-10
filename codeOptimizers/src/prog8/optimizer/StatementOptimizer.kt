@@ -83,7 +83,7 @@ class StatementOptimizer(private val program: Program,
 
         // empty true part? switch with the else part
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isNotEmpty()) {
-            val invertedCondition = BinaryExpression(ifElse.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, ifElse.condition.position), ifElse.condition.position)
+            val invertedCondition = invertCondition(ifElse.condition, program)
             val emptyscope = AnonymousScope(mutableListOf(), ifElse.elsepart.position)
             val truepart = AnonymousScope(ifElse.elsepart.statements, ifElse.truepart.position)
             return listOf(
@@ -103,25 +103,40 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
-        // remove obvious dangling elses (else after a return)
-        if(ifElse.elsepart.isNotEmpty() && ifElse.truepart.statements.singleOrNull() is Return) {
-            val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
-            return listOf(
-                IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope(mutableListOf(), ifElse.elsepart.position), ifElse),
-                IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
-            )
-        }
+        if(ifElse.elsepart.isNotEmpty()) {
+            // remove obvious dangling elses (else after a return)
+            if(ifElse.truepart.statements.singleOrNull() is Return) {
+                val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
+                return listOf(
+                    IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope(mutableListOf(), ifElse.elsepart.position), ifElse),
+                    IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
+                )
+            }
 
-        // switch if/else around if the else is just a jump or branch
-        if(ifElse.elsepart.isNotEmpty() && ifElse.elsepart.statements.size==1) {
-            val jump = ifElse.elsepart.statements[0]
-            if(jump is Jump) {
-                val newTruePart = AnonymousScope(mutableListOf(jump), ifElse.elsepart.position)
+            // switch if/else around if the else is just a jump or branch
+            if(ifElse.elsepart.statements.size==1) {
+                val jump = ifElse.elsepart.statements[0]
+                if(jump is Jump) {
+                    val newTruePart = AnonymousScope(mutableListOf(jump), ifElse.elsepart.position)
+                    val newElsePart = AnonymousScope(ifElse.truepart.statements, ifElse.truepart.position)
+                    return listOf(
+                        IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
+                        IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
+                        IAstModification.ReplaceNode(ifElse.condition, invertCondition(ifElse.condition, program), ifElse)
+                    )
+                }
+            }
+
+            // switch if/else around if the condition is a not
+            val prefixCond = ifElse.condition as? PrefixExpression
+            if(prefixCond?.operator=="not") {
+                errors.info("invert conditon and swap if/else blocks", ifElse.condition.position)
+                val newTruePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
                 val newElsePart = AnonymousScope(ifElse.truepart.statements, ifElse.truepart.position)
                 return listOf(
                     IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
                     IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
-                    IAstModification.ReplaceNode(ifElse.condition, invertCondition(ifElse.condition, program), ifElse)
+                    IAstModification.ReplaceNode(ifElse.condition, prefixCond.expression, ifElse)
                 )
             }
         }
@@ -443,38 +458,6 @@ class StatementOptimizer(private val program: Program,
             val ifStmt = IfElse(condition, trueBlock, elseBlock ?: AnonymousScope(mutableListOf(), whenStmt.position), whenStmt.position)
             errors.info("for boolean condition a normal if statement is preferred", whenStmt.position)
             return listOf(IAstModification.ReplaceNode(whenStmt, ifStmt, parent))
-        }
-
-        if(whenStmt.condition.inferType(program).isBool) {
-            if(whenStmt.choices.all { it.values?.size==1 }) {
-                if (whenStmt.choices.all { it.values!!.single().constValue(program)!!.number in arrayOf(0.0, 1.0) }) {
-                    // it's a when statement on booleans that can just be replaced by an if or if-else.
-                    if (whenStmt.choices.size == 1) {
-                        return if(whenStmt.choices[0].values!![0].constValue(program)!!.number==1.0) {
-                            replaceWithIf(whenStmt.condition, whenStmt.choices[0].statements, null)
-                        } else {
-                            val notCondition = BinaryExpression(whenStmt.condition, "==", NumericLiteral(DataType.UBYTE, 0.0, whenStmt.condition.position), whenStmt.condition.position)
-                            replaceWithIf(notCondition, whenStmt.choices[0].statements, null)
-                        }
-                    } else if (whenStmt.choices.size == 2) {
-                        var trueBlock: AnonymousScope? = null
-                        var elseBlock: AnonymousScope? = null
-                        if(whenStmt.choices[0].values!![0].constValue(program)!!.number==1.0) {
-                            trueBlock = whenStmt.choices[0].statements
-                        } else {
-                            elseBlock = whenStmt.choices[0].statements
-                        }
-                        if(whenStmt.choices[1].values!![0].constValue(program)!!.number==1.0) {
-                            trueBlock = whenStmt.choices[1].statements
-                        } else {
-                            elseBlock = whenStmt.choices[1].statements
-                        }
-                        if(trueBlock!=null && elseBlock!=null) {
-                            return replaceWithIf(whenStmt.condition, trueBlock, elseBlock)
-                        }
-                    }
-                }
-            }
         }
 
         val constantValue = whenStmt.condition.constValue(program)?.number

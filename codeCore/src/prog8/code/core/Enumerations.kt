@@ -24,8 +24,8 @@ enum class DataType {
      */
     infix fun isAssignableTo(targetType: DataType) =
         when(this) {
-            BOOL -> targetType.oneOf(BOOL, BYTE, UBYTE, WORD, UWORD, LONG, FLOAT)
-            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, LONG, FLOAT, BOOL)
+            BOOL -> targetType == BOOL
+            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, LONG, FLOAT)
             BYTE -> targetType.oneOf(BYTE, WORD, LONG, FLOAT)
             UWORD -> targetType.oneOf(UWORD, LONG, FLOAT)
             WORD -> targetType.oneOf(WORD, LONG, FLOAT)
@@ -41,9 +41,9 @@ enum class DataType {
     infix fun largerThan(other: DataType) =
         when {
             this == other -> false
-            this in ByteDatatypes -> false
-            this in WordDatatypes -> other in ByteDatatypes
-            this == LONG -> other in ByteDatatypes+WordDatatypes
+            this in ByteDatatypesWithBoolean -> false
+            this in WordDatatypes -> other in ByteDatatypesWithBoolean
+            this == LONG -> other in ByteDatatypesWithBoolean+WordDatatypes
             this == STR && other == UWORD || this == UWORD && other == STR -> false
             else -> true
         }
@@ -51,7 +51,7 @@ enum class DataType {
     infix fun equalsSize(other: DataType) =
         when {
             this == other -> true
-            this in ByteDatatypes -> other in ByteDatatypes
+            this in ByteDatatypesWithBoolean -> other in ByteDatatypesWithBoolean
             this in WordDatatypes -> other in WordDatatypes
             this== STR && other== UWORD || this== UWORD && other== STR -> true
             else -> false
@@ -124,12 +124,13 @@ enum class BranchCondition {
 }
 
 
-val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.BOOL)
+val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE)
+val ByteDatatypesWithBoolean = ByteDatatypes + DataType.BOOL
 val WordDatatypes = arrayOf(DataType.UWORD, DataType.WORD)
-val IntegerDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG)
-val IntegerDatatypes = IntegerDatatypesNoBool + DataType.BOOL
-val NumericDatatypesNoBool = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG, DataType.FLOAT)
-val NumericDatatypes = NumericDatatypesNoBool + DataType.BOOL
+val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG)
+val IntegerDatatypesWithBoolean = IntegerDatatypes + DataType.BOOL
+val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG, DataType.FLOAT)
+val NumericDatatypesWithBoolean = NumericDatatypes + DataType.BOOL
 val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.LONG, DataType.FLOAT)
 val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_F, DataType.ARRAY_BOOL)
 val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
@@ -141,7 +142,7 @@ val IterableDatatypes = arrayOf(
     DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT,
     DataType.ARRAY_F, DataType.ARRAY_BOOL
 )
-val PassByValueDatatypes = NumericDatatypes
+val PassByValueDatatypes = NumericDatatypesWithBoolean
 val PassByReferenceDatatypes = IterableDatatypes
 val ArrayToElementTypes = mapOf(
     DataType.STR to DataType.UBYTE,

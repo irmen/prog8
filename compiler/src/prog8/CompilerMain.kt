@@ -44,6 +44,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
     val dumpVariables by cli.option(ArgType.Boolean, fullName = "dumpvars", description = "print a dump of the variables in the program")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
+    val noStrictBool by cli.option(ArgType.Boolean, fullName = "nostrictbool", description = "allow implicit conversions between bool and bytes")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform code optimizations")
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
@@ -163,6 +164,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
+                    noStrictBool != true,
                     processedSymbols,
                     srcdirs,
                     outputPath
@@ -242,6 +244,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
+                    noStrictBool != true,
                     processedSymbols,
                     srcdirs,
                     outputPath

@@ -15,14 +15,6 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                                         private val errors: IErrorReporter
 ) : AstWalker() {
 
-    override fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        if(typecast.type == DataType.BOOL) {
-            val notZero = BinaryExpression(typecast.expression, "!=", NumericLiteral(DataType.UBYTE, 0.0, typecast.position), typecast.position)
-            return listOf(IAstModification.ReplaceNode(typecast, notZero, parent))
-        }
-        return noModifications
-    }
-
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // see if we can remove redundant typecasts (outside of expressions)
         // such as casting byte<->ubyte,  word<->uword  or even redundant casts (sourcetype = target type).
@@ -111,7 +103,9 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             val arg2 = bfcs.args[1]
             val dt1 = arg1.inferType(program).getOr(DataType.UNDEFINED)
             val dt2 = arg2.inferType(program).getOr(DataType.UNDEFINED)
-            if(dt1 in ByteDatatypes) {
+            if(dt1==DataType.BOOL && dt2==DataType.BOOL)
+                return noModifications
+            else if(dt1 in ByteDatatypes) {
                 if(dt2 in ByteDatatypes)
                     return noModifications
                 val (replaced, cast) = arg1.typecastTo(if(dt1== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt1, true)

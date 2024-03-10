@@ -57,12 +57,12 @@ main {
             while not guessed {
                 txt.print(questions[current_question])
                 txt.print("? ")
-                if txt.input_chars(userinput) {
+                if txt.input_chars(userinput)!=0 {
                     txt.nl()
                     ubyte animal_number
                     if userinput[0]=='y' {
                         animal_number = msb(answers_animals[current_question])
-                        if animal_number {
+                        if animal_number!=0 {
                             guess(current_question, true, animal_number)
                             guessed = true
                         } else {
@@ -71,7 +71,7 @@ main {
                     }
                     else if userinput[0]=='n' {
                         animal_number = lsb(answers_animals[current_question])
-                        if animal_number {
+                        if animal_number!=0 {
                             guess(current_question, false, animal_number)
                             guessed = true
                         } else {
@@ -87,7 +87,7 @@ main {
         }
     }
 
-    sub guess(ubyte question_number, ubyte given_answer_yesno, ubyte animal_number) {
+    sub guess(ubyte question_number, bool given_answer_yesno, ubyte animal_number) {
         txt.print("is it a ")
         txt.print(animals[animal_number])
         txt.print("? ")

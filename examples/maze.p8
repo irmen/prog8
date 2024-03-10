@@ -87,7 +87,7 @@ carve_restart_after_repath:
                 if stackptr==255 {
                     ; stack empty.
                     ; repath if we are not done yet. (this is a workaround for the prog8 256 array lenght limit)
-                    if cells_to_carve {
+                    if cells_to_carve!=0 {
                         if repath()
                             goto carve_restart_after_repath
                     }
@@ -102,7 +102,7 @@ carve_restart_after_repath:
                 if stackptr==0 {
                     ; stack overflow, we can't track our path any longer.
                     ; repath if we are not done yet. (this is a workaround for the prog8 256 array lenght limit)
-                    if cells_to_carve {
+                    if cells_to_carve!=0 {
                         if repath()
                             goto carve_restart_after_repath
                     }
@@ -141,8 +141,8 @@ carve_restart_after_repath:
                 do {
                     cx = math.rnd() % numCellsHoriz
                     cy = math.rnd() % numCellsVert
-                } until not @(celladdr(cx, cy)) & STONE
-                if available_uncarved()
+                } until @(celladdr(cx, cy)) & STONE ==0
+                if available_uncarved()!=0
                     return true
             }
             return false
@@ -150,25 +150,25 @@ carve_restart_after_repath:
 
         sub available_uncarved() -> ubyte {
             ubyte candidates = 0
-            if cx>0 and @(celladdr(cx-1, cy)) & STONE
+            if cx>0 and @(celladdr(cx-1, cy)) & STONE !=0
                 candidates |= LEFT
-            if cx<numCellsHoriz-1 and @(celladdr(cx+1, cy)) & STONE
+            if cx<numCellsHoriz-1 and @(celladdr(cx+1, cy)) & STONE !=0
                 candidates |= RIGHT
-            if cy>0 and @(celladdr(cx, cy-1)) & STONE
+            if cy>0 and @(celladdr(cx, cy-1)) & STONE !=0
                 candidates |= UP
-            if cy<numCellsVert-1 and @(celladdr(cx, cy+1)) & STONE
+            if cy<numCellsVert-1 and @(celladdr(cx, cy+1)) & STONE !=0
                 candidates |= DOWN
             return candidates
         }
 
         sub choose_uncarved_direction() -> ubyte {
             ubyte candidates =  available_uncarved()
-            if not candidates
+            if candidates==0
                 return 0
 
             repeat {
                 ubyte choice = candidates & directionflags[math.rnd() & 3]
-                if choice
+                if choice!=0
                     return choice
             }
         }
@@ -176,7 +176,6 @@ carve_restart_after_repath:
 
     sub openpassages() {
         ; open just a few extra passages, so that multiple routes are possible in theory.
-        ubyte cell
         ubyte numpassages
         ubyte cx
         ubyte cy
@@ -184,33 +183,33 @@ carve_restart_after_repath:
             do {
                 cx = math.rnd() % (numCellsHoriz-2) + 1
                 cy = math.rnd() % (numCellsVert-2) + 1
-            } until not @(celladdr(cx, cy)) & STONE
+            } until @(celladdr(cx, cy)) & STONE ==0
             ubyte direction = directionflags[math.rnd() & 3]
-            if not @(celladdr(cx, cy)) & direction {
+            if @(celladdr(cx, cy)) & direction == 0 {
                 when direction {
                     LEFT -> {
-                        if not @(celladdr(cx-1,cy)) & STONE {
+                        if @(celladdr(cx-1,cy)) & STONE == 0 {
                             @(celladdr(cx,cy)) |= LEFT
                             drawCell(cx,cy)
                             numpassages++
                         }
                     }
                     RIGHT -> {
-                        if not @(celladdr(cx+1,cy)) & STONE {
+                        if @(celladdr(cx+1,cy)) & STONE == 0 {
                             @(celladdr(cx,cy)) |= RIGHT
                             drawCell(cx,cy)
                             numpassages++
                         }
                     }
                     UP -> {
-                        if not @(celladdr(cx,cy-1)) & STONE {
+                        if @(celladdr(cx,cy-1)) & STONE == 0 {
                             @(celladdr(cx,cy)) |= UP
                             drawCell(cx,cy)
                             numpassages++
                         }
                     }
                     DOWN -> {
-                        if not @(celladdr(cx,cy+1)) & STONE {
+                        if @(celladdr(cx,cy+1)) & STONE == 0 {
                             @(celladdr(cx,cy)) |= DOWN
                             drawCell(cx,cy)
                             numpassages++
@@ -244,22 +243,22 @@ solve_loop:
             }
 
             ubyte cell = @(celladdr(cx,cy))
-            if cell & UP and not @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) {
+            if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0 {
                 @(pathstack + pathstackptr) = UP
                 txt.setcc(cx*2+1, cy*2, 81, 3)
                 cy--
             }
-            else if cell & DOWN and not @(celladdr(cx,cy+1)) & (WALKED|BACKTRACKED) {
+            else if cell & DOWN !=0 and @(celladdr(cx,cy+1)) & (WALKED|BACKTRACKED) ==0 {
                 @(pathstack + pathstackptr) = DOWN
                 txt.setcc(cx*2+1, cy*2+2, 81, 3)
                 cy++
             }
-            else if cell & LEFT and not @(celladdr(cx-1,cy)) & (WALKED|BACKTRACKED) {
+            else if cell & LEFT !=0 and @(celladdr(cx-1,cy)) & (WALKED|BACKTRACKED) ==0 {
                 @(pathstack + pathstackptr) = LEFT
                 txt.setcc(cx*2, cy*2+1, 81, 3)
                 cx--
             }
-            else if cell & RIGHT and not @(celladdr(cx+1,cy)) & (WALKED|BACKTRACKED) {
+            else if cell & RIGHT !=0 and @(celladdr(cx+1,cy)) & (WALKED|BACKTRACKED) ==0 {
                 @(pathstack + pathstackptr) = RIGHT
                 txt.setcc(cx*2+2, cy*2+1, 81, 3)
                 cx++
@@ -311,22 +310,22 @@ solve_loop:
         ubyte x = cx * 2 + 1
         ubyte y = cy * 2 + 1
         ubyte doors = @(celladdr(cx,cy))
-        if doors & UP
+        if doors & UP !=0
             txt.setcc(x, y-1, ' ', EMPTYCOLOR)
-        if doors & RIGHT
+        if doors & RIGHT !=0
             txt.setcc(x+1, y, ' ', EMPTYCOLOR)
-        if doors & DOWN
+        if doors & DOWN !=0
             txt.setcc(x, y+1, ' ', EMPTYCOLOR)
-        if doors & LEFT
+        if doors & LEFT !=0
             txt.setcc(x-1, y, ' ', EMPTYCOLOR)
-        if doors & STONE
+        if doors & STONE !=0
             txt.setcc(x, y, 160, WALLCOLOR)
         else
             txt.setcc(x, y, 32, EMPTYCOLOR)
 
-        if doors & WALKED
+        if doors & WALKED !=0
             txt.setcc(x, y, 81, 1)
-        if doors & BACKTRACKED
+        if doors & BACKTRACKED !=0
             txt.setcc(x, y, 81, 2)
     }
 

@@ -80,7 +80,13 @@ class IRSymbolTable {
                 return newArray
             }
             scopedName = variable.scopedName
-            varToadd = IRStStaticVariable(scopedName, variable.dt,
+            val dt = when(variable.dt) {
+                DataType.BOOL -> DataType.UBYTE
+                DataType.ARRAY_BOOL -> DataType.ARRAY_UB
+                else -> variable.dt
+            }
+            varToadd = IRStStaticVariable(scopedName,
+                dt,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
                 fixupAddressOfInArray(variable.onetimeInitializationArrayValue),
@@ -166,6 +172,10 @@ class IRStMemVar(name: String,
         }
     }
 
+    init {
+        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
+    }
+
     val typeString: String = dt.typeString(length)
 }
 
@@ -205,6 +215,10 @@ class IRStStaticVariable(name: String,
         }
     }
 
+    init {
+        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
+    }
+
     val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null
 
     val typeString: String = dt.typeString(length)
@@ -213,8 +227,16 @@ class IRStStaticVariable(name: String,
 class IRStArrayElement(val number: Double?, val addressOfSymbol: String?) {
     companion object {
         fun from(elt: StArrayElement): IRStArrayElement {
-            return IRStArrayElement(elt.number, elt.addressOfSymbol)
+            if(elt.boolean!=null)
+                return IRStArrayElement(if(elt.boolean==true) 1.0 else 0.0, elt.addressOfSymbol)
+            else
+                return IRStArrayElement(elt.number, elt.addressOfSymbol)
         }
+    }
+
+    init {
+        // TODO TEMPORARY
+        require(number!=null || addressOfSymbol!=null)
     }
 }
 

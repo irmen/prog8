@@ -1,6 +1,10 @@
 TODO
 ====
 
+Petaxian has gameplay problems on the C64 (with and without optimization) , cx16 target is fine.
+(seems unrelated to boolean type changes.  10.1 was still fine.)
+
+
 ...
 
 

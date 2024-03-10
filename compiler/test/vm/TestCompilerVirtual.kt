@@ -25,10 +25,10 @@ main {
 
     sub start() {
         uword[] words = [1111,2222,0,4444,3333]
-        ubyte result = all(words)
-        result++
+        bool result = all(words)
+        cx16.r0++
         result = any(words)
-        result++
+        cx16.r0++
         sort(words)
         reverse(words)
     }
@@ -47,7 +47,7 @@ main {
         ubyte[] otherarray = [1,2,3]
         uword[] words = [1111,2222,"three",&localstr,&otherarray]
         uword @shared zz = &words
-        ubyte result = 2222 in words
+        bool result = 2222 in words
         zz = words[2]
         zz++
         zz = words[3]
@@ -93,7 +93,7 @@ mylabel0:
             goto mylabel0
         }
 
-        while cx16.r0 {
+        while cx16.r0==0 {
 mylabel1:
             goto mylabel1
         }
@@ -101,7 +101,7 @@ mylabel1:
         do {
 mylabel2:
             goto mylabel2
-        } until cx16.r0
+        } until cx16.r0==1
 
         repeat cx16.r0 {
 mylabel3:
@@ -319,7 +319,6 @@ main {
             goto ending
         if_cs
             goto ending
-        if cx16.r0 goto ending
         if cx16.r0==0 goto ending
         if cx16.r0!=0 goto ending
         if cx16.r0s>0 goto ending
@@ -328,29 +327,13 @@ main {
     }
 }"""
         val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 9
+        result.compilerAst.entrypoint.statements.size shouldBe 8
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irProgram = IRFileReader().read(virtfile)
         val start = irProgram.blocks[0].children[0] as IRSubroutine
         val instructions = start.chunks.flatMap { c->c.instructions }
-        instructions.size shouldBe 13
+        instructions.size shouldBe 11
         instructions.last().opcode shouldBe Opcode.RETURN
-    }
-
-    test("compile virtual: various expressions") {
-        val text="""
-main {
-    sub start() {
-        ubyte[3] values = [1,2,3]
-        func(33 + (22 in values))   ; bool cast to byte
-        cx16.r0L = 33 + (22 in values)   ; bool cast to byte
-        func(values[cx16.r0L] + (22 in values))  ; containment in complex expression
-    }
-    sub func(ubyte arg) {
-        arg++
-    }
-}"""
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
     test("repeat counts (const)") {

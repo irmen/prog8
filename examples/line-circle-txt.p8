@@ -31,7 +31,7 @@ main {
         rect(6, 0, 16, 20, true)
 
 
-        sub rect(ubyte x1, ubyte y1, ubyte x2, ubyte y2, ubyte fill) {
+        sub rect(ubyte x1, ubyte y1, ubyte x2, ubyte y2, bool fill) {
             ubyte x
             ubyte y
             if fill {

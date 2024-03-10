@@ -70,20 +70,20 @@ adpcm {
         ; Note that the generated assembly from this is pretty efficient,
         ; rewriting it by hand in asm seems to improve it only 5-10%
         cx16.r0s = 0                ; difference
-        if nibble & %0100
+        if nibble & %0100 !=0
             cx16.r0s += pstep
         pstep >>= 1
-        if nibble & %0010
+        if nibble & %0010 !=0
             cx16.r0s += pstep
         pstep >>= 1
-        if nibble & %0001
+        if nibble & %0001 !=0
             cx16.r0s += pstep
         pstep >>= 1
         cx16.r0s += pstep
-        if nibble & %1000
-            predict -= cx16.r0s
+        if nibble & %1000 !=0
+            predict -= cx16.r0
         else
-            predict += cx16.r0s
+            predict += cx16.r0
 
         ; NOTE: the original C/Python code uses a 32 bits prediction value and clips it to a 16 bit word
         ;       but for speed reasons we only work with 16 bit words here all the time (with possible clipping error)
@@ -106,20 +106,20 @@ adpcm {
         ; Note that the generated assembly from this is pretty efficient,
         ; rewriting it by hand in asm seems to improve it only 5-10%
         cx16.r0s = 0                ; difference
-        if nibble & %0100
+        if nibble & %0100 !=0
             cx16.r0s += pstep_2
         pstep_2 >>= 1
-        if nibble & %0010
+        if nibble & %0010 !=0
             cx16.r0s += pstep_2
         pstep_2 >>= 1
-        if nibble & %0001
+        if nibble & %0001 !=0
             cx16.r0s += pstep_2
         pstep_2 >>= 1
         cx16.r0s += pstep_2
-        if nibble & %1000
-            predict_2 -= cx16.r0s
+        if nibble & %1000 !=0
+            predict_2 -= cx16.r0
         else
-            predict_2 += cx16.r0s
+            predict_2 += cx16.r0
 
         ; NOTE: the original C/Python code uses a 32 bits prediction value and clips it to a 16 bit word
         ;       but for speed reasons we only work with 16 bit words here all the time (with possible clipping error)

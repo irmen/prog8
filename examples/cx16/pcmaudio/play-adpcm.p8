@@ -165,7 +165,7 @@ mono {
     }
 
     sub irq_handler() {
-        if cx16.VERA_ISR & %00001000 {
+        if cx16.VERA_ISR & %00001000 !=0 {
             ; AFLOW irq.
             ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
 
@@ -284,7 +284,7 @@ stereo {
     }
 
     sub irq_handler() {
-        if cx16.VERA_ISR & %00001000 {
+        if cx16.VERA_ISR & %00001000 !=0 {
             ; AFLOW irq.
     	    ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
 

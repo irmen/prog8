@@ -48,13 +48,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return listOf(IAstModification.ReplaceNode(typecast, constValue, parent))
 
         if(typecast.expression is NumericLiteral) {
-            val value = (typecast.expression as NumericLiteral).cast(typecast.type)
+            val value = (typecast.expression as NumericLiteral).cast(typecast.type, typecast.implicit)
             if(value.isValid)
-                return listOf(IAstModification.ReplaceNode(typecast, value.value!!, parent))
+                return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
         }
 
         val sourceDt = typecast.expression.inferType(program)
-        if(sourceDt istype typecast.type || (sourceDt istype DataType.BOOL && typecast.type==DataType.UBYTE))
+        if(sourceDt istype typecast.type)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {
@@ -63,13 +63,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 // we can get rid of this typecast because the type is already the target type
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
-        }
-
-        // if the expression is a comparison expression, or a logical expression, it produces the
-        // correct 'boolean' byte result so the cast can be removed. Only if target is Integer.
-        val binExpr = typecast.expression as? BinaryExpression
-        if(binExpr!=null && binExpr.operator in ComparisonOperators + LogicalOperators && typecast.type in IntegerDatatypesNoBool) {
-            return listOf(IAstModification.ReplaceNode(typecast, binExpr, parent))
         }
 
         return noModifications
@@ -103,6 +96,17 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             // +X --> X
             return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
         }
+
+        if(!options.strictBool && expr.operator=="not") {
+            if(expr.expression.inferType(program).isBytes) {
+                // not bytevalue --> bytevalue==0
+                val cmp = BinaryExpression(expr.expression, "==",
+                    NumericLiteral(expr.expression.inferType(program).getOr(DataType.UNDEFINED), 0.0, expr.expression.position),
+                    expr.expression.position)
+                return listOf(IAstModification.ReplaceNode(expr, cmp, parent))
+            }
+        }
+
         return noModifications
     }
 
@@ -152,6 +156,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             }
         }
 
+/* TODO: is this really no longer needed in boolean branch?
         if(expr.operator in LogicalOperators) {
             // remove redundant !=0 comparisons from logical expressions such as:   a!=0 xor b --> a xor b  (only for byte operands!)
             val leftExpr = expr.left as? BinaryExpression
@@ -171,6 +176,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 return listOf(IAstModification.ReplaceNode(rightExpr, rightExpr.left, expr))
             }
         }
+*/
 
         return noModifications
     }

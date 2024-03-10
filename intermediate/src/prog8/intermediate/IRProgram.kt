@@ -409,8 +409,8 @@ class IRSubroutine(
         require(!label.startsWith("main.main.")) {"subroutine name invalid main prefix: $label"}
 
         // params and return value should not be str
-        require(parameters.all{ it.dt in NumericDatatypes }) {"non-numeric parameter"}
-        require(returnType==null || returnType in NumericDatatypes) {"non-numeric returntype $returnType"}
+        require(parameters.all{ it.dt in NumericDatatypes || it.dt==DataType.BOOL }) {"non-numeric/non-bool parameter"}
+        require(returnType==null || returnType in NumericDatatypes || returnType==DataType.BOOL) {"non-numeric/non-bool returntype $returnType"}
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) {
@@ -536,6 +536,9 @@ class RegistersUsed(
 
     fun isEmpty() = readRegs.isEmpty() && writeRegs.isEmpty() && readFpRegs.isEmpty() && writeFpRegs.isEmpty()
     fun isNotEmpty() = !isEmpty()
+
+    fun used(register: Int) = register in readRegs || register in writeRegs
+    fun usedFp(fpRegister: Int) = fpRegister in readFpRegs || fpRegister in writeFpRegs
 }
 
 private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {

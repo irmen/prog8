@@ -151,14 +151,14 @@ processchunk_call           jsr  $ffff      ; modified
         cx16.VERA_ADDR_L = lsb(address)
         cx16.VERA_ADDR_M = msb(address)
         cx16.VERA_ADDR_H = bank | %00010000     ; enable vera auto increment
-        while size {
+        while size!=0 {
             size -= readblock(size, &cx16.VERA_DATA0, true)
         }
     }
 
     sub blockload_dummy(uword size) {
         ubyte buffer
-        while size {
+        while size!=0 {
             size -= readblock(size, &buffer, true)
         }
     }
@@ -167,7 +167,7 @@ processchunk_call           jsr  $ffff      ; modified
         ubyte orig_ram_bank = cx16.getrambank()
         cx16.rambank(bank)
         cx16.r3 = address
-        while size {
+        while size!=0 {
             cx16.r2 = readblock(size, cx16.r3, false)
             size -= cx16.r2
             cx16.r3 += cx16.r2
@@ -178,7 +178,7 @@ processchunk_call           jsr  $ffff      ; modified
     sub blockload_bonkram(uword size, ubyte bonk, uword address) {
         ubyte orig_rom_bank = cx16.getrombank()
         cx16.r3 = address
-        while size {
+        while size!=0 {
             ubyte readsize = 255
             if msb(size)==0
                 readsize = lsb(size)
@@ -194,7 +194,7 @@ processchunk_call           jsr  $ffff      ; modified
     sub readblock(uword size, uword address, bool dontAdvance) -> uword {
         if msb(size)>=2
             return cx16.MACPTR(0, address, dontAdvance)         ; read 512 bytes
-        if msb(size)
+        if msb(size)!=0
             return cx16.MACPTR(255, address, dontAdvance)       ; read 255 bytes
         return cx16.MACPTR(lsb(size), address, dontAdvance)     ; read remaining number of bytes
     }

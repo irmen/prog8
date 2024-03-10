@@ -16,8 +16,8 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     }
 
     internal fun optimizeIntArgsViaRegisters(sub: PtSub) =
-        (sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypes)
-                || (sub.parameters.size==2 && sub.parameters[0].type in ByteDatatypes && sub.parameters[1].type in ByteDatatypes)
+        (sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypesWithBoolean)
+                || (sub.parameters.size==2 && sub.parameters[0].type in ByteDatatypesWithBoolean && sub.parameters[1].type in ByteDatatypesWithBoolean)
 
     internal fun translateFunctionCall(call: PtFunctionCall) {
         // Output only the code to set up the parameters and perform the actual call
@@ -46,7 +46,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         else if(sub is PtSub) {
             if(optimizeIntArgsViaRegisters(sub)) {
                 if(sub.parameters.size==1) {
-                    val register = if (sub.parameters[0].type in ByteDatatypes) RegisterOrPair.A else RegisterOrPair.AY
+                    val register = if (sub.parameters[0].type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
                     argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], register)
                 } else {
                     // 2 byte params, second in Y, first in A
@@ -84,6 +84,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             is PtMachineRegister -> false
             is PtMemoryByte -> return usesOtherRegistersWhileEvaluating(arg.address)
             is PtNumber -> false
+            is PtBool -> false
             else -> true
         }
     }
@@ -152,7 +153,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         }
         if (statusflag!=null) {
             if(requiredDt!=value.type)
-                throw AssemblyError("for statusflag, byte value is required")
+                throw AssemblyError("for statusflag, byte or bool value is required")
             if (statusflag == Statusflag.Pc) {
                 // this boolean param needs to be set last, right before the jsr
                 // for now, this is already enforced on the subroutine definition by the Ast Checker
@@ -160,6 +161,9 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                     is PtNumber -> {
                         val carrySet = value.number.toInt() != 0
                         asmgen.out(if(carrySet) "  sec" else "  clc")
+                    }
+                    is PtBool -> {
+                        asmgen.out(if(value.value) "  sec" else "  clc")
                     }
                     is PtIdentifier -> {
                         val sourceName = asmgen.asmVariableName(value)
@@ -217,6 +221,8 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
 
     private fun isArgumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
         if(argType isAssignableTo paramType)
+            return true
+        if(argType==DataType.BOOL && paramType==DataType.BOOL)
             return true
         if(argType in ByteDatatypes && paramType in ByteDatatypes)
             return true

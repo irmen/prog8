@@ -208,14 +208,14 @@ waitkey:
                     txt.setcc(x, linepos, sc:'▒', 1)
             }
         }
-        if num_lines {
+        if num_lines!=0 {
             if num_lines>3
                 sound.lineclear_big()
             else
                 sound.lineclear()
             sys.wait(20)    ; slight delay to flash the line
             for linepos in complete_lines
-                if linepos and blocklogic.isLineFull(linepos)
+                if linepos!=0 and blocklogic.isLineFull(linepos)
                     blocklogic.collapse(linepos)
             lines += num_lines
             uword[] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines at once
@@ -390,7 +390,7 @@ waitkey:
         ubyte @zp i
         for i in 15 downto 0 {
             ubyte @zp c=blocklogic.currentBlock[i]
-            if c
+            if c!=0
                 txt.setcc((i&3)+x, (i/4)+y, character, c)
         }
     }
@@ -538,7 +538,7 @@ blocklogic {
     sub noCollision(ubyte xpos, ubyte ypos) -> bool {
         ubyte @zp i
         for i in 15 downto 0 {
-            if currentBlock[i] and txt.getchr(xpos + (i&3), ypos+i/4)!=32
+            if currentBlock[i]!=0 and txt.getchr(xpos + (i&3), ypos+i/4)!=32
                 return false
         }
         return true

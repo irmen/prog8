@@ -4,6 +4,7 @@ import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
@@ -20,10 +21,11 @@ class TestIntermediateAst: FunSpec({
             %import graphics
             main {
                 sub start() {
-                    ubyte cc
+                    bool cc
+                    ubyte dd
                     ubyte[] array = [1,2,3]
                     cc = 11 in array
-                    cc = sqrt(lsb(cc))
+                    dd = sqrt(lsb(dd))
                 }
             }
         """
@@ -34,7 +36,7 @@ class TestIntermediateAst: FunSpec({
         ast.name shouldBe result.compilerAst.name
         ast.allBlocks().any() shouldBe true
         val entry = ast.entrypoint() ?: fail("no main.start() found")
-        entry.children.size shouldBe 5
+        entry.children.size shouldBe 7
         entry.name shouldBe "start"
         entry.scopedName shouldBe "main.start"
         val blocks = ast.allBlocks().toList()
@@ -42,23 +44,30 @@ class TestIntermediateAst: FunSpec({
         blocks[0].name shouldBe "main"
         blocks[0].scopedName shouldBe "main"
 
-        val ccInit = entry.children[2] as PtAssignment
+        val ccInit = entry.children[3] as PtAssignment
         ccInit.target.identifier?.name shouldBe "main.start.cc"
-        (ccInit.value as PtNumber).number shouldBe 0.0
+        (ccInit.value as PtBool).value shouldBe false
+        val ddInit = entry.children[4] as PtAssignment
+        ddInit.target.identifier?.name shouldBe "main.start.dd"
+        (ddInit.value as PtNumber).number shouldBe 0.0
 
         val ccdecl = entry.children[0] as PtVariable
         ccdecl.name shouldBe "cc"
         ccdecl.scopedName shouldBe "main.start.cc"
-        ccdecl.type shouldBe DataType.UBYTE
-        val arraydecl = entry.children[1] as IPtVariable
+        ccdecl.type shouldBe DataType.BOOL
+        val dddecl = entry.children[1] as PtVariable
+        dddecl.name shouldBe "dd"
+        dddecl.scopedName shouldBe "main.start.dd"
+        dddecl.type shouldBe DataType.UBYTE
+
+        val arraydecl = entry.children[2] as IPtVariable
         arraydecl.name shouldBe "array"
         arraydecl.type shouldBe DataType.ARRAY_UB
 
-        val containment = (entry.children[3] as PtAssignment).value as PtContainmentCheck
-        (containment.element as PtNumber).number shouldBe 11.0
-        val fcall = (entry.children[4] as PtAssignment).value as PtFunctionCall
-        fcall.void shouldBe false
-        fcall.type shouldBe DataType.UBYTE
+        val ccAssignV = (entry.children[5] as PtAssignment).value
+        ccAssignV shouldBe instanceOf<PtContainmentCheck>()
+        val ddAssignV = (entry.children[6] as PtAssignment).value
+        ddAssignV shouldBe instanceOf<PtFunctionCall>()
     }
 
     test("isSame on binaryExpressions") {

@@ -337,8 +337,31 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                     }
                 }
             }
+
+            // a SNZ etc. whose target register is not used can be removed altogether
+            if(ins.opcode in OpcodesThatSetRegFromStatusbits) {
+                val usages = regUsages(ins.reg1!!)
+                if(usages.toList().sumOf { it.second } <= 1) {
+                    chunk.instructions.removeAt(idx)
+                    changed = true
+                }
+            }
         }
         return changed
+    }
+
+    private fun regUsages(register: Int): Map<IRCodeChunkBase, Int> {
+        val chunks = mutableMapOf<IRCodeChunkBase, Int>()
+        irprog.foreachSub { sub ->
+            sub.chunks.forEach { chunk ->
+                val used = chunk.usedRegisters()
+                val numUsages = used.readRegs.getOrDefault(register, 0) + used.writeRegs.getOrDefault(register, 0)
+                if(numUsages>0) {
+                    chunks[chunk] = numUsages
+                }
+            }
+        }
+        return chunks
     }
 
     private fun removeUselessArithmetic(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {

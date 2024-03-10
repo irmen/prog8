@@ -26,6 +26,7 @@ class CompilationOptions(val output: OutputType,
                          var slabsHighBank: Int? = null,
                          var slabsGolden: Boolean = false,
                          var splitWordArrays: Boolean = false,
+                         var strictBool: Boolean = true,
                          var breakpointCpuInstruction: String? = null,
                          var outputDir: Path = Path(""),
                          var symbolDefs: Map<String, String> = emptyMap()

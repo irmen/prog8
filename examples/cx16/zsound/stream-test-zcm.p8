@@ -42,7 +42,7 @@ zsound_lib:
     const ubyte zcm_DIGITAB_size = 8        ; header size
     const uword ram_bank_size = $2000
 
-    ubyte load_ok = false
+    bool load_ok = false
 
     sub prebuffer()  {
         txt.print("prebuffering...")
@@ -67,7 +67,7 @@ zsound_lib:
 
         txt.print("\nstreaming from file, playback in irq!\n")
         uword size = 1
-        while size {
+        while size!=0 {
             size = diskio.f_read(digi_address, ram_bank_size)       ; load next bank
             txt.print_ub(cx16.getrambank())
             txt.spc()

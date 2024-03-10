@@ -36,9 +36,9 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if(parent is Assignment) {
             val iDt = parent.target.inferType(program)
             if(iDt.isKnown && !iDt.isBool && !iDt.istype(numLiteral.type)) {
-                val casted = numLiteral.cast(iDt.getOr(DataType.UNDEFINED))
+                val casted = numLiteral.cast(iDt.getOr(DataType.UNDEFINED), true)
                 if(casted.isValid) {
-                    return listOf(IAstModification.ReplaceNode(numLiteral, casted.value!!, parent))
+                    return listOf(IAstModification.ReplaceNode(numLiteral, casted.valueOrZero(), parent))
                 }
             }
         }
@@ -313,23 +313,23 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
         fun adjustRangeDt(rangeFrom: NumericLiteral, targetDt: DataType, rangeTo: NumericLiteral, stepLiteral: NumericLiteral?, range: RangeExpression): RangeExpression? {
-            val fromCast = rangeFrom.cast(targetDt)
-            val toCast = rangeTo.cast(targetDt)
+            val fromCast = rangeFrom.cast(targetDt, true)
+            val toCast = rangeTo.cast(targetDt, true)
             if(!fromCast.isValid || !toCast.isValid)
                 return null
 
             val newStep =
                 if(stepLiteral!=null) {
-                    val stepCast = stepLiteral.cast(targetDt)
+                    val stepCast = stepLiteral.cast(targetDt, true)
                     if(stepCast.isValid)
-                        stepCast.value!!
+                        stepCast.valueOrZero()
                     else
                         range.step
                 } else {
                     range.step
                 }
 
-            return RangeExpression(fromCast.value!!, toCast.value!!, newStep, range.position)
+            return RangeExpression(fromCast.valueOrZero(), toCast.valueOrZero(), newStep, range.position)
         }
 
         // adjust the datatype of a range expression in for loops to the loop variable.
@@ -386,9 +386,9 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             val valueDt = numval.inferType(program)
             if(valueDt isnot decl.datatype) {
                 if(decl.datatype!=DataType.BOOL || valueDt.isnot(DataType.UBYTE)) {
-                    val cast = numval.cast(decl.datatype)
+                    val cast = numval.cast(decl.datatype, true)
                     if (cast.isValid)
-                        return listOf(IAstModification.ReplaceNode(numval, cast.value!!, decl))
+                        return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
                 }
             }
         }

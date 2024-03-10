@@ -22,10 +22,6 @@ internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: Compila
 }
 
 internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter) {
-    val boolRemover = BoolRemover(this)
-    boolRemover.visit(this)
-    boolRemover.applyModifications()
-
     val fixer = BeforeAsmAstChanger(this, compilerOptions)
     fixer.visit(this)
     while (errors.noErrors() && fixer.applyModifications() > 0) {
@@ -96,15 +92,15 @@ internal fun Program.addTypecasts(errors: IErrorReporter, options: CompilationOp
     caster.applyModifications()
 }
 
-fun Program.desugaring(errors: IErrorReporter) {
-    val desugar = CodeDesugarer(this, errors)
+fun Program.desugaring(errors: IErrorReporter, options: CompilationOptions) {
+    val desugar = CodeDesugarer(this, options, errors)
     desugar.visit(this)
     while(errors.noErrors() && desugar.applyModifications()>0)
         desugar.visit(this)
 }
 
-internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter) {
-    val fixer = VerifyFunctionArgTypes(this, errors)
+internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter, options: CompilationOptions) {
+    val fixer = VerifyFunctionArgTypes(this, options, errors)
     fixer.visit(this)
 }
 
@@ -121,7 +117,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
     checker2.visit(this)
 
     if(errors.noErrors()) {
-        val lit2decl = LiteralsToAutoVars(this, options.compTarget, errors)
+        val lit2decl = LiteralsToAutoVars(this, errors)
         lit2decl.visit(this)
         if(errors.noErrors())
             lit2decl.applyModifications()

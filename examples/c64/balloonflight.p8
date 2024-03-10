@@ -12,7 +12,7 @@
 
 main {
 
-    ubyte perform_scroll = false
+    bool perform_scroll = false
 
     sub start() {
         c64.set_sprite_ptr(0, $0f00)           ; alternatively, set directly:  c64.SPRPTR[0] = $0f00 / 64
@@ -57,7 +57,7 @@ main {
             txt.scroll_left(true)
 
             ; float the balloon
-            if math.rnd() & %10000
+            if math.rnd() & %10000 !=0
                 c64.SPXY[1] ++
             else
                 c64.SPXY[1] --

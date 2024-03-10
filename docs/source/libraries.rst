@@ -180,7 +180,7 @@ textio (txt.*)
 This will probably be the most used library module. It contains a whole lot of routines
 dealing with text-based input and output (to the screen). Such as
 
-- printing strings and numbers
+- printing strings, numbers and booleans
 - reading text input from the user via the keyboard
 - filling or clearing the screen and colors
 - scrolling the text on the screen
@@ -341,8 +341,8 @@ Provides string manipulation routines.
 ``endswith (string, suffix) -> bool``
     Returns true if string ends with suffix, otherwise false
 
-``pattern_match (string, pattern) -> ubyte`` (not on Virtual target)
-    Returns 1 (true) if the string matches the pattern, 0 (false) if not.
+``pattern_match (string, pattern) -> bool`` (not on Virtual target)
+    Returns true if the string matches the pattern, false if not.
     '?' in the pattern matches any one character. '*' in the pattern matches any substring.
 
 ``hash (string) -> ubyte``

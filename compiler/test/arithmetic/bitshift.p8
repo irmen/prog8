@@ -259,12 +259,6 @@ main {
         uw = shiftruw15()
         txt.print_uwbin(uw, true)
         txt.chrout('\n')
-        uw = shiftruw16()
-        txt.print_uwbin(uw, true)
-        txt.chrout('\n')
-        uw = shiftruw17()
-        txt.print_uwbin(uw, true)
-        txt.chrout('\n')
         txt.print("enter to continue:\n")
         void txt.input_chars(inputbuffer)
 
@@ -457,16 +451,6 @@ main {
     sub shiftruw15() -> uword {
         uword @shared q = $a49f
         return (q >> 15)
-    }
-
-    sub shiftruw16() -> uword {
-        uword @shared q = $a49f
-        return (q >> 16)
-    }
-
-    sub shiftruw17() -> uword {
-        uword @shared q = $a49f
-        return (q >> 17)
     }
 
     sub shiftrsw0() -> word {

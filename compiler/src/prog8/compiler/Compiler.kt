@@ -48,6 +48,7 @@ class CompilerArguments(val filepath: Path,
                         val breakpointCpuInstruction: String?,
                         val printAst1: Boolean,
                         val printAst2: Boolean,
+                        val strictBool: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -93,13 +94,14 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 splitWordArrays = args.splitWordArrays
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
+                strictBool = args.strictBool
             }
             program = programresult
             importedFiles = imported
 
             processAst(program, args.errors, compilationOptions)
-//                println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
-//                printProgram(program)
+//            println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
+//            printProgram(program)
 
             if (compilationOptions.optimize) {
                 optimizeAst(
@@ -404,7 +406,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.reorderStatements(errors)
     errors.report()
-    program.desugaring(errors)
+    program.desugaring(errors, compilerOptions)
     errors.report()
     program.changeNotExpressionAndIfComparisonExpr(errors, compilerOptions.compTarget)
     errors.report()
@@ -430,7 +432,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     removeUnusedCode(program, errors,compilerOptions)
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
-        val optsDone1 = program.simplifyExpressions(errors, compilerOptions.compTarget)
+        val optsDone1 = program.simplifyExpressions(errors, compilerOptions)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
         val optsDone3 = program.inlineSubroutines(compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
@@ -448,13 +450,13 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
 }
 
 private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    program.desugaring(errors)
+    program.desugaring(errors, compilerOptions)
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(errors, compilerOptions)
     val callGraph = CallGraph(program)
     callGraph.checkRecursiveCalls(errors)
-    program.verifyFunctionArgTypes(errors)
+    program.verifyFunctionArgTypes(errors, compilerOptions)
     errors.report()
     program.moveMainBlockAsFirst()
     program.checkValid(errors, compilerOptions)          // check if final tree is still valid

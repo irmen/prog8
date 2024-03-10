@@ -13,13 +13,13 @@ import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.DataType
+import prog8.code.core.IErrorReporter
+import prog8.code.core.NumericDatatypesWithBoolean
+import prog8.code.core.SplitWordArrayTypes
 
 
-internal class LiteralsToAutoVars(private val program: Program,
-                                  private val target: ICompilationTarget,
-                                  private val errors: IErrorReporter
-) : AstWalker() {
+internal class LiteralsToAutoVars(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
         if(string.parent !is VarDecl && string.parent !is WhenChoice) {
@@ -76,8 +76,8 @@ internal class LiteralsToAutoVars(private val program: Program,
         if(decl.names.size>1) {
             // note: the desugaring of a multi-variable vardecl has to be done here
             // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
-            if(decl.datatype !in NumericDatatypes)
-                errors.err("can only multi declare numeric variables", decl.position)
+            if(decl.datatype !in NumericDatatypesWithBoolean)
+                errors.err("can only multi declare numeric and boolean variables", decl.position)
             if(errors.noErrors()) {
                 // desugar into individual vardecl per name.
                 return decl.desugarMultiDecl().map {

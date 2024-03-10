@@ -360,7 +360,7 @@ internal object BuiltinFunctionScopePlaceholder : INameScope {
 
 
 fun defaultZero(dt: DataType, position: Position) = when(dt) {
-    DataType.BOOL -> NumericLiteral(DataType.UBYTE, 0.0,  position)
+    DataType.BOOL -> NumericLiteral(DataType.BOOL, 0.0,  position)
     DataType.UBYTE -> NumericLiteral(DataType.UBYTE, 0.0,  position)
     DataType.BYTE -> NumericLiteral(DataType.BYTE, 0.0,  position)
     DataType.UWORD, DataType.STR -> NumericLiteral(DataType.UWORD, 0.0, position)
