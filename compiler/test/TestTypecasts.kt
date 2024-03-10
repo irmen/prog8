@@ -11,6 +11,8 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
 import prog8.ast.statements.VarDecl
+import prog8.code.ast.PtAsmSub
+import prog8.code.ast.PtSub
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -1107,5 +1109,55 @@ main {
     }
 }"""
         compileText(C64Target(), true, src2, writeAssembly = false) shouldBe null
+    }
+
+    test("str replaced with uword in subroutine params and return types") {
+        val src="""
+main {
+    sub start() {
+        derp("hello")
+        mult3("hello")
+    }
+
+    sub derp(str arg) -> str {
+        cx16.r0++
+        return arg
+    }
+
+    asmsub mult3(str input @XY) -> str @XY {
+        %asm {{
+            ldx  #100
+            ldy  #101
+            rts
+        }}
+    }
+}"""
+        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        val main = result.codegenAst!!.allBlocks().first()
+        val derp = main.children.single { it is PtSub && it.name=="main.derp"} as PtSub
+        derp.returntype shouldBe DataType.UWORD
+        derp.parameters.single().type shouldBe DataType.UWORD
+        val mult3 = main.children.single { it is PtAsmSub && it.name=="main.mult3"} as PtAsmSub
+        mult3.parameters.single().second.type shouldBe DataType.UWORD
+        mult3.returns.single().second shouldBe DataType.UWORD
+    }
+
+    test("return 0 for str converted to uword") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0 = test()
+    }
+
+    sub test() -> str {
+        cx16.r0++
+        if cx16.r0L==255
+            return 0
+
+        return 42
+    }
+}"""
+        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
     }
 })
