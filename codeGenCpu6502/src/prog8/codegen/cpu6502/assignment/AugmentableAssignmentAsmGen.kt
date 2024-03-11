@@ -570,31 +570,68 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun tryOptimizedMemoryInplace(address: PtBinaryExpression, operator: String, value: AsmAssignSource): Boolean {
         if(value.datatype !in ByteDatatypes || operator !in "|&^+-")
             return false
-        val rightTc = address.right as? PtTypeCast
-        val constOffset = (address.right as? PtNumber)?.number?.toInt()
-        if(address.operator=="+" && (address.right.type in ByteDatatypes || (rightTc!=null && rightTc.value.type in ByteDatatypes) || (constOffset!=null && constOffset<256)) ) {
-            if(rightTc!=null)
-                asmgen.assignExpressionToRegister(rightTc.value, RegisterOrPair.A, false)
-            else if(constOffset!=null)
-                asmgen.out("  lda  #${constOffset}")
-            else
-                asmgen.assignExpressionToRegister(address.right, RegisterOrPair.A, false)
-            asmgen.out("  pha")     // offset on stack
-            val zpPointerVarName: String
+
+        fun addrIntoZpPointer(): String {
             if(address.left is PtIdentifier && asmgen.isZpVar(address.left as PtIdentifier)) {
-                zpPointerVarName = (address.left as PtIdentifier).name
+                return (address.left as PtIdentifier).name
             } else {
-                zpPointerVarName = "P8ZP_SCRATCH_W2"
                 asmgen.assignExpressionToRegister(address.left, RegisterOrPair.AY, false)
-                asmgen.out("  sta  $zpPointerVarName |  sty  $zpPointerVarName+1")
+                asmgen.out("  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")
+                return "P8ZP_SCRATCH_W2"
             }
-            // calculate value into A
+        }
+
+        fun assignValueToA() {
             val assignValue = AsmAssignment(value,
                 AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE,
                     address.definingISub(), Position.DUMMY, register = RegisterOrPair.A),
                 program.memsizer, Position.DUMMY)
-            assignmentAsmGen.translateNormalAssignment(assignValue, address.definingISub())
-            asmgen.restoreRegisterStack(CpuRegister.Y, false)   // offset into Y
+            assignmentAsmGen.translateNormalAssignment(assignValue, address.definingISub())   // calculate value into A
+        }
+
+        val rightTc = address.right as? PtTypeCast
+        val constOffset = (address.right as? PtNumber)?.number?.toInt()
+        if(address.operator=="+" && (address.right.type in ByteDatatypes || (rightTc!=null && rightTc.value.type in ByteDatatypes) || (constOffset!=null && constOffset<256)) ) {
+            if(constOffset!=null) {
+                val zpPointerVarName = addrIntoZpPointer()
+                if(value.number==null) assignValueToA()
+                asmgen.out("  ldy  #$constOffset")
+                when(operator) {
+                    "|" -> {
+                        if(value.number!=null) asmgen.out("  lda  #${value.number.number.toInt()}")
+                        asmgen.out("  ora  ($zpPointerVarName),y")
+                    }
+                    "&" -> {
+                        if(value.number!=null) asmgen.out("  lda  #${value.number.number.toInt()}")
+                        asmgen.out("  and  ($zpPointerVarName),y")
+                    }
+                    "^" -> {
+                        if(value.number!=null) asmgen.out("  lda  #${value.number.number.toInt()}")
+                        asmgen.out("  eor  ($zpPointerVarName),y")
+                    }
+                    "+" -> {
+                        // note: there is no  inc (ZP),y  instruction...
+                        if (value.number != null) asmgen.out("  lda  #${value.number.number.toInt()}")
+                        asmgen.out("  clc |  adc  ($zpPointerVarName),y")
+                    }
+                    "-" -> {
+                        // note: there is no  dec (ZP),y  instruction...
+                        if (value.number != null) asmgen.out("  lda  ($zpPointerVarName),y |  sec |  sbc  #${value.number.number.toInt()}")
+                        else asmgen.out("  sta  P8ZP_SCRATCH_REG |  lda  ($zpPointerVarName),y |  sec |  sbc  P8ZP_SCRATCH_REG")
+                    }
+                    else -> throw AssemblyError("invalid op")
+                }
+                asmgen.out("  sta  ($zpPointerVarName),y")
+                return true
+            }
+            if(rightTc!=null)
+                asmgen.assignExpressionToRegister(rightTc.value, RegisterOrPair.A, false)
+            else
+                asmgen.assignExpressionToRegister(address.right, RegisterOrPair.A, false)
+            asmgen.out("  pha")     // offset on stack
+            val zpPointerVarName = addrIntoZpPointer()
+            assignValueToA()
+            asmgen.restoreRegisterStack(CpuRegister.Y, true)   // offset from stack back into Y
             when(operator) {
                 "|" -> asmgen.out("  ora  ($zpPointerVarName),y")
                 "&" -> asmgen.out("  and  ($zpPointerVarName),y")

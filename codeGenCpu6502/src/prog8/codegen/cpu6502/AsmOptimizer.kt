@@ -382,21 +382,18 @@ private fun optimizeStoreLoadSame(
     machine: IMachineDefinition,
     symbolTable: SymbolTable
 ): List<Modification> {
-    // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
         val first = lines[1].value.trimStart()
         val second = lines[2].value.trimStart()
 
+        // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
         if ((first.startsWith("sta ") && second.startsWith("lda ")) ||
                 (first.startsWith("stx ") && second.startsWith("ldx ")) ||
                 (first.startsWith("sty ") && second.startsWith("ldy ")) ||
                 (first.startsWith("lda ") && second.startsWith("lda ")) ||
                 (first.startsWith("ldy ") && second.startsWith("ldy ")) ||
-                (first.startsWith("ldx ") && second.startsWith("ldx ")) ||
-                (first.startsWith("sta ") && second.startsWith("lda ")) ||
-                (first.startsWith("sty ") && second.startsWith("ldy ")) ||
-                (first.startsWith("stx ") && second.startsWith("ldx "))
+                (first.startsWith("ldx ") && second.startsWith("ldx "))
         ) {
             val third = lines[3].value.trimStart()
             val attemptRemove =
@@ -438,6 +435,18 @@ private fun optimizeStoreLoadSame(
         } else if(first=="phy" && second=="pla") {
             mods.add(Modification(lines[1].index, true, null))
             mods.add(Modification(lines[2].index, false, "  tya"))
+        }
+
+
+        // lda X + sta X,  ldy X + sty X,   ldx X + stx X  -> the second instruction can be eliminated
+        if ((first.startsWith("lda ") && second.startsWith("sta ")) ||
+            (first.startsWith("ldx ") && second.startsWith("stx ")) ||
+            (first.startsWith("ldy ") && second.startsWith("sty "))
+        ) {
+            val firstLoc = first.substring(4).trimStart()
+            val secondLoc = second.substring(4).trimStart()
+            if (firstLoc == secondLoc)
+                mods.add(Modification(lines[2].index, true, null))
         }
     }
     return mods
@@ -485,6 +494,7 @@ private fun optimizeIncDec(linesByFour: Sequence<List<IndexedValue<String>>>): L
             mods.add(Modification(lines[0].index, true, null))
             mods.add(Modification(lines[1].index, true, null))
         }
+
     }
     return mods
 }
