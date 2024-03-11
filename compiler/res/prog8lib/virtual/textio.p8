@@ -81,30 +81,30 @@ sub print_bool(bool value) {
         print("false")
 }
 
-sub  print_ubhex  (ubyte value, ubyte prefix)  {
+sub  print_ubhex  (ubyte value, bool prefix)  {
     ; ---- print the ubyte in hex form
-    if prefix!=0
+    if prefix
         chrout('$')
     print(conv.str_ubhex(value))
 }
 
-sub  print_ubbin  (ubyte value, ubyte prefix) {
+sub  print_ubbin  (ubyte value, bool prefix) {
     ; ---- print the ubyte in binary form
-    if prefix!=0
+    if prefix
         chrout('%')
     print(conv.str_ubbin(value))
 }
 
-sub  print_uwbin  (uword value, ubyte prefix)  {
+sub  print_uwbin  (uword value, bool prefix)  {
     ; ---- print the uword in binary form
-    if prefix!=0
+    if prefix
         chrout('%')
     print(conv.str_uwbin(value))
 }
 
-sub  print_uwhex  (uword value, ubyte prefix) {
+sub  print_uwhex  (uword value, bool prefix) {
     ; ---- print the uword in hexadecimal form (4 digits)
-    if prefix!=0
+    if prefix
         chrout('$')
     print(conv.str_uwhex(value))
 }
