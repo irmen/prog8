@@ -357,6 +357,7 @@ Various examples::
     ubyte       x,y,z                   ; declare three ubyte variables x y and z
     str         name    = "my name is Alice"
     uword       address = &counter
+    bool        flag    = true
     byte[]      values  = [11, 22, 33, 44, 55]
     byte[5]     values                  ; array of 5 bytes, initially set to zero
     byte[5]     values  = 255           ; initialize with five 255 bytes
@@ -377,8 +378,6 @@ type identifier  type                     storage size       example var declara
 ``byte``         signed byte              1 byte = 8 bits    ``byte myvar = -22``
 ``ubyte``        unsigned byte            1 byte = 8 bits    ``ubyte myvar = $8f``,   ``ubyte c = 'a'``
 ``bool``         boolean                  1 byte = 8 bits    ``bool myvar = true`` or ``bool myvar == false``
-                                                             The true and false are actually just aliases
-                                                             for the byte values 1 and 0.
 ``word``         signed word              2 bytes = 16 bits  ``word myvar = -12345``
 ``uword``        unsigned word            2 bytes = 16 bits  ``uword myvar = $8fee``
 ``float``        floating-point           5 bytes = 40 bits  ``float myvar = 1.2345``
@@ -595,19 +594,12 @@ postfix increment and decrement: ``++``  ``--``
 
 comparison: ``==``  ``!=``  ``<``  ``>``  ``<=``  ``>=``
     Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
-    The result is a boolean value 'true' or 'false' (1 or 0).
+    The result is a boolean, true or false.
 
 logical:  ``not``  ``and``  ``or``  ``xor``
 	These operators are the usual logical operations that are part of a logical expression to reason
-	about truths (boolean values). The result of such an expression is a 'boolean' value 'true' or 'false'
-	(which in reality is just a byte value of 1 or 0).
-	Notice that the expression ``not x`` is equivalent to ``x==0``, and the compiler will treat it as such.
+	about truths (boolean values). The result of such an expression is a boolean, true or false.
 	Prog8 applies short-circuit aka McCarthy evaluation for ``and`` and ``or``.
-
-	.. note::
-		You can use regular integers directly in logical expressions but these have to be converted to
-		the boolean value 0 or 1 every time, resulting in larger and slower code. Consider using
-		the ``bool`` variable type instead, where this conversion doesn't need to occur.
 
 range creation:  ``to``, ``downto``
     Creates a range of values from the LHS value to the RHS value, inclusive.
@@ -616,7 +608,7 @@ range creation:  ``to``, ``downto``
 
 containment check:  ``in``
     Tests if a value is present in a list of values, which can be a string, or an array, or a range expression.
-    The result is a simple boolean ``true`` or ``false``.
+    The result is a simple boolean true or false.
     Consider using this instead of chaining multiple value tests with ``or``, because the
     containment check is more efficient.
     Checking N in a range from x to y, is identical to x<=N and N<=y; the actual range of values is never created.

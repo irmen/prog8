@@ -194,6 +194,7 @@ Values will usually be part of an expression or assignment statement::
     12345                 ; integer number
     $aa43                 ; hex integer number
     %100101               ; binary integer number (% is also remainder operator so be careful)
+    false                 ; boolean false
     -33.456e52            ; floating point number
     "Hi, I am a string"   ; text string, encoded with default encoding
     'a'                   ; byte value (ubyte) for the letter a
@@ -247,17 +248,18 @@ and -32768..32767 for words.
     stick to unsigned integers for efficiency.
 
 
-Boolean values
-^^^^^^^^^^^^^^
+Booleans
+^^^^^^^^
 
-These values are only ``true`` or ``false``, or 1 or 0. An integer's "truthy" value (i.e. a number
-converted to boolean) is ``false`` (0) when it is zero and ``true`` (1) for all other values.
-Logical expressions, comparisons and some other code might compile more efficiently if
-you explicitly use ``bool`` types instead of integers there because that will avoid this conversion.
-In the end the compiler translates boolean variables to a byte that stores just 0 or 1.
+Booleans are a distinct type in Prog8 and can have only the values ``true`` or ``false``.
+It can be casted to and from other integer types though
+where a nonzero integer is considered to be true, and zero is false.
+Logical expressions, comparisons and some other code tends to compile more efficiently if
+you explicitly use ``bool`` types instead of 0/1 integers.
+The in-memory representation of a boolean value is just a byte containing 0 or 1.
 
 If you find that you need a whole bunch of boolean variables or perhaps even an array of them,
-consider using bit masks in regular integer variables instead.
+consider using integer bit mask variable + bitwise operators instead.
 This saves a lot of memory and may be faster as well.
 
 
@@ -284,7 +286,7 @@ The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (ne
 
 Arrays
 ^^^^^^
-Array types are also supported. They can be formed from a list of bytes, words, floats, or addresses of other variables
+Array types are also supported. They can be formed from a list of booleans, bytes, words, floats, or addresses of other variables
 (such as explicit address-of expressions, strings, or other array variables) - values in an array literal
 always have to be constants. Putting variables inside an array has to be done on a value-by-value basis.
 Here are some examples of arrays::
@@ -295,6 +297,7 @@ Here are some examples of arrays::
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
     str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to array of uwords)
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
+    bool[2] flags = [true, false]     ; array of two boolean values  (take up 1 byte each, like a byte array)
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
     char = string[4]            ; the fifth character (=byte) in the string
@@ -835,10 +838,10 @@ Array operations
 ^^^^^^^^^^^^^^^^
 
 any (x)
-    1 ('true') if any of the values in the array value x is 'true' (not zero), else 0 ('false')
+    true if any of the values in the array value x is 'true' (not zero), else false.
 
 all (x)
-    1 ('true') if all of the values in the array value x are 'true' (not zero), else 0 ('false')
+    true if all of the values in the array value x are 'true' (not zero), else false.
 
 len (x)
     Number of values in the array value x, or the number of characters in a string (excluding the 0-byte).
