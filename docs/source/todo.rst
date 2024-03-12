@@ -1,6 +1,8 @@
 TODO
 ====
 
+fix containment check is currently not supported inside complex expressions
+
 ...
 
 

@@ -7,8 +7,6 @@
 ; NOTE: a lot of the code here is similar or the same to that in gfx2
 ; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
 ;       You'll have to make sure yourself that you're not writing outside of bitmap boundaries!
-;
-;  TODO: implement invert mode for horizontal lines (will fix disc and fillrect as well)
 
 monogfx {
 

@@ -409,7 +409,7 @@ monogfx {
             dy = stack_dy[cx16.r12L]
             yy+=dy
         }
-        cx16.r11L = pget(xx as uword, yy as uword)        ; old_color
+        cx16.r11L = pget(xx as uword, yy as uword) as ubyte       ; old_color
         if cx16.r11L == cx16.r10L
             return
         if xx<0 or xx>width-1 or yy<0 or yy>height-1

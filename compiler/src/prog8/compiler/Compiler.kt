@@ -56,8 +56,6 @@ class CompilerArguments(val filepath: Path,
 
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
-    lateinit var program: Program
-    lateinit var importedFiles: List<Path>
 
     val compTarget =
         when(args.compilationTarget) {
@@ -72,10 +70,12 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
     var compilationOptions: CompilationOptions
     var ast: PtProgram? = null
+    var resultingProgram: Program? = null
+    var importedFiles: List<Path> = emptyList()
 
     try {
         val totalTime = measureTimeMillis {
-            val (programresult, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, args.sourceDirs)
+            val (program, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, args.sourceDirs)
             compilationOptions = options
 
             with(compilationOptions) {
@@ -96,7 +96,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 symbolDefs = args.symbolDefs
                 strictBool = args.strictBool
             }
-            program = programresult
+            resultingProgram = program
             importedFiles = imported
 
             processAst(program, args.errors, compilationOptions)
@@ -164,16 +164,16 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         System.err.flush()
         val seconds = totalTime/1000.0
         println("\nTotal compilation+assemble time: ${round(seconds*100.0)/100.0} sec.")
-        return CompilationResult(program, ast, compilationOptions, importedFiles)
+        return CompilationResult(resultingProgram!!, ast, compilationOptions, importedFiles)
     } catch (px: ParseError) {
         System.out.flush()
         System.err.print("\n\u001b[91m")  // bright red
         System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
         System.err.print("\u001b[0m")  // reset
     } catch (ac: ErrorsReportedException) {
-        if(args.printAst1) {
+        if(args.printAst1 && resultingProgram!=null) {
             println("\n*********** COMPILER AST *************")
-            printProgram(program)
+            printProgram(resultingProgram!!)
             println("*********** COMPILER AST END *************\n")
         }
         if (args.printAst2) {

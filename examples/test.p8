@@ -1,127 +1,35 @@
-%import textio
-%option no_sysinit
-%zeropage basicsafe
+%import math
+%import monogfx
 
 main {
     sub start() {
-        uword @shared ref = $2000
-        ref[5]=10
-        txt.print_ub(ref[5])
-        txt.spc()
-        ref[5]--
-        txt.print_ub(ref[5])
-        txt.spc()
-        ref[5]++
-        txt.print_ub(ref[5])
-        txt.nl()
-        ref[5]-=2
-        txt.print_ub(ref[5])
-        txt.spc()
-        ref[5]+=2
-        txt.print_ub(ref[5])
-        txt.nl()
-        ref[5]-=3
-        txt.print_ub(ref[5])
-        txt.spc()
-        ref[5]+=3
-        txt.print_ub(ref[5])
-        txt.nl()
+        monogfx.lores()
+        monogfx.drawmode(monogfx.MODE_INVERT)
+
+        uword x1, x2
+        uword y1, y2
+
+        repeat 200 {
+            x1 = math.rnd()
+            y1 = math.rnd() % 240
+            x2 = math.rnd()
+            y2 = math.rnd() % 240
+            monogfx.line(x1, y1, x2, y2, true)
+        }
+
+        repeat 5 {
+            for cx16.r9L in 0 to 200 {
+                monogfx.vertical_line(cx16.r9L, 10, 200, true)
+            }
+        }
 
 
-        ubyte[] array = [1,2,3,4,5,10]
-        array[5]=10
-        txt.print_ub(array[5])
-        txt.spc()
-        array[5]--
-        txt.print_ub(array[5])
-        txt.spc()
-        array[5]++
-        txt.print_ub(array[5])
-        txt.nl()
-        array[5]-=2
-        txt.print_ub(array[5])
-        txt.spc()
-        array[5]+=2
-        txt.print_ub(array[5])
-        txt.nl()
-        array[5]-=3
-        txt.print_ub(array[5])
-        txt.spc()
-        array[5]+=3
-        txt.print_ub(array[5])
-        txt.nl()
+        monogfx.disc(160, 120, 100, true)
+        monogfx.fillrect(20, 100, 280, 50, true)
+        monogfx.drawmode(monogfx.MODE_STIPPLE)
+        monogfx.fillrect(80, 10, 50, 220, true)
 
-
-;        cx16.r0L = 5
-;        ref[cx16.r0L]=10
-;        txt.print_ub(ref[cx16.r0L])
-;        txt.spc()
-;        ref[cx16.r0L]--
-;        txt.print_ub(ref[cx16.r0L])
-;        txt.spc()
-;        ref[cx16.r0L]++
-;        txt.print_ub(ref[cx16.r0L])
-;        txt.nl()
-;
-;        uword @shared uw = 1000
-;        word @shared sw = -1000
-;
-;        txt.print_uw(uw)
-;        txt.spc()
-;        uw++
-;        txt.print_uw(uw)
-;        txt.spc()
-;        uw--
-;        txt.print_uw(uw)
-;        txt.nl()
-;        uw = $00ff
-;        txt.print_uw(uw)
-;        txt.spc()
-;        uw++
-;        txt.print_uw(uw)
-;        txt.spc()
-;        uw--
-;        txt.print_uw(uw)
-;        txt.nl()
-;
-;        txt.print_w(sw)
-;        txt.spc()
-;        sw++
-;        txt.print_w(sw)
-;        txt.spc()
-;        sw--
-;        txt.print_w(sw)
-;        txt.nl()
-;        sw = $00ff
-;        txt.print_w(sw)
-;        txt.spc()
-;        sw++
-;        txt.print_w(sw)
-;        txt.spc()
-;        sw--
-;        txt.print_w(sw)
-;        txt.nl()
-;        sw = -257
-;        txt.print_w(sw)
-;        txt.spc()
-;        sw++
-;        txt.print_w(sw)
-;        txt.spc()
-;        sw--
-;        txt.print_w(sw)
-;        txt.nl()
-
-    /*
-    seekerRef[SKR_X]--     this code looks very wrong with the pha/pla stuff
-    bulletRef[BD_Y]--/++
-    enemyRef[EN_MOVE_CNT]--/++
-
-    signed word--/++
-    unsigned word--/++
-
-    attackRef+=FIELD_COUNT
-
-*/
-
+        repeat {
+        }
     }
 }
