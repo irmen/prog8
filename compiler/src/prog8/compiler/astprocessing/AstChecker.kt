@@ -1437,15 +1437,6 @@ internal class AstChecker(private val program: Program,
         val elementDt = containment.element.inferType(program)
         val iterableDt = containment.iterable.inferType(program)
 
-        if(compilerOptions.compTarget.name!=VMTarget.NAME) {
-            val parentBinexpr = containment.parent as? BinaryExpression
-            if(parentBinexpr!=null) {
-                // only supported if compared to 1 or 0, more complex expressions aren't supported in the 6502 code-gen.
-                if(parentBinexpr.operator!="==" || parentBinexpr.right.constValue(program)?.number !in listOf(0.0, 1.0))
-                    errors.err("containment check is currently not supported inside complex expressions", containment.position)
-            }
-        }
-
         if (iterableDt.isIterable) {
             if (containment.iterable !is RangeExpression) {
                 val iterableEltDt = ArrayToElementTypes.getValue(iterableDt.getOr(DataType.UNDEFINED))
