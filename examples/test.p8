@@ -3,13 +3,23 @@
 %option no_sysinit
 
 main {
+    bool @shared var1, var2
+    bool[2] barray = [false, true]
+    ubyte success
+
     sub start() {
-        str name = "irmen"
-        ubyte @shared cc='m'
+        no_else()
+    }
 
-        cx16.r0=9999
+    sub no_else() {
+        txt.print("bool no_else: ")
+        success=0
 
-        if cx16.r0<10000 and 'q' in name
+        var1=true
+        var2=false
+
+        if var1!=var2
             txt.print("yes")
+
     }
 }

@@ -277,10 +277,13 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
         }
         if (expr.operator=="!=") {
             if(rightDt==DataType.BOOL && leftDt==DataType.BOOL) {
-                if(rightVal?.asBooleanValue==false)
-                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
-                else
-                    return listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+                val rightConstBool = rightVal?.asBooleanValue
+                if(rightConstBool!=null) {
+                    return if (rightConstBool)
+                        listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+                    else
+                        listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                }
             }
             if (rightVal?.number == 1.0) {
                 if(options.strictBool) {

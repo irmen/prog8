@@ -8,6 +8,10 @@ main {
         signed()
     }
 
+    sub print_bool(bool b) {
+        txt.print_ub(b as ubyte)
+    }
+
     ubyte[2] ubarray
     uword[2] uwarray
     byte[2] barray
@@ -227,15 +231,15 @@ main {
             txt.print("rol_ub error ")
             txt.print_ub(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_ub(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
 
@@ -252,15 +256,15 @@ main {
             txt.print("rol_ub array error ")
             txt.print_ub(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_ub(ubarray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
 
@@ -277,15 +281,15 @@ main {
             txt.print("rol_ub mem error ")
             txt.print_ub(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_ub(@($8001))
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
     }
@@ -304,15 +308,15 @@ main {
             txt.print("ror_ub error ")
             txt.print_ub(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_ub(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
 
@@ -329,15 +333,15 @@ main {
             txt.print("ror_ub array error ")
             txt.print_ub(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_ub(ubarray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
 
@@ -354,15 +358,15 @@ main {
             txt.print("ror_ub mem error ")
             txt.print_ub(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_ub(@($8001))
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
     }
@@ -437,15 +441,15 @@ main {
             txt.print("rol_uw error ")
             txt.print_uw(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_uw(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_uw(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
 
@@ -462,15 +466,15 @@ main {
             txt.print("rol_uw array error ")
             txt.print_uw(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_uw(uwarray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_uw(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
     }
@@ -489,15 +493,15 @@ main {
             txt.print("ror_uw error ")
             txt.print_uw(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_uw(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_uw(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
 
@@ -514,15 +518,15 @@ main {
             txt.print("ror_uw array error ")
             txt.print_uw(original)
             txt.spc()
-            txt.print_bool(carry)
+            print_bool(carry)
             txt.spc()
             txt.print_uw(uwarray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_uw(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
     }
@@ -540,11 +544,11 @@ main {
             txt.spc()
             txt.print_ub(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
 
@@ -560,11 +564,11 @@ main {
             txt.spc()
             txt.print_ub(ubarray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
     }
@@ -582,11 +586,11 @@ main {
             txt.spc()
             txt.print_ub(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
 
@@ -602,11 +606,11 @@ main {
             txt.spc()
             txt.print_ub(ubarray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_ub(test)
             txt.spc()
-            txt.print_bool(newcarry)
+            print_bool(newcarry)
             txt.nl()
         }
     }
@@ -624,11 +628,11 @@ main {
             txt.spc()
             txt.print_uw(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_uw(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
 
@@ -644,11 +648,11 @@ main {
             txt.spc()
             txt.print_uw(uwarray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_uw(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
     }
@@ -666,11 +670,11 @@ main {
             txt.spc()
             txt.print_uw(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_uw(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
 
@@ -686,11 +690,11 @@ main {
             txt.spc()
             txt.print_uw(uwarray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_uw(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
     }
@@ -708,11 +712,11 @@ main {
             txt.spc()
             txt.print_b(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_b(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
 
@@ -728,11 +732,11 @@ main {
             txt.spc()
             txt.print_b(barray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_b(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
     }
@@ -750,11 +754,11 @@ main {
             txt.spc()
             txt.print_b(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_b(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
 
@@ -770,11 +774,11 @@ main {
             txt.spc()
             txt.print_b(barray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_b(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
     }
@@ -792,11 +796,11 @@ main {
             txt.spc()
             txt.print_w(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_w(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
 
@@ -812,11 +816,11 @@ main {
             txt.spc()
             txt.print_w(warray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_w(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
     }
@@ -834,11 +838,11 @@ main {
             txt.spc()
             txt.print_w(value)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_w(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
 
@@ -854,11 +858,11 @@ main {
             txt.spc()
             txt.print_w(warray[1])
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.print(" exp: ")
             txt.print_w(test)
             txt.spc()
-            txt.print_bool(carrycheck)
+            print_bool(carrycheck)
             txt.nl()
         }
     }

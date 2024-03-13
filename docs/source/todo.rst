@@ -1,6 +1,9 @@
 TODO
 ====
 
+make bitshift2.p8 runnable on VM
+bitshift2.p8  has many errors (was ok on 10.2 before bool merge)
+
 ...
 
 
