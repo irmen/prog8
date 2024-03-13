@@ -28,30 +28,29 @@ asmsub  str_ub  (ubyte value @ A) clobbers(X) -> str @AY  {
 	%asm {{
 		ldy  #0
 		sty  P8ZP_SCRATCH_B1
-		jsr  conv.ubyte2decimal
-_output_byte_digits
+		jsr  ubyte2decimal     ; result in Y/A/X (100s, 10s, 1s).
         ; hundreds?
 		cpy  #'0'
 		beq  +
-		pha
-		tya
-		ldy  P8ZP_SCRATCH_B1
-		sta  string_out,y
-		pla
-		inc  P8ZP_SCRATCH_B1
+		sty  string_out
+		sta  string_out+1
+		stx  string_out+2
+		lda  #0
+		sta  string_out+3
+		jmp  _done
 		; tens?
-+		ldy  P8ZP_SCRATCH_B1
-        cmp  #'0'
++		cmp  #'0'
 		beq  +
-		sta  string_out,y
-		iny
+		sta  string_out
+		stx  string_out+1
+		lda  #0
+		sta  string_out+2
+		jmp  _done
 +       ; ones.
-        txa
-        sta  string_out,y
-        iny
-        lda  #0
-        sta  string_out,y
-        lda  #<string_out
+        stx  string_out
+		lda  #0
+		sta  string_out+1
+_done   lda  #<string_out
         ldy  #>string_out
         rts
 	}}
@@ -60,17 +59,39 @@ _output_byte_digits
 asmsub  str_b  (byte value @ A) clobbers(X) -> str @AY  {
 	; ---- convert the byte in A in decimal string form, without left padding 0s
 	%asm {{
-        ldy  #0
-        sty  P8ZP_SCRATCH_B1
+	    ldy  #0
         cmp  #0
         bpl  +
-        pha
-        lda  #'-'
-        sta  string_out
-        inc  P8ZP_SCRATCH_B1
-        pla
-+	    jsr  conv.byte2decimal
-        bra  str_ub._output_byte_digits
+        ldy  #'-'
+        sty  string_out
+        ldy  #1
++       sty  P8ZP_SCRATCH_REG
+   	    jsr  conv.byte2decimal      ; result in Y/A/X (100s, 10s, 1s).  and in uword2decimal.decHundreds, decTens, decOnes.
+        ; hundreds?
+		cpy  #'0'
+		bne  _out_hundreds
+		ldy  P8ZP_SCRATCH_REG
+        cmp  #'0'
+        bne  _out_tens
+        beq  _out_ones
+_out_hundreds
+		ldy  P8ZP_SCRATCH_REG
+		lda  uword2decimal.decHundreds
+		sta  string_out,y
+		iny
+_out_tens
+		lda  uword2decimal.decTens
+		sta  string_out,y
+		iny
+_out_ones
+		lda  uword2decimal.decOnes
+        sta  string_out,y
+        iny
+        lda  #0
+        sta  string_out,y
+        lda  #<string_out
+        ldy  #>string_out
+   	    rts
 	}}
 }
 
