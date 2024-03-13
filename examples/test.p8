@@ -3,23 +3,25 @@
 %option no_sysinit
 
 main {
-    bool @shared var1, var2
-    bool[2] barray = [false, true]
-    ubyte success
-
     sub start() {
-        no_else()
-    }
+        uword[3] uwarray = [1111,2222,3333]
+        uword[3] @split uwarray_s = [1111,2222,3333]
+        ubyte[3] array = [11,22,33]
 
-    sub no_else() {
-        txt.print("bool no_else: ")
-        success=0
+        rol(array[1])
+        array[1] <<=1
+        ror(array[1])
+        array[1] >>=1
 
-        var1=true
-        var2=false
+        rol(uwarray[1])
+        uwarray[1] <<=1
+        ror(uwarray[1])
+        uwarray[1] >>=1
 
-        if var1!=var2
-            txt.print("yes")
+        rol(uwarray_s[1])
+        uwarray_s[1] *=3
+        ror(uwarray_s[1])
+        uwarray_s[1] *=3
 
     }
 }

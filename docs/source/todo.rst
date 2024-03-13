@@ -1,9 +1,6 @@
 TODO
 ====
 
-make bitshift2.p8 runnable on VM
-bitshift2.p8  has many errors (was ok on 10.2 before bool merge)
-
 ...
 
 
@@ -12,6 +9,7 @@ Future Things and Ideas
 Compiler:
 
 - IR: add TEST instruction to test memory content and set N/Z flags, without affecting any register. Replace all LOADM+CMPI #0  / LOAD #0+LOADM+CMP+BRANCH   by this instruction
+- IR: implement missing operators in AssignmentGen  (array shifts etc)
 - can we support signed % (remainder) somehow?
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.

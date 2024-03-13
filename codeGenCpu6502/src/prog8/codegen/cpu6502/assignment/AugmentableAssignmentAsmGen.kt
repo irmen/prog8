@@ -222,7 +222,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     val index = indexNum.number.toInt()
                     if(target.array.splitWords) {
                         when(value.kind) {
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationSplitWordWithLiteralval(target.asmVarname, index, operator, value.number!!.number.toInt())
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationSplitWordWithLiteralval(target.asmVarname, target.datatype, index, operator, value.number!!.number.toInt())
                             else -> {
                                 // TODO: more optimized code for VARIABLE, REGISTER, MEMORY, ARRAY, EXPRESSION in the case of split-word arrays
                                 val scope = target.origAstTarget?.definingSub()
@@ -672,77 +672,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplacemodificationSplitWordWithLiteralval(arrayVar: String, index: Int, operator: String, value: Int) {
+    private fun inplacemodificationSplitWordWithLiteralval(arrayVar: String, dt: DataType, index: Int, operator: String, value: Int) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
-        when (operator) {
-            "+" -> {
-                when {
-                    value==0 -> {}
-                    value==1 -> {
-                        asmgen.out("""
-                            inc  ${arrayVar}_lsb+$index
-                            bne  +
-                            inc  ${arrayVar}_msb+$index
-+""")
-                    }
-                    value in 1..0xff -> asmgen.out("""
-                        lda  ${arrayVar}_lsb+$index
-                        clc
-                        adc  #$value
-                        sta  ${arrayVar}_lsb+$index
-                        bcc  +
-                        inc  ${arrayVar}_msb+$index
-+""")
-                    value==0x0100 -> asmgen.out(" inc  ${arrayVar}_msb+$index")
-                    value==0x0200 -> asmgen.out(" inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index")
-                    value==0x0300 -> asmgen.out(" inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index")
-                    value==0x0400 -> asmgen.out(" inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index |  inc  ${arrayVar}_msb+$index")
-                    value and 255==0 -> asmgen.out(" lda  ${arrayVar}_msb+$index |  clc |  adc  #>$value |  sta  ${arrayVar}_msb+$index")
-                    else -> asmgen.out("""
-                        lda  ${arrayVar}_lsb+$index
-                        clc
-                        adc  #<$value
-                        sta  ${arrayVar}_lsb+$index
-                        lda  ${arrayVar}_msb+$index
-                        adc  #>$value
-                        sta  ${arrayVar}_msb+$index""")
-                }
-            }
-            "-" -> {
-                when {
-                    value==0 -> {}
-                    value==1 -> {
-                        asmgen.out("""
-                            lda  ${arrayVar}_lsb+$index
-                            bne  +
-                            dec  ${arrayVar}_msb+$index
-+                           dec  ${arrayVar}_lsb+$index""")
-                    }
-                    value in 1..0xff -> asmgen.out("""
-                        lda  ${arrayVar}_lsb+$index
-                        sec
-                        sbc  #$value
-                        sta  ${arrayVar}_lsb+$index
-                        bcs  +
-                        dec  ${arrayVar}_msb+$index
-+""")
-                    value==0x0100 -> asmgen.out(" dec  ${arrayVar}_msb+$index")
-                    value==0x0200 -> asmgen.out(" dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index")
-                    value==0x0300 -> asmgen.out(" dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index")
-                    value==0x0400 -> asmgen.out(" dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index |  dec  ${arrayVar}_msb+$index")
-                    value and 255==0 -> asmgen.out(" lda  ${arrayVar}_msb+$index |  sec |  sbc  #>$value |  sta  ${arrayVar}_msb+$index")
-                    else -> asmgen.out("""
-                        lda  ${arrayVar}_lsb+$index
-                        sec
-                        sbc  #<$value
-                        sta  ${arrayVar}_lsb+$index
-                        lda  ${arrayVar}_msb+$index
-                        sbc  #>$value
-                        sta  ${arrayVar}_msb+$index""")
-                }
-            }
-            else -> TODO("in-place modify split-words array value for operator $operator") 
-        }
+        inplacemodificationSomeWordWithLiteralval("${arrayVar}_lsb+$index", "${arrayVar}_msb+$index", dt, operator, value, null)
     }
 
     private fun inplacemodificationRegisterAXwithVariable(operator: String, variable: String, varDt: DataType): Boolean {
@@ -1767,40 +1699,46 @@ $shortcutLabel:""")
         }
     }
 
+        
+
     private fun inplacemodificationWordWithLiteralval(name: String, dt: DataType, operator: String, value: Int, block: PtBlock?) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
+        inplacemodificationSomeWordWithLiteralval(name, name + "+1", dt, operator, value, block)
+    }
+    
+    private fun inplacemodificationSomeWordWithLiteralval(lsb: String, msb: String, dt: DataType, operator: String, value: Int, block: PtBlock?) {
         when (operator) {
             "+" -> {
                 when {
                     value==0 -> {}
                     value==1 -> {
                         asmgen.out("""
-                            inc  $name
+                            inc  $lsb
                             bne  +
-                            inc  $name+1
+                            inc  $msb
 +""")
                     }
                     value in 1..0xff -> asmgen.out("""
-                        lda  $name
+                        lda  $lsb
                         clc
                         adc  #$value
-                        sta  $name
+                        sta  $lsb
                         bcc  +
-                        inc  $name+1
+                        inc  $msb
 +""")
-                    value==0x0100 -> asmgen.out(" inc  $name+1")
-                    value==0x0200 -> asmgen.out(" inc  $name+1 |  inc  $name+1")
-                    value==0x0300 -> asmgen.out(" inc  $name+1 |  inc  $name+1 |  inc  $name+1")
-                    value==0x0400 -> asmgen.out(" inc  $name+1 |  inc  $name+1 |  inc  $name+1 |  inc  $name+1")
-                    value and 255==0 -> asmgen.out(" lda  $name+1 |  clc |  adc  #>$value |  sta  $name+1")
+                    value==0x0100 -> asmgen.out(" inc  $msb")
+                    value==0x0200 -> asmgen.out(" inc  $msb |  inc  $msb")
+                    value==0x0300 -> asmgen.out(" inc  $msb |  inc  $msb |  inc  $msb")
+                    value==0x0400 -> asmgen.out(" inc  $msb |  inc  $msb |  inc  $msb |  inc  $msb")
+                    value and 255==0 -> asmgen.out(" lda  $msb |  clc |  adc  #>$value |  sta  $msb")
                     else -> asmgen.out("""
-                        lda  $name
+                        lda  $lsb
                         clc
                         adc  #<$value
-                        sta  $name
-                        lda  $name+1
+                        sta  $lsb
+                        lda  $msb
                         adc  #>$value
-                        sta  $name+1""")
+                        sta  $msb""")
                 }
             }
             "-" -> {
@@ -1808,44 +1746,44 @@ $shortcutLabel:""")
                     value==0 -> {}
                     value==1 -> {
                         asmgen.out("""
-                            lda  $name
+                            lda  $lsb
                             bne  +
-                            dec  $name+1
-+                           dec  $name""")
+                            dec  $msb
++                           dec  $lsb""")
                     }
                     value in 1..0xff -> asmgen.out("""
-                        lda  $name
+                        lda  $lsb
                         sec
                         sbc  #$value
-                        sta  $name
+                        sta  $lsb
                         bcs  +
-                        dec  $name+1
+                        dec  $msb
 +""")
-                    value==0x0100 -> asmgen.out(" dec  $name+1")
-                    value==0x0200 -> asmgen.out(" dec  $name+1 |  dec  $name+1")
-                    value==0x0300 -> asmgen.out(" dec  $name+1 |  dec  $name+1 |  dec  $name+1")
-                    value==0x0400 -> asmgen.out(" dec  $name+1 |  dec  $name+1 |  dec  $name+1 |  dec  $name+1")
-                    value and 255==0 -> asmgen.out(" lda  $name+1 |  sec |  sbc  #>$value |  sta  $name+1")
+                    value==0x0100 -> asmgen.out(" dec  $msb")
+                    value==0x0200 -> asmgen.out(" dec  $msb |  dec  $msb")
+                    value==0x0300 -> asmgen.out(" dec  $msb |  dec  $msb |  dec  $msb")
+                    value==0x0400 -> asmgen.out(" dec  $msb |  dec  $msb |  dec  $msb |  dec  $msb")
+                    value and 255==0 -> asmgen.out(" lda  $msb |  sec |  sbc  #>$value |  sta  $msb")
                     else -> asmgen.out("""
-                        lda  $name
+                        lda  $lsb
                         sec
                         sbc  #<$value
-                        sta  $name
-                        lda  $name+1
+                        sta  $lsb
+                        lda  $msb
                         sbc  #>$value
-                        sta  $name+1""")
+                        sta  $msb""")
                 }
             }
             "*" -> {
                 // the mul code works for both signed and unsigned
                 if(value in asmgen.optimizedWordMultiplications) {
-                    asmgen.out("  lda  $name |  ldy  $name+1 |  jsr  math.mul_word_$value |  sta  $name |  sty  $name+1")
+                    asmgen.out("  lda  $lsb |  ldy  $msb |  jsr  math.mul_word_$value |  sta  $lsb |  sty  $msb")
                 } else {
                     if(block?.options?.veraFxMuls==true)
                         // cx16 verafx hardware mul
                         asmgen.out("""
-                            lda  $name
-                            ldy  $name+1
+                            lda  $lsb
+                            ldy  $msb
                             sta  cx16.r0
                             sty  cx16.r0+1
                             lda  #<$value
@@ -1853,19 +1791,19 @@ $shortcutLabel:""")
                             sta  cx16.r1
                             sty  cx16.r1+1
                             jsr  verafx.muls
-                            sta  $name
-                            sty  $name+1""")
+                            sta  $lsb
+                            sty  $msb""")
                     else
                         asmgen.out("""
-                            lda  $name
+                            lda  $lsb
                             sta  math.multiply_words.multiplier
-                            lda  $name+1
+                            lda  $msb
                             sta  math.multiply_words.multiplier+1
                             lda  #<$value
                             ldy  #>$value
                             jsr  math.multiply_words
-                            sta  $name
-                            sty  $name+1""")
+                            sta  $lsb
+                            sty  $msb""")
                 }
             }
             "/" -> {
@@ -1873,28 +1811,28 @@ $shortcutLabel:""")
                     throw AssemblyError("division by zero")
                 if(dt==DataType.WORD) {
                     asmgen.out("""
-                        lda  $name
-                        ldy  $name+1
+                        lda  $lsb
+                        ldy  $msb
                         sta  P8ZP_SCRATCH_W1
                         sty  P8ZP_SCRATCH_W1+1
                         lda  #<$value
                         ldy  #>$value
                         jsr  math.divmod_w_asm
-                        sta  $name
-                        sty  $name+1
+                        sta  $lsb
+                        sty  $msb
                     """)
                 }
                 else {
                     asmgen.out("""
-                        lda  $name
-                        ldy  $name+1
+                        lda  $lsb
+                        ldy  $msb
                         sta  P8ZP_SCRATCH_W1
                         sty  P8ZP_SCRATCH_W1+1
                         lda  #<$value
                         ldy  #>$value
                         jsr  math.divmod_uw_asm
-                        sta  $name
-                        sty  $name+1
+                        sta  $lsb
+                        sty  $msb
                     """)
                 }
             }
@@ -1904,8 +1842,8 @@ $shortcutLabel:""")
                 if(dt==DataType.WORD)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                 asmgen.out("""
-                    lda  $name
-                    ldy  $name+1
+                    lda  $lsb
+                    ldy  $msb
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
                     lda  #<$value
@@ -1913,33 +1851,33 @@ $shortcutLabel:""")
                     jsr  math.divmod_uw_asm
                     lda  P8ZP_SCRATCH_W2
                     ldy  P8ZP_SCRATCH_W2+1
-                    sta  $name
-                    sty  $name+1
+                    sta  $lsb
+                    sty  $msb
                 """)
             }
             "<<" -> {
                 when {
                     value>=16 -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  stz  $name |  stz  $name+1")
+                            asmgen.out("  stz  $lsb |  stz  $msb")
                         else
-                            asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
+                            asmgen.out("  lda  #0 |  sta  $lsb |  sta  $msb")
                     }
                     value==8 -> {
-                        asmgen.out("  lda  $name |  sta  $name+1")
+                        asmgen.out("  lda  $lsb |  sta  $msb")
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  stz  $name")
+                            asmgen.out("  stz  $lsb")
                         else
-                            asmgen.out("  lda  #0 |  sta  $name")
+                            asmgen.out("  lda  #0 |  sta  $lsb")
                     }
                     value>3 -> asmgen.out("""
                         ldy  #$value
--                       asl  $name
-                        rol  $name+1
+-                       asl  $lsb
+                        rol  $msb
                         dey
                         bne  -
                     """)
-                    else -> repeat(value) { asmgen.out(" asl  $name |  rol  $name+1") }
+                    else -> repeat(value) { asmgen.out(" asl  $lsb |  rol  $msb") }
                 }
             }
             ">>" -> {
@@ -1948,54 +1886,54 @@ $shortcutLabel:""")
                         when {
                             value>=16 -> {
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                    asmgen.out("  stz  $name |  stz  $name+1")
+                                    asmgen.out("  stz  $lsb |  stz  $msb")
                                 else
-                                    asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
+                                    asmgen.out("  lda  #0 |  sta  $lsb |  sta  $msb")
                             }
                             value==8 -> {
-                                asmgen.out("  lda  $name+1 |  sta  $name")
+                                asmgen.out("  lda  $msb |  sta  $lsb")
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                    asmgen.out("  stz  $name+1")
+                                    asmgen.out("  stz  $msb")
                                 else
-                                    asmgen.out("  lda  #0 |  sta  $name+1")
+                                    asmgen.out("  lda  #0 |  sta  $msb")
                             }
                             value>2 -> asmgen.out("""
                                 ldy  #$value
--                               lsr  $name+1
-                                ror  $name
+-                               lsr  $msb
+                                ror  $lsb
                                 dey
                                 bne  -""")
-                            else -> repeat(value) { asmgen.out("  lsr  $name+1 |  ror  $name")}
+                            else -> repeat(value) { asmgen.out("  lsr  $msb |  ror  $lsb")}
                         }
                     } else {
                         when {
                             value>=16 -> asmgen.out("""
-                                lda  $name+1
+                                lda  $msb
                                 bmi  +
                                 lda  #0
                                 beq  ++
 +                               lda  #-1
-+                               sta  $name
-                                sta  $name+1""")
++                               sta  $lsb
+                                sta  $msb""")
                             value==8 -> asmgen.out("""
-                                 lda  $name+1
-                                 sta  $name
+                                 lda  $msb
+                                 sta  $lsb
                                  bmi  +
                                  lda  #0
--                                sta  $name+1
+-                                sta  $msb
                                  beq  ++
 +                                lda  #-1
-                                 sta  $name+1
+                                 sta  $msb
 +""")
                             value>2 -> asmgen.out("""
                                 ldy  #$value
--                               lda  $name+1
+-                               lda  $msb
                                 asl  a
-                                ror  $name+1
-                                ror  $name
+                                ror  $msb
+                                ror  $lsb
                                 dey
                                 bne  -""")
-                            else -> repeat(value) { asmgen.out("  lda  $name+1 |  asl  a |  ror  $name+1 |  ror  $name") }
+                            else -> repeat(value) { asmgen.out("  lda  $msb |  asl  a |  ror  $msb |  ror  $lsb") }
                         }
                     }
                 }
@@ -2004,165 +1942,165 @@ $shortcutLabel:""")
                 when {
                     value == 0 -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  stz  $name |  stz  $name+1")
+                            asmgen.out("  stz  $lsb |  stz  $msb")
                         else
-                            asmgen.out("  lda  #0 |  sta  $name |  sta  $name+1")
+                            asmgen.out("  lda  #0 |  sta  $lsb |  sta  $msb")
                     }
                     value == 0x00ff -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  stz  $name+1")
+                            asmgen.out("  stz  $msb")
                         else
-                            asmgen.out("  lda  #0 |  sta  $name+1")
+                            asmgen.out("  lda  #0 |  sta  $msb")
                     }
                     value == 0xff00 -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  stz  $name")
+                            asmgen.out("  stz  $lsb")
                         else
-                            asmgen.out("  lda  #0 |  sta  $name")
+                            asmgen.out("  lda  #0 |  sta  $lsb")
                     }
                     value and 255 == 0 -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  stz  $name")
+                            asmgen.out("  stz  $lsb")
                         else
-                            asmgen.out("  lda  #0 |  sta  $name")
-                        asmgen.out("  lda  $name+1 |  and  #>$value |  sta  $name+1")
+                            asmgen.out("  lda  #0 |  sta  $lsb")
+                        asmgen.out("  lda  $msb |  and  #>$value |  sta  $msb")
                     }
                     value < 0x0100 -> {
-                        immediateAndInplace(name, value)
+                        immediateAndInplace(lsb, value)
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out("  stz  $name+1")
+                            asmgen.out("  stz  $msb")
                         else
-                            asmgen.out("  lda  #0 |  sta  $name+1")
+                            asmgen.out("  lda  #0 |  sta  $msb")
                     }
-                    else -> asmgen.out("  lda  $name |  and  #<$value |  sta  $name |  lda  $name+1 |  and  #>$value |  sta  $name+1")
+                    else -> asmgen.out("  lda  $lsb |  and  #<$value |  sta  $lsb |  lda  $msb |  and  #>$value |  sta  $msb")
                 }
             }
             "|" -> {
                 when {
                     value == 0 -> {}
-                    value and 255 == 0 -> asmgen.out("  lda  $name+1 |  ora  #>$value |  sta  $name+1")
-                    value < 0x0100 -> immediateOrInplace(name, value)
-                    else -> asmgen.out("  lda  $name |  ora  #<$value |  sta  $name |  lda  $name+1 |  ora  #>$value |  sta  $name+1")
+                    value and 255 == 0 -> asmgen.out("  lda  $msb |  ora  #>$value |  sta  $msb")
+                    value < 0x0100 -> immediateOrInplace(lsb, value)
+                    else -> asmgen.out("  lda  $lsb |  ora  #<$value |  sta  $lsb |  lda  $msb |  ora  #>$value |  sta  $msb")
                 }
             }
             "^" -> {
                 when {
                     value == 0 -> {}
-                    value and 255 == 0 -> asmgen.out("  lda  $name+1 |  eor  #>$value |  sta  $name+1")
-                    value < 0x0100 -> asmgen.out("  lda  $name |  eor  #$value |  sta  $name")
-                    else -> asmgen.out("  lda  $name |  eor  #<$value |  sta  $name |  lda  $name+1 |  eor  #>$value |  sta  $name+1")
+                    value and 255 == 0 -> asmgen.out("  lda  $msb |  eor  #>$value |  sta  $msb")
+                    value < 0x0100 -> asmgen.out("  lda  $lsb |  eor  #$value |  sta  $lsb")
+                    else -> asmgen.out("  lda  $lsb |  eor  #<$value |  sta  $lsb |  lda  $msb |  eor  #>$value |  sta  $msb")
                 }
             }
             "==" -> {
                 asmgen.out("""
-                    lda  $name
+                    lda  $lsb
                     cmp  #<$value
                     bne  +
-                    lda  $name+1
+                    lda  $msb
                     cmp  #>$value
                     bne  +
                     lda  #1
                     bne  ++
 +                   lda  #0
-+                   sta  $name
++                   sta  $lsb
                     lda  #0
-                    sta  $name+1""")
+                    sta  $msb""")
             }
             "!=" -> {
                 asmgen.out("""
-                    lda  $name
+                    lda  $lsb
                     cmp  #<$value
                     bne  +
-                    lda  $name+1
+                    lda  $msb
                     cmp  #>$value
                     bne  +
                     lda  #0
                     beq  ++
 +                   lda  #1
-+                   sta  $name
++                   sta  $lsb
                     lda  #0
-                    sta  $name+1""")
+                    sta  $msb""")
             }
             "<" -> {
                 if(dt==DataType.UWORD) {
                     asmgen.out("""
-                        lda  $name+1
+                        lda  $msb
                         cmp  #>$value
                         bcc  ++
                         bne  +
-                        lda  $name
+                        lda  $lsb
                         cmp  #<$value
                         bcc  ++
 +                       lda  #0     ; false
-                        sta  $name
-                        sta  $name+1
+                        sta  $lsb
+                        sta  $msb
                         beq  ++
 +                       lda  #1     ; true
-                        sta  $name
+                        sta  $lsb
                         lda  #0
-                        sta  $name+1
+                        sta  $msb
 +""")
                 }
                 else {
                     // signed
                     asmgen.out("""
-                        lda  $name
+                        lda  $lsb
                         cmp  #<$value
-                        lda  $name+1
+                        lda  $msb
                         sbc  #>$value
                         bvc  +
                         eor  #$80
 +                       bmi  +
                         lda  #0
-                        sta  $name
-                        sta  $name+1
+                        sta  $lsb
+                        sta  $msb
                         beq  ++
 +                       lda  #1     ; true
-                        sta  $name
+                        sta  $lsb
                         lda  #0
-                        sta  $name+1
+                        sta  $msb
 +""")
                 }
             }
             "<=" -> {
                 if(dt==DataType.UWORD) {
                     asmgen.out("""
-                        lda  $name+1
+                        lda  $msb
                         cmp  #>$value
                         beq  +
                         bcc  ++
 -                       lda  #0             ; false
-                        sta  $name
-                        sta  $name+1
+                        sta  $lsb
+                        sta  $msb
                         beq  +++
-+                       lda  $name          ; next
++                       lda  $lsb          ; next
                         cmp  #<$value
                         bcc  +
                         bne  -
 +                       lda  #1             ; true
-                        sta  $name
+                        sta  $lsb
                         lda  #0
-                        sta  $name+1
+                        sta  $msb
 +""")
                 }
                 else {
                     // signed
                     asmgen.out("""
                         lda  #<$value
-                        cmp  $name
+                        cmp  $lsb
                         lda  #>$value
-                        sbc  $name+1
+                        sbc  $msb
                         bvc  +
                         eor  #$80
 +                       bpl  +
                         lda  #0
-                        sta  $name
-                        sta  $name+1
+                        sta  $lsb
+                        sta  $msb
                         beq  ++
 +                       lda  #1
-                        sta  $name
+                        sta  $lsb
                         lda  #0
-                        sta  $name+1
+                        sta  $msb
 +""")
                 }
             }
@@ -2171,40 +2109,40 @@ $shortcutLabel:""")
                 if(dt==DataType.UWORD) {
                     asmgen.out("""
                         lda  #>$value
-                        cmp  $name+1
+                        cmp  $msb
                         bcc  ++
                         bne  +
                         lda  #<$value
-                        cmp  $name
+                        cmp  $lsb
                         bcc  ++
 +                       lda  #0         ; false
-                        sta  $name
-                        sta  $name+1
+                        sta  $lsb
+                        sta  $msb
                         beq  ++
 +                       lda  #1         ; true
-                        sta  $name
+                        sta  $lsb
                         lda  #0
-                        sta  $name+1
+                        sta  $msb
 +""")
                 }
                 else {
                     // signed
                     asmgen.out("""
                         lda  #<$value
-                        cmp  $name
+                        cmp  $lsb
                         lda  #>$value
-                        sbc  $name+1
+                        sbc  $msb
                         bvc  +
                         eor  #$80
 +                       bmi  +
                         lda  #0
-                        sta  $name
-                        sta  $name+1
+                        sta  $lsb
+                        sta  $msb
                         beq  ++
 +                       lda  #1         ; true
-                        sta  $name
+                        sta  $lsb
                         lda  #0
-                        sta  $name+1
+                        sta  $msb
 +""")
                 }
             }
@@ -2213,41 +2151,41 @@ $shortcutLabel:""")
                 if(dt==DataType.UWORD) {
                     asmgen.out("""
                         lda  #>$value
-                        cmp  $name+1
+                        cmp  $msb
                         beq  +
                         bcc  ++
 -                       lda  #0             ; false
-                        sta  $name
-                        sta  $name+1
+                        sta  $lsb
+                        sta  $msb
                         beq  +++
 +                       lda  #<$value        ; next
-                        cmp  $name
+                        cmp  $lsb
                         bcc  +
                         bne  -
 +                       lda  #1             ; true
-                        sta  $name
+                        sta  $lsb
                         lda  #0
-                        sta  $name+1
+                        sta  $msb
 +""")
                 }
                 else {
                     // signed
                     asmgen.out("""
-                        lda  $name
+                        lda  $lsb
                         cmp  #<$value
-                        lda  $name+1
+                        lda  $msb
                         sbc  #>$value
                         bvc  +
                         eor  #$80
 +                       bpl  +
                         lda  #0
-                        sta  $name
-                        sta  $name+1
+                        sta  $lsb
+                        sta  $msb
                         beq  ++
 +                       lda  #1
-                        sta  $name
+                        sta  $lsb
                         lda  #0
-                        sta  $name+1
+                        sta  $msb
 +""")
                 }
             }
