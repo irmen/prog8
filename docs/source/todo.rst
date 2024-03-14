@@ -1,6 +1,9 @@
 TODO
 ====
 
+fix logical expressione eval:
+there's something wrong with the short-circuiting of logical expressions, it sometimes skips terms. Or perhaps bug in the common subexpression optimizer.
+
 ...
 
 

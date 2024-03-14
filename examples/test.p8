@@ -1,21 +1,35 @@
-; conv_bug.p8
 %import textio
-%import conv
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        ubyte num8 = 99
-        ubyte i
-        ubyte jj = 99
+        ; TODO func is not called 4 times!!!!! FIX!!!
+        if (not func(1))
+            or (not func(1))
+            or (not func(1))
+            or (not func(1)) {
+                txt.print("done1\n")
+            }
 
-        for i in 0 to 255 {
-            txt.print(conv.str_ub(i))
-            txt.spc()
-            txt.print(conv.str_b(i as byte))
-            txt.chrout(';')
-            txt.nl()
+        ; TODO func is not called 4 times!!!!! FIX!!!
+        if func(2)
+            and func(2)
+            and func(2)
+            and func(2) {
+                txt.print("done2\n")
+            }
+
+        ; TODO func is not called 4 times!!!!! FIX!!!
+        if func(3) and func(3) and func(3) and func(3) {
+            txt.print("done3\n")
         }
+    }
+
+    sub func(ubyte x) -> bool {
+        txt.print("func ")
+        txt.print_ub(x)
+        txt.nl()
+        return true
     }
 }
