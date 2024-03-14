@@ -135,6 +135,16 @@ sub CLEARST() {
     CLOSE(15)
 }
 
+asmsub kbdbuf_clear() {
+    ; -- convenience helper routine to clear the keyboard buffer
+    %asm {{
+-       jsr  GETIN
+        cmp  #0
+        bne  -
+        rts
+    }}
+}
+
 }
 
 c64 {

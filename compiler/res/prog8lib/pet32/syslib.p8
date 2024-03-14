@@ -75,6 +75,15 @@ asmsub RDTIM16() clobbers(X) -> uword @AY {
     }}
 }
 
+asmsub kbdbuf_clear() {
+    ; -- convenience helper routine to clear the keyboard buffer
+    %asm {{
+-       jsr  GETIN
+        cmp  #0
+        bne  -
+        rts
+    }}
+}
 
 }
 
