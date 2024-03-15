@@ -4,32 +4,24 @@
 
 main {
     sub start() {
-        ; TODO func is not called 4 times!!!!! FIX!!!
-        if (not func(1))
-            or (not func(1))
-            or (not func(1))
-            or (not func(1)) {
-                txt.print("done1\n")
+        cx16.reset_system()
+        repeat {
+            for cx16.r0L in 0 to 255 {
+               cx16.set_led_brightness(cx16.r0L)
+               delay()
             }
-
-        ; TODO func is not called 4 times!!!!! FIX!!!
-        if func(2)
-            and func(2)
-            and func(2)
-            and func(2) {
-                txt.print("done2\n")
+            for cx16.r0L in 255 downto 0 {
+               cx16.set_led_brightness(cx16.r0L)
+               delay()
             }
-
-        ; TODO func is not called 4 times!!!!! FIX!!!
-        if func(3) and func(3) and func(3) and func(3) {
-            txt.print("done3\n")
         }
     }
 
-    sub func(ubyte x) -> bool {
-        txt.print("func ")
-        txt.print_ub(x)
-        txt.nl()
-        return true
+    sub delay() {
+        repeat 2000 {
+            %asm {{
+                nop
+            }}
+        }
     }
 }

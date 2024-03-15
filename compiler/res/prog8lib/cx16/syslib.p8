@@ -1214,6 +1214,20 @@ _continue   iny
         }}
     }
 
+    sub reset_system() {
+        ; Soft-reset the system back to initial power-on Basic prompt.
+        sys.reset_system()
+    }
+
+    sub poweroff_system() {
+        ; use the SMC to shutdown the computer
+        void cx16.i2c_write_byte($42, $01, $00)
+    }
+
+    sub set_led_brightness(ubyte brightness) {
+        void cx16.i2c_write_byte($42, $05, brightness)
+    }
+
 }
 
 sys {
@@ -1413,13 +1427,13 @@ asmsub  set_rasterline(uword line @AY) {
     asmsub reset_system() {
         ; Soft-reset the system back to initial power-on Basic prompt.
         ; We do this via the SMC so that a true reset is performed that also resets the Vera fully.
+        ; (note: this is an asmsub on purpose! don't change into a normal sub)
         %asm {{
             sei
             ldx #$42
             ldy #2
             lda #0
-            jsr  cx16.i2c_write_byte
-            bra  *
+            jmp  cx16.i2c_write_byte
         }}
     }
 

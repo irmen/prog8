@@ -135,12 +135,6 @@ sys (part of syslib)
     Soft-reset the system back to initial power-on BASIC prompt.
     (called automatically by Prog8 when the main subroutine returns and the program is not using basicsafe zeropage option)
 
-``poweroff_system ()``  (commander x16 only)
-    Powers down the computer.
-
-``set_leds_brightness (ubyte activity, ubyte power)``  (commander x16 only)
-    Sets the brightness of the activity and power leds on the computer.
-
 ``disable_caseswitch()`` and ``enable_caseswitch()``
     Disable or enable the ability to switch character set case using a keyboard combination.
 
@@ -581,6 +575,15 @@ On the other targets, it only contains the definition of the 16 memory mapped vi
 
 ``cpu_is_65816()``
     Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
+
+``reset_system ()``
+    Soft-reset the system back to initial power-on BASIC prompt. (same as the routine in sys)
+
+``poweroff_system ()``
+    Powers down the computer.
+
+``set_led_brightness (ubyte brightness)``
+    Sets the brightness of the activity led on the computer.
 
 
 bmx  (cx16 only)

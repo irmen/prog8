@@ -1,6 +1,8 @@
 TODO
 ====
 
+add more verifications to diskspeed.p8
+
 ...
 
 
