@@ -313,43 +313,87 @@ math {
 
     sub crc16(uword data, uword length) -> uword {
         ; calculates the CRC16 (XMODEM) checksum of the buffer.
-        cx16.r0 = 0  ; the crc value
-        repeat length {
-            cx16.r0H ^= @(data)
-            repeat 8 {
-                if cx16.r0H & $80 !=0
-                    cx16.r0 = (cx16.r0<<1)^$1021
-                else
-                    cx16.r0<<=1
-            }
-            data++
+        ; There are also "streaming" crc16_start/update/end routines below, that allow you to calculate crc32 for data that doesn't fit in a single memory block.
+        crc16_start()
+        cx16.r13 = data
+        cx16.r14 = data+length
+        while cx16.r13!=cx16.r14 {
+            crc16_update(@(cx16.r13))
+            cx16.r13++
         }
-        return cx16.r0
+        return crc16_end()
+    }
+
+    sub crc16_start() {
+        ; start the "streaming" crc16
+        ; note: tracks the crc16 checksum in cx16.r15!
+        ;       if your code uses that, it must save/restore it before calling this routine
+        cx16.r15 = 0
+    }
+
+    sub crc16_update(ubyte value) {
+        ; update the "streaming" crc16 with next byte value
+        ; note: tracks the crc16 checksum in cx16.r15!
+        ;       if your code uses that, it must save/restore it before calling this routine
+        cx16.r15H ^= value
+        repeat 8 {
+            if cx16.r15H & $80 !=0
+                cx16.r15 = (cx16.r15<<1)^$1021
+            else
+                cx16.r15<<=1
+        }
+    }
+
+    sub crc16_end() -> uword {
+        ; finalize the "streaming" crc16, returns resulting crc16 value
+        return cx16.r15
     }
 
     sub crc32(uword data, uword length) {
         ; Calculates the CRC-32 (POSIX) checksum of the buffer.
         ; because prog8 doesn't have 32 bits integers, we have to split up the calculation over 2 words.
-        ; result stored in cx16.r0 (low word) and cx16.r1 (high word)
-        cx16.r1 = 0
-        cx16.r0 = 0
-        repeat length {
-            cx16.r1H ^= @(data)
-            repeat 8 {
-                if cx16.r1H & $80 !=0 {
-                    cx16.r0 <<= 1
-                    rol(cx16.r1)
-                    cx16.r1 ^= $04c1
-                    cx16.r0 ^= $1db7
-                }
-                else {
-                    cx16.r0 <<= 1
-                    rol(cx16.r1)
-                }
-            }
-            data++
+        ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
+        ; There are also "streaming" crc32_start/update/end routines below, that allow you to calculate crc32 for data that doesn't fit in a single memory block.
+        crc32_start()
+        cx16.r12 = data
+        cx16.r13 = data+length
+        while cx16.r12!=cx16.r13 {
+            crc32_update(@(cx16.r12))
+            cx16.r12++
         }
-        cx16.r1 ^= $ffff
-        cx16.r0 ^= $ffff
+        crc32_end()
+    }
+
+    sub crc32_start() {
+        ; start the "streaming" crc32
+        ; note: tracks the crc32 checksum in cx16.r14 and cx16.r15!
+        ;       if your code uses these, it must save/restore them before calling this routine
+        cx16.r14 = cx16.r15 = 0
+    }
+
+    sub crc32_update(ubyte value) {
+        ; update the "streaming" crc32 with next byte value
+        ; note: tracks the crc32 checksum in cx16.r14 and cx16.r15!
+        ;       if your code uses these, it must save/restore them before calling this routine
+        cx16.r15H ^= value
+        repeat 8 {
+            if cx16.r15H & $80 !=0 {
+                cx16.r14 <<= 1
+                rol(cx16.r15)
+                cx16.r15 ^= $04c1
+                cx16.r14 ^= $1db7
+            }
+            else {
+                cx16.r14 <<= 1
+                rol(cx16.r15)
+            }
+        }
+    }
+
+    sub crc32_end() {
+        ; finalize the "streaming" crc32
+        ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
+        cx16.r15 ^= $ffff
+        cx16.r14 ^= $ffff
     }
 }

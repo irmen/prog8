@@ -1,27 +1,41 @@
+%import math
 %import textio
 %zeropage basicsafe
 %option no_sysinit
 
+; $029f
+
 main {
     sub start() {
-        cx16.reset_system()
-        repeat {
-            for cx16.r0L in 0 to 255 {
-               cx16.set_led_brightness(cx16.r0L)
-               delay()
-            }
-            for cx16.r0L in 255 downto 0 {
-               cx16.set_led_brightness(cx16.r0L)
-               delay()
-            }
-        }
-    }
+        txt.print("crc16\n")
+        txt.print_uwhex(math.crc16($0800, 32768), true)
+        txt.nl()
 
-    sub delay() {
-        repeat 2000 {
-            %asm {{
-                nop
-            }}
+        cx16.r15 = 0
+        math.crc16_start()
+        for cx16.r9 in $0800 to $0800+32768-1 {
+            math.crc16_update(@(cx16.r9))
         }
+        txt.print_uwhex(math.crc16_end(), true)
+        txt.nl()
+
+        txt.print("crc32\n")
+        cx16.r0 = cx16.r1 = 0
+        math.crc32($0800, 32768)
+        txt.print_uwhex(cx16.r15, true)
+        txt.print_uwhex(cx16.r14, false)
+        txt.nl()
+
+        cx16.r0 = cx16.r1 = 0
+        math.crc32_start()
+        for cx16.r9 in $0800 to $0800+32768-1 {
+            math.crc32_update(@(cx16.r9))
+        }
+        math.crc32_end()
+        txt.print_uwhex(cx16.r15, true)
+        txt.print_uwhex(cx16.r14, false)
+        txt.nl()
     }
 }
+
+

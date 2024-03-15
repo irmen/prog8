@@ -24,8 +24,8 @@ main {
                 large[cx16.r0] = math.rnd()
             }
             math.crc32(large, 20000)
-            uword crc32_l = cx16.r0
-            uword crc32_h = cx16.r1
+            uword crc32_l = cx16.r14
+            uword crc32_h = cx16.r15
         }
 
         txt.print("\n\x12diskio.save()\x92 writing 10*20kb=200kb total")
@@ -168,9 +168,9 @@ main {
     sub compare_crc32(uword ptr, uword size, uword crc32_low, uword crc32_high)
     {
         math.crc32(ptr, size)
-        if cx16.r0!=crc32_low or cx16.r1!=crc32_high {
-            txt.print_uwhex(cx16.r1, true)
-            txt.print_uwhex(cx16.r0, false)
+        if cx16.r14!=crc32_low or cx16.r15!=crc32_high {
+            txt.print_uwhex(cx16.r15, true)
+            txt.print_uwhex(cx16.r14, false)
             txt.nl()
             txt.print_uwhex(crc32_high, true)
             txt.print_uwhex(crc32_low, false)

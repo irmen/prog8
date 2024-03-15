@@ -532,12 +532,22 @@ but perhaps the provided ones can be of service too.
 ``crc16 (uword data, uword length) -> uword``
     Returns a CRC-16 (XMODEM) checksum over the given data buffer.
     Note: on the Commander X16, there is a CRC-16 routine in the kernal: cx16.memory_crc().
-    That one is faster, but yields different results. It is unclear what flavour of crc it is calculating.
+    That one is faster, but yields different results. It is unclear to me what flavour of crc it is calculating.
+
+``crc16_start() / crc16_update(ubyte value) / crc16_end() -> uword``
+    "streaming" crc16 calculation routines, when the data doesn't fit in a single buffer.
+    Tracks the crc16 checksum in cx16.r15! If your code uses that, it must save/restore it before calling this routine!
+    Call the start() routine first, feed it bytes with the update() routine, finalize with calling the end() routine which returns the crc16 value.
 
 ``crc32 (uword data, uword length)``
     Calculates a CRC-32 (POSIX) checksum over the given data buffer.
-    The 32 bits result is stored in cx16.r0 (low word) and cx16.r1 (high word).
+    The 32 bits result is stored in cx16.r14 (low word) and cx16.r15 (high word).
 
+``crc32_start() / crc32_update(ubyte value) / crc32_end()``
+    "streaming" crc32 calculation routines, when the data doesn't fit in a single buffer.
+    Tracks the crc32 checksum in cx16.r14 and cx16.r15! If your code uses these, it must save/restore them before calling this routine!
+    Call the start() routine first, feed it bytes with the update() routine, finalize with calling the end() routine.
+    The 32 bits result is stored in cx16.r14 (low word) and cx16.r15 (high word).
 
 cx16logo
 --------
