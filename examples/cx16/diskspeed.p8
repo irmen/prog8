@@ -110,21 +110,15 @@ main {
         txt.print("\npreparing 64kb test file")
         bool success = false
         if diskio.f_open_w("@:benchmark64.dat") {
-            if diskio.f_write(large, 20000) {
-                if diskio.f_write(large, 20000) {
-                    if diskio.f_write(large, 20000) {
-                        if diskio.f_write(large, 5536) {
-                            diskio.f_close_w()
-                            success=true
-                        }
-                    }
+            if not diskio.f_write(large, 20000)
+                or not diskio.f_write(large, 20000)
+                or not diskio.f_write(large, 20000)
+                or not diskio.f_write(large, 5536) {
+                    txt.print("\ni/o error! ")
+                    txt.print(diskio.status())
+                    sys.exit(1)
                 }
-            }
-        }
-        if not success {
-            txt.print("\ni/o error! ")
-            txt.print(diskio.status())
-            sys.exit(1)
+            diskio.f_close_w()
         }
 
         txt.print("\n\x12diskio.vload()\x92 reading 512kb into vram (8*64kb)")
@@ -145,18 +139,18 @@ main {
         txt.print(diskio.status())
         txt.print("\ndone.\n")
 
-        diskio.delete("benchmark0.dat")
-        diskio.delete("benchmark1.dat")
-        diskio.delete("benchmark2.dat")
-        diskio.delete("benchmark3.dat")
-        diskio.delete("benchmark4.dat")
-        diskio.delete("benchmark5.dat")
-        diskio.delete("benchmark6.dat")
-        diskio.delete("benchmark7.dat")
-        diskio.delete("benchmark8.dat")
-        diskio.delete("benchmark9.dat")
-        diskio.delete("benchmark64.dat")
-        diskio.delete("benchmark256.dat")
+;        diskio.delete("benchmark0.dat")
+;        diskio.delete("benchmark1.dat")
+;        diskio.delete("benchmark2.dat")
+;        diskio.delete("benchmark3.dat")
+;        diskio.delete("benchmark4.dat")
+;        diskio.delete("benchmark5.dat")
+;        diskio.delete("benchmark6.dat")
+;        diskio.delete("benchmark7.dat")
+;        diskio.delete("benchmark8.dat")
+;        diskio.delete("benchmark9.dat")
+;        diskio.delete("benchmark64.dat")
+;        diskio.delete("benchmark256.dat")
     }
 
     sub verify_20k(str filename, uword crc32_low, uword crc32_high) {

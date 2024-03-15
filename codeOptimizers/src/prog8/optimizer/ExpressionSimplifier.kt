@@ -1,11 +1,8 @@
 package prog8.optimizer
 
-import prog8.ast.IStatementContainer
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
-import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.AnonymousScope
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
@@ -454,8 +451,13 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
     }
 
     private fun applyAbsorptionLaws(expr: BinaryExpression): Expression? {
+        // NOTE: only when the terms are not function calls!!!
+        if(expr.left is IFunctionCall || expr.right is IFunctionCall)
+            return null
         val rightB = expr.right as? BinaryExpression
         if(rightB!=null) {
+            if(rightB.left is IFunctionCall || rightB.right is IFunctionCall)
+                return null
             // absorption laws:  a or (a and b) --> a,  a and (a or b) --> a
             if(expr.operator=="or" && rightB.operator=="and") {
                 if(expr.left isSameAs rightB.left || expr.left isSameAs rightB.right) {
@@ -482,6 +484,8 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
         }
         val leftB = expr.left as? BinaryExpression
         if(leftB!=null) {
+            if(leftB.left is IFunctionCall || leftB.right is IFunctionCall)
+                return null
             // absorption laws:  (a and b) or a --> a,  (a or b) and a --> a
             if(expr.operator=="or" && leftB.operator=="and") {
                 if(expr.right isSameAs leftB.left || expr.right isSameAs leftB.right) {
