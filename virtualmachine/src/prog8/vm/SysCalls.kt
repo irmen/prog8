@@ -72,6 +72,7 @@ SYSCALLS:
 59 = delete
 60 = rename
 61 = directory
+62 = getconsolesize
 */
 
 enum class Syscall {
@@ -136,7 +137,8 @@ enum class Syscall {
     SAVE,
     DELETE,
     RENAME,
-    DIRECTORY
+    DIRECTORY,
+    GETGONSOLESIZE
     ;
 
     companion object {
@@ -644,9 +646,9 @@ object SysCalls {
                     for (i in 0..<data.size - 2) {
                         vm.memory.setUB(addr + i, data[i + 2].toUByte())
                     }
-                    vm.registers.setUW(0, (addr + data.size - 2).toUShort())
+                    returnValue(callspec.returns!!, (addr + data.size - 2).toUShort(), vm)
                 } else {
-                    vm.registers.setUW(0, 0u)
+                    returnValue(callspec.returns!!, 0u, vm)
                 }
             }
             Syscall.LOAD_RAW -> {
@@ -658,9 +660,9 @@ object SysCalls {
                     for (i in 0..<data.size) {
                         vm.memory.setUB(addr + i, data[i].toUByte())
                     }
-                    vm.registers.setUW(0, (addr + data.size).toUShort())
+                    returnValue(callspec.returns!!, (addr + data.size).toUShort(), vm)
                 } else {
-                    vm.registers.setUW(0, 0u)
+                    returnValue(callspec.returns!!, 0u, vm)
                 }
             }
             Syscall.SAVE -> {
@@ -686,10 +688,10 @@ object SysCalls {
                 }
                 val filename = vm.memory.getString((filenamePtr as UShort).toInt())
                 if (File(filename).exists())
-                    vm.registers.setUB(0, 0u)
+                    returnValue(callspec.returns!!, 0u, vm)
                 else {
                     File(filename).writeBytes(data)
-                    vm.registers.setUB(0, 1u)
+                    returnValue(callspec.returns!!, 1u, vm)
                 }
             }
             Syscall.DELETE -> {
@@ -710,7 +712,35 @@ object SysCalls {
                 directory.listDirectoryEntries().sorted().forEach {
                     println("${it.toFile().length()}\t${it.normalize()}")
                 }
-                vm.registers.setUB(0, 1u)
+                returnValue(callspec.returns!!, 1u, vm)
+            }
+            Syscall.GETGONSOLESIZE -> {
+                // no arguments
+                if(System.console()==null) {
+                    return returnValue(callspec.returns!!, 30*256 + 80, vm)    // just return some defaults in this case 80*30
+                }
+
+                val linesS = System.getenv("LINES")
+                val columnsS = System.getenv("COLUMNS")
+                if(linesS!=null && columnsS!=null) {
+                    val lines = linesS.toInt()
+                    val columns = columnsS.toInt()
+                    return returnValue(callspec.returns!!, lines*256 + columns, vm)
+                }
+
+                try {
+                    val process = ProcessBuilder("tput", "cols", "lines").inheritIO().redirectOutput(ProcessBuilder.Redirect.PIPE).start()
+                    val result=process.waitFor()
+                    if (result == 0) {
+                        val response = process.inputStream.bufferedReader().lineSequence().iterator()
+                        val width = response.next().toInt()
+                        val height = response.next().toInt()
+                        return returnValue(callspec.returns!!, height*256 + width, vm)
+                    }
+                } catch (x: Exception) {
+                    // dunno what happened...
+                }
+                return returnValue(callspec.returns!!, 30*256 + 80, vm)    // just return some defaults in this case 80*30
             }
         }
     }

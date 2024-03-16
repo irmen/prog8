@@ -8,7 +8,7 @@
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
 ; Original C-version obtained from: http://www.elitehomepage.org/text/index.htm
 
-; Note: this program can be compiled for multiple target systems.
+; Note: this program can be compiled for multiple target systems, including the virtual machine.
 
 main {
 
@@ -16,11 +16,13 @@ main {
     const ubyte numforZaonce = 129
     const ubyte numforDiso = 147
     const ubyte numforRiedquat = 46
+    ubyte terminal_width
 
     sub start() {
+        terminal_width = txt.width()
         txt.lowercase()
         txt.clear_screen()
-        txt.print("\n --- TextElite v1.2 ---\n")
+        txt.print("\n --- TextElite v1.3 ---\n")
 
         planet.set_seed(0, 0)
         galaxy.travel_to(1, numforLave)
@@ -84,7 +86,7 @@ trader {
 
     sub do_load() {
         txt.print("\nLoading universe...")
-        if diskio.load(Savegame, &savedata)!=0 {
+        if diskio.load(Savegame, &savedata)==&savedata+sizeof(savedata) {
             txt.print("ok\n")
         } else {
             txt.print("\ni/o error: ")
@@ -493,16 +495,6 @@ galaxy {
         ubyte py = planet.y
         str current_name = "        "       ; 8 max
         ubyte pn = 0
-        ubyte scaling_x = 8
-        ubyte scaling_y = 16
-        if local {
-            scaling_x = 2
-            scaling_y = 4
-        }
-        if txt.width() > 60 {
-            scaling_x /= 2
-            scaling_y /= 2
-        }
 
         current_name = planet.name
         init(number)
@@ -533,10 +525,8 @@ galaxy {
                     tx = tx + 24 - px
                     ty = ty + 24 - py
                 }
-                tx /= scaling_x
-                ty /= scaling_y
-                ubyte sx = lsb(tx)
-                ubyte sy = lsb(ty)
+                ubyte sx = display_scale_x(tx)
+                ubyte sy = display_scale_y(ty)
                 ubyte char = '*'
                 if planet.number==current_planet
                     char = '%'
@@ -555,11 +545,10 @@ galaxy {
         if not local
             print_planet_details(current_name, home_sx, home_sy, home_distance)
 
-        if txt.width() < 80
-            txt.plot(0,20)
+        if local
+            txt.plot(0, display_scale_y(64) + 4)
         else
-            txt.plot(0,36)
-
+            txt.plot(0, display_scale_y(256) + 4 as ubyte)
         travel_to(number, current_planet)
 
         sub print_planet_details(str name, ubyte screenx, ubyte screeny, ubyte d) {
@@ -570,6 +559,28 @@ galaxy {
                 util.print_10s(d)
                 txt.print(" LY")
             }
+        }
+
+        sub display_scale_x(uword x) -> ubyte {
+            if main.terminal_width > 64 {
+                if local
+                    return x as ubyte
+                return x/4 as ubyte
+            }
+            if local
+                return x/2 as ubyte
+            return x/8 as ubyte
+        }
+
+        sub display_scale_y(uword y) -> ubyte {
+            if main.terminal_width > 64 {
+                if local
+                    return y/2 as ubyte
+                return y/8 as ubyte
+            }
+            if local
+                return y/4 as ubyte
+            return y/16 as ubyte
         }
     }
 

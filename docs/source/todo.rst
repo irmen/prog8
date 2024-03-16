@@ -1,9 +1,9 @@
 TODO
 ====
 
-vm textelite: after 1 galaxy jump:  galaxy map shows wrong planet name if you first print local area map. local map is wrong too (secnd time it's okay).
+fix   ubyte width = text.width()    text.width() gets removed as 'unused subroutine'
 
-vm: textio.width and height should return the real console width and height.
+vm textelite: after 1 galaxy jump:  galaxy maps shows wrong planet name until you redraw them a second time. Current planet name changes when showing maps and asking planet i)nfo!
 
 ...
 

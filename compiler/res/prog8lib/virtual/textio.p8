@@ -6,11 +6,18 @@
 txt {
 
 sub width() -> ubyte {
-    return 80   ; just some chosen value for the 'width' of the console
+    %ir {{
+        syscall 62 (): r0.w
+        returnr.b r0
+    }}
 }
 
 sub height() -> ubyte {
-    return 30   ; just some chosen value for the 'height' of the console
+    %ir {{
+        syscall 62 (): r0.w
+        msig.b r1,r0
+        returnr.b r1
+    }}
 }
 
 sub  clear_screen() {
