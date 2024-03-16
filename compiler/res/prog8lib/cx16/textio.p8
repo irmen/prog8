@@ -40,8 +40,10 @@ sub bell() {
 asmsub column(ubyte col @A) clobbers(A, X, Y) {
     ; ---- set the cursor on the given column (starting with 0) on the current line
     %asm {{
+        pha
         sec
         jsr  cbm.PLOT
+        pla
         tay
         clc
         jmp  cbm.PLOT
@@ -58,8 +60,10 @@ asmsub get_column() -> ubyte @Y {
 asmsub row(ubyte rownum @A) clobbers(A, X, Y) {
     ; ---- set the cursor on the given row (starting with 0) on the current line
     %asm {{
+        pha
         sec
         jsr  cbm.PLOT
+        pla
         tax
         clc
         jmp  cbm.PLOT

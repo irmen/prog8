@@ -1,7 +1,7 @@
 ; Somewhat experimental Vera FX support.
 ; Docs:
-; https://github.com/X16Community/x16-docs/blob/master/VERA%20FX%20Reference.md
-; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg/edit
+; https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2010%20-%20VERA%20FX%20Reference.md
+; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg
 
 verafx {
     %option no_symbol_prefixing, ignore_unused

@@ -2,7 +2,6 @@
 %import conv
 %import diskio
 %import string
-%import test_stack
 %option no_sysinit
 %zeropage basicsafe
 
@@ -30,8 +29,6 @@ main {
         planet.display(false, 0)
 
         repeat {
-            ; test_stack.test()
-
             str input = "????????"
             txt.print("\nCash: ")
             util.print_10s(ship.cash)
@@ -72,7 +69,7 @@ main {
 }
 
 trader {
-    str Savegame = "↑commander.save"
+    str Savegame = "!commander.save"
     str input = "??????????"
     ubyte num_chars
 
@@ -86,7 +83,7 @@ trader {
     ; 22 ubyte fuel
 
     sub do_load() {
-        txt.print("\nLoading universe... (drive 8)")
+        txt.print("\nLoading universe...")
         if diskio.load(Savegame, &savedata)!=0 {
             txt.print("ok\n")
         } else {
@@ -114,7 +111,7 @@ trader {
         savedata[22] = ship.fuel
         sys.memcopy(ship.cargohold, &savedata + 2, len(ship.cargohold))
 
-        txt.print("\nSaving universe... (drive 8)")
+        txt.print("\nSaving universe...")
         diskio.delete(Savegame)
         if diskio.save(Savegame, &savedata, sizeof(savedata)) {
             txt.print("ok\n")
@@ -496,11 +493,16 @@ galaxy {
         ubyte py = planet.y
         str current_name = "        "       ; 8 max
         ubyte pn = 0
-        uword scaling = 8
-        if local
-            scaling = 2
-        if txt.width() > 60
-            scaling /= 2
+        ubyte scaling_x = 8
+        ubyte scaling_y = 16
+        if local {
+            scaling_x = 2
+            scaling_y = 4
+        }
+        if txt.width() > 60 {
+            scaling_x /= 2
+            scaling_y /= 2
+        }
 
         current_name = planet.name
         init(number)
@@ -524,15 +526,15 @@ galaxy {
             ubyte distance = planet.distance(px, py)
             if distance <= max_distance {
                 planet.name = make_current_planet_name()
-                planet.name[0] |= 32       ; uppercase first letter
+                planet.name[0] = string.upperchar(planet.name[0])
                 uword tx = planet.x
                 uword ty = planet.y
                 if local {
                     tx = tx + 24 - px
                     ty = ty + 24 - py
                 }
-                tx /= scaling
-                ty /= scaling*2
+                tx /= scaling_x
+                ty /= scaling_y
                 ubyte sx = lsb(tx)
                 ubyte sy = lsb(ty)
                 ubyte char = '*'
@@ -557,7 +559,6 @@ galaxy {
             txt.plot(0,20)
         else
             txt.plot(0,36)
-
 
         travel_to(number, current_planet)
 
@@ -684,18 +685,6 @@ galaxy {
         rol(xl)
         return mkword(xh, xl)
     }
-
-    sub debug_seed() {
-        txt.print("\ngalaxy #")
-        txt.print_ub(number)
-        txt.print("\ngalaxy seed0=")
-        txt.print_uwhex(galaxy.seed[0], true)
-        txt.print("\ngalaxy seed1=")
-        txt.print_uwhex(galaxy.seed[1], true)
-        txt.print("\ngalaxy seed2=")
-        txt.print_uwhex(galaxy.seed[2], true)
-        txt.nl()
-    }
 }
 
 planet {
@@ -804,7 +793,7 @@ planet {
             }
         }
         randname[nx] = 0
-        randname[0] |= 32       ; uppercase first letter
+        randname[0] = string.upperchar(randname[0])
         return randname
     }
 
@@ -876,12 +865,12 @@ planet {
                         source_ptr = source_stack[stack_ptr]
                     } else {
                         if c == $b0 {
-                            @(result_ptr) = name[0] | 32
+                            @(result_ptr) = string.upperchar(name[0])
                             result_ptr++
                             concat_string(&name + 1)
                         }
                         else if c == $b1 {
-                            @(result_ptr) = name[0] | 32
+                            @(result_ptr) = string.upperchar(name[0])
                             result_ptr++
                             ubyte ni
                             for ni in 1 to len(name) {
@@ -995,33 +984,13 @@ planet {
     }
 
     sub print_name_uppercase() {
-        ubyte c
-        for c in name
-            txt.chrout(c | 32)
+        for cx16.r0L in name
+            txt.chrout(string.upperchar(cx16.r0L))
     }
 
-    asmsub getword(ubyte list @A, ubyte wordidx @Y) -> uword @AY {
-        %asm {{
-            sty  P8ZP_SCRATCH_REG
-            sec
-            sbc  #$81
-            asl  a
-            tay
-            lda  p8v_wordlists,y
-            sta  P8ZP_SCRATCH_W1
-            lda  p8v_wordlists+1,y
-            sta  P8ZP_SCRATCH_W1+1
-            lda  P8ZP_SCRATCH_REG
-            asl  a
-            tay
-            lda  (P8ZP_SCRATCH_W1),y
-            pha
-            iny
-            lda  (P8ZP_SCRATCH_W1),y
-            tay
-            pla
-            rts
-        }}
+    sub getword(ubyte listnum, ubyte wordidx) -> uword {
+        uword list = wordlists[listnum-$81]
+        return peekw(list + wordidx*2)
     }
 }
 
@@ -1033,9 +1002,7 @@ util {
             if pc == 0
                 return true
             ; to lowercase for case insensitive compare:
-            pc &= 127
-            sc &= 127
-            if pc != sc
+            if string.lowerchar(pc)!=string.lowerchar(sc)
                 return false
             prefixptr++
             stringptr++
@@ -1049,37 +1016,9 @@ util {
         txt.print(s)
     }
 
-    asmsub print_10s(uword value @AY) clobbers(A, X, Y) {
-        %asm {{
-            jsr  conv.uword2decimal
-            lda  conv.uword2decimal.decTenThousands
-            ldy  #0     ; have we started printing?
-            cmp  #'0'
-            beq  +
-            jsr  cbm.CHROUT
-            iny
-+           lda  conv.uword2decimal.decThousands
-		    cmp  #'0'
-            bne  +
-            cpy  #0
-            beq  ++
-+           jsr  cbm.CHROUT
-            iny
-+           lda  conv.uword2decimal.decHundreds
-		    cmp  #'0'
-		    bne  +
-		    cpy  #0
-            beq  ++
-+           jsr  cbm.CHROUT
-            iny
-+           lda  conv.uword2decimal.decTens
-            jsr  cbm.CHROUT
-            lda  #'.'
-            jsr  cbm.CHROUT
-            lda  conv.uword2decimal.decOnes
-            jsr  cbm.CHROUT
-            rts
-        }}
+    sub print_10s(uword value) {
+        txt.print_uw(value/10)
+        txt.chrout('.')
+        txt.print_uw(value % 10)
     }
-
 }

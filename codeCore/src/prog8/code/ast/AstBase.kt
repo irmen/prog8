@@ -67,6 +67,7 @@ class PtProgram(
         children.asSequence().filterIsInstance<PtBlock>()
 
     fun entrypoint(): PtSub? =
+        // returns the main.start subroutine if it exists
         allBlocks().firstOrNull { it.name == "main" || it.name=="p8b_main" }
             ?.children
             ?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="main.start" || it.name=="p8s_start" || it.name=="p8b_main.p8s_start") } as PtSub?

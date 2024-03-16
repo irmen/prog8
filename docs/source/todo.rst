@@ -1,6 +1,10 @@
 TODO
 ====
 
+vm textelite: after 1 galaxy jump:  galaxy map shows wrong planet name if you first print local area map. local map is wrong too (secnd time it's okay).
+
+vm: textio.width and height should return the real console width and height.
+
 ...
 
 

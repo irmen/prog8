@@ -200,8 +200,7 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             "bouncegfx",
             "bsieve",
             "pixelshader",
-            "sincos",
-            "textelite"
+            "sincos"
         )
 
     onlyVirtual.forEach {
