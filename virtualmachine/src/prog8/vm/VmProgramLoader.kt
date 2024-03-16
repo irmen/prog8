@@ -63,11 +63,11 @@ class VmProgramLoader {
             }
         }
 
-        pass2translateSyscalls(programChunks)
+        pass2translateSyscalls(programChunks + irProgram.globalInits)
         pass2replaceLabelsByProgIndex(programChunks, variableAddresses, subroutines)
         phase2relinkReplacedChunks(chunkReplacements, programChunks)
 
-        programChunks.forEach {
+        (programChunks + irProgram.globalInits).forEach {
             it.instructions.forEach { ins ->
                 if (ins.labelSymbol != null && ins.opcode !in OpcodesThatBranch)
                     require(ins.address != null) { "instruction with labelSymbol for a var should have value set to the memory address" }
@@ -78,8 +78,8 @@ class VmProgramLoader {
     }
 
     private fun phase2relinkReplacedChunks(
-        replacements: MutableList<Pair<IRCodeChunkBase, IRCodeChunk>>,
-        programChunks: MutableList<IRCodeChunk>
+        replacements: List<Pair<IRCodeChunkBase, IRCodeChunk>>,
+        programChunks: List<IRCodeChunk>
     ) {
         replacements.forEach { (old, new) ->
             programChunks.forEach { chunk ->
@@ -97,7 +97,7 @@ class VmProgramLoader {
         }
     }
 
-    private fun pass2translateSyscalls(chunks: MutableList<IRCodeChunk>) {
+    private fun pass2translateSyscalls(chunks: List<IRCodeChunk>) {
         chunks.forEach { chunk ->
             chunk.instructions.withIndex().forEach { (index, ins) ->
                 if(ins.opcode == Opcode.SYSCALL) {
@@ -147,7 +147,7 @@ class VmProgramLoader {
     }
 
     private fun pass2replaceLabelsByProgIndex(
-        chunks: MutableList<IRCodeChunk>,
+        chunks: List<IRCodeChunk>,
         variableAddresses: MutableMap<String, Int>,
         subroutines: MutableMap<String, IRSubroutine>
     ) {

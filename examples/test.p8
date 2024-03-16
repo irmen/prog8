@@ -1,14 +1,16 @@
+%import textio
 %zeropage basicsafe
 %option no_sysinit
 
 main {
-    ubyte tw = text.width()
+    ubyte tw = other.width()
     sub start() {
         tw++
+        txt.print_uw(tw)
     }
 }
 
-text {
+other {
     sub width() -> ubyte {
         cx16.r0++
         return 80

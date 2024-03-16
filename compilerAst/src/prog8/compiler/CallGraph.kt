@@ -69,10 +69,11 @@ class CallGraph(private val program: Program) : IAstVisitor {
     override fun visit(functionCallExpr: FunctionCallExpression) {
         val otherSub = functionCallExpr.target.targetSubroutine(program)
         if (otherSub != null) {
-            functionCallExpr.definingSubroutine?.let { thisSub ->
-                calls[thisSub] = calls.getValue(thisSub) + otherSub
-                calledBy[otherSub] = calledBy.getValue(otherSub) + functionCallExpr
+            val definingSub = functionCallExpr.definingSubroutine
+            if(definingSub!=null) {
+                calls[definingSub] = calls.getValue(definingSub) + otherSub
             }
+            calledBy[otherSub] = calledBy.getValue(otherSub) + functionCallExpr
         }
         super.visit(functionCallExpr)
     }

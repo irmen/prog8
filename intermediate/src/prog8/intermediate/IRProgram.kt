@@ -57,7 +57,10 @@ class IRProgram(val name: String,
 
     fun allSubs(): Sequence<IRSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }
     fun foreachSub(operation: (sub: IRSubroutine) -> Unit) = allSubs().forEach { operation(it) }
-    fun foreachCodeChunk(operation: (chunk: IRCodeChunkBase) -> Unit) = allSubs().flatMap { it.chunks }.forEach { operation(it) }
+    fun foreachCodeChunk(operation: (chunk: IRCodeChunkBase) -> Unit) {
+        allSubs().flatMap { it.chunks }.forEach { operation(it) }
+        operation(globalInits)
+    }
     fun getChunkWithLabel(label: String): IRCodeChunkBase {
         for(sub in allSubs()) {
             for(chunk in sub.chunks) {
@@ -123,44 +126,46 @@ class IRProgram(val name: String,
             }
         }
 
+        fun linkCodeChunk(chunk: IRCodeChunk, next: IRCodeChunkBase?) {
+            // link sequential chunks
+            val jump = chunk.instructions.lastOrNull()?.opcode
+            if (jump == null || jump !in OpcodesThatJump) {
+                // no jump at the end, so link to next chunk (if it exists)
+                if(next!=null) {
+                    if (next is IRCodeChunk && chunk.instructions.lastOrNull()?.opcode !in OpcodesThatJump)
+                        chunk.next = next
+                    else if(next is IRInlineAsmChunk)
+                        chunk.next = next
+                    else if(next is IRInlineBinaryChunk)
+                        chunk.next =next
+                    else
+                        throw AssemblyError("code chunk followed by invalid chunk type $next")
+                }
+            }
+
+            // link all jump and branching instructions to their target
+            chunk.instructions.forEach {
+                if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.labelSymbol!=null) {
+                    if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
+                        // it's a call to an address (romsub most likely)
+                        require(it.address!=null)
+                    } else {
+                        it.branchTarget = labeledChunks.getValue(it.labelSymbol)
+                    }
+                }
+            }
+        }
+
         fun linkSubroutineChunks(sub: IRSubroutine) {
             sub.chunks.withIndex().forEach { (index, chunk) ->
 
-                fun nextChunk(): IRCodeChunkBase? = if(index<sub.chunks.size-1) sub.chunks[index + 1] else null
+                val next = if(index<sub.chunks.size-1) sub.chunks[index + 1] else null
 
                 when (chunk) {
                     is IRCodeChunk -> {
-                        // link sequential chunks
-                        val jump = chunk.instructions.lastOrNull()?.opcode
-                        if (jump == null || jump !in OpcodesThatJump) {
-                            // no jump at the end, so link to next chunk (if it exists)
-                            val next = nextChunk()
-                            if(next!=null) {
-                                if (next is IRCodeChunk && chunk.instructions.lastOrNull()?.opcode !in OpcodesThatJump)
-                                    chunk.next = next
-                                else if(next is IRInlineAsmChunk)
-                                    chunk.next = next
-                                else if(next is IRInlineBinaryChunk)
-                                    chunk.next =next
-                                else
-                                    throw AssemblyError("code chunk followed by invalid chunk type $next")
-                            }
-                        }
-
-                        // link all jump and branching instructions to their target
-                        chunk.instructions.forEach {
-                            if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.labelSymbol!=null) {
-                                if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
-                                    // it's a call to an address (romsub most likely)
-                                    require(it.address!=null)
-                                } else {
-                                    it.branchTarget = labeledChunks.getValue(it.labelSymbol)
-                                }
-                            }
-                        }
+                        linkCodeChunk(chunk, next)
                     }
                     is IRInlineAsmChunk -> {
-                        val next = nextChunk()
                         if(next!=null) {
                             val lastInstr = chunk.instructions.lastOrNull()
                             if(lastInstr==null || lastInstr.opcode !in OpcodesThatJump)
@@ -184,9 +189,64 @@ class IRProgram(val name: String,
                 }
             }
         }
+        linkCodeChunk(globalInits, globalInits.next)
     }
 
     fun validate() {
+        fun validateChunk(chunk: IRCodeChunkBase, sub: IRSubroutine?, emptyChunkIsAllowed: Boolean) {
+            if (chunk is IRCodeChunk) {
+                if(!emptyChunkIsAllowed)
+                    require(chunk.instructions.isNotEmpty() || chunk.label != null)
+                if(chunk.instructions.lastOrNull()?.opcode in OpcodesThatJump)
+                    require(chunk.next == null) { "chunk ending with a jump or return shouldn't be linked to next" }
+                else if (sub!=null) {
+                    // if chunk is NOT the last in the block, it needs to link to next.
+                    val isLast = sub.chunks.last() === chunk
+                    require(isLast || chunk.next != null) { "chunk needs to be linked to next" }
+                }
+            }
+            else {
+                require(chunk.instructions.isEmpty())
+                if(chunk is IRInlineAsmChunk)
+                    require(!chunk.isIR) { "inline IR-asm should have been converted into regular code chunk"}
+            }
+            chunk.instructions.withIndex().forEach { (index, instr) ->
+                if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
+                    if(instr.opcode==Opcode.JUMPI) {
+                        val pointervar = st.lookup(instr.labelSymbol)!!
+                        when(pointervar) {
+                            is IRStStaticVariable -> require(pointervar.dt==DataType.UWORD)
+                            is IRStMemVar -> require(pointervar.dt==DataType.UWORD)
+                            else -> throw AssemblyError("weird pointervar type")
+                        }
+                    }
+                    else if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())
+                        require(instr.branchTarget != null) { "branching instruction to label should have branchTarget set" }
+                }
+
+                if(instr.opcode==Opcode.PREPARECALL) {
+                    var i = index+1
+                    var instr2 = chunk.instructions[i]
+                    val registers = mutableSetOf<Int>()
+                    while(instr2.opcode!=Opcode.SYSCALL && instr2.opcode!=Opcode.CALL && i<chunk.instructions.size-1) {
+                        if(instr2.reg1direction==OperandDirection.WRITE || instr2.reg1direction==OperandDirection.READWRITE) registers.add(instr2.reg1!!)
+                        if(instr2.reg2direction==OperandDirection.WRITE || instr2.reg2direction==OperandDirection.READWRITE) registers.add(instr2.reg2!!)
+                        if(instr2.reg3direction==OperandDirection.WRITE || instr2.reg3direction==OperandDirection.READWRITE) registers.add(instr2.reg3!!)
+                        if(instr2.fpReg1direction==OperandDirection.WRITE || instr2.fpReg1direction==OperandDirection.READWRITE) registers.add(instr2.fpReg1!!)
+                        if(instr2.fpReg2direction==OperandDirection.WRITE || instr2.fpReg2direction==OperandDirection.READWRITE) registers.add(instr2.fpReg2!!)
+                        i++
+                        instr2 = chunk.instructions[i]
+                    }
+                    // it could be that the actual call is only in another code chunk, so IF we find one, we can check. Otherwise just skip the check...
+                    if(chunk.instructions[i].fcallArgs!=null) {
+                        val expectedRegisterLoads = chunk.instructions[i].fcallArgs!!.arguments.map { it.reg.registerNum }
+                        require(registers.containsAll(expectedRegisterLoads)) { "not all argument registers are given a value in the preparecall-call sequence" }
+                    }
+                }
+            }
+        }
+
+        validateChunk(globalInits, null, true)
         blocks.forEach { block ->
             if(block.isNotEmpty()) {
                 block.children.filterIsInstance<IRInlineAsmChunk>().forEach { chunk ->
@@ -197,57 +257,7 @@ class IRProgram(val name: String,
                     if(sub.chunks.isNotEmpty()) {
                         require(sub.chunks.first().label == sub.label) { "first chunk in subroutine should have sub name (label) as its label" }
                     }
-                    sub.chunks.forEach { chunk ->
-                        if (chunk is IRCodeChunk) {
-                            require(chunk.instructions.isNotEmpty() || chunk.label != null)
-                            if(chunk.instructions.lastOrNull()?.opcode in OpcodesThatJump)
-                                require(chunk.next == null) { "chunk ending with a jump or return shouldn't be linked to next" }
-                            else {
-                                // if chunk is NOT the last in the block, it needs to link to next.
-                                val isLast = sub.chunks.last() === chunk
-                                require(isLast || chunk.next != null) { "chunk needs to be linked to next" }
-                            }
-                        }
-                        else {
-                            require(chunk.instructions.isEmpty())
-                            if(chunk is IRInlineAsmChunk)
-                                require(!chunk.isIR) { "inline IR-asm should have been converted into regular code chunk"}
-                        }
-                        chunk.instructions.withIndex().forEach { (index, instr) ->
-                            if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
-                                if(instr.opcode==Opcode.JUMPI) {
-                                    val pointervar = st.lookup(instr.labelSymbol)!!
-                                    when(pointervar) {
-                                        is IRStStaticVariable -> require(pointervar.dt==DataType.UWORD)
-                                        is IRStMemVar -> require(pointervar.dt==DataType.UWORD)
-                                        else -> throw AssemblyError("weird pointervar type")
-                                    }
-                                }
-                                else if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())
-                                    require(instr.branchTarget != null) { "branching instruction to label should have branchTarget set" }
-                            }
-
-                            if(instr.opcode==Opcode.PREPARECALL) {
-                                var i = index+1
-                                var instr2 = chunk.instructions[i]
-                                val registers = mutableSetOf<Int>()
-                                while(instr2.opcode!=Opcode.SYSCALL && instr2.opcode!=Opcode.CALL && i<chunk.instructions.size-1) {
-                                    if(instr2.reg1direction==OperandDirection.WRITE || instr2.reg1direction==OperandDirection.READWRITE) registers.add(instr2.reg1!!)
-                                    if(instr2.reg2direction==OperandDirection.WRITE || instr2.reg2direction==OperandDirection.READWRITE) registers.add(instr2.reg2!!)
-                                    if(instr2.reg3direction==OperandDirection.WRITE || instr2.reg3direction==OperandDirection.READWRITE) registers.add(instr2.reg3!!)
-                                    if(instr2.fpReg1direction==OperandDirection.WRITE || instr2.fpReg1direction==OperandDirection.READWRITE) registers.add(instr2.fpReg1!!)
-                                    if(instr2.fpReg2direction==OperandDirection.WRITE || instr2.fpReg2direction==OperandDirection.READWRITE) registers.add(instr2.fpReg2!!)
-                                    i++
-                                    instr2 = chunk.instructions[i]
-                                }
-                                // it could be that the actual call is only in another code chunk, so IF we find one, we can check. Otherwise just skip the check...
-                                if(chunk.instructions[i].fcallArgs!=null) {
-                                    val expectedRegisterLoads = chunk.instructions[i].fcallArgs!!.arguments.map { it.reg.registerNum }
-                                    require(registers.containsAll(expectedRegisterLoads)) { "not all argument registers are given a value in the preparecall-call sequence" }
-                                }
-                            }
-                        }
-                    }
+                    sub.chunks.forEach { validateChunk(it, sub, false) }
                 }
             }
         }

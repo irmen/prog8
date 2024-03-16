@@ -69,6 +69,25 @@ class TestOptimization: FunSpec({
         }
     }
 
+    test("don't remove empty subroutine if it's referenced in vardecl") {
+        val sourcecode = """
+main {
+    ubyte tw = other.width()
+    sub start() {
+        tw++
+    }
+}
+
+other {
+    sub width() -> ubyte {
+        cx16.r0++
+        return 80
+    }
+}"""
+        compileText(C64Target(), true, sourcecode, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, sourcecode, writeAssembly = true) shouldNotBe null
+    }
+
     test("generated constvalue from typecast inherits proper parent linkage") {
         val number = NumericLiteral(DataType.UBYTE, 11.0, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)

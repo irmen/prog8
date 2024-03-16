@@ -148,6 +148,7 @@ class IRUnusedCodeRemover(
         val entrypointSub = irprog.blocks.single { it.label=="main" }
             .children.single { it is IRSubroutine && it.label=="main.start" }
         val reachable = mutableSetOf((entrypointSub as IRSubroutine).chunks.first())
+        reachable.add(irprog.globalInits)
 
         // all chunks referenced in array initializer values are also 'reachable':
         irprog.st.allVariables()
@@ -230,6 +231,7 @@ class IRUnusedCodeRemover(
             }
         }
 
+        linkedChunks.add(irprog.globalInits)
         return removeUnlinkedChunks(linkedChunks)
     }
 

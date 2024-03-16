@@ -1,8 +1,6 @@
 TODO
 ====
 
-fix   ubyte width = text.width()    text.width() gets removed as 'unused subroutine'
-
 vm textelite: after 1 galaxy jump:  galaxy maps shows wrong planet name until you redraw them a second time. Current planet name changes when showing maps and asking planet i)nfo!
 
 ...

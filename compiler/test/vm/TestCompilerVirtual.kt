@@ -59,16 +59,24 @@ main {
         VmRunner().runProgram(virtfile.readText())
     }
 
-    test("compile virtual: str args and return type") {
+    test("compile virtual: str args and return type, and global var init") {
         val src = """
 main {
-
+    ubyte @shared dvar = test.dummy()
+    
     sub start() {
         sub testsub(str s1) -> str {
             return "result"
         }
         
         uword result = testsub("arg")
+    }
+}
+
+test {
+    sub dummy() -> ubyte {
+        cx16.r0++
+        return 80
     }
 }"""
         val target = VMTarget()
@@ -466,5 +474,7 @@ main {
 }"""
         compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
     }
+
+
 
 })
