@@ -35,13 +35,15 @@ jobs:
           name: prog8-compiler-jar-zipped
           path: compiler/build/libs/*-all.jar
 
-      - uses: MCJack123/ghaction-generate-release-hashes@v4
-        if: "github.event_name == 'release'"
+      - name: Calculate hash
+        uses: MCJack123/ghaction-generate-release-hashes@v4
         with:
-            hash-type: sha256
-            file-name: hashes.txt
-      - uses: actions/upload-artifact@v4
-        if: "github.event_name == 'release'"
+          get-assets: true
+          hash-type: sha256
+          file-name: hashes.txt
+
+      - name: Upload hashes
+        uses: actions/upload-artifact@v4
         with:
-            name: Artifact Hashes
-            path: hashes.txt        
+          name: Artifact Hashes
+          path: hashes.txt        
