@@ -76,4 +76,44 @@ string {
         return s+cx16.r0L
     }
 
+    sub startswith(str st, str prefix) -> bool {
+        ubyte prefix_len = string.length(prefix)
+        ubyte str_len = string.length(st)
+        if prefix_len > str_len
+            return false
+        cx16.r9L = st[prefix_len]
+        st[prefix_len] = 0
+        cx16.r9H = string.compare(st, prefix) as ubyte
+        st[prefix_len] = cx16.r9L
+        return cx16.r9H==0
+    }
+
+    sub endswith(str st, str suffix) -> bool {
+        ubyte suffix_len = string.length(suffix)
+        ubyte str_len = string.length(st)
+        if suffix_len > str_len
+            return false
+        return string.compare(st + str_len - suffix_len, suffix) == 0
+    }
+
+    sub findstr(str haystack, str needle) -> ubyte {
+        ; searches for needle in haystack.
+        ; returns index in haystack where it first occurs, and Carry set,
+        ; or if needle doesn't occur in haystack it returns Carry clear and 255 (an invalid index.)
+        cx16.r2L = string.length(haystack)
+        cx16.r3L = string.length(needle)
+        if cx16.r3L <= cx16.r2L {
+            cx16.r2L = cx16.r2L-cx16.r3L+1
+            cx16.r3 = haystack
+            repeat cx16.r2L {
+                if string.startswith(cx16.r3, needle) {
+                    sys.set_carry()
+                    return cx16.r3-haystack as ubyte
+                }
+                cx16.r3++
+            }
+        }
+        sys.clear_carry()
+        return 255
+    }
 }

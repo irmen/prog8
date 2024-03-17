@@ -129,7 +129,7 @@ _startloop	dey
 
     asmsub find(uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
         ; Locates the first position of the given character in the string,
-        ; returns Carry set if found + index in A, or A=0 + Carry clear if not found.
+        ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
         %asm {{
 		; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
 		sta  P8ZP_SCRATCH_W1
@@ -142,7 +142,7 @@ _startloop	dey
 		beq  _found
 		iny
 		bne  -
-_notfound	lda  #0
+_notfound	lda  #255
         clc
 		rts
 _found	tya
@@ -277,26 +277,6 @@ _done       rts
         }}
     }
 
-    sub startswith(str st, str prefix) -> bool {
-        ubyte prefix_len = length(prefix)
-        ubyte str_len = length(st)
-        if prefix_len > str_len
-            return false
-        cx16.r9L = st[prefix_len]
-        st[prefix_len] = 0
-        cx16.r9H = compare(st, prefix) as ubyte
-        st[prefix_len] = cx16.r9L
-        return cx16.r9H==0
-    }
-
-    sub endswith(str st, str suffix) -> bool {
-        ubyte suffix_len = length(suffix)
-        ubyte str_len = length(st)
-        if suffix_len > str_len
-            return false
-        return compare(st + str_len - suffix_len, suffix) == 0
-    }
-
     asmsub pattern_match(str string @AY, str pattern @R0) clobbers(Y) -> bool @A {
 		%asm {{
 ; pattern matching of a string.
@@ -365,7 +345,6 @@ fail    clc             ; yes, no match found, return with c=0
 	rts
 		}}
 	}
-
 
     asmsub hash(str string @R0) -> ubyte @A {
         ; experimental 8 bit hashing function.
