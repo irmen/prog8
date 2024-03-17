@@ -3,16 +3,20 @@
 %option no_sysinit
 
 main {
-    ubyte tw = other.width()
     sub start() {
-        tw++
-        txt.print_uw(tw)
-    }
-}
+        ubyte[] ubarray = [11,22,33]
+        uword[] uwarray = [1111,2222,3333]
+        uword[] @split suwarray = [1111,2222,3333]
 
-other {
-    sub width() -> ubyte {
-        cx16.r0++
-        return 80
+        ubarray[1] *= 10
+        uwarray[1] *= 10
+        suwarray[1] *= 10
+
+        txt.print_ub(ubarray[1])
+        txt.nl()
+        txt.print_uw(uwarray[1])
+        txt.nl()
+        txt.print_uw(suwarray[1])
+        txt.nl()
     }
 }

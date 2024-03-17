@@ -711,7 +711,24 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorMultiplyInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            TODO("* in array")
+            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val result = mutableListOf<IRCodeChunkBase>()
+            if(array.splitWords)
+                return operatorMultiplyInplaceSplitArray(array, operand)
+            val eltDt = irType(array.type)
+            val constIndex = array.index.asConstInteger()
+            val constValue = operand.asConstInteger()
+            if(constIndex!=null && constValue!=null) {
+                if(constValue!=1) {
+                    val valueReg=codeGen.registers.nextFree()
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOAD, eltDt, reg1=valueReg, immediate = constValue)
+                        it += IRInstruction(Opcode.MULM, eltDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                    }
+                }
+                return result
+            }
+            return null  // TODO("inplace array * non-const")
         }
         if(constAddress==null && memory!=null)
             return null  // TODO("optimized memory in-place *"")
@@ -811,6 +828,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             }
         }
         return result
+    }
+
+    private fun operatorMultiplyInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): IRCodeChunks? {
+        return null //    TODO("inplace split word array *")
     }
 
     private fun operatorMinusInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): IRCodeChunks? {
