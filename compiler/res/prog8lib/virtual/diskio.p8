@@ -189,7 +189,7 @@ diskio {
     sub load_raw(uword filenameptr, uword start_address) -> uword {
         %ir {{
             loadm.w r65534,diskio.load_raw.filenameptr
-            loadm.w r65535,diskio.load_raw.address_override
+            loadm.w r65535,diskio.load_raw.start_address
             syscall 57 (r65534.w, r65535.w): r0.w
             returnr.w r0
         }}
