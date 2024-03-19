@@ -825,7 +825,7 @@ internal class AstChecker(private val program: Program,
                     err("invalid import directive, cannot import itself")
             }
             "%breakpoint" -> {
-                if(directive.parent !is INameScope || directive.parent is Module)
+                if(directive.parent !is INameScope && directive.parent !is AnonymousScope || directive.parent is Module)
                     err("this directive can't be used here")
                 if(directive.args.isNotEmpty())
                     err("invalid breakpoint directive, expected no arguments")
