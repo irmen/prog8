@@ -55,9 +55,11 @@ gfx2 {
             }
             else -> {
                 ; back to default text mode
-                cx16.r15L = cx16.VERA_DC_VIDEO & %00000111 ; retain chroma + output mode
-                cbm.CINT()
-                cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
+                if active_mode!=0 {
+                    cx16.r15L = cx16.VERA_DC_VIDEO & %00000111 ; retain chroma + output mode
+                    cbm.CINT()
+                    cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
+                }
             }
         }
 
