@@ -4,7 +4,6 @@ import prog8.ast.*
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.AnonymousScope
-import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
 import prog8.ast.statements.Jump
 import prog8.ast.walk.AstWalker
@@ -108,12 +107,6 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
         val rightIDt = expr.right.inferType(program)
         if (!leftIDt.isKnown || !rightIDt.isKnown)
             throw FatalAstException("can't determine datatype of both expression operands $expr")
-
-        // NonBinaryExpression  <associativeoperator>  BinaryExpression  -->  BinaryExpression  <associativeoperator>  NonBinaryExpression
-        if (expr.operator in AssociativeOperators && expr.left !is BinaryExpression && expr.right is BinaryExpression) {
-            if(parent !is Assignment || !(expr.left isSameAs parent.target) && maySwapOperandOrder(expr))
-                return listOf(IAstModification.SwapOperands(expr))
-        }
 
         // X + (-A)  -->  X - A
         if (expr.operator == "+" && (expr.right as? PrefixExpression)?.operator == "-") {
