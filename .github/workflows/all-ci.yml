@@ -40,6 +40,7 @@ jobs:
     steps:
       - name: Calculate hash
         uses: MCJack123/ghaction-generate-release-hashes@v4
+        if: "github.event_name == 'release'"
         with:
           get-assets: true
           hash-type: sha256
@@ -47,6 +48,7 @@ jobs:
 
       - name: Upload hashes
         uses: actions/upload-artifact@v4
+        if: "github.event_name == 'release'"
         with:
           name: Artifact Hashes
           path: hashes.txt        
