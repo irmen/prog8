@@ -497,7 +497,7 @@ class IRFileReader {
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
             return when(type) {
-                // note: there are no BOOLEANS anymore in the IR. Only UBYTE.
+                // note: there are no BOOLEANS arrays anymore in the IR. Only UBYTE.
                 "byte" -> DataType.ARRAY_B
                 "ubyte", "str" -> DataType.ARRAY_UB
                 "word" -> DataType.ARRAY_W
@@ -509,7 +509,7 @@ class IRFileReader {
             }
         } else {
             return when(type) {
-                // note: there are no BOOLEANS anymore in the IR. Only UBYTE.
+                "bool" -> DataType.BOOL
                 "byte" -> DataType.BYTE
                 "ubyte" -> DataType.UBYTE
                 "word" -> DataType.WORD

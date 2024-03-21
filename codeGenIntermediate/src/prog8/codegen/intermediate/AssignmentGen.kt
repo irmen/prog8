@@ -8,7 +8,7 @@ import prog8.intermediate.*
 internal class AssignmentGen(private val codeGen: IRCodeGen, private val expressionEval: ExpressionGen) {
 
     internal fun translate(assignment: PtAssignment): IRCodeChunks {
-        if(assignment.target.children.single() is PtMachineRegister)
+        if(assignment.target.children.single() is PtIrRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 
         val chunks = translateRegularAssign(assignment)
@@ -17,7 +17,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     internal fun translate(augAssign: PtAugmentedAssign): IRCodeChunks {
-        if(augAssign.target.children.single() is PtMachineRegister)
+        if(augAssign.target.children.single() is PtIrRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 
         val target = augAssign.target
@@ -270,11 +270,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     else
                         throw AssemblyError("assignment value and target dt mismatch")
                 } else false
-                if (assignment.value is PtMachineRegister) {
-                    valueRegister = (assignment.value as PtMachineRegister).register
+                if (assignment.value is PtIrRegister) {
+                    valueRegister = (assignment.value as PtIrRegister).register
                     if(extendByteToWord) {
                         valueRegister = codeGen.registers.nextFree()
-                        addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=valueRegister, reg2=(assignment.value as PtMachineRegister).register), null)
+                        addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=valueRegister, reg2=(assignment.value as PtIrRegister).register), null)
                     }
                 } else {
                     val tr = expressionEval.translateExpression(assignment.value)

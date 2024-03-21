@@ -24,7 +24,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     fun translateExpression(expr: PtExpression): ExpressionCodeResult {
         return when (expr) {
-            is PtMachineRegister -> {
+            is PtIrRegister -> {
                 ExpressionCodeResult(emptyList(), irType(expr.type), expr.register, -1)
             }
             is PtBool -> {
@@ -505,8 +505,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         if(returnIrType==IRDataType.FLOAT)
                             FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
                         else {
-                            statusFlagResult = returns.register.statusflag
-                            val returnRegister = if(statusFlagResult==null) codeGen.registers.nextFree() else -1
+                            val returnRegister = codeGen.registers.nextFree()
                             FunctionCallArgs.RegSpec(returnIrType, returnRegister, returns.register)
                         }
                     } else {

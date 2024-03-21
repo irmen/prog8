@@ -857,7 +857,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val assignTarget = PtAssignTarget(target.position)
         assignTarget.children.add(target)
         assignment.children.add(assignTarget)
-        assignment.children.add(PtMachineRegister(register, target.type, target.position))
+        assignment.children.add(PtIrRegister(register, target.type, target.position))
         val result = mutableListOf<IRCodeChunkBase>()
         result += codeGen.translateNode(assignment)
         return result

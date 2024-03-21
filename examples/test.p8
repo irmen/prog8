@@ -3,16 +3,17 @@
 %option no_sysinit
 
 main {
-    str scanline_buf = "?"* 20
-
     sub start() {
-        if diskio.f_open("test.prg") and diskio.f_read(scanline_buf, 2)==2
-            cx16.r0++
+        bool @shared flag
 
-        if diskio.f_open("test.prg") or diskio.f_read(scanline_buf, 2)==2
-            cx16.r0++
+        cx16.r0L = test(12345, flag, -42)
 
-        if diskio.f_open("test.prg") xor diskio.f_read(scanline_buf, 2)==2
-            cx16.r0++
+    }
+
+    asmsub test(uword arg @AY, bool flag @Pc, byte value @X) -> ubyte @A, bool @Pc {
+        %asm {{
+            txa
+            rts
+        }}
     }
 }

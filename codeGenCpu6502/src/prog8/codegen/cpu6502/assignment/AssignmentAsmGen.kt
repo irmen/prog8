@@ -667,7 +667,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     internal fun directIntoY(expr: PtExpression): Boolean {
         return when(expr) {
             is PtIdentifier -> true
-            is PtMachineRegister -> true
+            is PtIrRegister -> true
             is PtNumber -> true
             is PtBuiltinFunctionCall -> expr.name in arrayOf("lsb", "msb")
             else -> false

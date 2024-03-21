@@ -44,7 +44,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             }
             is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
             is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
-            is PtMachineRegister -> other is PtMachineRegister && other.type==type && other.register==register
+            is PtIrRegister -> other is PtIrRegister && other.type==type && other.register==register
             is PtMemoryByte -> other is PtMemoryByte && other.address isSameAs address
             is PtNumber -> other is PtNumber && other.type==type && other.number==number
             is PtBool -> other is PtBool && other.value==value
@@ -87,7 +87,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtContainmentCheck -> false
             is PtFunctionCall -> false
             is PtIdentifier -> true
-            is PtMachineRegister -> true
+            is PtIrRegister -> true
             is PtMemoryByte -> address is PtNumber || address is PtIdentifier
             is PtBool -> true
             is PtNumber -> true
@@ -354,7 +354,7 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
 
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code
-class PtMachineRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position)
+class PtIrRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position)
 
 
 fun constValue(expr: PtExpression): Double? = if(expr is PtNumber) expr.number else if(expr is PtBool) expr.asInt().toDouble() else null

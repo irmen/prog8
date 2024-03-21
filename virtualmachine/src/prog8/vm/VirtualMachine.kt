@@ -178,6 +178,12 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADI -> InsLOADI(ins)
             Opcode.LOADIX -> InsLOADIX(ins)
             Opcode.LOADR -> InsLOADR(ins)
+            Opcode.LOADHA,
+            Opcode.LOADHX,
+            Opcode.LOADHY,
+            Opcode.LOADHAX,
+            Opcode.LOADHAY,
+            Opcode.LOADHXY -> throw IllegalArgumentException("VM cannot access actual CPU hardware register")
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREIX -> InsSTOREIX(ins)
@@ -185,10 +191,16 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
+            Opcode.STOREHA,
+            Opcode.STOREHX,
+            Opcode.STOREHY,
+            Opcode.STOREHAX,
+            Opcode.STOREHAY,
+            Opcode.STOREHXY -> throw IllegalArgumentException("VM cannot access actual CPU hardware register")
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.PREPARECALL -> nextPc()
-            Opcode.CALLI -> throw IllegalArgumentException("VM cannot run code from memory")
+            Opcode.CALLI -> throw IllegalArgumentException("VM cannot run code from memory bytes")
             Opcode.CALL -> InsCALL(ins)
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
@@ -319,6 +331,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.FFLOOR -> InsFFLOOR(ins)
             Opcode.FCEIL -> InsFCEIL(ins)
             Opcode.FCOMP -> InsFCOMP(ins)
+
             else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }
     }

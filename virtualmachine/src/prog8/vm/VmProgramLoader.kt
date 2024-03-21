@@ -44,7 +44,7 @@ class VmProgramLoader {
 
             block.children.forEach { child ->
                 when(child) {
-                    is IRAsmSubroutine -> throw IRParseException("vm does not support non-inlined asmsubs (use normal sub): ${child.label}")
+                    is IRAsmSubroutine -> throw IRParseException("vm does not support asmsubs (use normal sub): ${child.label}")
                     is IRCodeChunk -> programChunks += child
                     is IRInlineAsmChunk -> throw IRParseException("encountered unconverted inline assembly chunk")
                     is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")

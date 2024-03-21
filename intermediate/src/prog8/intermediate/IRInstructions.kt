@@ -41,6 +41,12 @@ loadi       reg1, reg2                - load reg1 with value at memory indirect,
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (only the lsb part used for indexing)
 loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2 (only the lsb part used for indexing)
 loadr       reg1, reg2                - load reg1 with value in register reg2
+loadha      reg1                      - load cpu hardware register A into reg1.b
+loadhx      reg1                      - load cpu hardware register X into reg1.b
+loadhy      reg1                      - load cpu hardware register Y into reg1.b
+loadhax     reg1                      - load cpu hardware register pair AX into reg1.w
+loadhay     reg1                      - load cpu hardware register pair AY into reg1.w
+loadhxy     reg1                      - load cpu hardware register pair XY into reg1.w
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (only the lsb part used for indexing)
@@ -48,6 +54,12 @@ storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed t
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (only the lsb part used for indexing)
+storeha     reg1                      - store reg1.b into cpu hardware register A
+storehx     reg1                      - store reg1.b into cpu hardware register X
+storehy     reg1                      - store reg1.b into cpu hardware register Y
+storehax    reg1                      - store reg1.w into cpu hardware register pair AX
+storehay    reg1                      - store reg1.w into cpu hardware register pair AY
+storehxy    reg1                      - store reg1.w into cpu hardware register pair XY
 
 
 CONTROL FLOW
@@ -247,6 +259,12 @@ enum class Opcode {
     LOADX,
     LOADIX,
     LOADR,
+    LOADHA,
+    LOADHX,
+    LOADHY,
+    LOADHAX,
+    LOADHAY,
+    LOADHXY,
     STOREM,
     STOREI,
     STOREX,
@@ -254,6 +272,12 @@ enum class Opcode {
     STOREZM,
     STOREZI,
     STOREZX,
+    STOREHA,
+    STOREHX,
+    STOREHY,
+    STOREHAX,
+    STOREHAY,
+    STOREHXY,
 
     JUMP,
     JUMPI,
@@ -444,6 +468,12 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.LOADX,
     Opcode.LOADIX,
     Opcode.LOADR,
+    Opcode.LOADHA,
+    Opcode.LOADHX,
+    Opcode.LOADHY,
+    Opcode.LOADHAX,
+    Opcode.LOADHAY,
+    Opcode.LOADHXY,
     Opcode.NEG,
     Opcode.NEGM,
     Opcode.INC,
@@ -585,6 +615,13 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADX      to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADIX     to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<fr2"),
+    Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
+    Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
+    Opcode.LOADHX     to InstructionFormat.from("B,>r1"),
+    Opcode.LOADHY     to InstructionFormat.from("B,>r1"),
+    Opcode.LOADHAX    to InstructionFormat.from("W,>r1"),
+    Opcode.LOADHAY    to InstructionFormat.from("W,>r1"),
+    Opcode.LOADHXY    to InstructionFormat.from("W,>r1"),
     Opcode.STOREM     to InstructionFormat.from("BW,<r1,>a     | F,<fr1,>a"),
     Opcode.STOREI     to InstructionFormat.from("BW,<r1,<r2    | F,<fr1,<r1"),
     Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
@@ -592,6 +629,13 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREZM    to InstructionFormat.from("BW,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
     Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
+    Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
+    Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
+    Opcode.STOREHX    to InstructionFormat.from("B,<r1"),
+    Opcode.STOREHY    to InstructionFormat.from("B,<r1"),
+    Opcode.STOREHAX   to InstructionFormat.from("W,<r1"),
+    Opcode.STOREHAY   to InstructionFormat.from("W,<r1"),
+    Opcode.STOREHXY   to InstructionFormat.from("W,<r1"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPI      to InstructionFormat.from("N,<a"),
     Opcode.PREPARECALL to InstructionFormat.from("N,<i"),
@@ -1020,13 +1064,10 @@ data class IRInstruction(
                         IRDataType.FLOAT -> result.add("fr${returns.registerNum}.f")
                     }
                 } else {
-                    result.add("@" + cpuReg)
-                    if(returns.cpuRegister?.statusflag==null) {
-                        when (returns.dt) {
-                            IRDataType.BYTE -> result.add(".b")
-                            IRDataType.WORD -> result.add(".w")
-                            IRDataType.FLOAT -> result.add(".f")
-                        }
+                    when(returns.dt) {
+                        IRDataType.BYTE -> result.add("r${returns.registerNum}.b@" + cpuReg)
+                        IRDataType.WORD -> result.add("r${returns.registerNum}.w@" + cpuReg)
+                        IRDataType.FLOAT -> result.add("r${returns.registerNum}.f@" + cpuReg)
                     }
                 }
             }

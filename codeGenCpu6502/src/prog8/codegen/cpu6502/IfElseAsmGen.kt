@@ -70,7 +70,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             is PtNumber,
             is PtBool,
             is PtIdentifier,
-            is PtMachineRegister,
+            is PtIrRegister,
             is PtArrayIndexer,
             is PtPrefix,
             is PtBinaryExpression -> { /* no cmp necessary the lda has been done just prior */ }
