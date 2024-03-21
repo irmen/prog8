@@ -35,9 +35,6 @@ jobs:
           name: prog8-compiler-jar-zipped
           path: compiler/build/libs/*-all.jar
 
-  release:
-    runs-on: ubuntu-latest
-    steps:
       - name: Calculate hash
         uses: MCJack123/ghaction-generate-release-hashes@v4
         if: github.event_name == 'release'
