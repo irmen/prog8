@@ -1,10 +1,6 @@
 TODO
 ====
 
-short-circuit evaluation problem?
-in imageviewer:         if diskio.f_open(filenameptr) and diskio.f_read(scanline_buf, 2)==2    DOESN'T WORK.   (operand order swap maybe???)
-
-
 ...
 
 
