@@ -466,7 +466,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(paramDt, tr.resultReg, null)))
                     result += tr.chunks
                 }
-                // return value
+                // return value (always singular for normal Subs)
                 val returnRegSpec = if(fcall.void) null else {
                     val returnIrType = irType(callTarget.returnType!!)
                     if(returnIrType==IRDataType.FLOAT)
@@ -475,7 +475,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFree(), null)
                 }
                 // create the call
-                addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec)), null)
+                addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name,
+                    fcallArgs = FunctionCallArgs(argRegisters, if(returnRegSpec==null) emptyList() else listOf(returnRegSpec))), null)
                 return if(fcall.void)
                     ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
                 else if(fcall.type==DataType.FLOAT)
@@ -516,34 +517,37 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
 
                 if(callTarget.returns.size>1)
-                    return callWithMultipleReturnValues()
+                    return callRomSubWithMultipleReturnValues(callTarget, fcall, argRegisters, result)
 
-                // return a single value
-                var statusFlagResult: Statusflag? = null
+                // return a single value (or nothing)
                 val returnRegSpec = if(fcall.void) null else {
                     if(callTarget.returns.isEmpty())
                         null
-                    val returns = callTarget.returns[0]
-                    val returnIrType = irType(returns.type)
-                    if(returnIrType==IRDataType.FLOAT)
-                        FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
                     else {
-                        val returnRegister = codeGen.registers.nextFree()
-                        FunctionCallArgs.RegSpec(returnIrType, returnRegister, returns.register)
+                        val returns = callTarget.returns[0]
+                        val returnIrType = irType(returns.type)
+                        if (returnIrType == IRDataType.FLOAT)
+                            FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
+                        else {
+                            val returnRegister = codeGen.registers.nextFree()
+                            FunctionCallArgs.RegSpec(returnIrType, returnRegister, returns.register)
+                        }
                     }
                 }
                 // create the call
+                val returnRegs = if(returnRegSpec==null) emptyList() else listOf(returnRegSpec)
                 val call =
                     if(callTarget.address==null)
-                        IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec))
+                        IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
                     else
-                        IRInstruction(Opcode.CALL, address = callTarget.address!!.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegSpec))
+                        IRInstruction(Opcode.CALL, address = callTarget.address!!.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
                 addInstr(result, call, null)
                 var finalReturnRegister = returnRegSpec?.registerNum ?: -1
 
                 if(fcall.parent is PtAssignment || fcall.parent is PtTypeCast) {
                     // look if the status flag bit should actually be returned as a 0/1 byte value in a result register (so it can be assigned)
-                    if(statusFlagResult!=null && returnRegSpec!=null) {
+                    val statusFlagResult = returnRegSpec?.cpuRegister?.statusflag
+                    if(statusFlagResult!=null) {
                         // assign status flag bit to the return value register
                         finalReturnRegister = returnRegSpec.registerNum
                         if(finalReturnRegister<0)
@@ -586,8 +590,27 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun callWithMultipleReturnValues(): ExpressionCodeResult {
-        TODO("call with multiple return values")
+    private fun callRomSubWithMultipleReturnValues(
+        callTarget: StRomSub,
+        fcall: PtFunctionCall,
+        argRegisters: MutableList<FunctionCallArgs.ArgumentSpec>,
+        result: MutableList<IRCodeChunkBase>
+    ): ExpressionCodeResult {
+        // return multiple values
+        val returnRegisters = callTarget.returns.map {
+            val regnum = if(it.type==DataType.FLOAT) codeGen.registers.nextFreeFloat() else codeGen.registers.nextFree()
+            FunctionCallArgs.RegSpec(irType(it.type), regnum, it.register)
+        }
+        // create the call
+        val call =
+            if(callTarget.address==null)
+                IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegisters))
+            else
+                IRInstruction(Opcode.CALL, address = callTarget.address!!.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegisters))
+        addInstr(result, call, null)
+        val resultRegs = returnRegisters.filter{it.dt!=IRDataType.FLOAT}.map{it.registerNum}
+        val resultFpRegs = returnRegisters.filter{it.dt==IRDataType.FLOAT}.map{it.registerNum}
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1, resultRegs, resultFpRegs)
     }
 
     private fun operatorGreaterThan(

@@ -23,13 +23,16 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             if(funcCall.multipleResultFpRegs.isNotEmpty())
                 TODO("deal with (multiple?) FP return registers")
 
-            TODO("add to result multi return regs from expression")
-//            addToResult(result, funcCall, funcCall.resultReg, funcCall.resultFpReg)
-//            sub.returns.zip(assignment.children).forEach { (returns, target) ->
-//                result += assignCpuRegister(returns, funcCall, target as PtAssignTarget)
-//            }
-//            result.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
-//            return result
+            // because we can only handle integer results right now we can just zip() it all up
+            addToResult(result, funcCall, funcCall.resultReg, funcCall.resultFpReg)
+            sub.returns.zip(assignment.children).zip(funcCall.multipleResultRegs).forEach {
+                val regNumber = it.second
+                val returns = it.first.first
+                val target = it.first.second as PtAssignTarget
+                result += assignCpuRegister(returns, regNumber, target)
+            }
+            result.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
+            return result
         } else {
             if (assignment.target.children.single() is PtIrRegister)
                 throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
@@ -40,46 +43,31 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         }
     }
 
-    private fun assignCpuRegister(returns: StRomSubParameter, target: PtAssignTarget): IRCodeChunk {
-        val targetIdentifier = target.identifier
-        val chunk = IRCodeChunk(null, null)
-        if(targetIdentifier!=null) {
-            TODO()
-            val regNum = 4242   // TODO??
-            when(returns.register.registerOrPair) {
-                RegisterOrPair.A -> chunk += IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
-                RegisterOrPair.X -> chunk += IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=regNum)
-                RegisterOrPair.Y -> chunk += IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=regNum)
-                RegisterOrPair.AX -> chunk += IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum)
-                RegisterOrPair.AY -> chunk += IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum)
-                RegisterOrPair.XY -> chunk += IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
-                null -> {
-                    when(returns.register.statusflag) {
-                        Statusflag.Pc -> chunk += IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
-                        else -> throw AssemblyError("weird statusflag as returnvalue")
-                    }
+    private fun assignCpuRegister(returns: StRomSubParameter, regNum: Int, target: PtAssignTarget): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val loadCpuRegInstr = when(returns.register.registerOrPair) {
+            RegisterOrPair.A -> IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
+            RegisterOrPair.X -> IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=regNum)
+            RegisterOrPair.Y -> IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=regNum)
+            RegisterOrPair.AX -> IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum)
+            RegisterOrPair.AY -> IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum)
+            RegisterOrPair.XY -> IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
+            null -> {
+                when(returns.register.statusflag) {
+                    Statusflag.Pc -> IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
+                    else -> throw AssemblyError("weird statusflag as returnvalue")
                 }
-                else -> throw AssemblyError("cannot load register")
             }
-            chunk += IRInstruction(Opcode.STOREM, irType(target.type), reg1=regNum, labelSymbol = targetIdentifier.name)
-            return chunk
+            else -> throw AssemblyError("cannot load register")
         }
-        val targetMem = target.memory
-        if(targetMem!=null) {
-            TODO("assign $returns to $targetMem")
-            return chunk
-        }
-        val targetArray = target.array
-        if(targetArray!=null) {
-            TODO("assign $returns to $targetArray")
-            return chunk
-        }
-        throw AssemblyError("weird target")
-//        val singleAssign = PtAssignment(target.position)
-//        singleAssign.children.add(target)
-//        TODO("use the new IR instructions to store machine regs STOREHxx  ${target.position}")
-        // singleAssign.children.add(PtMachineRegister(4242, returns.type, assignment.position))
-        // result += translateRegularAssign(singleAssign)
+        addInstr(result, loadCpuRegInstr, null)
+
+        // build an assignment to store the value in the actual target.
+        val assign = PtAssignment(target.position)
+        assign.add(target)
+        assign.add(PtIrRegister(regNum, target.type, target.position))
+        result += translate(assign)
+        return result
     }
 
     internal fun translate(augAssign: PtAugmentedAssign): IRCodeChunks {
