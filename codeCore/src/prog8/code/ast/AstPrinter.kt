@@ -34,7 +34,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 str + node.name + "()"
             }
             is PtIdentifier -> "${node.name} ${type(node.type)}"
-            is PtIrRegister -> "VMREG#${node.register} ${type(node.type)}"
+            is PtIrRegister -> "IRREG#${node.register} ${type(node.type)}"
             is PtMemoryByte -> "@()"
             is PtNumber -> {
                 val numstr = if(node.type == DataType.FLOAT) node.number.toString() else node.number.toHex()

@@ -1,6 +1,7 @@
 package prog8.codegen.intermediate
 
 import prog8.code.StRomSub
+import prog8.code.StRomSubParameter
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
@@ -17,14 +18,18 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 ?: throw AssemblyError("only asmsubs can return multiple values")
 
             val result = mutableListOf<IRCodeChunkBase>()
-            sub.returns.zip(assignment.children).forEach { (returns, target) ->
-                val singleAssign = PtAssignment(assignment.position)
-                singleAssign.children.add(target)
-                TODO("IR cannot store machine register results yet  ${assignment.position}")
-                // singleAssign.children.add(PtMachineRegister(4242, returns.type, assignment.position))
-                // result += translateRegularAssign(singleAssign)
-            }
-            return result
+            val funcCall = this.expressionEval.translate(values)
+            require(funcCall.multipleResultRegs.size + funcCall.multipleResultFpRegs.size >= 2)
+            if(funcCall.multipleResultFpRegs.isNotEmpty())
+                TODO("deal with (multiple?) FP return registers")
+
+            TODO("add to result multi return regs from expression")
+//            addToResult(result, funcCall, funcCall.resultReg, funcCall.resultFpReg)
+//            sub.returns.zip(assignment.children).forEach { (returns, target) ->
+//                result += assignCpuRegister(returns, funcCall, target as PtAssignTarget)
+//            }
+//            result.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
+//            return result
         } else {
             if (assignment.target.children.single() is PtIrRegister)
                 throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
@@ -33,6 +38,48 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
             return chunks
         }
+    }
+
+    private fun assignCpuRegister(returns: StRomSubParameter, target: PtAssignTarget): IRCodeChunk {
+        val targetIdentifier = target.identifier
+        val chunk = IRCodeChunk(null, null)
+        if(targetIdentifier!=null) {
+            TODO()
+            val regNum = 4242   // TODO??
+            when(returns.register.registerOrPair) {
+                RegisterOrPair.A -> chunk += IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
+                RegisterOrPair.X -> chunk += IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=regNum)
+                RegisterOrPair.Y -> chunk += IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=regNum)
+                RegisterOrPair.AX -> chunk += IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum)
+                RegisterOrPair.AY -> chunk += IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum)
+                RegisterOrPair.XY -> chunk += IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
+                null -> {
+                    when(returns.register.statusflag) {
+                        Statusflag.Pc -> chunk += IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
+                        else -> throw AssemblyError("weird statusflag as returnvalue")
+                    }
+                }
+                else -> throw AssemblyError("cannot load register")
+            }
+            chunk += IRInstruction(Opcode.STOREM, irType(target.type), reg1=regNum, labelSymbol = targetIdentifier.name)
+            return chunk
+        }
+        val targetMem = target.memory
+        if(targetMem!=null) {
+            TODO("assign $returns to $targetMem")
+            return chunk
+        }
+        val targetArray = target.array
+        if(targetArray!=null) {
+            TODO("assign $returns to $targetArray")
+            return chunk
+        }
+        throw AssemblyError("weird target")
+//        val singleAssign = PtAssignment(target.position)
+//        singleAssign.children.add(target)
+//        TODO("use the new IR instructions to store machine regs STOREHxx  ${target.position}")
+        // singleAssign.children.add(PtMachineRegister(4242, returns.type, assignment.position))
+        // result += translateRegularAssign(singleAssign)
     }
 
     internal fun translate(augAssign: PtAugmentedAssign): IRCodeChunks {

@@ -7,8 +7,11 @@ import prog8.code.core.*
 import prog8.intermediate.*
 
 
-internal class ExpressionCodeResult(val chunks: IRCodeChunks, val dt: IRDataType, val resultReg: Int, val resultFpReg: Int) {
-    constructor(chunks: IRCodeChunk, dt: IRDataType, resultReg: Int, resultFpReg: Int) : this(listOf(chunks), dt, resultReg, resultFpReg)
+internal class ExpressionCodeResult(val chunks: IRCodeChunks, val dt: IRDataType, val resultReg: Int, val resultFpReg: Int,
+                                    val multipleResultRegs: List<Int> = emptyList(), val multipleResultFpRegs: List<Int> = emptyList()
+) {
+    constructor(chunk: IRCodeChunk, dt: IRDataType, resultReg: Int, resultFpReg: Int, multipleResultRegs: List<Int> = emptyList(), multipleResultFpRegs: List<Int> = emptyList())
+            : this(listOf(chunk), dt, resultReg, resultFpReg, multipleResultRegs, multipleResultFpRegs)
 
     companion object {
         val EMPTY: ExpressionCodeResult = ExpressionCodeResult(emptyList(), IRDataType.BYTE, -1, -1)
@@ -493,29 +496,40 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else
                         argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(paramDt, tr.resultReg, parameter.register)))
                     result += tr.chunks
+                    when(parameter.register.registerOrPair) {
+                        RegisterOrPair.A -> addInstr(result, IRInstruction(Opcode.STOREHA, IRDataType.BYTE, reg1=tr.resultReg), null)
+                        RegisterOrPair.X -> addInstr(result, IRInstruction(Opcode.STOREHX, IRDataType.BYTE, reg1=tr.resultReg), null)
+                        RegisterOrPair.Y -> addInstr(result, IRInstruction(Opcode.STOREHY, IRDataType.BYTE, reg1=tr.resultReg), null)
+                        RegisterOrPair.AX -> addInstr(result, IRInstruction(Opcode.STOREHAX, IRDataType.WORD, reg1=tr.resultReg), null)
+                        RegisterOrPair.AY -> addInstr(result, IRInstruction(Opcode.STOREHAY, IRDataType.WORD, reg1=tr.resultReg), null)
+                        RegisterOrPair.XY -> addInstr(result, IRInstruction(Opcode.STOREHXY, IRDataType.WORD, reg1=tr.resultReg), null)
+                        in Cx16VirtualRegisters -> {
+                            addInstr(result, IRInstruction(Opcode.STOREM, paramDt, reg1=tr.resultReg, labelSymbol = "cx16.${parameter.register.registerOrPair.toString().lowercase()}"), null)
+                        }
+                        null -> when(parameter.register.statusflag) {
+                            // TODO: do the statusflag argument as last
+                            Statusflag.Pc -> addInstr(result, IRInstruction(Opcode.LSR, paramDt, reg1=tr.resultReg), null)
+                            else -> throw AssemblyError("weird statusflag as param")
+                        }
+                        else -> throw AssemblyError("unsupported register arg")
+                    }
                 }
-                // return value
+
+                if(callTarget.returns.size>1)
+                    return callWithMultipleReturnValues()
+
+                // return a single value
                 var statusFlagResult: Statusflag? = null
                 val returnRegSpec = if(fcall.void) null else {
                     if(callTarget.returns.isEmpty())
                         null
-                    else if(callTarget.returns.size==1) {
-                        val returns = callTarget.returns[0]
-                        val returnIrType = irType(returns.type)
-                        if(returnIrType==IRDataType.FLOAT)
-                            FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
-                        else {
-                            val returnRegister = codeGen.registers.nextFree()
-                            FunctionCallArgs.RegSpec(returnIrType, returnRegister, returns.register)
-                        }
-                    } else {
-                        // multiple return values: take the first *register* (not status flag) return value and ignore the rest.
-                        val returns = callTarget.returns.first { it.register.registerOrPair!=null }
-                        val returnIrType = irType(returns.type)
-                        if(returnIrType==IRDataType.FLOAT)
-                            FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
-                        else
-                            FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFree(), returns.register)
+                    val returns = callTarget.returns[0]
+                    val returnIrType = irType(returns.type)
+                    if(returnIrType==IRDataType.FLOAT)
+                        FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
+                    else {
+                        val returnRegister = codeGen.registers.nextFree()
+                        FunctionCallArgs.RegSpec(returnIrType, returnRegister, returns.register)
                     }
                 }
                 // create the call
@@ -570,6 +584,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             else -> throw AssemblyError("invalid node type")
         }
+    }
+
+    private fun callWithMultipleReturnValues(): ExpressionCodeResult {
+        TODO("call with multiple return values")
     }
 
     private fun operatorGreaterThan(
