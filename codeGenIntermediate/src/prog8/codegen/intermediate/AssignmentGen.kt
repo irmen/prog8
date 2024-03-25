@@ -31,15 +31,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val target = it.first.second as PtAssignTarget
                 result += assignCpuRegister(returns, regNumber, target)
             }
-            result.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
             return result
         } else {
             if (assignment.target.children.single() is PtIrRegister)
                 throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 
-            val chunks = translateRegularAssign(assignment)
-            chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
-            return chunks
+            return translateRegularAssign(assignment)
         }
     }
 

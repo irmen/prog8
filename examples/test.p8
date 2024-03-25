@@ -6,9 +6,9 @@ main {
         bool @shared flag
 
         cx16.r1=9999
-        ; flag = test(42)
+        flag = test(42)
         cx16.r0L, flag = test2(12345, 5566, flag, -42)
-
+        cx16.r0, flag = test3()
     }
 
     asmsub test(ubyte arg @A) -> bool @Pc {
@@ -24,6 +24,14 @@ main {
         %asm {{
             txa
             sec
+            rts
+        }}
+    }
+
+    asmsub test3() -> uword @AY, bool @Pc {
+        %asm {{
+            lda  #0
+            ldy  #0
             rts
         }}
     }
