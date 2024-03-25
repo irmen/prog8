@@ -49,6 +49,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             RegisterOrPair.AX -> IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum)
             RegisterOrPair.AY -> IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum)
             RegisterOrPair.XY -> IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
+            in Cx16VirtualRegisters -> IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}")
             null -> {
                 when(returns.register.statusflag) {
                     Statusflag.Pc -> IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
