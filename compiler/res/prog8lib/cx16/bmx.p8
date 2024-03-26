@@ -170,6 +170,7 @@ save_end:
     sub set_bpp(ubyte bpp) {
         ubyte[8] depths = [0,1,1,2,2,2,2,3]
         vera_colordepth = depths[bpp-1]
+        bitsperpixel = bpp
     }
 
     sub set_vera_colordepth(ubyte depth) {

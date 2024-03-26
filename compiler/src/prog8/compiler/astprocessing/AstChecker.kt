@@ -1294,7 +1294,14 @@ internal class AstChecker(private val program: Program,
                 if(funcName[0]=="setlsb" || funcName[0]=="setmsb") {
                     val firstArg = functionCallStatement.args[0]
                     if(firstArg !is IdentifierReference && firstArg !is ArrayIndexedExpression)
-                        errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)
+                        errors.err("invalid argument to a in-place modifying function", firstArg.position)
+                } else if(funcName[0]=="divmod" || funcName[0].startsWith("divmod__")) {
+                    val thirdArg = functionCallStatement.args[2]
+                    val fourthArg = functionCallStatement.args[3]
+                    if(thirdArg !is IdentifierReference && thirdArg !is ArrayIndexedExpression)
+                        errors.err("invalid argument to a in-place modifying function", thirdArg.position)
+                    if(fourthArg !is IdentifierReference && fourthArg !is ArrayIndexedExpression)
+                        errors.err("invalid argument to a in-place modifying function", fourthArg.position)
                 } else {
                     if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead })
                         errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)

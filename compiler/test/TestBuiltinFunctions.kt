@@ -2,6 +2,7 @@ package prog8tests
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
@@ -97,6 +98,20 @@ main {
         (a3.value as NumericLiteral).number shouldBe 6.0
         (a4.value as NumericLiteral).number shouldBe 200*256+100
         (a5.args[0] as NumericLiteral).number shouldBe 6.0
+    }
+
+    test("divmod target args should be treated as variables that are written") {
+        val src="""
+main {
+    ubyte c
+    ubyte l
+
+    sub start() {
+        divmod(99, 10, c, l)
+    }
+}"""
+
+        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
     }
 })
 

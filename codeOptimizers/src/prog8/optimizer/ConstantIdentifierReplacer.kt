@@ -75,7 +75,7 @@ class VarConstantValueTypeAdjuster(
                     val declValue = decl.value?.constValue(program)
                     if (declValue != null) {
                         // variable is never written to, so it can be replaced with a constant, IF the value is a constant
-                        errors.info("variable is never written to and was replaced by a constant", decl.position)
+                        errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
                         val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, declValue, decl.sharedWithAsm, decl.splitArray, decl.position)
                         return listOf(
                             IAstModification.ReplaceNode(decl, const, parent),
@@ -94,7 +94,7 @@ class VarConstantValueTypeAdjuster(
                         )
                     }
                     // variable only has a single write and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
-                    errors.info("variable is never written to and was replaced by a constant", decl.position)
+                    errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
                     val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.position)
                     return listOf(
                         IAstModification.ReplaceNode(decl, const, parent),
@@ -103,15 +103,15 @@ class VarConstantValueTypeAdjuster(
                 }
             }
             /*
-        TODO: need to check if there are no variable usages between the declaration and the assignment (because these rely on the original initialization value)
-        if(writes.size==2) {
-            val firstAssignment = writes[0].parent as? Assignment
-            val secondAssignment = writes[1].parent as? Assignment
-            if(firstAssignment?.origin==AssignmentOrigin.VARINIT && secondAssignment?.value?.constValue(program)!=null) {
-                errors.warn("variable is only assigned once here, consider using this as the initialization value in the declaration instead", secondAssignment.position)
+            TODO: need to check if there are no variable usages between the declaration and the assignment (because these rely on the original initialization value)
+            if(writes.size==2) {
+                val firstAssignment = writes[0].parent as? Assignment
+                val secondAssignment = writes[1].parent as? Assignment
+                if(firstAssignment?.origin==AssignmentOrigin.VARINIT && secondAssignment?.value?.constValue(program)!=null) {
+                    errors.warn("variable is only assigned once here, consider using this as the initialization value in the declaration instead", secondAssignment.position)
+                }
             }
-        }
-        */
+            */
         }
 
         return noModifications
