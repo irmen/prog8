@@ -1,6 +1,8 @@
 TODO
 ====
 
+- add more optimized routine in conv to convert (u)byte to string.  (it now reuses the pretty large word to string routine)
+
 ...
 
 
