@@ -830,7 +830,7 @@ sqrt (w)
 
 divmod (dividend, divisor, quotient, remainder)
     Performs division only once and returns both quotient and remainder in a single call, where using '/' and '%' separately
-    would perform two separate division operations.
+    would perform the division operation twice.
     All values are ubytes or all are uwords.
     The last two arguments must be ubyte variables to receive the division and remainder results, respectively.
 
