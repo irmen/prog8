@@ -8,92 +8,90 @@ conv {
 
     str  @shared string_out = "????????????????"       ; result buffer for the string conversion routines
 
-asmsub  str_ub0  (ubyte value @ A) clobbers(X) -> str @AY  {
-	; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)
-	%asm {{
-        jsr  conv.ubyte2decimal
-        sty  string_out
-        sta  string_out+1
-        stx  string_out+2
-        lda  #0
-        sta  string_out+3
-        lda  #<string_out
-        ldy  #>string_out
-        rts
-	}}
-}
+    asmsub str_ub0(ubyte value @A) clobbers(X) -> str @AY {
+        ; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)
+        %asm {{
+            jsr  internal_str_ub0
+            sty  conv.string_out
+            stx  conv.string_out+1
+            sta  conv.string_out+2
+            lda  #0
+            sta  conv.string_out+3
+            lda  #<conv.string_out
+            ldy  #>conv.string_out
+            rts
+        }}
+    }
 
-asmsub  str_ub  (ubyte value @ A) clobbers(X) -> str @AY  {
-	; ---- convert the ubyte in A in decimal string form, without left padding 0s
-	%asm {{
-		ldy  #0
-		sty  P8ZP_SCRATCH_B1
-		jsr  ubyte2decimal     ; result in Y/A/X (100s, 10s, 1s).
-        ; hundreds?
-		cpy  #'0'
-		beq  +
-		sty  string_out
-		sta  string_out+1
-		stx  string_out+2
-		lda  #0
-		sta  string_out+3
-		jmp  _done
-		; tens?
-+		cmp  #'0'
-		beq  +
-		sta  string_out
-		stx  string_out+1
-		lda  #0
-		sta  string_out+2
-		jmp  _done
-+       ; ones.
-        stx  string_out
-		lda  #0
-		sta  string_out+1
-_done   lda  #<string_out
-        ldy  #>string_out
-        rts
-	}}
-}
+    asmsub str_ub(ubyte value @A) clobbers(X) -> str @AY {
+        ; ---- convert the ubyte in A in decimal string form, without left padding 0s
+        %asm {{
+            jsr  internal_str_ub0
+            cpy  #'0'
+            beq  +
+            sty  conv.string_out
+            stx  conv.string_out+1
+            sta  conv.string_out+2
+            lda  #0
+            sta  conv.string_out+3
+            jmp  _done
++           cpx  #'0'
+            beq  +
+            stx  conv.string_out
+            sta  conv.string_out+1
+            lda  #0
+            sta  conv.string_out+2
+            jmp  _done
++           sta  conv.string_out
+            lda  #0
+            sta  conv.string_out+1
+_done       lda  #<conv.string_out
+            ldy  #>conv.string_out
+            rts
+        }}
+    }
 
-asmsub  str_b  (byte value @ A) clobbers(X) -> str @AY  {
-	; ---- convert the byte in A in decimal string form, without left padding 0s
-	%asm {{
-	    ldy  #0
-        cmp  #0
-        bpl  +
-        ldy  #'-'
-        sty  string_out
-        ldy  #1
-+       sty  P8ZP_SCRATCH_REG
-   	    jsr  conv.byte2decimal      ; result in Y/A/X (100s, 10s, 1s).  and in uword2decimal.decHundreds, decTens, decOnes.
-        ; hundreds?
-		cpy  #'0'
-		bne  _out_hundreds
-		ldy  P8ZP_SCRATCH_REG
-        cmp  #'0'
-        bne  _out_tens
-        beq  _out_ones
-_out_hundreds
-		ldy  P8ZP_SCRATCH_REG
-		lda  uword2decimal.decHundreds
-		sta  string_out,y
-		iny
-_out_tens
-		lda  uword2decimal.decTens
-		sta  string_out,y
-		iny
-_out_ones
-		lda  uword2decimal.decOnes
-        sta  string_out,y
-        iny
-        lda  #0
-        sta  string_out,y
-        lda  #<string_out
-        ldy  #>string_out
-   	    rts
-	}}
-}
+    asmsub str_b(byte value @A) clobbers(X) -> str @AY {
+        ; ---- convert the byte in A in decimal string form, without left padding 0s
+        %asm {{
+            cmp  #0
+            bpl  str_ub
+            eor  #255
+            clc
+            adc  #1
+            jsr  str_ub
+            ; insert a minus sign at the start
+            lda  #0
+            sta  conv.string_out+4
+            lda  conv.string_out+2
+            sta  conv.string_out+3
+            lda  conv.string_out+1
+            sta  conv.string_out+2
+            lda  conv.string_out
+            sta  conv.string_out+1
+            lda  #'-'
+            sta  conv.string_out
+            lda  #<conv.string_out
+            ldy  #>conv.string_out
+            rts
+        }}
+    }
+
+    asmsub internal_str_ub0(ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A {
+        %asm {{
+            ldy #'0'-1
+            ldx #'9'+1
+            sec
+-           iny
+            sbc #100
+            bcs -
+-           dex
+            adc #10
+            bmi -
+            adc #'0'-1
+            rts
+        }}
+    }
 
 asmsub  str_ubhex  (ubyte value @ A) clobbers(X) -> str @AY {
 	; ---- convert the ubyte in A in hex string form
