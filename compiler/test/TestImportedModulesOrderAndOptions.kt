@@ -42,7 +42,7 @@ main {
                 "textio",
                 "syslib",
                 "conv",
-                "shared_textio_functions",
+                "shared_cbm_textio_functions",
                 "floats",
                 "shared_floats_functions",
                 "math",
@@ -101,7 +101,7 @@ main {
                 listOf(
                     internedStringsModuleName,
                     filenameBase,
-                    "textio", "syslib", "conv", "shared_textio_functions", "floats", "shared_floats_functions", "math", "prog8_lib"
+                    "textio", "syslib", "conv", "shared_cbm_textio_functions", "floats", "shared_floats_functions", "math", "prog8_lib"
                 )
         }
         options.floats shouldBe true
