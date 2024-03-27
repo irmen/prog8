@@ -479,7 +479,7 @@ io_error:
         list_filename[2] = 0
 
         while cbm.READST()==0 {
-            cbm.CHRIN()
+            void cbm.CHRIN()
         }
 
         cbm.CLRCHN()        ; restore default i/o devices
