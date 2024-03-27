@@ -543,6 +543,10 @@ io_error:
         list_filename[1] = cbm.CHRIN()
         list_filename[2] = 0
 
+        while cbm.READST()==0 {
+            cbm.CHRIN()
+        }
+
         cbm.CLRCHN()        ; restore default i/o devices
         cbm.CLOSE(15)
         return conv.str2ubyte(list_filename)
