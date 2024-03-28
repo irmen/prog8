@@ -145,6 +145,12 @@ diskio {
         return "unknown"
     }
 
+    sub status_code() -> ubyte {
+        ; -- return status code instead of whole CBM-DOS status string. (in this case always 255, which means 'unable to return sensible value')
+        return 255
+    }
+
+
     sub save(uword filenameptr, uword start_address, uword savesize) -> bool {
         %ir {{
             load.b r65532,0

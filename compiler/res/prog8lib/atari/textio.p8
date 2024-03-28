@@ -3,7 +3,6 @@
 
 %import syslib
 %import conv
-%import shared_textio_functions
 
 txt {
 
@@ -168,13 +167,13 @@ asmsub  print (str text @ AY) clobbers(A,Y)  {
 asmsub  print_ub0  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in decimal form, with left padding 0s (3 positions total)
 	%asm {{
-		jsr  conv.ubyte2decimal
+		jsr  conv.internal_ubyte2decimal
 		pha
 		tya
 		jsr  chrout
-		pla
-		jsr  chrout
 		txa
+		jsr  chrout
+		pla
 		jmp  chrout
 	}}
 }
@@ -182,21 +181,21 @@ asmsub  print_ub0  (ubyte value @ A) clobbers(A,X,Y)  {
 asmsub  print_ub  (ubyte value @ A) clobbers(A,X,Y)  {
 	; ---- print the ubyte in A in decimal form, without left padding 0s
 	%asm {{
-		jsr  conv.ubyte2decimal
+		jsr  conv.internal_ubyte2decimal
 _print_byte_digits
 		pha
 		cpy  #'0'
 		beq  +
 		tya
 		jsr  chrout
-		pla
+		txa
 		jsr  chrout
 		jmp  _ones
-+       pla
-        cmp  #'0'
++       cpx  #'0'
         beq  _ones
+        txa
         jsr  chrout
-_ones   txa
+_ones   pla
 		jmp  chrout
 	}}
 }
@@ -210,7 +209,7 @@ asmsub  print_b  (byte value @ A) clobbers(A,X,Y)  {
 		lda  #'-'
 		jsr  chrout
 +		pla
-		jsr  conv.byte2decimal
+		jsr  conv.internal_byte2decimal
 		jmp  print_ub._print_byte_digits
 	}}
 }
@@ -223,7 +222,7 @@ asmsub  print_ubhex  (ubyte value @ A, bool prefix @ Pc) clobbers(A,X,Y)  {
 		lda  #'$'
 		jsr  chrout
 		pla
-+		jsr  conv.ubyte2hex
++		jsr  conv.internal_ubyte2hex
 		jsr  chrout
 		tya
 		jmp  chrout
@@ -277,9 +276,9 @@ asmsub  print_uwhex  (uword value @ AY, bool prefix @ Pc) clobbers(A,X,Y)  {
 asmsub  print_uw0  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
 	%asm {{
-		jsr  conv.uword2decimal
+		jsr  conv.internal_uword2decimal
 		ldy  #0
--		lda  conv.uword2decimal.decTenThousands,y
+-		lda  conv.internal_uword2decimal.decTenThousands,y
         beq  +
 		jsr  chrout
 		iny
@@ -291,9 +290,9 @@ asmsub  print_uw0  (uword value @ AY) clobbers(A,X,Y)  {
 asmsub  print_uw  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- print the uword in A/Y in decimal form, without left padding 0s
 	%asm {{
-		jsr  conv.uword2decimal
+		jsr  conv.internal_uword2decimal
 		ldy  #0
--		lda  conv.uword2decimal.decTenThousands,y
+-		lda  conv.internal_uword2decimal.decTenThousands,y
 		beq  _allzero
 		cmp  #'0'
 		bne  _gotdigit
@@ -303,7 +302,7 @@ asmsub  print_uw  (uword value @ AY) clobbers(A,X,Y)  {
 _gotdigit
 		jsr  chrout
 		iny
-		lda  conv.uword2decimal.decTenThousands,y
+		lda  conv.internal_uword2decimal.decTenThousands,y
 		bne  _gotdigit
 		rts
 _allzero
