@@ -655,8 +655,8 @@ class VirtualMachine(irProgram: IRProgram) {
             val returns = context.fcallSpec.returns
             when (i.type!!) {
                 IRDataType.BYTE -> {
-                    if(returns!=null)
-                        registers.setUB(returns.registerNum, registers.getUB(i.reg1!!))
+                    if(returns.isNotEmpty())
+                        registers.setUB(returns.single().registerNum, registers.getUB(i.reg1!!))
                     else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
@@ -664,8 +664,8 @@ class VirtualMachine(irProgram: IRProgram) {
                     }
                 }
                 IRDataType.WORD -> {
-                    if(returns!=null)
-                        registers.setUW(returns.registerNum, registers.getUW(i.reg1!!))
+                    if(returns.isNotEmpty())
+                        registers.setUW(returns.single().registerNum, registers.getUW(i.reg1!!))
                     else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
@@ -673,8 +673,8 @@ class VirtualMachine(irProgram: IRProgram) {
                     }
                 }
                 IRDataType.FLOAT -> {
-                    if(returns!=null)
-                        registers.setFloat(returns.registerNum, registers.getFloat(i.fpReg1!!))
+                    if(returns.isNotEmpty())
+                        registers.setFloat(returns.single().registerNum, registers.getFloat(i.fpReg1!!))
                     else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)

@@ -777,7 +777,7 @@ val instructionFormats = mutableMapOf(
 
 class FunctionCallArgs(
     var arguments: List<ArgumentSpec>,
-    val returns: RegSpec?
+    val returns: List<RegSpec>
 ) {
     class RegSpec(val dt: IRDataType, val registerNum: Int, val cpuRegister: RegisterOrStatusflag?)
     class ArgumentSpec(val name: String, val address: Int?, val reg: RegSpec) {
@@ -975,13 +975,13 @@ data class IRInstruction(
         }
 
         if(fcallArgs!=null) {
-            fcallArgs.returns?.let {
-                if(it.dt==IRDataType.FLOAT)
-                    writeFpRegsCounts[it.registerNum] = writeFpRegsCounts.getValue(it.registerNum)+1
+            fcallArgs.returns.forEach {
+                if (it.dt == IRDataType.FLOAT)
+                    writeFpRegsCounts[it.registerNum] = writeFpRegsCounts.getValue(it.registerNum) + 1
                 else {
                     writeRegsCounts[it.registerNum] = writeRegsCounts.getValue(it.registerNum) + 1
                     val types = regsTypes[it.registerNum]
-                    if(types==null) {
+                    if (types == null) {
                         regsTypes[it.registerNum] = mutableSetOf(it.dt)
                     } else {
                         types += it.dt
@@ -1049,27 +1049,30 @@ data class IRInstruction(
             }
             result.add(")")
             val returns = fcallArgs.returns
-            if(returns!=null) {
+            if(returns.isNotEmpty()) {
                 result.add(":")
-                val cpuReg = if(returns.cpuRegister==null) "" else {
-                    if(returns.cpuRegister.registerOrPair!=null)
-                        returns.cpuRegister.registerOrPair.toString()
-                    else
-                        returns.cpuRegister.statusflag.toString()
-                }
-                if(cpuReg.isEmpty()) {
-                    when (returns.dt) {
-                        IRDataType.BYTE -> result.add("r${returns.registerNum}.b")
-                        IRDataType.WORD -> result.add("r${returns.registerNum}.w")
-                        IRDataType.FLOAT -> result.add("fr${returns.registerNum}.f")
+                val resultParts = returns.map { returnspec ->
+                    val cpuReg = if (returnspec.cpuRegister == null) "" else {
+                        if (returnspec.cpuRegister.registerOrPair != null)
+                            returnspec.cpuRegister.registerOrPair.toString()
+                        else
+                            returnspec.cpuRegister.statusflag.toString()
                     }
-                } else {
-                    when(returns.dt) {
-                        IRDataType.BYTE -> result.add("r${returns.registerNum}.b@" + cpuReg)
-                        IRDataType.WORD -> result.add("r${returns.registerNum}.w@" + cpuReg)
-                        IRDataType.FLOAT -> result.add("r${returns.registerNum}.f@" + cpuReg)
+                    if (cpuReg.isEmpty()) {
+                        when (returnspec.dt) {
+                            IRDataType.BYTE -> "r${returnspec.registerNum}.b"
+                            IRDataType.WORD -> "r${returnspec.registerNum}.w"
+                            IRDataType.FLOAT -> "fr${returnspec.registerNum}.f"
+                        }
+                    } else {
+                        when (returnspec.dt) {
+                            IRDataType.BYTE -> "r${returnspec.registerNum}.b@" + cpuReg
+                            IRDataType.WORD -> "r${returnspec.registerNum}.w@" + cpuReg
+                            IRDataType.FLOAT -> "r${returnspec.registerNum}.f@" + cpuReg
+                        }
                     }
                 }
+                result.add(resultParts.joinToString(","))
             }
         } else {
 

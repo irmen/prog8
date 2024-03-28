@@ -322,18 +322,23 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
 private fun Assign_targetContext.toAst() : AssignTarget {
     return when(this) {
         is IdentifierTargetContext ->
-            AssignTarget(scoped_identifier().toAst(), null, null, scoped_identifier().toPosition())
+            AssignTarget(scoped_identifier().toAst(), null, null, null,  scoped_identifier().toPosition())
         is MemoryTargetContext ->
-            AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()), toPosition())
+            AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()), null, toPosition())
         is ArrayindexedTargetContext -> {
             val ax = arrayindexed()
             val arrayvar = ax.scoped_identifier().toAst()
             val index = ax.arrayindex().toAst()
             val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
-            AssignTarget(null, arrayindexed, null, toPosition())
+            AssignTarget(null, arrayindexed, null, null, toPosition())
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
+}
+
+private fun Multi_assign_targetContext.toAst() : AssignTarget {
+    val targets = this.assign_target().map { it.toAst() }
+    return AssignTarget(null, null, null, targets, toPosition())
 }
 
 private fun ClobberContext.toAst() : Set<CpuRegister> {
@@ -346,6 +351,11 @@ private fun ClobberContext.toAst() : Set<CpuRegister> {
 }
 
 private fun AssignmentContext.toAst(): Statement {
+    val multiAssign = multi_assign_target()
+    if(multiAssign!=null) {
+        return Assignment(multiAssign.toAst(), expression().toAst(), AssignmentOrigin.USERCODE, toPosition())
+    }
+
     val nestedAssign = assignment()
     if(nestedAssign==null)
         return Assignment(assign_target().toAst(), expression().toAst(), AssignmentOrigin.USERCODE, toPosition())

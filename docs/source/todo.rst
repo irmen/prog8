@@ -1,6 +1,8 @@
 TODO
 ====
 
+add docs for multi-assigns.
+
 ...
 
 
@@ -66,7 +68,6 @@ Optimizations:
   those checks should probably be removed, or be made permanent
 - optimizeCommonSubExpressions: currently only looks in expressions on a single line, could search across multiple expressions
 
-
 STRUCTS again?
 --------------
 
@@ -83,8 +84,6 @@ What if we were to re-introduce Structs in prog8? Some thoughts:
 Other language/syntax features to think about
 ---------------------------------------------
 
-- support for assigning multiple return values from romsub/asmsub to multiple variables.
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
   How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
-

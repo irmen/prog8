@@ -1650,7 +1650,8 @@ class IRCodeGen(
             val args = params.map { (dt, reg)->
                 FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(dt, reg, null))
             }
-            val returnSpec = if(returns==null) null else FunctionCallArgs.RegSpec(returns.first, returns.second, null)
+            // for now, syscalls have 0 or 1 return value
+            val returnSpec = if(returns==null) emptyList() else listOf(FunctionCallArgs.RegSpec(returns.first, returns.second, null))
             it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number, fcallArgs = FunctionCallArgs(args, returnSpec))
         }
     }

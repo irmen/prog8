@@ -152,6 +152,7 @@ interface IAstVisitor {
         assignTarget.arrayindexed?.accept(this)
         assignTarget.identifier?.accept(this)
         assignTarget.memoryAddress?.accept(this)
+        assignTarget.multi?.forEach { it.accept(this) }
     }
 
     fun visit(scope: AnonymousScope) {

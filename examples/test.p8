@@ -1,37 +1,17 @@
-%import textio
-%import conv
-
 %zeropage basicsafe
 %option no_sysinit
 
-
 main {
     sub start() {
-        repeat 40 txt.nl()
-        txt.print("int to string tests\n\n")
+        bool @shared flag
 
-        for cx16.r0L in 0 to 255 {
-            txt.print_ub0(cx16.r0L)
-            txt.spc()
-            txt.spc()
-        }
-        txt.nl()
-        txt.nl()
-        for cx16.r0L in 0 to 255 {
-            txt.print_ub(cx16.r0L)
-            txt.spc()
-            txt.spc()
-        }
-        txt.nl()
-        txt.nl()
-        for cx16.r0sL in -128 to 127 {
-            txt.print_b(cx16.r0sL)
-            txt.spc()
-            txt.spc()
-        }
-        txt.nl()
-        txt.nl()
-
-        repeat {}
+        cx16.r1=9999
+        flag = test(42)
+        cx16.r0L, flag = test2(12345, 5566, flag, -42)
+        cx16.r1, flag = test3()
     }
+
+    romsub $8000 = test(ubyte arg @A) -> bool @Pc
+    romsub $8002 = test2(uword arg @AY, uword arg2 @R1, bool flag @Pc, byte value @X) -> ubyte @A, bool @Pc
+    romsub $8003 = test3() -> uword @R1, bool @Pc
 }

@@ -493,6 +493,7 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
 data class AssignTarget(var identifier: IdentifierReference?,
                         var arrayindexed: ArrayIndexedExpression?,
                         val memoryAddress: DirectMemoryWrite?,
+                        val multi: List<AssignTarget>?,
                         override val position: Position) : Node {
     override lateinit var parent: Node
 
@@ -501,12 +502,14 @@ data class AssignTarget(var identifier: IdentifierReference?,
         identifier?.linkParents(this)
         arrayindexed?.linkParents(this)
         memoryAddress?.linkParents(this)
+        multi?.forEach { it.linkParents(this) }
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
             node === identifier -> identifier = replacement as IdentifierReference
             node === arrayindexed -> arrayindexed = replacement as ArrayIndexedExpression
+            node === multi -> throw FatalAstException("can't replace multi assign targets")
             else -> throw FatalAstException("invalid replace")
         }
         replacement.parent = this
@@ -514,11 +517,12 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), position)
+    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), multi?.toList(), position)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         identifier?.referencesIdentifier(nameInSource)==true ||
                 arrayindexed?.referencesIdentifier(nameInSource)==true ||
-                memoryAddress?.referencesIdentifier(nameInSource)==true
+                memoryAddress?.referencesIdentifier(nameInSource)==true ||
+                multi?.any { it.referencesIdentifier(nameInSource)}==true
 
     fun inferType(program: Program): InferredTypes.InferredType {
         if (identifier != null) {
@@ -533,6 +537,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
         if (memoryAddress != null)
             return InferredTypes.knownFor(DataType.UBYTE)
 
+        // a multi-assign has no 1 type...  TODO although it could perhaps be the type of the first target?
+
         return InferredTypes.unknown()
     }
 
@@ -542,7 +548,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
             identifier != null -> identifier!!.copy()
             arrayindexed != null -> arrayindexed!!.copy()
             memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression.copy(), memoryAddress.position)
-            else -> throw FatalAstException("invalid assignmenttarget $this")
+            multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
+            else -> throw FatalAstException("invalid assignmenttarget")
         }
     }
 
@@ -562,6 +569,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                 else
                     false
             }
+            multi != null -> false
             else -> false
         }
     }
@@ -583,6 +591,9 @@ data class AssignTarget(var identifier: IdentifierReference?,
                 return x1 != null && x2 != null && x1 == x2
             }
         }
+        if(this.multi != null && other.multi != null)
+            return this.multi == other.multi
+
         return false
     }
 
@@ -623,6 +634,9 @@ data class AssignTarget(var identifier: IdentifierReference?,
                     machine.isIOAddress((decl.value as NumericLiteral).number.toUInt())
                 else
                     false
+            }
+            multi != null -> {
+                return multi.any { it.isIOAddress(machine) }
             }
             else -> return false
         }

@@ -41,9 +41,18 @@ class PtSubroutineParameter(name: String, val type: DataType, position: Position
 sealed interface IPtAssignment {
     val children: MutableList<PtNode>
     val target: PtAssignTarget
-        get() = children[0] as PtAssignTarget
+        get() {
+            if(children.size==2)
+                return children[0] as PtAssignTarget
+            else if(children.size<2)
+                throw AssemblyError("incomplete node")
+            else
+                throw AssemblyError("no singular target")
+        }
     val value: PtExpression
-        get() = children[1] as PtExpression
+        get() = children.last() as PtExpression
+    val multiTarget: Boolean
+        get() = children.size>2
 }
 
 class PtAssignment(position: Position) : PtNode(position), IPtAssignment

@@ -1,6 +1,8 @@
 package prog8.codegen.cpu6502.assignment
 
 import prog8.code.StMemVar
+import prog8.code.StRomSub
+import prog8.code.StRomSubParameter
 import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -31,6 +33,77 @@ internal class AssignmentAsmGen(private val program: PtProgram,
         val assign = AsmAugmentedAssignment(source, augmentedAssign.operator, target, program.memsizer, pos)
         augmentableAsmGen.translate(assign, augmentedAssign.definingISub())
     }
+
+    fun translateMultiAssign(assignment: PtAssignment) {
+        // TODO("translate multi-value assignment ${assignment.position}")
+        val values = assignment.value as? PtFunctionCall
+            ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
+
+        val sub = asmgen.symbolTable.lookup(values.name) as? StRomSub
+            ?: throw AssemblyError("only asmsubs can return multiple values")
+
+        require(sub.returns.size>=2)
+        if(sub.returns.any { it.type==DataType.FLOAT })
+            TODO("deal with (multiple?) FP return registers")
+
+        asmgen.translate(values)
+
+        fun needsToSaveA(registersResults: List<Pair<StRomSubParameter, PtNode>>): Boolean =
+            if(registersResults.isEmpty())
+                false
+            else if(registersResults.all { (it.second as PtAssignTarget).identifier!=null})
+                false
+            else
+                true
+
+        fun assignCarryResult(target: PtAssignTarget, saveA: Boolean) {
+            if(saveA) asmgen.out("  pha")
+            asmgen.out("  lda  #0  |  rol  a")
+            val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+            assignRegisterByte(tgt, CpuRegister.A, false, false)
+            if(saveA) asmgen.out("  pla")
+        }
+
+        fun assignRegisterResults(registersResults: List<Pair<StRomSubParameter, PtNode>>) {
+            registersResults.forEach { (returns, target) ->
+                val targetIdent = (target as PtAssignTarget).identifier
+                val targetMem = target.memory
+                if(targetIdent!=null || targetMem!=null) {
+                    val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+                    when(returns.type) {
+                        in ByteDatatypesWithBoolean -> {
+                            assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
+                        }
+                        in WordDatatypes -> {
+                            assignRegisterpairWord(tgt, returns.register.registerOrPair!!)
+                        }
+                        else -> throw AssemblyError("weird dt")
+                    }
+                }
+                else TODO("array target for multi-value assignment")        // Not done yet due to result register clobbering complexity
+            }
+        }
+
+        // because we can only handle integer results right now we can just zip() it all up
+        val (statusFlagResult, registersResults) = sub.returns.zip(assignment.children).partition { it.first.register.statusflag!=null }
+        if(statusFlagResult.isNotEmpty()) {
+            val (returns, target) = statusFlagResult.single()
+            if(returns.register.statusflag!=Statusflag.Pc)
+                TODO("other status flag for return value")
+
+            target as PtAssignTarget
+            if(registersResults.all { (it.second as PtAssignTarget).identifier!=null}) {
+                // all other results are just stored into identifiers directly so first handle those
+                // (simple store instructions that don't modify the carry flag)
+                assignRegisterResults(registersResults)
+                assignCarryResult(target, false)
+                return
+            }
+            assignCarryResult(target, needsToSaveA(registersResults))
+        }
+        assignRegisterResults(registersResults)
+    }
+
 
     fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(assign.source.kind) {

@@ -587,7 +587,10 @@ class AsmGen6502Internal (
             is PtInlineAssembly -> translate(stmt)
             is PtBuiltinFunctionCall -> builtinFunctionsAsmGen.translateFunctioncallStatement(stmt)
             is PtFunctionCall -> functioncallAsmGen.translateFunctionCallStatement(stmt)
-            is PtAssignment -> assignmentAsmGen.translate(stmt)
+            is PtAssignment -> {
+                if(stmt.multiTarget) assignmentAsmGen.translateMultiAssign(stmt)
+                else assignmentAsmGen.translate(stmt)
+            }
             is PtAugmentedAssign -> assignmentAsmGen.translate(stmt)
             is PtJump -> {
                 val (asmLabel, indirect) = getJumpTarget(stmt)

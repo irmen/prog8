@@ -1,5 +1,7 @@
 package prog8.codegen.intermediate
 
+import prog8.code.StRomSub
+import prog8.code.StRomSubParameter
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
@@ -8,15 +10,66 @@ import prog8.intermediate.*
 internal class AssignmentGen(private val codeGen: IRCodeGen, private val expressionEval: ExpressionGen) {
 
     internal fun translate(assignment: PtAssignment): IRCodeChunks {
-        if(assignment.target.children.single() is PtIrRegister)
-            throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
+        if(assignment.multiTarget) {
+            val values = assignment.value as? PtFunctionCall
+                ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
-        val chunks = translateRegularAssign(assignment)
-        chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(assignment.position)
-        return chunks
+            val sub = codeGen.symbolTable.lookup(values.name) as? StRomSub
+                ?: throw AssemblyError("only asmsubs can return multiple values")
+
+            val result = mutableListOf<IRCodeChunkBase>()
+            val funcCall = this.expressionEval.translate(values)
+            require(funcCall.multipleResultRegs.size + funcCall.multipleResultFpRegs.size >= 2)
+            if(funcCall.multipleResultFpRegs.isNotEmpty())
+                TODO("deal with (multiple?) FP return registers")
+
+            // because we can only handle integer results right now we can just zip() it all up
+            addToResult(result, funcCall, funcCall.resultReg, funcCall.resultFpReg)
+            sub.returns.zip(assignment.children).zip(funcCall.multipleResultRegs).forEach {
+                val regNumber = it.second
+                val returns = it.first.first
+                val target = it.first.second as PtAssignTarget
+                result += assignCpuRegister(returns, regNumber, target)
+            }
+            return result
+        } else {
+            if (assignment.target.children.single() is PtIrRegister)
+                throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
+
+            return translateRegularAssign(assignment)
+        }
+    }
+
+    private fun assignCpuRegister(returns: StRomSubParameter, regNum: Int, target: PtAssignTarget): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val loadCpuRegInstr = when(returns.register.registerOrPair) {
+            RegisterOrPair.A -> IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
+            RegisterOrPair.X -> IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=regNum)
+            RegisterOrPair.Y -> IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=regNum)
+            RegisterOrPair.AX -> IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum)
+            RegisterOrPair.AY -> IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum)
+            RegisterOrPair.XY -> IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
+            in Cx16VirtualRegisters -> IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}")
+            null -> {
+                when(returns.register.statusflag) {
+                    Statusflag.Pc -> IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
+                    else -> throw AssemblyError("weird statusflag as returnvalue")
+                }
+            }
+            else -> throw AssemblyError("cannot load register")
+        }
+        addInstr(result, loadCpuRegInstr, null)
+
+        // build an assignment to store the value in the actual target.
+        val assign = PtAssignment(target.position)
+        assign.add(target)
+        assign.add(PtIrRegister(regNum, target.type, target.position))
+        result += translate(assign)
+        return result
     }
 
     internal fun translate(augAssign: PtAugmentedAssign): IRCodeChunks {
+        // augmented assignment always has just a single target
         if(augAssign.target.children.single() is PtIrRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 
