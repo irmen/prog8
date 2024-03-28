@@ -654,6 +654,11 @@ a fixed amount of memory which will not change.  (You *can* change the value of 
 It is possible to "chain" assignments: ``x = y = z = 42``, this is just a shorthand
 for the three individual assignments with the same value 42.
 
+Only for certain subroutines that return multiple values it is possible to write a "multi assign" statement
+with comma separated assignment targets, that assigns those multiple values to different targets in one statement.
+Details can be found here: :ref:`multiassign`.
+
+
 .. attention::
     **Data type conversion (in assignments):**
     When assigning a value with a 'smaller' datatype to variable with a 'larger' datatype,

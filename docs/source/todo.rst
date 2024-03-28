@@ -1,7 +1,7 @@
 TODO
 ====
 
-add docs for multi-assigns.
+make it possible to omit the Status Register values in multi-assigns regardless of the number of return values (is now 1 value)
 
 ...
 

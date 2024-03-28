@@ -665,25 +665,35 @@ takes no parameters.  If the subroutine returns a value, usually you assign it t
 If you're not interested in the return value, prefix the function call with the ``void`` keyword.
 Otherwise the compiler will warn you about discarding the result of the call.
 
+.. _multiassign:
+
 Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
 Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
 (referencing a routine in Kernal ROM) can return more than one return value.
 For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers.
-It is not possible to process the results of a call to these kind of routines
-directly from the language, because only single value assignments are possible.
-You can still call the subroutine and not store the results.
+In these cases, it is possible to do a "multi assign" where the multiple return values of the subroutine call,
+are all assigned to individual assignment targets. You simply write them as a comma separated list, so for instance::
 
-**There is an exception:** if there's just one return value in a register, and one or more others that are returned
-as bits in the status register (such as the Carry bit), the compiler allows you to call the subroutine.
+    bool   flag
+    ubyte  bytevar
+    uword  wordvar
+
+    wordvar, flag, bytevar = multisub()        ; call and assign the three result values
+
+    asmsub multisub() -> uword @AY, bool @Pc, ubyte @X { ... }
+
+**There is also a special rule:** if there's just one return value in a register, and one or more others that are returned
+as bits in the status register (such as the Carry bit), the compiler *also* allows you to call the subroutine and just assign a *single* return value.
 It will then store the result value in a variable if required, and *try to keep the status register untouched
 after the call* so you can often use a conditional branch statement for that. But the latter is tricky,
 make sure you check the generated assembly code.
 
-If there really are multiple relevant return values (other than a combined 16 bit return value in 2 registers),
-you'll have to write a small block of custom inline assembly that does the call and stores the values
-appropriately. Don't forget to save/restore any registers that are modified.
+.. note::
+    For asmsubs or romsubs that return a boolean status flag in a cpu status register such as the Carry flag,
+    it is always more efficient to use a conditional branch like `if_cs` to act on that value, than storing
+    it in a variable and then adding an `if flag...` statement afterwards.
 
 
 Subroutine definitions
