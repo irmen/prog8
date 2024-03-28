@@ -3,9 +3,6 @@ TODO
 
 add docs for multi-assigns.
 
-add IR peephole optimizer for :   loadm.X rX,$address | storem.X rX,$address.   (get rid of the store)
-(you can generate this code by assigning a asmsub's R0 return value to R0 for instance).
-
 ...
 
 

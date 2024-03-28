@@ -433,12 +433,24 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
     }
 
     private fun removeDoubleLoadsAndStores(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
-        return false
-
-/*
         var changed = false
         indexedInstructions.forEach { (idx, ins) ->
+            if(ins.opcode==Opcode.STOREM) {
+                val prev = indexedInstructions[idx-1].value
+                if(prev.opcode==Opcode.LOADM) {
+                    // loadm.X rX,something | storem.X rX,something ?? -> get rid of the store.
+                    if(ins.labelSymbol!=null && ins.labelSymbol==prev.labelSymbol) {
+                        changed=true
+                        chunk.instructions.removeAt(idx)
+                    }
+                    else if(ins.address!=null && ins.address==prev.address) {
+                        changed=true
+                        chunk.instructions.removeAt(idx)
+                    }
+                }
+            }
 
+/*
             // TODO: detect multiple loads to the same target registers, only keep first (if source is not I/O memory)
             // TODO: detect multiple stores to the same target, only keep first (if target is not I/O memory)
             // TODO: detect multiple float ffrom/fto to the same target, only keep first
@@ -446,8 +458,8 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // TODO: detect multiple same ands, ors; only keep first
             // TODO: (hard) detect multiple registers being assigned the same value (and not changed) - use only 1 of them
             // ...
+*/
         }
         return changed
-*/
     }
 }
