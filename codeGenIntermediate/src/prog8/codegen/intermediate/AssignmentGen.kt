@@ -22,14 +22,30 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             require(funcCall.multipleResultRegs.size + funcCall.multipleResultFpRegs.size >= 2)
             if(funcCall.multipleResultFpRegs.isNotEmpty())
                 TODO("deal with (multiple?) FP return registers")
-
-            // because we can only handle integer results right now we can just zip() it all up
+            val assignmentTargets = assignment.children.dropLast(1)
             addToResult(result, funcCall, funcCall.resultReg, funcCall.resultFpReg)
-            sub.returns.zip(assignment.children).zip(funcCall.multipleResultRegs).forEach {
-                val regNumber = it.second
-                val returns = it.first.first
-                val target = it.first.second as PtAssignTarget
-                result += assignCpuRegister(returns, regNumber, target)
+            if(sub.returns.size==assignmentTargets.size) {
+                // Targets and values match. Assign all the things.
+                sub.returns.zip(assignmentTargets).zip(funcCall.multipleResultRegs).forEach {
+                    val regNumber = it.second
+                    val returns = it.first.first
+                    val target = it.first.second as PtAssignTarget
+                    result += assignCpuRegister(returns, regNumber, target)
+                }
+            } else if (sub.returns.size>assignmentTargets.size) {
+                // Targets and values don't match. Skip status flag results, assign only the normal value results.
+                val targets = assignmentTargets.iterator()
+                sub.returns.zip(funcCall.multipleResultRegs).forEach {
+                    val returns = it.first
+                    if(returns.register.registerOrPair!=null) {
+                        val target = targets.next() as PtAssignTarget
+                        val regNumber = it.second
+                        result += assignCpuRegister(returns, regNumber, target)
+                    }
+                }
+                require(!targets.hasNext())
+            } else {
+                throw AssemblyError("number of values and targets don't match")
             }
             return result
         } else {

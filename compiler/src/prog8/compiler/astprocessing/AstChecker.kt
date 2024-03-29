@@ -547,45 +547,65 @@ internal class AstChecker(private val program: Program,
         }
 
 
-        // multi-assign: check the number of assign targets vs. the number of return values of the subroutine
-        // also check the types of the variables vs the types of each return value
         val fcall = assignment.value as? IFunctionCall
         val fcallTarget = fcall?.target?.targetSubroutine(program)
         if(assignment.target.multi!=null) {
-            val multi = assignment.target.multi!!
-            if(fcall==null) {
-                errors.err("expected a function call with multiple return values", assignment.value.position)
-            } else {
-                if(fcallTarget==null) {
-                    errors.err("expected a function call with multiple return values", assignment.value.position)
-                } else {
-                    if(fcallTarget.returntypes.size!=multi.size) {
-                        errors.err("expected ${multi.size} return values, have ${fcallTarget.returntypes.size}", fcall.position)
-                    }
-                }
-            }
-
-            if(errors.noErrors()) {
-                // check the types...
-                fcallTarget!!.returntypes.zip(multi).withIndex().forEach { (index, p) ->
-                    val (returnType, target) = p
-                    val targetDt = target.inferType(program).getOr(DataType.UNDEFINED)
-                    if(!(returnType isAssignableTo targetDt))
-                        errors.err("can't assign returnvalue #${index+1} to corresponding target; ${returnType} vs $targetDt", target.position)
-                }
-            }
-
+            checkMultiAssignment(assignment, fcall, fcallTarget)
         } else if(fcallTarget!=null) {
             if(fcallTarget.returntypes.size!=1) {
                 // If there are 2 return values, one of them being a boolean in a status register, this is okay.
                 // In that case the normal value is assigned and the status bit is dealth with separately for example with if_cs
                 val (returnRegisters, _) = fcallTarget.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
-                if(returnRegisters.size>1)
-                    errors.err("expected 1 return value, have ${fcallTarget.returntypes.size}", fcall.position)
+                if(returnRegisters.size>1) {
+                    errors.err("multiple return values and too few assignment targets, need at least ${returnRegisters.size}", fcall.position)
+                }
             }
         }
 
         super.visit(assignment)
+    }
+
+    private fun checkMultiAssignment(assignment: Assignment, fcall: IFunctionCall?, fcallTarget: Subroutine?) {
+        // multi-assign: check the number of assign targets vs. the number of return values of the subroutine
+        // also check the types of the variables vs the types of each return value
+        if(fcall==null || fcallTarget==null) {
+            errors.err("expected a function call with multiple return values", assignment.value.position)
+            return
+        }
+        val targets = assignment.target.multi!!
+        if(fcallTarget.returntypes.size<targets.size) {
+            errors.err("too many assignment targets, ${targets.size} targets for ${fcallTarget.returntypes.size} return values", fcall.position)
+            return
+        }
+        if(fcallTarget.returntypes.size>targets.size) {
+            // You can have LESS assign targets than the number of result values,
+            // as long as the result values contain booleans that are returned in cpu status flags (like Carry).
+            // These may be ignored in the assignment - only "true" values NEED to have a target.
+            val numberOfNormalValues = fcallTarget.asmReturnvaluesRegisters.count { it.registerOrPair!=null }
+            if(numberOfNormalValues != targets.size) {
+                errors.err("multiple return values and too few assignment targets, need at least $numberOfNormalValues", fcall.position)
+                return
+            }
+            // check the types of the 'normal' values that are being assigned
+            val returnTypesAndRegisters = fcallTarget.returntypes.zip(fcallTarget.asmReturnvaluesRegisters)
+            returnTypesAndRegisters.zip(targets).withIndex().forEach { (index, p) ->
+                val (returnType, register) = p.first
+                if(register.registerOrPair!=null) {
+                    val target = p.second
+                    val targetDt = target.inferType(program).getOr(DataType.UNDEFINED)
+                    if (!(returnType isAssignableTo targetDt))
+                        errors.err("can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt", target.position)
+                }
+            }
+        } else {
+            // check all the assigment target types
+            fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
+                val (returnType, target) = p
+                val targetDt = target.inferType(program).getOr(DataType.UNDEFINED)
+                if (!(returnType isAssignableTo targetDt))
+                    errors.err("can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt", target.position)
+            }
+        }
     }
 
 

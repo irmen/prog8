@@ -1,7 +1,10 @@
 TODO
 ====
 
-make it possible to omit the Status Register values in multi-assigns regardless of the number of return values (is now 1 value)
+try to replace the variable number of assignment targets by allowing placeholder '_' target
+
+
+check souce code of examples and library, for void calls that could now be turned into multi-assign calls.
 
 ...
 

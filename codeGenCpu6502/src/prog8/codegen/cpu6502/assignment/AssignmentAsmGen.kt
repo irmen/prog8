@@ -84,24 +84,39 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             }
         }
 
-        // because we can only handle integer results right now we can just zip() it all up
-        val (statusFlagResult, registersResults) = sub.returns.zip(assignment.children).partition { it.first.register.statusflag!=null }
-        if(statusFlagResult.isNotEmpty()) {
-            val (returns, target) = statusFlagResult.single()
-            if(returns.register.statusflag!=Statusflag.Pc)
-                TODO("other status flag for return value")
+        val assignmentTargets = assignment.children.dropLast(1)
+        if(sub.returns.size==assignmentTargets.size) {
+            // because we can only handle integer results right now we can just zip() it all up
+            val (statusFlagResult, registersResults) = sub.returns.zip(assignmentTargets).partition { it.first.register.statusflag!=null }
+            if(statusFlagResult.isNotEmpty()) {
+                val (returns, target) = statusFlagResult.single()
+                if(returns.register.statusflag!=Statusflag.Pc)
+                    TODO("other status flag for return value")
 
-            target as PtAssignTarget
-            if(registersResults.all { (it.second as PtAssignTarget).identifier!=null}) {
-                // all other results are just stored into identifiers directly so first handle those
-                // (simple store instructions that don't modify the carry flag)
-                assignRegisterResults(registersResults)
-                assignCarryResult(target, false)
-                return
+                target as PtAssignTarget
+                if(registersResults.all { (it.second as PtAssignTarget).identifier!=null}) {
+                    // all other results are just stored into identifiers directly so first handle those
+                    // (simple store instructions that don't modify the carry flag)
+                    assignRegisterResults(registersResults)
+                    assignCarryResult(target, false)
+                    return
+                }
+                assignCarryResult(target, needsToSaveA(registersResults))
             }
-            assignCarryResult(target, needsToSaveA(registersResults))
+            assignRegisterResults(registersResults)
+        } else if (sub.returns.size>assignmentTargets.size) {
+            // Targets and values don't match. Skip status flag results, assign only the normal value results.
+            val targets = assignmentTargets.iterator()
+            sub.returns.forEach {
+                if(it.register.registerOrPair!=null) {
+                    val target = targets.next() as PtAssignTarget
+                    assignRegisterResults(listOf(it to target))
+                }
+            }
+            require(!targets.hasNext())
+        } else {
+            throw AssemblyError("number of values and targets don't match")
         }
-        assignRegisterResults(registersResults)
     }
 
 

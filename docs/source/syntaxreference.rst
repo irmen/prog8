@@ -684,16 +684,13 @@ are all assigned to individual assignment targets. You simply write them as a co
 
     asmsub multisub() -> uword @AY, bool @Pc, ubyte @X { ... }
 
-**There is also a special rule:** if there's just one return value in a register, and one or more others that are returned
-as bits in the status register (such as the Carry bit), the compiler *also* allows you to call the subroutine and just assign a *single* return value.
-It will then store the result value in a variable if required, and *try to keep the status register untouched
-after the call* so you can often use a conditional branch statement for that. But the latter is tricky,
-make sure you check the generated assembly code.
-
-.. note::
-    For asmsubs or romsubs that return a boolean status flag in a cpu status register such as the Carry flag,
-    it is always more efficient to use a conditional branch like `if_cs` to act on that value, than storing
-    it in a variable and then adding an `if flag...` statement afterwards.
+**There is also a special rule:** you are allowed to omit assignments of the boolean values returned in status registers such as the carry flag.
+So in the case of multisub() above, you could also write `wordvar, bytevar = multisub()` and leave out the carry flag.
+The compiler will try to assign the normal numeric values and leave the status flags untouched, which then allows you to
+use a conditional branch such as `if_cs` to do something with it. This is always more efficient
+than storing it in a variable and then adding an `if flag...` statement afterwards.
+It can sometimes be tricky to keep the status flags that are returned from the subroutine intact though,
+if the assign targets are not simple variables. In such cases, make sure you check the generated assembly code to see if it all works out.
 
 
 Subroutine definitions
