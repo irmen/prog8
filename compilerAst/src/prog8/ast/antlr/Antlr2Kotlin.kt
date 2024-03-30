@@ -246,7 +246,8 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
     val identifiers = vardecl.identifier()
     if(identifiers.size>1)
         throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-    AsmSubroutineParameter(identifiers[0].NAME().text, datatype, registerorpair, statusregister, toPosition())
+    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].UNDERSCOREPLACEHOLDER()
+    AsmSubroutineParameter(identifiername.text, datatype, registerorpair, statusregister, toPosition())
 }
 
 private fun Functioncall_stmtContext.toAst(): Statement {
@@ -316,7 +317,8 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             val identifiers = it.identifier()
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-            SubroutineParameter(identifiers[0].NAME().text, datatype, it.toPosition())
+            val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].UNDERSCOREPLACEHOLDER()
+            SubroutineParameter(identifiername.text, datatype, it.toPosition())
         }
 
 private fun Assign_targetContext.toAst() : AssignTarget {
@@ -556,8 +558,9 @@ private fun StringliteralContext.toAst(): StringLiteral {
 
 private fun Expression_listContext.toAst() = expression().map{ it.toAst() }
 
-private fun Scoped_identifierContext.toAst() : IdentifierReference =
-        IdentifierReference(NAME().map { it.text }, toPosition())
+private fun Scoped_identifierContext.toAst() : IdentifierReference {
+    return IdentifierReference(identifier().map { it.text }, toPosition())
+}
 
 private fun FloatliteralContext.toAst() = text.replace("_","").toDouble()
 
@@ -669,7 +672,8 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
         else -> ZeropageWish.DONTCARE
     }
     val identifiers = identifier()
-    val name = if(identifiers.size==1) identifiers[0].NAME().text else "<multiple>"
+    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].UNDERSCOREPLACEHOLDER()
+    val name = if(identifiers.size==1) identifiername.text else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val split = options.SPLIT().isNotEmpty()
     val origDt = datatype()?.toAst() ?: DataType.UNDEFINED
@@ -690,7 +694,10 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             zp,
             arrayindex()?.toAst(),
             name,
-            if(identifiers.size==1) emptyList() else identifiers.map { it.NAME().text },
+            if(identifiers.size==1) emptyList() else identifiers.map {
+                val idname = it.NAME() ?: it.UNDERSCORENAME() ?: it.UNDERSCOREPLACEHOLDER()
+                idname.text
+            },
             value,
             options.SHARED().isNotEmpty(),
             split,

@@ -906,12 +906,12 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             else if(elementType in WordDatatypes && value.all { it is NumericLiteral || it is AddressOf || it is IdentifierReference}) {
                 val castArray = value.map {
                     when(it) {
-                        is AddressOf -> it as Expression
-                        is IdentifierReference -> it as Expression
+                        is AddressOf -> it
+                        is IdentifierReference -> it
                         is NumericLiteral -> {
                             val numcast = it.cast(elementType, true)
                             if(numcast.isValid)
-                                numcast.valueOrZero() as Expression
+                                numcast.valueOrZero()
                             else
                                 return null     // abort
                         }

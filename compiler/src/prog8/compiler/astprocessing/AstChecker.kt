@@ -52,6 +52,8 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(module: Module) {
         super.visit(module)
+        if(module.name.startsWith('_'))
+            errors.err("module names cannot start with an underscore", module.position)
         val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
@@ -62,6 +64,10 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(identifier: IdentifierReference) {
+        if(identifier.nameInSource.any { it.startsWith('_') }) {
+            errors.err("identifiers cannot start with an underscore", identifier.position)
+        }
+
         checkLongType(identifier)
         val stmt = identifier.targetStatement(program)
         if(stmt==null)
@@ -266,6 +272,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(block: Block) {
+        if(block.name.startsWith('_'))
+            errors.err("block names cannot start with an underscore", block.position)
+
         val addr = block.address
         if(addr!=null && addr>65535u) {
             errors.err("block memory address must be valid integer 0..\$ffff", block.position)
@@ -295,6 +304,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(label: Label) {
+        if(label.name.startsWith('_'))
+            errors.err("labels cannot start with an underscore", label.position)
+
         // scope check
         if(label.parent !is Block && label.parent !is Subroutine && label.parent !is AnonymousScope) {
             errors.err("Labels can only be defined in the scope of a block, a loop body, or within another subroutine", label.position)
@@ -335,6 +347,9 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(subroutine: Subroutine) {
         fun err(msg: String) = errors.err(msg, subroutine.position)
+
+        if(subroutine.name.startsWith('_'))
+            errors.err("subroutine names cannot start with an underscore", subroutine.position)
 
         if(subroutine.name in BuiltinFunctions)
             err("cannot redefine a built-in function")
@@ -474,6 +489,9 @@ internal class AstChecker(private val program: Program,
         // Non-string and non-ubytearray Pass-by-reference datatypes can not occur as parameters to a subroutine directly
         // Instead, their reference (address) should be passed (as an UWORD).
         for(p in subroutine.parameters) {
+            if(p.name.startsWith('_'))
+                errors.err("parameter names cannot start with an underscore", p.position)
+
             if(p.type in PassByReferenceDatatypes && p.type !in listOf(DataType.STR, DataType.ARRAY_UB)) {
                 errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use an uword to receive the address, or access the variable from the outer scope directly.", p.position)
             }
