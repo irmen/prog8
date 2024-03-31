@@ -89,7 +89,7 @@ private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorRepor
         singleReplacement2.parent = occurrence2.parent
 
         val tempassign = PtAssignment(binexpr.position).also { assign ->
-            assign.add(PtAssignTarget(binexpr.position).also { tgt->
+            assign.add(PtAssignTarget(false, binexpr.position).also { tgt->
                 tgt.add(PtIdentifier("$containerScopedName.$tempvarName", datatype, binexpr.position))
             })
             assign.add(occurrence1)

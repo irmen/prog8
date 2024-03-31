@@ -684,13 +684,13 @@ are all assigned to individual assignment targets. You simply write them as a co
 
     asmsub multisub() -> uword @AY, bool @Pc, ubyte @X { ... }
 
-**There is also a special rule:** you are allowed to omit assignments of the boolean values returned in status registers such as the carry flag.
-So in the case of multisub() above, you could also write `wordvar, bytevar = multisub()` and leave out the carry flag.
-The compiler will try to assign the normal numeric values and leave the status flags untouched, which then allows you to
-use a conditional branch such as `if_cs` to do something with it. This is always more efficient
-than storing it in a variable and then adding an `if flag...` statement afterwards.
-It can sometimes be tricky to keep the status flags that are returned from the subroutine intact though,
-if the assign targets are not simple variables. In such cases, make sure you check the generated assembly code to see if it all works out.
+**Skipping values:** you are allowed to omit assignments of one or more values by putting ``void`` as the assignment target.
+One of the cases where this is useful is with boolean values returned in status flags such as the carry flag.
+Storing that flag as a boolean in a variable first, and then possibly adding an ``if flag...`` statement afterwards, is a lot less
+efficient than just keeping the flag as-is and using a conditional branch such as ``if_cs`` to do something with it.
+So in the case above that could be::
+
+    wordvar, void, bytevar = multisub()
 
 
 Subroutine definitions

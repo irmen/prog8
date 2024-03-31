@@ -494,6 +494,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                         var arrayindexed: ArrayIndexedExpression?,
                         val memoryAddress: DirectMemoryWrite?,
                         val multi: List<AssignTarget>?,
+                        val void: Boolean,
                         override val position: Position) : Node {
     override lateinit var parent: Node
 
@@ -517,7 +518,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), multi?.toList(), position)
+    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), multi?.toList(), void, position)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         identifier?.referencesIdentifier(nameInSource)==true ||
                 arrayindexed?.referencesIdentifier(nameInSource)==true ||
@@ -576,6 +577,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     fun isSameAs(other: AssignTarget, program: Program): Boolean {
         if (this === other)
+            return true
+        if(void && other.void)
             return true
         if (this.identifier != null && other.identifier != null)
             return this.identifier!!.nameInSource == other.identifier!!.nameInSource

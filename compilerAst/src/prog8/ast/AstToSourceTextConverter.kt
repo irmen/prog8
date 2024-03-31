@@ -406,16 +406,20 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(assignTarget: AssignTarget) {
-        assignTarget.memoryAddress?.accept(this)
-        assignTarget.identifier?.accept(this)
-        assignTarget.arrayindexed?.accept(this)
-        val multi = assignTarget.multi
-        if(multi!=null) {
-            multi.dropLast(1).forEach { target ->
-                target.accept(this)
-                output(", ")
+        if(assignTarget.void)
+            output("void")
+        else {
+            assignTarget.memoryAddress?.accept(this)
+            assignTarget.identifier?.accept(this)
+            assignTarget.arrayindexed?.accept(this)
+            val multi = assignTarget.multi
+            if (multi != null) {
+                multi.dropLast(1).forEach { target ->
+                    target.accept(this)
+                    output(", ")
+                }
+                multi.last().accept(this)
             }
-            multi.last().accept(this)
         }
     }
 

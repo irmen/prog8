@@ -60,7 +60,7 @@ class PtAssignment(position: Position) : PtNode(position), IPtAssignment
 class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment
 
 
-class PtAssignTarget(position: Position) : PtNode(position) {
+class PtAssignTarget(val void: Boolean, position: Position) : PtNode(position) {
     val identifier: PtIdentifier?
         get() = children.single() as? PtIdentifier
     val array: PtArrayIndexer?
@@ -78,7 +78,7 @@ class PtAssignTarget(position: Position) : PtNode(position) {
             }
         }
 
-    infix fun isSameAs(expression: PtExpression): Boolean = expression.isSameAs(this)
+    infix fun isSameAs(expression: PtExpression): Boolean = !void && expression.isSameAs(this)
 }
 
 

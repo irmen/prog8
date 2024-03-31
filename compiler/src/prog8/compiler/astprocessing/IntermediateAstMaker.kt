@@ -148,14 +148,14 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     }
 
     private fun transform(srcTarget: AssignTarget): PtAssignTarget {
-        val target = PtAssignTarget(srcTarget.position)
+        val target = PtAssignTarget(srcTarget.void, srcTarget.position)
         if(srcTarget.identifier!=null)
             target.add(transform(srcTarget.identifier!!))
         else if(srcTarget.arrayindexed!=null)
             target.add(transform(srcTarget.arrayindexed!!))
         else if(srcTarget.memoryAddress!=null)
             target.add(transform(srcTarget.memoryAddress!!))
-        else
+        else if(!srcTarget.void)
             throw FatalAstException("invalid AssignTarget")
         return target
     }

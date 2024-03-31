@@ -60,7 +60,7 @@ internal class StatementReorderer(
                                 // Add assignment to initialize with zero
                                 // Note: for block-level vars, this will introduce assignments in the block scope. These have to be dealt with correctly later.
                                 val identifier = IdentifierReference(listOf(decl.name), decl.position)
-                                val assignzero = Assignment(AssignTarget(identifier, null, null, null, decl.position),
+                                val assignzero = Assignment(AssignTarget(identifier, null, null, null, false, decl.position),
                                     decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
                                 return listOf(IAstModification.InsertAfter(
                                     decl, assignzero, parent as IStatementContainer
@@ -73,7 +73,7 @@ internal class StatementReorderer(
                         // So basically consider 'ubyte xx=99' as a short form for 'ubyte xx; xx=99'
                         val pos = decl.value!!.position
                         val identifier = IdentifierReference(listOf(decl.name), pos)
-                        val assign = Assignment(AssignTarget(identifier, null, null, null, pos),
+                        val assign = Assignment(AssignTarget(identifier, null, null, null, false, pos),
                             decl.value!!, AssignmentOrigin.VARINIT, pos)
                         decl.value = null
                         return listOf(IAstModification.InsertAfter(
@@ -92,7 +92,7 @@ internal class StatementReorderer(
                     if(target!=null && target.isArray) {
                         val pos = decl.value!!.position
                         val identifier = IdentifierReference(listOf(decl.name), pos)
-                        val assign = Assignment(AssignTarget(identifier, null, null, null, pos),
+                        val assign = Assignment(AssignTarget(identifier, null, null, null, false, pos),
                             decl.value!!, AssignmentOrigin.VARINIT, pos)
                         decl.value = null
                         return listOf(IAstModification.InsertAfter(

@@ -6,8 +6,9 @@ main {
     sub start() {
         ubyte @shared bytevar
         uword @shared wordvar
+        bool flag
 
-        wordvar, bytevar = test4()
+        wordvar, bytevar, void = test4()
         if_cs
             txt.print("true! ")
         else

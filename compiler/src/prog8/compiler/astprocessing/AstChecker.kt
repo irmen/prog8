@@ -53,7 +53,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(module: Module) {
         super.visit(module)
         if(module.name.startsWith('_'))
-            errors.err("module names cannot start with an underscore", module.position)
+            errors.err("identifiers cannot start with an underscore", module.position)
         val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
@@ -66,6 +66,14 @@ internal class AstChecker(private val program: Program,
     override fun visit(identifier: IdentifierReference) {
         if(identifier.nameInSource.any { it.startsWith('_') }) {
             errors.err("identifiers cannot start with an underscore", identifier.position)
+        }
+        if(identifier.nameInSource.any { it=="void" }) {
+            // 'void' as "identifier" is only allowed as part of a multi-assignment expression
+            if (!(identifier.nameInSource == listOf("void") && (identifier.parent as? AssignTarget)?.multi?.isNotEmpty() == true
+                || identifier.parent is AssignTarget && (identifier.parent.parent as? AssignTarget)?.multi?.isNotEmpty() == true)
+            ) {
+                errors.err("identifiers cannot contain the 'void' keyword", identifier.position)
+            }
         }
 
         checkLongType(identifier)
@@ -273,7 +281,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(block: Block) {
         if(block.name.startsWith('_'))
-            errors.err("block names cannot start with an underscore", block.position)
+            errors.err("identifiers cannot start with an underscore", block.position)
 
         val addr = block.address
         if(addr!=null && addr>65535u) {
@@ -305,7 +313,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(label: Label) {
         if(label.name.startsWith('_'))
-            errors.err("labels cannot start with an underscore", label.position)
+            errors.err("identifiers cannot start with an underscore", label.position)
 
         // scope check
         if(label.parent !is Block && label.parent !is Subroutine && label.parent !is AnonymousScope) {
@@ -349,7 +357,7 @@ internal class AstChecker(private val program: Program,
         fun err(msg: String) = errors.err(msg, subroutine.position)
 
         if(subroutine.name.startsWith('_'))
-            errors.err("subroutine names cannot start with an underscore", subroutine.position)
+            errors.err("identifiers cannot start with an underscore", subroutine.position)
 
         if(subroutine.name in BuiltinFunctions)
             err("cannot redefine a built-in function")
@@ -490,7 +498,7 @@ internal class AstChecker(private val program: Program,
         // Instead, their reference (address) should be passed (as an UWORD).
         for(p in subroutine.parameters) {
             if(p.name.startsWith('_'))
-                errors.err("parameter names cannot start with an underscore", p.position)
+                errors.err("identifiers cannot start with an underscore", p.position)
 
             if(p.type in PassByReferenceDatatypes && p.type !in listOf(DataType.STR, DataType.ARRAY_UB)) {
                 errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use an uword to receive the address, or access the variable from the outer scope directly.", p.position)
@@ -591,38 +599,15 @@ internal class AstChecker(private val program: Program,
             return
         }
         val targets = assignment.target.multi!!
-        if(fcallTarget.returntypes.size<targets.size) {
-            errors.err("too many assignment targets, ${targets.size} targets for ${fcallTarget.returntypes.size} return values", fcall.position)
+        if(fcallTarget.returntypes.size!=targets.size) {
+            errors.err("number of assignment targets doesn't match number of return values", fcall.position)
             return
         }
-        if(fcallTarget.returntypes.size>targets.size) {
-            // You can have LESS assign targets than the number of result values,
-            // as long as the result values contain booleans that are returned in cpu status flags (like Carry).
-            // These may be ignored in the assignment - only "true" values NEED to have a target.
-            val numberOfNormalValues = fcallTarget.asmReturnvaluesRegisters.count { it.registerOrPair!=null }
-            if(numberOfNormalValues != targets.size) {
-                errors.err("multiple return values and too few assignment targets, need at least $numberOfNormalValues", fcall.position)
-                return
-            }
-            // check the types of the 'normal' values that are being assigned
-            val returnTypesAndRegisters = fcallTarget.returntypes.zip(fcallTarget.asmReturnvaluesRegisters)
-            returnTypesAndRegisters.zip(targets).withIndex().forEach { (index, p) ->
-                val (returnType, register) = p.first
-                if(register.registerOrPair!=null) {
-                    val target = p.second
-                    val targetDt = target.inferType(program).getOr(DataType.UNDEFINED)
-                    if (!(returnType isAssignableTo targetDt))
-                        errors.err("can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt", target.position)
-                }
-            }
-        } else {
-            // check all the assigment target types
-            fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
-                val (returnType, target) = p
-                val targetDt = target.inferType(program).getOr(DataType.UNDEFINED)
-                if (!(returnType isAssignableTo targetDt))
-                    errors.err("can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt", target.position)
-            }
+        fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
+            val (returnType, target) = p
+            val targetDt = target.inferType(program).getOr(DataType.UNDEFINED)
+            if (!target.void && !(returnType isAssignableTo targetDt))
+                errors.err("can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt", target.position)
         }
     }
 

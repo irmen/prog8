@@ -35,7 +35,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     fun translateMultiAssign(assignment: PtAssignment) {
-        // TODO("translate multi-value assignment ${assignment.position}")
         val values = assignment.value as? PtFunctionCall
             ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
@@ -66,35 +65,48 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
         fun assignRegisterResults(registersResults: List<Pair<StRomSubParameter, PtNode>>) {
             registersResults.forEach { (returns, target) ->
-                val targetIdent = (target as PtAssignTarget).identifier
-                val targetMem = target.memory
-                if(targetIdent!=null || targetMem!=null) {
-                    val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-                    when(returns.type) {
-                        in ByteDatatypesWithBoolean -> {
-                            assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
+                target as PtAssignTarget
+                if(!target.void) {
+                    val targetIdent = target.identifier
+                    val targetMem = target.memory
+                    if(targetIdent!=null || targetMem!=null) {
+                        val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+                        when(returns.type) {
+                            in ByteDatatypesWithBoolean -> {
+                                assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
+                            }
+                            in WordDatatypes -> {
+                                assignRegisterpairWord(tgt, returns.register.registerOrPair!!)
+                            }
+                            else -> throw AssemblyError("weird dt")
                         }
-                        in WordDatatypes -> {
-                            assignRegisterpairWord(tgt, returns.register.registerOrPair!!)
-                        }
-                        else -> throw AssemblyError("weird dt")
                     }
+                    else TODO("array target for multi-value assignment")        // Not done yet due to result register clobbering complexity
                 }
-                else TODO("array target for multi-value assignment")        // Not done yet due to result register clobbering complexity
             }
         }
 
         val assignmentTargets = assignment.children.dropLast(1)
         if(sub.returns.size==assignmentTargets.size) {
             // because we can only handle integer results right now we can just zip() it all up
-            val (statusFlagResult, registersResults) = sub.returns.zip(assignmentTargets).partition { it.first.register.statusflag!=null }
-            if(statusFlagResult.isNotEmpty()) {
-                val (returns, target) = statusFlagResult.single()
+            val (statusFlagResults, registersResults) = sub.returns.zip(assignmentTargets).partition { it.first.register.statusflag!=null }
+            if(statusFlagResults.isNotEmpty()) {
+                if(statusFlagResults.size>1)
+                    TODO("handle multiple status flag results")
+                val (returns, target) = statusFlagResults.single()
                 if(returns.register.statusflag!=Statusflag.Pc)
                     TODO("other status flag for return value")
 
                 target as PtAssignTarget
-                if(registersResults.all { (it.second as PtAssignTarget).identifier!=null}) {
+                if(target.void) {
+                    // forget about the Carry status flag, only assign the normal return values
+                    assignRegisterResults(registersResults)
+                    return
+                }
+                if(registersResults.all {
+                    val tgt = it.second as PtAssignTarget
+                    tgt.void || tgt.identifier!=null})
+                {
                     // all other results are just stored into identifiers directly so first handle those
                     // (simple store instructions that don't modify the carry flag)
                     assignRegisterResults(registersResults)
@@ -104,16 +116,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 assignCarryResult(target, needsToSaveA(registersResults))
             }
             assignRegisterResults(registersResults)
-        } else if (sub.returns.size>assignmentTargets.size) {
-            // Targets and values don't match. Skip status flag results, assign only the normal value results.
-            val targets = assignmentTargets.iterator()
-            sub.returns.forEach {
-                if(it.register.registerOrPair!=null) {
-                    val target = targets.next() as PtAssignTarget
-                    assignRegisterResults(listOf(it to target))
-                }
-            }
-            require(!targets.hasNext())
         } else {
             throw AssemblyError("number of values and targets don't match")
         }
@@ -706,7 +708,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                 }
                 TargetStorageKind.MEMORY -> {
-                    val tgt = PtAssignTarget(assign.target.position)
+                    val tgt = PtAssignTarget(false, assign.target.position)
                     val targetmem = assign.target.memory!!
                     val mem = PtMemoryByte(targetmem.position)
                     mem.add(targetmem.address)
@@ -716,7 +718,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     assignTrue.add(PtNumber.fromBoolean(true, assign.position))
                 }
                 TargetStorageKind.ARRAY -> {
-                    val tgt = PtAssignTarget(assign.target.position)
+                    val tgt = PtAssignTarget(false, assign.target.position)
                     val targetarray = assign.target.array!!
                     val array = PtArrayIndexer(assign.target.datatype, targetarray.position)
                     array.add(targetarray.variable)

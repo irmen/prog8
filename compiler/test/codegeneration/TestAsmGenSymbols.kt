@@ -50,7 +50,7 @@ class TestAsmGenSymbols: StringSpec({
         val var2InSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE, null, "tgt", emptyList(), null, false, false, Position.DUMMY)
         val labelInSub = Label("locallabel", Position.DUMMY)
 
-        val tgt = AssignTarget(IdentifierReference(listOf("tgt"), Position.DUMMY), null, null, null, Position.DUMMY)
+        val tgt = AssignTarget(IdentifierReference(listOf("tgt"), Position.DUMMY), null, null, null, false, Position.DUMMY)
         val assign1 = Assignment(tgt, IdentifierReference(listOf("localvar"), Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val assign2 = Assignment(tgt, AddressOf(IdentifierReference(listOf("locallabel"), Position.DUMMY), null, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val assign3 = Assignment(tgt, AddressOf(IdentifierReference(listOf("var_outside"), Position.DUMMY), null, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)

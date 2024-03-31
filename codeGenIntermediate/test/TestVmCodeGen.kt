@@ -50,7 +50,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(PtVariable("xx", DataType.WORD, ZeropageWish.DONTCARE, PtNumber(DataType.WORD, 1.0, Position.DUMMY), null, Position.DUMMY))
 
         val assign = PtAugmentedAssign("+=", Position.DUMMY)
-        val target = PtAssignTarget(Position.DUMMY).also {
+        val target = PtAssignTarget(false, Position.DUMMY).also {
             val targetIdx = PtArrayIndexer(DataType.UBYTE, Position.DUMMY).also { idx ->
                 idx.add(PtIdentifier("main.start.particleX", DataType.ARRAY_UB, Position.DUMMY))
                 idx.add(PtNumber(DataType.UBYTE, 2.0, Position.DUMMY))
@@ -65,7 +65,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(assign)
 
         val prefixAssign = PtAugmentedAssign("-", Position.DUMMY)
-        val prefixTarget = PtAssignTarget(Position.DUMMY).also {
+        val prefixTarget = PtAssignTarget(false, Position.DUMMY).also {
             it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
         }
         prefixAssign.add(prefixTarget)
@@ -73,7 +73,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(prefixAssign)
 
         val numberAssign = PtAugmentedAssign("+=", Position.DUMMY)
-        val numberAssignTarget = PtAssignTarget(Position.DUMMY).also {
+        val numberAssignTarget = PtAssignTarget(false, Position.DUMMY).also {
             it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
         }
         numberAssign.add(numberAssignTarget)
@@ -81,7 +81,7 @@ class TestVmCodeGen: FunSpec({
         sub.add(numberAssign)
 
         val cxregAssign = PtAugmentedAssign("+=", Position.DUMMY)
-        val cxregAssignTarget = PtAssignTarget(Position.DUMMY).also {
+        val cxregAssignTarget = PtAssignTarget(false, Position.DUMMY).also {
             it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
         }
         cxregAssign.add(cxregAssignTarget)

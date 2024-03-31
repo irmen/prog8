@@ -115,7 +115,8 @@ main {
 
         cx16.r0L, flag = test2(12345, 5566, flag, -42)
         cx16.r1, flag, bytevar = test3()
-        cx16.r1, bytevar = test3()      ; omitting the status flag result should also work
+        cx16.r1, void, bytevar = test3()
+        void, void, void = test3()
     }
 
     asmsub test2(uword arg @AY, uword arg2 @R1, bool flag @Pc, byte value @X) -> ubyte @A, bool @Pc {
@@ -140,23 +141,30 @@ main {
         val result = compileText(Cx16Target(), false, src, errors, true)!!
         errors.errors.size shouldBe 0
         val start = result.codegenAst!!.entrypoint()!!
-        start.children.size shouldBe 8
+        start.children.size shouldBe 9
         val a1_1 = start.children[4] as PtAssignment
         val a1_2 = start.children[5] as PtAssignment
         val a1_3 = start.children[6] as PtAssignment
+        val a1_4 = start.children[7] as PtAssignment
         a1_1.multiTarget shouldBe true
         a1_2.multiTarget shouldBe true
         a1_3.multiTarget shouldBe true
+        a1_4.multiTarget shouldBe true
         a1_1.children.size shouldBe 3
         a1_2.children.size shouldBe 4
-        a1_3.children.size shouldBe 3
+        a1_3.children.size shouldBe 4
+        a1_4.children.size shouldBe 4
         (a1_1.children[0] as PtAssignTarget).identifier!!.name shouldBe("cx16.r0L")
         (a1_1.children[1] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_flag")
         (a1_2.children[0] as PtAssignTarget).identifier!!.name shouldBe("cx16.r1")
         (a1_2.children[1] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_flag")
         (a1_2.children[2] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_bytevar")
         (a1_3.children[0] as PtAssignTarget).identifier!!.name shouldBe("cx16.r1")
-        (a1_3.children[1] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_bytevar")
+        (a1_3.children[1] as PtAssignTarget).void shouldBe true
+        (a1_3.children[2] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_bytevar")
+        (a1_4.children[0] as PtAssignTarget).void shouldBe true
+        (a1_4.children[1] as PtAssignTarget).void shouldBe true
+        (a1_4.children[2] as PtAssignTarget).void shouldBe true
     }
 
     test("multi-assign from romsub") {
@@ -169,7 +177,8 @@ main {
         flag = test(42)
         cx16.r0L, flag = test2(12345, 5566, flag, -42)
         cx16.r1, flag, bytevar = test3()
-        cx16.r1, bytevar = test3()      ; omitting the status flag result should also work
+        cx16.r1, void, bytevar = test3()
+        void, void, void = test3()
     }
 
     romsub ${'$'}8000 = test(ubyte arg @A) -> bool @Pc
@@ -182,22 +191,29 @@ main {
         val result = compileText(Cx16Target(), false, src, errors, true)!!
         errors.errors.size shouldBe 0
         val start = result.codegenAst!!.entrypoint()!!
-        start.children.size shouldBe 9
+        start.children.size shouldBe 10
         val a1_1 = start.children[5] as PtAssignment
         val a1_2 = start.children[6] as PtAssignment
         val a1_3 = start.children[7] as PtAssignment
+        val a1_4 = start.children[8] as PtAssignment
         a1_1.multiTarget shouldBe true
         a1_2.multiTarget shouldBe true
         a1_3.multiTarget shouldBe true
+        a1_4.multiTarget shouldBe true
         a1_1.children.size shouldBe 3
         a1_2.children.size shouldBe 4
-        a1_3.children.size shouldBe 3
+        a1_3.children.size shouldBe 4
+        a1_4.children.size shouldBe 4
         (a1_1.children[0] as PtAssignTarget).identifier!!.name shouldBe("cx16.r0L")
         (a1_1.children[1] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_flag")
         (a1_2.children[0] as PtAssignTarget).identifier!!.name shouldBe("cx16.r1")
         (a1_2.children[1] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_flag")
         (a1_2.children[2] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_bytevar")
         (a1_3.children[0] as PtAssignTarget).identifier!!.name shouldBe("cx16.r1")
-        (a1_3.children[1] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_bytevar")
+        (a1_3.children[1] as PtAssignTarget).void shouldBe true
+        (a1_3.children[2] as PtAssignTarget).identifier!!.name shouldBe("p8b_main.p8s_start.p8v_bytevar")
+        (a1_4.children[0] as PtAssignTarget).void shouldBe true
+        (a1_4.children[1] as PtAssignTarget).void shouldBe true
+        (a1_4.children[2] as PtAssignTarget).void shouldBe true
     }
 })

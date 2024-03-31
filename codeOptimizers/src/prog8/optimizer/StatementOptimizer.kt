@@ -162,7 +162,7 @@ class StatementOptimizer(private val program: Program,
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, forLoop.position), range.from, AssignmentOrigin.OPTIMIZER, forLoop.position))
+                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), range.from, AssignmentOrigin.OPTIMIZER, forLoop.position))
                 scope.statements.addAll(forLoop.body.statements)
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
             }
@@ -177,7 +177,7 @@ class StatementOptimizer(private val program: Program,
                     val character = options.compTarget.encodeString(sv.value, sv.encoding)[0]
                     val byte = NumericLiteral(DataType.UBYTE, character.toDouble(), iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
+                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
                     return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
                 }
@@ -190,7 +190,7 @@ class StatementOptimizer(private val program: Program,
                     if(av!=null) {
                         val scope = AnonymousScope(mutableListOf(), forLoop.position)
                         scope.statements.add(Assignment(
-                                AssignTarget(forLoop.loopVar, null, null, null, forLoop.position), NumericLiteral.optimalInteger(av.toInt(), iterable.position),
+                                AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), NumericLiteral.optimalInteger(av.toInt(), iterable.position),
                                 AssignmentOrigin.OPTIMIZER, forLoop.position))
                         scope.statements.addAll(forLoop.body.statements)
                         return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
@@ -206,7 +206,7 @@ class StatementOptimizer(private val program: Program,
                 val pos = forLoop.position
                 val loopVar = forLoop.loopVar
                 val addSubOne = BinaryExpression(loopVar.copy(), if(inc) "+" else "-", NumericLiteral.optimalInteger(1, pos), pos, false)
-                return Assignment(AssignTarget(loopVar.copy(), null, null, null, pos), addSubOne, AssignmentOrigin.USERCODE, pos)
+                return Assignment(AssignTarget(loopVar.copy(), null, null, null, false, pos), addSubOne, AssignmentOrigin.USERCODE, pos)
             }
 
             if (range != null && range.to.constValue(program)?.number == 0.0 && range.step.constValue(program)?.number==-1.0) {
@@ -219,7 +219,7 @@ class StatementOptimizer(private val program: Program,
                     val decOne = incOrDec(false)
                     forLoop.body.statements.add(decOne)
                     val replacement = AnonymousScope(mutableListOf(
-                        Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, null, pos),
+                        Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, null, false, pos),
                             fromExpr, AssignmentOrigin.OPTIMIZER, pos),
                         UntilLoop(forLoop.body, condition, pos)
                     ), pos)
@@ -453,12 +453,6 @@ class StatementOptimizer(private val program: Program,
     }
 
     override fun after(whenStmt: When, parent: Node): Iterable<IAstModification> {
-
-        fun replaceWithIf(condition: Expression, trueBlock: AnonymousScope, elseBlock: AnonymousScope?): List<IAstModification> {
-            val ifStmt = IfElse(condition, trueBlock, elseBlock ?: AnonymousScope(mutableListOf(), whenStmt.position), whenStmt.position)
-            errors.info("for boolean condition a normal if statement is preferred", whenStmt.position)
-            return listOf(IAstModification.ReplaceNode(whenStmt, ifStmt, parent))
-        }
 
         val constantValue = whenStmt.condition.constValue(program)?.number
         if(constantValue!=null) {

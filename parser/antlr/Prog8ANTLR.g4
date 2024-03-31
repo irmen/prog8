@@ -26,7 +26,6 @@ WS :  [ \t] -> skip ;
 VOID: 'void';
 NAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
 UNDERSCORENAME :  '_' NAME ;           // match unicode properties
-UNDERSCOREPLACEHOLDER:  '_' ;
 DEC_INTEGER :  DEC_DIGIT (DEC_DIGIT | '_')* ;
 HEX_INTEGER :  '$' HEX_DIGIT (HEX_DIGIT | '_')* ;
 BIN_INTEGER :  '%' BIN_DIGIT (BIN_DIGIT | '_')* ;
@@ -222,7 +221,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  NAME | UNDERSCORENAME | UNDERSCOREPLACEHOLDER;
+identifier :  NAME | UNDERSCORENAME | VOID;
 
 scoped_identifier :  identifier ('.' identifier)* ;
 

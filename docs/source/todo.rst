@@ -1,12 +1,6 @@
 TODO
 ====
 
-try to replace the variable number of assignment targets by allowing placeholder '_' target
-or try to do this with 'void' instead, is more prog8-like?
-
-
-check souce code of examples and library, for void calls that could now be turned into multi-assign calls.
-
 ...
 
 

@@ -854,7 +854,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     private fun assignRegisterTo(target: PtExpression, register: Int): IRCodeChunks {
         val assignment = PtAssignment(target.position)
-        val assignTarget = PtAssignTarget(target.position)
+        val assignTarget = PtAssignTarget(false, target.position)
         assignTarget.children.add(target)
         assignment.children.add(assignTarget)
         assignment.children.add(PtIrRegister(register, target.type, target.position))

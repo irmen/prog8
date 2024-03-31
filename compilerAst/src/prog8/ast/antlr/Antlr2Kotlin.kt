@@ -246,7 +246,7 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
     val identifiers = vardecl.identifier()
     if(identifiers.size>1)
         throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].UNDERSCOREPLACEHOLDER()
+    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].VOID()
     AsmSubroutineParameter(identifiername.text, datatype, registerorpair, statusregister, toPosition())
 }
 
@@ -317,22 +317,27 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             val identifiers = it.identifier()
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-            val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].UNDERSCOREPLACEHOLDER()
+            val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].VOID()
             SubroutineParameter(identifiername.text, datatype, it.toPosition())
         }
 
 private fun Assign_targetContext.toAst() : AssignTarget {
     return when(this) {
-        is IdentifierTargetContext ->
-            AssignTarget(scoped_identifier().toAst(), null, null, null,  scoped_identifier().toPosition())
+        is IdentifierTargetContext -> {
+            val identifier = scoped_identifier().toAst()
+            if(identifier.nameInSource==listOf("void"))
+                AssignTarget(null, null, null, null, true, scoped_identifier().toPosition())
+            else
+                AssignTarget(identifier, null, null, null, false, scoped_identifier().toPosition())
+        }
         is MemoryTargetContext ->
-            AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()), null, toPosition())
+            AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()), null, false, toPosition())
         is ArrayindexedTargetContext -> {
             val ax = arrayindexed()
             val arrayvar = ax.scoped_identifier().toAst()
             val index = ax.arrayindex().toAst()
             val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
-            AssignTarget(null, arrayindexed, null, null, toPosition())
+            AssignTarget(null, arrayindexed, null, null, false, toPosition())
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
@@ -340,7 +345,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
 
 private fun Multi_assign_targetContext.toAst() : AssignTarget {
     val targets = this.assign_target().map { it.toAst() }
-    return AssignTarget(null, null, null, targets, toPosition())
+    return AssignTarget(null, null, null, targets, false, toPosition())
 }
 
 private fun ClobberContext.toAst() : Set<CpuRegister> {
@@ -672,7 +677,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
         else -> ZeropageWish.DONTCARE
     }
     val identifiers = identifier()
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].UNDERSCOREPLACEHOLDER()
+    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].VOID()
     val name = if(identifiers.size==1) identifiername.text else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val split = options.SPLIT().isNotEmpty()
@@ -695,7 +700,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             arrayindex()?.toAst(),
             name,
             if(identifiers.size==1) emptyList() else identifiers.map {
-                val idname = it.NAME() ?: it.UNDERSCORENAME() ?: it.UNDERSCOREPLACEHOLDER()
+                val idname = it.NAME() ?: it.UNDERSCORENAME() ?: it.VOID()
                 idname.text
             },
             value,
