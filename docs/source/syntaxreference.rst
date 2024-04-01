@@ -674,7 +674,9 @@ However, the special ``asmsub`` routines (implemented in assembly code) or ``rom
 (referencing a routine in Kernal ROM) can return more than one return value.
 For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers.
 In these cases, it is possible to do a "multi assign" where the multiple return values of the subroutine call,
-are all assigned to individual assignment targets. You simply write them as a comma separated list, so for instance::
+are all assigned to individual assignment targets. You simply write them as a comma separated list,
+where the element's order corresponds to the order of the return values declared in the subroutine's signature.
+So for instance::
 
     bool   flag
     ubyte  bytevar
