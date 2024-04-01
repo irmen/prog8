@@ -439,7 +439,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                 val prev = indexedInstructions[idx-1].value
                 if(prev.opcode==Opcode.LOADM) {
                     // loadm.X rX,something | storem.X rX,something ?? -> get rid of the store.
-                    if(ins.labelSymbol!=null && ins.labelSymbol==prev.labelSymbol) {
+                    if(ins.labelSymbol!=null && ins.labelSymbol==prev.labelSymbol && ins.labelSymbolOffset==prev.labelSymbolOffset) {
                         changed=true
                         chunk.instructions.removeAt(idx)
                     }
