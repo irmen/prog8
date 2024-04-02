@@ -9,6 +9,7 @@ main {
         uword duration
         ubyte[256] bonkbuffer
 
+        ;; diskio.fastmode(1)
         set_screen_mode()
         cbm.SETTIM(0,0,0)
 
