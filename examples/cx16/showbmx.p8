@@ -12,6 +12,7 @@ main {
         str filename = "?"*40
 
         repeat {
+            ;; diskio.fastmode(1)
             txt.print("\nenter bmx image filename: ")
             if txt.input_chars(&filename)!=0 {
 

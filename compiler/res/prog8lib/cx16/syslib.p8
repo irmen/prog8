@@ -425,6 +425,9 @@ romsub $ff1d = FB_move_pixels(uword sx @R0, uword sy @R1, uword tx @R2, uword ty
 romsub $FEBA = BSAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) clobbers (X, Y) -> bool @ Pc, ubyte @ A      ; like cbm.SAVE, but omits the 2-byte prg header
 romsub $fec6 = i2c_read_byte(ubyte device @X, ubyte offset @Y) clobbers (X,Y) -> ubyte @A, bool @Pc
 romsub $fec9 = i2c_write_byte(ubyte device @X, ubyte offset @Y, ubyte data @A) clobbers (A,X,Y) -> bool @Pc
+romsub $feb4 = i2c_batch_read(ubyte device @X, uword buffer @R0, uword length @R1, bool advance @Pc) clobbers(A,Y) -> bool @Pc
+romsub $feb7 = i2c_batch_write(ubyte device @X, uword buffer @R0, uword length @R1, bool advance @Pc) clobbers(A,Y) -> bool @Pc
+
 romsub $fef0 = sprite_set_image(uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte number @A, ubyte width @X, ubyte height @Y, bool apply_mask @Pc)  clobbers(A,X,Y) -> bool @Pc
 romsub $fef3 = sprite_set_position(uword x @R0, uword y @R1, ubyte number @A)  clobbers(A,X,Y)
 romsub $fee4 = memory_fill(uword address @R0, uword num_bytes @R1, ubyte value @A)  clobbers(A,X,Y)
@@ -437,6 +440,8 @@ romsub $fee1 = console_get_char()  clobbers(X,Y) -> ubyte @A
 romsub $fed8 = console_put_image(uword pointer @R0, uword width @R1, uword height @R2)  clobbers(A,X,Y)
 romsub $fed5 = console_set_paging_message(uword msgptr @R0)  clobbers(A,X,Y)
 romsub $fecf = entropy_get() -> ubyte @A, ubyte @X, ubyte @Y
+;; romsub $fea8 = extapi16(ubyte callnumber @A) clobbers (A,X,Y)    ; not useful yet because is for 65816 cpu
+romsub $feab = extapi(ubyte callnumber @A) clobbers (A,X,Y)
 romsub $fecc = monitor()  clobbers(A,X,Y)
 
 romsub $ff44 = MACPTR(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
@@ -524,6 +529,27 @@ romsub $C099 = ym_getatten(ubyte channel @A) clobbers(Y) -> ubyte @X
 romsub $C09C = ym_getpan(ubyte channel @A) clobbers(Y) -> ubyte @X
 romsub $C0A5 = ym_get_chip_type() clobbers(X) -> ubyte @A
 
+; extapi call numbers
+const ubyte  EXTAPI_clear_status = $01
+const ubyte  EXTAPI_getlfs = $02
+const ubyte  EXTAPI_mouse_sprite_offset = $03
+const ubyte  EXTAPI_joystick_ps2_keycodes = $04
+const ubyte  EXTAPI_iso_cursor_char = $05
+const ubyte  EXTAPI_ps2kbd_typematic = $06
+const ubyte  EXTAPI_pfkey = $07
+const ubyte  EXTAPI_ps2data_fetch = $08
+const ubyte  EXTAPI_ps2data_raw = $09
+const ubyte  EXTAPI_cursor_blink = $0A
+const ubyte  EXTAPI_led_update = $0B
+const ubyte  EXTAPI_mouse_set_position = $0C
+
+; extapi16 call numbers
+const ubyte  EXTAPI16_test = $00
+const ubyte  EXTAPI16_stack_push = $01
+const ubyte  EXTAPI16_stack_pop = $02
+const ubyte  EXTAPI16_stack_enter_kernal_stack = $03
+const ubyte  EXTAPI16_stack_leave_kernal_stack = $04
+
 
 asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) -> bool @Pc {
     ; -- convenience wrapper for screen_mode() to just set a new mode (and return success)
@@ -563,6 +589,52 @@ asmsub mouse_pos() clobbers(X) -> ubyte @A {
         jmp  cx16.mouse_get
     }}
 }
+
+; shims for the kernal routines called via the extapi call:
+
+asmsub mouse_set_pos(uword xpos @R0, uword ypos @R1) clobbers(X) {
+    ; -- sets the mouse sprite position
+    %asm {{
+        ldx  #cx16.r0L
+        lda  #EXTAPI_mouse_set_position
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub mouse_set_sprite_offset(word xoffset @R0, word yoffset @R1) clobbers(A,X,Y) {
+    %asm {{
+        clc
+        lda  #EXTAPI_mouse_sprite_offset
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub mouse_get_sprite_offset() clobbers(A,X,Y) -> word @R0, word @R1 {
+    %asm {{
+        sec
+        lda  #EXTAPI_mouse_sprite_offset
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub getlfs() -> ubyte @X, ubyte @A, ubyte @Y {
+    ; -- return the result of the last call to SETLFS:  A=logical, X=device, Y=secondary.
+    %asm {{
+        lda  #EXTAPI_mouse_set_position
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub iso_cursor_char(ubyte character @X) clobbers(A,X,Y) {
+    ; -- set the screen code for the cursor character in ISO mode (the default is $9f).
+    %asm {{
+        clc
+        lda  #EXTAPI_iso_cursor_char
+        jmp  cx16.extapi
+    }}
+}
+
+; TODO : implement shims for the remaining extapi calls.
 
 
 ; ---- end of kernal routines ----

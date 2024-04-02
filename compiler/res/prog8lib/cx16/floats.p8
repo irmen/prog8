@@ -136,14 +136,12 @@ asmsub  FREADUY (ubyte value @Y) {
 }
 
 asmsub parse(str value @AY) -> float @FAC1 {
-    ; -- parse a string value of a number to float in FAC1
-    ;    warning: on older <R47 kernals it uses an internal BASIC routine that is ROM version dependent,
-    ;    ($deb6 is inside the routine for VAL at $deb3)  See basic.sym from x16-rom
-    ;    TODO once ROM v47 is released, all the workarounds here can be removed. But probably keep the kernal VAL_1 existance check
+    ; -- Parse a string value of a number to float in FAC1.
+    ;    Requires kernal R47 or newer! (depends on val_1 working)
     %asm {{
         ldx  VAL_1
         cpx  #$4c       ; is there an implementation in VAL_1? (test for JMP)
-        bne  +          ; no, do it ourselves
+        bne  _borked    ; no, print error message
         pha             ; yes, count the length and call rom VAL_1.
         phy
         jsr  prog8_lib.strlen
@@ -151,15 +149,7 @@ asmsub parse(str value @AY) -> float @FAC1 {
         ply
         plx
         jmp  VAL_1
-+       sta  $a9    ; 'index' variable
-        sty  $aa
-        jsr  prog8_lib.strlen
-        lda  $deb6
-        cmp  #$d0   ; sanity check for kernal routine correct
-        bne  +
-        tya
-        jmp  $deb6   ; kernal version dependent...
-+       ; print error message if routine is borked in kernal, and exit program
+_borked
         ldy  #0
 -       lda  _msg,y
         beq  +
@@ -168,7 +158,7 @@ asmsub parse(str value @AY) -> float @FAC1 {
         bne  -
 +       jmp  sys.exit
 
-_msg    .text 13,"?val kaputt",13,0
+_msg    .text 13,"?rom 47+ required for val1",13,0
     }}
 }
 

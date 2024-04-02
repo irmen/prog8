@@ -8,8 +8,6 @@ main {
     const ubyte HIRAM_START_BANK = 4
     uword large = memory("large", 20000, 256)
 
-    bool verify = false
-
     ubyte[256] buffer = 0 to 255
     uword @zp buf_ptr
 
@@ -17,10 +15,11 @@ main {
         txt.print("\n\ndisk benchmark on drive 8.\n")
 
         txt.print("with verification? y/n: ")
-        cx16.r0L = cbm.CHRIN()
+        bool verify = cbm.CHRIN()=='y'
+        txt.print("\nfast serial mode r+w? y/n: ")
+        bool fastserial = cbm.CHRIN()=='y'
         txt.nl()
-        if cx16.r0L=='y' {
-            verify=true
+        if verify {
             ; fill the buffers with random data, and calculate the checksum
             for cx16.r0 in 0 to 19999 {
                 large[cx16.r0] = math.rnd()
@@ -32,6 +31,11 @@ main {
             uword crc32_l = cx16.r14
             uword crc32_h = cx16.r15
         }
+
+        if fastserial
+            diskio.fastmode(3)
+        else
+            diskio.fastmode(0)
 
         test_save()
         test_save_blocks()

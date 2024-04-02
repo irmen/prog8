@@ -8,7 +8,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- IR: add TEST instruction to test memory content and set N/Z flags, without affecting any register. Replace all LOADM+CMPI #0  / LOAD #0+LOADM+CMP+BRANCH   by this instruction
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
 - can we support signed % (remainder) somehow?
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
@@ -43,15 +42,15 @@ Compiler:
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
+- Zig-like defer to execute a statement/anonymousscope at subroutine exit?
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit and/or my binaryen kotlin library?
-- split words arrays all()
-- split words arrays sort()
+- implement split words arrays all()
+- implement split words arrays sort()
 
 
 Libraries:
 
 - gfx2: add EOR mode support like in monogfx and see PAINT for inspiration.  Self modifying code to keep it optimized?
-- once kernal rom v47 is released, remove most of the workarounds in cx16 floats.parse_f()  .   Prototype parse routine in examples/cx16/floatparse.p8
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?

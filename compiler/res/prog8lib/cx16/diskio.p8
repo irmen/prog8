@@ -32,6 +32,17 @@ diskio {
         cbm.CHKOUT(WRITE_IO_CHANNEL)
     }
 
+    sub fastmode(ubyte mode) {
+        ; -- set fast serial mode (0=none, 1=auto_tx, 2=fast writes, 3=both) for the SD card
+        list_filename[0] = 'u'
+        list_filename[1] = '0'
+        list_filename[2] = '>'
+        list_filename[3] = 'b'
+        list_filename[4] = mode | $30
+        list_filename[5] = 0
+        send_command(list_filename)
+    }
+
     sub directory() -> bool {
         ; -- Prints the directory contents to the screen. Returns success.
 
