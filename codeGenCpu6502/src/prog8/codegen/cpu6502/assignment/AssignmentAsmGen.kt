@@ -55,9 +55,48 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             else
                 true
 
-        fun assignCarryResult(target: PtAssignTarget, saveA: Boolean) {
+        fun assignCarryFlagResult(target: PtAssignTarget, saveA: Boolean) {
             if(saveA) asmgen.out("  pha")
             asmgen.out("  lda  #0  |  rol  a")
+            val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+            assignRegisterByte(tgt, CpuRegister.A, false, false)
+            if(saveA) asmgen.out("  pla")
+        }
+
+        fun assignZeroFlagResult(target: PtAssignTarget, saveA: Boolean) {
+            if(saveA) asmgen.out("  pha")
+            asmgen.out("""
+                beq  +
+                lda  #0
+                beq  ++
++               lda  #1
++""")
+            val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+            assignRegisterByte(tgt, CpuRegister.A, false, false)
+            if(saveA) asmgen.out("  pla")
+        }
+
+        fun assignNegativeFlagResult(target: PtAssignTarget, saveA: Boolean) {
+            if(saveA) asmgen.out("  pha")
+            asmgen.out("""
+                bmi  +
+                lda  #0
+                beq  ++
++               lda  #1
++""")
+            val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+            assignRegisterByte(tgt, CpuRegister.A, false, false)
+            if(saveA) asmgen.out("  pla")
+        }
+
+        fun assignOverflowFlagResult(target: PtAssignTarget, saveA: Boolean) {
+            if(saveA) asmgen.out("  pha")
+            asmgen.out("""
+                bvs  +
+                lda  #0
+                beq  ++
++               lda  #1
++""")
             val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
             assignRegisterByte(tgt, CpuRegister.A, false, false)
             if(saveA) asmgen.out("  pla")
@@ -94,9 +133,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 if(statusFlagResults.size>1)
                     TODO("handle multiple status flag results")
                 val (returns, target) = statusFlagResults.single()
-                if(returns.register.statusflag!=Statusflag.Pc)
-                    TODO("other status flag for return value")
-
                 target as PtAssignTarget
                 if(target.void) {
                     // forget about the Carry status flag, only assign the normal return values
@@ -110,10 +146,21 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     // all other results are just stored into identifiers directly so first handle those
                     // (simple store instructions that don't modify the carry flag)
                     assignRegisterResults(registersResults)
-                    assignCarryResult(target, false)
-                    return
+                    return when(returns.register.statusflag!!) {
+                        Statusflag.Pc -> assignCarryFlagResult(target, false)
+                        Statusflag.Pz -> assignZeroFlagResult(target, false)
+                        Statusflag.Pv -> assignOverflowFlagResult(target, false)
+                        Statusflag.Pn -> assignNegativeFlagResult(target, false)
+                    }
                 }
-                assignCarryResult(target, needsToSaveA(registersResults))
+
+                val saveA = needsToSaveA(registersResults)
+                when(returns.register.statusflag!!) {
+                    Statusflag.Pc -> assignCarryFlagResult(target, saveA)
+                    Statusflag.Pz -> assignZeroFlagResult(target, saveA)
+                    Statusflag.Pv -> assignOverflowFlagResult(target, saveA)
+                    Statusflag.Pn -> assignNegativeFlagResult(target, saveA)
+                }
             }
             assignRegisterResults(registersResults)
         } else {

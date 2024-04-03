@@ -10,7 +10,7 @@ main {
         ubyte[256] bonkbuffer
 
         ;; diskio.fastmode(1)
-        set_screen_mode()
+        set_screen()
         cbm.SETTIM(0,0,0)
 
         mcf.set_callbacks(mcf_get_buffer, mcf_process_chunk)        ; not needed if the stream has no custom chunk types
@@ -35,7 +35,7 @@ main {
         txt.print(" jiffies.\n")
     }
 
-    sub set_screen_mode() {
+    sub set_screen() {
         ; 640x400 16 colors
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
         cx16.VERA_DC_HSCALE = 128

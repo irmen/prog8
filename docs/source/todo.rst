@@ -1,6 +1,12 @@
 TODO
 ====
 
+chess fails to compile (crash)
+
+remove redundant assignments in calls like this where the result registers are the same as the assigment targets:
+void, cx16.r0s, cx16.r1s = cx16.mouse_pos()
+(6502 + IR)
+
 ...
 
 
@@ -81,6 +87,7 @@ What if we were to re-introduce Structs in prog8? Some thoughts:
 Other language/syntax features to think about
 ---------------------------------------------
 
+- allow returning multiple values from normal (non-asmsub) subroutines as well?  Once that is done we can also clean up more of the library routines that now struggle to return multiple values.
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
   How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?

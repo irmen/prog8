@@ -88,7 +88,8 @@ zsound_lib:
             txt.print(" hz\nplaying song! hit enter to also play a digi sample!\n")
 
             repeat {
-                if cx16.joystick_get2(0)!=$ffff
+                cx16.r0, void = cx16.joystick_get(0)
+                if cx16.r0!=$ffff
                     pcm_trigger_digi(digi_bank, digi_address)
 
                 sys.waitvsync()

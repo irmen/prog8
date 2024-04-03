@@ -19,7 +19,7 @@ romsub $FF8D = VECTOR(uword userptr @ XY, bool dir @ Pc) clobbers(A,Y)     ; rea
 romsub $FF90 = SETMSG(ubyte value @ A)                          ; set Kernal message control flag
 romsub $FF93 = SECOND(ubyte address @ A) clobbers(A)            ; (alias: LSTNSA) send secondary address after LISTEN
 romsub $FF96 = TKSA(ubyte address @ A) clobbers(A)              ; (alias: TALKSA) send secondary address after TALK
-romsub $FF99 = MEMTOP(uword address @ XY, bool dir @ Pc) -> uword @ XY     ; read/set top of memory  pointer.   NOTE: as a Cx16 extension, also returns the number of RAM memory banks in register A !  See cx16.numbanks()
+romsub $FF99 = MEMTOP(uword address @ XY, bool dir @ Pc) -> uword @ XY, ubyte @A     ; read/set top of memory  pointer.   NOTE: on the Cx16 also returns the number of RAM memory banks in A!  Also see cx16.numbanks()
 romsub $FF9C = MEMBOT(uword address @ XY, bool dir @ Pc) -> uword @ XY     ; read/set bottom of memory  pointer
 romsub $FF9F = SCNKEY() clobbers(A,X,Y)                         ; scan the keyboard, also called  kbd_scan
 romsub $FFA2 = SETTMO(ubyte timeout @ A)                        ; set time-out flag for IEEE bus
@@ -32,7 +32,7 @@ romsub $FFB4 = TALK(ubyte device @ A) clobbers(A)               ; command serial
 romsub $FFB7 = READST() -> ubyte @ A                            ; read I/O status word  (use CLEARST to reset it to 0)
 romsub $FFBA = SETLFS(ubyte logical @ A, ubyte device @ X, ubyte secondary @ Y)   ; set logical file parameters
 romsub $FFBD = SETNAM(ubyte namelen @ A, str filename @ XY)     ; set filename parameters
-romsub $FFC0 = OPEN() clobbers(X,Y) -> bool @Pc, ubyte @A      ; (via 794 ($31A)) open a logical file
+romsub $FFC0 = OPEN() clobbers(X,Y) -> bool @Pc, ubyte @A       ; (via 794 ($31A)) open a logical file
 romsub $FFC3 = CLOSE(ubyte logical @ A) clobbers(A,X,Y)         ; (via 796 ($31C)) close a logical file
 romsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> bool @Pc    ; (via 798 ($31E)) define an input channel
 romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; (via 800 ($320)) define an output channel
@@ -42,37 +42,33 @@ romsub $FFD2 = CHROUT(ubyte character @ A)                           ; (via 806 
 romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> bool @Pc, ubyte @ A, uword @ XY     ; (via 816 ($330)) load from device
 romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) clobbers (X, Y) -> bool @ Pc, ubyte @ A       ; (via 818 ($332)) save to a device.  See also BSAVE
 romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
-romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
-romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)
-romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A    ; (via 810 ($32A)) get a character
+romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (in little endian order: A=lo,X=mid,Y=high) , however use RDTIM_safe() instead
+romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; (via 808 ($328)) check the STOP key (and some others in A)
+romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; (via 810 ($32A)) get a character
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
 romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of screen rows and columns
-romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
+romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Also see txt.plot
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
 ; ---- utility
 
-asmsub STOP2() clobbers(X) -> bool @A  {
-    ; -- check if STOP key was pressed, returns true if so.  More convenient to use than STOP() because that only sets the zero status flag.
-    %asm {{
-        jsr  cbm.STOP
-        beq  +
-        lda  #0
-        rts
-+       lda  #1
-        rts
-    }}
-}
-
-asmsub RDTIM16() clobbers(X) -> uword @AY {
-    ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience. Also avoids ram bank issue for irqs.
+asmsub RDTIM_safe() -> ubyte @ A, ubyte @ X, ubyte @ Y {
+    ; -- read the software clock (in little endian order: A=lo,X=mid,Y=high)
+    ;    with safeguard for ram bank issue for irqs.
     %asm {{
         php
         sei
         jsr  cbm.RDTIM
         plp
-        cli
+        rts
+    }}
+}
+
+asmsub RDTIM16() clobbers(X) -> uword @AY {
+    ; --  like RDTIM_safe() but only returning the lower 16 bits in AY for convenience.
+    %asm {{
+        jsr  RDTIM_safe
         pha
         txa
         tay
@@ -295,33 +291,33 @@ cx16 {
     &ubyte  VERA_SPI_CTRL       = VERA_BASE + $001F
 
     ; Vera FX registers: (accessing depends on particular DCSEL value set in VERA_CTRL!)
-    &ubyte VERA_FX_CTRL         = VERA_BASE + $0009
-    &ubyte VERA_FX_TILEBASE     = VERA_BASE + $000a
-    &ubyte VERA_FX_MAPBASE      = VERA_BASE + $000b
-    &ubyte VERA_FX_MULT         = VERA_BASE + $000c
-    &ubyte VERA_FX_X_INCR_L     = VERA_BASE + $0009
-    &ubyte VERA_FX_X_INCR_H     = VERA_BASE + $000a
-    &uword VERA_FX_X_INCR       = VERA_BASE + $0009
-    &ubyte VERA_FX_Y_INCR_L     = VERA_BASE + $000b
-    &ubyte VERA_FX_Y_INCR_H     = VERA_BASE + $000c
-    &uword VERA_FX_Y_INCR       = VERA_BASE + $000b
-    &ubyte VERA_FX_X_POS_L      = VERA_BASE + $0009
-    &ubyte VERA_FX_X_POS_H      = VERA_BASE + $000a
-    &uword VERA_FX_X_POS        = VERA_BASE + $0009
-    &ubyte VERA_FX_Y_POS_L      = VERA_BASE + $000b
-    &ubyte VERA_FX_Y_POS_H      = VERA_BASE + $000c
-    &uword VERA_FX_Y_POS        = VERA_BASE + $000b
-    &ubyte VERA_FX_X_POS_S      = VERA_BASE + $0009
-    &ubyte VERA_FX_Y_POS_S      = VERA_BASE + $000a
-    &ubyte VERA_FX_POLY_FILL_L  = VERA_BASE + $000b
-    &ubyte VERA_FX_POLY_FILL_H  = VERA_BASE + $000c
-    &uword VERA_FX_POLY_FILL    = VERA_BASE + $000b
-    &ubyte VERA_FX_CACHE_L      = VERA_BASE + $0009
-    &ubyte VERA_FX_CACHE_M      = VERA_BASE + $000a
-    &ubyte VERA_FX_CACHE_H      = VERA_BASE + $000b
-    &ubyte VERA_FX_CACHE_U      = VERA_BASE + $000c
-    &ubyte VERA_FX_ACCUM        = VERA_BASE + $000a
-    &ubyte VERA_FX_ACCUM_RESET  = VERA_BASE + $0009
+    &ubyte  VERA_FX_CTRL        = VERA_BASE + $0009
+    &ubyte  VERA_FX_TILEBASE    = VERA_BASE + $000a
+    &ubyte  VERA_FX_MAPBASE     = VERA_BASE + $000b
+    &ubyte  VERA_FX_MULT        = VERA_BASE + $000c
+    &ubyte  VERA_FX_X_INCR_L    = VERA_BASE + $0009
+    &ubyte  VERA_FX_X_INCR_H    = VERA_BASE + $000a
+    &uword  VERA_FX_X_INCR      = VERA_BASE + $0009
+    &ubyte  VERA_FX_Y_INCR_L    = VERA_BASE + $000b
+    &ubyte  VERA_FX_Y_INCR_H    = VERA_BASE + $000c
+    &uword  VERA_FX_Y_INCR      = VERA_BASE + $000b
+    &ubyte  VERA_FX_X_POS_L     = VERA_BASE + $0009
+    &ubyte  VERA_FX_X_POS_H     = VERA_BASE + $000a
+    &uword  VERA_FX_X_POS       = VERA_BASE + $0009
+    &ubyte  VERA_FX_Y_POS_L     = VERA_BASE + $000b
+    &ubyte  VERA_FX_Y_POS_H     = VERA_BASE + $000c
+    &uword  VERA_FX_Y_POS       = VERA_BASE + $000b
+    &ubyte  VERA_FX_X_POS_S     = VERA_BASE + $0009
+    &ubyte  VERA_FX_Y_POS_S     = VERA_BASE + $000a
+    &ubyte  VERA_FX_POLY_FILL_L = VERA_BASE + $000b
+    &ubyte  VERA_FX_POLY_FILL_H = VERA_BASE + $000c
+    &uword  VERA_FX_POLY_FILL   = VERA_BASE + $000b
+    &ubyte  VERA_FX_CACHE_L     = VERA_BASE + $0009
+    &ubyte  VERA_FX_CACHE_M     = VERA_BASE + $000a
+    &ubyte  VERA_FX_CACHE_H     = VERA_BASE + $000b
+    &ubyte  VERA_FX_CACHE_U     = VERA_BASE + $000c
+    &ubyte  VERA_FX_ACCUM       = VERA_BASE + $000a
+    &ubyte  VERA_FX_ACCUM_RESET = VERA_BASE + $0009
 
 
 ; VERA_PSG_BASE     = $1F9C0
@@ -376,19 +372,15 @@ cx16 {
 ; ---- Commander X-16 additions on top of C64 kernal routines ----
 ; spelling of the names is taken from the Commander X-16 rom sources
 
-; supported C128 additions
 romsub $ff4a = CLOSE_ALL(ubyte device @A)  clobbers(A,X,Y)
 romsub $ff59 = LKUPLA(ubyte la @A)  clobbers(A,X,Y)
 romsub $ff5c = LKUPSA(ubyte sa @Y)  clobbers(A,X,Y)
-romsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc)  clobbers(X, Y) -> ubyte @A, bool @Pc        ; note: X,Y size result is not supported, use SCREEN or get_screen_mode routine for that
-romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)      ; incompatible with C128  dlchr()
-; not yet supported: romsub $ff65 = pfkey()  clobbers(A,X,Y)
+romsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc) -> ubyte @A, ubyte @X, ubyte @Y, bool @Pc        ; also see SCREEN or get_screen_mode()
+romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)
 romsub $ff6e = JSRFAR()  ; following word = address to call, byte after that=rom/ram bank it is in
 romsub $ff74 = fetch(ubyte bank @X, ubyte index @Y)  clobbers(X) -> ubyte @A
 romsub $ff77 = stash(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
 romsub $ff7d = PRIMM()
-
-; It's not documented what registers are clobbered, so we assume the worst for all following kernal routines...:
 
 ; high level graphics & fonts
 romsub $ff20 = GRAPH_init(uword vectors @R0)  clobbers(A,X,Y)
@@ -422,7 +414,6 @@ romsub $ff1a = FB_filter_pixels(uword pointer @ R0, uword count @R1)  clobbers(A
 romsub $ff1d = FB_move_pixels(uword sx @R0, uword sy @R1, uword tx @R2, uword ty @R3, uword count @R4)  clobbers(A,X,Y)
 
 ; misc
-romsub $FEBA = BSAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) clobbers (X, Y) -> bool @ Pc, ubyte @ A      ; like cbm.SAVE, but omits the 2-byte prg header
 romsub $fec6 = i2c_read_byte(ubyte device @X, ubyte offset @Y) clobbers (X,Y) -> ubyte @A, bool @Pc
 romsub $fec9 = i2c_write_byte(ubyte device @X, ubyte offset @Y, ubyte data @A) clobbers (A,X,Y) -> bool @Pc
 romsub $feb4 = i2c_batch_read(ubyte device @X, uword buffer @R0, uword length @R1, bool advance @Pc) clobbers(A,Y) -> bool @Pc
@@ -446,6 +437,7 @@ romsub $fecc = monitor()  clobbers(A,X,Y)
 
 romsub $ff44 = MACPTR(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
 romsub $feb1 = MCIOUT(ubyte length @A, uword buffer @XY, bool dontAdvance @Pc)  clobbers(A) -> bool @Pc, uword @XY
+romsub $FEBA = BSAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) clobbers (X, Y) -> bool @ Pc, ubyte @ A      ; like cbm.SAVE, but omits the 2-byte prg header
 romsub $ff47 = enter_basic(bool cold_or_warm @Pc)  clobbers(A,X,Y)
 romsub $ff4d = clock_set_date_time(uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, uword jiffiesweekday @R3)  clobbers(A, X, Y)
 romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1, uword @R2, uword @R3   ; result registers see clock_set_date_time()
@@ -453,16 +445,14 @@ romsub $ff50 = clock_get_date_time()  clobbers(A, X, Y)  -> uword @R0, uword @R1
 ; keyboard, mouse, joystick
 ; note: also see the cbm.kbdbuf_clear() helper routine
 romsub $febd = kbdbuf_peek() -> ubyte @A, ubyte @X     ; key in A, queue length in X
-romsub $febd = kbdbuf_peek2() -> uword @AX             ; alternative to above to not have the hassle to deal with multiple return values
 romsub $fec0 = kbdbuf_get_modifiers() -> ubyte @A
 romsub $fec3 = kbdbuf_put(ubyte key @A) clobbers(X)
 romsub $fed2 = keymap(uword identifier @XY, bool read @Pc) -> bool @Pc
 romsub $ff68 = mouse_config(byte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
-romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A
+romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A        ;  use mouse_pos() instead
 romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
-romsub $ff56 = joystick_get(ubyte joynr @A) -> ubyte @A, ubyte @X, ubyte @Y
-romsub $ff56 = joystick_get2(ubyte joynr @A) clobbers(Y) -> uword @AX   ; alternative to above to not have the hassle to deal with multiple return values
+romsub $ff56 = joystick_get(ubyte joynr @A) -> uword @AX, bool @Y   ; note: everything is inverted
 
 ; X16Edit (rom bank 13/14 but you ideally should use the routine search_x16edit() to search for the correct bank)
 romsub $C000 = x16edit_default() clobbers(A,X,Y)
@@ -559,7 +549,7 @@ asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) -> bool @Pc {
     }}
 }
 
-asmsub get_screen_mode() -> byte @A, byte @X, byte @Y {
+asmsub get_screen_mode() -> ubyte @A, ubyte @X, ubyte @Y {
     ; -- convenience wrapper for screen_mode() to just get the current mode in A, and size in characters in X+Y
     ;    this does need a piece of inlined asm to call it ans store the result values if you call this from prog8 code
     ;    Note: you can also just do the SEC yourself and simply call screen_mode() directly,
@@ -581,9 +571,10 @@ asmsub mouse_config2(byte shape @A) clobbers (A, X, Y) {
     }}
 }
 
-asmsub mouse_pos() clobbers(X) -> ubyte @A {
+asmsub mouse_pos() clobbers(X) -> ubyte @A, word @R0, word @R1 {
     ; -- short wrapper around mouse_get() kernal routine:
     ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status in A.
+    ;    Note: mouse pointer needs to be enabled for this to do anything.
     %asm {{
         ldx  #cx16.r0
         jmp  cx16.mouse_get
@@ -594,6 +585,7 @@ asmsub mouse_pos() clobbers(X) -> ubyte @A {
 
 asmsub mouse_set_pos(uword xpos @R0, uword ypos @R1) clobbers(X) {
     ; -- sets the mouse sprite position
+    ;    Note: mouse pointer needs to be enabled for this to do anything.
     %asm {{
         ldx  #cx16.r0L
         lda  #EXTAPI_mouse_set_position
@@ -1230,7 +1222,7 @@ sub search_x16edit() -> ubyte {
 }
 
     asmsub cpu_is_65816() -> bool @A {
-        ; Returns true when you have a 65816 cpu, false when it's a 6502.
+        ; -- Returns true when you have a 65816 cpu, false when it's a 6502.
         %asm {{
 			php
 			clv
@@ -1246,7 +1238,7 @@ sub search_x16edit() -> ubyte {
     }
 
     sub set_program_args(uword args_ptr, ubyte args_size) {
-        ; Set the inter-program arguments.
+        ; -- Set the inter-program arguments.
         ; standardized way to pass arguments between programs is in ram bank 0, address $bf00-$bfff.
         ; see https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2007%20-%20Memory%20Map.md#bank-0
         sys.push(getrambank())
@@ -1258,9 +1250,9 @@ sub search_x16edit() -> ubyte {
     }
 
     asmsub get_program_args(uword buffer @R0, ubyte buf_size @R1, bool binary @Pc) {
-        ; Retrieve the inter-program arguments. If binary=false, it treats them as a string (stops copying at first zero).
+        ; -- Retrieve the inter-program arguments. If binary=false, it treats them as a string (stops copying at first zero).
         ; standardized way to pass arguments between programs is in ram bank 0, address $bf00-$bfff.
-        ; see https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2007%20-%20Memory%20Map.md#bank-0
+        ; see https://github.com/X16Community/x16-docs/blob/a21a320aebec2c7b93f1bd90b97dcfd73fff4ad0/X16%20Reference%20-%2008%20-%20Memory%20Map.md#bank-0
         %asm {{
             lda  #0
             rol  a
@@ -1287,17 +1279,21 @@ _continue   iny
     }
 
     sub reset_system() {
-        ; Soft-reset the system back to initial power-on Basic prompt.
+        ; -- Soft-reset the system back to initial power-on Basic prompt.
         sys.reset_system()
     }
 
     sub poweroff_system() {
-        ; use the SMC to shutdown the computer
+        ; -- use the SMC to shutdown the computer
         void cx16.i2c_write_byte($42, $01, $00)
     }
 
-    sub set_led_brightness(ubyte brightness) {
-        void cx16.i2c_write_byte($42, $05, brightness)
+    sub set_led_state(bool on) {
+        ; -- sets the computer's activity led on/off
+        cx16.r0L = 0
+        if on
+            cx16.r0 = 255
+        void cx16.i2c_write_byte($42, $05, cx16.r0L)
     }
 
 }
@@ -1512,11 +1508,6 @@ asmsub  set_rasterline(uword line @AY) {
     sub poweroff_system() {
         ; use the SMC to shutdown the computer
         void cx16.i2c_write_byte($42, $01, $00)
-    }
-
-    sub set_leds_brightness(ubyte activity, ubyte power) {
-        void cx16.i2c_write_byte($42, $04, power)
-        void cx16.i2c_write_byte($42, $05, activity)
     }
 
     asmsub wait(uword jiffies @AY) clobbers(X) {

@@ -59,7 +59,8 @@ diskio {
             void cbm.CHRIN()     ; skip 2 bytes
             void cbm.CHRIN()
             status = cbm.READST()
-            if cbm.STOP2()
+            void cbm.STOP()
+            if_z
                 break
         }
         status = cbm.READST()

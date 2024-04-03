@@ -97,7 +97,8 @@ waitkey:
 
         ubyte key=cbm.GETIN()
         keypress(key)
-        joystick(cx16.joystick_get2(1))
+        cx16.r0,void = cx16.joystick_get(1)
+        joystick(cx16.r0)
 
         goto waitkey
 
@@ -334,7 +335,7 @@ waitkey:
         ubyte key
         do {
             ; endless loop until user presses F1 or Start button to restart the game
-            cx16.r0 = cx16.joystick_get2(1)
+            cx16.r0, void = cx16.joystick_get(1)
             if cx16.r0 & %0000000000010000 == 0
                 break
             key = cbm.GETIN()
