@@ -463,14 +463,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
     override fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> {
         val conditionDt = (whenChoice.parent as When).condition.inferType(program)
-        val values = whenChoice.values
-        values?.toTypedArray()?.withIndex()?.forEach { (index, value) ->
-            val valueDt = value.inferType(program)
-            if(valueDt!=conditionDt) {
-                val castedValue = value.typecastTo(conditionDt.getOr(DataType.UNDEFINED), valueDt.getOr(DataType.UNDEFINED), true)
-                if(castedValue.first) {
-                    castedValue.second.linkParents(whenChoice)
-                    values[index] = castedValue.second
+        if(conditionDt.isKnown) {
+            val values = whenChoice.values
+            values?.toTypedArray()?.withIndex()?.forEach { (index, value) ->
+                val valueDt = value.inferType(program)
+                if(valueDt!=conditionDt) {
+                    val castedValue = value.typecastTo(conditionDt.getOr(DataType.UNDEFINED), valueDt.getOr(DataType.UNDEFINED), true)
+                    if(castedValue.first) {
+                        castedValue.second.linkParents(whenChoice)
+                        values[index] = castedValue.second
+                    }
                 }
             }
         }

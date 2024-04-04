@@ -4,6 +4,16 @@
 
 main {
     sub start() {
-        void, cx16.r0s, cx16.r1s = cx16.mouse_pos()
+        cx16.mouse_config2(1)
+        wait_mousebutton()
+
+        sub wait_mousebutton() {
+            do {
+                cx16.r0L, void, void = cx16.mouse_pos()
+            } until cx16.r0L!=0
+            do {
+                cx16.r0L, void, void = cx16.mouse_pos()
+            } until cx16.r0L==0
+        }
     }
 }
