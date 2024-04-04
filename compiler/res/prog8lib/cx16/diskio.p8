@@ -331,7 +331,7 @@ close_end:
             readsize = 255
             if num_bytes<readsize
                 readsize = num_bytes
-            readsize = cx16.MACPTR(lsb(readsize), bufferpointer, false)     ; fast block reads
+            void, readsize = cx16.MACPTR(lsb(readsize), bufferpointer, false)     ; fast block reads
             if_cs
                 goto byte_read_loop     ; MACPTR block read not supported, do fallback loop
             list_blocks += readsize
@@ -468,7 +468,7 @@ _end        rts
         if num_bytes!=0 {
             reset_write_channel()
             do {
-                cx16.r0 = cx16.MCIOUT(lsb(num_bytes), bufferpointer, false)     ; fast block writes
+                void, cx16.r0 = cx16.MCIOUT(lsb(num_bytes), bufferpointer, false)     ; fast block writes
                 if_cs
                     goto no_mciout
                 num_bytes -= cx16.r0

@@ -73,7 +73,8 @@ waitkey:
             ; test_stack.test()
         }
 
-        ubyte key=cbm.GETIN()
+        ubyte key
+        void, key=cbm.GETIN()
         if key==0 goto waitkey
 
         keypress(key)
@@ -252,7 +253,7 @@ waitkey:
         ubyte key = 0
         while key!=133 {
             ; endless loop until user presses F1 to restart the game
-            key = cbm.GETIN()
+            void, key = cbm.GETIN()
         }
     }
 

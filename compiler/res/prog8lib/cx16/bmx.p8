@@ -235,7 +235,7 @@ save_end:
 
     sub read_scanline(uword size) {
         while size!=0 {
-            cx16.r0 = cx16.MACPTR(min(255, size) as ubyte, &cx16.VERA_DATA0, true)
+            void, cx16.r0 = cx16.MACPTR(min(255, size) as ubyte, &cx16.VERA_DATA0, true)
             if_cs {
                 ; no MACPTR support
                 repeat size
@@ -297,7 +297,7 @@ save_end:
                 cx16.r0L = lsb(size)
                 if msb(size)!=0
                     cx16.r0L = 0        ; 256 bytes
-                cx16.r0 = cx16.MCIOUT(cx16.r0L, &cx16.VERA_DATA0, true)
+                void, cx16.r0 = cx16.MCIOUT(cx16.r0L, &cx16.VERA_DATA0, true)
                 if_cs {
                     ; no MCIOUT support
                     repeat size

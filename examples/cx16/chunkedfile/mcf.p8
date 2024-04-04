@@ -182,7 +182,7 @@ processchunk_call           jsr  $ffff      ; modified
             ubyte readsize = 255
             if msb(size)==0
                 readsize = lsb(size)
-            cx16.r2 = cx16.MACPTR(readsize, bonkbuffer, false)  ; can't MACPTR directly to bonk ram
+            void, cx16.r2 = cx16.MACPTR(readsize, bonkbuffer, false)  ; can't MACPTR directly to bonk ram
             cx16.rombank(bonk)
             sys.memcopy(bonkbuffer, cx16.r3, cx16.r2)   ; copy to bonk ram
             cx16.rombank(orig_rom_bank)

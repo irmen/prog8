@@ -210,11 +210,6 @@ class PtFunctionCall(val name: String,
                      val void: Boolean,
                      type: DataType,
                      position: Position) : PtExpression(type, position) {
-    init {
-        if(!void)
-            require(type!=DataType.UNDEFINED)
-    }
-
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
 }

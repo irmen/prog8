@@ -112,7 +112,11 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
                         when(returns.type) {
                             in ByteDatatypesWithBoolean -> {
-                                assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
+                                if(returns.register.registerOrPair in Cx16VirtualRegisters) {
+                                    assignVirtualRegister(tgt, returns.register.registerOrPair!!)
+                                } else {
+                                    assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
+                                }
                             }
                             in WordDatatypes -> {
                                 assignRegisterpairWord(tgt, returns.register.registerOrPair!!)

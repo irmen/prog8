@@ -1,9 +1,9 @@
 TODO
 ====
 
-remove redundant assignments in calls like this where the result registers are the same as the assigment targets:
-void, cx16.r0s, cx16.r1s = cx16.mouse_pos()
-(6502 + IR)
+return cx16.MACPTR(0, 2, true)  -> should give compiler error about number of values
+
+check docs on assign about status register in assignment  (can no longer be ignored, use void to not assign it)
 
 ...
 

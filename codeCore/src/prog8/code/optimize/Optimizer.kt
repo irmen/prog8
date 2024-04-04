@@ -1,13 +1,18 @@
 package prog8.code.optimize
 
+import prog8.code.StRomSub
+import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 
 
-fun optimizeIntermediateAst(program: PtProgram, options: CompilationOptions, errors: IErrorReporter) {
+fun optimizeIntermediateAst(program: PtProgram, options: CompilationOptions, st: SymbolTable, errors: IErrorReporter) {
     if (!options.optimize)
         return
-    while(errors.noErrors() && optimizeCommonSubExpressions(program, errors)>0) {
+    while (errors.noErrors() &&
+        (optimizeCommonSubExpressions(program, errors)
+                + optimizeAssignTargets(program, st, errors)) > 0
+    ) {
         // keep rolling
     }
 }
@@ -106,6 +111,79 @@ private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorRepor
     }
 
     return commons.size
+}
+
+
+private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable, errors: IErrorReporter): Int {
+    var changes = 0
+    walkAst(program) { node: PtNode, depth: Int ->
+        if(node is PtAssignment) {
+            val value = node.value
+            val functionName = when(value) {
+                is PtBuiltinFunctionCall -> value.name
+                is PtFunctionCall -> value.name
+                else -> null
+            }
+            if(functionName!=null) {
+                val stNode = st.lookup(functionName)
+                if (stNode is StRomSub) {
+                    require(node.children.size==stNode.returns.size+1) {
+                        "number of targets must match return values"
+                    }
+                    node.children.zip(stNode.returns).withIndex().forEach { (index, xx) ->
+                        val target = xx.first as PtAssignTarget
+                        val returnedRegister = xx.second.register.registerOrPair
+                        if(returnedRegister!=null && !target.void && target.identifier!=null) {
+                            if(isSame(target.identifier!!, xx.second.type, returnedRegister)) {
+                                // output register is already identical to target register, so it can become void
+                                val voidTarget = PtAssignTarget(true, target.position)
+                                node.children[index] = voidTarget
+                                voidTarget.parent = node
+                                changes++
+                            }
+                        }
+                    }
+                }
+                if(node.children.dropLast(1).all { (it as PtAssignTarget).void }) {
+                    // all targets are now void, the whole assignment can be discarded and replaced by just a (void) call to the subroutine
+                    val index = node.parent.children.indexOf(node)
+                    val voidCall = PtFunctionCall(functionName, true, value.type, value.position)
+                    value.children.forEach { voidCall.add(it) }
+                    node.parent.children[index] = voidCall
+                    voidCall.parent = node.parent
+                    changes++
+                }
+            }
+        }
+        true
+    }
+    return changes
+}
+
+internal fun isSame(identifier: PtIdentifier, type: DataType, returnedRegister: RegisterOrPair): Boolean {
+    if(returnedRegister in Cx16VirtualRegisters) {
+        val regname = returnedRegister.name.lowercase()
+        val identifierRegName = identifier.name.substringAfterLast('.')
+        /*
+            cx16.r?    UWORD
+            cx16.r?s   WORD
+            cx16.r?L   UBYTE
+            cx16.r?H   UBYTE
+            cx16.r?sL  BYTE
+            cx16.r?sH  BYTE
+         */
+        if(identifier.type in ByteDatatypes && type in ByteDatatypes) {
+            if(identifier.name.startsWith("cx16.$regname") && identifierRegName.startsWith(regname)) {
+                return identifierRegName.substring(2) in arrayOf("", "L", "sL")     // note: not the -H (msb) variants!
+            }
+        }
+        else if(identifier.type in WordDatatypes && type in WordDatatypes) {
+            if(identifier.name.startsWith("cx16.$regname") && identifierRegName.startsWith(regname)) {
+                return identifierRegName.substring(2) in arrayOf("", "s")
+            }
+        }
+    }
+    return false   // there are no identifiers directly corresponding to cpu registers
 }
 
 

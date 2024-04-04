@@ -579,12 +579,8 @@ internal class AstChecker(private val program: Program,
             checkMultiAssignment(assignment, fcall, fcallTarget)
         } else if(fcallTarget!=null) {
             if(fcallTarget.returntypes.size!=1) {
-                // If there are 2 return values, one of them being a boolean in a status register, this is okay.
-                // In that case the normal value is assigned and the status bit is dealth with separately for example with if_cs
-                val (returnRegisters, _) = fcallTarget.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
-                if(returnRegisters.size>1) {
-                    errors.err("multiple return values and too few assignment targets, need at least ${returnRegisters.size}", fcall.position)
-                }
+                errors.err("number of assignment targets doesn't match number of return values from the subroutine", fcall.position)
+                return
             }
         }
 
@@ -600,7 +596,7 @@ internal class AstChecker(private val program: Program,
         }
         val targets = assignment.target.multi!!
         if(fcallTarget.returntypes.size!=targets.size) {
-            errors.err("number of assignment targets doesn't match number of return values", fcall.position)
+            errors.err("number of assignment targets doesn't match number of return values from the subroutine", fcall.position)
             return
         }
         fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->

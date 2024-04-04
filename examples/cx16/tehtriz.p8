@@ -95,7 +95,8 @@ waitkey:
             ; test_stack.test()
         }
 
-        ubyte key=cbm.GETIN()
+        ubyte key
+        void, key=cbm.GETIN()
         keypress(key)
         cx16.r0,void = cx16.joystick_get(1)
         joystick(cx16.r0)
@@ -338,7 +339,7 @@ waitkey:
             cx16.r0, void = cx16.joystick_get(1)
             if cx16.r0 & %0000000000010000 == 0
                 break
-            key = cbm.GETIN()
+            void, key = cbm.GETIN()
         } until key==133
     }
 

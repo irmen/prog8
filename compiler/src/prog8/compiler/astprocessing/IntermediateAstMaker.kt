@@ -270,7 +270,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcCall: FunctionCallStatement): PtFunctionCall {
         val (target, type) = srcCall.target.targetNameAndType(program)
-        val call = PtFunctionCall(target,true, type, srcCall.position)
+        val call = PtFunctionCall(target, true, type, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call
@@ -279,7 +279,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transform(srcCall: FunctionCallExpression): PtFunctionCall {
         val (target, _) = srcCall.target.targetNameAndType(program)
         val iType = srcCall.inferType(program)
-        val call = PtFunctionCall(target, iType.isUnknown, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
+        val call = PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call

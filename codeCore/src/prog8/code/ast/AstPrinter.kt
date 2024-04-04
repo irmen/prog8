@@ -10,7 +10,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
     fun type(dt: DataType) = "!${dt.name.lowercase()}!"
     fun txt(node: PtNode): String {
         return when(node) {
-            is PtAssignTarget -> "<target>"
+            is PtAssignTarget -> if(node.void) "<void>" else "<target>"
             is PtAssignment -> "<assign>"
             is PtAugmentedAssign -> "<inplace-assign> ${node.operator}"
             is PtBreakpoint -> "%breakpoint"

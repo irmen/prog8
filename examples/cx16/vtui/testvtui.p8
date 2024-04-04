@@ -66,7 +66,8 @@ main {
         vtui.print_str2("arrow keys to move!", $61, true)
 
 char_loop:
-        ubyte char = cbm.GETIN()
+        ubyte char
+        void, char = cbm.GETIN()
         if char==0
             goto char_loop
 
