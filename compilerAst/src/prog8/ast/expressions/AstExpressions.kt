@@ -1166,22 +1166,6 @@ class FunctionCallExpression(override var target: IdentifierReference,
                 if(stmt.returntypes.size==1)
                     return InferredTypes.knownFor(stmt.returntypes[0])
 
-                // multiple return values. Can occur for asmsub routines. If there is exactly one register return value, take that.
-                val registerReturns = stmt.asmReturnvaluesRegisters.filter {it.registerOrPair != null }
-                if(registerReturns.size==1) {
-                    return when(registerReturns.single().registerOrPair!!) {
-                        RegisterOrPair.A,
-                        RegisterOrPair.X,
-                        RegisterOrPair.Y -> InferredTypes.InferredType.known(DataType.UBYTE)
-                        RegisterOrPair.AX,
-                        RegisterOrPair.AY,
-                        RegisterOrPair.XY, in Cx16VirtualRegisters -> InferredTypes.InferredType.known(DataType.UWORD)
-                        RegisterOrPair.FAC1,
-                        RegisterOrPair.FAC2 -> InferredTypes.InferredType.known(DataType.FLOAT)
-                        else -> throw FatalAstException("weird reg")
-                    }
-                }
-
                 return InferredTypes.unknown()     // has multiple return types... so not a single resulting datatype possible
             }
             else -> return InferredTypes.unknown()

@@ -114,12 +114,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 }
                 if(target.isAsmSubroutine) {
                     if(target.asmReturnvaluesRegisters.size>1) {
-                        // multiple return values will NOT work inside an expression.
-                        // they MIGHT work in a regular assignment or just a function call statement.
-                        //   EXCEPTION:
-                        // if the asmsub returns multiple values and one of them is via a status register bit (such as carry),
-                        // it *is* possible to handle them by just actually assigning the register value and
-                        // dealing with the status bit as just being that, the status bit after the call.
+                        // multiple return values will NOT work inside an expression. Use an assignment first.
                         val parent = if(call is Statement) call.parent else if(call is Expression) call.parent else null
                         if (call !is FunctionCallStatement) {
                             val checkParent =
@@ -128,8 +123,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                                 else
                                     parent
                             if (checkParent !is Assignment && checkParent !is VarDecl) {
-                                val (returnRegisters, _) = target.asmReturnvaluesRegisters.partition { rr -> rr.registerOrPair != null }
-                                if (returnRegisters.size>1) {
+                                if (target.asmReturnvaluesRegisters.size>1) {
                                     return Pair("can't use subroutine call that returns multiple return values here", call.position)
                                 }
                             }

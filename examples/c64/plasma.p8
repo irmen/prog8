@@ -32,13 +32,14 @@ main {
         uword frames = 0
         cbm.SETTIM(0,0,0)
 
-        while cbm.GETIN()==0 {
+        do {
             doplasma(SCREEN1)
             c64.VMCSB = PAGE1
             doplasma(SCREEN2)
             c64.VMCSB = PAGE2
             frames += 2
-        }
+            void, cx16.r0L = cbm.GETIN()
+        } until cx16.r0L!=0
 
         uword jiffies = cbm.RDTIM16()
 

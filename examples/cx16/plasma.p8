@@ -24,11 +24,12 @@ main {
         uword frames = 0
         cbm.SETTIM(0,0,0)
 
-        while cbm.GETIN()==0 {
+        do {
             ; sys.waitvsync()
             doplasma()
             frames ++
-        }
+            void, cx16.r0L = cbm.GETIN()
+        } until cx16.r0L!=0
 
         uword jiffies = cbm.RDTIM16()
 

@@ -130,9 +130,7 @@ internal class AstChecker(private val program: Program,
         }
         if(expectedReturnValues.size==1 && returnStmt.value!=null) {
             val valueDt = returnStmt.value!!.inferType(program)
-            if(!valueDt.isKnown) {
-                errors.err("return value type mismatch or unknown symbol", returnStmt.value!!.position)
-            } else {
+            if(valueDt.isKnown) {
                 if (expectedReturnValues[0] != valueDt.getOr(DataType.UNDEFINED)) {
                     if(valueDt istype DataType.BOOL && expectedReturnValues[0] == DataType.UBYTE) {
                         // if the return value is a bool and the return type is ubyte, allow this. But give a warning.

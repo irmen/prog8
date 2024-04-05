@@ -1,3 +1,4 @@
+%import diskio
 %import textio
 %import mcf
 
@@ -9,7 +10,7 @@ main {
         uword duration
         ubyte[256] bonkbuffer
 
-        ;; diskio.fastmode(1)
+        ;;diskio.fastmode(1)
         set_screen()
         cbm.SETTIM(0,0,0)
 

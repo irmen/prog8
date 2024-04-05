@@ -1,7 +1,7 @@
 TODO
 ====
 
-return cx16.MACPTR(0, 2, true)  -> should give compiler error about number of values
+add unit test for what's now in test.p8 (multi assign stuff)
 
 check docs on assign about status register in assignment  (can no longer be ignored, use void to not assign it)
 

@@ -192,10 +192,15 @@ processchunk_call           jsr  $ffff      ; modified
     }
 
     sub readblock(uword size, uword address, bool dontAdvance) -> uword {
-        if msb(size)>=2
-            return cx16.MACPTR(0, address, dontAdvance)         ; read 512 bytes
-        if msb(size)!=0
-            return cx16.MACPTR(255, address, dontAdvance)       ; read 255 bytes
-        return cx16.MACPTR(lsb(size), address, dontAdvance)     ; read remaining number of bytes
+        if msb(size)>=2 {
+            void, cx16.r0 = cx16.MACPTR(0, address, dontAdvance)         ; read 512 bytes
+            return cx16.r0
+        }
+        if msb(size)!=0 {
+            void, cx16.r0 = cx16.MACPTR(255, address, dontAdvance)       ; read 255 bytes
+            return cx16.r0
+        }
+        void, cx16.r0 = cx16.MACPTR(lsb(size), address, dontAdvance)     ; read remaining number of bytes
+        return cx16.r0
     }
 }

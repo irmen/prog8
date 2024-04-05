@@ -15,11 +15,5 @@ main {
         void, cx16.r2, cx16.r1 = func2()
         cx16.r0L = func3()
         cx16.r0H = func3()
-
-        cx16.r0 = readblock()
-    }
-
-    sub readblock() -> uword {
-        return cx16.MACPTR(0, 2, true)         ; TODO compiler error (number of return values)
     }
 }
