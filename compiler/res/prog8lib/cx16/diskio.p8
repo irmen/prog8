@@ -32,8 +32,9 @@ diskio {
         cbm.CHKOUT(WRITE_IO_CHANNEL)
     }
 
-    sub fastmode(ubyte mode) {
-        ; -- set fast serial mode (0=none, 1=auto_tx, 2=fast writes, 3=both) for the SD card
+    sub fastmode(ubyte mode) -> bool {
+        ; -- set fast serial mode (0=none, 1=auto_tx, 2=fast writes, 3=both) for the SD card.
+        ;    Returns success status (fails on emulator host fs for example)
         list_filename[0] = 'u'
         list_filename[1] = '0'
         list_filename[2] = '>'
@@ -41,6 +42,7 @@ diskio {
         list_filename[4] = mode | $30
         list_filename[5] = 0
         send_command(list_filename)
+        return status_code()==0
     }
 
     sub directory() -> bool {

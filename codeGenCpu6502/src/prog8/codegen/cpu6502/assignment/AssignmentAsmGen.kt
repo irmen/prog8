@@ -1454,6 +1454,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     in ByteDatatypes -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
                         asmgen.out("""
+                            cmp  #0
                             beq  +
                             lda  #1
 +                           eor  #1""")
