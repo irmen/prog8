@@ -32,11 +32,15 @@ private var tempVarCounter = 0
 private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorReporter): Int {
 
     fun extractableSubExpr(expr: PtExpression): Boolean {
+        if(expr is PtArrayIndexer && expr.index.isSimple())
+            return false
+        if (expr is PtMemoryByte && expr.address.isSimple())
+            return false
+
         val result = if(expr is PtBinaryExpression)
             expr.type !in ByteDatatypes ||
-                    !expr.left.isSimple() ||
-                    !expr.right.isSimple() ||
-                    (expr.operator !in LogicalOperators && expr.operator !in BitwiseOperators)
+            !(expr.left.isSimple() && expr.right.isSimple()) ||
+            (expr.operator !in LogicalOperators && expr.operator !in BitwiseOperators)
         else if (expr is PtArrayIndexer && expr.type !in ByteDatatypes)
             true
         else

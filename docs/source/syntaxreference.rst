@@ -672,9 +672,9 @@ Multiple return values
 Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
 (referencing an external routine in ROM or elsewhere in memory) can return more than one return value.
-For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers.
-In these cases, it is possible to do a "multi assign" where the multiple return values of the subroutine call,
-are all assigned to individual assignment targets. You simply write them as a comma separated list,
+For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers and some more values in R0 and R1.
+In all of these cases, you have to "multi assign" all return values of the subroutine call to something.
+You simply write the assignment targets as a comma separated list,
 where the element's order corresponds to the order of the return values declared in the subroutine's signature.
 So for instance::
 
@@ -686,6 +686,14 @@ So for instance::
 
     asmsub multisub() -> uword @AY, bool @Pc, ubyte @X { ... }
 
+.. sidebar:: Using just one of the values
+
+    Sometimes it is easier to just have a single return value in the subroutine's signagure (even though it
+    actually may return multiple values): this avoids having to put ``void`` for all other values.
+    It also allows it to be called in expressions such as if-statements again.
+    Examples of these second 'convenience' definition are library routines such as ``cbm.STOP2`` and ``cbm.GETIN2``,
+    that only return a single value where the "official" versions ``STOP`` and ``GETIN`` always return multiple values.
+
 **Skipping values:** you are allowed to omit assignments of one or more values by putting ``void`` as the assignment target.
 One of the cases where this is useful is with boolean values returned in status flags such as the carry flag.
 Storing that flag as a boolean in a variable first, and then possibly adding an ``if flag...`` statement afterwards, is a lot less
@@ -693,6 +701,12 @@ efficient than just keeping the flag as-is and using a conditional branch such a
 So in the case above that could be::
 
     wordvar, void, bytevar = multisub()
+    if_cs
+        something()
+
+Notice that a call to a subroutine that returns multiple values cannot be used inside an expression,
+because expression terms always need to be a single value. You'll have to use a separate multi-assignment
+first and then use the result of that in the expression. However, also read the sidebar about a possible alternative.
 
 
 Subroutine definitions

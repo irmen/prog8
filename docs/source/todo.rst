@@ -1,8 +1,6 @@
 TODO
 ====
 
-check docs on assign about status register in assignment  (can no longer be ignored, use void to not assign it)
-
 ...
 
 
