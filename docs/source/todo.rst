@@ -1,7 +1,10 @@
 TODO
 ====
 
-add unit test for what's now in test.p8 (multi assign stuff)
+imageviewer is a lot larger now?
+
+fix compiler crash for assembler: unknown identifier [PtIdentifier:parser.proces_directive_str.prog8_subexprvar_1 UBYTE [src/assembler.p8: line 875 col 29-29]]
+fix similar crash for petaxian
 
 check docs on assign about status register in assignment  (can no longer be ignored, use void to not assign it)
 

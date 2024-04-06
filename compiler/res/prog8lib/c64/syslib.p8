@@ -94,13 +94,31 @@ romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> bool @Pc, ubyte @ A
 romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> bool @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
 romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
 romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
-romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)
-romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A    ; (via 810 ($32A)) get a character
+romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)     also see STOP2
+romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A    ; (via 810 ($32A)) get a character       also see GETIN2
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
 romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of screen rows and columns
 romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
+
+
+inline asmsub STOP2() clobbers(X,A) -> bool @Pz  {
+    ; -- just like STOP, but omits the special keys result value in A.
+    ;    just for convenience because most of the times you're only interested in the stop pressed or not status.
+    %asm {{
+        jsr  cbm.STOP
+    }}
+}
+
+inline asmsub GETIN2() clobbers(X,Y) -> ubyte @A {
+    ; -- just like GETIN, but omits the carry flag result value.
+    ;    just for convenience because GETIN is so often used to just read keyboard input,
+    ;    where you don't have to deal with a potential error status
+    %asm {{
+        jsr  cbm.GETIN
+    }}
+}
 
 asmsub RDTIM16() clobbers(X) -> uword @AY {
     ; --  like RDTIM() but only returning the lower 16 bits in AY for convenience

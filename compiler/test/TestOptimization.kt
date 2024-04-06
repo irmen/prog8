@@ -12,6 +12,9 @@ import prog8.ast.ParentSentinel
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.ast.PtAssignTarget
+import prog8.code.ast.PtAssignment
+import prog8.code.ast.PtFunctionCall
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -971,5 +974,60 @@ main {
         (right1.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_read")
         (right2.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_read")
         (right3.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_read")
+    }
+
+    test("eliminate same target register assignments") {
+        val src="""
+%zeropage basicsafe
+%option no_sysinit
+
+main {
+    romsub ${'$'}2000 = func1() clobbers(X) -> ubyte @A, word @R0, byte @R1
+    romsub ${'$'}3000 = func2() clobbers(X) -> ubyte @A, uword @R0, uword @R1
+    romsub ${'$'}4000 = func3() clobbers(X) -> ubyte @R0
+
+    sub start() {
+        bool flag
+        void cbm.GETIN()
+        flag, cx16.r1L = cbm.GETIN()
+        void, cx16.r0s, cx16.r1sL = func1()
+        void, cx16.r2, cx16.r1 = func2()
+        cx16.r0L = func3()
+        cx16.r0H = func3()
+    }
+}"""
+        val result = compileText(C64Target(), true, src, writeAssembly = true)!!
+        val st = result.codegenAst!!.entrypoint()!!.children
+        st.size shouldBe 9
+        (st[2] as PtFunctionCall).name shouldBe "cbm.GETIN"
+        (st[2] as PtFunctionCall).void shouldBe true
+        val a1 = st[3] as PtAssignment
+        (a1.value as PtFunctionCall).name shouldBe "cbm.GETIN"
+        a1.multiTarget shouldBe true
+        a1.children.size shouldBe 3
+        (a1.children[0] as PtAssignTarget).void shouldBe false
+        (a1.children[0] as PtAssignTarget).identifier!!.name shouldBe "p8b_main.p8s_start.p8v_flag"
+        (a1.children[1] as PtAssignTarget).void shouldBe false
+        (a1.children[1] as PtAssignTarget).identifier!!.name shouldBe "cx16.r1L"
+
+        (st[4] as PtFunctionCall).name shouldBe "p8b_main.p8s_func1"
+        (st[4] as PtFunctionCall).void shouldBe true
+        val a2 = st[5] as PtAssignment
+        (a2.value as PtFunctionCall).name shouldBe "p8b_main.p8s_func2"
+        a2.multiTarget shouldBe true
+        a2.children.size shouldBe 4
+        (a2.children[0] as PtAssignTarget).void shouldBe true
+        (a2.children[1] as PtAssignTarget).void shouldBe false
+        (a2.children[1] as PtAssignTarget).identifier!!.name shouldBe "cx16.r2"
+        (a2.children[2] as PtAssignTarget).void shouldBe true
+
+        (st[6] as PtFunctionCall).name shouldBe "p8b_main.p8s_func3"
+        (st[6] as PtFunctionCall).void shouldBe true
+        val a3 = st[7] as PtAssignment
+        (a3.value as PtFunctionCall).name shouldBe "p8b_main.p8s_func3"
+        a3.multiTarget shouldBe false
+        a3.children.size shouldBe 2
+        (a3.children[0] as PtAssignTarget).void shouldBe false
+        (a3.children[0] as PtAssignTarget).identifier!!.name shouldBe "cx16.r0H"
     }
 })

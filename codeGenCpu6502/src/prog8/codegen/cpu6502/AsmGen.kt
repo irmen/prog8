@@ -66,7 +66,7 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                     if(node.type in SplitWordArrayTypes && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
                         lookupName = lookupName.dropLast(4)
                     }
-                    val stNode = st.lookup(lookupName)!!
+                    val stNode = st.lookup(lookupName) ?: throw AssemblyError("unknown identifier $node")
                     if(stNode.astNode.definingBlock()?.options?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
                         nodesToPrefix += node.parent to index
