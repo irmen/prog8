@@ -694,8 +694,9 @@ So for instance::
     Examples of these second 'convenience' definition are library routines such as ``cbm.STOP2`` and ``cbm.GETIN2``,
     that only return a single value where the "official" versions ``STOP`` and ``GETIN`` always return multiple values.
 
-**Skipping values:** you are allowed to omit assignments of one or more values by putting ``void`` as the assignment target.
-One of the cases where this is useful is with boolean values returned in status flags such as the carry flag.
+**Skipping values:** Instead of using ``void`` to ignore the result of a subroutine call altogether,
+you can also use it as a placeholder name in a multi-assignment. This skips assignment of the return value in that place.
+One of the cases where this is useful, is with boolean values returned in status flags such as the carry flag.
 Storing that flag as a boolean in a variable first, and then possibly adding an ``if flag...`` statement afterwards, is a lot less
 efficient than just keeping the flag as-is and using a conditional branch such as ``if_cs`` to do something with it.
 So in the case above that could be::
