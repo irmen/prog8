@@ -1030,4 +1030,21 @@ main {
         (a3.children[0] as PtAssignTarget).void shouldBe false
         (a3.children[0] as PtAssignTarget).identifier!!.name shouldBe "cx16.r0H"
     }
+
+    test("symbol table correct in asmgen after earlier optimization steps") {
+        val src="""
+main {
+    sub start() {
+        uword @shared bulletRef, enemyRef
+        const ubyte BD_Y = 10
+        const ubyte EN_Y = 11
+
+        if bulletRef[BD_Y] == enemyRef[EN_Y] or bulletRef[BD_Y] == enemyRef[EN_Y] + 1 {
+            cx16.r0++
+        }
+    }
+}"""
+        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
 })

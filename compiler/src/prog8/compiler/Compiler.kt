@@ -8,7 +8,6 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.printProgram
 import prog8.ast.statements.Directive
-import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
 import prog8.code.ast.printAst
@@ -148,7 +147,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     println("*********** INTERMEDIATE AST END *************\n")
                 }
 
-                if(!createAssemblyAndAssemble(intermediateAst, symbolTable, args.errors, compilationOptions)) {
+                if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")
                     return null
                 }
@@ -469,7 +468,6 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
 }
 
 private fun createAssemblyAndAssemble(program: PtProgram,
-                                      symbolTable: SymbolTable,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions
 ): Boolean {
@@ -482,6 +480,10 @@ private fun createAssemblyAndAssemble(program: PtProgram,
         VmCodeGen()
     else
         throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.machine.cpu}")
+
+    // need to make a new symboltable here to capture possible changes made by optimization steps performed earlier!
+    val stMaker = SymbolTableMaker(program, compilerOptions)
+    val symbolTable = stMaker.make()
 
     val assembly = asmgen.generate(program, symbolTable, compilerOptions, errors)
     errors.report()
