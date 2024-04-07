@@ -1,19 +1,28 @@
+%import textio
+%import verafx
 %zeropage basicsafe
 %option no_sysinit
 
 main {
-    romsub $2000 = func1() clobbers(X) -> ubyte @A, word @R0, byte @R1
-    romsub $3000 = func2() clobbers(X) -> ubyte @A, uword @R0, uword @R1
-    romsub $4000 = func3() clobbers(X) -> ubyte @R0
-
     sub start() {
-        bool flag
-        void cbm.GETIN()
-        flag, cx16.r1L = cbm.GETIN()
+        uword result, resulthi
+        result, resulthi = verafx.mult(9344, 6522)
+        txt.print_uwhex(resulthi, true)
+        txt.spc()
+        txt.print_uwhex(result, false)
+        txt.nl()
 
-        void, cx16.r0s, cx16.r1sL = func1()
-        void, cx16.r2, cx16.r1 = func2()
-        cx16.r0L = func3()
-        cx16.r0H = func3()
+        word sresult, sresulthi
+        sresult, sresulthi = verafx.muls(9344, -6522)
+        txt.print_w(sresulthi)
+        txt.spc()
+        txt.print_w(sresult)
+        txt.nl()
+
+        sresult, sresulthi = verafx.muls(144, -22)
+        txt.print_w(sresulthi)
+        txt.spc()
+        txt.print_w(sresult)
+        txt.nl()
     }
 }

@@ -1,11 +1,9 @@
 TODO
 ====
 
-fix routines such as mult in verafx to return both 16-bit words of the result.
-
 ubyte x,y   compiles to more code than  ubyte x + ubyte y
 
-can we make ubyte x,y = cbm.SCREEN() work?
+can we make ubyte x,y = cbm.SCREEN() work?  (sugar for  ubyte x,y //  x,y=cbm.SCREEN() ?)
 
 ...
 
