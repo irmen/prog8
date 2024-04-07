@@ -307,7 +307,7 @@ class VarDecl(val type: VarDeclType,
                 this.arraysize?.referencesIdentifier(nameInSource)==true
 
     fun desugarMultiDecl(): List<VarDecl> {
-        if(value?.isSimple==true) {
+        if(value==null || value?.isSimple==true) {
             // just copy the initialization value to a separata vardecl for each component
             return names.map {
                 val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),

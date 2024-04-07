@@ -549,5 +549,46 @@ main {
         tc.type shouldBe DataType.UBYTE
         tc.expression shouldBe instanceOf<ArrayIndexedExpression>()
     }
+
+    test("multi vardecls smart desugaring") {
+        val src="""
+main {
+    sub start() {
+        ubyte @shared x,y,z
+        ubyte @shared k,l,m = 42
+        uword @shared r,s,t = sys.progend()
+    }
+}"""
+        val result = compileText(Cx16Target(), optimize=true, src, writeAssembly=false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 18
+        st[0] shouldBe instanceOf<VarDecl>()    // x
+        st[2] shouldBe instanceOf<VarDecl>()    // y
+        st[4] shouldBe instanceOf<VarDecl>()    // z
+        st[6] shouldBe instanceOf<VarDecl>()    // k
+        st[8] shouldBe instanceOf<VarDecl>()    // l
+        st[10] shouldBe instanceOf<VarDecl>()    // m
+        st[12] shouldBe instanceOf<VarDecl>()    // r
+        st[14] shouldBe instanceOf<VarDecl>()    // s
+        st[16] shouldBe instanceOf<VarDecl>()    // t
+        val valX = (st[1] as Assignment).value
+        (valX as NumericLiteral).number shouldBe 0.0
+        val valY = (st[3] as Assignment).value
+        (valY as NumericLiteral).number shouldBe 0.0
+        val valZ = (st[5] as Assignment).value
+        (valZ as NumericLiteral).number shouldBe 0.0
+        val valK = (st[7] as Assignment).value
+        (valK as NumericLiteral).number shouldBe 42.0
+        val valL = (st[9] as Assignment).value
+        (valL as NumericLiteral).number shouldBe 42.0
+        val valM = (st[11] as Assignment).value
+        (valM as NumericLiteral).number shouldBe 42.0
+        val valR = (st[13] as Assignment).value
+        (valR as FunctionCallExpression).target.nameInSource shouldBe listOf("sys", "progend")
+        val valS = (st[15] as Assignment).value
+        (valS as IdentifierReference).nameInSource shouldBe listOf("r")
+        val valT = (st[17] as Assignment).value
+        (valT as IdentifierReference).nameInSource shouldBe listOf("r")
+    }
 })
 
