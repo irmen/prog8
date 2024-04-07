@@ -28,6 +28,10 @@ sub  clear_screen() {
     }}
 }
 
+sub cls() {
+    clear_screen()
+}
+
 sub nl() {
     chrout('\n')
 }

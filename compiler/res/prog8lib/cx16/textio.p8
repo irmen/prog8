@@ -23,6 +23,10 @@ sub clear_screen() {
     chrout(147)
 }
 
+sub cls() {
+    chrout(147)
+}
+
 sub home() {
     chrout(19)
 }
@@ -225,8 +229,8 @@ sub uppercase() {
 }
 
 sub iso() {
+    ; -- switch to iso-8859-15 character set
     cbm.CHROUT($0f)
-    ; This doesn't enable it completely: cx16.screen_set_charset(1, 0)  ; iso charset
 }
 
 sub iso_off() {
@@ -234,6 +238,29 @@ sub iso_off() {
     cbm.CHROUT($8f)
 }
 
+sub cp437() {
+    ; -- switch to CP-437 (ibm PC) character set
+    cbm.CHROUT($0f)                 ; iso mode
+    cx16.screen_set_charset(7, 0)   ; charset
+    %asm {{
+        clc
+        ldx  #95        ; underscore
+        lda  #cx16.EXTAPI_iso_cursor_char
+        jsr  cx16.extapi
+    }}
+}
+
+sub iso5() {
+    ; -- switch to iso-8859-5 character set (Cyrillic)
+    cbm.CHROUT($0f)                 ; iso mode
+    cx16.screen_set_charset(8, 0)   ; charset
+}
+
+sub iso16() {
+    ; -- switch to iso-8859-16 character set (Eastern Europe)
+    cbm.CHROUT($0f)                 ; iso mode
+    cx16.screen_set_charset(10, 0)  ; charset
+}
 
 asmsub  scroll_left() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character to the left
@@ -604,4 +631,35 @@ asmsub waitkey() -> ubyte @A {
         rts
     }}
 }
+
+asmsub chrout_lit(ubyte character @A) {
+    ; -- print the character always as a literal character, not as possible control code.
+    %asm {{
+        tax
+        lda  #128
+        jsr  cbm.CHROUT
+        txa
+        jmp  cbm.CHROUT
+    }}
+}
+
+asmsub print_lit(str text @ AY) clobbers(A,Y)  {
+    ; -- print zero terminated string, from A/Y, as all literal characters (no control codes)
+    %asm {{
+        sta  P8ZP_SCRATCH_W2
+        sty  P8ZP_SCRATCH_W2+1
+        ldy  #0
+-       lda  (P8ZP_SCRATCH_W2),y
+        beq  +
+        tax
+        lda  #128
+        jsr  cbm.CHROUT
+        txa
+        jsr  cbm.CHROUT
+        iny
+        bne  -
++       rts
+    }}
+}
+
 }

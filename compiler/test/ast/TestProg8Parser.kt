@@ -20,7 +20,7 @@ import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
-import prog8.code.target.cbm.PetsciiEncoding
+import prog8.code.target.encodings.PetsciiEncoding
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.*

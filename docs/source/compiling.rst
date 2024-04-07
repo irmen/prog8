@@ -371,13 +371,14 @@ dedicated to Prog8. Other than that, use the issue tracker on github.
 Examples
 --------
 
-A couple of example programs can be found in the 'examples' directory of the source tree.
-Make sure you have installed the :ref:`requirements`. Then, for instance,
-to compile and run the Commodore 64 rasterbars example program, use this command::
+A bunch of example programs can be found in the 'examples' directory of the source tree.
+There are cross-platform examples that can be compiled for various systems unaltered,
+and there are also examples specific to certain computers (C64, X16, etcetera).
+So for instance, to compile and run the Commodore 64 rasterbars example program, use this command::
 
-    $ java -jar prog8compiler.jar -target c64 -emu examples/rasterbars.p8
+    $ java -jar prog8compiler.jar -target c64 -emu examples/c64/rasterbars.p8
 
 or::
 
-    $ /path/to/p8compile -target c64 -emu examples/rasterbars.p8
+    $ /path/to/p8compile -target c64 -emu examples/c64/rasterbars.p8
 

@@ -115,6 +115,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "bdmusic",
             "bobs",
             "bubbleuniverse",
+            "charsets",
             "circles",
             "cobramk3-gfx",
             "colorbars",

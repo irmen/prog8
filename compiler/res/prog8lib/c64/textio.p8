@@ -19,6 +19,10 @@ sub  clear_screen() {
     chrout(147)
 }
 
+sub  cls() {
+    chrout(147)
+}
+
 sub home() {
     chrout(19)
 }

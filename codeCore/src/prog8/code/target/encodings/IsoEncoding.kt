@@ -1,4 +1,4 @@
-package prog8.code.target.cbm
+package prog8.code.target.encodings
 
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
@@ -6,8 +6,8 @@ import com.github.michaelbull.result.Result
 import java.io.CharConversionException
 import java.nio.charset.Charset
 
-object IsoEncoding {
-    val charset: Charset = Charset.forName("ISO-8859-15")
+open class IsoEncodingBase(charsetName: String) {
+    val charset: Charset = Charset.forName(charsetName)
 
     fun encode(str: String): Result<List<UByte>, CharConversionException> {
         return try {
@@ -35,3 +35,8 @@ object IsoEncoding {
         }
     }
 }
+
+
+object IsoEncoding: IsoEncodingBase("ISO-8859-15")
+object IsoCyrillicEncoding: IsoEncodingBase("ISO-8859-5")
+object IsoEasternEncoding: IsoEncodingBase("ISO-8859-16")

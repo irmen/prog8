@@ -4,15 +4,15 @@ txt {
     %option merge, no_symbol_prefixing, ignore_unused
 
     asmsub  print (str text @ AY) clobbers(A,Y)  {
-    	; ---- print null terminated string, in PETSCII encoding, from A/Y
+    	; ---- print zero terminated string, in PETSCII encoding, from A/Y
     	; note: the compiler contains an optimization that will replace
     	;       a call to this subroutine with a string argument of just one char,
     	;       by just one call to cbm.CHROUT of that single char.
     	%asm {{
-    		sta  P8ZP_SCRATCH_B1
-    		sty  P8ZP_SCRATCH_REG
+    		sta  P8ZP_SCRATCH_W2
+    		sty  P8ZP_SCRATCH_W2+1
     		ldy  #0
--	    	lda  (P8ZP_SCRATCH_B1),y
+-	    	lda  (P8ZP_SCRATCH_W2),y
     		beq  +
     		jsr  cbm.CHROUT
     		iny

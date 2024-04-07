@@ -1,4 +1,4 @@
-package prog8.code.target.cbm
+package prog8.code.target.encodings
 
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok

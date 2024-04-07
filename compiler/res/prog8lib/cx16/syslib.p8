@@ -47,7 +47,7 @@ romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; (via 808 ($328
 romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; (via 810 ($32A)) get a character      also see GETIN2
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
 romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
-romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of screen rows and columns
+romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; get size of text screen into X (columns) and Y (rows)
 romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Also see txt.plot
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
@@ -567,8 +567,7 @@ asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) -> bool @Pc {
 }
 
 asmsub get_screen_mode() -> ubyte @A, ubyte @X, ubyte @Y {
-    ; -- convenience wrapper for screen_mode() to just get the current mode in A, and size in characters in X+Y
-    ;    this does need a piece of inlined asm to call it ans store the result values if you call this from prog8 code
+    ; -- convenience wrapper for screen_mode() to just get the current mode in A, and size in characters in X (width) and Y (height)
     ;    Note: you can also just do the SEC yourself and simply call screen_mode() directly,
     ;          or use the existing SCREEN kernal routine for just getting the size in characters.
     %asm {{

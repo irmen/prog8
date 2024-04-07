@@ -4,9 +4,7 @@ import com.github.michaelbull.result.fold
 import prog8.code.core.Encoding
 import prog8.code.core.IStringEncoding
 import prog8.code.core.InternalCompilerException
-import prog8.code.target.cbm.AtasciiEncoding
-import prog8.code.target.cbm.IsoEncoding
-import prog8.code.target.cbm.PetsciiEncoding
+import prog8.code.target.encodings.*
 
 
 object Encoder: IStringEncoding {
@@ -18,6 +16,9 @@ object Encoder: IStringEncoding {
             Encoding.SCREENCODES -> PetsciiEncoding.encodeScreencode(str, true)
             Encoding.ISO -> IsoEncoding.encode(str)
             Encoding.ATASCII -> AtasciiEncoding.encode(str)
+            Encoding.ISO5 -> IsoCyrillicEncoding.encode(str)
+            Encoding.ISO16 -> IsoEasternEncoding.encode(str)
+            Encoding.CP437 -> Cp437Encoding.encode(str)
             else -> throw InternalCompilerException("unsupported encoding $encoding")
         }
         return coded.fold(
@@ -31,6 +32,9 @@ object Encoder: IStringEncoding {
             Encoding.SCREENCODES -> PetsciiEncoding.decodeScreencode(bytes, true)
             Encoding.ISO -> IsoEncoding.decode(bytes)
             Encoding.ATASCII -> AtasciiEncoding.decode(bytes)
+            Encoding.ISO5 -> IsoCyrillicEncoding.decode(bytes)
+            Encoding.ISO16 -> IsoEasternEncoding.decode(bytes)
+            Encoding.CP437 -> Cp437Encoding.decode(bytes)
             else -> throw InternalCompilerException("unsupported encoding $encoding")
         }
         return decoded.fold(

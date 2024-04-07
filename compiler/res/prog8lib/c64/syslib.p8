@@ -94,11 +94,11 @@ romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> bool @Pc, ubyte @ A
 romsub $FFD8 = SAVE(ubyte zp_startaddr @ A, uword endaddr @ XY) -> bool @ Pc, ubyte @ A          ; (via 818 ($332)) save to a device
 romsub $FFDB = SETTIM(ubyte low @ A, ubyte middle @ X, ubyte high @ Y)      ; set the software clock
 romsub $FFDE = RDTIM() -> ubyte @ A, ubyte @ X, ubyte @ Y       ; read the software clock (A=lo,X=mid,Y=high)
-romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A      ; (via 808 ($328)) check the STOP key (and some others in A)     also see STOP2
-romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A    ; (via 810 ($32A)) get a character       also see GETIN2
+romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; (via 808 ($328)) check the STOP key (and some others in A)     also see STOP2
+romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; (via 810 ($32A)) get a character       also see GETIN2
 romsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
 romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
-romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; read number of screen rows and columns
+romsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; get size of text screen into X (columns) and Y (rows)
 romsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
 romsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
