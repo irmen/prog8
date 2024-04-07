@@ -14,6 +14,7 @@ object Cp437Encoding {
             val mapped = str.map { chr ->
                 when (chr) {
                     '\u0000' -> 0u
+                    '\u00a0' -> 255u
                     '☺' -> 1u
                     '☻' -> 2u
                     '♥' -> 3u

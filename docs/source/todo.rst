@@ -1,8 +1,6 @@
 TODO
 ====
 
-change meaning of sprite module's palette offset parameter to 0-15
-
 fix routines such as mult in verafx to return both 16-bit words of the result.
 
 ubyte x,y   compiles to more code than  ubyte x + ubyte y

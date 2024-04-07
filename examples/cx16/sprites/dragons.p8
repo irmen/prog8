@@ -10,7 +10,7 @@ main {
     ; we choose arbitrary unused vram location for sprite data: $12000
     const ubyte SPRITE_DATA_BANK = 1
     const uword SPRITE_DATA_ADDR = $2000
-    const ubyte SPRITE_PALETTE_OFFSET_IDX = 16
+    const ubyte SPRITE_PALETTE_OFFSET = 1      ; sprite palette at color index 16
 
     const ubyte NUM_DRAGONS = 25
     word[NUM_DRAGONS*2] xpositions
@@ -22,13 +22,13 @@ main {
 
         ; load the sprite data and color palette directly into Vera ram
         void diskio.vload_raw("dragonsprite.bin", SPRITE_DATA_BANK, SPRITE_DATA_ADDR)
-        void diskio.vload_raw("dragonsprite.pal", 1, $fa00 + SPRITE_PALETTE_OFFSET_IDX*2)
+        void diskio.vload_raw("dragonsprite.pal", 1, $fa00 + SPRITE_PALETTE_OFFSET*16*2)
 
         ; initialize the dragon sprites (every dragon needs 2 sprites, top and bottom half)
         ubyte sprite_num
         for sprite_num in 0 to NUM_DRAGONS*2-2 step 2 {
-            sprites.init(sprite_num+1, SPRITE_DATA_BANK, SPRITE_DATA_ADDR, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET_IDX)
-            sprites.init(sprite_num+2, SPRITE_DATA_BANK, SPRITE_DATA_ADDR + 64*64/2, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET_IDX)
+            sprites.init(sprite_num+1, SPRITE_DATA_BANK, SPRITE_DATA_ADDR, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
+            sprites.init(sprite_num+2, SPRITE_DATA_BANK, SPRITE_DATA_ADDR + 64*64/2, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
 
             xpositions[sprite_num] = math.rndw() % (640-64) as word
             xpositions[sprite_num+1] = xpositions[sprite_num]

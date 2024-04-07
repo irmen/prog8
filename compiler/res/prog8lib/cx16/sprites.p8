@@ -5,6 +5,7 @@
 
 ; note: sprites z-order will be in front of all layers.
 ; note: collision mask is not supported here yet.
+; note: "palette offset" is counted as 0-15  (vera multiplies the offset by 16 to get at the actual color index)
 
 sprites {
     %option ignore_unused
@@ -21,7 +22,7 @@ sprites {
     sub init(ubyte spritenum,
              ubyte databank, uword dataaddr,
              ubyte width_flag, ubyte height_flag,
-             ubyte colors_flag, ubyte palette_offset_idx) {
+             ubyte colors_flag, ubyte palette_offset) {
         hide(spritenum)
         cx16.VERA_DC_VIDEO |= %01000000             ; enable sprites globally
         dataaddr >>= 5
@@ -30,7 +31,7 @@ sprites {
         cx16.vpoke(1, sprite_reg, lsb(dataaddr))                    ; address 12:5
         cx16.vpoke(1, sprite_reg+1, colors_flag | msb(dataaddr))    ; 4 bpp + address 16:13
         cx16.vpoke(1, sprite_reg+6, %00001100)                      ; z depth %11 = in front of both layers, no flips
-        cx16.vpoke(1, sprite_reg+7, height_flag<<6 | width_flag<<4 | palette_offset_idx>>4) ; 64x64 pixels, palette offset
+        cx16.vpoke(1, sprite_reg+7, height_flag<<6 | width_flag<<4 | palette_offset&15) ; 64x64 pixels, palette offset
     }
 
     sub data(ubyte spritenum, ubyte bank, uword addr) {
@@ -143,7 +144,7 @@ sprites {
     }
 
     sub set_palette_offset(ubyte spritenum, ubyte offset) {
-        cx16.vpoke_mask(1, VERA_SPRITEREGS + 7 + spritenum*$0008, %11110000, offset>>4)
+        cx16.vpoke_mask(1, VERA_SPRITEREGS + 7 + spritenum*$0008, %11110000, offset&15)
     }
 
     sub set_mousepointer_hand() {
