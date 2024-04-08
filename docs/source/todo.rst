@@ -1,8 +1,6 @@
 TODO
 ====
 
-can we make ubyte x,y = cbm.SCREEN() work?  (sugar for  ubyte x,y //  x,y=cbm.SCREEN() ?)
-
 ...
 
 

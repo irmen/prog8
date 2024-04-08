@@ -4,8 +4,12 @@
 
 main {
     sub start() {
-        ubyte @shared x,y,z
-        ubyte @shared k,l,m = 42
-        uword @shared r,s,t = sys.progend()
+        ubyte @shared x,y = multi()
+    }
+
+    asmsub multi() -> ubyte @A, ubyte @Y {
+        %asm {{
+            rts
+        }}
     }
 }

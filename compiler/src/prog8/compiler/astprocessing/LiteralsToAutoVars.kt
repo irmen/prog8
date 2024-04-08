@@ -74,6 +74,13 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.names.size>1) {
+
+            val fcallTarget = (decl.value as? IFunctionCall)?.target?.targetSubroutine(program)
+            if(fcallTarget!=null && fcallTarget.returntypes.size>1) {
+                errors.err("ambiguous multi-variable initialization. Use separate variable declaration and assignment(s) instead.", decl.value!!.position)
+                return noModifications
+            }
+
             // note: the desugaring of a multi-variable vardecl has to be done here
             // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
             if(decl.datatype !in NumericDatatypesWithBoolean)
