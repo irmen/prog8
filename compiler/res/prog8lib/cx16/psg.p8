@@ -48,7 +48,7 @@ psg {
     sub freq(ubyte voice_num, uword vera_freq) {
         ; -- Changes the frequency of the voice's sound.
         ;    voice_num = 0-15,  vera_freq = 0-65535  calculate this via the formula given in the Vera's PSG documentation.
-        ;    (https://github.com/x16community/x16-docs/blob/master/VERA%20Programmer's%20Reference.md)
+        ;    (https://github.com/X16Community/x16-docs/blob/101759f3bfa5e6cce4e8c5a0b67cb0f2f1c6341e/X16%20Reference%20-%2009%20-%20VERA%20Programmer's%20Reference.md)
         ;    Write freq MSB first and then LSB to reduce the chance on clicks
         sys.irqsafe_set_irqd()
         cx16.r0 = $f9c1 + voice_num * 4

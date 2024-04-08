@@ -1,6 +1,6 @@
 ; Somewhat experimental Vera FX support.
 ; Docs:
-; https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2010%20-%20VERA%20FX%20Reference.md
+; https://github.com/X16Community/x16-docs/blob/101759f3bfa5e6cce4e8c5a0b67cb0f2f1c6341e/X16%20Reference%20-%2010%20-%20VERA%20FX%20Reference.md
 ; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg
 
 verafx {

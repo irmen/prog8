@@ -1,5 +1,5 @@
 ; Emulator debug interface. (reflecting the Commander X16 emudbg library module)
-; Docs: https://github.com/X16Community/x16-emulator#emulator-io-registers
+; Docs: https://github.com/X16Community/x16-emulator/tree/d52f118ce893fa24c4ca021a0b8de46cb80e5ccf#emulator-io-registers
 
 %import textio
 
