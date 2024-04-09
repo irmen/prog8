@@ -260,6 +260,13 @@ One or more .p8 module files
     put memory() slabs in 'golden ram' memory area instead of at the end of the program.
     On the cx16 target this is $0400-07ff. This is unavailable on other systems.
 
+``-bytes2float <bytes>``
+    convert a comma separated list of bytes from the target system to a float value.
+    NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
+
+``-float2bytes <number>``
+    convert floating point number to a list of bytes for the target system.
+    NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
 
 
 Module source code files

@@ -30,6 +30,26 @@ class VirtualMachineDefinition: IMachineDefinition {
         return parts.joinToString(", ")
     }
 
+    override fun convertFloatToBytes(num: Double): List<UByte> {
+        val bits = num.toBits().toULong()
+        val hexStr = bits.toString(16).padStart(16, '0')
+        val parts = hexStr.chunked(2).map { it.toInt(16).toUByte() }
+        return parts
+    }
+
+    override fun convertBytesToFloat(bytes: List<UByte>): Double {
+        require(bytes.size==8) { "need 8 bytes" }
+        val b0 = bytes[0].toLong() shl (8*7)
+        val b1 = bytes[1].toLong() shl (8*6)
+        val b2 = bytes[2].toLong() shl (8*5)
+        val b3 = bytes[3].toLong() shl (8*4)
+        val b4 = bytes[4].toLong() shl (8*3)
+        val b5 = bytes[5].toLong() shl (8*2)
+        val b6 = bytes[6].toLong() shl (8*1)
+        val b7 = bytes[7].toLong() shl (8*0)
+        return Double.fromBits(b0 or b1 or b2 or b3 or b4 or b5 or b6 or b7)
+    }
+
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return listOf("syslib")
     }

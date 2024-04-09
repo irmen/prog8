@@ -22,6 +22,8 @@ class AtariMachineDefinition: IMachineDefinition {
     override lateinit var golden: GoldenRam
 
     override fun getFloatAsmBytes(num: Number) = TODO("atari float asm bytes from number")
+    override fun convertFloatToBytes(num: Double): List<UByte> = TODO("atari float to bytes")
+    override fun convertBytesToFloat(bytes: List<UByte>): Double = TODO("atari bytes to float")
 
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return if (compilerOptions.output == OutputType.XEX)

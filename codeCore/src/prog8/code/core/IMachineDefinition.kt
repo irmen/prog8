@@ -26,6 +26,9 @@ interface IMachineDefinition {
     fun initializeMemoryAreas(compilerOptions: CompilationOptions)
     fun getFloatAsmBytes(num: Number): String
 
+    fun convertFloatToBytes(num: Double): List<UByte>
+    fun convertBytesToFloat(bytes: List<UByte>): Double
+
     fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String>
     fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path)
     fun isIOAddress(address: UInt): Boolean

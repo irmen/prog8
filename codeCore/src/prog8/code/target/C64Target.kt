@@ -19,3 +19,15 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Cb
         fun viceMonListName(baseFilename: String) = "$baseFilename.vice-mon-list"
     }
 }
+
+
+
+fun getCompilationTargetByName(name: String) = when(name.lowercase()) {
+        C64Target.NAME -> C64Target()
+        C128Target.NAME -> C128Target()
+        Cx16Target.NAME -> Cx16Target()
+        PETTarget.NAME -> PETTarget()
+        AtariTarget.NAME -> AtariTarget()
+        VMTarget.NAME -> VMTarget()
+        else -> throw IllegalArgumentException("invalid compilation target")
+    }

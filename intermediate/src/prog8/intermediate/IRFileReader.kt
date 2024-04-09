@@ -3,7 +3,8 @@ package prog8.intermediate
 import prog8.code.*
 import prog8.code.ast.PtVariable
 import prog8.code.core.*
-import prog8.code.target.*
+import prog8.code.target.VMTarget
+import prog8.code.target.getCompilationTargetByName
 import java.io.StringReader
 import java.nio.file.Path
 import javax.xml.stream.XMLEventReader
@@ -95,16 +96,7 @@ class IRFileReader {
             text.lineSequence().forEach { line ->
                 val (name, value) = line.split('=', limit=2)
                 when(name) {
-                    "compTarget" -> {
-                        target = when(value) {
-                            VMTarget.NAME -> VMTarget()
-                            C64Target.NAME -> C64Target()
-                            C128Target.NAME -> C128Target()
-                            AtariTarget.NAME -> AtariTarget()
-                            Cx16Target.NAME -> Cx16Target()
-                            else -> throw IRParseException("invalid target $value")
-                        }
-                    }
+                    "compTarget" -> target = getCompilationTargetByName(value)
                     "output" -> outputType = OutputType.valueOf(value)
                     "launcher" -> launcher = CbmPrgLauncherType.valueOf(value)
                     "zeropage" -> zeropage = ZeropageType.valueOf(value)

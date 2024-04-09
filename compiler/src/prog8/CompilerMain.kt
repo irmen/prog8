@@ -57,6 +57,8 @@ private fun compileMain(args: Array<String>): Boolean {
     val printAst2 by cli.option(ArgType.Boolean, fullName = "printast2", description = "print out the intermediate AST that is used for code generation")
     val breakpointCpuInstruction by cli.option(ArgType.Choice(listOf("brk", "stp"), { it }), fullName = "breakinstr", description = "the CPU instruction to use as well for %breakpoint")
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of '${C64Target.NAME}', '${C128Target.NAME}', '${Cx16Target.NAME}', '${AtariTarget.NAME}', '${PETTarget.NAME}', '${VMTarget.NAME}') (required)")
+    val bytes2float by cli.option(ArgType.String, fullName = "bytes2float", description = "convert a comma separated list of bytes from the target system to a float value. NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!")
+    val float2bytes by cli.option(ArgType.String, fullName = "float2bytes", description = "convert floating point number to a list of bytes for the target system. NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "load and run a .p8ir IR source file in the VM")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val varsGolden by cli.option(ArgType.Boolean, fullName = "varsgolden", description = "put uninitialized variables in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
@@ -99,6 +101,11 @@ private fun compileMain(args: Array<String>): Boolean {
             return false
         }
     }
+
+    if(bytes2float!=null)
+        return convertBytesToFloat(bytes2float!!, compilationTarget!!)
+    if(float2bytes!=null)
+        return convertFloatToBytes(float2bytes!!, compilationTarget!!)
 
     if(varsHighBank==0 && compilationTarget==Cx16Target.NAME) {
         System.err.println("On the Commander X16, HiRAM bank 0 is used by the kernal and can't be used.")
@@ -287,6 +294,23 @@ private fun compileMain(args: Array<String>): Boolean {
         }
     }
 
+    return true
+}
+
+fun convertFloatToBytes(number: String, target: String): Boolean {
+    val tgt = getCompilationTargetByName(target)
+    val dbl = number.toDouble()
+    val bytes = tgt.machine.convertFloatToBytes(dbl)
+    print("$dbl in bytes on '$target': ")
+    println(bytes.joinToString(","))
+    return true
+}
+
+fun convertBytesToFloat(bytelist: String, target: String): Boolean {
+    val tgt = getCompilationTargetByName(target)
+    val bytes = bytelist.split(',').map { it.trim().toUByte() }
+    val number = tgt.machine.convertBytesToFloat(bytes)
+    println("floating point value on '$target': $number")
     return true
 }
 

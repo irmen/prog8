@@ -26,6 +26,17 @@ class C64MachineDefinition: IMachineDefinition {
 
     override fun getFloatAsmBytes(num: Number) = Mflpt5.fromNumber(num).makeFloatFillAsm()
 
+    override fun convertFloatToBytes(num: Double): List<UByte> {
+        val m5 = Mflpt5.fromNumber(num)
+        return listOf(m5.b0, m5.b1, m5.b2, m5.b3, m5.b4)
+    }
+
+    override fun convertBytesToFloat(bytes: List<UByte>): Double {
+        require(bytes.size==5) { "need 5 bytes" }
+        val m5 = Mflpt5(bytes[0], bytes[1], bytes[2], bytes[3], bytes[4])
+        return m5.toDouble()
+    }
+
     override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
         return if (compilerOptions.launcher == CbmPrgLauncherType.BASIC || compilerOptions.output == OutputType.PRG)
             listOf("syslib")

@@ -14,7 +14,10 @@ import prog8.code.ast.PtProgram
 import prog8.code.ast.printAst
 import prog8.code.core.*
 import prog8.code.optimize.optimizeIntermediateAst
-import prog8.code.target.*
+import prog8.code.target.AtariTarget
+import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
+import prog8.code.target.getCompilationTargetByName
 import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
 import prog8.optimizer.*
@@ -60,17 +63,7 @@ class CompilerArguments(val filepath: Path,
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
 
-    val compTarget =
-        when(args.compilationTarget) {
-            C64Target.NAME -> C64Target()
-            C128Target.NAME -> C128Target()
-            Cx16Target.NAME -> Cx16Target()
-            PETTarget.NAME -> PETTarget()
-            AtariTarget.NAME -> AtariTarget()
-            VMTarget.NAME -> VMTarget()
-            else -> throw IllegalArgumentException("invalid compilation target")
-        }
-
+    val compTarget = getCompilationTargetByName(args.compilationTarget)
     var compilationOptions: CompilationOptions
     var ast: PtProgram? = null
     var resultingProgram: Program? = null
