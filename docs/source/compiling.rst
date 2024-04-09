@@ -208,6 +208,12 @@ One or more .p8 module files
     Prints the "intermediate AST" which is the reduced representation of the program.
     This is what is used in the code generators, to generate the executable code from.
 
+``-dumpvars``
+    print a dump of the variables in the program
+
+``-dumpsymbols``
+    print a dump of the variable declarations and subroutine signatures
+
 ``-sourcelines``
     Also include the original prog8 source code lines as comments in the generated assembly code file,
     mixed in between the actual generated assembly code.
@@ -245,6 +251,15 @@ One or more .p8 module files
     Like ``-varshigh``, but places the variables in the $0400-$07FF "golden ram" area instead.
     Because this is in normal system memory, there are no bank switching issues.
     This mode is only available on the Commander X16.
+
+``-slabshigh``
+    put memory() slabs in high memory area instead of at the end of the program.
+    On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.
+
+``-slabsgolden``
+    put memory() slabs in 'golden ram' memory area instead of at the end of the program.
+    On the cx16 target this is $0400-07ff. This is unavailable on other systems.
+
 
 
 Module source code files
