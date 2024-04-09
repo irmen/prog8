@@ -8,7 +8,7 @@ import prog8.code.core.*
 
 fun printProgram(program: Program) {
     println()
-    val printer = AstToSourceTextConverter(::print, program)
+    val printer = AstToSourceTextConverter(::print, program, true)
     printer.visit(program)
     println()
 }
@@ -18,7 +18,7 @@ fun printProgram(program: Program) {
  * Produces Prog8 source text from a [Program] (AST node),
  * passing it as a String to the specified receiver function.
  */
-class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: Program): IAstVisitor {
+class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: Program, val skipLibraries: Boolean): IAstVisitor {
     private var scopelevel = 0
 
     private fun indent(s: String) = "    ".repeat(scopelevel) + s
@@ -33,7 +33,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(module: Module) {
-        if(!module.isLibrary) {
+        if(!module.isLibrary || !skipLibraries) {
             outputln("; ----------- module: ${module.name} -----------")
             super.visit(module)
         }

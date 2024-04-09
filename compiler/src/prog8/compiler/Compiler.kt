@@ -7,6 +7,7 @@ import prog8.ast.base.AstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.printProgram
+import prog8.ast.printSymbols
 import prog8.ast.statements.Directive
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
@@ -22,6 +23,7 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.nameWithoutExtension
 import kotlin.math.round
+import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 
@@ -39,6 +41,7 @@ class CompilerArguments(val filepath: Path,
                         val includeSourcelines: Boolean,
                         val experimentalCodegen: Boolean,
                         val dumpVariables: Boolean,
+                        val dumpSymbols: Boolean,
                         val varsHighBank: Int?,
                         val varsGolden: Boolean,
                         val slabsHighBank: Int?,
@@ -71,7 +74,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
     var compilationOptions: CompilationOptions
     var ast: PtProgram? = null
     var resultingProgram: Program? = null
-    var importedFiles: List<Path> = emptyList()
+    var importedFiles: List<Path>
 
     try {
         val totalTime = measureTimeMillis {
@@ -86,6 +89,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 includeSourcelines = args.includeSourcelines
                 experimentalCodegen = args.experimentalCodegen
                 dumpVariables = args.dumpVariables
+                dumpSymbols = args.dumpSymbols
                 breakpointCpuInstruction = args.breakpointCpuInstruction
                 varsHighBank = args.varsHighBank
                 varsGolden = args.varsGolden
@@ -402,6 +406,12 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     program.preprocessAst(errors, compilerOptions)
+
+    if(compilerOptions.dumpSymbols) {
+        printSymbols(program)
+        exitProcess(0)
+    }
+
     program.checkIdentifiers(errors, compilerOptions)
     errors.report()
     program.charLiteralsToUByteLiterals(compilerOptions.compTarget, errors)

@@ -52,7 +52,7 @@ What does Prog8 provide?
 ------------------------
 
 - all advantages of a higher level language over having to write assembly code manually
-- programs run very fast because compilation to native machine code. It's possible to write games purely in Prog8, and even certain raster interrupt 'demoscene' effects.
+- programs run very fast because compilation to native machine code
 - modularity, symbol scoping, subroutines
 - various data types other than just bytes (16-bit words, floats, strings)
 - floating point math is supported if the target system provides floating point library routines (C64 and Cx16 both do)
@@ -71,7 +71,7 @@ What does Prog8 provide?
 - convenience abstractions for low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - inline assembly allows you to have full control when every cycle or byte matters
 - supports the sixteen 'virtual' 16-bit registers R0 - R15 from the Commander X16, and provides them also on the C64.
-- encode strings and characters into petscii or screencodes as desired (C64/Cx16)
+- encode strings and characters into petscii or screencodes or even other encodings, as desired (C64/Cx16)
 
 *Rapid edit-compile-run-debug cycle:*
 

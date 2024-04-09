@@ -22,7 +22,7 @@ class TestAstToSourceText: AnnotationSpec() {
             .addModule(module)
 
         var generatedText = ""
-        val it = AstToSourceTextConverter({ str -> generatedText += str }, program)
+        val it = AstToSourceTextConverter({ str -> generatedText += str }, program, true)
         it.visit(program)
 
         return generatedText

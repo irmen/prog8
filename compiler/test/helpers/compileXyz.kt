@@ -30,6 +30,7 @@ internal fun compileFile(
         includeSourcelines = false,
         experimentalCodegen = false,
         dumpVariables = false,
+        dumpSymbols = false,
         varsHighBank = null,
         varsGolden = false,
         slabsHighBank = null,

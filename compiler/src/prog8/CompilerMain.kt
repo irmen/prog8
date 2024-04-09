@@ -43,6 +43,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
     val dumpVariables by cli.option(ArgType.Boolean, fullName = "dumpvars", description = "print a dump of the variables in the program")
+    val dumpSymbols by cli.option(ArgType.Boolean, fullName = "dumpsymbols", description = "print a dump of the variables + subroutine definitions")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val noStrictBool by cli.option(ArgType.Boolean, fullName = "nostrictbool", description = "allow implicit conversions between bool and bytes")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform code optimizations")
@@ -155,6 +156,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     includeSourcelines == true,
                     experimentalCodegen == true,
                     dumpVariables == true,
+                    dumpSymbols == true,
                     varsHighBank,
                     varsGolden == true,
                     slabsHighBank,
@@ -235,6 +237,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     includeSourcelines == true,
                     experimentalCodegen == true,
                     dumpVariables == true,
+                    dumpSymbols==true,
                     varsHighBank,
                     varsGolden == true,
                     slabsHighBank,
