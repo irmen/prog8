@@ -296,7 +296,7 @@ if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ;
 else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later
 
 
-branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? EOL ;
+branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? ;
 
 branchcondition: 'if_cs' | 'if_cc' | 'if_eq' | 'if_z' | 'if_ne' | 'if_nz' | 'if_pl' | 'if_pos' | 'if_mi' | 'if_neg' | 'if_vs' | 'if_vc' ;
 

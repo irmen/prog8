@@ -4,13 +4,17 @@
 
 main {
     sub start() {
-        const ubyte x=0
+        sys.clear_carry()
+        cx16.r0s=-42
 
-        if x==3 {
-            txt.print("three")
-        } else if x==4 {
-            txt.print("four")
-        }
+        if_z
+            txt.print("zero")
+        else if_cs
+            txt.print("carry")
+        else if_neg
+            txt.print("negative")
+        else
+            txt.print("nothing")
     }
 }
 
