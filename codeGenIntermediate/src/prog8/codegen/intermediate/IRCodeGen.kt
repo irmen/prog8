@@ -1451,6 +1451,10 @@ class IRCodeGen(
         }
 
         when(val cond=ifElse.condition) {
+            is PtBool -> {
+                // normally this will be optimized away, but not with -noopt
+                translateSimple(cond, Opcode.BSTEQ)
+            }
             is PtTypeCast -> {
                 require(cond.type==DataType.BOOL && cond.value.type in NumericDatatypes)
                 translateSimple(cond, Opcode.BSTEQ)

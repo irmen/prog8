@@ -458,8 +458,13 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
             break
     }
     removeUnusedCode(program, errors, compilerOptions)
-    if(errors.noErrors())
+    if(errors.noErrors()) {
+        // last round of optimizations because constFold may have enabled more...
+        program.simplifyExpressions(errors, compilerOptions)
+        program.optimizeStatements(errors, functions, compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
+    }
+
     errors.report()
 }
 
