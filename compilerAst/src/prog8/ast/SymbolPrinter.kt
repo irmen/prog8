@@ -29,17 +29,19 @@ class SymbolPrinter(val output: (text: String) -> Unit, val program: Program, va
     }
 
     override fun visit(block: Block) {
-        outputln("${block.name} {")
         val (vars, subs) = block.statements.filter{ it is Subroutine || it is VarDecl }.partition { it is VarDecl }
-        for(variable in vars.sortedBy { (it as VarDecl).name }) {
-            output("    ")
-            variable.accept(this)
+        if(vars.isNotEmpty() || subs.isNotEmpty()) {
+            outputln("${block.name} {")
+            for (variable in vars.sortedBy { (it as VarDecl).name }) {
+                output("    ")
+                variable.accept(this)
+            }
+            for (subroutine in subs.sortedBy { (it as Subroutine).name }) {
+                output("    ")
+                subroutine.accept(this)
+            }
+            outputln("}\n")
         }
-        for(subroutine in subs.sortedBy { (it as Subroutine).name }) {
-            output("    ")
-            subroutine.accept(this)
-        }
-        outputln("}\n")
     }
 
     private fun datatypeString(dt: DataType): String {

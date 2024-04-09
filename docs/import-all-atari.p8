@@ -1,0 +1,11 @@
+; all library modules for the atari compiler target
+
+%import conv
+%import cx16logo
+%import diskio
+%import math
+%import prog8_lib
+%import string
+%import syslib
+%import test_stack
+%import textio
