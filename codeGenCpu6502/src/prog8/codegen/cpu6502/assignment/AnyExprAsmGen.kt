@@ -35,7 +35,7 @@ internal class AnyExprAsmGen(
                 require(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
                     "both operands must be words"
                 }
-                return assignWordBinExpr(expr)
+                throw AssemblyError("expression should have been handled otherwise: word ${expr.operator} at ${expr.position}")
             }
             DataType.FLOAT -> {
                 require(expr.left.type==DataType.FLOAT && expr.right.type==DataType.FLOAT) {
@@ -44,30 +44,6 @@ internal class AnyExprAsmGen(
                 return assignFloatBinExpr(expr, assign)
             }
             else -> throw AssemblyError("weird expression type in assignment")
-        }
-    }
-
-    private fun assignWordBinExpr(expr: PtBinaryExpression): Boolean {
-        when(expr.operator) {
-            "+" -> TODO("word + at ${expr.position}")
-            "-" -> TODO("word - at ${expr.position}")
-            "*" -> TODO("word * at ${expr.position}")
-            "/" -> TODO("word / at ${expr.position}")
-            "<<" -> TODO("word << at ${expr.position}")
-            ">>" -> TODO("word >> at ${expr.position}")
-            "%" -> TODO("word % at ${expr.position}")
-            "and" -> TODO("word logical and (with optional shortcircuit) ${expr.position}")
-            "or" -> TODO("word logical or (with optional shortcircuit) ${expr.position}")
-            "&" -> TODO("word and at ${expr.position}")
-            "|" -> TODO("word or at ${expr.position}")
-            "^", "xor" -> TODO("word xor at ${expr.position}")
-            "==" -> TODO("word == at ${expr.position}")
-            "!=" -> TODO("word != at ${expr.position}")
-            "<" -> TODO("word < at ${expr.position}")
-            "<=" -> TODO("word <= at ${expr.position}")
-            ">" -> TODO("word > at ${expr.position}")
-            ">=" -> TODO("word >= at ${expr.position}")
-            else -> return false
         }
     }
 
@@ -89,21 +65,11 @@ internal class AnyExprAsmGen(
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
             }
-            "*" -> {
-                TODO("byte * at ${expr.position}")
-            }
-            "/" -> {
-                TODO("byte / at ${expr.position}")
-            }
-            "<<" -> {
-                TODO("byte << at ${expr.position}")
-            }
-            ">>" -> {
-                TODO("byte >> at ${expr.position}")
-            }
-            "%" -> {
-                TODO("byte % at ${expr.position}")
-            }
+            "*" -> TODO("byte * at ${expr.position}")
+            "/" -> TODO("byte / at ${expr.position}")
+            "<<" -> TODO("byte << at ${expr.position}")
+            ">>" -> TODO("byte >> at ${expr.position}")
+            "%" -> TODO("byte % at ${expr.position}")
             "and" -> TODO("logical and (with optional shortcircuit) ${expr.position}")
             "or" -> TODO("logical or (with optional shortcircuit) ${expr.position}")
             "&" -> {
@@ -130,24 +96,12 @@ internal class AnyExprAsmGen(
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
             }
-            "==" -> {
-                TODO("byte == at ${expr.position}")
-            }
-            "!=" -> {
-                TODO("byte != at ${expr.position}")
-            }
-            "<" -> {
-                TODO("byte < at ${expr.position}")
-            }
-            "<=" -> {
-                TODO("byte <= at ${expr.position}")
-            }
-            ">" -> {
-                TODO("byte > at ${expr.position}")
-            }
-            ">=" -> {
-                TODO("byte >= at ${expr.position}")
-            }
+            "==" -> TODO("byte == at ${expr.position}")
+            "!=" -> TODO("byte != at ${expr.position}")
+            "<" -> TODO("byte < at ${expr.position}")
+            "<=" -> TODO("byte <= at ${expr.position}")
+            ">" -> TODO("byte > at ${expr.position}")
+            ">=" -> TODO("byte >= at ${expr.position}")
             else -> return false
         }
     }

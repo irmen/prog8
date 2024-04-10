@@ -13,8 +13,6 @@ import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.pow
 
-// TODO add more peephole expression optimizations? Investigate what optimizations binaryen has?
-
 class ExpressionSimplifier(private val program: Program, private val options: CompilationOptions, private val errors: IErrorReporter) : AstWalker() {
     private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
     private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
@@ -740,7 +738,7 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
                 in powersOfTwo -> {
                     if (leftDt==DataType.UBYTE || leftDt==DataType.UWORD) {
                         // Unsigned number divided by a power of two => shift right
-                        // Signed number can't simply be bitshifted in this case (due to rounding issues for negative values),  TODO is this correct???
+                        // Signed number can't simply be bitshifted in this case (due to rounding issues for negative values),
                         // so we leave that as is and let the code generator deal with it.
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)

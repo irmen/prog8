@@ -202,7 +202,7 @@ class IRFileReader {
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
                 when(dt) {
-                    DataType.BOOL -> TODO("parse boolean $value")
+                    DataType.BOOL -> initNumeric = if(value.lowercase()=="false") 0.0 else 1.0
                     in NumericDatatypes -> initNumeric = parseIRValue(value)
                     in ArrayDatatypes -> {
                         initArray = value.split(',').map {

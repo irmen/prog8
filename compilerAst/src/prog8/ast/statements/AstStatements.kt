@@ -538,8 +538,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
         if (memoryAddress != null)
             return InferredTypes.knownFor(DataType.UBYTE)
 
-        // a multi-assign has no 1 type...  TODO although it could perhaps be the type of the first target?
-
+        // a multi-target has no 1 particular type
         return InferredTypes.unknown()
     }
 

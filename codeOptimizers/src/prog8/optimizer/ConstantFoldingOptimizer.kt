@@ -435,7 +435,6 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
        subrightIsConst: Boolean): IAstModification?
     {
         // NOTE: THESE REORDERINGS ARE ONLY VALID FOR FLOATING POINT CONSTANTS
-        // TODO: this implements only a small set of possible reorderings at this time, we could perhaps add more
 
         if(expr.operator==subExpr.operator) {
             // both operators are the same.

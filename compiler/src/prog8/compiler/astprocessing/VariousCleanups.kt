@@ -156,28 +156,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             }
         }
 
-/* TODO: is this really no longer needed in boolean branch?
-        if(expr.operator in LogicalOperators) {
-            // remove redundant !=0 comparisons from logical expressions such as:   a!=0 xor b --> a xor b  (only for byte operands!)
-            val leftExpr = expr.left as? BinaryExpression
-            if(leftExpr != null &&
-                leftExpr.operator == "!=" &&
-                !leftExpr.left.isSimple &&
-                leftExpr.left.inferType(program).isBytes &&
-                leftExpr.right.constValue(program)?.number == 0.0) {
-                return listOf(IAstModification.ReplaceNode(leftExpr, leftExpr.left, expr))
-            }
-            val rightExpr = expr.right as? BinaryExpression
-            if(rightExpr != null &&
-                rightExpr.operator == "!=" &&
-                !rightExpr.left.isSimple &&
-                rightExpr.left.inferType(program).isBytes &&
-                rightExpr.right.constValue(program)?.number == 0.0) {
-                return listOf(IAstModification.ReplaceNode(rightExpr, rightExpr.left, expr))
-            }
-        }
-*/
-
         return noModifications
     }
 

@@ -635,8 +635,7 @@ internal class ProgramAndVarsGen(
             } else 0
 
         when (variable.dt) {
-            DataType.BOOL -> TODO("bool var to asm")
-            DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
+            DataType.BOOL, DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
             DataType.BYTE -> asmgen.out("${variable.name}\t.char  $initialValue")
             DataType.UWORD -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
             DataType.WORD -> asmgen.out("${variable.name}\t.sint  $initialValue")

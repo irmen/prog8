@@ -65,8 +65,6 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
-    // TODO more assembly peephole optimizations
-
     return numberOfOptimizations
 }
 

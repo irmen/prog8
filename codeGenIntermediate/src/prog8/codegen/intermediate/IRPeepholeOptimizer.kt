@@ -52,14 +52,11 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                                 || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
                                 || removeDoubleSecClc(chunk1, indexedInstructions)
                                 || cleanupPushPop(chunk1, indexedInstructions)
-                        // TODO other optimizations
                     } while (changed)
                 }
             }
             removeEmptyChunks(sub)
         }
-
-        // TODO also do register optimization step here at the end?
 
         irprog.linkChunks()  // re-link
     }
@@ -451,12 +448,13 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             }
 
 /*
-            // TODO: detect multiple loads to the same target registers, only keep first (if source is not I/O memory)
-            // TODO: detect multiple stores to the same target, only keep first (if target is not I/O memory)
-            // TODO: detect multiple float ffrom/fto to the same target, only keep first
-            // TODO: detect subsequent same xors/nots/negs, remove the pairs completely as they cancel out
-            // TODO: detect multiple same ands, ors; only keep first
-            // TODO: (hard) detect multiple registers being assigned the same value (and not changed) - use only 1 of them
+    Possible other optimizations:
+            // detect multiple loads to the same target registers, only keep first (if source is not I/O memory)
+            // detect multiple stores to the same target, only keep first (if target is not I/O memory)
+            // detect multiple float ffrom/fto to the same target, only keep first
+            // detect subsequent same xors/nots/negs, remove the pairs completely as they cancel out
+            // detect multiple same ands, ors; only keep first
+            // detect multiple registers being assigned the same value (and not changed) - use only 1 of them  (hard!)
             // ...
 */
         }

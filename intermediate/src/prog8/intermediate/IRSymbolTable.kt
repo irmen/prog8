@@ -235,7 +235,6 @@ class IRStArrayElement(val number: Double?, val addressOfSymbol: String?) {
     }
 
     init {
-        // TODO TEMPORARY
         require(number!=null || addressOfSymbol!=null)
     }
 }

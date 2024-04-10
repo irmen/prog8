@@ -97,7 +97,7 @@ private fun StatementContext.toAst() : Statement {
         val operator = it.operator.text
         val pos = it.toPosition()
 //        print("\u001b[92mINFO\u001B[0m  ")  // bright green
-//        println("${pos}: ++ and -- will be removed in a future version, please use +=1 or -=1 instead.")    // TODO
+//        println("${pos}: ++ and -- will be removed in a future version, please use +=1 or -=1 instead.")    // .... if we decode to remove them one day
         val addSubOne = BinaryExpression(tgt.toExpression(), if(operator=="++") "+" else "-", NumericLiteral.optimalInteger(1, pos), pos, false)
         return Assignment(tgt, addSubOne, AssignmentOrigin.USERCODE, pos)
     }
