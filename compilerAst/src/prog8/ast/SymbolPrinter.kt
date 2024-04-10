@@ -21,7 +21,9 @@ class SymbolPrinter(val output: (text: String) -> Unit, val program: Program, va
     override fun visit(module: Module) {
         if(!module.isLibrary || !skipLibraries) {
             if(module.source.isFromFilesystem || module.source.isFromResources) {
-                outputln("MODULE FILE: ${module.source.origin}")
+                val moduleName = "LIBRARY MODULE NAME: ${module.source.name}"
+                outputln(moduleName)
+                outputln("-".repeat(moduleName.length))
                 super.visit(module)
                 output("\n")
             }
@@ -31,7 +33,7 @@ class SymbolPrinter(val output: (text: String) -> Unit, val program: Program, va
     override fun visit(block: Block) {
         val (vars, subs) = block.statements.filter{ it is Subroutine || it is VarDecl }.partition { it is VarDecl }
         if(vars.isNotEmpty() || subs.isNotEmpty()) {
-            outputln("${block.name} {")
+            outputln("${block.name}  {")
             for (variable in vars.sortedBy { (it as VarDecl).name }) {
                 output("    ")
                 variable.accept(this)

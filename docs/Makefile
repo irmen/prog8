@@ -16,12 +16,13 @@ help:
 
 
 symboldumps:
-	p8compile -target atari import-all-atari.p8 -dumpsymbols > skeletons-atari.txt
-	p8compile -target c64 import-all-c64.p8 -dumpsymbols > skeletons-c64.txt
-	p8compile -target c128 import-all-c128.p8 -dumpsymbols > skeletons-c128.txt
-	p8compile -target cx16 import-all-cx16.p8 -dumpsymbols > skeletons-cx16.txt
-	p8compile -target pet32 import-all-pet32.p8 -dumpsymbols > skeletons-pet32.txt
-	p8compile -target virtual import-all-virtual.p8 -dumpsymbols > skeletons-virtual.txt
+	mkdir -p source/_static/symboldumps
+	p8compile -target atari import-all-atari.p8 -dumpsymbols > source/_static/symboldumps/skeletons-atari.txt
+	p8compile -target c64 import-all-c64.p8 -dumpsymbols > source/_static/symboldumps/skeletons-c64.txt
+	p8compile -target c128 import-all-c128.p8 -dumpsymbols > source/_static/symboldumps/skeletons-c128.txt
+	p8compile -target cx16 import-all-cx16.p8 -dumpsymbols > source/_static/symboldumps/skeletons-cx16.txt
+	p8compile -target pet32 import-all-pet32.p8 -dumpsymbols > source/_static/symboldumps/skeletons-pet32.txt
+	p8compile -target virtual import-all-virtual.p8 -dumpsymbols > source/_static/symboldumps/skeletons-virtual.txt
 
 
 # Catch-all target: route all unknown targets to Sphinx using the new

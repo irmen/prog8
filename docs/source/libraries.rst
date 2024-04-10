@@ -25,6 +25,19 @@ of these library modules automatically as required.
     You must recompile the program for every target you want to run it on.
 
 
+Low-fi variable and subroutine definitions in all available library modules
+---------------------------------------------------------------------------
+
+These are auto generated and contain no documentation, but provide a view into what's available.
+Grouped per compilation target.
+
+* `atari <_static/symboldumps/skeletons-atari.txt>`_
+* `c64 <_static/symboldumps/skeletons-c64.txt>`_
+* `c128 <_static/symboldumps/skeletons-c128.txt>`_
+* `cx16 <_static/symboldumps/skeletons-cx16.txt>`_
+* `pet32 <_static/symboldumps/skeletons-pet32.txt>`_
+* `virtual <_static/symboldumps/skeletons-virtual.txt>`_
+
 
 syslib
 ------
@@ -722,3 +735,4 @@ the emulators already support it).
 
 Read the `verafx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/verafx.p8>`_
 to see what's in there.
+

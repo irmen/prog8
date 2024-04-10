@@ -1,0 +1,399 @@
+
+Prog8 compiler v10.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 42f4b06a in branch master
+This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
+
+Compiling program import-all-virtual.p8
+Compiler target: virtual
+
+
+LIBRARY MODULE NAME: conv
+-------------------------
+conv  {
+    str  hex_digits 
+    str  string_out 
+    any2uword  (str string) -> uword 
+    bin2uword  (str string) -> uword 
+    hex2uword  (str string) -> uword 
+    internal_str_ub  (ubyte value, uword out_ptr) 
+    internal_str_uw  (uword value, uword out_ptr) 
+    str2byte  (str string) -> byte 
+    str2ubyte  (str string) -> ubyte 
+    str2uword  (str string) -> uword 
+    str2word  (str string) -> word 
+    str_b  (byte value) -> str 
+    str_ub  (ubyte value) -> str 
+    str_ub0  (ubyte value) -> str 
+    str_ubbin  (ubyte value) -> str 
+    str_ubhex  (ubyte value) -> str 
+    str_uw  (uword value) -> str 
+    str_uw0  (uword value) -> str 
+    str_uwbin  (uword value) -> str 
+    str_uwhex  (uword value) -> str 
+    str_w  (word value) -> str 
+}
+
+
+LIBRARY MODULE NAME: cx16logo
+-----------------------------
+cx16logo  {
+    uword[]  logo_lines 
+    logo  () 
+    logo_at  (ubyte column, ubyte row) 
+}
+
+
+LIBRARY MODULE NAME: textio
+---------------------------
+txt  {
+    bell  () 
+    chrout  (ubyte char) 
+    clear_screen  () 
+    cls  () 
+    column  (ubyte col) 
+    height  () -> ubyte 
+    home  () 
+    input_chars  (uword buffer) -> ubyte 
+    lowercase  () 
+    nl  () 
+    petscii2scr  (ubyte petscii_char) -> ubyte 
+    petscii2scr_str  (str petscii_string) 
+    plot  (ubyte col, ubyte row) 
+    print  (str text) 
+    print_b  (byte value) 
+    print_bool  (bool value) 
+    print_ub  (ubyte value) 
+    print_ub0  (ubyte value) 
+    print_ubbin  (ubyte value, bool prefix) 
+    print_ubhex  (ubyte value, bool prefix) 
+    print_uw  (uword value) 
+    print_uw0  (uword value) 
+    print_uwbin  (uword value, bool prefix) 
+    print_uwhex  (uword value, bool prefix) 
+    print_w  (word value) 
+    setchr  (ubyte col, ubyte row, ubyte char) 
+    spc  () 
+    uppercase  () 
+    width  () -> ubyte 
+}
+
+
+LIBRARY MODULE NAME: diskio
+---------------------------
+diskio  {
+    chdir  (str path) 
+    curdir  () -> uword 
+    delete  (uword filenameptr) 
+    directory  () -> bool 
+    f_close  () 
+    f_close_w  () 
+    f_open  (uword filenameptr) -> bool 
+    f_open_w  (uword filenameptr) -> bool 
+    f_read  (uword bufferpointer, uword num_bytes) -> uword 
+    f_read_all  (uword bufferpointer) -> uword 
+    f_readline  (uword bufptr) -> ubyte 
+    f_write  (uword bufferpointer, uword num_bytes) -> bool 
+    lf_end_list  () 
+    lf_next_entry  () -> bool 
+    lf_start_list  (uword pattern_ptr) -> bool 
+    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
+    load  (uword filenameptr, uword address_override) -> uword 
+    load_raw  (uword filenameptr, uword start_address) -> uword 
+    mkdir  (str name) 
+    rename  (uword oldfileptr, uword newfileptr) 
+    rmdir  (str name) 
+    save  (uword filenameptr, uword start_address, uword savesize) -> bool 
+    save_raw  (uword filenameptr, uword startaddress, uword savesize) -> bool 
+    status  () -> str 
+    status_code  () -> ubyte 
+}
+
+
+LIBRARY MODULE NAME: syslib
+---------------------------
+sys  {
+    const ubyte  target 
+    clear_carry  () 
+    disable_caseswitch  () 
+    enable_caseswitch  () 
+    exit  (ubyte returnvalue) 
+    gfx_clear  (ubyte color) 
+    gfx_enable  (ubyte mode) 
+    gfx_getpixel  (uword xx, uword yy) -> ubyte 
+    gfx_plot  (uword xx, uword yy, ubyte color) 
+    internal_stringcopy  (uword source, uword tgt) 
+    memcopy  (uword source, uword tgt, uword count) 
+    memset  (uword mem, uword numbytes, ubyte value) 
+    memsetw  (uword mem, uword numwords, uword value) 
+    pop  () -> ubyte 
+    popw  () -> uword 
+    push  (ubyte b) 
+    pushw  (uword w) 
+    read_flags  () -> ubyte 
+    reset_system  () 
+    restore_prog8_internals  () 
+    save_prog8_internals  () 
+    set_carry  () 
+    wait  (uword jiffies) 
+    waitvsync  () 
+}
+
+cx16  {
+    &uword  r0 
+    &ubyte  r0H 
+    &ubyte  r0L 
+    &word  r0s 
+    &byte  r0sH 
+    &byte  r0sL 
+    &uword  r1 
+    &uword  r10 
+    &ubyte  r10H 
+    &ubyte  r10L 
+    &word  r10s 
+    &byte  r10sH 
+    &byte  r10sL 
+    &uword  r11 
+    &ubyte  r11H 
+    &ubyte  r11L 
+    &word  r11s 
+    &byte  r11sH 
+    &byte  r11sL 
+    &uword  r12 
+    &ubyte  r12H 
+    &ubyte  r12L 
+    &word  r12s 
+    &byte  r12sH 
+    &byte  r12sL 
+    &uword  r13 
+    &ubyte  r13H 
+    &ubyte  r13L 
+    &word  r13s 
+    &byte  r13sH 
+    &byte  r13sL 
+    &uword  r14 
+    &ubyte  r14H 
+    &ubyte  r14L 
+    &word  r14s 
+    &byte  r14sH 
+    &byte  r14sL 
+    &uword  r15 
+    &ubyte  r15H 
+    &ubyte  r15L 
+    &word  r15s 
+    &byte  r15sH 
+    &byte  r15sL 
+    &ubyte  r1H 
+    &ubyte  r1L 
+    &word  r1s 
+    &byte  r1sH 
+    &byte  r1sL 
+    &uword  r2 
+    &ubyte  r2H 
+    &ubyte  r2L 
+    &word  r2s 
+    &byte  r2sH 
+    &byte  r2sL 
+    &uword  r3 
+    &ubyte  r3H 
+    &ubyte  r3L 
+    &word  r3s 
+    &byte  r3sH 
+    &byte  r3sL 
+    &uword  r4 
+    &ubyte  r4H 
+    &ubyte  r4L 
+    &word  r4s 
+    &byte  r4sH 
+    &byte  r4sL 
+    &uword  r5 
+    &ubyte  r5H 
+    &ubyte  r5L 
+    &word  r5s 
+    &byte  r5sH 
+    &byte  r5sL 
+    &uword  r6 
+    &ubyte  r6H 
+    &ubyte  r6L 
+    &word  r6s 
+    &byte  r6sH 
+    &byte  r6sL 
+    &uword  r7 
+    &ubyte  r7H 
+    &ubyte  r7L 
+    &word  r7s 
+    &byte  r7sH 
+    &byte  r7sL 
+    &uword  r8 
+    &ubyte  r8H 
+    &ubyte  r8L 
+    &word  r8s 
+    &byte  r8sH 
+    &byte  r8sL 
+    &uword  r9 
+    &ubyte  r9H 
+    &ubyte  r9L 
+    &word  r9s 
+    &byte  r9sH 
+    &byte  r9sL 
+    restore_virtual_registers  () 
+    save_virtual_registers  () 
+}
+
+
+LIBRARY MODULE NAME: emudbg
+---------------------------
+emudbg  {
+    console_chrout  (ubyte char) 
+    console_value1  (ubyte value) 
+    console_value2  (ubyte value) 
+    console_write  (str message) 
+    is_emulator  () -> bool 
+}
+
+
+LIBRARY MODULE NAME: floats
+---------------------------
+floats  {
+    const float  PI 
+    const float  TWOPI 
+    const float  π 
+    atan  (float value) -> float 
+    ceil  (float value) -> float 
+    clampf  (float value, float minimum, float maximum) -> float 
+    cos  (float angle) -> float 
+    deg  (float angle) -> float 
+    floor  (float value) -> float 
+    ln  (float value) -> float 
+    log2  (float value) -> float 
+    maxf  (float f1, float f2) -> float 
+    minf  (float f1, float f2) -> float 
+    normalize  (float value) -> float 
+    parse  (str value) -> float 
+    pop  () -> float 
+    pow  (float value, float power) -> float 
+    print  (float value) 
+    push  (float value) 
+    rad  (float angle) -> float 
+    rnd  () -> float 
+    rndseed  (float seed) 
+    round  (float value) -> float 
+    sin  (float angle) -> float 
+    tan  (float value) -> float 
+    tostr  (float value) -> str 
+}
+
+
+LIBRARY MODULE NAME: math
+-------------------------
+math  {
+    atan2  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
+    cos8  (ubyte angle) -> byte 
+    cos8u  (ubyte angle) -> ubyte 
+    cosr8  (ubyte radians) -> byte 
+    cosr8u  (ubyte radians) -> ubyte 
+    crc16  (uword data, uword length) -> uword 
+    crc16_end  () -> uword 
+    crc16_start  () 
+    crc16_update  (ubyte value) 
+    crc32  (uword data, uword length) 
+    crc32_end  () 
+    crc32_start  () 
+    crc32_update  (ubyte value) 
+    diff  (ubyte b1, ubyte b2) -> ubyte 
+    diffw  (uword w1, uword w2) -> uword 
+    direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
+    direction_qd  (ubyte quadrant, ubyte xdelta, ubyte ydelta) -> ubyte 
+    direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    log2  (ubyte value) -> ubyte 
+    log2w  (uword value) -> ubyte 
+    mul16_last_upper  () -> uword 
+    randrange  (ubyte n) -> ubyte 
+    randrangew  (uword n) -> uword 
+    rnd  () -> ubyte 
+    rndseed  (uword seed1, uword seed2) 
+    rndw  () -> uword 
+    sin8  (ubyte angle) -> byte 
+    sin8u  (ubyte angle) -> ubyte 
+    sinr8  (ubyte radians) -> byte 
+    sinr8u  (ubyte radians) -> ubyte 
+}
+
+
+LIBRARY MODULE NAME: monogfx
+----------------------------
+monogfx  {
+    const ubyte  MODE_INVERT 
+    const ubyte  MODE_NORMAL 
+    const ubyte  MODE_STIPPLE 
+    uword  height 
+    ubyte  mode 
+    uword  width 
+    circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
+    clear_screen  (ubyte color) 
+    disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
+    drawmode  (ubyte dm) 
+    fill  (uword x, uword y, bool draw) 
+    fillrect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
+    hires  () 
+    horizontal_line  (uword xx, uword yy, uword length, bool draw) 
+    line  (uword x1, uword y1, uword x2, uword y2, bool draw) 
+    lores  () 
+    pget  (uword xx, uword yy) -> bool 
+    plot  (uword xx, uword yy, bool draw) 
+    rect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
+    safe_circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
+    safe_disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
+    safe_horizontal_line  (uword xx, uword yy, uword length, bool draw) 
+    safe_plot  (uword xx, uword yy, bool draw) 
+    text  (uword xx, uword yy, bool draw, str sctextptr) 
+    text_charset  (ubyte charset) 
+    textmode  () 
+    vertical_line  (uword xx, uword yy, uword lheight, bool draw) 
+}
+
+
+LIBRARY MODULE NAME: string
+---------------------------
+string  {
+    append  (str target, str suffix) -> ubyte 
+    compare  (str st1, str st2) -> byte 
+    contains  (str st, ubyte character) -> bool 
+    copy  (str source, str target) -> ubyte 
+    endswith  (str st, str suffix) -> bool 
+    find  (str st, ubyte character) -> ubyte 
+    findstr  (str haystack, str needle) -> ubyte 
+    hash  (str st) -> ubyte 
+    isdigit  (ubyte character) -> bool 
+    isletter  (ubyte character) -> bool 
+    islower  (ubyte character) -> bool 
+    isprint  (ubyte character) -> bool 
+    isspace  (ubyte character) -> bool 
+    isupper  (ubyte character) -> bool 
+    left  (str source, ubyte slen, str target) 
+    length  (str st) -> ubyte 
+    lower  (str st) -> ubyte 
+    lowerchar  (ubyte char) -> ubyte 
+    lstrip  (str s) 
+    lstripped  (str s) -> str 
+    ltrim  (str s) 
+    ltrimmed  (str s) -> str 
+    right  (str source, ubyte slen, str target) 
+    rstrip  (str s) 
+    rtrim  (str s) 
+    slice  (str source, ubyte start, ubyte slen, str target) 
+    startswith  (str st, str prefix) -> bool 
+    strip  (str s) 
+    trim  (str s) 
+    upper  (str st) -> ubyte 
+    upperchar  (ubyte char) -> ubyte 
+}
+
+
+LIBRARY MODULE NAME: test_stack
+-------------------------------
+test_stack  {
+    test  () 
+}
+
+
+
