@@ -177,3 +177,5 @@ texinfo_documents = [
 # -- Options for to do extension ----------------------------------------------
 
 # todo_include_todos = True
+
+suppress_warnings = ['epub.unknown_project_files', 'html.unknown_project_files']
