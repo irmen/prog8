@@ -1804,8 +1804,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
 
             when (valueDt) {
                 DataType.BOOL -> {
-                    if(targetDt in ByteDatatypes) {
-                        // optimization to assign boolean expression to byte target (just assign the 0 or 1 directly, no cast needed)
+                    if(targetDt in IntegerDatatypes) {
+                        // optimization to assign boolean expression to integer target (just assign the 0 or 1 directly)
                         val assignDirect = AsmAssignment(
                             AsmAssignSource.fromAstSource(value, program, asmgen),
                             target,
@@ -1814,7 +1814,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         )
                         assignExpression(assignDirect, target.scope)
                     } else {
-                        throw AssemblyError("expected bool or byte target type")
+                        TODO("assign bool to non-integer type $targetDt")
                     }
                 }
                 in ByteDatatypes -> {

@@ -11,7 +11,6 @@ import prog8.ast.expressions.*
 import prog8.ast.printProgram
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
-import prog8.ast.statements.VarDecl
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtSub
 import prog8.code.core.DataType
@@ -825,5 +824,19 @@ main {
     }
 }"""
         compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("bool to word cast") {
+        val src="""
+main {
+    sub start() {
+        bool @shared flag, flag2
+        cx16.r0L = (flag and flag2) as ubyte
+        cx16.r0 = (flag and flag2) as uword
+    }
+}"""
+
+        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
     }
 })

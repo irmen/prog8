@@ -590,5 +590,27 @@ main {
         val valT = (st[17] as Assignment).value
         (valT as IdentifierReference).nameInSource shouldBe listOf("r")
     }
+
+    test("various multi var decl symbol lookups") {
+        val src="""
+main {
+    sub start() {
+        uword @shared a,b
+        b = a                   ; works
+        cx16.r1L = lsb(a)       ; works
+        funcw(a)                ; works
+        funcb(lsb(a))           ; fails :-(  TODO FIX
+    }
+
+    sub funcw(uword arg) {
+        arg++
+    }
+
+    sub funcb(ubyte arg) {
+        arg++
+    }
+}"""
+        compileText(Cx16Target(), false, src) shouldNotBe null
+    }
 })
 
