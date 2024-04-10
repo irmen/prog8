@@ -1,8 +1,6 @@
 TODO
 ====
 
-fix the symbol lookup error lsb(a) when a is in a multi vardecl.
-
 ...
 
 

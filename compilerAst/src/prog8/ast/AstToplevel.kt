@@ -82,13 +82,8 @@ interface IStatementContainer {
         // but adding a memoization cache didn't make much of a practical runtime difference...
         for (stmt in statements) {
             when(stmt) {
-//                is INamedStatement -> {
-//                    if(stmt.name==name) return stmt
-//                }
-                is VarDecl -> if(stmt.name==name) return stmt
-                is Label -> if(stmt.name==name) return stmt
-                is Subroutine -> if(stmt.name==name) return stmt
-                is Block -> if(stmt.name==name) return stmt
+                is VarDecl -> if(stmt.name==name || stmt.names.contains(name)) return stmt
+                is INamedStatement -> if(stmt.name==name) return stmt
                 is AnonymousScope -> {
                     val found = stmt.searchSymbol(name)
                     if(found!=null)
