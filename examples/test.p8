@@ -1,20 +1,17 @@
-%zeropage basicsafe
 %import textio
+%zeropage basicsafe
 
 main {
-    sub start() {
-        uword @shared a,b
-        b = a                   ; works
-        cx16.r1L = lsb(a)       ; works
-        funcw(a)                ; works
-        funcb(lsb(a))           ; fails :-(
-    }
+  sub show_bug(byte a, byte b) {
+      if (a >= 0) == (b > 0) {
+          txt.print("bug!")
+      } else {
+          txt.print("no bug.")
+      }
+      txt.nl()
+  }
 
-    sub funcw(uword arg) {
-        arg++
-    }
-
-    sub funcb(ubyte arg) {
-        arg++
-    }
+  sub start() {
+      show_bug(-1, 4)
+  }
 }

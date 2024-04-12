@@ -738,7 +738,6 @@ internal class AssignmentAsmGen(private val program: PtProgram,
             assignTrue.add(target)
             assignTrue.add(PtNumber.fromBoolean(true, assign.position))
         } else {
-            require(assign.target.datatype in ByteDatatypes)
             when(assign.target.kind) {
                 TargetStorageKind.VARIABLE -> {
                     if(assign.target.datatype in WordDatatypes) {

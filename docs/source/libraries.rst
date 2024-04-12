@@ -24,6 +24,10 @@ of these library modules automatically as required.
     The resulting compiled binary program *only works on the target machine it was compiled for*.
     You must recompile the program for every target you want to run it on.
 
+.. note::
+    Several algorithms and math routines in Prog8's assembly library files are adapted from
+    code publicly available on https://www.codebase64.org/
+
 
 Low-fi variable and subroutine definitions in all available library modules
 ---------------------------------------------------------------------------

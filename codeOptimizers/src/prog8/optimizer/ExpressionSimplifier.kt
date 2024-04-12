@@ -240,10 +240,13 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
         // optimize boolean constant comparisons
         if(expr.operator=="==") {
             if(rightDt==DataType.BOOL && leftDt==DataType.BOOL) {
-                if(rightVal?.asBooleanValue==true)
-                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
-                else
-                    return listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+                val rightConstBool = rightVal?.asBooleanValue
+                if(rightConstBool!=null) {
+                    return if(rightConstBool)
+                        listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                    else
+                        listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+                }
             }
             if (rightVal?.number == 1.0) {
                 if (options.strictBool) {
