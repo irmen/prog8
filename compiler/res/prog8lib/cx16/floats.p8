@@ -4,12 +4,7 @@
 %import shared_floats_functions
 
 floats {
-	; ---- this block contains C-64 compatible floating point related functions ----
-
-        const float  π      = 3.141592653589793
-        const float  PI     = π
-        const float  TWOPI  = 2*π
-
+; ---- this block contains C-64 compatible floating point related functions ----
 
 ; ---- ROM float functions (same as on C128 except base page) ----
 
@@ -19,7 +14,7 @@ floats {
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
 
-romsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
+romsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 'facmo' and 'faclo', MSB FIRST. (might throw ILLEGAL QUANTITY)  See "basic.sym" kernal symbol file for their memory locations.
 
 ; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1
 ; there is also floats.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
@@ -43,7 +38,7 @@ romsub $fe21 = FMULTT() clobbers(A,X,Y)                     ; fac1 *= fac2
 romsub $fe24 = FDIV(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt in A/Y / fac1
 romsub $fe27 = FDIVT() clobbers(A,X,Y)                      ; fac1 = fac2/fac1  mind the order of the operands
 romsub $fe2a = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
-romsub $fe2d = INT() clobbers(A,X,Y)                        ; INT() truncates, use ROUND or FADDH first to round instead of trunc
+romsub $fe2d = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to integer round instead of trunc
 romsub $fe30 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
 romsub $fe33 = NEGOP() clobbers(A)                          ; switch the sign of fac1 (fac1 = -fac1)
 romsub $fe36 = FPWR(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = fac2 ** float in A/Y
@@ -53,7 +48,7 @@ romsub $fe3f = COS() clobbers(A,X,Y)                        ; fac1 = COS(fac1)
 romsub $fe42 = SIN() clobbers(A,X,Y)                        ; fac1 = SIN(fac1)
 romsub $fe45 = TAN() clobbers(A,X,Y)                        ; fac1 = TAN(fac1)
 romsub $fe48 = ATN() clobbers(A,X,Y)                        ; fac1 = ATN(fac1)
-romsub $fe4b = ROUND() clobbers(A,X,Y)                      ; round fac1
+romsub $fe4b = ROUND() clobbers(A,X,Y)                      ; round least significant bit of fac1
 romsub $fe4e = ABS() clobbers(A,X,Y)                        ; fac1 = ABS(fac1)
 romsub $fe51 = SIGN() clobbers(X,Y) -> ubyte @ A            ; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
 romsub $fe54 = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
@@ -65,10 +60,10 @@ romsub $fe60 = MOVFRM(uword mflpt @ AY) clobbers(A,X,Y)     ; load mflpt value f
 romsub $fe63 = MOVFM(uword mflpt @ AY) clobbers(A,X,Y)      ; load mflpt value from memory in A/Y into fac1
 romsub $fe66 = MOVMF(uword mflpt @ XY) clobbers(A,X,Y)      ; store fac1 to memory  X/Y as 5-byte mflpt
 romsub $fe69 = MOVFA() clobbers(A,X)                        ; copy fac2 to fac1
-romsub $fe6c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2  (rounded)
+romsub $fe6c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2  (rounded the least significant bit)
 
 ; X16 additions
-romsub $fe6f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for rounding- call this before INT
+romsub $fe6f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for integer rounding- call this before INT
 romsub $fe72 = ZEROFC() clobbers(A,X,Y)                     ; fac1 = 0
 romsub $fe75 = NORMAL() clobbers(A,X,Y)                     ; normalize fac1
 romsub $fe78 = NEGFAC() clobbers(A)                         ; switch the sign of fac1 (fac1 = -fac1) (doesn't work, juse use NEGOP() instead!)
@@ -98,8 +93,8 @@ asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
-	sty  $c4        ; facmo     ($64 on c128)
-	sta  $c5        ; facmo+1   ($65 on c128)
+	sty  $c4        ; facmo
+	sta  $c5        ; facmo+1
 	ldx  #$90
 	sec
 	jmp  FLOATC
@@ -163,7 +158,7 @@ _msg    .text 13,"?rom 47+ required for val1",13,0
 }
 
 
-&uword AYINT_facmo = $c6      ; $c6/$c7 contain result of AYINT
+&uword AYINT_facmo = $c6      ; $c6/$c7 contain result of AYINT   (See "basic.sym" kernal symbol file)
 
 sub rnd() -> float {
     %asm {{

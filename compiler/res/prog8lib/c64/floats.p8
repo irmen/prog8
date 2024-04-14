@@ -4,11 +4,7 @@
 %import shared_floats_functions
 
 floats {
-	; ---- this block contains C-64 floating point related functions ----
-        const float  π      = 3.141592653589793
-        const float  PI     = π
-        const float  TWOPI  = 2*π
-
+; ---- this block contains C-64 floating point related functions ----
 
 ; ---- C64 basic and kernal ROM float constants and functions ----
 
@@ -24,7 +20,7 @@ romsub $bba6 = FREADMEM() clobbers(A,Y)                     ; load mflpt value f
 romsub $ba8c = CONUPK(uword mflpt @ AY) clobbers(A,Y)       ; load mflpt value from memory  in A/Y into fac2
 romsub $ba90 = FAREADMEM() clobbers(A,Y)                    ; load mflpt value from memory  in $22/$23 into fac2
 romsub $bbfc = MOVFA() clobbers(A,X)                        ; copy fac2 to fac1
-romsub $bc0c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2  (rounded)
+romsub $bc0c = MOVAF() clobbers(A,X)                        ; copy fac1 to fac2  (rounded the least significant bit)
 romsub $bc0f = MOVEF() clobbers(A,X)                        ; copy fac1 to fac2
 romsub $bbd4 = MOVMF(uword mflpt @ XY) clobbers(A,Y)        ; store fac1 to memory  X/Y as 5-byte mflpt
 
@@ -49,7 +45,7 @@ romsub $b7b5 = FREADSTR(ubyte length @ A) clobbers(A,X,Y)   ; str -> fac1, $22/2
 romsub $aabc = FPRINTLN() clobbers(A,X,Y)                   ; print string of fac1, on one line (= with newline) destroys fac1.  (consider FOUT + STROUT as well)
 romsub $bddd = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY ($0100)
 
-romsub $b849 = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for rounding- call this before INT
+romsub $b849 = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for integer rounding- call this before INT
 romsub $bae2 = MUL10() clobbers(A,X,Y)                      ; fac1 *= 10
 romsub $bafe = DIV10() clobbers(A,X,Y)                      ; fac1 /= 10 , CAUTION: result is always positive! You have to fix sign manually!
 romsub $bc5b = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
@@ -67,7 +63,7 @@ romsub $bf78 = FPWR(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = fac2 ** mfl
 romsub $bd7e = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
 
 romsub $aed4 = NOTOP() clobbers(A,X,Y)                      ; fac1 = NOT(fac1)
-romsub $bccc = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to round instead of trunc
+romsub $bccc = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to integer round instead of trunc
 romsub $b9ea = LOG() clobbers(A,X,Y)                        ; fac1 = LN(fac1)  (natural log)
 romsub $bc39 = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
 romsub $bc2b = SIGN() -> ubyte @ A                          ; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive

@@ -41,7 +41,7 @@ emudbg {
                 chr = @(isoString)
                 if_z
                     break
-                EMU_CPUCLK_U = chr
+                EMU_CHROUT = chr
                 isoString++
             }
         }

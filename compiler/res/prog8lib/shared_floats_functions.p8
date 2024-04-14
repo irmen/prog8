@@ -2,6 +2,11 @@ floats {
     ; the floating point functions shared across compiler targets
     %option merge, no_symbol_prefixing, ignore_unused
 
+    const float  π      = 3.141592653589793
+    const float  PI     = π
+    const float  TWOPI  = 2*π
+
+
 asmsub print(float value @FAC1) clobbers(A,X,Y) {
 	; ---- prints the floating point value (without a newline). No leading space (unlike BASIC)!
 	%asm {{
