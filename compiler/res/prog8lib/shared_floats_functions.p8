@@ -97,15 +97,15 @@ sub atan(float value) -> float {
 ; for the signs of x and y, normalized to the range [0, 2π]
 sub atan2(float y, float x) -> float {
     float atn = atan(y / x)
-        if x < 0 atn += π
-        if atn < 0 atn += 2*π
-        return atn
-    }
+    if x < 0 atn += π
+    if atn < 0 atn += 2*π
+    return atn
+}
 
 ; reciprocal functions
 sub secant(float value) -> float { return 1.0 / cos(value) }
-sub csc(float value) -> float { return 1.0 / sin(value) }
-sub cot(float value) -> float { return 1.0 / tan(value) }
+sub csc(float value)    -> float { return 1.0 / sin(value) }
+sub cot(float value)    -> float { return 1.0 / tan(value) }
 
 sub ln(float value) -> float {
     %asm {{
