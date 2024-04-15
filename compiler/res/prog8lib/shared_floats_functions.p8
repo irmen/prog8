@@ -103,7 +103,7 @@ sub atan2(float y, float x) -> float {
     }
 
 ; reciprocal functions
-sub sec(float value) -> float { return 1.0 / cos(value) }
+sub secant(float value) -> float { return 1.0 / cos(value) }
 sub csc(float value) -> float { return 1.0 / sin(value) }
 sub cot(float value) -> float { return 1.0 / tan(value) }
 
