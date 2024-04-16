@@ -6,13 +6,13 @@
 ; play a raw pcm stereo 16 bit audio file at 16021 hz,
 ; with real-time VU meters and sample waveform displays.
 
-; TODO add peak level indicator
-; TODO nicer color gradient for the bars
+; Left as an excercise for the reader: add peak level indicator.
+; that would require use of more sprites though, because it has to appear on top of the blocking black sprites.
 
 main {
 
     const ubyte vera_rate = 42              ;  16021 hz
-    str pcmfile = "thriller-16k.pcm"
+    str pcmfile = "thriller-16k.pcm"        ;  should be raw pcm, 16 bits signed integer, stereo, 16021 hz.
 
     sub start() {
         setup()
@@ -23,7 +23,18 @@ main {
         void cx16.screen_mode(128, false)
         cx16.GRAPH_set_colors(0,0,0)
         cx16.GRAPH_clear()
-        cx16.rombank(0)                         ; activate kernal bank for faster calls
+
+        cx16.GRAPH_set_colors(47,0,0)
+        cx16.r0 = 250
+        cx16.r1 = 10
+        for cx16.r9L in iso:"made in Prog8"
+            cx16.GRAPH_put_next_char(cx16.r9L)
+        cx16.r0 = 250
+        cx16.r1 = 20
+        for cx16.r9L in iso:"16kHz stereo"
+            cx16.GRAPH_put_next_char(cx16.r9L)
+
+        cx16.rombank(0)                     ; activate kernal bank for faster calls
         void diskio.fastmode(1)
 
         cx16.VERA_AUDIO_RATE = 0            ; halt playback
@@ -39,13 +50,25 @@ main {
         for cx16.r9 in $3000 to $3000+32*64/2 {
             cx16.vpoke(1, cx16.r9, $ff)
         }
+
+        ; move the vu sprites to the base positions
         update_vu()
 
-        ; draw vu gradient
-        for cx16.r9L in 239 downto 80 {
-            cx16.GRAPH_set_colors(cx16.r9L, 1, 2)
-            cx16.GRAPH_draw_line(160-32-16, cx16.r9L, 160-32+15, cx16.r9L)
-            cx16.GRAPH_draw_line(160+32-16, cx16.r9L, 160+32+15, cx16.r9L)
+        ; draw vu gradient bars.
+        ; 18 bars from the bottom are gradient from green to red
+        ; 4 bars on top of that are just red for the extremes
+        ubyte[18] gradient_colors_outline = [ 2,  2,  2,  2, 51, 51,  8,  8,  5,  5,  5,  5, 141, 141, 141, 141, 140, 140]
+        ubyte[18] gradient_colors_fill =    [59, 59, 52, 52,  8,  8, 80, 80, 13, 13, 13, 13, 143, 143, 143, 143, 142, 142]
+
+        for cx16.r9L in 0 to len(gradient_colors_fill)-1 {
+            cx16.GRAPH_set_colors(gradient_colors_outline[cx16.r9L], gradient_colors_fill[cx16.r9L], 0)
+            cx16.GRAPH_draw_rect(160-32-16, cx16.r9L * 8 + $0060, 32, 7, 0, true)
+            cx16.GRAPH_draw_rect(160+32-16, cx16.r9L * 8 + $0060, 32, 7, 0, true)
+        }
+        for cx16.r9L in 0 to 3 {
+            cx16.GRAPH_set_colors(gradient_colors_outline[0], gradient_colors_fill[0], 0)
+            cx16.GRAPH_draw_rect(160-32-16, cx16.r9L * 8 + $0040, 32, 7, 0, true)
+            cx16.GRAPH_draw_rect(160+32-16, cx16.r9L * 8 + $0040, 32, 7, 0, true)
         }
 
         ; waveform sprites 32x64
@@ -58,7 +81,7 @@ main {
         sprites.pos(16, 160-100-16, 120)
         sprites.pos(17, 160+100-16, 120)
 
-        ; irq handlers
+        ; activate irq handlers
         cx16.enable_irq_handlers(true)
         cx16.set_aflow_irq_handler(interrupts.aflow_handler)
         cx16.set_vsync_irq_handler(interrupts.vsync_handler)
@@ -228,8 +251,9 @@ main {
     }
 
     sub update_vu() {
-        word aleft = $00a0 as word - msb(avg_vol_left)
-        word aright = $00a0 as word - msb(avg_vol_right)
+        ; determine vu 'level' in steps of 8 pixels
+        word aleft = ($00a0 as word - msb(avg_vol_left)) & %11111111_11111000
+        word aright = ($00a0 as word - msb(avg_vol_right)) & %11111111_11111000
         for cx16.r9L in 0 to 3 {
             ; note: sprites overlap a bit to avoid scanlines peeping through when updating outside of vblank
             sprites.pos(cx16.r9L, 160-32-16, aleft)
