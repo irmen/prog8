@@ -77,8 +77,9 @@ class VarConstantValueTypeAdjuster(
                         // variable is never written to, so it can be replaced with a constant, IF the value is a constant
                         errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
                         val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, declValue, decl.sharedWithAsm, decl.splitArray, decl.position)
+                        decl.value = null
                         return listOf(
-                            IAstModification.ReplaceNode(decl, const, parent),
+                            IAstModification.ReplaceNode(decl, const, parent)
                         )
                     }
                 }

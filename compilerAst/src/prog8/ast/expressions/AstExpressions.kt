@@ -375,6 +375,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun inferType(program: Program) = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteral? {
         val cv = expression.constValue(program) ?: return null
+        cv.linkParents(parent)
         val cast = cv.cast(type, implicit)
         return if(cast.isValid) {
             val newval = cast.valueOrZero()

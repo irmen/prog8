@@ -793,6 +793,18 @@ main {
         (expr.right as? NumericLiteral)?.number shouldBe 10.0
     }
 
+    test("var to const inside typecast") {
+        val src="""
+main {
+    uword variable  ; will be made a const
+
+    sub start() {
+        cx16.r0 = msb(variable) as uword
+    }
+}"""
+        compileText(VMTarget(), true, src, writeAssembly = false) shouldNotBe null
+    }
+
     test("De Morgan's laws") {
         val src="""
 main {
