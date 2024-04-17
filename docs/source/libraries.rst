@@ -382,11 +382,21 @@ point variables.  This includes ``print_f``, the routine used to print floating 
 ``atan (x)``
     Arctangent.
 
+``atan2 (y, x)``
+    Two-argument arctangent that returns an angle in the correct quadrant
+    for the signs of x and y, normalized to the range [0, 2π]
+
 ``ceil (x)``
     Rounds the floating point up to an integer towards positive infinity.
 
 ``cos (x)``
     Cosine.
+
+``cot (x)``
+    Cotangent: 1/tan(x)
+
+``csc (x)``
+    Cosecant: 1/sin(x)
 
 ``deg (x)``
     Radians to degrees.
@@ -425,6 +435,9 @@ point variables.  This includes ``print_f``, the routine used to print floating 
 
 ``sin (x)``
     Sine.
+
+``secant (x)``
+    Secant: 1/cos(x)
 
 ``tan (x)``
     Tangent.
