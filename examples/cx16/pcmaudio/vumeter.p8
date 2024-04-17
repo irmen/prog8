@@ -1,22 +1,24 @@
 %import diskio
-%import palette
 %import sprites
 %option no_sysinit
 
 ; play a raw pcm stereo 16 bit audio file at 16021 hz,
 ; with real-time VU meters and sample waveform displays.
 
-; Left as an excercise for the reader: add peak level indicator.
-; that would require use of more sprites though, because it has to appear on top of the blocking black sprites.
+; you can make an appropriate pcm file with one of the following commands:
+;   ffmpeg -i input_audio_file -ac 2 -ar 16021 -f s16le -acodec pcm_s16le music.pcm
+;   sox input_audio_file -e signed-integer -L -b 16 -c 2 -r 16021 -t raw music.pcm
+
 
 main {
 
-    const ubyte vera_rate = 42              ;  16021 hz
-    str pcmfile = "thriller-16k.pcm"        ;  should be raw pcm, 16 bits signed integer, stereo, 16021 hz.
+    const ubyte vera_rate = 42       ;  16021 hz
+    str pcmfile = "music.pcm"        ;  see format specs mentioned above
 
     sub start() {
         setup()
         play_stuff()
+        repeat {}
     }
 
     sub setup() {
@@ -24,7 +26,7 @@ main {
         cx16.GRAPH_set_colors(0,0,0)
         cx16.GRAPH_clear()
 
-        cx16.GRAPH_set_colors(47,0,0)
+        cx16.GRAPH_set_colors(6,0,0)
         cx16.r0 = 250
         cx16.r1 = 10
         for cx16.r9L in iso:"made in Prog8"
@@ -42,33 +44,16 @@ main {
         repeat 1024
             cx16.VERA_AUDIO_DATA = 0        ; fill buffer with short silence
 
-        ; vu bar sprites (left and right bars, each 4 sprites)
-        palette.set_color(15, $000)   ; make sprites black
-        for cx16.r9L in 0 to 7 {
-            sprites.init(cx16.r9L, 1, $3000, sprites.SIZE_32, sprites.SIZE_64, sprites.COLORS_16, 0)
-        }
-        for cx16.r9 in $3000 to $3000+32*64/2 {
-            cx16.vpoke(1, cx16.r9, $ff)
-        }
-
-        ; move the vu sprites to the base positions
+        ; clear vu meter to base values
         update_vu()
 
-        ; draw vu gradient bars.
-        ; 18 bars from the bottom are gradient from green to red
-        ; 4 bars on top of that are just red for the extremes
-        ubyte[18] gradient_colors_outline = [ 2,  2,  2,  2, 51, 51,  8,  8,  5,  5,  5,  5, 141, 141, 141, 141, 140, 140]
-        ubyte[18] gradient_colors_fill =    [59, 59, 52, 52,  8,  8, 80, 80, 13, 13, 13, 13, 143, 143, 143, 143, 142, 142]
-
-        for cx16.r9L in 0 to len(gradient_colors_fill)-1 {
-            cx16.GRAPH_set_colors(gradient_colors_outline[cx16.r9L], gradient_colors_fill[cx16.r9L], 0)
-            cx16.GRAPH_draw_rect(160-32-16, cx16.r9L * 8 + $0060, 32, 7, 0, true)
-            cx16.GRAPH_draw_rect(160+32-16, cx16.r9L * 8 + $0060, 32, 7, 0, true)
-        }
-        for cx16.r9L in 0 to 3 {
-            cx16.GRAPH_set_colors(gradient_colors_outline[0], gradient_colors_fill[0], 0)
-            cx16.GRAPH_draw_rect(160-32-16, cx16.r9L * 8 + $0040, 32, 7, 0, true)
-            cx16.GRAPH_draw_rect(160+32-16, cx16.r9L * 8 + $0040, 32, 7, 0, true)
+        ; draw the vu gradient bars (20 leds each)
+        ; They use palette colors 16 and up, in pairs. Left bar first (16-55) then right bar (56-95).
+        for cx16.r9L in 0 to 19 {
+            cx16.GRAPH_set_colors(16+cx16.r9L*2, 17+cx16.r9L*2, 0)
+            cx16.GRAPH_draw_rect(160-32-16, 220-8-cx16.r9L*8, 32, 7, 0, true)
+            cx16.GRAPH_set_colors(56+cx16.r9L*2, 57+cx16.r9L*2, 0)
+            cx16.GRAPH_draw_rect(160+32-16, 220-8-cx16.r9L*8, 32, 7, 0, true)
         }
 
         ; waveform sprites 32x64
@@ -78,8 +63,8 @@ main {
             cx16.vpoke(1, cx16.r9, 0)
             cx16.vpoke(1, cx16.r9+$0400, 0)
         }
-        sprites.pos(16, 160-100-16, 120)
-        sprites.pos(17, 160+100-16, 120)
+        sprites.pos(16, 160-100-16, 100)
+        sprites.pos(17, 160+100-16, 100)
 
         ; activate irq handlers
         cx16.enable_irq_handlers(true)
@@ -89,6 +74,7 @@ main {
 
     sub play_stuff() {
         if diskio.f_open(pcmfile) {
+            bool streaming = true
             music.pre_buffer()
             cx16.VERA_AUDIO_RATE = vera_rate    ; start audio playback
 
@@ -100,14 +86,18 @@ main {
                 }
                 if interrupts.aflow {
                     interrupts.aflow=false
-                    if not music.load_next_block()
-                        break
+                    if streaming {
+                        streaming = music.load_next_block()
+                        if not streaming {
+                            cx16.VERA_AUDIO_RATE = 0            ; halt playback
+                            diskio.f_close()
+                            sys.memset(music.buffer, music.PCM_BLOCK_SIZE, 0)
+                        }
+                    }
                     ; Note: copying the samples into the fifo buffer is done by the aflow interrupt handler itself.
                     collect_audio_volumes()
                 }
             }
-
-            diskio.f_close()
         } else {
             txt.print("load error\n")
         }
@@ -115,15 +105,17 @@ main {
         cx16.VERA_AUDIO_RATE = 0                ; halt playback
     }
 
-    uword @zp current_vol_left
-    uword @zp current_vol_right
-    uword avg_vol_left
-    uword avg_vol_right
+    uword @zp current_vol_left, current_vol_right
+    uword avg_vol_left, avg_vol_right
+    ubyte peak_left, peak_right
     ubyte vu_refresh_ticks = 2
+    ubyte peak_falloff_ticks_left = 2
+    ubyte peak_falloff_ticks_right = 2
+    ubyte peak_stick_delay_left
+    ubyte peak_stick_delay_right
 
     sub collect_audio_volumes() {
-        current_vol_left=0
-        current_vol_right=0
+        current_vol_left = current_vol_right = 0
         uword @zp buf_ptr = music.buffer + 1
 
         sys.set_irqd()
@@ -157,14 +149,13 @@ main {
         if_z {
             vu_refresh_ticks = 2
             update_vu()
-            avg_vol_left = 0
-            avg_vol_right = 0
+            avg_vol_left = avg_vol_right = 0
         } else {
             avg_vol_left += current_vol_left
             avg_vol_right += current_vol_right
         }
 
-        uword sample_ptr = music.buffer
+        uword @zp sample_ptr = music.buffer
         cx16.vaddr(1,$3400,0,1)
         repeat 64 {
             sample_line()
@@ -231,36 +222,102 @@ main {
 ;            cx16.VERA_DATA0 = sample_sprite_tab_e[cx16.r0L]
 ;            cx16.VERA_DATA0 = sample_sprite_tab_f[cx16.r0L]
 
-            ubyte[32] sample_sprite_tab_0 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $10,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_1 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$10,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_2 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$10,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_3 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$01,$01,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_4 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$10,$01,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_5 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$10,$01,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_6 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$10,$01,$00,$00]
-            ubyte[32] sample_sprite_tab_7 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$10,$01]
-            ubyte[32] sample_sprite_tab_8 = [$10,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_9 = [$00,$00,$10,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_a = [$00,$00,$00,$00,$10,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_b = [$00,$00,$00,$00,$00,$00,$10,$01,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_c = [$00,$00,$00,$00,$00,$00,$00,$00,$10,$01,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_d = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$10,$01,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_e = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$10,$01,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
-            ubyte[32] sample_sprite_tab_f = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$10,$10, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_0 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $1c,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_1 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$c0,$1c,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_2 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$c0,$1c,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_3 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$c0,$1c,$01,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_4 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$c0,$1c,$01,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_5 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$c0,$1c,$01,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_6 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$c0,$1c,$01,$00,$00]
+            ubyte[32] sample_sprite_tab_7 = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$c0,$1c,$01]
+            ubyte[32] sample_sprite_tab_8 = [$1c,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_9 = [$00,$c0,$1c,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_a = [$00,$00,$00,$c0,$1c,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_b = [$00,$00,$00,$00,$00,$c0,$1c,$01,$00,$00,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_c = [$00,$00,$00,$00,$00,$00,$00,$c0,$1c,$01,$00,$00,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_d = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$c0,$1c,$01,$00,$00,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_e = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$c0,$1c,$01,$00,$00, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
+            ubyte[32] sample_sprite_tab_f = [$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$c0,$1c,$01, $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00]
         }
     }
 
     sub update_vu() {
-        ; determine vu 'level' in steps of 8 pixels
-        word aleft = ($00a0 as word - msb(avg_vol_left)) & %11111111_11111000
-        word aright = ($00a0 as word - msb(avg_vol_right)) & %11111111_11111000
-        for cx16.r9L in 0 to 3 {
-            ; note: sprites overlap a bit to avoid scanlines peeping through when updating outside of vblank
-            sprites.pos(cx16.r9L, 160-32-16, aleft)
-            sprites.pos(4+cx16.r9L, 160+32-16, aright)
-            aleft -= 32
-            aright -= 32
+        ; determine vu 'level' in steps of 8 pixels, on a scale of 0-19
+        ubyte aleft = min(143, msb(avg_vol_left))
+        ubyte aright = min(143, msb(avg_vol_right))
+        aleft = (aleft >> 3) + 2
+        aright = (aright >> 3) + 2
+
+        set_inactive_leds()
+        set_peak_indicator()
+        set_active_leds()
+
+        sub set_inactive_leds() {
+            ubyte level
+            for level in aleft*4 to 19*4 step 4 {
+                set_led_colors(16*2+level, 20)
+            }
+            for level in aright*4 to 19*4 step 4 {
+                set_led_colors(56*2+level, 20)
+            }
         }
+
+        sub set_active_leds() {
+            do {
+                aleft--
+                set_led_colors((16+aleft*2)*2, aleft)
+            } until aleft==0
+            do {
+                aright--
+                set_led_colors((56+aright*2)*2, aright)
+            } until aright==0
+        }
+
+        sub set_peak_indicator() {
+            peak_stick_delay_left--
+            if_z {
+                peak_stick_delay_left = 1
+                peak_falloff_ticks_left--
+                if_z {
+                    peak_falloff_ticks_left = 2
+                    if peak_left!=0
+                        peak_left--
+                }
+            }
+            peak_stick_delay_right--
+            if_z {
+                peak_stick_delay_right = 1
+                peak_falloff_ticks_right--
+                if_z {
+                    peak_falloff_ticks_right = 2
+                    if peak_right!=0
+                        peak_right--
+                }
+            }
+            if aleft>peak_left {
+                peak_stick_delay_left = 15
+                peak_left = aleft
+            }
+            if aright>peak_right {
+                peak_stick_delay_right = 15
+                peak_right = aright
+            }
+            set_led_colors(16*2+peak_left*4, 21)
+            set_led_colors(56*2+peak_right*4, 21)
+        }
+
+        sub set_led_colors(ubyte palette_offset, ubyte color_idx) {
+            cx16.vaddr(1, $fa00+palette_offset, 0, 1)
+            uword @zp outline_rgb = outline_color[color_idx]
+            uword @zp fill_rgb = fill_color[color_idx]
+            cx16.VERA_DATA0 = lsb(outline_rgb)
+            cx16.VERA_DATA0 = msb(outline_rgb)
+            cx16.VERA_DATA0 = lsb(fill_rgb)
+            cx16.VERA_DATA0 = msb(fill_rgb)
+        }
+
+        uword[22] @split outline_color = [$090,$190,$290,$390,$490,$590,$690,$790,$990,$980,$970,$960,$950,$940,$a30,$a00,$a00,$a00,$a00,$a00, $111, $148]
+        uword[22] @split fill_color    = [$0f0,$2f0,$4f0,$6f0,$8f0,$af0,$cf0,$ef0,$ff0,$fe0,$fc0,$fa0,$f80,$f60,$f40,$f00,$f01,$f02,$f03,$f04, $000, $28f]
     }
 }
 
@@ -329,7 +386,7 @@ music {
         }}
 ; original prog8 code:
 ;        uword @requirezp ptr = main.start.buffer
-;        repeat 1024 {
+;        repeat PCM_BLOCK_SIZE {
 ;            cx16.VERA_AUDIO_DATA = @(ptr)
 ;            ptr++
 ;        }
