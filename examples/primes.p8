@@ -4,12 +4,11 @@
 ; Note: this program can be compiled for multiple target systems.
 
 main {
-
     bool[256] sieve
     ubyte candidate_prime = 2       ; is increased in the loop
 
     sub start() {
-        sys.memset(sieve, 256, 0)   ; clear the sieve, to reset starting situation on subsequent runs
+        sys.memset(sieve, 256, 0)   ; clear the sieve
 
         ; calculate primes
         txt.print("prime numbers up to 255:\n\n")
@@ -26,8 +25,6 @@ main {
         txt.print("number of primes (expected 54): ")
         txt.print_ub(amount)
         txt.nl()
-
-        ; test_stack.test()
     }
 
 

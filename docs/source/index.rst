@@ -120,7 +120,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
     %zeropage basicsafe
 
     main {
-        ubyte[256] sieve
+        bool[256] sieve
         ubyte candidate_prime = 2       ; is increased in the loop
 
         sub start() {

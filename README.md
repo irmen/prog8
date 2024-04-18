@@ -119,7 +119,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
     %import textio
     %zeropage basicsafe
-    
+
     main {
         bool[256] sieve
         ubyte candidate_prime = 2       ; is increased in the loop
