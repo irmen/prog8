@@ -124,9 +124,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
         ubyte candidate_prime = 2       ; is increased in the loop
 
         sub start() {
-            ; clear the sieve, to reset starting situation on subsequent runs
-            sys.memset(sieve, 256, false)
-            ; calculate primes
+            sys.memset(sieve, 256, 0)   ; clear the sieve
             txt.print("prime numbers up to 255:\n\n")
             ubyte amount=0
             repeat {
@@ -147,7 +145,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
             while sieve[candidate_prime] {
                 candidate_prime++
                 if candidate_prime==0
-                    return 0        ; we wrapped; no more primes available in the sieve
+                    return 0        ; we wrapped; no more primes
             }
 
             ; found next one, mark the multiples and return it.

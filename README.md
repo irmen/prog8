@@ -121,12 +121,11 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
     %zeropage basicsafe
     
     main {
-    
-        ubyte[256] sieve
+        bool[256] sieve
         ubyte candidate_prime = 2       ; is increased in the loop
     
         sub start() {
-            sys.memset(sieve, 256, false)   ; clear the sieve
+            sys.memset(sieve, 256, 0)   ; clear the sieve
             txt.print("prime numbers up to 255:\n\n")
             ubyte amount=0
             repeat {
@@ -161,9 +160,6 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
             return candidate_prime
         }
     }
-
-
-
 
 when compiled an ran on a C-64 you'll get:
 
