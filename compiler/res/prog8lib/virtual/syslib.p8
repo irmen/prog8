@@ -5,7 +5,7 @@
 sys {
     ; ------- lowlevel system routines --------
 
-    const ubyte target = 255         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 8 = atari800XL, 255 = virtual
+    const ubyte target = 255         ;  compilation target specifier.  255=virtual, 128=C128, 64=C64, 32=PET, 16=CommanderX16, 8=atari800XL, 7=Neo6502
 
     const ubyte sizeof_bool = 1
     const ubyte sizeof_byte = 1
