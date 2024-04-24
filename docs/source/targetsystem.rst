@@ -16,6 +16,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'c128': the Commodore 128  (*limited support*)
 - 'pet32': the Commodore PET 4032  (*limited support*)
 - 'atari': the Atari 800 XL  (*experimental support*)
+- 'neo': the `Neo6502 <https://github.com/paulscottrobson/neo6502-firmware/wiki>`_ (*experimental*)
 - 'virtual': a builtin virtual machine
 
 This chapter explains some relevant system details of the c64 and cx16 machines.
