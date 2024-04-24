@@ -1,6 +1,9 @@
 TODO
 ====
 
+See https://github.com/irmen/prog8/issues/134
++ any other issues that got reported.
+
 ...
 
 
