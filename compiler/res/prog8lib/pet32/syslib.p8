@@ -96,7 +96,7 @@ asmsub kbdbuf_clear() {
 sys {
     ; ------- lowlevel system routines --------
 
-    const ubyte target = 32         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 32=PET
+    const ubyte target = 32         ;  compilation target specifier.  255=virtual, 128=C128, 64=C64, 32=PET, 16=CommanderX16, 8=atari800XL, 7=Neo6502
 
     const ubyte sizeof_bool = 1
     const ubyte sizeof_byte = 1
