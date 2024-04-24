@@ -1,41 +1,46 @@
-; Prog8 definitions for the Atari800XL
-; Including memory registers, I/O registers, Basic and Kernal subroutines.
+; Prog8 definitions for the Neo6502
 
 %option no_symbol_prefixing, ignore_unused
 
-atari {
+neo {
+    &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
+    &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
+    &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
 
-        &uword  NMI_VEC         = $FFFA     ; 6502 nmi vector, determined by the kernal if banked in
-        &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
-        &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
-
-        &uword COLCRS = 85
-        &ubyte ROWCRS = 84
-
-    extsub $F24A = getchar() -> ubyte @A
-    extsub $F2B0 = outchar(ubyte character @ A)
-    extsub $F2FD = waitkey() -> ubyte @A
-
+    %asminclude "library:neo/neo6502.asm"
 }
 
 sys {
     ; ------- lowlevel system routines --------
 
-    const ubyte target = 8         ;  compilation target specifier.  255=virtual, 128=C128, 64=C64, 32=PET, 16=CommanderX16, 8=atari800XL, 7=Neo6502
+    const ubyte target = 7         ;  compilation target specifier.  255=virtual, 128=C128, 64=C64, 32=PET, 16=CommanderX16, 8=atari800XL, 7=Neo6502
 
-    const ubyte sizeof_bool = 1
-    const ubyte sizeof_byte = 1
-    const ubyte sizeof_ubyte = 1
-    const ubyte sizeof_word = 2
-    const ubyte sizeof_uword = 2
-    const ubyte sizeof_float = 0    ; undefined, no float support
+    asmsub  init_system()  {
+        ; Initializes the machine to a sane starting state.
+        ; Called automatically by the loader program logic.
+        %asm {{
+            sei
+            cld
+            clc
+            ; TODO reset screen mode etc etc?
+            clv
+            ; TODO what about IRQ handler?  cli
+            rts
+        }}
+    }
+
+    asmsub  init_system_phase2()  {
+        %asm {{
+            rts     ; no phase 2 steps on the Neo6502
+        }}
+    }
 
     asmsub  reset_system()  {
-        ; Soft-reset the system back to initial power-on Basic prompt.
+        ; Soft-reset the system back to initial power-on status
         ; TODO
         %asm {{
             sei
-            jmp  (atari.RESET_VEC)
+            jmp  (neo.RESET_VEC)
         }}
     }
 
@@ -140,65 +145,6 @@ _longcopy
         }}
     }
 
-    asmsub memcmp(uword address1 @R0, uword address2 @R1, uword size @AY) -> byte @A {
-        ; Compares two blocks of memory
-        ; Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
-        %asm {{
-            sta  P8ZP_SCRATCH_REG   ; lsb(size)
-            sty  P8ZP_SCRATCH_B1    ; msb(size)
-            lda  cx16.r0
-            ldy  cx16.r0+1
-            sta  P8ZP_SCRATCH_W1
-            sty  P8ZP_SCRATCH_W1+1
-            lda  cx16.r1
-            ldy  cx16.r1+1
-            sta  P8ZP_SCRATCH_W2
-            sty  P8ZP_SCRATCH_W2+1
-
-            ldx  P8ZP_SCRATCH_B1
-            beq  _no_msb_size
-
-_loop_msb_size
-            ldy  #0
--           lda  (P8ZP_SCRATCH_W1),y
-            cmp  (P8ZP_SCRATCH_W2),y
-            bcs  +
-            lda  #-1
-            rts
-+           beq  +
-            lda  #1
-            rts
-+           iny
-            bne  -
-            inc  P8ZP_SCRATCH_W1+1
-            inc  P8ZP_SCRATCH_W2+1
-            dec  P8ZP_SCRATCH_B1        ; msb(size) -= 1
-            dex
-            bne  _loop_msb_size
-
-_no_msb_size
-            lda  P8ZP_SCRATCH_REG       ; lsb(size)
-            bne  +
-            rts
-
-+           ldy  #0
--           lda  (P8ZP_SCRATCH_W1),y
-            cmp  (P8ZP_SCRATCH_W2),y
-            bcs  +
-            lda  #-1
-            rts
-+           beq  +
-            lda  #1
-            rts
-+           iny
-            cpy  P8ZP_SCRATCH_REG       ; lsb(size)
-            bne  -
-
-            lda #0
-            rts
-        }}
-    }
-
     inline asmsub read_flags() -> ubyte @A {
         %asm {{
         php
@@ -270,7 +216,6 @@ save_SCRATCH_ZPB1	.byte  0
 save_SCRATCH_ZPREG	.byte  0
 save_SCRATCH_ZPWORD1	.word  0
 save_SCRATCH_ZPWORD2	.word  0
-            ; !notreached!
         }}
     }
 
@@ -294,38 +239,27 @@ save_SCRATCH_ZPWORD2	.word  0
 
     asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
+        ;    TODO where to store A as exit code?
         %asm {{
-            sta  p8_sys_startup.cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  p8_sys_startup.cleanup_at_exit
+            rts		; return to original caller
         }}
     }
 
     asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
         ; -- immediately exit the program with result values in the A, X and Y registers.
+        ;    TODO where to store A,X,Y as exit code?
         %asm {{
-            sta  p8_sys_startup.cleanup_at_exit._exitcode
-            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
-            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
-            ldx  prog8_lib.orig_stackpointer
-            txs
-            jmp  p8_sys_startup.cleanup_at_exit
+            jmp  exit
         }}
     }
 
     asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
         ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
+        ;    TODO where to store A,X,Y,Carry as exit code?
         %asm {{
-            sta  p8_sys_startup.cleanup_at_exit._exitcode
-            lda  #0
-            rol  a
-            sta  p8_sys_startup.cleanup_at_exit._exitcodeCarry
-            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
-            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
-            ldx  prog8_lib.orig_stackpointer
-            txs
-            jmp  p8_sys_startup.cleanup_at_exit
+            jmp  exit
         }}
     }
 
@@ -368,109 +302,108 @@ save_SCRATCH_ZPWORD2	.word  0
 
 cx16 {
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
-    ; they are simulated on the Atari as well but their location in memory is different
-    ; TODO
-    &uword r0  = $1b00
-    &uword r1  = $1b02
-    &uword r2  = $1b04
-    &uword r3  = $1b06
-    &uword r4  = $1b08
-    &uword r5  = $1b0a
-    &uword r6  = $1b0c
-    &uword r7  = $1b0e
-    &uword r8  = $1b10
-    &uword r9  = $1b12
-    &uword r10 = $1b14
-    &uword r11 = $1b16
-    &uword r12 = $1b18
-    &uword r13 = $1b1a
-    &uword r14 = $1b1c
-    &uword r15 = $1b1e
+; the sixteen virtual 16-bit registers in both normal unsigned mode and signed mode (s)
+    &uword r0  = $0002
+    &uword r1  = $0004
+    &uword r2  = $0006
+    &uword r3  = $0008
+    &uword r4  = $000a
+    &uword r5  = $000c
+    &uword r6  = $000e
+    &uword r7  = $0010
+    &uword r8  = $0012
+    &uword r9  = $0014
+    &uword r10 = $0016
+    &uword r11 = $0018
+    &uword r12 = $001a
+    &uword r13 = $001c
+    &uword r14 = $001e
+    &uword r15 = $0020
 
-    &word r0s  = $1b00
-    &word r1s  = $1b02
-    &word r2s  = $1b04
-    &word r3s  = $1b06
-    &word r4s  = $1b08
-    &word r5s  = $1b0a
-    &word r6s  = $1b0c
-    &word r7s  = $1b0e
-    &word r8s  = $1b10
-    &word r9s  = $1b12
-    &word r10s = $1b14
-    &word r11s = $1b16
-    &word r12s = $1b18
-    &word r13s = $1b1a
-    &word r14s = $1b1c
-    &word r15s = $1b1e
+    &word r0s  = $0002
+    &word r1s  = $0004
+    &word r2s  = $0006
+    &word r3s  = $0008
+    &word r4s  = $000a
+    &word r5s  = $000c
+    &word r6s  = $000e
+    &word r7s  = $0010
+    &word r8s  = $0012
+    &word r9s  = $0014
+    &word r10s = $0016
+    &word r11s = $0018
+    &word r12s = $001a
+    &word r13s = $001c
+    &word r14s = $001e
+    &word r15s = $0020
 
-    &ubyte r0L  = $1b00
-    &ubyte r1L  = $1b02
-    &ubyte r2L  = $1b04
-    &ubyte r3L  = $1b06
-    &ubyte r4L  = $1b08
-    &ubyte r5L  = $1b0a
-    &ubyte r6L  = $1b0c
-    &ubyte r7L  = $1b0e
-    &ubyte r8L  = $1b10
-    &ubyte r9L  = $1b12
-    &ubyte r10L = $1b14
-    &ubyte r11L = $1b16
-    &ubyte r12L = $1b18
-    &ubyte r13L = $1b1a
-    &ubyte r14L = $1b1c
-    &ubyte r15L = $1b1e
+    &ubyte r0L  = $0002
+    &ubyte r1L  = $0004
+    &ubyte r2L  = $0006
+    &ubyte r3L  = $0008
+    &ubyte r4L  = $000a
+    &ubyte r5L  = $000c
+    &ubyte r6L  = $000e
+    &ubyte r7L  = $0010
+    &ubyte r8L  = $0012
+    &ubyte r9L  = $0014
+    &ubyte r10L = $0016
+    &ubyte r11L = $0018
+    &ubyte r12L = $001a
+    &ubyte r13L = $001c
+    &ubyte r14L = $001e
+    &ubyte r15L = $0020
 
-    &ubyte r0H  = $1b01
-    &ubyte r1H  = $1b03
-    &ubyte r2H  = $1b05
-    &ubyte r3H  = $1b07
-    &ubyte r4H  = $1b09
-    &ubyte r5H  = $1b0b
-    &ubyte r6H  = $1b0d
-    &ubyte r7H  = $1b0f
-    &ubyte r8H  = $1b11
-    &ubyte r9H  = $1b13
-    &ubyte r10H = $1b15
-    &ubyte r11H = $1b17
-    &ubyte r12H = $1b19
-    &ubyte r13H = $1b1b
-    &ubyte r14H = $1b1d
-    &ubyte r15H = $1b1f
+    &ubyte r0H  = $0003
+    &ubyte r1H  = $0005
+    &ubyte r2H  = $0007
+    &ubyte r3H  = $0009
+    &ubyte r4H  = $000b
+    &ubyte r5H  = $000d
+    &ubyte r6H  = $000f
+    &ubyte r7H  = $0011
+    &ubyte r8H  = $0013
+    &ubyte r9H  = $0015
+    &ubyte r10H = $0017
+    &ubyte r11H = $0019
+    &ubyte r12H = $001b
+    &ubyte r13H = $001d
+    &ubyte r14H = $001f
+    &ubyte r15H = $0021
 
-    &byte r0sL  = $1b00
-    &byte r1sL  = $1b02
-    &byte r2sL  = $1b04
-    &byte r3sL  = $1b06
-    &byte r4sL  = $1b08
-    &byte r5sL  = $1b0a
-    &byte r6sL  = $1b0c
-    &byte r7sL  = $1b0e
-    &byte r8sL  = $1b10
-    &byte r9sL  = $1b12
-    &byte r10sL = $1b14
-    &byte r11sL = $1b16
-    &byte r12sL = $1b18
-    &byte r13sL = $1b1a
-    &byte r14sL = $1b1c
-    &byte r15sL = $1b1e
+    &byte r0sL  = $0002
+    &byte r1sL  = $0004
+    &byte r2sL  = $0006
+    &byte r3sL  = $0008
+    &byte r4sL  = $000a
+    &byte r5sL  = $000c
+    &byte r6sL  = $000e
+    &byte r7sL  = $0010
+    &byte r8sL  = $0012
+    &byte r9sL  = $0014
+    &byte r10sL = $0016
+    &byte r11sL = $0018
+    &byte r12sL = $001a
+    &byte r13sL = $001c
+    &byte r14sL = $001e
+    &byte r15sL = $0020
 
-    &byte r0sH  = $1b01
-    &byte r1sH  = $1b03
-    &byte r2sH  = $1b05
-    &byte r3sH  = $1b07
-    &byte r4sH  = $1b09
-    &byte r5sH  = $1b0b
-    &byte r6sH  = $1b0d
-    &byte r7sH  = $1b0f
-    &byte r8sH  = $1b11
-    &byte r9sH  = $1b13
-    &byte r10sH = $1b15
-    &byte r11sH = $1b17
-    &byte r12sH = $1b19
-    &byte r13sH = $1b1b
-    &byte r14sH = $1b1d
-    &byte r15sH = $1b1f
+    &byte r0sH  = $0003
+    &byte r1sH  = $0005
+    &byte r2sH  = $0007
+    &byte r3sH  = $0009
+    &byte r4sH  = $000b
+    &byte r5sH  = $000d
+    &byte r6sH  = $000f
+    &byte r7sH  = $0011
+    &byte r8sH  = $0013
+    &byte r9sH  = $0015
+    &byte r10sH = $0017
+    &byte r11sH = $0019
+    &byte r12sH = $001b
+    &byte r13sH = $001d
+    &byte r14sH = $001f
+    &byte r15sH = $0021
 
     asmsub save_virtual_registers() clobbers(A,Y) {
         %asm {{
@@ -484,7 +417,6 @@ cx16 {
     _cx16_vreg_storage
             .word 0,0,0,0,0,0,0,0
             .word 0,0,0,0,0,0,0,0
-            ; !notreached!
         }}
     }
 
@@ -504,45 +436,4 @@ cx16 {
         return false
     }
 
-}
-
-p8_sys_startup {
-    ; program startup and shutdown machinery. Needs to reside in normal system ram.
-
-    asmsub  init_system()  {
-        ; Initializes the machine to a sane starting state.
-        ; Called automatically by the loader program logic.
-        ; TODO
-        %asm {{
-            sei
-            ; TODO reset screen mode etc etc
-            cli
-            rts
-        }}
-    }
-
-    asmsub  init_system_phase2()  {
-        %asm {{
-            cld
-            clc
-            clv
-            rts
-        }}
-    }
-
-    asmsub  cleanup_at_exit() {
-        ; executed when the main subroutine does rts
-        %asm {{
-_exitcodeCarry = *+1
-            lda  #0
-            lsr  a
-_exitcode = *+1
-            lda  #0        ; exit code possibly modified in exit()
-_exitcodeX = *+1
-            ldx  #0
-_exitcodeY = *+1
-            ldy  #0
-            rts
-        }}
-    }
 }

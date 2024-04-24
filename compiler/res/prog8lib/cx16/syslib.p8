@@ -332,7 +332,7 @@ cx16 {
     &ubyte  VERA_FX_X_POS_S     = VERA_BASE + $0009
     &ubyte  VERA_FX_Y_POS_S     = VERA_BASE + $000a
     &ubyte  VERA_FX_POLY_FILL_L = VERA_BASE + $000b
-    &ubyte  VERA_FX_POLY_FILL_H = VERA_BASE + $000c
+    &ubyte  VERA_FX_POLY_FILL_H = VERA_BASE + $000cF
     &uword  VERA_FX_POLY_FILL   = VERA_BASE + $000b
     &ubyte  VERA_FX_CACHE_L     = VERA_BASE + $0009
     &ubyte  VERA_FX_CACHE_M     = VERA_BASE + $000a
@@ -1372,7 +1372,7 @@ _continue   iny
 sys {
     ; ------- lowlevel system routines --------
 
-    const ubyte target = 16         ;  compilation target specifier.  64 = C64,  128 = C128,  16 = CommanderX16.
+    const ubyte target = 16         ;  compilation target specifier.  255=virtual, 128=C128, 64=C64, 32=PET, 16=CommanderX16, 8=atari800XL, 7=Neo6502
 
     const ubyte sizeof_bool = 1
     const ubyte sizeof_byte = 1

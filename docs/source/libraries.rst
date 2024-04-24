@@ -235,6 +235,7 @@ Grouped per compilation target.
 * `c128 <_static/symboldumps/skeletons-c128.txt>`_
 * `cx16 <_static/symboldumps/skeletons-cx16.txt>`_
 * `pet32 <_static/symboldumps/skeletons-pet32.txt>`_
+* `neo <_static/symboldumps/skeletons-neo.txt>`_
 * `virtual <_static/symboldumps/skeletons-virtual.txt>`_
 
 

@@ -292,7 +292,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val programNameInPath = outputPath.resolve(compilationResult.compilerAst.name)
 
             if(startEmulator1==true || startEmulator2==true) {
-                if (compilationResult.compilationOptions.launcher != CbmPrgLauncherType.NONE || compilationTarget=="atari") {
+                if (compilationResult.compilationOptions.launcher != CbmPrgLauncherType.NONE || compilationTarget=="atari" || compilationTarget=="neo") {
                     if (startEmulator1 == true)
                         compilationResult.compilationOptions.compTarget.machine.launchEmulator(1, programNameInPath)
                     else if (startEmulator2 == true)

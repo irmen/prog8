@@ -1,7 +1,9 @@
 package prog8.codegen.cpu6502
 
 import prog8.code.core.*
+import prog8.code.target.AtariTarget
 import prog8.code.target.C64Target
+import prog8.code.target.Neo6502Target
 import java.nio.file.Path
 
 
@@ -16,6 +18,7 @@ internal class AssemblyProgram(
     private val binFile = outputDir.resolve("$name.bin")
     private val viceMonListFile = outputDir.resolve(C64Target.viceMonListName(name))
     private val listFile = outputDir.resolve("$name.list")
+    private val targetWithoutBreakpointsForEmulator = setOf(AtariTarget.NAME, Neo6502Target.NAME)
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
 
@@ -96,12 +99,47 @@ internal class AssemblyProgram(
                 command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
             }
+            "neo" -> {
+                // Neo6502 raw program generation.
+
+                if(options.output!=OutputType.RAW || options.loadAddress!=0x0800u || options.launcher!=CbmPrgLauncherType.NONE) {
+                    throw AssemblyError("invalid program compilation options. Neo6502 requires %output raw, %launcher none, %address $0800")
+                }
+
+                // TODO are these options okay for neo?
+                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch",
+                    "-Wall", // "-Werror", "-Wno-strict-bool"
+                    "--no-monitor"
+                )
+
+                if(options.warnSymbolShadowing)
+                    command.add("-Wshadow")
+                else
+                    command.add("-Wno-shadow")
+
+                if(options.asmQuiet)
+                    command.add("--quiet")
+
+                if(options.asmListfile)
+                    command.add("--list=$listFile")
+
+                val outFile = when (options.output) {
+                    OutputType.RAW -> {
+                        command.add("--nostart")
+                        println("\nCreating raw binary for target ${compTarget.name}.")
+                        binFile
+                    }
+                    else -> throw AssemblyError("invalid output type, need 'raw'")
+                }
+                command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
+                assemblerCommand = command
+            }
             else -> throw AssemblyError("invalid compilation target")
         }
 
         val proc = ProcessBuilder(assemblerCommand).inheritIO().start()
         val result = proc.waitFor()
-        if (result == 0 && compTarget.name!="atari") {
+        if (result == 0 && compTarget.name !in targetWithoutBreakpointsForEmulator) {
             removeGeneratedLabelsFromMonlist()
             generateBreakpointList()
         }
