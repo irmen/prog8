@@ -62,7 +62,7 @@ For normal use, the ``installDist`` task should suffice and after succesful comp
 
 .. hint::
     Development and testing is done on Linux using the IntelliJ IDEA IDE,
-    but the actual prog8 compiler should run on all operating systems that provide a java runtime (version 11 or newer).
+    but the actual prog8 compiler should run on all operating systems that provide a java runtime (version 17 or newer).
     If you do have trouble building or running the compiler on your operating system, please let me know!
 
     To successfully build and debug in IDEA, you have to manually generate the Antlr-parser classes first.
@@ -325,7 +325,7 @@ Troubleshooting
 
 Compiler doesn't run, complains about "UnsupportedClassVersionError"
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-You need to install and use JDK version 11 or newer to run the prog8 compiler. Check this with "java -version".
+You need to install and use JDK version 17 or newer to run the prog8 compiler. Check this with "java -version".
 See :ref:`requirements`.
 
 The computer just resets (at the end of the program)
