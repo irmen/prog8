@@ -213,8 +213,7 @@ class IRProgram(val name: String,
             chunk.instructions.withIndex().forEach { (index, instr) ->
                 if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
                     if(instr.opcode==Opcode.JUMPI) {
-                        val pointervar = st.lookup(instr.labelSymbol)!!
-                        when(pointervar) {
+                        when(val pointervar = st.lookup(instr.labelSymbol)!!) {
                             is IRStStaticVariable -> require(pointervar.dt==DataType.UWORD)
                             is IRStMemVar -> require(pointervar.dt==DataType.UWORD)
                             else -> throw AssemblyError("weird pointervar type")

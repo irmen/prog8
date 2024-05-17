@@ -90,7 +90,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     }
 
     private fun argumentsViaRegisters(sub: PtAsmSub, call: PtFunctionCall) {
-        val registersUsed = mutableListOf<RegisterOrStatusflag>();
+        val registersUsed = mutableListOf<RegisterOrStatusflag>()
 
         fun usedA() = registersUsed.any {it.registerOrPair==RegisterOrPair.A || it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.AY}
         fun usedX() = registersUsed.any {it.registerOrPair==RegisterOrPair.X || it.registerOrPair==RegisterOrPair.AX || it.registerOrPair==RegisterOrPair.XY}

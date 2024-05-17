@@ -82,8 +82,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val source = fcall.args[0] as PtIdentifier
         val target = fcall.args[1] as PtIdentifier
 
-        val sourceSymbol = asmgen.symbolTable.lookup(source.name)
-        val numElements = when(sourceSymbol) {
+        val numElements = when(val sourceSymbol = asmgen.symbolTable.lookup(source.name)) {
             is StStaticVariable -> sourceSymbol.length!!
             is StMemVar -> sourceSymbol.length!!
             else -> 0
@@ -827,8 +826,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcSgn(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
-        val dt = fcall.args.single().type
-        when (dt) {
+        when (val dt = fcall.args.single().type) {
             DataType.UBYTE -> asmgen.out("  jsr  prog8_lib.func_sign_ub_into_A")
             DataType.BYTE -> asmgen.out("  jsr  prog8_lib.func_sign_b_into_A")
             DataType.UWORD -> asmgen.out("  jsr  prog8_lib.func_sign_uw_into_A")
@@ -1398,8 +1396,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun outputAddressAndLengthOfArray(arg: PtIdentifier) {
         // address goes in P8ZP_SCRATCH_W1,  number of elements in A
-        val symbol = asmgen.symbolTable.lookup(arg.name)
-        val numElements = when(symbol) {
+        val numElements = when(val symbol = asmgen.symbolTable.lookup(arg.name)) {
             is StStaticVariable -> symbol.length!!
             is StMemVar -> symbol.length!!
             else -> 0

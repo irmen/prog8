@@ -56,7 +56,7 @@ class VirtualMachine(irProgram: IRProgram) {
         val (prg, labelAddr) = VmProgramLoader().load(irProgram, memory)
         program = prg
         artificialLabelAddresses = mutableMapOf()
-        labelAddr.forEach { labelname, artificialAddress ->
+        labelAddr.forEach { (labelname, artificialAddress) ->
             artificialLabelAddresses[artificialAddress] = program.single { it.label==labelname }
         }
         require(irProgram.st.getAsmSymbols().isEmpty()) { "virtual machine can't yet process asmsymbols defined on command line" }

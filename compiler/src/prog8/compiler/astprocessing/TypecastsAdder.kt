@@ -332,8 +332,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     private fun afterFunctionCallArgs(call: IFunctionCall): Iterable<IAstModification> {
         // see if a typecast is needed to convert the arguments into the required parameter type
         val modifications = mutableListOf<IAstModification>()
-        val sub = call.target.targetStatement(program)
-        val params = when(sub) {
+        val params = when(val sub = call.target.targetStatement(program)) {
             is BuiltinFunctionPlaceholder -> BuiltinFunctions.getValue(sub.name).parameters
             is Subroutine -> sub.parameters.map { FParam(it.name, listOf(it.type).toTypedArray()) }
             else -> emptyList()

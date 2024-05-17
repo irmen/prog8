@@ -230,7 +230,7 @@ class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOO
 
     companion object {
         fun fromNumber(number: Number, position: Position): PtBool =
-            PtBool(if(number==0.0) false else true, position)
+            PtBool(number != 0.0, position)
     }
 
     override fun hashCode(): Int = Objects.hash(type, value)

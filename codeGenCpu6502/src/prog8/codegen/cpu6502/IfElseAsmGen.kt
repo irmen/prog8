@@ -616,7 +616,7 @@ _jump                       jmp  ($asmLabel)
         if(right is PtIdentifier) {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
             val variable = asmgen.asmVariableName(right)
-            return code(variable, variable+"+1")
+            return code(variable, "$variable+1")
         }
 
         // TODO optimize for simple array value
@@ -737,7 +737,7 @@ _jump                       jmp  ($asmLabel)
         if(right is PtIdentifier) {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
             val variable = asmgen.asmVariableName(right)
-            return code(variable, variable+"+1")
+            return code(variable, "$variable+1")
         }
 
         // TODO optimize for simple array value
@@ -1514,7 +1514,7 @@ _jump                       jmp  ($asmLabel)
                         else -> {
                             asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
                             val varname = asmgen.asmVariableName(left)
-                            translateAYNotEquals(varname, varname + "+1")
+                            translateAYNotEquals(varname, "$varname+1")
                         }
                     }
                 }
@@ -1562,7 +1562,7 @@ _jump                       jmp  ($asmLabel)
                         else -> {
                             asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
                             val varname = asmgen.asmVariableName(left)
-                            translateAYEquals(varname, varname+"+1")
+                            translateAYEquals(varname, "$varname+1")
                         }
                     }
                 }

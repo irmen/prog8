@@ -786,17 +786,21 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(binExpr.left)
         addToResult(result, tr, tr.resultReg, -1)
-        return if(binExpr.right is PtNumber) {
-            addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
-            ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
-        } else if(binExpr.right is PtBool) {
-            addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtBool).asInt()), null)
-            ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
-        } else {
-            val rightTr = translateExpression(binExpr.right)
-            addToResult(result, rightTr, rightTr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.XORR, vmDt, reg1 = tr.resultReg, reg2 = rightTr.resultReg), null)
-            ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
+        return when (binExpr.right) {
+            is PtNumber -> {
+                addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
+                ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
+            }
+            is PtBool -> {
+                addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtBool).asInt()), null)
+                ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
+            }
+            else -> {
+                val rightTr = translateExpression(binExpr.right)
+                addToResult(result, rightTr, rightTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.XORR, vmDt, reg1 = tr.resultReg, reg2 = rightTr.resultReg), null)
+                ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
+            }
         }
     }
 

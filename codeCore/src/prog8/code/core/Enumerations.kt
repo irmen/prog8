@@ -78,7 +78,7 @@ enum class RegisterOrPair {
     R8, R9, R10, R11, R12, R13, R14, R15;
 
     companion object {
-        val names by lazy { values().map { it.toString()} }
+        val names by lazy { entries.map { it.toString()} }
         fun fromCpuRegister(cpu: CpuRegister): RegisterOrPair {
             return when(cpu) {
                 CpuRegister.A -> A
@@ -104,7 +104,7 @@ enum class Statusflag {
     Pn;     // don't use
 
     companion object {
-        val names by lazy { values().map { it.toString()} }
+        val names by lazy { entries.map { it.toString()} }
     }
 }
 

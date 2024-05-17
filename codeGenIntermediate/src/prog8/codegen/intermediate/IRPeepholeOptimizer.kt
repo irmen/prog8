@@ -179,8 +179,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         chunks += sub.chunks[0]
         for(ix in 1 until sub.chunks.size) {
             val lastChunk = chunks.last()
-            val candidate = sub.chunks[ix]
-            when(candidate) {
+            when(val candidate = sub.chunks[ix]) {
                 is IRCodeChunk -> {
                     if(mayJoinCodeChunks(lastChunk, candidate)) {
                         lastChunk.instructions += candidate.instructions

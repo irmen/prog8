@@ -335,8 +335,7 @@ $endLabel""")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.push(endLabel)
         val iterableName = asmgen.asmVariableName(ident)
-        val symbol = asmgen.symbolTable.lookup(ident.name)
-        val numElements = when(symbol) {
+        val numElements = when(val symbol = asmgen.symbolTable.lookup(ident.name)) {
             is StStaticVariable -> symbol.length!!
             is StMemVar -> symbol.length!!
             else -> 0

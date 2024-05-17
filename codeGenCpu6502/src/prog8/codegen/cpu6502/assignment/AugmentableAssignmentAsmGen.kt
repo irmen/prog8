@@ -1703,7 +1703,7 @@ $shortcutLabel:""")
 
     private fun inplacemodificationWordWithLiteralval(name: String, dt: DataType, operator: String, value: Int, block: PtBlock?) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
-        inplacemodificationSomeWordWithLiteralval(name, name + "+1", dt, operator, value, block)
+        inplacemodificationSomeWordWithLiteralval(name, "$name+1", dt, operator, value, block)
     }
     
     private fun inplacemodificationSomeWordWithLiteralval(lsb: String, msb: String, dt: DataType, operator: String, value: Int, block: PtBlock?) {

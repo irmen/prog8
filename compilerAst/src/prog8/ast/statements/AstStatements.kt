@@ -93,7 +93,6 @@ class Block(override val name: String,
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = statements.any { it.referencesIdentifier(nameInSource) }
 
     fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.name!!}.toSet()
-    fun renamed(newName: String): Block = Block(newName, address, statements, isInLibrary, position)
 }
 
 data class Directive(val directive: String, val args: List<DirectiveArg>, override val position: Position) : Statement() {

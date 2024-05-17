@@ -52,9 +52,6 @@ class IRCodeGen(
         optimizer.optimize(options.optimize, errors)
         irProg.validate()
 
-        val regOptimizer = IRRegisterOptimizer(irProg)
-        regOptimizer.optimize()
-
         return irProg
     }
 

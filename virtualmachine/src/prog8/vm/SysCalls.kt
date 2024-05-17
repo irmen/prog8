@@ -142,8 +142,7 @@ enum class Syscall {
     ;
 
     companion object {
-        private val VALUES = values()
-        fun fromInt(value: Int) = VALUES[value]
+        fun fromInt(value: Int) = entries[value]
     }
 }
 
@@ -657,7 +656,7 @@ object SysCalls {
                 val addr = (addrA as UShort).toInt()
                 if(File(filename).exists()) {
                     val data = File(filename).readBytes()
-                    for (i in 0..<data.size) {
+                    for (i in data.indices) {
                         vm.memory.setUB(addr + i, data[i].toUByte())
                     }
                     returnValue(callspec.returns.single(), (addr + data.size).toUShort(), vm)

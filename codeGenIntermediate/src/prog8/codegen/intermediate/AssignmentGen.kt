@@ -76,7 +76,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     internal fun translate(augAssign: PtAugmentedAssign): IRCodeChunks {
         // augmented assignment always has just a single target
-        if(augAssign.target.children.single() is PtIrRegister)
+        if (augAssign.target.children.single() is PtIrRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
 
         val target = augAssign.target
@@ -87,7 +87,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val array = target.array
         val value = augAssign.value
         val signed = target.type in SignedDatatypes
-        val result = when(augAssign.operator) {
+
+        val chunks = when (augAssign.operator) {
             "+=" -> operatorPlusInplace(symbol, array, constAddress, memTarget, targetDt, value)
             "-=" -> operatorMinusInplace(symbol, array, constAddress, memTarget, targetDt, value)
             "*=" -> operatorMultiplyInplace(symbol, array, constAddress, memTarget, targetDt, value)
@@ -109,9 +110,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             in PrefixOperators -> inplacePrefix(augAssign.operator, symbol, array, constAddress, memTarget, targetDt)
 
             else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
-        }
-
-        val chunks = if(result!=null) result else fallbackAssign(augAssign)
+        } ?: fallbackAssign(augAssign)
         chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(augAssign.position)
         return chunks
     }
@@ -140,7 +139,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         return translateRegularAssign(normalAssign)
     }
 
-    private fun inplacePrefix(operator: String, symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType): IRCodeChunks? {
+    private fun inplacePrefix(operator: String, symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType): IRCodeChunks {
         if(operator=="+")
             return emptyList()
 
@@ -503,9 +502,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             addToResult(result, tr, tr.resultReg, -1)
             return Pair(result, tr.resultReg)
         }
-
-        val mult: PtExpression
-        mult = PtBinaryExpression("*", DataType.UBYTE, array.position)
+        val mult: PtExpression = PtBinaryExpression("*", DataType.UBYTE, array.position)
         mult.children += array.index
         mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
         val tr = expressionEval.translateExpression(mult)

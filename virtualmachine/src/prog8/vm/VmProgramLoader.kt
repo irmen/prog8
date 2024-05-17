@@ -251,7 +251,7 @@ class VmProgramLoader {
                 }
             }
             variable.onetimeInitializationArrayValue?.let { iElts ->
-                require(variable.length==iElts.size || iElts.size==1 || iElts.size==0)
+                require(variable.length==iElts.size || iElts.size==1 || iElts.isEmpty())
                 if(iElts.isEmpty() || iElts.size==1) {
                     val iElt = if(iElts.isEmpty()) {
                         require(variable.uninitialized)
@@ -322,7 +322,7 @@ class VmProgramLoader {
 
             DataType.ARRAY_F -> {
                 for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toDouble()
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
                     memory.setFloat(address, value)
                     address += program.options.compTarget.machine.FLOAT_MEM_SIZE
                 }
@@ -386,7 +386,7 @@ class VmProgramLoader {
             }
 
             DataType.ARRAY_F -> {
-                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toDouble()
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
                 repeat(variable.length!!) {
                     memory.setFloat(address, value)
                     address += program.options.compTarget.machine.FLOAT_MEM_SIZE

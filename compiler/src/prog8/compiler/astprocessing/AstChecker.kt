@@ -939,7 +939,7 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur at module level")
                 val allowedEncodings = Encoding.entries.map {it.prefix}
                 if(directive.args.size!=1 || directive.args[0].name !in allowedEncodings)
-                    err("invalid encoding directive, expected one of ${allowedEncodings}")
+                    err("invalid encoding directive, expected one of $allowedEncodings")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }

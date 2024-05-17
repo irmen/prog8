@@ -63,18 +63,18 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     "???"
             }
             is PtAsmSub -> {
-                val params = node.parameters.map {
-                                val register = it.first.registerOrPair
-                                val statusflag = it.first.statusflag
-                                "${it.second.type} ${it.second.name} @${register ?: statusflag}"
-                            }.joinToString(", ")
+                val params = node.parameters.joinToString(", ") {
+                    val register = it.first.registerOrPair
+                    val statusflag = it.first.statusflag
+                    "${it.second.type} ${it.second.name} @${register ?: statusflag}"
+                }
                 val clobbers = if (node.clobbers.isEmpty()) "" else "clobbers ${node.clobbers}"
                 val returns = if (node.returns.isEmpty()) "" else {
-                    "-> ${node.returns.map {
-                        val register = it.first.registerOrPair
-                        val statusflag = it.first.statusflag
-                        "${it.second} @${register ?: statusflag}"}
-                        .joinToString(", ")
+                    "-> ${node.returns.joinToString(", ") {
+                            val register = it.first.registerOrPair
+                            val statusflag = it.first.statusflag
+                            "${it.second} @${register ?: statusflag}"
+                        }
                     }"
                 }
                 val str = if (node.inline) "inline " else ""
@@ -108,7 +108,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 }
             }
             is PtSub -> {
-                val params = node.parameters.map { "${it.type} ${it.name}" }.joinToString(", ")
+                val params = node.parameters.joinToString(", ") { "${it.type} ${it.name}" }
                 var str = "sub ${node.name}($params) "
                 if(node.returntype!=null)
                     str += "-> ${node.returntype.name.lowercase()}"
