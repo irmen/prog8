@@ -2,6 +2,8 @@
 
 main {
     sub start() {
-        void = call($2000)
+        repeat cx16.r0 {
+            cx16.r1L++
+        }
     }
 }

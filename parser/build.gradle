@@ -4,9 +4,8 @@ plugins {
 }
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(javaVersion)
-    }
+    targetCompatibility = JavaLanguageVersion.of(javaVersion)
+    sourceCompatibility = JavaLanguageVersion.of(javaVersion)
 }
 
 dependencies {
