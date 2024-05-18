@@ -570,6 +570,13 @@ internal class AstChecker(private val program: Program,
             checkType(assignment.target, assignment.value, assignment.isAugmentable)
         }
 
+        if(assignment.target.void && assignment.target.multi?.isNotEmpty()!=true) {
+            if(assignment.value is IFunctionCall)
+                errors.err("cannot assign to 'void', perhaps a void function call was intended", assignment.position)
+            else
+                errors.err("cannot assign to 'void'", assignment.position)
+            return
+        }
 
         val fcall = assignment.value as? IFunctionCall
         val fcallTarget = fcall?.target?.targetSubroutine(program)

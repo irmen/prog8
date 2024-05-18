@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldEndWith
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
@@ -611,6 +612,31 @@ main {
     }
 }"""
         compileText(Cx16Target(), false, src) shouldNotBe null
+    }
+
+    test("void assignment is invalid") {
+        val src="""
+main {
+    romsub $2000 = multi() -> ubyte @A, ubyte @Y
+    romsub $3000 = single() -> ubyte @A
+    
+    sub start() {
+        void, void = multi()        ; ok
+        cx16.r0L, void = multi()    ; ok
+        void, cx16.r0L = multi()    ; ok
+        void multi()                ; ok
+        void single()               ; ok
+        void = 3333                 ; fail!
+        void = single()             ; fail!
+        void = multi()              ; fail!
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize=false, src, writeAssembly=true, errors = errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldEndWith "cannot assign to 'void'"
+        errors.errors[1] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
+        errors.errors[2] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
     }
 })
 
