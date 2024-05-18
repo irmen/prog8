@@ -819,17 +819,15 @@ class AsmGen6502Internal (
         loopEndLabels.pop()
     }
 
-    private fun repeatWordCount(count: Int, stmt: PtRepeatLoop) {
-        require(count in 257..65535) { "invalid repeat count ${stmt.position}" }
+    private fun repeatWordCount(iterations: Int, stmt: PtRepeatLoop) {
+        require(iterations in 257..65535) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
         val counterVar = createRepeatCounterVar(DataType.UWORD, isTargetCpu(CpuType.CPU65c02), stmt)
-        // the iny + double dec is microoptimization of the 16 bit loop
+        val loopcount = if(iterations and 0x00ff == 0) iterations else iterations + 0x0100   // so that the loop can simply use a double-dec
         out("""
-            ldy  #>$count
-            lda  #<$count
-            beq  +
-            iny
-+           sta  $counterVar
+            ldy  #>$loopcount
+            lda  #<$loopcount
+            sta  $counterVar
             sty  $counterVar+1
 $repeatLabel""")
         translate(stmt.statements)

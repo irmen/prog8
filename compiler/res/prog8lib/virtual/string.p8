@@ -56,6 +56,7 @@ string {
     sub find(str st, ubyte character) -> ubyte {
         ; Locates the first position of the given character in the string,
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
+        ; NOTE: because this isn't an asmsub, there's only a SINGLE return value here. On the c64/cx16 targets etc there are 2 return values.
         ubyte ix
         for ix in 0 to length(st)-1 {
             if st[ix]==character {
