@@ -882,8 +882,8 @@ $repeatLabel""")
     }
 
     private fun repeatCountInY(stmt: PtRepeatLoop, endLabel: String) {
-        // note: Y must just have been loaded with the (variable) number of loops to be performed!
         val repeatLabel = makeLabel("repeat")
+        out("  cpy  #0")
         if(isTargetCpu(CpuType.CPU65c02)) {
             val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
             out("  beq  $endLabel |  sty  $counterVar")
