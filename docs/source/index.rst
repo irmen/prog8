@@ -193,9 +193,9 @@ It's easy to compile yourself, but a recent precompiled .exe (only for Windows) 
 *You need at least version 1.58.0 of this assembler.*
 If you are on Linux, there's probably a "64tass" package in the repositories, but check if it is a recent enough version.
 
-A **Java runtime (jre or jdk), version 17 or newer**  is required to run the prog8 compiler itself.
+A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
-Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases/?version=17>`_ .
+Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases/?version=11>`_ .
 For MacOS you can also use the Homebrew system to install a recent version of OpenJDK.
 
 Finally: an **emulator** (or a real machine of course) to test and run your programs on.
