@@ -20,7 +20,7 @@ The language aims to provide many conveniences over raw assembly code (even when
 while still being low level enough to create high performance programs.
 You can compile programs for various machines with this CPU:
 
-* Commander X16
+* Commander X16  (with 6502 cpu, 65816 cpu specifics are currently not supported)
 * Commodore 64
 * Commodore 128 (limited support)
 * Commodore PET (limited support)

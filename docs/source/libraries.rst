@@ -615,6 +615,7 @@ On the other targets, it only contains the definition of the 16 memory mapped vi
 
 ``cpu_is_65816()``
     Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
+    Note that Prog8 itself has no support yet for this CPU other than detecting its presence.
 
 ``reset_system ()``
     Soft-reset the system back to initial power-on BASIC prompt. (same as the routine in sys)
