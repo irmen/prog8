@@ -844,6 +844,11 @@ internal class AstChecker(private val program: Program,
         if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)
             err("zeropage usage has been disabled by options")
 
+        if(decl.splitArray) {
+            if (decl.datatype !in arrayOf(DataType.ARRAY_W, DataType.ARRAY_UW, DataType.ARRAY_W_SPLIT, DataType.ARRAY_UW_SPLIT)) {
+                errors.err("split can only be used on word arrays", decl.position)
+            }
+        }
         super.visit(decl)
     }
 

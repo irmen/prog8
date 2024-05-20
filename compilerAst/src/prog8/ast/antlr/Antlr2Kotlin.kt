@@ -688,7 +688,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             when(arrayDt) {
                 DataType.ARRAY_UW -> DataType.ARRAY_UW_SPLIT
                 DataType.ARRAY_W -> DataType.ARRAY_W_SPLIT
-                else -> throw SyntaxError("split can only be used on word arrays", toPosition())
+                else -> arrayDt   // type error will be generated later in the ast check
             }
         } else arrayDt
     } else origDt

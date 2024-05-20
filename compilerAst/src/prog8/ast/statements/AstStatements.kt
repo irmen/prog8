@@ -231,11 +231,6 @@ class VarDecl(val type: VarDeclType,
     override lateinit var parent: Node
     var allowInitializeWithZero = true
 
-    init {
-        if(splitArray)
-            require(datatype in ArrayDatatypes) { "array dt mismatch" }
-    }
-
     companion object {
         private var autoHeapValueSequenceNumber = 0
 
