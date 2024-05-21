@@ -688,7 +688,7 @@ io_error:
     }
 
     sub send_command(uword commandptr) {
-        ; -- send a dos command to the drive
+        ; -- send a dos command to the drive (don't read any response)
         cbm.SETNAM(string.length(commandptr), commandptr)
         cbm.SETLFS(15, drivenumber, 15)
         void cbm.OPEN()
@@ -869,7 +869,6 @@ io_error:
         command[3] = msb(pos_loword)
         command[4] = lsb(pos_hiword)
         command[5] = msb(pos_hiword)
-    send_command:
         cbm.SETNAM(sizeof(command), &command)
         cbm.SETLFS(15, drivenumber, 15)
         void cbm.OPEN()
@@ -890,6 +889,66 @@ io_error:
         void cbm.OPEN()
         cbm.CLOSE(15)
         reset_write_channel()    ; back to the write io channel
+    }
+
+    asmsub f_tell32() -> uword @R0, uword @R1, uword @R2, uword @R3 {
+        ; -- Returns the current read position in R0 and R1 (low + high words)
+        ;    and the file size in R1 and R2 (low + high words).
+        ;    Returns 0 as size if the command is not supported by the DOS implementation/version.
+        %asm {{
+            jmp  internal_f_tell
+        }}
+    }
+
+    asmsub f_tell() -> uword @R0, uword @R2 {
+        ; -- 16 bits version of f_tell32() because most file sizes will be <64Kb.
+        ;    Returns the current read position in R0 and the file size in R2 (R1 is not used in this case). Both in bytes.
+        ;    Returns 0 as size if the command is not supported by the DOS implementation/version.
+        %asm {{
+            jmp  internal_f_tell
+        }}
+    }
+
+    sub internal_f_tell(ubyte channel) {
+        ; gets the (32 bits) position + file size of the given open channel
+        ubyte[2] command = ['t',0]
+        command[1] = READ_IO_CHANNEL       ; f_open uses this secondary address
+        cbm.SETNAM(sizeof(command), &command)
+        cbm.SETLFS(15, drivenumber, 15)
+        void cbm.OPEN()
+        void cbm.CHKIN(15)        ; use #15 as input channel
+        bool success=false
+        ; valid response starts with "07," followed by hex notations of the position and filesize
+        if cbm.CHRIN()=='0' and cbm.CHRIN()=='7' and cbm.CHRIN()==',' {
+            cx16.r1 = read4hex()
+            cx16.r0 = read4hex()        ; position in R1:R0
+            void cbm.CHRIN()            ; separator space
+            cx16.r3 = read4hex()
+            cx16.r2 = read4hex()        ; filesize in R3:R2
+            success = true
+        }
+
+        while cbm.READST()==0 {
+            cx16.r5L = cbm.CHRIN()
+            if cx16.r5L=='\r' or cx16.r5L=='\n'
+                break
+        }
+
+        cbm.CLOSE(15)
+        reset_read_channel()       ; back to the read io channel
+        if success
+            return
+
+        cx16.r0 = cx16.r1 = cx16.r2 = cx16.r3 = 0
+
+        sub read4hex() -> uword {
+            str hex = "0000"
+            hex[0] = cbm.CHRIN()
+            hex[1] = cbm.CHRIN()
+            hex[2] = cbm.CHRIN()
+            hex[3] = cbm.CHRIN()
+            return conv.hex2uword(hex)
+        }
     }
 
 }
