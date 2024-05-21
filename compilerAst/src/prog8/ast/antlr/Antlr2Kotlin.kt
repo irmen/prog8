@@ -674,6 +674,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val zp = when {
         options.ZEROPAGEREQUIRE().isNotEmpty() -> ZeropageWish.REQUIRE_ZEROPAGE
         options.ZEROPAGE().isNotEmpty() -> ZeropageWish.PREFER_ZEROPAGE
+        options.ZEROPAGENOT().isNotEmpty() -> ZeropageWish.NOT_IN_ZEROPAGE
         else -> ZeropageWish.DONTCARE
     }
     val identifiers = identifier()

@@ -211,7 +211,7 @@ it will try to fill it with as much other variables as possible (before they wil
 Use ``@requirezp`` tag to *force* the variable into zeropage, but if there is no more free space the compilation will fail.
 It's possible to put strings, arrays and floats into zeropage too, however because Zp space is really scarce
 this is not advised as they will eat up the available space very quickly. It's best to only put byte or word
-variables in zeropage.
+variables in zeropage.  By the way, there is also ``@nozp`` to keep a variable *out of the zeropage* at all times.
 
 Example::
 

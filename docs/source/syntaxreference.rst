@@ -342,6 +342,7 @@ Tag         Effect
 ==========  ======
 @zp         prioritize the variable for putting it into Zero page. No guarantees; if ZP is full the variable will be placed in another memory location.
 @requirezp  force the variable into Zero page. If ZP is full, compilation will fail.
+@nozp       force the variable to normal system ram, never place it into zeropage.
 @shared     means the variable is shared with some assembly code and that it cannot be optimized away if not used elsewhere.
 @split      (only valid on (u)word arrays) Makes the array to be placed in memory as 2 separate byte arrays; one with the LSBs one with the MSBs of the word values. May improve performance.
 ==========  ======
@@ -367,6 +368,7 @@ Various examples::
     word  @zp         zpword = 9999     ; prioritize this when selecting vars for zeropage storage
     uword @requirezp  zpaddr = $3000    ; we require this variable in zeropage
     word  @shared asmvar                ; variable is used in assembly code but not elsewhere
+    byte  @nozp memvar                  ; variable that is never in zeropage
 
 
 Data types

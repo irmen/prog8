@@ -13,7 +13,7 @@
     </options>
     <keywords keywords="&amp;;-&gt;;@;and;as;asmsub;break;clobbers;continue;do;downto;else;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;romsub;step;sub;to;true;unroll;until;when;while;xor;~" ignore_case="false" />
     <keywords2 keywords="%address;%asm;%asmbinary;%asminclude;%breakpoint;%encoding;%import;%ir;%launcher;%option;%output;%zeropage;%zpallowed;%zpreserved;atascii:;cp437:;default:;iso16:;iso5:;iso:;petscii:;sc:" />
-    <keywords3 keywords="@requirezp;@shared;@split;@zp;bool;byte;const;float;str;ubyte;uword;void;word" />
+    <keywords3 keywords="@nozp;@requirezp;@shared;@split;@zp;bool;byte;const;float;str;ubyte;uword;void;word" />
     <keywords4 keywords="abs;all;any;call;callfar;clamp;cmp;divmod;len;lsb;max;memory;min;mkword;msb;peek;peekf;peekw;poke;pokef;pokew;reverse;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;setlsb;setmsb;sgn;sizeof;sort;sqrt;swap;|&gt;" />
   </highlighting>
   <extensionMap>

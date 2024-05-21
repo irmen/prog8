@@ -48,9 +48,9 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         val numberOfAllocatableVariables = allVariables.size
         val varsRequiringZp = allVariables.filter { it.zpwish == ZeropageWish.REQUIRE_ZEROPAGE }
         val varsPreferringZp = allVariables.filter { it.zpwish == ZeropageWish.PREFER_ZEROPAGE }
+        val varsNotZp = allVariables.filter { it.zpwish == ZeropageWish.NOT_IN_ZEROPAGE }
         val varsDontCare = allVariables.filter { it.zpwish == ZeropageWish.DONTCARE }
-        val numberOfExplicitNonZpVariables = allVariables.count { it.zpwish == ZeropageWish.NOT_IN_ZEROPAGE }
-        require(varsDontCare.size + varsRequiringZp.size + varsPreferringZp.size + numberOfExplicitNonZpVariables == numberOfAllocatableVariables)
+        require(varsDontCare.size + varsRequiringZp.size + varsPreferringZp.size + varsNotZp.size == numberOfAllocatableVariables)
 
         var numVariablesAllocatedInZP = 0
         var numberOfNonIntegerVariables = 0
@@ -86,7 +86,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                 //  no need to check for allocation error, if there is one, just allocate in normal system ram.
             }
 
-            // try to allocate any other interger variables into the zeropage until it is full.
+            // try to allocate the "don't care" interger variables into the zeropage until it is full.
             // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?
             if(errors.noErrors()) {
                 val sortedList = varsDontCare.sortedByDescending { it.scopedName }
@@ -110,9 +110,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             }
         }
 
-//        println("  number of allocated vars: $numberOfAllocatableVariables")
-//        println("  put into zeropage: $numVariablesAllocatedInZP,  non-zp allocatable: ${numberOfNonIntegerVariables+numberOfExplicitNonZpVariables}")
-//        println("  zeropage free space: ${zeropage.free.size} bytes")
+        // note: no zeropage allocation is done at all for the @nozp variables. This means they will always end up outside the zeropage.
     }
 
     private fun collectAllVariables(st: SymbolTable): Collection<StStaticVariable> {

@@ -2,14 +2,14 @@
 
 main {
     sub start() {
-        bool @split bb
-        ubyte @split bt
-        byte[200] @split ba
-        float @split fl
-        float[10] @split fla
+        ubyte @requirezp b1
+        ubyte @zp b2
+        ubyte b3
+        ubyte @nozp b4
 
-        bb=true
-        bt++
-        fl++
+        b1++
+        b2++
+        b3++
+        b4++
     }
 }

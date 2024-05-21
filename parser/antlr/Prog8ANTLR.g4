@@ -57,6 +57,8 @@ ZEROPAGE : '@zp' ;
 
 ZEROPAGEREQUIRE : '@requirezp' ;
 
+ZEROPAGENOT: '@nozp' ;
+
 SHARED : '@shared' ;
 
 SPLIT: '@split' ;
@@ -139,7 +141,7 @@ directivearg : stringliteral | identifier | integerliteral ;
 
 vardecl: datatype (arrayindex | ARRAYSIG)? decloptions identifier (',' identifier)* ;
 
-decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | SPLIT)* ;
+decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | SPLIT)* ;
 
 varinitializer : vardecl '=' expression ;
 
