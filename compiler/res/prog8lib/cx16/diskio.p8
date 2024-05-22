@@ -891,26 +891,17 @@ io_error:
         reset_write_channel()    ; back to the write io channel
     }
 
-    asmsub f_tell32() -> uword @R0, uword @R1, uword @R2, uword @R3 {
-        ; -- Returns the current read position in R0 and R1 (low + high words)
-        ;    and the file size in R1 and R2 (low + high words).
+    asmsub f_tell() -> uword @R0, uword @R1, uword @R2, uword @R3 {
+        ; -- Returns the current read position of the opened read file,
+        ;    in R0 and R1 (low + high words) and the file size in R2 and R3 (low + high words).
         ;    Returns 0 as size if the command is not supported by the DOS implementation/version.
         %asm {{
             jmp  internal_f_tell
         }}
     }
 
-    asmsub f_tell() -> uword @R0, uword @R2 {
-        ; -- 16 bits version of f_tell32() because most file sizes will be <64Kb.
-        ;    Returns the current read position in R0 and the file size in R2 (R1 is not used in this case). Both in bytes.
-        ;    Returns 0 as size if the command is not supported by the DOS implementation/version.
-        %asm {{
-            jmp  internal_f_tell
-        }}
-    }
-
-    sub internal_f_tell(ubyte channel) {
-        ; gets the (32 bits) position + file size of the given open channel
+    sub internal_f_tell() {
+        ; gets the (32 bits) position + file size of the opened read file channel
         ubyte[2] command = ['t',0]
         command[1] = READ_IO_CHANNEL       ; f_open uses this secondary address
         cbm.SETNAM(sizeof(command), &command)
