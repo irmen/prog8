@@ -2323,7 +2323,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         asmgen.out("""
                             clc
                             adc  #$constIndex
-                            bne  +
+                            bcc  +
                             iny
 +""")
                 }
@@ -2348,7 +2348,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("""
                         clc
                         adc  P8ZP_SCRATCH_REG
-                        bne  +
+                        bcc  +
                         iny                            
 +""")
                 }
@@ -2358,7 +2358,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                         ldy  #>$sourceName
                         clc
                         adc  #<$sourceName
-                        bne  +
+                        bcc  +
                         iny
 +""")
                 }
