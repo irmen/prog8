@@ -10,6 +10,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.IErrorReporter
 
+import java.util.LinkedList
 
 class CallGraph(private val program: Program) : IAstVisitor {
 
@@ -112,7 +113,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
         // if it's a scoped identifier, the subroutines in the name are also referenced!
         val scope = identifier.definingScope
-        val name = identifier.nameInSource.toMutableList()
+        val name = LinkedList(identifier.nameInSource.toMutableList())
         while(name.size>1) {
             name.removeLast()
             val scopeTarget = scope.lookup(name)
