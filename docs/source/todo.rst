@@ -4,6 +4,8 @@ TODO
 See https://github.com/irmen/prog8/issues/134
 + any other issues that got reported.
 
+Document scripts/profiler.py in manual?
+
 ...
 
 
@@ -68,10 +70,8 @@ Optimizations:
   those checks should probably be removed, or be made permanent
 - optimizeCommonSubExpressions: currently only looks in expressions on a single line, could search across multiple expressions
 
-STRUCTS again?
---------------
-
-What if we were to re-introduce Structs in prog8? Some thoughts:
+STRUCTS?
+--------
 
 - can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs
 - only as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.

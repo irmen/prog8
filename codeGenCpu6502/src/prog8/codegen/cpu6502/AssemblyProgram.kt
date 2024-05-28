@@ -28,7 +28,7 @@ internal class AssemblyProgram(
                 // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
                 val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
                     "-Wall", // "-Wno-strict-bool", "-Werror",
-                    "--dump-labels", "--vice-labels", "--labels=$viceMonListFile", "--no-monitor"
+                    "--dump-labels", "--vice-labels", "--labels=$viceMonListFile"
                 )
 
                 if(options.warnSymbolShadowing)
@@ -39,8 +39,9 @@ internal class AssemblyProgram(
                 if(options.asmQuiet)
                     command.add("--quiet")
 
-                if(options.asmListfile)
-                    command.add("--list=$listFile")
+                if(options.asmListfile) {
+                    command.addAll(listOf("--list=$listFile", "--no-monitor"))
+                }
 
                 val outFile = when (options.output) {
                     OutputType.PRG -> {
