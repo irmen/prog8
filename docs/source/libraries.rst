@@ -500,11 +500,10 @@ but perhaps the provided ones can be of service too.
     Sets a new seed for the pseudo-RNG sequence (both rnd and rndw). The seed consists of two words.
     Do not use zeros for the seed!
 
-.. sidebar::
-
+.. hint::
     This is a graph showing the various ranges of values mentioned in the integer sine and cosine
-    routines that follow below.
-
+    routines that follow below.  (Note that the x input value never corresponds to an exact *degree*
+    around the circle 0..359 as that exceeds a byte value. There's double-degrees though; 0...179)
     Only the sine function is shown, but the cosine function follows the same pattern.
 
 .. image:: sinegraph.svg

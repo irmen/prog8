@@ -1,16 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.2" width="120mm" height="80mm" viewBox="0 0 12000 8000" preserveAspectRatio="xMidYMid" fill-rule="evenodd" stroke-width="28.222" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xml:space="preserve">
+<svg version="1.2" width="160mm" height="110mm" viewBox="0 0 16000 11000" preserveAspectRatio="xMidYMid" fill-rule="evenodd" stroke-width="28.222" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xml:space="preserve">
  <defs class="ClipPathGroup">
   <clipPath id="presentation_clip_path" clipPathUnits="userSpaceOnUse">
-   <rect x="0" y="0" width="12000" height="8000"/>
+   <rect x="0" y="0" width="16000" height="11000"/>
   </clipPath>
   <clipPath id="presentation_clip_path_shrink" clipPathUnits="userSpaceOnUse">
-   <rect x="12" y="8" width="11976" height="7984"/>
+   <rect x="16" y="11" width="15968" height="10978"/>
   </clipPath>
  </defs>
  <defs>
   <font id="EmbeddedFont_1" horiz-adv-x="2048">
+   <font-face font-family="Droid Sans Mono embedded" units-per-em="2048" font-weight="normal" font-style="normal" ascent="1879" descent="476"/>
+   <missing-glyph horiz-adv-x="2048" d="M 0,0 L 2047,0 2047,2047 0,2047 0,0 Z"/>
+   <glyph unicode="u" horiz-adv-x="927" d="M 922,0 L 895,147 885,147 C 815,36 704,-20 551,-20 290,-20 160,114 160,381 L 160,1098 342,1098 342,391 C 342,218 421,131 578,131 685,131 764,162 813,224 862,285 887,387 887,528 L 887,1098 1069,1098 1069,0 922,0 Z"/>
+   <glyph unicode="s" horiz-adv-x="848" d="M 203,49 L 203,215 C 332,158 455,129 573,129 756,129 848,183 848,291 848,329 832,362 799,390 766,418 691,453 573,496 418,554 320,607 280,656 239,704 219,761 219,827 219,918 256,989 331,1041 405,1092 508,1118 639,1118 771,1118 894,1093 1008,1044 L 948,895 C 827,943 720,967 629,967 472,967 393,923 393,834 393,793 410,761 444,737 477,712 555,678 676,635 817,584 910,533 957,484 1003,434 1026,373 1026,301 1026,201 987,123 909,66 831,9 721,-20 578,-20 413,-20 288,3 203,49 Z"/>
+   <glyph unicode="r" horiz-adv-x="821" d="M 1059,1073 L 1010,907 C 928,937 853,952 786,952 677,952 594,921 535,860 476,798 446,709 446,592 L 446,0 264,0 264,1098 412,1098 434,897 442,897 C 493,976 547,1033 605,1067 663,1101 734,1118 819,1118 898,1118 978,1103 1059,1073 Z"/>
+   <glyph unicode="n" horiz-adv-x="927" d="M 887,0 L 887,707 C 887,880 808,967 649,967 444,967 342,834 342,569 L 342,0 160,0 160,1098 307,1098 334,950 344,950 C 413,1062 525,1118 680,1118 939,1118 1069,984 1069,717 L 1069,0 887,0 Z"/>
+   <glyph unicode="i" horiz-adv-x="901" d="M 633,1550 C 704,1550 739,1512 739,1436 739,1397 729,1369 708,1350 687,1331 662,1321 633,1321 562,1321 526,1359 526,1436 526,1512 562,1550 633,1550 Z M 541,954 L 272,975 272,1098 723,1098 723,143 1075,123 1075,0 197,0 197,123 541,143 541,954 Z"/>
+   <glyph unicode="8" horiz-adv-x="954" d="M 764,774 C 970,667 1073,536 1073,381 1073,260 1031,163 947,90 863,17 752,-20 614,-20 470,-20 358,15 277,84 196,153 156,249 156,373 156,544 250,675 438,766 281,863 203,986 203,1135 203,1242 242,1328 320,1391 397,1454 495,1485 614,1485 737,1485 836,1453 912,1390 988,1327 1026,1241 1026,1133 1026,980 939,860 764,774 Z M 616,848 C 771,917 848,1009 848,1126 848,1193 827,1245 785,1280 743,1315 685,1333 612,1333 541,1333 485,1315 444,1280 402,1245 381,1193 381,1126 381,1066 398,1015 431,974 464,932 525,890 616,848 Z M 588,696 C 419,615 334,507 334,371 334,211 426,131 610,131 701,131 771,153 821,197 870,240 895,301 895,379 895,439 874,492 832,539 790,585 719,633 618,682 L 588,696 Z"/>
+   <glyph unicode="," horiz-adv-x="372" d="M 770,262 L 786,238 C 748,89 683,-87 592,-289 L 440,-289 C 491,-74 528,110 551,262 L 770,262 Z"/>
+   <glyph unicode=" " horiz-adv-x="1217"/>
+  </font>
+ </defs>
+ <defs>
+  <font id="EmbeddedFont_2" horiz-adv-x="2048">
    <font-face font-family="Iosevka embedded" units-per-em="2048" font-weight="normal" font-style="italic" ascent="1958" descent="582"/>
    <missing-glyph horiz-adv-x="2048" d="M 0,0 L 2047,0 2047,2047 0,2047 0,0 Z"/>
    <glyph unicode="π" horiz-adv-x="927" d="M 805,-16 L 750,-16 C 721,-16 693,-12 666,-5 638,3 616,16 598,35 580,54 568,77 562,105 556,132 556,161 561,191 L 682,922 416,922 264,0 102,0 254,922 125,922 150,1065 997,1065 973,922 844,922 723,191 C 722,181 721,172 722,164 723,156 726,149 731,144 737,138 743,134 751,131 758,129 766,127 774,127 L 805,127 805,-16 Z"/>
@@ -18,7 +32,7 @@
   </font>
  </defs>
  <defs>
-  <font id="EmbeddedFont_2" horiz-adv-x="2048">
+  <font id="EmbeddedFont_3" horiz-adv-x="2048">
    <font-face font-family="Liberation Sans embedded" units-per-em="2048" font-weight="normal" font-style="normal" ascent="1852" descent="423"/>
    <missing-glyph horiz-adv-x="2048" d="M 0,0 L 2047,0 2047,2047 0,2047 0,0 Z"/>
    <glyph unicode="9" horiz-adv-x="980" d="M 1042,733 C 1042,491 998,305 910,175 821,45 695,-20 532,-20 422,-20 334,3 268,50 201,96 154,171 125,274 L 297,301 C 333,184 412,125 535,125 638,125 718,173 775,269 832,365 861,502 864,680 837,620 792,572 727,536 662,499 591,481 514,481 387,481 286,524 210,611 134,698 96,813 96,956 96,1103 137,1219 220,1304 303,1388 418,1430 565,1430 722,1430 840,1372 921,1256 1002,1140 1042,966 1042,733 Z M 846,907 C 846,1020 820,1112 768,1181 716,1250 646,1284 559,1284 472,1284 404,1255 354,1196 304,1137 279,1057 279,956 279,853 304,772 354,713 404,653 472,623 557,623 609,623 657,635 702,659 747,682 782,716 808,759 833,802 846,852 846,907 Z"/>
@@ -32,7 +46,7 @@
   </font>
  </defs>
  <defs>
-  <font id="EmbeddedFont_3" horiz-adv-x="2048">
+  <font id="EmbeddedFont_4" horiz-adv-x="2048">
    <font-face font-family="Liberation Sans embedded" units-per-em="2048" font-weight="normal" font-style="italic" ascent="1852" descent="423"/>
    <missing-glyph horiz-adv-x="2048" d="M 0,0 L 2047,0 2047,2047 0,2047 0,0 Z"/>
    <glyph unicode="y" horiz-adv-x="1271" d="M 16,-425 C -32,-425 -76,-420 -116,-411 L -85,-277 C -55,-282 -29,-285 -8,-285 55,-285 111,-264 160,-221 208,-178 255,-116 302,-35 L 329,12 112,1082 295,1082 407,484 C 417,431 426,374 435,314 444,253 448,214 449,196 456,211 464,229 475,250 486,271 637,549 928,1082 L 1127,1082 501,0 C 427,-129 368,-219 323,-271 278,-322 231,-361 182,-387 133,-412 77,-425 16,-425 Z"/>
@@ -48,7 +62,7 @@
   </font>
  </defs>
  <defs class="TextShapeIndex">
-  <g ooo:slide="id1" ooo:id-list="id3 id4 id5 id6 id7 id8 id9 id10 id11 id12 id13 id14 id15 id16 id17 id18 id19 id20 id21 id22 id23 id24 id25 id26 id27 id28"/>
+  <g ooo:slide="id1" ooo:id-list="id3 id4 id5 id6 id7 id8 id9 id10 id11 id12 id13 id14 id15 id16 id17 id18 id19 id20 id21 id22 id23 id24 id25 id26 id27 id28 id29 id30 id31 id32"/>
  </defs>
  <defs class="EmbeddedBulletChars">
   <g id="bullet-char-template-57356" transform="scale(0.00048828125,-0.00048828125)">
@@ -95,255 +109,279 @@
      <g class="Page">
       <g class="com.sun.star.drawing.LineShape">
        <g id="id3">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2749" y="967" width="3" height="4503"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 2750,968 L 2750,5468"/>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2707" y="3518" width="3" height="4503"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 2708,3519 L 2708,8019"/>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
        <g id="id4">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2749" y="5467" width="8003" height="3"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10750,5468 L 2750,5468"/>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2707" y="8018" width="8003" height="3"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10708,8019 L 2708,8019"/>
        </g>
       </g>
       <g class="com.sun.star.drawing.OpenBezierShape">
        <g id="id5">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2723" y="1441" width="7805" height="4055"/>
-        <path fill="none" stroke="rgb(141,29,117)" stroke-width="53" stroke-linejoin="round" d="M 2750,3468 C 3000,2968 3750,1468 4750,1468 5750,1468 7000,5468 8500,5468 9500,5468 10250,3968 10500,3468"/>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2681" y="3992" width="7805" height="4055"/>
+        <path fill="none" stroke="rgb(141,29,117)" stroke-width="53" stroke-linejoin="round" d="M 2708,6019 C 2958,5519 3708,4019 4708,4019 5708,4019 6958,8019 8458,8019 9458,8019 10208,6519 10458,6019"/>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
        <g id="id6">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2499" y="3467" width="8253" height="3"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 2500,3468 L 2608,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 2689,3468 L 2796,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 2877,3468 L 2985,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3066,3468 L 3174,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3255,3468 L 3362,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3443,3468 L 3551,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3632,3468 L 3740,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3821,3468 L 3928,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4009,3468 L 4117,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4198,3468 L 4306,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4387,3468 L 4494,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4575,3468 L 4683,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4764,3468 L 4872,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4952,3468 L 5060,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 5141,3468 L 5249,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 5330,3468 L 5438,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 5518,3468 L 5626,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 5707,3468 L 5815,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 5896,3468 L 6004,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6084,3468 L 6192,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6273,3468 L 6381,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6462,3468 L 6569,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6650,3468 L 6758,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6839,3468 L 6947,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 7028,3468 L 7135,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 7216,3468 L 7324,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 7405,3468 L 7513,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 7594,3468 L 7701,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 7782,3468 L 7890,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 7971,3468 L 8079,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 8160,3468 L 8267,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 8348,3468 L 8456,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 8537,3468 L 8645,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 8725,3468 L 8833,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 8914,3468 L 9022,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 9103,3468 L 9211,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 9291,3468 L 9399,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 9480,3468 L 9588,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 9669,3468 L 9777,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 9857,3468 L 9965,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10046,3468 L 10154,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10235,3468 L 10342,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10423,3468 L 10531,3468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10612,3468 L 10720,3468"/>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2457" y="6018" width="8253" height="3"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 2458,6019 L 2566,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 2647,6019 L 2754,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 2835,6019 L 2943,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3024,6019 L 3132,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3213,6019 L 3320,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3401,6019 L 3509,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3590,6019 L 3698,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3779,6019 L 3886,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3967,6019 L 4075,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4156,6019 L 4264,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4345,6019 L 4452,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4533,6019 L 4641,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4722,6019 L 4830,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4910,6019 L 5018,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 5099,6019 L 5207,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 5288,6019 L 5396,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 5476,6019 L 5584,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 5665,6019 L 5773,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 5854,6019 L 5962,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6042,6019 L 6150,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6231,6019 L 6339,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6420,6019 L 6527,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6608,6019 L 6716,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6797,6019 L 6905,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6986,6019 L 7093,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 7174,6019 L 7282,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 7363,6019 L 7471,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 7552,6019 L 7659,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 7740,6019 L 7848,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 7929,6019 L 8037,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 8118,6019 L 8225,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 8306,6019 L 8414,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 8495,6019 L 8603,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 8683,6019 L 8791,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 8872,6019 L 8980,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 9061,6019 L 9169,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 9249,6019 L 9357,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 9438,6019 L 9546,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 9627,6019 L 9735,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 9815,6019 L 9923,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10004,6019 L 10112,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10193,6019 L 10300,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10381,6019 L 10489,6019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10570,6019 L 10678,6019"/>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
        <g id="id7">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2749" y="1467" width="2003" height="3"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 2750,1468 L 2831,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 2858,1468 L 2939,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 2966,1468 L 3046,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3073,1468 L 3154,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3181,1468 L 3262,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3289,1468 L 3370,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3397,1468 L 3478,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3505,1468 L 3585,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3612,1468 L 3693,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3720,1468 L 3801,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3828,1468 L 3909,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 3936,1468 L 4017,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4044,1468 L 4124,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4151,1468 L 4232,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4259,1468 L 4340,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4367,1468 L 4448,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4475,1468 L 4556,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4583,1468 L 4663,1468"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 4690,1468 L 4750,1468"/>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2707" y="4018" width="2003" height="3"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 2708,4019 L 2789,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 2816,4019 L 2897,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 2924,4019 L 3004,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3031,4019 L 3112,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3139,4019 L 3220,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3247,4019 L 3328,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3355,4019 L 3436,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3463,4019 L 3543,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3570,4019 L 3651,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3678,4019 L 3759,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3786,4019 L 3867,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 3894,4019 L 3975,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4002,4019 L 4082,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4109,4019 L 4190,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4217,4019 L 4298,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4325,4019 L 4406,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4433,4019 L 4514,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4541,4019 L 4621,4019"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 4648,4019 L 4708,4019"/>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
        <g id="id8">
-        <rect class="BoundingBox" stroke="none" fill="none" x="6499" y="3467" width="3" height="2003"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,3468 L 6500,3549"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,3576 L 6500,3657"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,3684 L 6500,3764"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,3791 L 6500,3872"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,3899 L 6500,3980"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4007 L 6500,4088"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4115 L 6500,4196"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4223 L 6500,4303"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4330 L 6500,4411"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4438 L 6500,4519"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4546 L 6500,4627"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4654 L 6500,4735"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4762 L 6500,4842"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4869 L 6500,4950"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,4977 L 6500,5058"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,5085 L 6500,5166"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,5193 L 6500,5274"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,5301 L 6500,5381"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 6500,5408 L 6500,5468"/>
+        <rect class="BoundingBox" stroke="none" fill="none" x="6457" y="6018" width="3" height="2003"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6019 L 6458,6100"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6127 L 6458,6208"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6235 L 6458,6315"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6342 L 6458,6423"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6450 L 6458,6531"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6558 L 6458,6639"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6666 L 6458,6747"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6774 L 6458,6854"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6881 L 6458,6962"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,6989 L 6458,7070"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7097 L 6458,7178"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7205 L 6458,7286"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7313 L 6458,7393"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7420 L 6458,7501"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7528 L 6458,7609"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7636 L 6458,7717"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7744 L 6458,7825"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7852 L 6458,7932"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 6458,7959 L 6458,8019"/>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
        <g id="id9">
-        <rect class="BoundingBox" stroke="none" fill="none" x="10499" y="3467" width="3" height="2003"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,3468 L 10500,3549"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,3576 L 10500,3657"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,3684 L 10500,3764"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,3791 L 10500,3872"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,3899 L 10500,3980"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4007 L 10500,4088"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4115 L 10500,4196"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4223 L 10500,4303"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4330 L 10500,4411"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4438 L 10500,4519"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4546 L 10500,4627"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4654 L 10500,4735"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4762 L 10500,4842"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4869 L 10500,4950"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,4977 L 10500,5058"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,5085 L 10500,5166"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,5193 L 10500,5274"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,5301 L 10500,5381"/>
-        <path fill="none" stroke="rgb(52,101,164)" d="M 10500,5408 L 10500,5468"/>
+        <rect class="BoundingBox" stroke="none" fill="none" x="10457" y="6018" width="3" height="2003"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6019 L 10458,6100"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6127 L 10458,6208"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6235 L 10458,6315"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6342 L 10458,6423"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6450 L 10458,6531"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6558 L 10458,6639"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6666 L 10458,6747"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6774 L 10458,6854"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6881 L 10458,6962"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,6989 L 10458,7070"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7097 L 10458,7178"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7205 L 10458,7286"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7313 L 10458,7393"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7420 L 10458,7501"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7528 L 10458,7609"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7636 L 10458,7717"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7744 L 10458,7825"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7852 L 10458,7932"/>
+        <path fill="none" stroke="rgb(52,101,164)" d="M 10458,7959 L 10458,8019"/>
        </g>
       </g>
       <g class="TextShape">
        <g id="id10">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2397" y="5468" width="740" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="2647" y="5978"><tspan fill="rgb(0,169,51)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2355" y="8019" width="740" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="2605" y="8529"><tspan fill="rgb(0,169,51)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id11">
-        <rect class="BoundingBox" stroke="none" fill="none" x="6250" y="5468" width="715" height="786"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Iosevka" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="6500" y="6004"><tspan fill="rgb(0,169,51)" stroke="none" style="white-space: pre">π</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="6208" y="8019" width="715" height="786"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Iosevka" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="6458" y="8555"><tspan fill="rgb(0,169,51)" stroke="none" style="white-space: pre">π</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id12">
-        <rect class="BoundingBox" stroke="none" fill="none" x="9911" y="5468" width="926" height="786"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Iosevka" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="10161" y="6004"><tspan fill="rgb(0,169,51)" stroke="none" style="white-space: pre">2π</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="9869" y="8019" width="926" height="786"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Iosevka" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="10119" y="8555"><tspan fill="rgb(0,169,51)" stroke="none" style="white-space: pre">2π</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id13">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2397" y="6243" width="740" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="2647" y="6753"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2355" y="8794" width="740" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="2605" y="9304"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id14">
-        <rect class="BoundingBox" stroke="none" fill="none" x="6000" y="6243" width="1214" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="6250" y="6753"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">128</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="5958" y="8794" width="1214" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="6208" y="9304"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">128</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id15">
-        <rect class="BoundingBox" stroke="none" fill="none" x="9731" y="6243" width="1214" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="9981" y="6753"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">255</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="9689" y="8794" width="1214" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="9939" y="9304"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">255</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id16">
-        <rect class="BoundingBox" stroke="none" fill="none" x="1397" y="4968" width="1354" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1647" y="5478"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">-127</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="1355" y="7519" width="1354" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1605" y="8029"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">-127</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id17">
-        <rect class="BoundingBox" stroke="none" fill="none" x="1750" y="3218" width="854" height="1001"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="2000" y="3728"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="1708" y="5769" width="854" height="1001"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1958" y="6279"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id18">
-        <rect class="BoundingBox" stroke="none" fill="none" x="1537" y="1218" width="1214" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1787" y="1728"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">127</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="1495" y="3769" width="1214" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1745" y="4279"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">127</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id19">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2397" y="6968" width="740" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="2647" y="7478"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2355" y="9519" width="740" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="2605" y="10029"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id20">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2398" y="6243" width="740" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="2648" y="6753"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2356" y="8794" width="740" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="2606" y="9304"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id21">
-        <rect class="BoundingBox" stroke="none" fill="none" x="6000" y="6968" width="977" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="6250" y="7478"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">90</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="5958" y="9519" width="977" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="6208" y="10029"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">90</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id22">
-        <rect class="BoundingBox" stroke="none" fill="none" x="9787" y="6968" width="1214" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="10037" y="7478"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">179</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="9745" y="9519" width="1214" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="9995" y="10029"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">179</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id23">
-        <rect class="BoundingBox" stroke="none" fill="none" x="250" y="1205" width="1214" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="500" y="1715"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">255</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="208" y="3756" width="1214" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="458" y="4266"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">255</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id24">
-        <rect class="BoundingBox" stroke="none" fill="none" x="269" y="3205" width="1214" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="519" y="3715"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">128</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="227" y="5756" width="1214" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="477" y="6266"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">128</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id25">
-        <rect class="BoundingBox" stroke="none" fill="none" x="416" y="4993" width="740" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="666" y="5503"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="374" y="7544" width="740" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-weight="400"><tspan class="TextPosition" x="624" y="8054"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">0</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id26">
-        <rect class="BoundingBox" stroke="none" fill="none" x="7250" y="1468" width="2230" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="7500" y="1978"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">y = sin(x)</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="7208" y="4019" width="2230" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="7458" y="4529"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">y = sin(x)</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id27">
-        <rect class="BoundingBox" stroke="none" fill="none" x="2498" y="250" width="715" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="2748" y="760"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">y</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="2500" y="2769" width="715" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="2750" y="3279"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">y</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="TextShape">
        <g id="id28">
-        <rect class="BoundingBox" stroke="none" fill="none" x="10687" y="5026" width="715" height="726"/>
-        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="10937" y="5536"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">x</tspan></tspan></tspan></text>
+        <rect class="BoundingBox" stroke="none" fill="none" x="10645" y="7577" width="715" height="726"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Liberation Sans, sans-serif" font-size="423px" font-style="italic" font-weight="400"><tspan class="TextPosition" x="10895" y="8087"><tspan fill="rgb(0,0,0)" stroke="none" style="white-space: pre">x</tspan></tspan></tspan></text>
+       </g>
+      </g>
+      <g class="TextShape">
+       <g id="id29">
+        <rect class="BoundingBox" stroke="none" fill="none" x="11067" y="8794" width="3297" height="748"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Droid Sans Mono, monospace" font-size="423px" font-weight="400"><tspan class="TextPosition" x="11317" y="9313"><tspan fill="rgb(42,96,153)" stroke="none" style="white-space: pre">sin8, sin8u</tspan></tspan></tspan></text>
+       </g>
+      </g>
+      <g class="TextShape">
+       <g id="id30">
+        <rect class="BoundingBox" stroke="none" fill="none" x="11067" y="9519" width="3805" height="748"/>
+        <text class="SVGTextShape"><tspan class="TextParagraph" font-family="Droid Sans Mono, monospace" font-size="423px" font-weight="400"><tspan class="TextPosition" x="11317" y="10038"><tspan fill="rgb(42,96,153)" stroke="none" style="white-space: pre">sinr8, sinr8u</tspan></tspan></tspan></text>
+       </g>
+      </g>
+      <g class="TextShape">
+       <g id="id31">
+        <rect class="BoundingBox" stroke="none" fill="none" x="1372" y="533" width="2296" height="3230"/>
+        <text class="SVGTextShape" transform="rotate(-60 1946 3430)"><tspan class="TextParagraph" font-family="Droid Sans Mono, monospace" font-size="423px" font-weight="400"><tspan class="TextPosition" x="1946" y="3430"><tspan fill="rgb(42,96,153)" stroke="none" style="white-space: pre">sin8, sinr8</tspan></tspan></tspan></text>
+       </g>
+      </g>
+      <g class="TextShape">
+       <g id="id32">
+        <rect class="BoundingBox" stroke="none" fill="none" x="250" y="89" width="2550" height="3670"/>
+        <text class="SVGTextShape" transform="rotate(-60 824 3426)"><tspan class="TextParagraph" font-family="Droid Sans Mono, monospace" font-size="423px" font-weight="400"><tspan class="TextPosition" x="824" y="3426"><tspan fill="rgb(42,96,153)" stroke="none" style="white-space: pre">sin8u, sinr8u</tspan></tspan></tspan></text>
        </g>
       </g>
      </g>
