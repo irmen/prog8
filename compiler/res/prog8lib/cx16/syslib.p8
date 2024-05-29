@@ -466,7 +466,7 @@ romsub $fec0 = kbdbuf_get_modifiers() -> ubyte @A
 romsub $fec3 = kbdbuf_put(ubyte key @A) clobbers(X)
 romsub $fed2 = keymap(uword identifier @XY, bool read @Pc) -> bool @Pc
 romsub $ff68 = mouse_config(byte shape @A, ubyte resX @X, ubyte resY @Y)  clobbers (A, X, Y)
-romsub $ff6b = mouse_get(ubyte zpdataptr @X) -> ubyte @A        ;  use mouse_pos() instead
+romsub $ff6b = mouse_get(ubyte zdataptr @X) -> ubyte @A, byte @X    ;  use mouse_pos() instead
 romsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 romsub $ff53 = joystick_scan()  clobbers(A, X, Y)
 romsub $ff56 = joystick_get(ubyte joynr @A) -> uword @AX, bool @Y   ; note: everything is inverted
@@ -587,9 +587,9 @@ asmsub mouse_config2(byte shape @A) clobbers (A, X, Y) {
     }}
 }
 
-asmsub mouse_pos() clobbers(X) -> ubyte @A, uword @R0, uword @R1 {
+asmsub mouse_pos() -> ubyte @A, uword @R0, uword @R1, byte @X {
     ; -- short wrapper around mouse_get() kernal routine:
-    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status in A.
+    ; -- gets the position of the mouse cursor in cx16.r0 and cx16.r1 (x/y coordinate), returns mouse button status in A, scroll wheel in X.
     ;    Note: mouse pointer needs to be enabled for this to do anything.
     %asm {{
         ldx  #cx16.r0

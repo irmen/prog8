@@ -37,7 +37,7 @@ main  {
 
         ; spotlight
         repeat {
-            void, cx16.r0, cx16.r1 = cx16.mouse_pos()
+            void, cx16.r0, cx16.r1, void = cx16.mouse_pos()
             new_direction = math.direction(128, HEIGHT/2, clampx(cx16.r0), cx16.r1L)
             if new_direction != previous_direction {
                 sys.waitvsync()
