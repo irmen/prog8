@@ -500,9 +500,18 @@ but perhaps the provided ones can be of service too.
     Sets a new seed for the pseudo-RNG sequence (both rnd and rndw). The seed consists of two words.
     Do not use zeros for the seed!
 
+.. sidebar::
+
+    This is a graph showing the various ranges of values mentioned in the integer sine and cosine
+    routines that follow below.
+
+    Only the sine function is shown, but the cosine function follows the same pattern.
+
+.. image:: sinegraph.svg
+
 ``sin8u (x)``
     Fast 8-bit ubyte sine.
-    x = angle 0...2π scaled as 0...255. Result is unigned, scaled as 0...255
+    x = angle 0...2π scaled as 0...255. Result is unsigned, scaled as 0...255
 
 ``sin8 (x)``
     Fast 8-bit byte sine.
