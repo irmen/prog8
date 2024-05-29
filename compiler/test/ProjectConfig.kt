@@ -1,9 +1,13 @@
 package prog8tests
 
 import io.kotest.core.config.AbstractProjectConfig
+import io.kotest.core.spec.SpecExecutionOrder
+import io.kotest.core.test.TestCaseOrder
 
 object ProjectConfig : AbstractProjectConfig() {
-    override val parallelism = kotlin.math.max(1, Runtime.getRuntime().availableProcessors() / 2)
+    override val testCaseOrder = TestCaseOrder.Lexicographic
+    override val specExecutionOrder = SpecExecutionOrder.Lexicographic
+    override val parallelism = kotlin.math.max(1, Runtime.getRuntime().availableProcessors()-1)
     // override fun listeners() = listOf(SystemOutToNullListener)
 }
 

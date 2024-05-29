@@ -21,13 +21,21 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Cb
 }
 
 
+val CompilationTargets = listOf(
+    C64Target.NAME,
+    C128Target.NAME,
+    Cx16Target.NAME,
+    PETTarget.NAME,
+    AtariTarget.NAME,
+    VMTarget.NAME
+)
 
 fun getCompilationTargetByName(name: String) = when(name.lowercase()) {
-        C64Target.NAME -> C64Target()
-        C128Target.NAME -> C128Target()
-        Cx16Target.NAME -> Cx16Target()
-        PETTarget.NAME -> PETTarget()
-        AtariTarget.NAME -> AtariTarget()
-        VMTarget.NAME -> VMTarget()
-        else -> throw IllegalArgumentException("invalid compilation target")
-    }
+    C64Target.NAME -> C64Target()
+    C128Target.NAME -> C128Target()
+    Cx16Target.NAME -> Cx16Target()
+    PETTarget.NAME -> PETTarget()
+    AtariTarget.NAME -> AtariTarget()
+    VMTarget.NAME -> VMTarget()
+    else -> throw IllegalArgumentException("invalid compilation target")
+}
