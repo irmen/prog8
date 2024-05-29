@@ -501,32 +501,40 @@ but perhaps the provided ones can be of service too.
     Do not use zeros for the seed!
 
 ``sin8u (x)``
-    Fast 8-bit ubyte sine of angle 0..255, result is in range 0..255
+    Fast 8-bit ubyte sine.
+    x = angle 0...2π scaled as 0...255. Result is unigned, scaled as 0...255
 
 ``sin8 (x)``
-    Fast 8-bit byte sine of angle 0..255, result is in range -127..127
+    Fast 8-bit byte sine.
+    x = angle 0...2π scaled as 0...255. Result is signed, scaled as -127...127
 
 ``sinr8u (x)``
-    Fast 8-bit ubyte sine of angle 0..179 (each is a 2 degree step), result is in range 0..255
-    Angles 180..255 will yield a garbage result!
+    Fast 8-bit ubyte sine.
+    x = angle 0...2π scaled as 0...179 (so each value increment is a 2° step). Result is unsigned, scaled as 0...255.
+    Input values 180...255 lie outside of the valid input interval and will yield a garbage result!
 
 ``sinr8 (x)``
-    Fast 8-bit byte sine of angle 0..179 (each is a 2 degree step), result is in range -127..127
-    Angles 180..255 will yield a garbage result!
+    Fast 8-bit byte sine.
+    x = angle 0...2π scaled as 0...179 (so each value increment is a 2° step). Result is signed, scaled as -127...127.
+    Input values 180...255 lie outside of the valid input interval and will yield a garbage result!
 
 ``cos8u (x)``
-    Fast 8-bit ubyte cosine of angle 0..255, result is in range 0..255
+    Fast 8-bit ubyte cosine.
+    x = angle 0...2π scaled as 0...255. Result is unsigned, scaled as 0...255
 
 ``cos8 (x)``
-    Fast 8-bit byte cosine of angle 0..255, result is in range -127..127
+    Fast 8-bit byte cosine.
+    x = angle 0...2π scaled as 0...255. Result is signed, scaled as -127...127
 
 ``cosr8u (x)``
-    Fast 8-bit ubyte cosine of angle 0..179 (each is a 2 degree step), result is in range 0..255
-    Angles 180..255 will yield a garbage result!
+    Fast 8-bit ubyte cosine.
+    x = angle 0...2π scaled as 0...179 (so each value increment is a 2° step). Result is unsigned, scaled as 0...255.
+    Input values 180...255 lie outside of the valid input interval and will yield a garbage result!
 
 ``cosr8 (x)``
-    Fast 8-bit byte cosine of angle 0..179 (each is a 2 degree step), result is in range -127..127
-    Angles 180..255 will yield a garbage result!
+    Fast 8-bit byte cosine.
+    x = of angle 0...2π scaled as 0...179 (so each value increment is a 2° step). Result is signed, scaled as -127...127.
+    Input values 180...255 lie outside of the valid input interval and will yield a garbage result!
 
 ``atan2 (ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
     Fast arctan routine that uses more memory because of large lookup tables.
