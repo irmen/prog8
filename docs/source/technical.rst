@@ -134,8 +134,8 @@ Some notes and references into the compiler's source code modules:
    to convert the Ast into IR first. The VM target uses this, but the 6502 codegen doesn't right now.
 
 
-Run-time memory profiling with the X16emulator
-----------------------------------------------
+Run-time memory profiling with the X16 emulator
+-----------------------------------------------
 The X16 emulator has a ``-memorystats`` option that enables it to keep track of memory access count statistics,
 and write the accumulated counts to a file on exit.
 Prog8 includes a Python script ``profiler.py`` (find it in the "scripts" subdirectory of the source code distribution)
