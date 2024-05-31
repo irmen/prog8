@@ -129,6 +129,17 @@ def profile(number_of_lines: int, asmlist: str, memstats: str) -> None:
     stats = MemoryStats(memstats)
     asm.print_info()
     stats.print_info()
+
+    def print_unknown(address: int) -> None:
+        if address < 0x100:
+            print("unknown zp")
+        elif address < 0x200:
+            print("cpu stack")
+        elif address in range(0x9f00, 0xa000):
+            print("io")
+        else:
+            print("unknown")
+
     print(f"\ntop {number_of_lines} most reads:")
     for (bank, address), count in stats.reads[:number_of_lines]:
         print(f"${address:04x} ({count}) : ", end="")
@@ -138,7 +149,7 @@ def profile(number_of_lines: int, asmlist: str, memstats: str) -> None:
                 lines = [f"${address:04x} '{line}' (line {line_number})" for address, line, line_number in result]
                 print(", ".join(lines))
             else:
-                print("unknown")
+                print_unknown(address)
         else:
             print(f"banked memory: {bank:02x}:{address:04x}")
     print(f"\ntop {number_of_lines} most writes:")
@@ -150,14 +161,14 @@ def profile(number_of_lines: int, asmlist: str, memstats: str) -> None:
                 lines = [f"${address:04x} '{line}' (line {line_number})" for address, line, line_number in result]
                 print(", ".join(lines))
             else:
-                print("unknown")
+                print_unknown(address)
         else:
             print(f"banked memory: {bank:02x}:{address:04x}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="simple X16 assembly run time profiler")
-    parser.add_argument("-n", dest="number", type=int, default=20, help="amount of reads and writes to print")
+    parser.add_argument("-n", dest="number", type=int, default=20, help="amount of reads and writes to print (default 20)")
     parser.add_argument("asmlistfile", type=str, help="the 64tass/turbo assembler listing file to read")
     parser.add_argument("memorystatsfile", type=str, help="the X16 emulator memstats dump file to read")
     args = parser.parse_args()

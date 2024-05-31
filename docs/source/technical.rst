@@ -134,10 +134,48 @@ Some notes and references into the compiler's source code modules:
    to convert the Ast into IR first. The VM target uses this, but the 6502 codegen doesn't right now.
 
 
-Upgrading from version 8
-------------------------
-Version 9 introduced several large, incompatible changes. If you still have programs
-written for Prog8 version 8 or earlier, it is likely that you'll have to modify them
-to be able to compile with version 9 or newer.
+Run-time memory profiling with the X16emulator
+----------------------------------------------
+The X16 emulator has a ``-memorystats`` option that enables it to keep track of memory access count statistics,
+and write the accumulated counts to a file on exit.
+Prog8 includes a Python script ``profiler.py`` (find it in the "scripts" subdirectory of the source code distribution)
+that can cross-reference that file with an assembly listing produced by the compiler with the ``-asmlist`` option.
+It then prints the top N lines in your (assembly) program source that perform the most reads and writes,
+which you can use to identify possible hot spots/bottlenecks/variables that should be better placed in zeropage etc.
+Note that the profiler just works with the number of accesses to memory locations, this is *not* the same
+as the most run-time (cpu instructions cycle times aren't taken into account at all).
+Here is an example of the output it generates::
 
-Information about this can be found in `older Prog8 documentation <https://github.com/irmen/prog8/blob/v9.2.1/docs/source/upgrading8.rst>`_ .
+    $ scripts/profiler.py -n 10 cobramk3-gfx.list memstats.txt                                                                             ✔
+
+    number of actual lines in the assembly listing: 2134
+    number of distinct addresses read from  : 22006
+    number of distinct addresses written to : 8179
+    total number of reads  : 375106285 (375M)
+    total number of writes : 63601962 (63M)
+
+    top 10 most reads:
+    $007f (7198687) : $007e 'P8ZP_SCRATCH_W2' (line 13), $007e 'remainder' (line 1855)
+    $007e (6990527) : $007e 'P8ZP_SCRATCH_W2' (line 13), $007e 'remainder' (line 1855)
+    $0265 (5029230) : unknown
+    $007c (4455140) : $007c 'P8ZP_SCRATCH_W1' (line 12), $007c 'dividend' (line 1854), $007c 'result' (line 1856)
+    $007d (4275195) : $007c 'P8ZP_SCRATCH_W1' (line 12), $007c 'dividend' (line 1854), $007c 'result' (line 1856)
+    $0076 (3374800) : $0076 'label_asm_35_counter' (line 2082)
+    $15d7 (3374800) : $15d7 '9c 23 9f               stz  cx16.VERA_DATA0' (line 2022), $15d7 'label_asm_34_repeat' (line 2021)
+    $15d8 (3374800) : $15d7 '9c 23 9f               stz  cx16.VERA_DATA0' (line 2022), $15d7 'label_asm_34_repeat' (line 2021)
+    $15d9 (3374800) : $15da '9c 23 9f               stz  cx16.VERA_DATA0' (line 2023)
+    $15da (3374800) : $15da '9c 23 9f               stz  cx16.VERA_DATA0' (line 2023)
+
+    top 10 most writes:
+    $9f23 (14748104) : $9f23 'VERA_DATA0' (line 1451)
+    $0265 (5657743) : unknown
+    $007e (4464393) : $007e 'P8ZP_SCRATCH_W2' (line 13), $007e 'remainder' (line 1855)
+    $007f (4464393) : $007e 'P8ZP_SCRATCH_W2' (line 13), $007e 'remainder' (line 1855)
+    $007c (4416537) : $007c 'P8ZP_SCRATCH_W1' (line 12), $007c 'dividend' (line 1854), $007c 'result' (line 1856)
+    $007d (3820272) : $007c 'P8ZP_SCRATCH_W1' (line 12), $007c 'dividend' (line 1854), $007c 'result' (line 1856)
+    $0076 (3375568) : $0076 'label_asm_35_counter' (line 2082)
+    $01e8 (1310425) : cpu stack
+    $01e7 (1280140) : cpu stack
+    $0264 (1258159) : unknown
+
+Apparently the most cpu activity while running this program is spent in a division routine.

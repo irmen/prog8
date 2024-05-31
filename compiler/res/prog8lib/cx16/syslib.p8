@@ -549,6 +549,7 @@ const ubyte  EXTAPI_ps2data_raw = $09
 const ubyte  EXTAPI_cursor_blink = $0A
 const ubyte  EXTAPI_led_update = $0B
 const ubyte  EXTAPI_mouse_set_position = $0C
+const ubyte  EXTAPI_scnsiz = $0D        ; rom R48+
 
 ; extapi16 call numbers
 const ubyte  EXTAPI16_test = $00
@@ -638,6 +639,15 @@ asmsub iso_cursor_char(ubyte character @X) clobbers(A,X,Y) {
     %asm {{
         clc
         lda  #EXTAPI_iso_cursor_char
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub scnsiz(ubyte width @X, ubyte heigth @Y) clobbers(A,X,Y) {
+    ; -- sets the screen editor size dimensions (without changing the graphical screen mode itself)
+    ;    (rom R48+)
+    %asm {{
+        lda  #EXTAPI_scnsiz
         jmp  cx16.extapi
     }}
 }
