@@ -54,6 +54,11 @@ class TestSourceCode: AnnotationSpec() {
         shouldThrow<FileSystemException> { SourceCode.File(fixturesDir) }
     }
 
+
+    private fun normalizeLineEndings(text: String): String {
+    	return text.replace("\\R".toRegex(), "\n")
+    }
+
     @Test
     fun testFromPathWithExistingPath() {
         val filename = "ast_simple_main.p8"
@@ -61,7 +66,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
         src.origin shouldBe expectedOrigin
-        src.text shouldBe path.toFile().readText()
+        src.text shouldBe normalizeLineEndings(path.toFile().readText())
         src.isFromResources shouldBe false
         src.isFromFilesystem shouldBe true
     }
@@ -85,7 +90,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.File(path)
         val expectedOrigin = SourceCode.relative(path).toString()
         src.origin shouldBe expectedOrigin
-        src.text shouldBe srcFile.readText()
+        src.text shouldBe normalizeLineEndings(srcFile.readText())
     }
 
     @Test
@@ -95,7 +100,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$LIBRARYFILEPREFIX/$pathString"
-        src.text shouldBe srcFile.readText()
+        src.text shouldBe normalizeLineEndings(srcFile.readText())
         src.isFromResources shouldBe true
         src.isFromFilesystem shouldBe false
     }
@@ -107,7 +112,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$LIBRARYFILEPREFIX$pathString"
-        src.text shouldBe srcFile.readText()
+        src.text shouldBe normalizeLineEndings(srcFile.readText())
     }
 
     @Test
@@ -117,7 +122,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$LIBRARYFILEPREFIX/$pathString"
-        src.text shouldBe srcFile.readText()
+        src.text shouldBe normalizeLineEndings(srcFile.readText())
         src.isFromResources shouldBe true
     }
 
@@ -128,7 +133,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$LIBRARYFILEPREFIX$pathString"
-        src.text shouldBe srcFile.readText()
+        src.text shouldBe normalizeLineEndings(srcFile.readText())
     }
 
     @Test
@@ -138,7 +143,7 @@ class TestSourceCode: AnnotationSpec() {
         val src = SourceCode.Resource(pathString)
 
         src.origin shouldBe "$LIBRARYFILEPREFIX/prog8lib/math.p8"
-        src.text shouldBe srcFile.readText()
+        src.text shouldBe normalizeLineEndings(srcFile.readText())
         src.isFromResources shouldBe true
     }
 
