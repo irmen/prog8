@@ -67,9 +67,10 @@ main {
 }"""
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
         result.compilerAst.name shouldStartWith  "on_the_fly"
-        result.codegenAst!!.name shouldBe result.compilerAst.name
-        result.codegenAst!!.children.size shouldBeGreaterThan 2
-        val start = result.codegenAst!!.entrypoint()!!
+        val ast = result.codegenAst!!
+        ast.name shouldBe result.compilerAst.name
+        ast.children.size shouldBeGreaterThan 2
+        val start = ast.entrypoint()!!
         start.name shouldBe "p8s_start"
         start.children.size shouldBeGreaterThan 2
         val seed = start.children[0] as PtVariable

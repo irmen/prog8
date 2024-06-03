@@ -563,12 +563,12 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
     override fun hashCode(): Int = Objects.hash(type, number)
 
     override fun equals(other: Any?): Boolean {
-        if(other==null || other !is NumericLiteral)
-            return false
+        return if(other==null || other !is NumericLiteral)
+            false
         else if(type!=DataType.BOOL && other.type!=DataType.BOOL)
-            return number==other.number
+            number==other.number
         else
-            return type==other.type && number==other.number
+            type==other.type && number==other.number
     }
 
     operator fun compareTo(other: NumericLiteral): Int = number.compareTo(other.number)

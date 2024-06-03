@@ -35,7 +35,7 @@ class TestProg8Parser: FunSpec( {
     context("Newline at end") {
         test("is not required - #40, fixed by #45") {
             val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
-            val src = SourceCode.Text("foo {" + nl + "}")   // source ends with '}' (= NO newline, issue #40)
+            val src = SourceCode.Text("foo {$nl}")   // source ends with '}' (= NO newline, issue #40)
 
             // #40: Prog8ANTLRParser would report (throw) "missing <EOL> at '<EOF>'"
             val module = parseModule(src)
@@ -44,7 +44,7 @@ class TestProg8Parser: FunSpec( {
 
         test("is still accepted - #40, fixed by #45") {
             val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
-            val srcText = "foo {" + nl + "}" + nl  // source does end with a newline (issue #40)
+            val srcText = "foo {$nl}$nl"  // source does end with a newline (issue #40)
             val module = parseModule(SourceCode.Text(srcText))
             module.statements.size shouldBe 1
         }
@@ -55,10 +55,10 @@ class TestProg8Parser: FunSpec( {
             val nl = "\n" // say, Unix-style (different flavours tested elsewhere)
 
             // BAD: 2nd block `bar` does NOT start on new line; however, there's is a nl at the very end
-            val srcBad = "foo {" + nl + "}" + " bar {" + nl + "}" + nl
+            val srcBad = "foo {$nl} bar {$nl}$nl"
 
             // GOOD: 2nd block `bar` does start on a new line; however, a nl at the very end ain't needed
-            val srcGood = "foo {" + nl + "}" + nl + "bar {" + nl + "}"
+            val srcGood = "foo {$nl}${nl}bar {$nl}"
 
             shouldThrow<ParseError> { parseModule(SourceCode.Text(srcBad)) }
             val module = parseModule(SourceCode.Text(srcGood))

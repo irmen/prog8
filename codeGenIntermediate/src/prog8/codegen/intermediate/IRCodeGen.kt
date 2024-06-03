@@ -391,10 +391,10 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
         when(iterable) {
             is PtRange -> {
-                if(iterable.from is PtNumber && iterable.to is PtNumber)
-                    result += translateForInConstantRange(forLoop, loopvar)
+                result += if(iterable.from is PtNumber && iterable.to is PtNumber)
+                    translateForInConstantRange(forLoop, loopvar)
                 else
-                    result += translateForInNonConstantRange(forLoop, loopvar)
+                    translateForInNonConstantRange(forLoop, loopvar)
             }
             is PtIdentifier -> {
                 require(forLoop.variable.name == loopvar.scopedName)
@@ -791,6 +791,7 @@ class IRCodeGen(
         }
         else if(pow2>=1 &&!signed) {
             // just shift multiple bits
+            // TODO also try to optimize for signed division by powers of 2
             val pow2reg = registers.nextFree()
             code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
             code += if(signed)
@@ -1503,17 +1504,16 @@ class IRCodeGen(
     private fun translate(jump: PtJump): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
-        if(jump.address!=null) {
-            chunk += IRInstruction(Opcode.JUMP, address = jump.address!!.toInt())
+        chunk += if(jump.address!=null) {
+            IRInstruction(Opcode.JUMP, address = jump.address!!.toInt())
         } else {
             if (jump.identifier != null) {
                 if(isIndirectJump(jump)) {
-                    chunk += IRInstruction(Opcode.JUMPI, labelSymbol = jump.identifier!!.name)
+                    IRInstruction(Opcode.JUMPI, labelSymbol = jump.identifier!!.name)
                 } else {
-                    chunk += IRInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.name)
+                    IRInstruction(Opcode.JUMP, labelSymbol = jump.identifier!!.name)
                 }
-            }
-            else
+            } else
                 throw AssemblyError("weird jump")
         }
         result += chunk

@@ -1390,9 +1390,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val valueReg = codeGen.registers.nextFree()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
-                    when(comparisonOperator) {
-                        "==" -> it += IRInstruction(Opcode.SZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
-                        "!=" -> it += IRInstruction(Opcode.SNZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                    it += when(comparisonOperator) {
+                        "==" -> IRInstruction(Opcode.SZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                        "!=" -> IRInstruction(Opcode.SNZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
                         "<" -> return null  // TODO("array <0 inplace")) // TODO?
                         "<=" -> return null  // TODO("array <=0 inplace")) // TODO?
                         ">" -> return null  // TODO("array >0 inplace")) // TODO?
@@ -1413,9 +1413,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 addToResult(result, indexTr, indexTr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADX, vmDt, reg1=valueReg, reg2=indexTr.resultReg, labelSymbol = array.variable.name)
-                    when(comparisonOperator) {
-                        "==" -> it += IRInstruction(Opcode.SZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
-                        "!=" -> it += IRInstruction(Opcode.SNZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                    it += when(comparisonOperator) {
+                        "==" -> IRInstruction(Opcode.SZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
+                        "!=" -> IRInstruction(Opcode.SNZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
                         "<" -> return null  // TODO("array <0 inplace")) // TODO?
                         "<=" -> return null  // TODO("array <=0 inplace")) // TODO?
                         ">" -> return null  // TODO("array >0 inplace")) // TODO?

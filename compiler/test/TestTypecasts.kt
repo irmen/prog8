@@ -209,7 +209,7 @@ main {
     }
 
     test("ubyte to word casts") {
-        var src="""
+        val src="""
 main {
     sub start() {
         ubyte @shared bb = 255

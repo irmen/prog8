@@ -102,10 +102,14 @@ private fun compileMain(args: Array<String>): Boolean {
         }
     }
 
-    if(bytes2float!=null)
-        return convertBytesToFloat(bytes2float!!, compilationTarget!!)
-    if(float2bytes!=null)
-        return convertFloatToBytes(float2bytes!!, compilationTarget!!)
+    if(bytes2float!=null) {
+        convertBytesToFloat(bytes2float!!, compilationTarget!!)
+        return true
+    }
+    if(float2bytes!=null) {
+        convertFloatToBytes(float2bytes!!, compilationTarget!!)
+        return true
+    }
 
     if(varsHighBank==0 && compilationTarget==Cx16Target.NAME) {
         System.err.println("On the Commander X16, HiRAM bank 0 is used by the kernal and can't be used.")
@@ -139,7 +143,8 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     if(startVm==true) {
-        return runVm(moduleFiles.first())
+        runVm(moduleFiles.first())
+        return true
     }
 
     val processedSymbols = processSymbolDefs(symbolDefs) ?: return false
@@ -297,21 +302,19 @@ private fun compileMain(args: Array<String>): Boolean {
     return true
 }
 
-fun convertFloatToBytes(number: String, target: String): Boolean {
+fun convertFloatToBytes(number: String, target: String) {
     val tgt = getCompilationTargetByName(target)
     val dbl = number.toDouble()
     val bytes = tgt.machine.convertFloatToBytes(dbl)
     print("$dbl in bytes on '$target': ")
     println(bytes.joinToString(","))
-    return true
 }
 
-fun convertBytesToFloat(bytelist: String, target: String): Boolean {
+fun convertBytesToFloat(bytelist: String, target: String) {
     val tgt = getCompilationTargetByName(target)
     val bytes = bytelist.split(',').map { it.trim().toUByte() }
     val number = tgt.machine.convertBytesToFloat(bytes)
     println("floating point value on '$target': $number")
-    return true
 }
 
 private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
@@ -329,9 +332,8 @@ private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
     return result
 }
 
-fun runVm(irFilename: String): Boolean {
+fun runVm(irFilename: String) {
     val irFile = Path(irFilename)
     val vmdef = VirtualMachineDefinition()
     vmdef.launchEmulator(0, irFile)
-    return true
 }

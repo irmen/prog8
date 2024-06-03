@@ -5,7 +5,7 @@ https://github.com/irmen/prog8/issues/136 (string.find register order issue)
 
 optimize signed byte/word division by powers of 2, it's now using divmod routine.  (also % ?)
     see inplacemodificationByteVariableWithLiteralval() and inplacemodificationSomeWordWithLiteralval()
-
+    and for IR: see divideByConst() in IRCodeGen
 
 
 Future Things and Ideas

@@ -316,12 +316,12 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(array: ArrayLiteral) {
-        outputListMembers(array.value.asSequence(), '[', ']')
+        outputListMembers(array.value.asSequence())
     }
 
-    private fun outputListMembers(array: Sequence<Expression>, openchar: Char, closechar: Char) {
+    private fun outputListMembers(array: Sequence<Expression>) {
         var counter = 0
-        output(openchar.toString())
+        output("[")
         scopelevel++
         for (v in array) {
             v.accept(this)
@@ -335,7 +335,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             }
         }
         scopelevel--
-        output(closechar.toString())
+        output("]")
     }
 
     override fun visit(assignment: Assignment) {

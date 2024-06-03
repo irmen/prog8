@@ -227,10 +227,10 @@ class IRStStaticVariable(name: String,
 class IRStArrayElement(val number: Double?, val addressOfSymbol: String?) {
     companion object {
         fun from(elt: StArrayElement): IRStArrayElement {
-            if(elt.boolean!=null)
-                return IRStArrayElement(if(elt.boolean==true) 1.0 else 0.0, elt.addressOfSymbol)
+            return if(elt.boolean!=null)
+                IRStArrayElement(if(elt.boolean==true) 1.0 else 0.0, elt.addressOfSymbol)
             else
-                return IRStArrayElement(elt.number, elt.addressOfSymbol)
+                IRStArrayElement(elt.number, elt.addressOfSymbol)
         }
     }
 

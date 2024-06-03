@@ -154,11 +154,10 @@ class VarConstantValueTypeAdjuster(
         if(func==listOf("clamp")) {
             val t1 = functionCallExpr.args[0].inferType(program)
             if(t1.isKnown) {
-                val replaceFunc: String
-                if(t1.isBytes) {
-                    replaceFunc = if(t1.istype(DataType.BYTE)) "clamp__byte" else "clamp__ubyte"
+                val replaceFunc = if(t1.isBytes) {
+                    if(t1.istype(DataType.BYTE)) "clamp__byte" else "clamp__ubyte"
                 } else if(t1.isInteger) {
-                    replaceFunc = if(t1.istype(DataType.WORD)) "clamp__word" else "clamp__uword"
+                    if(t1.istype(DataType.WORD)) "clamp__word" else "clamp__uword"
                 } else {
                     errors.err("clamp builtin not supported for floats, use floats.clamp", functionCallExpr.position)
                     return noModifications

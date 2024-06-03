@@ -405,14 +405,14 @@ internal class IfElseAsmGen(private val program: PtProgram,
         val condition = stmt.condition as PtBinaryExpression
         if(signed) {
             // X>Y --> Y<X
-            asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, signed)
+            asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, true)
             cmpAwithByteValue(condition.left, true)
             if (jumpAfterIf != null)
                 translateJumpElseBodies("bmi", "bpl", jumpAfterIf, stmt.elseScope)
             else
                 translateIfElseBodies("bpl", stmt)
         } else {
-            asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+            asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, false)
             cmpAwithByteValue(condition.right, false)
             if(jumpAfterIf!=null) {
                 val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
@@ -848,10 +848,10 @@ _jump                       jmp  ($asmLabel)
                     }
                 } else {
                     asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
-                    if(value.splitWords) {
-                        return compareLsbMsb("${varname}_lsb,y", "${varname}_msb,y")
+                    return if(value.splitWords) {
+                        compareLsbMsb("${varname}_lsb,y", "${varname}_msb,y")
                     } else {
-                        return compareLsbMsb("$varname,y", "$varname+1,y")
+                        compareLsbMsb("$varname,y", "$varname+1,y")
                     }
                 }
             }
@@ -985,10 +985,10 @@ _jump                       jmp  ($asmLabel)
                     }
                 } else {
                     asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
-                    if(value.splitWords) {
-                        return compareLsbMsb("${varname}_lsb,y", "${varname}_msb,y")
+                    return if(value.splitWords) {
+                        compareLsbMsb("${varname}_lsb,y", "${varname}_msb,y")
                     } else {
-                        return compareLsbMsb("$varname,y", "$varname+1,y")
+                        compareLsbMsb("$varname,y", "$varname+1,y")
                     }
                 }
             }

@@ -364,10 +364,10 @@ private fun AssignmentContext.toAst(): Statement {
     }
 
     val nestedAssign = assignment()
-    if(nestedAssign==null)
-        return Assignment(assign_target().toAst(), expression().toAst(), AssignmentOrigin.USERCODE, toPosition())
+    return if(nestedAssign==null)
+        Assignment(assign_target().toAst(), expression().toAst(), AssignmentOrigin.USERCODE, toPosition())
     else
-        return ChainedAssignment(assign_target().toAst(), nestedAssign.toAst(), toPosition())
+        ChainedAssignment(assign_target().toAst(), nestedAssign.toAst(), toPosition())
 }
 
 private fun AugassignmentContext.toAst(): Assignment {
