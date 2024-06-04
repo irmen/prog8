@@ -96,11 +96,13 @@ sub atan(float value) -> float {
 ; two-argument arctangent that returns an angle in the correct quadrant
 ; for the signs of x and y, normalized to the range [0, 2π]
 sub atan2(float y, float x) -> float {
-    ; technically should error if y is also 0, but no error mechanism
     float atn
     if x == 0 {
         atn = π/2
-        if y < 0 atn += π
+        if y == 0 return 0
+        if y < 0 {
+            atn += π
+        }
     } else {
         atn = atan(y / x)
     }
