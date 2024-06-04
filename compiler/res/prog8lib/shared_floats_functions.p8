@@ -97,8 +97,13 @@ sub atan(float value) -> float {
 ; for the signs of x and y, normalized to the range [0, 2π]
 sub atan2(float y, float x) -> float {
     ; technically should error if y is also 0, but no error mechanism
-    if x == 0 return π/2
-    float atn = atan(y / x)
+    float atn
+    if x == 0 {
+        atn = π/2
+        if y < 0 atn += π
+    } else {
+        atn = atan(y / x)
+    }
     if x < 0 atn += π
     if atn < 0 atn += 2*π
     return atn
