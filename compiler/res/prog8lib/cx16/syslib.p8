@@ -1322,6 +1322,23 @@ _continue   iny
         void cx16.i2c_write_byte($42, $05, cx16.r0L)
     }
 
+    asmsub rom_version() clobbers(Y) -> ubyte @A, bool @Pc {
+        ; Returns the KERNEL ROM version. Carry set if pre-release, clear if offical release.
+        %asm{{
+            ; the ROM BANK is unknown on entry
+            ldy  $01
+            stz  $01        ; KERNEL ROM
+            clc             ; prepare for released ROM
+            lda  $FF80
+            bpl  _final     ; pre-release versions are negative
+            eor  #$FF       ; twos complement
+            ina
+            sec
+    _final:
+            sty  $01
+            rts
+        }}
+    }
 }
 
 sys {
