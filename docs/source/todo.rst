@@ -3,9 +3,28 @@ TODO
 
 https://github.com/irmen/prog8/issues/136 (string.find register order issue)
 
-optimize signed byte/word division by powers of 2, it's now using divmod routine.  (also % ?)
+optimize signed byte/word division by powers of 2 (and shift right?), it's now using divmod routine.  (also % ?)
     see inplacemodificationByteVariableWithLiteralval() and inplacemodificationSomeWordWithLiteralval()
     and for IR: see divideByConst() in IRCodeGen
+    1 shift right of AX signed word:
+                 stx	P8ZP_SCRATCH_B1
+                 cpx	#$80
+                 ror	P8ZP_SCRATCH_B1
+                 ror    a
+                 ldx	P8ZP_SCRATCH_B1
+
+    multi shift right: (amount in $22)
+         sta	$4
+         txa
+         ldx	$22
+         beq    end
+    loop  cmp	#$80
+         ror
+         ror	$4
+         dex
+         bne	loop
+    end:  tax
+         lda	$4
 
 
 Future Things and Ideas

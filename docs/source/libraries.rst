@@ -229,6 +229,12 @@ Read the `diskio source code <https://github.com/irmen/prog8/tree/master/compile
 to see what's in there. (Note: slight variations for different compiler targets)
 
 .. note::
+    For simplicity sake, this library is designed to work on a *single* open file
+    for reading, and a *single* open file for writing at any time only.
+    If you need to load or save to more than one file at a time, you'll have
+    to write your own I/O routines (or supplement the ones found here)
+
+.. note::
     If you are using the X16 emulator with HostFS, and are experiencing weird behavior with these
     routines, please first try again with an SD-card image instead of HostFs.
     It is possible that there are still small differences between HostFS and actual CBM DOS in the X16 emulator.
@@ -765,7 +771,8 @@ the emulators already support it).
     This routine is about 50% faster as a regular byte-by-byte copy.
 
 ``transparency``
-    Enable or disable transparent writes (color 0 will be transparent if enabled).
+    Set transparent write mode for VeraFX cached writes and also for normal writes to DATA0/DATA.
+    If enabled, pixels with value 0 do not modify VRAM when written (so they are "transparent")
 
 Read the `verafx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/verafx.p8>`_
 to see what's in there.
