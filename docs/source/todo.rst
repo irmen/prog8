@@ -1,7 +1,25 @@
 TODO
 ====
 
+virtual: txt.cls() gives compile error undefined symbol clear_screen
+
 https://github.com/irmen/prog8/issues/136 (string.find register order issue)
+
+optimization: for 65c02 sometimes clc adc #1 is generated, this can be optimized into inc a (always? or not? mind the carry flag!)
+
+IR: sys.push() and sys.pop() etc should be translated into PUSH/POP instructions instead of subroutine calls
+
+if-optimization:
+        if row == NUMQUEENS {
+            print_solution()
+            return
+        }
+ compiles into this, where the bne+jmp could be a single beq instead:
+	cmp  #8
+	bne  label_asm_21_afterif
+	jmp  p8b_main.p8s_print_solution
+label_asm_21_afterif:
+
 
 optimize signed byte/word division by powers of 2 (and shift right?), it's now using divmod routine.  (also % ?)
     see inplacemodificationByteVariableWithLiteralval() and inplacemodificationSomeWordWithLiteralval()

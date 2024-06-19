@@ -171,6 +171,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "mandelbrot-gfx",
             "numbergame",
             "primes",
+            "queens",
             "screencodes",
             "sincos",
             "sorting",
