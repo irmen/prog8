@@ -390,8 +390,8 @@ type identifier  type                     storage size       example var declara
 ``ubyte[x]``     unsigned byte array      x bytes            ``ubyte[4] myvar``
 ``word[x]``      signed word array        2*x bytes          ``word[4] myvar``
 ``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar``
-``float[x]``     floating-point array     5*x bytes          ``float[4] myvar``
-``bool[x]``      boolean array            5*x bytes          ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
+``float[x]``     floating-point array     5*x bytes          ``float[4] myvar``.   The 5 bytes per float is on CBM targets.
+``bool[x]``      boolean array            x bytes            ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
 ``byte[]``       signed byte array        depends on value   ``byte[] myvar = [1, 2, 3, 4]``
 ``ubyte[]``      unsigned byte array      depends on value   ``ubyte[] myvar = [1, 2, 3, 4]``
 ``word[]``       signed word array        depends on value   ``word[] myvar = [1, 2, 3, 4]``

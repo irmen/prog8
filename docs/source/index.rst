@@ -70,6 +70,7 @@ Features
 --------
 
 - it is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
+- can produce smaller and faster running programs than equivalent C code compiled with CC65 or even LLVM-MOS
 - the compiled programs run very fast, because compilation to highly efficient native machine code.
 - Provides a convenient and fast edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to this emulator.
