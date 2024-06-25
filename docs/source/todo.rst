@@ -7,8 +7,6 @@ https://github.com/irmen/prog8/issues/136 (string.find register order issue)
 
 optimization: for 65c02 sometimes clc adc #1 is generated, this can be optimized into inc a (always? or not? mind the carry flag!)
 
-IR: sys.push() and sys.pop() etc should be translated into PUSH/POP instructions instead of subroutine calls
-
 if-optimization:
         if row == NUMQUEENS {
             print_solution()
