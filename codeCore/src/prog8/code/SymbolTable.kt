@@ -222,7 +222,7 @@ class StMemVar(name: String,
     init{
         require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
         if(dt in ArrayDatatypes || dt == DataType.STR)
-            require(length!=null) { "memory mapped array or string must have known length" }
+            requireNotNull(length)
     }
 }
 

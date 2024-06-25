@@ -70,7 +70,7 @@ class VmProgramLoader {
         (programChunks + irProgram.globalInits).forEach {
             it.instructions.forEach { ins ->
                 if (ins.labelSymbol != null && ins.opcode !in OpcodesThatBranch)
-                    require(ins.address != null) { "instruction with labelSymbol for a var should have value set to the memory address" }
+                    requireNotNull(ins.address) { "instruction with labelSymbol for a var should have value set to the memory address" }
             }
         }
 

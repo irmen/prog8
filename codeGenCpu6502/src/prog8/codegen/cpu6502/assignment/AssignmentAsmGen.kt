@@ -703,8 +703,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 RegisterOrPair.Y -> "y"
                 else -> TODO("comparison to word register")
             }
-            val assignTrue = PtInlineAssembly("  ld${reg}  #1", false, assign.target.position)
-            val assignFalse = PtInlineAssembly("  ld${reg}  #0", false, assign.target.position)
+            val assignTrue = PtInlineAssembly("\tld${reg}  #1", false, assign.target.position)
+            val assignFalse = PtInlineAssembly("\tld${reg}  #0", false, assign.target.position)
             ifPart.add(assignTrue)
             elsePart.add(assignFalse)
             val ifelse = PtIfElse(assign.position)
@@ -754,7 +754,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
   sta  ${assign.target.asmVarname}+1""", false, assign.target.position)
                         }
                     } else {
-                        assignTrue = PtInlineAssembly("  lda  #1\n  sta  ${assign.target.asmVarname}", false, assign.target.position)
+                        assignTrue = PtInlineAssembly("\tlda  #1\n  sta  ${assign.target.asmVarname}", false, assign.target.position)
                     }
                 }
                 TargetStorageKind.MEMORY -> {

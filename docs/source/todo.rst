@@ -1,11 +1,14 @@
 TODO
 ====
 
-virtual: txt.cls() gives compile error undefined symbol clear_screen
+optimizer bug, see "optimizing inlined functions must reference proper scopes" unittest (skipped for now)
+causes compiler error for virtual: just calling txt.cls() gives compile error undefined symbol clear_screen
 
 https://github.com/irmen/prog8/issues/136 (string.find register order issue)
 
-optimization: for 65c02 sometimes clc adc #1 is generated, this can be optimized into inc a (always? or not? mind the carry flag!)
+optimization: for 65c02 sometimes clc adc #1 is generated (for instance for:  cx16.r0L = math.sin8u(cx16.r0L+1)), this can be optimized into inc a (always? or not? mind the carry flag!)
+
+optimization: for 65c02 sometimes tya pha is generated, could be just phy (mind if A gets used afterwards though!) (same for pla tay etcetera?)
 
 if-optimization:
         if row == NUMQUEENS {

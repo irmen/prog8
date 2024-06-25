@@ -1059,4 +1059,28 @@ main {
         compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
     }
+
+    xtest("optimizing inlined functions must reference proper scopes") {
+        val src="""
+main {
+    sub start() {
+        other.sub1()
+    }
+
+}
+
+other {
+    sub  sub2() {
+        cx16.r0++
+        cx16.r1++
+    }
+
+    sub sub1() {
+        sub2()
+    }
+}"""
+
+        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
 })

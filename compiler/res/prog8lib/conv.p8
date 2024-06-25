@@ -517,16 +517,16 @@ _stop
 
 asmsub internal_ubyte2decimal(ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A {
     %asm {{
-        ldy #'0'-1
-        ldx #'9'+1
+        ldy  #'0'-1
+        ldx  #'9'+1
         sec
 -       iny
-        sbc #100
-        bcs -
+        sbc  #100
+        bcs  -
 -       dex
-        adc #10
-        bmi -
-        adc #'0'-1
+        adc  #10
+        bmi  -
+        adc  #'0'-1
         rts
     }}
 }
