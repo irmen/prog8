@@ -42,9 +42,15 @@ sprites {
         cx16.vpoke_mask(1, sprite_reg+1, %11110000, msb(addr))    ; address 16:13
     }
 
-    sub get_data_ptr(ubyte spritenum) {
+    inline asmsub get_data_ptr(ubyte spritenum @A) -> ubyte @R1, uword @R0 {
         ; -- returns the VRAM address where the sprite's bitmap data is stored
         ;    R1 (byte) = the vera bank (0 or 1), R0 (word) = the address.
+        %asm {{
+            jsr  p8b_sprites.p8s_get_data_ptr_internal
+        }}
+    }
+
+    sub get_data_ptr_internal(ubyte spritenum) {
         sprite_reg = VERA_SPRITEREGS + spritenum*$0008
         cx16.r0L = cx16.vpeek(1, sprite_reg)
         cx16.r0H = cx16.vpeek(1, sprite_reg+1)
