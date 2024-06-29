@@ -6,8 +6,6 @@ causes compiler error for virtual: just calling txt.cls() gives compile error un
 
 https://github.com/irmen/prog8/issues/136 (string.find register order issue)
 
-optimization: for 65c02 sometimes tya pha is generated, could be just phy (mind if A gets used afterwards though!) (same for pla tay etcetera?)
-
 if-optimization:
         if row == NUMQUEENS {
             print_solution()

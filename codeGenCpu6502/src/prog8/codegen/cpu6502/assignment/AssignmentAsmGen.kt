@@ -3182,11 +3182,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else {
                         if (regs !in Cx16VirtualRegisters) {
-                            when (regs) {
-                                RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
-                                RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
-                                RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
-                                else -> throw AssemblyError("expected reg pair")
+                            if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                                when (regs) {
+                                    RegisterOrPair.AX -> asmgen.out("  pha |  phx")
+                                    RegisterOrPair.AY -> asmgen.out("  pha |  phy")
+                                    RegisterOrPair.XY -> asmgen.out("  phx |  phy")
+                                    else -> throw AssemblyError("expected reg pair")
+                                }
+                            } else {
+                                when (regs) {
+                                    RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
+                                    RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
+                                    RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
+                                    else -> throw AssemblyError("expected reg pair")
+                                }
                             }
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out("""
@@ -3225,11 +3234,20 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                     }
                     else {
                         if (regs !in Cx16VirtualRegisters) {
-                            when (regs) {
-                                RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
-                                RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
-                                RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
-                                else -> throw AssemblyError("expected reg pair")
+                            if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                                when (regs) {
+                                    RegisterOrPair.AX -> asmgen.out("  pha |  phx")
+                                    RegisterOrPair.AY -> asmgen.out("  pha |  phy")
+                                    RegisterOrPair.XY -> asmgen.out("  phx |  phy")
+                                    else -> throw AssemblyError("expected reg pair")
+                                }
+                            } else {
+                                when (regs) {
+                                    RegisterOrPair.AX -> asmgen.out("  pha |  txa |  pha")
+                                    RegisterOrPair.AY -> asmgen.out("  pha |  tya |  pha")
+                                    RegisterOrPair.XY -> asmgen.out("  txa |  pha |  tya |  pha")
+                                    else -> throw AssemblyError("expected reg pair")
+                                }
                             }
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out("""

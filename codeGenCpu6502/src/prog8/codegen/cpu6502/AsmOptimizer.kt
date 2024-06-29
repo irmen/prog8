@@ -384,6 +384,7 @@ private fun optimizeStoreLoadSame(
     for (lines in linesByFour) {
         val first = lines[1].value.trimStart()
         val second = lines[2].value.trimStart()
+        val third = lines[3].value.trimStart()
 
         // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
         if ((first.startsWith("sta ") && second.startsWith("lda ")) ||
@@ -393,7 +394,6 @@ private fun optimizeStoreLoadSame(
                 (first.startsWith("ldy ") && second.startsWith("ldy ")) ||
                 (first.startsWith("ldx ") && second.startsWith("ldx "))
         ) {
-            val third = lines[3].value.trimStart()
             val attemptRemove =
                 if(third.isBranch()) {
                     // a branch instruction follows, we can only remove the load instruction if
@@ -445,6 +445,23 @@ private fun optimizeStoreLoadSame(
             val secondLoc = second.substring(4).trimStart()
             if (firstLoc == secondLoc)
                 mods.add(Modification(lines[2].index, true, null))
+        }
+
+        // phy + ldy + pla -> tya + ldy
+        // phx + ldx + pla -> txa + ldx
+        // pha + lda + pla -> nop
+        if(first=="phy" && second.startsWith("ldy ") && third=="pla") {
+            mods.add(Modification(lines[3].index, true, null))
+            mods.add(Modification(lines[1].index, false, "  tya"))
+        }
+        else if(first=="phx" && second.startsWith("ldx ") && third=="pla") {
+            mods.add(Modification(lines[3].index, true, null))
+            mods.add(Modification(lines[1].index, false, "  txa"))
+        }
+        else if(first=="pha" && second.startsWith("lda ") && third=="pla") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, true, null))
+            mods.add(Modification(lines[3].index, true, null))
         }
     }
     return mods
