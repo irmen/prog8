@@ -70,9 +70,9 @@ Features
 --------
 
 - it is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
-- can produce smaller and faster running programs than equivalent C code compiled with CC65 or even LLVM-MOS
 - the compiled programs run very fast, because compilation to highly efficient native machine code.
-- Provides a convenient and fast edit/compile/run cycle by being able to directly launch
+- code often is smaller and faster than equivalent C code compiled with CC65 or even LLVM-MOS
+- provides a convenient and fast edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to this emulator.
 - the language looks like a mix of Python and C so should be quite easy to learn
 - Modular programming, scoping via modules, code blocks, and subroutines. No need for forward declarations.

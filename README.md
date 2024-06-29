@@ -51,9 +51,9 @@ GNU GPL 3.0 (see file LICENSE), with exception for generated code:
 What does Prog8 provide?
 ------------------------
 
-- can produce smaller and faster running programs than equivalent C code compiled with CC65 or even LLVM-MOS
 - all advantages of a higher level language over having to write assembly code manually
 - programs run very fast because compilation to native machine code
+- code often is smaller and faster than equivalent C code compiled with CC65 or even LLVM-MOS
 - modularity, symbol scoping, subroutines
 - various data types other than just bytes (16-bit words, floats, strings)
 - floating point math is supported if the target system provides floating point library routines (C64 and Cx16 both do)

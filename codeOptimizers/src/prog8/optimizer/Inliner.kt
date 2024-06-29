@@ -30,11 +30,11 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
 
         override fun visit(subroutine: Subroutine) {
-            if(!subroutine.isAsmSubroutine && !subroutine.inline && subroutine.parameters.isEmpty()) {
-                val containsSubsOrVariables = subroutine.statements.any { it is VarDecl || it is Subroutine}
-                if(!containsSubsOrVariables) {
-                    if(subroutine.statements.size==1 || (subroutine.statements.size==2 && isEmptyReturn(subroutine.statements[1]))) {
-                        if(subroutine !== program.entrypoint) {
+            if (!subroutine.isAsmSubroutine && !subroutine.inline && subroutine.parameters.isEmpty()) {
+                val containsSubsOrVariables = subroutine.statements.any { it is VarDecl || it is Subroutine }
+                if (!containsSubsOrVariables) {
+                    if (subroutine.statements.size == 1 || (subroutine.statements.size == 2 && isEmptyReturn(subroutine.statements[1]))) {
+                        if (subroutine !== program.entrypoint) {
                             // subroutine is possible candidate to be inlined
                             subroutine.inline =
                                 when (val stmt = subroutine.statements[0]) {
@@ -87,9 +87,9 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                                 } else
                                                     false
                                             targetInline || valueInline
-                                        } else if(stmt.target.identifier!=null && stmt.isAugmentable) {
+                                        } else if (stmt.target.identifier != null && stmt.isAugmentable) {
                                             val binExpr = stmt.value as BinaryExpression
-                                            if(binExpr.operator in "+-" && binExpr.right.constValue(program)?.number==1.0) {
+                                            if (binExpr.operator in "+-" && binExpr.right.constValue(program)?.number == 1.0) {
                                                 makeFullyScoped(stmt.target.identifier!!)
                                                 makeFullyScoped(binExpr.left as IdentifierReference)
                                                 true
@@ -121,8 +121,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                         }
                     }
 
-                    if(subroutine.inline && subroutine.statements.size>1) {
-                        require(subroutine.statements.size==2 && isEmptyReturn(subroutine.statements[1]))
+                    if (subroutine.inline && subroutine.statements.size > 1) {
+                        require(subroutine.statements.size == 2 && isEmptyReturn(subroutine.statements[1]))
                         subroutine.statements.removeLast()      // get rid of the Return, to be able to inline the (single) statement preceding it.
                     }
                 }
@@ -147,6 +147,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
 
         private fun makeFullyScoped(call: FunctionCallStatement) {
+            makeFullyScoped(call.target)
             call.target.targetSubroutine(program)?.let { sub ->
                 val scopedName = IdentifierReference(sub.scopedName, call.target.position)
                 val scopedArgs = makeScopedArgs(call.args)
@@ -169,6 +170,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
 
         private fun makeFullyScoped(call: FunctionCallExpression) {
+            makeFullyScoped(call.target)
             call.target.targetSubroutine(program)?.let { sub ->
                 val scopedName = IdentifierReference(sub.scopedName, call.target.position)
                 val scopedArgs = makeScopedArgs(call.args)

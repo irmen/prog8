@@ -1,11 +1,9 @@
 TODO
 ====
 
-optimizer bug, see "optimizing inlined functions must reference proper scopes" unittest (skipped for now)
-causes compiler error for virtual: just calling txt.cls() gives compile error undefined symbol clear_screen
-
 https://github.com/irmen/prog8/issues/136 (string.find register order issue)
 
+other issues on github.
 
 optimize signed byte/word division by powers of 2 (and shift right?), it's now using divmod routine.  (also % ?)
     see inplacemodificationByteVariableWithLiteralval() and inplacemodificationSomeWordWithLiteralval()

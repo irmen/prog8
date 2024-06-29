@@ -1060,23 +1060,25 @@ main {
         compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
     }
 
-    xtest("optimizing inlined functions must reference proper scopes") {
+    test("optimizing inlined functions must reference proper scopes") {
         val src="""
 main {
     sub start() {
-        other.sub1()
+        void other.sub1()
+        cx16.r0L = other.sub1()+other.sub1()
     }
 
 }
 
 other {
-    sub  sub2() {
+    sub  sub2() -> ubyte{
         cx16.r0++
         cx16.r1++
+        return cx16.r0L
     }
 
-    sub sub1() {
-        sub2()
+    sub sub1() -> ubyte {
+        return sub2()
     }
 }"""
 
