@@ -1108,10 +1108,17 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
                 is PtNumber -> {
                     assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
-                    if(expr.operator=="+")
-                        asmgen.out("  clc |  adc  #${right.number.toHex()}")
-                    else
-                        asmgen.out("  sec |  sbc  #${right.number.toHex()}")
+                    if(right.number==1.0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                        if (expr.operator == "+")
+                            asmgen.out("  inc  a")
+                        else
+                            asmgen.out("  dec  a")
+                    } else {
+                        if (expr.operator == "+")
+                            asmgen.out("  clc |  adc  #${right.number.toHex()}")
+                        else
+                            asmgen.out("  sec |  sbc  #${right.number.toHex()}")
+                    }
                     assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
                     return true
                 }
@@ -1246,8 +1253,39 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                 }
                 is PtNumber -> {
                     assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
-                    if(expr.operator=="+") {
-                        asmgen.out("""
+                    if(right.number==1.0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                        if(expr.operator=="+") {
+                            asmgen.out("""
+                                inc  a
+                                bne  +
+                                iny
++""")
+                        } else {
+                            asmgen.out("""
+                                dec  a
+                                cmp  #255
+                                bne  +
+                                dey
++""")
+                        }
+                    } else if(dt!=DataType.WORD && right.number.toInt() in 0..255) {
+                        if(expr.operator=="+") {
+                            asmgen.out("""
+                                clc
+                                adc  #${right.number.toHex()}
+                                bcc  +
+                                iny
++""")                   } else if(expr.operator=="-") {
+                            asmgen.out("""
+                                sec
+                                sbc  #${right.number.toHex()}
+                                bcs  +
+                                dey
++""")
+                        }
+                    } else {
+                        if(expr.operator=="+") {
+                            asmgen.out("""
                                 clc
                                 adc  #<${right.number.toHex()}
                                 tax
@@ -1255,8 +1293,8 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 adc  #>${right.number.toHex()}
                                 tay
                                 txa""")
-                    } else if(expr.operator=="-") {
-                        asmgen.out("""
+                        } else if(expr.operator=="-") {
+                            asmgen.out("""
                                 sec
                                 sbc  #<${right.number.toHex()}
                                 tax
@@ -1264,6 +1302,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                                 sbc  #>${right.number.toHex()}
                                 tay
                                 txa""")
+                        }
                     }
                     assignRegisterpairWord(target, RegisterOrPair.AY)
                     return true

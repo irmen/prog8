@@ -9,12 +9,12 @@
 main {
 
     sub start() {
-;        monogfx.lores()
-;        demofill()
-;        sys.wait(2*60)
-;        monogfx.hires()
-;        demo1()
-;        sys.wait(2*60)
+        monogfx.lores()
+        demofill()
+        sys.wait(2*60)
+        monogfx.hires()
+        demo1()
+        sys.wait(2*60)
         demo2()
 
         monogfx.textmode()
