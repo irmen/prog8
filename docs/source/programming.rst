@@ -342,16 +342,14 @@ See also :ref:`pointervars_programming`
 
 **LSB/MSB split word arrays:**
 For (u)word arrays, you can make the compiler layout the array in memory as two separate arrays,
-one with the LSBs and one with the MSBs of the word values. This is more efficient when storing
-and reading words from the array (the index can be used twice).
-Add the ``@split`` tag to the variable declaration to do this.
-In the assembly code, the array will be generated as two byte arrays namely ``name_lsb`` and ``name_msb``.
-Note that the maximum length of a split word array is 256! (regular word arrays are limited to 128 elements).
+one with the LSBs and one with the MSBs of the word values. This makes it more efficient to access
+values from the array (smaller and faster code). It also doubles the maximum size of the array from 128 words to 256 words!
+The ``@split`` tag should be added to the variable declaration to do this.
+In the assembly code, the array will then be generated as two byte arrays namely ``name_lsb`` and ``name_msb``.
 
 .. caution::
     Not all array operations are supported yet on "split word arrays".
-    The compiler may give an unpleasant error or crash when you hit such a case in your code.
-    If this happens simply revert to a regular word array and please report the issue,
+    If you get an error message, simply revert to a regular word array and please report the issue,
     so that more support can be added in the future where it is needed.
 
 

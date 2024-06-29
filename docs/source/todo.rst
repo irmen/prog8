@@ -1,8 +1,6 @@
 TODO
 ====
 
-docs: stress more that the @split for word arrays can provide significant code efficiency over normal linear word array
-
 optimizer bug, see "optimizing inlined functions must reference proper scopes" unittest (skipped for now)
 causes compiler error for virtual: just calling txt.cls() gives compile error undefined symbol clear_screen
 
