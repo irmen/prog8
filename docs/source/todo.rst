@@ -8,6 +8,7 @@ other issues on github.
 optimize signed byte/word division by powers of 2 (and shift right?), it's now using divmod routine.  (also % ?)
     see inplacemodificationByteVariableWithLiteralval() and inplacemodificationSomeWordWithLiteralval()
     and for IR: see divideByConst() in IRCodeGen
+
     1 shift right of AX signed word:
                  stx	P8ZP_SCRATCH_B1
                  cpx	#$80
@@ -85,6 +86,7 @@ Libraries:
 
 Optimizations:
 
+- For 65c02 targets: use trb and tsb instructions if possible (f.ex. generating  'lda cmask'  ' trb nvub' for 'nvub &= ~cmask'  and 'lda cmask'  'and fillm' 'tsb nvub' for  'nvub |= cmask & fillm')
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
