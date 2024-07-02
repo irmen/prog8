@@ -583,8 +583,8 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
         fun sameLabel(branchInstr: String, jumpInstr: String, labelInstr: String): Boolean {
             if('(' in jumpInstr) return false       // indirect jump cannot be replaced
             val label = labelInstr.trimEnd().substringBefore(':').substringBefore(' ').substringBefore('\t')
-            println("label=$label")
-            return true
+            val branchLabel = branchInstr.trimStart().substring(3).trim()
+            return label==branchLabel
         }
 
         // beq Label + jmp Addr + Label  -> bne Addr

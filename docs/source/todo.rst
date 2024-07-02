@@ -1,9 +1,7 @@
 TODO
 ====
 
-https://github.com/irmen/prog8/issues/136 (string.find register order issue)
-
-other issues on github.
+See open issues on github.
 
 optimize signed byte/word division by powers of 2 (and shift right?), it's now using divmod routine.  (also % ?)
     see inplacemodificationByteVariableWithLiteralval() and inplacemodificationSomeWordWithLiteralval()
@@ -28,6 +26,12 @@ optimize signed byte/word division by powers of 2 (and shift right?), it's now u
          bne	loop
     end:  tax
          lda	$4
+
+
+Improve register load order in subroutine call args assignments:
+in certain situations, the "wrong" order of evaluation of function call arguments is done which results
+in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
+Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 
 
 Future Things and Ideas

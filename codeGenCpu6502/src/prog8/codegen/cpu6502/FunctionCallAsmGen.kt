@@ -82,7 +82,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             is PtAddressOf -> false
             is PtIdentifier -> false
             is PtIrRegister -> false
-            is PtMemoryByte -> return usesOtherRegistersWhileEvaluating(arg.address)
+            is PtMemoryByte -> true     // TODO might not actually need extra registers if the value has to end up in A
             is PtNumber -> false
             is PtBool -> false
             else -> true
@@ -110,9 +110,9 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                         throw AssemblyError("call argument evaluation problem: can't save cpu statusregister parameter ${call.position}")
                     }
                     else {
-                        if(usedX()) asmgen.saveRegisterStack(CpuRegister.X, false)
-                        if(usedY()) asmgen.saveRegisterStack(CpuRegister.Y, false)
-                        if(usedA()) asmgen.saveRegisterStack(CpuRegister.A, false)
+                        if(usedX()) asmgen.saveRegisterStack(CpuRegister.X, usedA())
+                        if(usedY()) asmgen.saveRegisterStack(CpuRegister.Y, usedA())
+                        if(usedA()) asmgen.saveRegisterStack(CpuRegister.A, usedA())
                         val used = argumentViaRegister(sub, IndexedValue(it, param.second), arg)
                         if(usedA()) asmgen.restoreRegisterStack(CpuRegister.A, false)
                         if(usedY()) asmgen.restoreRegisterStack(CpuRegister.Y, true)
