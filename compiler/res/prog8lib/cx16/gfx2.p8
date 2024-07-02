@@ -272,9 +272,9 @@ gfx2 {
 
         sub set_both_strides(ubyte stride) {
             stride <<= 4
-            cx16.VERA_CTRL = 0
-            cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
             cx16.VERA_CTRL = 1
+            cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
+            cx16.VERA_CTRL = 0
             cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
         }
 
