@@ -1,8 +1,6 @@
 TODO
 ====
 
-- check benchmark score vs previous version
-
 - writing a 'txt' block in user program suddenly spews out all textio unused reference warnings because of the %option merge promotion going on. Merging should probably be handled differently
 
 
