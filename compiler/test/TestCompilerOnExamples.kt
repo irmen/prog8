@@ -174,7 +174,6 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "queens",
             "screencodes",
             "sincos",
-            "sorting",
             "swirl",
             "swirl-float",
             "tehtriz",

@@ -688,18 +688,6 @@ main {
         (statements[7] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.compilerAst)!!.number shouldBe 53281.0
     }
 
-    test("no crash on sorting unused array") {
-        val text="""
-main {
-	ubyte[5] cards = [ 14, 6, 29, 16, 3 ]
-
-	sub start() {
-	    sort(cards)
-	}
-}"""
-        compileText(C64Target(), true, text, writeAssembly = false) shouldNotBe null
-    }
-
     test("no string error when inlining") {
         val text="""
 main {

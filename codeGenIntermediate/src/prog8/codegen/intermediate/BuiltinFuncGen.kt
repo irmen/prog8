@@ -34,8 +34,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword" -> funcClamp(call)
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(call)
             "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(call)
-            "sort" -> funcSort(call)
-            "reverse" -> funcReverse(call)
             "setlsb" -> funcSetLsbMsb(call, false)
             "setmsb" -> funcSetLsbMsb(call, true)
             "rol" -> funcRolRor(call)
@@ -367,65 +365,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             }
             else -> throw AssemblyError("invalid dt")
         }
-    }
-
-    private fun funcReverse(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val arrayName = call.args[0] as PtIdentifier
-        val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
-        val lengthReg = codeGen.registers.nextFree()
-        val result = mutableListOf<IRCodeChunkBase>()
-
-        if(arrayName.type in SplitWordArrayTypes) {
-            // reverse the lsb and msb arrays both, independently
-            addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-            val trLsb = exprGen.translateExpression(PtIdentifier(arrayName.name+"_lsb", DataType.ARRAY_UB, call.position))
-            addToResult(result, trLsb, trLsb.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
-            result += codeGen.makeSyscall(IMSyscall.REVERSE_BYTES, listOf(IRDataType.WORD to trLsb.resultReg, IRDataType.BYTE to lengthReg), null)
-            val trMsb = exprGen.translateExpression(PtIdentifier(arrayName.name+"_msb", DataType.ARRAY_UB, call.position))
-            addToResult(result, trMsb, trMsb.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
-            result += codeGen.makeSyscall(IMSyscall.REVERSE_BYTES, listOf(IRDataType.WORD to trMsb.resultReg, IRDataType.BYTE to lengthReg), null)
-            return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
-        }
-
-        val syscall =
-            when(arrayName.type) {
-                DataType.ARRAY_UB, DataType.ARRAY_B, DataType.STR -> IMSyscall.REVERSE_BYTES
-                DataType.ARRAY_UW, DataType.ARRAY_W -> IMSyscall.REVERSE_WORDS
-                DataType.ARRAY_F -> IMSyscall.REVERSE_FLOATS
-                else -> throw IllegalArgumentException("weird type to reverse")
-            }
-        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-        val tr = exprGen.translateExpression(arrayName)
-        addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
-        result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), null)
-        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
-    }
-
-    private fun funcSort(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val arrayName = call.args[0] as PtIdentifier
-        val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
-        val syscall =
-            when(arrayName.type) {
-                DataType.ARRAY_UB -> IMSyscall.SORT_UBYTE
-                DataType.ARRAY_B -> IMSyscall.SORT_BYTE
-                DataType.ARRAY_UW -> IMSyscall.SORT_UWORD
-                DataType.ARRAY_W -> IMSyscall.SORT_WORD
-                DataType.STR -> IMSyscall.SORT_UBYTE
-                DataType.ARRAY_F -> throw IllegalArgumentException("sorting a floating point array is not supported")
-                in SplitWordArrayTypes -> TODO("split word sort")
-                else -> throw IllegalArgumentException("weird type to sort")
-            }
-        val result = mutableListOf<IRCodeChunkBase>()
-        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-        val tr = exprGen.translateExpression(arrayName)
-        addToResult(result, tr, tr.resultReg, -1)
-        val lengthReg = codeGen.registers.nextFree()
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = if(arrayName.type==DataType.STR) arrayLength!!-1 else arrayLength), null)
-        result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), null)
-        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
     private fun funcMkword(call: PtBuiltinFunctionCall): ExpressionCodeResult {

@@ -85,7 +85,7 @@ Features
 - Conditional branches for status flags that map 1:1 to processor branch instructions for optimal efficiency
 - ``when`` statement to avoid if-else chains
 - ``in`` expression for concise and efficient multi-value/containment test
-- Several powerful built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``, ``sort`` and ``reverse``
+- Several powerful built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
 - Various powerful built-in libraries to do I/O, number conversions, graphics and more
 - Floating point math is supported on select compiler targets.

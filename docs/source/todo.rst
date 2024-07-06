@@ -1,6 +1,8 @@
 TODO
 ====
 
+Get rid of any() and all() as builtin functions? Replace them with regular subroutines in buffer.p8 for example?
+
 See open issues on github.
 
 IR: add SEC and CLC instructions in place of call to sys.set_carry() and sys.clear_carry(). (check more inline sub calls that should be a single instruction?)
@@ -78,7 +80,6 @@ Compiler:
 - Zig-like defer to execute a statement/anonymousscope when subroutine exits? (problem is, we have jump insructions and inline asm , where we lose track of when exactly the subroutine exits...)
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit and/or my binaryen kotlin library?
 - implement split words arrays all()
-- implement split words arrays sort()
 
 
 Libraries:

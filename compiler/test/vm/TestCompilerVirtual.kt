@@ -20,7 +20,7 @@ import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestCompilerVirtual: FunSpec({
-    test("compile virtual: any all sort reverse builtin funcs") {
+    test("compile virtual: any all builtin funcs") {
         val src = """
 main {
 
@@ -29,9 +29,6 @@ main {
         bool result = all(words)
         cx16.r0++
         result = any(words)
-        cx16.r0++
-        sort(words)
-        reverse(words)
     }
 }"""
         val target = VMTarget()

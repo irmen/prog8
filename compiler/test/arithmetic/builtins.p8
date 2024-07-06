@@ -406,15 +406,6 @@ main {
         ub = zero+(all(warr) as ubyte)*1+zero
         txt.print_ub(ub)
         txt.nl()
-
-        sort(ubarr)
-        sort(barr)
-        sort(uwarr)
-        sort(warr)
-        reverse(ubarr)
-        reverse(barr)
-        reverse(uwarr)
-        reverse(warr)
     }
 
     sub floatingpoint() {
@@ -449,7 +440,6 @@ main {
         txt.print_ub(ub)
         txt.nl()
 
-        reverse(flarr)
         for ub in 0 to len(flarr)-1 {
             floats.print(flarr[ub])
             txt.chrout(',')
