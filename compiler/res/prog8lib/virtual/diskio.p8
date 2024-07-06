@@ -72,6 +72,7 @@ diskio {
 
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
+        ;    It is assumed the file size is less than 64 K.
         txt.print("@TODO: f_read_all\n")
         return 0
     }
@@ -81,7 +82,7 @@ diskio {
         ; Reads characters from the input file UNTIL a newline or return character (or EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
         ; The length of the line is returned in Y. Note that an empty line is okay and is length 0!
-        ; I/O error status should be checked by the caller itself via READST() routine.
+        ; This routine is not able here to return the status as well in a secondary return value, so you have to do that yourself.
         txt.print("@TODO: f_readline\n")
         return 0
     }
@@ -107,6 +108,7 @@ diskio {
 
     sub f_write(uword bufferpointer, uword num_bytes) -> bool {
         ; -- write the given number of bytes to the currently open file
+        ;    you can call this multiple times to append more data
         txt.print("@TODO: f_write\n")
         return false
     }

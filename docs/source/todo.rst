@@ -3,6 +3,8 @@ TODO
 
 See open issues on github.
 
+Re-generate the skeleons doc files.
+
 IR: add SEC and CLC instructions in place of call to sys.set_carry() and sys.clear_carry(). (check more inline sub calls that should be a single instruction?)
 
 optimize signed byte/word division by powers of 2 (and shift right?), it's now using divmod routine.  (also % ?)
