@@ -10,12 +10,12 @@
 syn keyword prog8BuiltInFunc sgn sqrtw
 
 " Array functions
-syn keyword prog8BuiltInFunc any all len reverse sort
+syn keyword prog8BuiltInFunc any all len 
 
 " Miscellaneous functions
 syn keyword prog8BuiltInFunc cmp divmod lsb msb mkword min max peek peekw peekf poke pokew pokef rsave rsavex rrestore rrestorex
 syn keyword prog8BuiltInFunc rol rol2 ror ror2 sizeof setlsb setmsb
-syn keyword prog8BuiltInFunc swap memory call callfar clamp
+syn keyword prog8BuiltInFunc memory call callfar clamp
 
 
 " c64/floats.p8
