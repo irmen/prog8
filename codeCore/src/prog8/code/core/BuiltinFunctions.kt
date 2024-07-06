@@ -97,8 +97,6 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "divmod"           to FSignature(false, listOf(FParam("dividend", arrayOf(DataType.UBYTE, DataType.UWORD)), FParam("divisor", arrayOf(DataType.UBYTE, DataType.UWORD)), FParam("quotient", arrayOf(DataType.UBYTE, DataType.UWORD)), FParam("remainder", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     "divmod__ubyte"    to FSignature(false, listOf(FParam("dividend", arrayOf(DataType.UBYTE)), FParam("divisor", arrayOf(DataType.UBYTE)), FParam("quotient", arrayOf(DataType.UBYTE)), FParam("remainder", arrayOf(DataType.UBYTE))), null),
     "divmod__uword"    to FSignature(false, listOf(FParam("dividend", arrayOf(DataType.UWORD)), FParam("divisor", arrayOf(DataType.UWORD)), FParam("quotient", arrayOf(DataType.UWORD)), FParam("remainder", arrayOf(DataType.UWORD))), null),
-    "any"       to FSignature(true, listOf(FParam("values", ArrayDatatypes)), DataType.BOOL),
-    "all"       to FSignature(true, listOf(FParam("values", ArrayDatatypes)), DataType.BOOL),
     "lsb"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE),
     "msb"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE),
     "mkword"    to FSignature(true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), DataType.UWORD),

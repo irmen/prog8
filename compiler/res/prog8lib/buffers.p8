@@ -1,5 +1,7 @@
 ; experimental buffer data structures
 
+%option no_symbol_prefixing, ignore_unused
+
 smallringbuffer {
     ; -- A ringbuffer (FIFO queue) that occupies a single page in memory, containing 255 bytes maximum.
     ;    You can store and retrieve words too.

@@ -1,20 +1,66 @@
 
 %import textio
-%import buffers
-%zeropage basicsafe
+%import anyall
+
 %option no_sysinit
 
 main {
+    byte[256] barray
+    word[128] warray
+    uword large_barray=memory("bytes", 1000, 0)
+    uword large_warray=memory("words", 1000, 0)
+
+    sub check() {
+        txt.print_bool(anyall.all(barray, 256))
+        txt.spc()
+        txt.print_bool(anyall.any(barray, 256))
+        txt.nl()
+        txt.print_bool(anyall.allw(warray, 128))
+        txt.spc()
+        txt.print_bool(anyall.anyw(warray, 128))
+        txt.nl()
+        txt.print_bool(anyall.all(large_barray, 1000))
+        txt.spc()
+        txt.print_bool(anyall.any(large_barray, 1000))
+        txt.nl()
+        txt.print_bool(anyall.allw(large_warray, 500))
+        txt.spc()
+        txt.print_bool(anyall.anyw(large_warray, 500))
+        txt.nl()
+        txt.nl()
+    }
+
     sub start() {
-        smallringbuffer.init()
+        sys.memset(large_barray, 1000, 0)
+        sys.memset(large_warray, 1000, 0)
 
-        smallringbuffer.put(123)
-        txt.print_ub(smallringbuffer.get())
-        txt.nl()
+        check()
+        barray[250] = 99
+        warray[100] = $0100
+        large_barray[900] = 99
+        large_warray[900] = 99
+        check()
+        sys.memset(barray, 255, 1)
+        sys.memset(warray, 254, 1)
+        sys.memset(large_barray, 999, 1)
+        sys.memset(large_warray, 998, 1)
+        check()
+        barray[255]=1
+        warray[127]=1
+        @(large_barray+999)=1
+        @(large_warray+999)=1
+        check()
+        repeat {}
 
-        smallringbuffer.putw(12345)
-        txt.print_uw(smallringbuffer.getw())
-        txt.nl()
+;        smallringbuffer.init()
+;
+;        smallringbuffer.put(123)
+;        txt.print_ub(smallringbuffer.get())
+;        txt.nl()
+;
+;        smallringbuffer.putw(12345)
+;        txt.print_uw(smallringbuffer.getw())
+;        txt.nl()
     }
 }
 

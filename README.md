@@ -67,7 +67,7 @@ What does Prog8 provide?
 - conditional branches
 - ``when`` statement to provide a concise jump table alternative to if/elseif chains
 - ``in`` expression for concise and efficient multi-value/containment check 
-- many built-in functions such as ``sin``, ``cos``, ``rnd``, ``abs``, ``min``, ``max``, ``sqrt``, ``msb``, ``rol``, ``ror``, ``swap``, ``sort`` and ``reverse``
+- several specialized built-in functions such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
 - various powerful built-in libraries to do I/O, number conversions, graphics and more  
 - convenience abstractions for low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - inline assembly allows you to have full control when every cycle or byte matters

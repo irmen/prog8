@@ -9,8 +9,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     fun translate(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         return when(call.name) {
-            "any" -> funcAny(call)
-            "all" -> funcAll(call)
             "abs__byte", "abs__word", "abs__float" -> funcAbs(call)
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
@@ -200,79 +198,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             it += IRInstruction(Opcode.CMP, dt, reg1=leftTr.resultReg, reg2=rightTr.resultReg)
         }
         return ExpressionCodeResult(result, dt, leftTr.resultReg, -1)
-    }
-
-    private fun funcAny(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val arrayName = call.args[0] as PtIdentifier
-        val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
-        val result = mutableListOf<IRCodeChunkBase>()
-        val lengthReg = codeGen.registers.nextFree()
-
-        if(arrayName.type in SplitWordArrayTypes) {
-            // any(lsb-array) or any(msb-array)
-            addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-            val trLsb = exprGen.translateExpression(PtIdentifier(arrayName.name+"_lsb", DataType.ARRAY_UB, call.position))
-            addToResult(result, trLsb, trLsb.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength), null)
-            result += codeGen.makeSyscall(IMSyscall.ANY_BYTE, listOf(IRDataType.WORD to trLsb.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to trLsb.resultReg)
-            val shortcircuitLabel = codeGen.createLabelName()
-            result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1 = trLsb.resultReg, immediate = 0)
-                it += IRInstruction(Opcode.BSTNE, labelSymbol = shortcircuitLabel)
-                it += IRInstruction(Opcode.PREPARECALL, immediate = 2)
-            }
-            val trMsb = exprGen.translateExpression(PtIdentifier(arrayName.name+"_msb", DataType.ARRAY_UB, call.position))
-            addToResult(result, trMsb, trMsb.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength), null)
-            result += codeGen.makeSyscall(IMSyscall.ANY_BYTE, listOf(IRDataType.WORD to trMsb.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to trMsb.resultReg)
-            addInstr(result, IRInstruction(Opcode.ORR, IRDataType.BYTE, reg1=trLsb.resultReg, reg2=trMsb.resultReg), null)
-            result += IRCodeChunk(shortcircuitLabel, null)
-            return ExpressionCodeResult(result, IRDataType.BYTE, trLsb.resultReg, -1)
-        }
-
-        val syscall =
-            when (arrayName.type) {
-                DataType.ARRAY_UB,
-                DataType.ARRAY_B -> IMSyscall.ANY_BYTE
-                DataType.ARRAY_UW,
-                DataType.ARRAY_W -> IMSyscall.ANY_WORD
-                DataType.ARRAY_F -> IMSyscall.ANY_FLOAT
-                else -> throw IllegalArgumentException("weird type")
-            }
-        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-        val tr = exprGen.translateExpression(arrayName)
-        addToResult(result, tr, tr.resultReg, -1)
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength!! and 255), null)
-        result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
-        return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
-    }
-
-    private fun funcAll(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val arrayName = call.args[0] as PtIdentifier
-        val arrayLength = codeGen.symbolTable.getLength(arrayName.name)
-
-        if(arrayName.type in SplitWordArrayTypes) {
-            // this is a bit complicated to calculate.... have to check all recombined (lsb,msb) words for $0000
-            TODO("all(split words $arrayName)")
-        }
-
-        val syscall =
-            when(arrayName.type) {
-                DataType.ARRAY_UB,
-                DataType.ARRAY_B -> IMSyscall.ALL_BYTE
-                DataType.ARRAY_UW,
-                DataType.ARRAY_W -> IMSyscall.ALL_WORD
-                DataType.ARRAY_F -> IMSyscall.ALL_FLOAT
-                else -> throw IllegalArgumentException("weird type")
-            }
-        val result = mutableListOf<IRCodeChunkBase>()
-        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
-        val tr = exprGen.translateExpression(arrayName)
-        addToResult(result, tr, tr.resultReg, -1)
-        val lengthReg = codeGen.registers.nextFree()
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lengthReg, immediate = arrayLength!! and 255), null)
-        result += codeGen.makeSyscall(syscall, listOf(IRDataType.WORD to tr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to tr.resultReg)
-        return ExpressionCodeResult(result, IRDataType.BYTE, tr.resultReg, -1)
     }
 
     private fun funcAbs(call: PtBuiltinFunctionCall): ExpressionCodeResult {

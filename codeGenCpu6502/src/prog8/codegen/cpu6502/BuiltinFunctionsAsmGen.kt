@@ -33,7 +33,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(fcall, resultRegister)
             "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(fcall, resultRegister)
             "abs__byte", "abs__word", "abs__float" -> funcAbs(fcall, resultRegister, sscope)
-            "any", "all" -> funcAnyAll(fcall, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, resultRegister, sscope)
             "sqrt__ubyte", "sqrt__uword", "sqrt__float" -> funcSqrt(fcall, resultRegister, sscope)
             "divmod__ubyte" -> funcDivmod(fcall)
@@ -724,63 +723,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             else -> throw AssemblyError("weird type $dt")
         }
         assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, true, true)
-    }
-
-    private fun funcAnyAll(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
-        val dt = fcall.args.single().type
-        val array = fcall.args[0] as PtIdentifier
-        when (dt) {
-            DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> {
-                outputAddressAndLengthOfArray(array)
-                asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
-            }
-            DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                outputAddressAndLengthOfArray(array)
-                asmgen.out("  jsr  prog8_lib.func_${fcall.name}_w_into_A")
-            }
-            DataType.ARRAY_F -> {
-                outputAddressAndLengthOfArray(array)
-                asmgen.out("  jsr  floats.func_${fcall.name}_f_into_A")
-            }
-            in SplitWordArrayTypes -> {
-                val numElements = (asmgen.symbolTable.lookup(array.name) as StStaticVariable).length
-                when(fcall.name) {
-                    "any" -> {
-                        // any(lsb-array) or any(msb-array)
-                        val arrayName = asmgen.asmVariableName(array)
-                        asmgen.out("""
-                            lda  #<${arrayName}_lsb
-                            ldy  #>${arrayName}_lsb
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  #$numElements
-                        """)
-                        asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
-                        asmgen.out("  bne  +")      // shortcircuit
-                        asmgen.out("""
-                            pha
-                            lda  #<${arrayName}_msb
-                            ldy  #>${arrayName}_msb
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  #$numElements
-                        """)
-                        asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
-                        asmgen.out("""
-                            sta  P8ZP_SCRATCH_REG
-                            pla
-                            ora  P8ZP_SCRATCH_REG
-+""")
-                    }
-                    "all" -> {
-                        TODO("split words all")
-                    }
-                    else -> throw AssemblyError("weird call")
-                }
-            }
-            else -> throw AssemblyError("weird type $dt")
-        }
-        assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, dt in SignedDatatypes, true)
     }
 
     private fun funcAbs(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {

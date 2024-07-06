@@ -1,8 +1,6 @@
 TODO
 ====
 
-Get rid of any() and all() as builtin functions? Replace them with regular subroutines in buffer.p8 for example?
-
 See open issues on github.
 
 IR: add SEC and CLC instructions in place of call to sys.set_carry() and sys.clear_carry(). (check more inline sub calls that should be a single instruction?)

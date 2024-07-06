@@ -20,23 +20,6 @@ import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestCompilerVirtual: FunSpec({
-    test("compile virtual: any all builtin funcs") {
-        val src = """
-main {
-
-    sub start() {
-        uword[] words = [1111,2222,0,4444,3333]
-        bool result = all(words)
-        cx16.r0++
-        result = any(words)
-    }
-}"""
-        val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
-    }
-
     test("compile virtual: array with pointers") {
         val src = """
 main {

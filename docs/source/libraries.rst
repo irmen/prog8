@@ -73,12 +73,6 @@ divmod (dividend, divisor, quotient, remainder)
 Array operations
 ^^^^^^^^^^^^^^^^
 
-any (x)
-    true if any of the values in the array value x is 'true' (not zero), else false.
-
-all (x)
-    true if all of the values in the array value x are 'true' (not zero), else false.
-
 len (x)
     Number of values in the array value x, or the number of characters in a string (excluding the 0-byte).
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
@@ -367,6 +361,25 @@ sys (part of syslib)
 ``popw ()``
     pops a 16-bit word value off the CPU hardware stack and returns it.
     Low-level function that should normally not be used.
+
+
+anyall
+------
+Routines to check if any or all values in an array or memory buffer are not zero.
+
+``any (arrayptr, num_elements)``
+    true if any of the byte values in the array is not zero, else false.
+
+``all (arrayptr, num_elements)``
+    true if all of the byte values in the array are not zero, else false.
+
+``anyw (arrayptr, num_elements)``
+    true if any of the word values in the array is not zero, else false.
+    Doesn't work on split arrays.
+
+``allw (arrayptr, num_elements)``
+    true if all of the word values in the array are not zero, else false.
+    Doesn't work on split arrays.
 
 
 conv

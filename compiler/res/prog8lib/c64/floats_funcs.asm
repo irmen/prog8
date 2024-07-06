@@ -16,26 +16,6 @@ a_times_5	.proc
 		rts
 		.pend
 
-func_any_f_into_A	.proc
-		jsr  a_times_5
-		jmp  prog8_lib.func_any_b_into_A
-		.pend
-
-func_all_f_into_A	.proc
-		jsr  a_times_5
-		jmp  prog8_lib.func_all_b_into_A
-		.pend
-
-func_any_f_stack	.proc
-		jsr  a_times_5
-		jmp  prog8_lib.func_any_b_stack
-		.pend
-
-func_all_f_stack	.proc
-		jsr  a_times_5
-		jmp  prog8_lib.func_all_b_stack
-		.pend
-
 func_abs_f_into_FAC1    .proc
         jsr  MOVFM
         jmp  ABS

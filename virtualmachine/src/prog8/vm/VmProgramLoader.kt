@@ -103,19 +103,6 @@ class VmProgramLoader {
                 if(ins.opcode == Opcode.SYSCALL) {
                     // convert IR Syscall to VM Syscall
                     val vmSyscall = when(ins.immediate!!) {
-                        IMSyscall.SORT_UBYTE.number -> Syscall.SORT_UBYTE
-                        IMSyscall.SORT_BYTE.number -> Syscall.SORT_BYTE
-                        IMSyscall.SORT_UWORD.number -> Syscall.SORT_UWORD
-                        IMSyscall.SORT_WORD.number -> Syscall.SORT_WORD
-                        IMSyscall.ANY_BYTE.number -> Syscall.ANY_BYTE
-                        IMSyscall.ANY_WORD.number -> Syscall.ANY_WORD
-                        IMSyscall.ANY_FLOAT.number -> Syscall.ANY_FLOAT
-                        IMSyscall.ALL_BYTE.number -> Syscall.ALL_BYTE
-                        IMSyscall.ALL_WORD.number -> Syscall.ALL_WORD
-                        IMSyscall.ALL_FLOAT.number -> Syscall.ALL_FLOAT
-                        IMSyscall.REVERSE_BYTES.number -> Syscall.REVERSE_BYTES
-                        IMSyscall.REVERSE_WORDS.number -> Syscall.REVERSE_WORDS
-                        IMSyscall.REVERSE_FLOATS.number -> Syscall.REVERSE_FLOATS
                         IMSyscall.COMPARE_STRINGS.number -> Syscall.COMPARE_STRINGS
                         IMSyscall.STRING_CONTAINS.number -> Syscall.STRING_CONTAINS
                         IMSyscall.BYTEARRAY_CONTAINS.number -> Syscall.BYTEARRAY_CONTAINS

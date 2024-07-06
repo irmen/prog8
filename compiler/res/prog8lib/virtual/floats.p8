@@ -13,7 +13,7 @@ sub print(float value) {
     ; ---- prints the floating point value (without a newline and no leading spaces).
     %ir {{
         loadm.f fr65535,floats.print.value
-        syscall 25 (fr65535.f)
+        syscall 15 (fr65535.f)
         return
     }}
 }
@@ -24,7 +24,7 @@ sub tostr(float value) -> str {
     %ir {{
         load.w r65535,floats.tostr.buffer
         loadm.f fr65535,floats.tostr.value
-        syscall 47 (r65535.w, fr65535.f)
+        syscall 34 (r65535.w, fr65535.f)
         load.w r0,floats.tostr.buffer
         returnr.w r0
     }}
@@ -34,7 +34,7 @@ sub parse(str value) -> float {
     ; -- parse a string value of a number to float
     %ir {{
         loadm.w  r65535,floats.parse.value
-        syscall 45 (r65535.w): fr0.f
+        syscall 32 (r65535.w): fr0.f
         returnr.f fr0
     }}
 }
@@ -147,7 +147,7 @@ sub ceil(float value) -> float {
 
 sub rnd() -> float {
     %ir {{
-        syscall 35 () : fr0.f
+        syscall 22 () : fr0.f
         returnr.f fr0
     }}
 }
@@ -155,7 +155,7 @@ sub rnd() -> float {
 sub rndseed(float seed) {
     %ir {{
         loadm.f  fr65535,floats.rndseed.seed
-        syscall 32 (fr65535.f)
+        syscall 19 (fr65535.f)
         return
     }}
 }

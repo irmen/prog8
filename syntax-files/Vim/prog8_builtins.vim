@@ -10,7 +10,7 @@
 syn keyword prog8BuiltInFunc sgn sqrtw
 
 " Array functions
-syn keyword prog8BuiltInFunc any all len 
+syn keyword prog8BuiltInFunc len 
 
 " Miscellaneous functions
 syn keyword prog8BuiltInFunc cmp divmod lsb msb mkword min max peek peekw peekf poke pokew pokef rsave rsavex rrestore rrestorex

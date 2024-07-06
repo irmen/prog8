@@ -164,14 +164,14 @@ math {
 
     sub rnd() -> ubyte {
         %ir {{
-            syscall 33 (): r0.b
+            syscall 20 (): r0.b
             returnr.b r0
         }}
     }
 
     sub rndw() -> uword {
         %ir {{
-            syscall 34 (): r0.w
+            syscall 21 (): r0.w
             returnr.w r0
         }}
     }
@@ -199,7 +199,7 @@ math {
         %ir {{
             loadm.w r65534,math.rndseed.seed1
             loadm.w r65535,math.rndseed.seed2
-            syscall 31 (r65534.w, r65535.w)
+            syscall 19 (r65534.w, r65535.w)
             return
         }}
     }
@@ -280,7 +280,7 @@ math {
             loadm.b r65533,math.atan2.y1
             loadm.b r65534,math.atan2.x2
             loadm.b r65535,math.atan2.y2
-            syscall 44 (r65532.b, r65533.b, r65534.b, r65535.b): r0.b
+            syscall 31 (r65532.b, r65533.b, r65534.b, r65535.b): r0.b
             returnr.b r0
         }}
     }
@@ -294,7 +294,7 @@ math {
         ;   - not all multiplications in the source code result in an actual multiplication call:
         ;     some simpler multiplications will be optimized away into faster routines. These will not set the upper 16 bits at all!
         %ir {{
-            syscall 46 (): r0.w
+            syscall 33 (): r0.w
             returnr.w r0
         }}
     }

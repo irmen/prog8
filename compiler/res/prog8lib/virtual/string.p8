@@ -83,7 +83,7 @@ string {
         %ir {{
             loadm.w r65534,string.copy.source
             loadm.w r65535,string.copy.target
-            syscall 52 (r65534.w, r65535.w): r0.b
+            syscall 39 (r65534.w, r65535.w): r0.b
             returnr.b r0
         }}
     }
@@ -103,7 +103,7 @@ string {
         %ir {{
             loadm.w r65534,string.compare.st1
             loadm.w r65535,string.compare.st2
-            syscall 29 (r65534.w, r65535.w) : r0.b
+            syscall 16 (r65534.w, r65535.w) : r0.b
             returnr.b r0
         }}
     }
