@@ -1,11 +1,39 @@
 TODO
 ====
 
-https://github.com/irmen/prog8/issues/136 (string.find register order issue)
+See open issues on github.
 
-optimize signed byte/word division by powers of 2, it's now using divmod routine.  (also % ?)
+IR: add SEC and CLC instructions in place of call to sys.set_carry() and sys.clear_carry(). (check more inline sub calls that should be a single instruction?)
+
+optimize signed byte/word division by powers of 2 (and shift right?), it's now using divmod routine.  (also % ?)
     see inplacemodificationByteVariableWithLiteralval() and inplacemodificationSomeWordWithLiteralval()
     and for IR: see divideByConst() in IRCodeGen
+
+    1 shift right of AX signed word:
+                 stx	P8ZP_SCRATCH_B1
+                 cpx	#$80
+                 ror	P8ZP_SCRATCH_B1
+                 ror    a
+                 ldx	P8ZP_SCRATCH_B1
+
+    multi shift right: (amount in $22)
+         sta	$4
+         txa
+         ldx	$22
+         beq    end
+    loop  cmp	#$80
+         ror
+         ror	$4
+         dex
+         bne	loop
+    end:  tax
+         lda	$4
+
+
+Improve register load order in subroutine call args assignments:
+in certain situations, the "wrong" order of evaluation of function call arguments is done which results
+in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
+Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 
 
 Future Things and Ideas
@@ -47,10 +75,9 @@ Compiler:
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
-- Zig-like defer to execute a statement/anonymousscope at subroutine exit?
+- Zig-like defer to execute a statement/anonymousscope when subroutine exits? (problem is, we have jump insructions and inline asm , where we lose track of when exactly the subroutine exits...)
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit and/or my binaryen kotlin library?
 - implement split words arrays all()
-- implement split words arrays sort()
 
 
 Libraries:
@@ -64,6 +91,7 @@ Libraries:
 
 Optimizations:
 
+- For 65c02 targets: use trb and tsb instructions if possible (f.ex. generating  ``lda cmask   trb nvub`` for ``nvub &= ~cmask``  and ``lda cmask  and fillm   tsb nvub`` for  ``nvub |= cmask & fillm``
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,

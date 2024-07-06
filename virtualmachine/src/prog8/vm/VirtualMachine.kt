@@ -624,7 +624,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsCALL(i: IRInstruction) {
         i.fcallArgs!!.arguments.forEach { arg ->
-            require(arg.address!=null) {"argument variable should have been given its memory address as well"}
+            requireNotNull(arg.address) {"argument variable should have been given its memory address as well"}
             when(arg.reg.dt) {
                 IRDataType.BYTE -> memory.setUB(arg.address!!, registers.getUB(arg.reg.registerNum))
                 IRDataType.WORD -> memory.setUW(arg.address!!, registers.getUW(arg.reg.registerNum))

@@ -384,6 +384,7 @@ private fun optimizeStoreLoadSame(
     for (lines in linesByFour) {
         val first = lines[1].value.trimStart()
         val second = lines[2].value.trimStart()
+        val third = lines[3].value.trimStart()
 
         // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
         if ((first.startsWith("sta ") && second.startsWith("lda ")) ||
@@ -393,7 +394,6 @@ private fun optimizeStoreLoadSame(
                 (first.startsWith("ldy ") && second.startsWith("ldy ")) ||
                 (first.startsWith("ldx ") && second.startsWith("ldx "))
         ) {
-            val third = lines[3].value.trimStart()
             val attemptRemove =
                 if(third.isBranch()) {
                     // a branch instruction follows, we can only remove the load instruction if
@@ -508,6 +508,7 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
     for (lines in linesByFour) {
         val first = lines[0].value
         val second = lines[1].value
+        val third = lines[2].value
         if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
             mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
             mods += Modification(lines[1].index, true, null)
@@ -577,6 +578,48 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
                 mods += Modification(lines[3].index, true, null)
             }
         }
+
+
+        fun sameLabel(branchInstr: String, jumpInstr: String, labelInstr: String): Boolean {
+            if('(' in jumpInstr) return false       // indirect jump cannot be replaced
+            val label = labelInstr.trimEnd().substringBefore(':').substringBefore(' ').substringBefore('\t')
+            val branchLabel = branchInstr.trimStart().substring(3).trim()
+            return label==branchLabel
+        }
+
+        // beq Label + jmp Addr + Label  -> bne Addr
+        if((" jmp" in second || "\tjmp " in second) && haslabel(third)) {
+            if((" beq " in first || "\tbeq " in first) && sameLabel(first, second, third)) {
+                val branch = second.replace("jmp", "bne")
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, false, branch))
+            }
+            else if((" bne " in first || "\tbne " in first) && sameLabel(first, second, third)) {
+                val branch = second.replace("jmp", "beq")
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, false, branch))
+            }
+            else if((" bcc " in first || "\tbcc " in first) && sameLabel(first, second, third)){
+                val branch = second.replace("jmp", "bcs")
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, false, branch))
+            }
+            else if((" bcs " in first || "\tbcs " in first) && sameLabel(first, second, third)) {
+                val branch = second.replace("jmp", "bcc")
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, false, branch))
+            }
+            else if((" bpl " in first || "\tbpl " in first) && sameLabel(first, second, third)) {
+                val branch = second.replace("jmp", "bmi")
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, false, branch))
+            }
+            else if((" bmi " in first || "\tbmi " in first) && sameLabel(first, second, third)) {
+                val branch = second.replace("jmp", "bpl")
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, false, branch))
+            }
+        }
     }
     return mods
 }
@@ -614,7 +657,30 @@ private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<
         optimize('a', lines)
         optimize('x', lines)
         optimize('y', lines)
+
+        val first = lines[1].value.trimStart()
+        val second = lines[2].value.trimStart()
+        val third = lines[3].value.trimStart()
+
+        // phy + ldy + pla -> tya + ldy
+        // phx + ldx + pla -> txa + ldx
+        // pha + lda + pla -> nop
+        if(first=="phy" && second.startsWith("ldy ") && third=="pla") {
+            mods.add(Modification(lines[3].index, true, null))
+            mods.add(Modification(lines[1].index, false, "  tya"))
+        }
+        else if(first=="phx" && second.startsWith("ldx ") && third=="pla") {
+            mods.add(Modification(lines[3].index, true, null))
+            mods.add(Modification(lines[1].index, false, "  txa"))
+        }
+        else if(first=="pha" && second.startsWith("lda ") && third=="pla") {
+            mods.add(Modification(lines[1].index, true, null))
+            mods.add(Modification(lines[2].index, true, null))
+            mods.add(Modification(lines[3].index, true, null))
+        }
     }
+
+
     return mods
 }
 

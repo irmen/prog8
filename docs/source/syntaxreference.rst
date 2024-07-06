@@ -344,7 +344,7 @@ Tag         Effect
 @requirezp  force the variable into Zero page. If ZP is full, compilation will fail.
 @nozp       force the variable to normal system ram, never place it into zeropage.
 @shared     means the variable is shared with some assembly code and that it cannot be optimized away if not used elsewhere.
-@split      (only valid on (u)word arrays) Makes the array to be placed in memory as 2 separate byte arrays; one with the LSBs one with the MSBs of the word values. May improve performance.
+@split      (only valid on (u)word arrays) Makes the array to be placed in memory as 2 separate byte arrays; one with the LSBs one with the MSBs of the word values. Usually improves performance and code size.
 ==========  ======
 
 
@@ -390,8 +390,8 @@ type identifier  type                     storage size       example var declara
 ``ubyte[x]``     unsigned byte array      x bytes            ``ubyte[4] myvar``
 ``word[x]``      signed word array        2*x bytes          ``word[4] myvar``
 ``uword[x]``     unsigned word array      2*x bytes          ``uword[4] myvar``
-``float[x]``     floating-point array     5*x bytes          ``float[4] myvar``
-``bool[x]``      boolean array            5*x bytes          ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
+``float[x]``     floating-point array     5*x bytes          ``float[4] myvar``.   The 5 bytes per float is on CBM targets.
+``bool[x]``      boolean array            x bytes            ``bool[4] myvar``  note: consider using bit flags in a byte or word instead to save space
 ``byte[]``       signed byte array        depends on value   ``byte[] myvar = [1, 2, 3, 4]``
 ``ubyte[]``      unsigned byte array      depends on value   ``ubyte[] myvar = [1, 2, 3, 4]``
 ``word[]``       signed word array        depends on value   ``word[] myvar = [1, 2, 3, 4]``

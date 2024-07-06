@@ -11,6 +11,7 @@ import prog8.ast.statements.Assignment
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
+import prog8.intermediate.IRDataType
 import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRSubroutine
 import prog8.intermediate.Opcode
@@ -19,26 +20,6 @@ import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestCompilerVirtual: FunSpec({
-    test("compile virtual: any all sort reverse builtin funcs") {
-        val src = """
-main {
-
-    sub start() {
-        uword[] words = [1111,2222,0,4444,3333]
-        bool result = all(words)
-        cx16.r0++
-        result = any(words)
-        cx16.r0++
-        sort(words)
-        reverse(words)
-    }
-}"""
-        val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true)!!
-        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
-    }
-
     test("compile virtual: array with pointers") {
         val src = """
 main {
@@ -475,6 +456,34 @@ main {
         compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
     }
 
-
+    test("push() and pop() generate correct IR instructions") {
+        val src="""
+main {
+    sub start() {
+        ubyte bb
+        uword ww
+        sys.push(42)
+        bb++
+        bb=sys.pop()
+        sys.pushw(9999)
+        ww++
+        ww=sys.popw()
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irProgram = IRFileReader().read(virtfile)
+        val start = irProgram.blocks[0].children[0] as IRSubroutine
+        val instructions = start.chunks.flatMap { c->c.instructions }
+        instructions.size shouldBe 13
+        instructions[3].opcode shouldBe Opcode.PUSH
+        instructions[3].type shouldBe IRDataType.BYTE
+        instructions[5].opcode shouldBe Opcode.POP
+        instructions[5].type shouldBe IRDataType.BYTE
+        instructions[8].opcode shouldBe Opcode.PUSH
+        instructions[8].type shouldBe IRDataType.WORD
+        instructions[10].opcode shouldBe Opcode.POP
+        instructions[10].type shouldBe IRDataType.WORD
+    }
 
 })

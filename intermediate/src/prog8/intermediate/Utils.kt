@@ -118,12 +118,12 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         operands.forEach { oper ->
             if (oper[0] == '&')
                 throw IRParseException("address-of should be done with normal LOAD <symbol>")
-            else if (oper[0] in "rR") {
+            else if (isRegisterName(oper)) {
                 if (reg1 == null) reg1 = oper.substring(1).toInt()
                 else if (reg2 == null) reg2 = oper.substring(1).toInt()
                 else if (reg3 == null) reg3 = oper.substring(1).toInt()
                 else throw IRParseException("too many register operands")
-            } else if (oper[0] in "fF" && oper[1] in "rR") {
+            } else if (isFloatRegisterName(oper)) {
                 if (fpReg1 == null) fpReg1 = oper.substring(2).toInt()
                 else if (fpReg2 == null) fpReg2 = oper.substring(2).toInt()
                 else throw IRParseException("too many fp register operands")
@@ -210,6 +210,30 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     }
 
     return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol, symbolOffset = offset))
+}
+
+private fun isRegisterName(oper: String): Boolean {
+    if(oper[0] in "rR") {
+        try {
+            oper.substring(1).toInt()
+            return true
+        } catch(_: NumberFormatException) {
+            return false
+        }
+    }
+    return false
+}
+
+private fun isFloatRegisterName(oper: String): Boolean {
+    if(oper[0] in "fF" && oper[1] in "rR") {
+        try {
+            oper.substring(2).toInt()
+            return true
+        } catch(_: NumberFormatException) {
+            return false
+        }
+    }
+    return false
 }
 
 private class ParsedCall(

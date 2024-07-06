@@ -25,54 +25,41 @@ SYSCALLS:
 12 = decimal string to word (signed)
 13 = wait       ; wait certain amount of jiffies (1/60 sec)
 14 = waitvsync  ; wait on vsync
-15 = sort_ubyte array
-16 = sort_byte array
-17 = sort_uword array
-18 = sort_word array
-19 = any_byte array
-20 = any_word array
-21 = any_float array
-22 = all_byte array
-23 = all_word array
-24 = all_float array
-25 = print_f  (floating point value in fp reg 0)
-26 = reverse_bytes array
-27 = reverse_words array
-28 = reverse_floats array
-29 = compare strings
-30 = gfx_getpixel      ; get byte pixel value at coordinates r0.w/r1.w
-31 = rndseed
-32 = rndfseed
-33 = RND
-34 = RNDW
-35 = RNDF
-36 = STRING_CONTAINS
-37 = BYTEARRAY_CONTAINS
-38 = WORDARRAY_CONTAINS
-39 = CLAMP_BYTE
-40 = CLAMP_UBYTE
-41 = CLAMP_WORD
-42 = CLAMP_UWORD
-43 = CLAMP_FLOAT
-44 = ATAN
-45 = str to float
-46 = MUL16_LAST_UPPER
-47 = float to str
-48 = FLOATARRAY_CONTAINS
-49 = memcopy
-50 = memset
-51 = memsetw
-52 = stringcopy
-53 = ARRAYCOPY_SPLITW_TO_NORMAL
-54 = ARRAYCOPY_NORMAL_TO_SPLITW
-55 = memcopy_small
-56 = load
-57 = load_raw
-58 = save
-59 = delete
-60 = rename
-61 = directory
-62 = getconsolesize
+15 = print_f  (floating point value in fp reg 0)
+16 = compare strings
+17 = gfx_getpixel      ; get byte pixel value at coordinates r0.w/r1.w
+18 = rndseed
+19 = rndfseed
+20 = RND
+21 = RNDW
+22 = RNDF
+23 = STRING_CONTAINS
+24 = BYTEARRAY_CONTAINS
+25 = WORDARRAY_CONTAINS
+26 = CLAMP_BYTE
+27 = CLAMP_UBYTE
+28 = CLAMP_WORD
+29 = CLAMP_UWORD
+30 = CLAMP_FLOAT
+31 = ATAN
+32 = str to float
+33 = MUL16_LAST_UPPER
+34 = float to str
+35 = FLOATARRAY_CONTAINS
+36 = memcopy
+37 = memset
+38 = memsetw
+39 = stringcopy
+40 = ARRAYCOPY_SPLITW_TO_NORMAL
+41 = ARRAYCOPY_NORMAL_TO_SPLITW
+42 = memcopy_small
+43 = load
+44 = load_raw
+45 = save
+46 = delete
+47 = rename
+48 = directory
+49 = getconsolesize
 */
 
 enum class Syscall {
@@ -91,20 +78,7 @@ enum class Syscall {
     STR_TO_WORD,
     WAIT,
     WAITVSYNC,
-    SORT_UBYTE,
-    SORT_BYTE,
-    SORT_UWORD,
-    SORT_WORD,
-    ANY_BYTE,
-    ANY_WORD,
-    ANY_FLOAT,
-    ALL_BYTE,
-    ALL_WORD,
-    ALL_FLOAT,
     PRINT_F,
-    REVERSE_BYTES,
-    REVERSE_WORDS,
-    REVERSE_FLOATS,
     COMPARE_STRINGS,
     GFX_GETPIXEL,
     RNDSEED,
@@ -243,149 +217,6 @@ object SysCalls {
                 Thread.sleep(time.toLong() * 1000/60)
             }
             Syscall.WAITVSYNC -> vm.waitvsync()
-            Syscall.SORT_UBYTE -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
-                    vm.memory.getUB(it)
-                }.sorted()
-                array.withIndex().forEach { (index, value)->
-                    vm.memory.setUB(address+index, value)
-                }
-            }
-            Syscall.SORT_BYTE -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
-                    vm.memory.getSB(it)
-                }.sorted()
-                array.withIndex().forEach { (index, value)->
-                    vm.memory.setSB(address+index, value)
-                }
-            }
-            Syscall.SORT_UWORD -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
-                    vm.memory.getUW(it)
-                }.sorted()
-                array.withIndex().forEach { (index, value)->
-                    vm.memory.setUW(address+index*2, value)
-                }
-            }
-            Syscall.SORT_WORD -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
-                    vm.memory.getSW(it)
-                }.sorted()
-                array.withIndex().forEach { (index, value)->
-                    vm.memory.setSW(address+index*2, value)
-                }
-            }
-            Syscall.REVERSE_BYTES -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val array = IntProgression.fromClosedRange(address, address+length-1, 1).map {
-                    vm.memory.getUB(it)
-                }.reversed()
-                array.withIndex().forEach { (index, value)->
-                    vm.memory.setUB(address+index, value)
-                }
-            }
-            Syscall.REVERSE_WORDS -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val array = IntProgression.fromClosedRange(address, address+length*2-2, 2).map {
-                    vm.memory.getUW(it)
-                }.reversed()
-                array.withIndex().forEach { (index, value)->
-                    vm.memory.setUW(address+index*2, value)
-                }
-            }
-            Syscall.REVERSE_FLOATS -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val array = IntProgression.fromClosedRange(address, address+length*4-2, 4).map {
-                    vm.memory.getFloat(it)
-                }.reversed()
-                array.withIndex().forEach { (index, value)->
-                    vm.memory.setFloat(address+index*4, value)
-                }
-            }
-            Syscall.ANY_BYTE -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val endAddressExcl = address + if(length==0) 256 else length
-                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-1, 1)
-                if(addresses.any { vm.memory.getUB(it).toInt()!=0 })
-                    returnValue(callspec.returns.single(), 1, vm)
-                else
-                    returnValue(callspec.returns.single(), 0, vm)
-            }
-            Syscall.ANY_WORD -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val endAddressExcl = address + if(length==0) 256*2 else length*2
-                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-2, 2)
-                if(addresses.any { vm.memory.getUW(it).toInt()!=0 })
-                    returnValue(callspec.returns.single(), 1, vm)
-                else
-                    returnValue(callspec.returns.single(), 0, vm)
-            }
-            Syscall.ANY_FLOAT -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val endAddressExcl = address + (if(length==0) 256*vm.machinedef.FLOAT_MEM_SIZE else length*vm.machinedef.FLOAT_MEM_SIZE)
-                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-vm.machinedef.FLOAT_MEM_SIZE, 4)
-                if(addresses.any { vm.memory.getFloat(it).toInt()!=0 })
-                    returnValue(callspec.returns.single(), 1, vm)
-                else
-                    returnValue(callspec.returns.single(), 0, vm)
-            }
-            Syscall.ALL_BYTE -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val endAddressExcl = address + if(length==0) 256 else length
-                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-1, 1)
-                if(addresses.all { vm.memory.getUB(it).toInt()!=0 })
-                    returnValue(callspec.returns.single(), 1, vm)
-                else
-                    returnValue(callspec.returns.single(), 0, vm)
-            }
-            Syscall.ALL_WORD -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val endAddressExcl = address + if(length==0) 256*2 else length*2
-                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-2, 2)
-                if(addresses.all { vm.memory.getUW(it).toInt()!=0 })
-                    returnValue(callspec.returns.single(), 1, vm)
-                else
-                    returnValue(callspec.returns.single(), 0, vm)
-            }
-            Syscall.ALL_FLOAT -> {
-                val (addressV, lengthV) = getArgValues(callspec.arguments, vm)
-                val address = (addressV as UShort).toInt()
-                val length = (lengthV as UByte).toInt()
-                val endAddressExcl = address + (if(length==0) 256*vm.machinedef.FLOAT_MEM_SIZE else length*vm.machinedef.FLOAT_MEM_SIZE)
-                val addresses = IntProgression.fromClosedRange(address, endAddressExcl-vm.machinedef.FLOAT_MEM_SIZE, 4)
-                if(addresses.all { vm.memory.getFloat(it).toInt()!=0 })
-                    returnValue(callspec.returns.single(), 1, vm)
-                else
-                    returnValue(callspec.returns.single(), 0, vm)
-            }
             Syscall.PRINT_F -> {
                 val value = getArgValues(callspec.arguments, vm).single() as Double
                 if(value.toInt().toDouble()==value)

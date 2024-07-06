@@ -34,7 +34,7 @@ sys {
         %ir {{
             loadm.w r65534,sys.internal_stringcopy.source
             loadm.w r65535,sys.internal_stringcopy.tgt
-            syscall 52 (r65534.w, r65535.w): r0.b
+            syscall 39 (r65534.w, r65535.w): r0.b
         }}
     }
 
@@ -43,7 +43,7 @@ sys {
             loadm.w r65533,sys.memcopy.source
             loadm.w r65534,sys.memcopy.tgt
             loadm.w r65535,sys.memcopy.count
-            syscall 49 (r65533.w, r65534.w, r65535.w)
+            syscall 36 (r65533.w, r65534.w, r65535.w)
         }}
     }
 
@@ -52,7 +52,7 @@ sys {
             loadm.w r65533,sys.memset.mem
             loadm.w r65534,sys.memset.numbytes
             loadm.b r65535,sys.memset.value
-            syscall 50 (r65533.w, r65534.w, r65535.b)
+            syscall 37 (r65533.w, r65534.w, r65535.b)
         }}
     }
 
@@ -61,7 +61,7 @@ sys {
             loadm.w r65533,sys.memsetw.mem
             loadm.w r65534,sys.memsetw.numwords
             loadm.w r65535,sys.memsetw.value
-            syscall 51 (r65533.w, r65534.w, r65535.w)
+            syscall 38 (r65533.w, r65534.w, r65535.w)
         }}
     }
 
@@ -128,7 +128,7 @@ sys {
         %ir {{
             loadm.w r65534,sys.gfx_getpixel.xx
             loadm.w r65535,sys.gfx_getpixel.yy
-            syscall 30 (r65534.w, r65535.w): r0.b
+            syscall 17 (r65534.w, r65535.w): r0.b
             returnr.b r0
         }}
     }

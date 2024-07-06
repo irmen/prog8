@@ -104,7 +104,7 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
         if (!leftIDt.isKnown || !rightIDt.isKnown)
-            throw FatalAstException("can't determine datatype of both expression operands $expr")
+            return noModifications
 
         // X + (-A)  -->  X - A
         if (expr.operator == "+" && (expr.right as? PrefixExpression)?.operator == "-") {

@@ -688,18 +688,6 @@ main {
         (statements[7] as Assignment).target.memoryAddress!!.addressExpression.constValue(result.compilerAst)!!.number shouldBe 53281.0
     }
 
-    test("no crash on sorting unused array") {
-        val text="""
-main {
-	ubyte[5] cards = [ 14, 6, 29, 16, 3 ]
-
-	sub start() {
-	    sort(cards)
-	}
-}"""
-        compileText(C64Target(), true, text, writeAssembly = false) shouldNotBe null
-    }
-
     test("no string error when inlining") {
         val text="""
 main {
@@ -1056,6 +1044,32 @@ main {
         }
     }
 }"""
+        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("optimizing inlined functions must reference proper scopes") {
+        val src="""
+main {
+    sub start() {
+        void other.sub1()
+        cx16.r0L = other.sub1()+other.sub1()
+    }
+
+}
+
+other {
+    sub  sub2() -> ubyte{
+        cx16.r0++
+        cx16.r1++
+        return cx16.r0L
+    }
+
+    sub sub1() -> ubyte {
+        return sub2()
+    }
+}"""
+
         compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
     }

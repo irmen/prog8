@@ -358,9 +358,9 @@ drawmode:               ora  cx16.r15L
 
         sub set_both_strides(ubyte stride) {
             stride <<= 4
-            cx16.VERA_CTRL = 0
-            cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
             cx16.VERA_CTRL = 1
+            cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
+            cx16.VERA_CTRL = 0
             cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
         }
 
@@ -957,14 +957,14 @@ cdraw_mod2              ora  cx16.VERA_DATA1
         sub set_autoincrs() {
             ; set autoincrements to go to next pixel row (40 or 80 increment)
             if width==320 {
-                cx16.VERA_CTRL = 0
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (11<<4)
                 cx16.VERA_CTRL = 1
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (11<<4)
+                cx16.VERA_CTRL = 0
                 cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (11<<4)
             } else {
-                cx16.VERA_CTRL = 0
-                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (12<<4)
                 cx16.VERA_CTRL = 1
+                cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (12<<4)
+                cx16.VERA_CTRL = 0
                 cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (12<<4)
             }
         }

@@ -10,27 +10,27 @@ Prog8 documentation - |version|
 What is Prog8?
 --------------
 
-This is a compiled programming language targeting the 8-bit
-`6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
-`6510 <https://en.wikipedia.org/wiki/MOS_Technology_6510>`_ /
-`65c02 <https://en.wikipedia.org/wiki/MOS_Technology_65C02>`_ microprocessors.
-This CPU is from the late 1970's and early 1980's and was used in many home computers from that era,
-such as the `Commodore 64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
+This is a compiled programming language targeting the 8-bit 6502 CPU family.
 The language aims to provide many conveniences over raw assembly code (even when using a macro assembler),
 while still being low level enough to create high performance programs.
-You can compile programs for various machines with this CPU:
 
-* Commander X16  (with 6502 cpu, 65816 cpu specifics are currently not supported)
+They targeted CPUs are the `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
+`6510 <https://en.wikipedia.org/wiki/MOS_Technology_6510>`_ /
+`65c02 <https://en.wikipedia.org/wiki/MOS_Technology_65C02>`_ microprocessors.
+They are from the late 1970's and early 1980's and was used in many home computers from that era,
+such as the `Commodore 64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
+
+You can compile programs for various machines:
+
+* Commander X16  (with 65c02 cpu, 65816 cpu specifics are currently not supported)
 * Commodore 64
 * Commodore 128 (limited support)
 * Commodore PET (limited support)
 * Atari 800 XL (limited support)
 
-The source code is on github: https://github.com/irmen/prog8.git
-
-
-Software License
-^^^^^^^^^^^^^^^^
+Open source Software License
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Full source code is on github: https://github.com/irmen/prog8.git
 Prog8 is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).
 
 This is free software, as defined in the GNU GPL 3.0 (https://www.gnu.org/licenses/gpl.html)
@@ -71,7 +71,8 @@ Features
 
 - it is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
 - the compiled programs run very fast, because compilation to highly efficient native machine code.
-- Provides a convenient and fast edit/compile/run cycle by being able to directly launch
+- code often is smaller and faster than equivalent C code compiled with CC65 or even LLVM-MOS
+- provides a convenient and fast edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to this emulator.
 - the language looks like a mix of Python and C so should be quite easy to learn
 - Modular programming, scoping via modules, code blocks, and subroutines. No need for forward declarations.
@@ -84,7 +85,7 @@ Features
 - Conditional branches for status flags that map 1:1 to processor branch instructions for optimal efficiency
 - ``when`` statement to avoid if-else chains
 - ``in`` expression for concise and efficient multi-value/containment test
-- Several powerful built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``, ``sort`` and ``reverse``
+- Several specialized built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
 - Various powerful built-in libraries to do I/O, number conversions, graphics and more
 - Floating point math is supported on select compiler targets.

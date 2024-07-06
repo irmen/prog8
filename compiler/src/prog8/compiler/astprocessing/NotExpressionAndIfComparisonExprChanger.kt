@@ -59,16 +59,15 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             // integer case (only if both are the same type)
             val leftC = expr.left as? BinaryExpression
             val rightC = expr.right as? BinaryExpression
-            if(leftC!=null && rightC!=null && leftC.operator=="==" && rightC.operator=="==") {
+            if(expr.operator=="and" && leftC!=null && rightC!=null && leftC.operator=="==" && rightC.operator=="==") {
                 if (leftC.right.constValue(program)?.number == 0.0 && rightC.right.constValue(program)?.number == 0.0) {
                     val leftDt = leftC.left.inferType(program).getOr(DataType.UNDEFINED)
                     val rightDt = rightC.left.inferType(program).getOr(DataType.UNDEFINED)
                     if(leftDt==rightDt && leftDt in IntegerDatatypes) {
                         if (rightC.left.isSimple) {
-                            // x==0 or y==0    ->  (x & y)==0
                             // x==0 and y==0   ->  (x | y)==0
-                            val newOperator = if(expr.operator=="or") "&" else "|"
-                            val inner = BinaryExpression(leftC.left, newOperator, rightC.left, expr.position)
+                            // the 'or' case cannot be easily optimized with a binary and like this!
+                            val inner = BinaryExpression(leftC.left, "|", rightC.left, expr.position)
                             val compare = BinaryExpression(inner, "==", NumericLiteral(leftDt, 0.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }

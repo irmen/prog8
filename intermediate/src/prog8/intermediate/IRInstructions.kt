@@ -847,7 +847,7 @@ data class IRInstruction(
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
             if(type==IRDataType.FLOAT)
-                require(immediateFp !=null) {"missing immediate fp value"}
+                requireNotNull(immediateFp) {"missing immediate fp value"}
             else
                 require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
         }
@@ -881,9 +881,7 @@ data class IRInstruction(
         fpReg2direction = format.fpReg2
 
         if(opcode==Opcode.SYSCALL) {
-            require(immediate!=null) {
-                "syscall needs immediate integer for the syscall number"
-            }
+            requireNotNull(immediate) { "syscall needs immediate integer for the syscall number" }
         }
     }
 

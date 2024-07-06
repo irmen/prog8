@@ -33,7 +33,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(fcall, resultRegister)
             "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(fcall, resultRegister)
             "abs__byte", "abs__word", "abs__float" -> funcAbs(fcall, resultRegister, sscope)
-            "any", "all" -> funcAnyAll(fcall, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, resultRegister, sscope)
             "sqrt__ubyte", "sqrt__uword", "sqrt__float" -> funcSqrt(fcall, resultRegister, sscope)
             "divmod__ubyte" -> funcDivmod(fcall)
@@ -44,8 +43,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "ror2" -> funcRor2(fcall)
             "setlsb" -> funcSetLsbMsb(fcall, false)
             "setmsb" -> funcSetLsbMsb(fcall, true)
-            "sort" -> funcSort(fcall)
-            "reverse" -> funcReverse(fcall)
             "memory" -> funcMemory(fcall, discardResult, resultRegister)
             "peekw" -> funcPeekW(fcall, resultRegister)
             "peekf" -> funcPeekF(fcall, resultRegister)
@@ -403,115 +400,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun funcReverse(fcall: PtBuiltinFunctionCall) {
-        val variable = fcall.args.single() as PtIdentifier
-        val symbol = asmgen.symbolTable.lookup(variable.name)
-        val (dt, numElements) = when(symbol) {
-            is StStaticVariable  -> symbol.dt to symbol.length!!
-            is StMemVar -> symbol.dt to symbol.length!!
-            else -> DataType.UNDEFINED to 0
-        }
-        val varName = asmgen.asmVariableName(variable)
-        when (dt) {
-            DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                asmgen.out("""
-                    lda  #<$varName
-                    ldy  #>$varName
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #$numElements
-                    jsr  prog8_lib.func_reverse_b""")
-            }
-            DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                asmgen.out("""
-                    lda  #<$varName
-                    ldy  #>$varName
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #$numElements
-                    jsr  prog8_lib.func_reverse_w""")
-            }
-            DataType.STR -> {
-                asmgen.out("""
-                    lda  #<$varName
-                    ldy  #>$varName
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #${numElements-1}
-                    jsr  prog8_lib.func_reverse_b""")
-            }
-            DataType.ARRAY_F -> {
-                asmgen.out("""
-                    lda  #<$varName
-                    ldy  #>$varName
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #$numElements
-                    jsr  floats.func_reverse_f""")
-            }
-            in SplitWordArrayTypes -> {
-                // reverse the lsb and msb arrays both, independently
-                asmgen.out("""
-                    lda  #<${varName}_lsb
-                    ldy  #>${varName}_lsb
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #$numElements
-                    jsr  prog8_lib.func_reverse_b
-                    lda  #<${varName}_msb
-                    ldy  #>${varName}_msb
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #$numElements
-                    jsr  prog8_lib.func_reverse_b""")
-            }
-            else -> throw AssemblyError("weird type")
-        }
-    }
-
-    private fun funcSort(fcall: PtBuiltinFunctionCall) {
-        val variable = fcall.args.single() as PtIdentifier
-        val symbol = asmgen.symbolTable.lookup(variable.name)
-        val varName = asmgen.asmVariableName(variable)
-        val (dt, numElements) = when(symbol) {
-            is StStaticVariable  -> symbol.dt to symbol.length!!
-            is StMemVar -> symbol.dt to symbol.length!!
-            else -> DataType.UNDEFINED to 0
-        }
-        when (dt) {
-            DataType.ARRAY_UB, DataType.ARRAY_B -> {
-                asmgen.out("""
-                    lda  #<$varName
-                    ldy  #>$varName
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #$numElements""")
-                asmgen.out(if (dt == DataType.ARRAY_UB) "  jsr  prog8_lib.func_sort_ub" else "  jsr  prog8_lib.func_sort_b")
-            }
-            DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                asmgen.out("""
-                    lda  #<$varName
-                    ldy  #>$varName
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #$numElements""")
-                asmgen.out(if (dt == DataType.ARRAY_UW) "  jsr  prog8_lib.func_sort_uw" else "  jsr  prog8_lib.func_sort_w")
-            }
-            DataType.STR -> {
-                asmgen.out("""
-                    lda  #<$varName
-                    ldy  #>$varName
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #${numElements-1}
-                    jsr  prog8_lib.func_sort_ub""")
-            }
-            DataType.ARRAY_F -> throw AssemblyError("sorting of floating point array is not supported")
-            in SplitWordArrayTypes -> TODO("split words sort")
-            else -> throw AssemblyError("weird type")
-        }
-    }
-
     private fun funcRor2(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
         when (what.type) {
@@ -835,63 +723,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             else -> throw AssemblyError("weird type $dt")
         }
         assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, true, true)
-    }
-
-    private fun funcAnyAll(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
-        val dt = fcall.args.single().type
-        val array = fcall.args[0] as PtIdentifier
-        when (dt) {
-            DataType.ARRAY_B, DataType.ARRAY_UB, DataType.STR -> {
-                outputAddressAndLengthOfArray(array)
-                asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
-            }
-            DataType.ARRAY_UW, DataType.ARRAY_W -> {
-                outputAddressAndLengthOfArray(array)
-                asmgen.out("  jsr  prog8_lib.func_${fcall.name}_w_into_A")
-            }
-            DataType.ARRAY_F -> {
-                outputAddressAndLengthOfArray(array)
-                asmgen.out("  jsr  floats.func_${fcall.name}_f_into_A")
-            }
-            in SplitWordArrayTypes -> {
-                val numElements = (asmgen.symbolTable.lookup(array.name) as StStaticVariable).length
-                when(fcall.name) {
-                    "any" -> {
-                        // any(lsb-array) or any(msb-array)
-                        val arrayName = asmgen.asmVariableName(array)
-                        asmgen.out("""
-                            lda  #<${arrayName}_lsb
-                            ldy  #>${arrayName}_lsb
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  #$numElements
-                        """)
-                        asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
-                        asmgen.out("  bne  +")      // shortcircuit
-                        asmgen.out("""
-                            pha
-                            lda  #<${arrayName}_msb
-                            ldy  #>${arrayName}_msb
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  #$numElements
-                        """)
-                        asmgen.out("  jsr  prog8_lib.func_${fcall.name}_b_into_A")
-                        asmgen.out("""
-                            sta  P8ZP_SCRATCH_REG
-                            pla
-                            ora  P8ZP_SCRATCH_REG
-+""")
-                    }
-                    "all" -> {
-                        TODO("split words all")
-                    }
-                    else -> throw AssemblyError("weird call")
-                }
-            }
-            else -> throw AssemblyError("weird type $dt")
-        }
-        assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, dt in SignedDatatypes, true)
     }
 
     private fun funcAbs(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {

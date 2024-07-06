@@ -76,8 +76,6 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "ror"       to FSignature(false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     "rol2"      to FSignature(false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     "ror2"      to FSignature(false, listOf(FParam("item", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
-    "sort"      to FSignature(false, listOf(FParam("array", ArrayDatatypes)), null),
-    "reverse"   to FSignature(false, listOf(FParam("array", ArrayDatatypes)), null),
     // cmp returns a status in the carry flag, but not a proper return value
     "cmp"       to FSignature(false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), null),
     "prog8_lib_stringcompare"     to FSignature(true, listOf(FParam("str1", arrayOf(DataType.STR)), FParam("str2", arrayOf(DataType.STR))), DataType.BYTE),
@@ -99,8 +97,6 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "divmod"           to FSignature(false, listOf(FParam("dividend", arrayOf(DataType.UBYTE, DataType.UWORD)), FParam("divisor", arrayOf(DataType.UBYTE, DataType.UWORD)), FParam("quotient", arrayOf(DataType.UBYTE, DataType.UWORD)), FParam("remainder", arrayOf(DataType.UBYTE, DataType.UWORD))), null),
     "divmod__ubyte"    to FSignature(false, listOf(FParam("dividend", arrayOf(DataType.UBYTE)), FParam("divisor", arrayOf(DataType.UBYTE)), FParam("quotient", arrayOf(DataType.UBYTE)), FParam("remainder", arrayOf(DataType.UBYTE))), null),
     "divmod__uword"    to FSignature(false, listOf(FParam("dividend", arrayOf(DataType.UWORD)), FParam("divisor", arrayOf(DataType.UWORD)), FParam("quotient", arrayOf(DataType.UWORD)), FParam("remainder", arrayOf(DataType.UWORD))), null),
-    "any"       to FSignature(true, listOf(FParam("values", ArrayDatatypes)), DataType.BOOL),
-    "all"       to FSignature(true, listOf(FParam("values", ArrayDatatypes)), DataType.BOOL),
     "lsb"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE),
     "msb"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD))), DataType.UBYTE),
     "mkword"    to FSignature(true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), DataType.UWORD),
@@ -136,6 +132,5 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
 val InplaceModifyingBuiltinFunctions = setOf(
     "setlsb", "setmsb",
     "rol", "ror", "rol2", "ror2",
-    "sort", "reverse",
     "divmod", "divmod__ubyte", "divmod__uword"
 )

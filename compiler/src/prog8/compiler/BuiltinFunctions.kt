@@ -19,8 +19,6 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "sqrt__ubyte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
     "sqrt__uword" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
     "sqrt__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) { sqrt(it) } },
-    "any" to { a, p, prg -> collectionArgBoolResult(a, p, prg) { array->array.any { it!=0.0 }  } },
-    "all" to { a, p, prg -> collectionArgBoolResult(a, p, prg) { array->array.all { it!=0.0 }  } },
     "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() } },
     "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 8 and 255).toDouble()} },
     "mkword" to ::builtinMkword,

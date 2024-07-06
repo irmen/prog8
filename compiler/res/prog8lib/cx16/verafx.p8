@@ -1,6 +1,6 @@
 ; Somewhat experimental Vera FX support.
 ; Docs:
-; https://github.com/X16Community/x16-docs/blob/101759f3bfa5e6cce4e8c5a0b67cb0f2f1c6341e/X16%20Reference%20-%2010%20-%20VERA%20FX%20Reference.md
+; https://github.com/X16Community/x16-docs/blob/fb63156cca2d6de98be0577aacbe4ddef458f896/X16%20Reference%20-%2010%20-%20VERA%20FX%20Reference.md
 ; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg
 
 verafx {
@@ -166,6 +166,8 @@ verafx {
     }
 
     sub transparency(bool enable) {
+        ; Set transparent write mode for VeraFX cached writes and also for normal writes to DATA0/DATA.
+        ; If enabled, pixels with value 0 do not modify VRAM when written (so they are "transparent")
         cx16.VERA_CTRL = 2<<1       ; dcsel = 2
         if enable
             cx16.VERA_FX_CTRL |= %10000000
