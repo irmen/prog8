@@ -80,21 +80,52 @@ class TestIRPeepholeOpt: FunSpec({
         instr[1].opcode shouldBe Opcode.INC
     }
 
-    test("remove double sec/clc") {
+    test("remove double sec/clc/sei/cli") {
         val irProg = makeIRProgram(listOf(
             IRInstruction(Opcode.SEC),
             IRInstruction(Opcode.SEC),
             IRInstruction(Opcode.SEC),
             IRInstruction(Opcode.CLC),
             IRInstruction(Opcode.CLC),
-            IRInstruction(Opcode.CLC)
+            IRInstruction(Opcode.CLC),
+            IRInstruction(Opcode.SEI),
+            IRInstruction(Opcode.SEI),
+            IRInstruction(Opcode.SEI),
+            IRInstruction(Opcode.CLI),
+            IRInstruction(Opcode.CLI),
+            IRInstruction(Opcode.CLI),
         ))
-        irProg.chunks().single().instructions.size shouldBe 6
+        irProg.chunks().single().instructions.size shouldBe 12
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize(true, ErrorReporterForTests())
         val instr = irProg.chunks().single().instructions
-        instr.size shouldBe 1
+        instr.size shouldBe 2
         instr[0].opcode shouldBe Opcode.CLC
+        instr[1].opcode shouldBe Opcode.CLI
+    }
+
+    test("remove double sec/clc/sei/cli reversed") {
+        val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.CLC),
+            IRInstruction(Opcode.CLC),
+            IRInstruction(Opcode.CLC),
+            IRInstruction(Opcode.SEC),
+            IRInstruction(Opcode.SEC),
+            IRInstruction(Opcode.SEC),
+            IRInstruction(Opcode.CLI),
+            IRInstruction(Opcode.CLI),
+            IRInstruction(Opcode.CLI),
+            IRInstruction(Opcode.SEI),
+            IRInstruction(Opcode.SEI),
+            IRInstruction(Opcode.SEI),
+        ))
+        irProg.chunks().single().instructions.size shouldBe 12
+        val opt = IRPeepholeOptimizer(irProg)
+        opt.optimize(true, ErrorReporterForTests())
+        val instr = irProg.chunks().single().instructions
+        instr.size shouldBe 2
+        instr[0].opcode shouldBe Opcode.SEC
+        instr[1].opcode shouldBe Opcode.SEI
     }
 
     test("push followed by pop") {

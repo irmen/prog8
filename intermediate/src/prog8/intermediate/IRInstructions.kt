@@ -241,6 +241,8 @@ MISC
 
 clc                                       - clear Carry status bit
 sec                                       - set Carry status bit
+cli                                       - clear interrupt disable flag
+sei                                       - set interrupt disable flag
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
 msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
@@ -411,6 +413,8 @@ enum class Opcode {
 
     CLC,
     SEC,
+    CLI,
+    SEI,
     PUSH,
     POP,
     PUSHST,
@@ -771,6 +775,8 @@ val instructionFormats = mutableMapOf(
     Opcode.CONCAT     to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
+    Opcode.CLI        to InstructionFormat.from("N"),
+    Opcode.SEI        to InstructionFormat.from("N"),
     Opcode.BREAKPOINT to InstructionFormat.from("N"),
 )
 

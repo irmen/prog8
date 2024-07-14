@@ -263,6 +263,24 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                     }
                 }
             }
+
+            if(ins.opcode== Opcode.SEI || ins.opcode== Opcode.CLI) {
+                if(idx < chunk.instructions.size-1) {
+                    val insAfter = chunk.instructions[idx+1]
+                    if(insAfter.opcode == ins.opcode) {
+                        chunk.instructions.removeAt(idx)
+                        changed = true
+                    }
+                    else if(ins.opcode== Opcode.SEI && insAfter.opcode== Opcode.CLI) {
+                        chunk.instructions.removeAt(idx)
+                        changed = true
+                    }
+                    else if(ins.opcode== Opcode.CLI && insAfter.opcode== Opcode.SEI) {
+                        chunk.instructions.removeAt(idx)
+                        changed = true
+                    }
+                }
+            }
         }
         return changed
     }
