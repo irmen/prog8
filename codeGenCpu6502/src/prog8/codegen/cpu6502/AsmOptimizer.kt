@@ -50,6 +50,13 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefin
         numberOfOptimizations++
     }
 
+    mods = optimizeTSBtoRegularOr(linesByFour)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
+        linesByFour = getLinesBy(lines, 4)
+        numberOfOptimizations++
+    }
+
     var linesByFourteen = getLinesBy(lines, 14)
     mods = optimizeSameAssignments(linesByFourteen, machine, symbolTable)
     if(mods.isNotEmpty()) {
@@ -681,6 +688,29 @@ private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<
     }
 
 
+    return mods
+}
+
+
+private fun optimizeTSBtoRegularOr(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
+    // Asm peephole:   lda var2 / tsb var1 / lda var1  Replace this with this to save 1 cycle:   lda var1 / ora var2 / sta var1
+    val mods = mutableListOf<Modification>()
+
+    for(lines in linesByFour) {
+        val first = lines[0].value.trimStart()
+        val second = lines[1].value.trimStart()
+        val third = lines[2].value.trimStart()
+        if(first.startsWith("lda") && second.startsWith("tsb") && third.startsWith("lda")) {
+            val operand1 = first.substring(3)
+            val operand2 = second.substring(3)
+            val operand3 = third.substring(3)
+            if(operand1!=operand2 && operand2==operand3) {
+                mods.add(Modification(lines[0].index, false, "  lda  $operand2  ; op2"))
+                mods.add(Modification(lines[1].index, false, "  ora  $operand1  ; op1"))
+                mods.add(Modification(lines[2].index, false, "  sta  $operand2  ; op2"))
+            }
+        }
+    }
     return mods
 }
 

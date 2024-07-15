@@ -1,56 +1,28 @@
-
 %import textio
-%import anyall
-
 %option no_sysinit
+%zeropage basicsafe
 
 main {
-    byte[256] barray
-    word[128] warray
-    uword large_barray=memory("bytes", 1000, 0)
-    uword large_warray=memory("words", 1000, 0)
-
-    sub check() {
-        txt.print_bool(anyall.all(barray, 256))
-        txt.spc()
-        txt.print_bool(anyall.any(barray, 256))
-        txt.nl()
-        txt.print_bool(anyall.allw(warray, 128))
-        txt.spc()
-        txt.print_bool(anyall.anyw(warray, 128))
-        txt.nl()
-        txt.print_bool(anyall.all(large_barray, 1000))
-        txt.spc()
-        txt.print_bool(anyall.any(large_barray, 1000))
-        txt.nl()
-        txt.print_bool(anyall.allw(large_warray, 500))
-        txt.spc()
-        txt.print_bool(anyall.anyw(large_warray, 500))
-        txt.nl()
-        txt.nl()
-    }
-
     sub start() {
-        sys.memset(large_barray, 1000, 0)
-        sys.memset(large_warray, 1000, 0)
+        ubyte @shared b1 = %10101010
+        ubyte @shared b2 = %00001111
 
-        check()
-        barray[250] = 99
-        warray[100] = $0100
-        large_barray[900] = 99
-        large_warray[900] = 99
-        check()
-        sys.memset(barray, 255, 1)
-        sys.memset(warray, 254, 1)
-        sys.memset(large_barray, 999, 1)
-        sys.memset(large_warray, 998, 1)
-        check()
-        barray[255]=1
-        warray[127]=1
-        @(large_barray+999)=1
-        @(large_warray+999)=1
-        check()
-        repeat {}
+        b1 &= ~b2
+        txt.print_ubbin(b1, true)
+        txt.nl()
+        b1 |= b2
+        txt.print_ubbin(b1, true)
+        txt.nl()
+
+        b1 = %11001100
+        b2 = %11110000
+
+        b1 &= ~b2
+        txt.print_ubbin(b1, true)
+        txt.nl()
+        b1 |= b2
+        txt.print_ubbin(b1, true)
+        txt.nl()
 
 ;        smallringbuffer.init()
 ;

@@ -1086,6 +1086,15 @@ $shortcutLabel:""")
             }
         }
 
+        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+            if(operator=="&" && value is PtPrefix && value.operator=="~") {
+                // M &= ~A  -->  use special TRB 65c02 instruction for that
+                asmgen.assignExpressionToRegister(value.value, RegisterOrPair.A, dt in SignedDatatypes)
+                asmgen.out("  trb  $name")
+                return
+            }
+        }
+
         // normal evaluation
         asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
         inplacemodificationRegisterAwithVariableWithSwappedOperands(operator, name, dt in SignedDatatypes)
@@ -1094,6 +1103,15 @@ $shortcutLabel:""")
 
     private fun inplacemodificationByteVariableWithVariable(name: String, dt: DataType, operator: String, otherName: String) {
         // note: no logical and/or shortcut here, not worth it due to simple right operand
+
+        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+            if(operator=="|") {
+                // M |= A  -->  use special TSB 65c02 instruction for that
+                asmgen.out("  lda  $otherName |  tsb  $name")
+                return
+            }
+        }
+
         asmgen.out("  lda  $name")
         inplacemodificationRegisterAwithVariable(operator, otherName, dt in SignedDatatypes)
         asmgen.out("  sta  $name")
