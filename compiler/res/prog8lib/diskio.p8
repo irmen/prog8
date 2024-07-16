@@ -333,6 +333,7 @@ m_in_buffer     sta  $ffff
 
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
+        ;    It is assumed the file size is less than 64 K.
         if not iteration_in_progress
             return 0
 
@@ -346,12 +347,13 @@ m_in_buffer     sta  $ffff
         return total_read
     }
 
-    asmsub f_readline(uword bufptr @AY) clobbers(X) -> ubyte @Y {
+    asmsub f_readline(uword bufptr @AY) clobbers(X) -> ubyte @Y, ubyte @A {
         ; Routine to read text lines from a text file. Lines must be less than 255 characters.
         ; Reads characters from the input file UNTIL a newline or return character (or EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
         ; The length of the line is returned in Y. Note that an empty line is okay and is length 0!
         ; I/O error status should be checked by the caller itself via READST() routine.
+        ; The I/O error status byte is returned in A.
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
@@ -368,7 +370,8 @@ _loop       jsr  cbm.CHRIN
 _line_end   dey     ; get rid of the trailing end-of-line char
             lda  #0
             sta  (P8ZP_SCRATCH_W1),y
-_end        rts
+_end        jsr  cbm.READST
+            rts
         }}
     }
 
@@ -405,6 +408,7 @@ _end        rts
 
     sub f_write(uword bufferpointer, uword num_bytes) -> bool {
         ; -- write the given number of bytes to the currently open file
+        ;    you can call this multiple times to append more data
         if num_bytes!=0 {
             reset_write_channel()
             repeat num_bytes {

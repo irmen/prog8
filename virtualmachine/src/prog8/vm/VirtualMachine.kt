@@ -310,6 +310,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BREAKPOINT -> InsBREAKPOINT()
             Opcode.CLC -> { statusCarry = false; nextPc() }
             Opcode.SEC -> { statusCarry = true; nextPc() }
+            Opcode.CLI, Opcode.SEI -> throw IllegalArgumentException("VM doesn't support interrupt status bit")
 
             Opcode.FFROMUB -> InsFFROMUB(ins)
             Opcode.FFROMSB -> InsFFROMSB(ins)

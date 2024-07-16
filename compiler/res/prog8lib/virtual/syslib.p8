@@ -85,6 +85,18 @@ sys {
         }}
     }
 
+    sub set_irqd() {
+        %ir {{
+            sei
+        }}
+    }
+
+    sub clear_irqd() {
+        %ir {{
+            cli
+        }}
+    }
+
     sub disable_caseswitch() {
         ; no-op
     }

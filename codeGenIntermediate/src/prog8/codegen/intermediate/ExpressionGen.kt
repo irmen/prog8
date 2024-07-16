@@ -458,6 +458,28 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             // special case, these should be inlined, or even use specialized instructions. Instead of doing a normal subroutine call.
             return translateStackFunctions(fcall, callTarget)
         }
+        when(callTarget.scopedName) {
+            "sys.clear_carry" -> {
+                val chunk = mutableListOf<IRCodeChunkBase>()
+                addInstr(chunk, IRInstruction(Opcode.CLC), null)
+                return ExpressionCodeResult(chunk, IRDataType.BYTE, -1, -1)
+            }
+            "sys.set_carry" -> {
+                val chunk = mutableListOf<IRCodeChunkBase>()
+                addInstr(chunk, IRInstruction(Opcode.SEC), null)
+                return ExpressionCodeResult(chunk, IRDataType.BYTE, -1, -1)
+            }
+            "sys.clear_irqd" -> {
+                val chunk = mutableListOf<IRCodeChunkBase>()
+                addInstr(chunk, IRInstruction(Opcode.CLI), null)
+                return ExpressionCodeResult(chunk, IRDataType.BYTE, -1, -1)
+            }
+            "sys.set_irqd" -> {
+                val chunk = mutableListOf<IRCodeChunkBase>()
+                addInstr(chunk, IRInstruction(Opcode.SEI), null)
+                return ExpressionCodeResult(chunk, IRDataType.BYTE, -1, -1)
+            }
+        }
 
         when (callTarget) {
             is StSub -> {
