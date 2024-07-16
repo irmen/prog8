@@ -3,6 +3,8 @@ TODO
 
 See open issues on github.
 
+Optimize code in assignByteFromAddressExpression() and storeByteInAToAddressExpression()
+
 Re-generate the skeletons doc files.
 
 optimize signed byte/word division by powers of 2 (and shift right?), it's now using divmod routine.  (also % ?)
@@ -75,9 +77,8 @@ Compiler:
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
-- Zig-like defer to execute a statement/anonymousscope when subroutine exits? (problem is, we have jump insructions and inline asm , where we lose track of when exactly the subroutine exits...)
+- Zig-like defer to execute a statement/anonymousscope when subroutine exits? (problem is, we have jump instructions and inline asm , where we lose track of when exactly the subroutine exits...)
 - generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit and/or my binaryen kotlin library?
-- implement split words arrays all()
 
 
 Libraries:

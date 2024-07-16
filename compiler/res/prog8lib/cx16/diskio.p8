@@ -866,6 +866,7 @@ io_error:
 
     sub f_seek(uword pos_hiword, uword pos_loword) {
         ; -- seek in the reading file opened with f_open, to the given 32-bits position
+        ;    Note: this will not work if you have already read the last byte of the file! Then you must close and reopen the file first.
         ubyte[6] command = ['p',0,0,0,0,0]
         command[1] = READ_IO_CHANNEL       ; f_open uses this secondary address
         command[2] = lsb(pos_loword)

@@ -1,4 +1,5 @@
-; any() and all()  checks on arrays/memory buffers
+; any() and all()  checks on arrays/memory buffers.
+; These were builtin functions in older versions of the language.
 
 %option no_symbol_prefixing, ignore_unused
 

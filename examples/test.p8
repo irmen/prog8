@@ -1,40 +1,25 @@
+%import buffers
 %import textio
 %option no_sysinit
 %zeropage basicsafe
 
 main {
     sub start() {
-        ubyte @shared b1 = %10101010
-        ubyte @shared b2 = %00001111
+        uword @shared ptr = $2000
+        uword @shared index = 1000
 
-        b1 &= ~b2
-        txt.print_ubbin(b1, true)
-        txt.nl()
-        b1 |= b2
-        txt.print_ubbin(b1, true)
-        txt.nl()
-
-        b1 = %11001100
-        b2 = %11110000
-
-        b1 &= ~b2
-        txt.print_ubbin(b1, true)
-        txt.nl()
-        b1 |= b2
-        txt.print_ubbin(b1, true)
-        txt.nl()
-
-;        smallringbuffer.init()
-;
-;        smallringbuffer.put(123)
-;        txt.print_ub(smallringbuffer.get())
+        cx16.r0L = @(ptr+index)
+        cx16.r1L = ptr[index]
+        @(ptr+index) = cx16.r0L
+        ptr[index] = cx16.r1L
+;        txt.print_ub(ptr[index])
 ;        txt.nl()
-;
-;        smallringbuffer.putw(12345)
-;        txt.print_uw(smallringbuffer.getw())
+;        ptr[index] = 123
+;        txt.print_ub(ptr[index])
 ;        txt.nl()
     }
 }
+
 
 
 ;
