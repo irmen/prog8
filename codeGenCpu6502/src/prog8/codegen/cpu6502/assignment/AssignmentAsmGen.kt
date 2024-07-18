@@ -314,18 +314,100 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun assignByteFromAddressExpression(address: PtExpression, target: AsmAssignTarget) {
-        // TODO optimize this into more efficient code, using indexed register ,Y instead of explicitly calculating the full pointer value, or use self=modifying code and just use absolute addressing.
-        // see: https://discord.com/channels/547559626024157184/629863245934755860/1262873088782110750
+        if(address is PtBinaryExpression) {
+            if(address.operator=="+" && address.right.type==DataType.UWORD) {
+                if (address.left is PtIdentifier) {
+                    // use (zp),Y instead of explicitly calculating the full zp pointer value
+                    val pointer = (address.left as PtIdentifier).name
+                    when(val index=address.right) {
+                        is PtIdentifier -> {
+                            val indexName = index.name
+                            asmgen.out("""
+                                lda  $pointer
+                                sta  P8ZP_SCRATCH_W2
+                                lda  $pointer+1
+                                clc
+                                adc  $indexName+1
+                                sta  P8ZP_SCRATCH_W2+1
+                                ldy  $indexName
+                                lda  (P8ZP_SCRATCH_W2),y""")
+                            assignRegisterByte(target, CpuRegister.A, false, true)
+                            return
+                        }
+                        is PtNumber -> {
+                            val indexValue = index.number.toString()
+                            asmgen.out("""
+                                lda  $pointer
+                                sta  P8ZP_SCRATCH_W2
+                                lda  $pointer+1
+                                clc
+                                adc  #>$indexValue
+                                sta  P8ZP_SCRATCH_W2+1
+                                ldy  #<$indexValue
+                                lda  (P8ZP_SCRATCH_W2),y""")
+                            assignRegisterByte(target, CpuRegister.A, false, true)
+                            return
+                        }
+                        else -> {}
+                    }
+                }
+            }
+//          else if(address.operator=="-") {
+//              // does this ever occur? we could optimize it too, but it seems like a pathological case
+//          }
+        }
         assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.UWORD)
         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
         assignRegisterByte(target, CpuRegister.A, false, true)
     }
 
-    private fun storeByteInAToAddressExpression(addressExpr: PtExpression, saveA: Boolean) {
-        // TODO optimize this into more efficient code, using indexed register ,Y instead of explicitly calculating the full pointer value, or use self=modifying code and just use absolute addressing.
-        // see: https://discord.com/channels/547559626024157184/629863245934755860/1262873088782110750
+    private fun storeByteInAToAddressExpression(address: PtExpression, saveA: Boolean) {
+        if(address is PtBinaryExpression) {
+            if(address.operator=="+") {
+                if (address.left is PtIdentifier && address.right.type==DataType.UWORD) {
+                    // use (zp),Y instead of explicitly calculating the full zp pointer value
+                    val pointer = (address.left as PtIdentifier).name
+                    when(val index=address.right) {
+                        is PtIdentifier -> {
+                            val indexName = index.name
+                            asmgen.out("""
+                                tax
+                                lda  $pointer
+                                sta  P8ZP_SCRATCH_W2
+                                lda  $pointer+1
+                                clc
+                                adc  $indexName+1
+                                sta  P8ZP_SCRATCH_W2+1
+                                ldy  $indexName
+                                txa
+                                sta  (P8ZP_SCRATCH_W2),y""")
+                            return
+                        }
+                        is PtNumber -> {
+                            val indexValue = index.number.toString()
+                            asmgen.out("""
+                                tax
+                                lda  $pointer
+                                sta  P8ZP_SCRATCH_W2
+                                lda  $pointer+1
+                                clc
+                                adc  #>$indexValue
+                                sta  P8ZP_SCRATCH_W2+1
+                                ldy  #<$indexValue
+                                txa
+                                sta  (P8ZP_SCRATCH_W2),y""")
+                            return
+                        }
+                        else -> {}
+                    }
+                }
+            }
+//          else if(address.operator=="-") {
+//              // does this ever occur? we could optimize it too, but it seems like a pathological case
+//          }
+        }
         if(saveA) asmgen.out("  pha")
-        assignExpressionToVariable(addressExpr, "P8ZP_SCRATCH_W2", DataType.UWORD)
+        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.UWORD)
         if(saveA) asmgen.out("  pla")
         asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
     }

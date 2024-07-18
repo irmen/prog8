@@ -3,7 +3,10 @@ TODO
 
 See open issues on github.
 
-Optimize code in assignByteFromAddressExpression() and storeByteInAToAddressExpression()
+Generate proper index out of bounds error for array[-11] if the array is only size 10. (only array[-1]..array[-10] are valid)
+
+Putting a signed variable as an array index should be a compiler error. (using it for a pointer indexing is fine - but weird).
+Add some more explanation about this to the "array indexing" paragraph in the docs.
 
 Re-generate the skeletons doc files.
 
