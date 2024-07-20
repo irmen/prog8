@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
@@ -219,6 +220,105 @@ main {
     }
 }"""
         compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("negative array index variables are not allowed, but ptr indexing is allowed") {
+        val src="""
+main {
+    sub start() {
+        uword @shared pointer
+        ubyte[10] array
+        str name = "hello"
+        
+        byte sindex
+        
+        array[sindex] = 10
+        cx16.r0L = array[sindex]
+        name[sindex] = 0
+        cx16.r0L = name[sindex]
+        pointer[sindex] = 10
+        cx16.r0L=pointer[sindex]
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain "signed variables"
+        errors.errors[1] shouldContain "signed variables"
+        errors.errors[2] shouldContain "signed variables"
+        errors.errors[3] shouldContain "signed variables"
+    }
+
+    test("bounds checking for both positive and negative indexes, correct cases") {
+        val src="""
+main {
+    sub start() {
+        ubyte[10] array
+        array[0] = 0
+        array[9] = 0
+        array[-1] = 0
+        array[-10] = 0
+    }
+}"""
+        compileText(VMTarget(), false, src, writeAssembly = false) shouldNotBe null
+    }
+
+    test("bounds checking on strings, correct cases") {
+        val src="""
+main {
+    sub start() {
+        str name = "1234567890"
+        name[0] = 0
+        name[9] = 0
+    }
+}"""
+        compileText(VMTarget(), false, src, writeAssembly = false) shouldNotBe null
+    }
+
+    test("bounds checking for positive indexes, invalid case") {
+        val src="""
+main {
+    sub start() {
+        ubyte[10] array
+        array[10] = 0
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "out of bounds"
+    }
+
+    test("bounds checking for negative indexes, invalid case") {
+        val src="""
+main {
+    sub start() {
+        ubyte[10] array
+        array[-11] = 0
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "out of bounds"
+    }
+
+    test("bounds checking on strings invalid cases") {
+        val src="""
+main {
+    sub start() {
+        str name = "1234567890"
+        name[10] = 0
+        name[-1] = 0
+        name[-11] = 0
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "out of bounds"
+        errors.errors[1] shouldContain "out of bounds"
+        errors.errors[2] shouldContain "out of bounds"
     }
 })
 

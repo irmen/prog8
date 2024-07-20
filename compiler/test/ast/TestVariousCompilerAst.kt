@@ -535,7 +535,7 @@ main {
         byte @shared col = 20
         col++
         ubyte @shared ubb = lsb(col as uword)
-        uword @shared vaddr = bottom[col] as uword << 8          ; a mkword will get inserted here
+        uword @shared vaddr = bottom[cx16.r0L] as uword << 8          ; a mkword will get inserted here
     }
 }"""
         val result = compileText(VMTarget(), optimize=true, src, writeAssembly=false)!!

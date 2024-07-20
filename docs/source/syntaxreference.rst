@@ -525,7 +525,8 @@ Array indexing
 
 Strings and arrays are a sequence of values. You can access the individual values by indexing.
 Negative index means counted from the end of the array rather than the beginning, where -1 means
-the last element in the array, -2 the second-to-last, etc. (Python uses this same scheme)
+the last element in the array, -2 the second-to-last, etc. (Python uses this same scheme.
+Note that this syntax is only valid for arrays, not for strings!  Python does allow the latter, but prog8 does not right now.)
 Use brackets to index into an array:  ``arrayvar[x]`` ::
 
     array[2]        ; the third byte in the array (index is 0-based)

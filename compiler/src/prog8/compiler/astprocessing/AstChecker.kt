@@ -1418,6 +1418,13 @@ internal class AstChecker(private val program: Program,
         if(target is VarDecl) {
             if(target.datatype !in IterableDatatypes && target.datatype!=DataType.UWORD)
                 errors.err("indexing requires an iterable or address uword variable", arrayIndexedExpression.position)
+            val indexVariable = arrayIndexedExpression.indexer.indexExpr as? IdentifierReference
+            if(indexVariable!=null) {
+                if(indexVariable.targetVarDecl(program)?.datatype in SignedDatatypes) {
+                    errors.err("variable array indexing can't be performed with signed variables", indexVariable.position)
+                    return
+                }
+            }
             val arraysize = target.arraysize?.constIndex()
             val index = arrayIndexedExpression.indexer.constIndex()
             if(arraysize!=null) {

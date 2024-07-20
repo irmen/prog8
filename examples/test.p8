@@ -5,49 +5,9 @@
 
 main {
     sub start() {
-        uword @shared ptr = $2000
-        uword @shared index = 1000
-
-        @($2000+1000) = 123
-        @($2000+1001) = 124
-
-        cx16.r0L = @(ptr+index)
-        cx16.r1L = @(ptr+1001)
-
-        txt.print_ub(cx16.r0L)
-        txt.spc()
-        txt.print_ub(cx16.r1L)
-        txt.spc()
-
-        cx16.r2L = ptr[index]
-        cx16.r3L = ptr[1001]
-
-        txt.print_ub(cx16.r2L)
-        txt.spc()
-        txt.print_ub(cx16.r3L)
-        txt.spc()
-
-        cx16.r0L = 200
-        cx16.r1L = 201
-
-        @(ptr+index) = cx16.r0L
-        @(ptr+1001) = cx16.r1L
-
-        txt.print_ub(@($2000+1000))
-        txt.spc()
-        txt.print_ub(@($2000+1001))
-        txt.spc()
-
-        cx16.r0L = 203
-        cx16.r1L = 204
-
-        ptr[index] = cx16.r0L
-        ptr[1001] = cx16.r1L
-
-        txt.print_ub(@($2000+1000))
-        txt.spc()
-        txt.print_ub(@($2000+1001))
-        txt.spc()
+        ubyte[10] array
+        array[10] = 0
+        ; array[-11] = 0
 
 ;        txt.print_ub(ptr[index])
 ;        txt.nl()

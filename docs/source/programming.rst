@@ -337,7 +337,8 @@ An uword variable can be used in limited scenarios as a 'pointer' to a byte in m
 dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
 a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
 memory at the given index. In contrast to a real array variable, the index value can be the size of a word.
-Unlike array variables, you cannot use a negative index to count from the end, because the size of the array is unknown.
+Unlike array variables, negative indexing for pointer variables does *not* mean it will be counting from the end, because the size of the buffer is unknown.
+Instead, it simply addresses memory that lies *before* the pointer variable.
 See also :ref:`pointervars_programming`
 
 **LSB/MSB split word arrays:**

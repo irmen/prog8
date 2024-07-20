@@ -277,6 +277,10 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             val target = arrayIndexedExpression.arrayvar.targetVarDecl(program)
             val arraysize = target?.arraysize?.constIndex()
             if(arraysize!=null) {
+                if(arraysize+index < 0) {
+                    errors.err("index out of bounds", arrayIndexedExpression.position)
+                    return noModifications
+                }
                 // replace the negative index by the normal index
                 val newIndex = NumericLiteral.optimalNumeric(arraysize+index, arrayIndexedExpression.indexer.position)
                 arrayIndexedExpression.indexer.indexExpr = newIndex

@@ -10,8 +10,10 @@ main {
     const ubyte NUMQUEENS=8
     ubyte[NUMQUEENS] board
 
-    sub could_place(byte row, byte col) -> bool {
-        byte i
+    sub could_place(ubyte row, ubyte col) -> bool {
+        if row==0
+            return true
+        ubyte i
         for i in 0 to row-1 {
             if board[i]==col or board[i]-i==col-row or board[i]+i==col+row
                 return false
@@ -44,7 +46,7 @@ main {
         }
         ubyte col
         for col in 0 to NUMQUEENS-1 {
-            if could_place(row as byte, col as byte) {
+            if could_place(row, col) {
                 board[row] = col
                 ; we need to save the local variables row and col.
                 sys.push(row)
