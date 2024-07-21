@@ -5,28 +5,6 @@ See open issues on github.
 
 Re-generate the skeletons doc files.
 
-optimize signed word bit shifting?:
-    1 shift right of AX signed word:
-                 stx	P8ZP_SCRATCH_B1
-                 cpx	#$80
-                 ror	P8ZP_SCRATCH_B1
-                 ror    a
-                 ldx	P8ZP_SCRATCH_B1
-
-    multi shift right: (amount in $22)
-         sta	$4
-         txa
-         ldx	$22
-         beq    end
-    loop  cmp	#$80
-         ror
-         ror	$4
-         dex
-         bne	loop
-    end:  tax
-         lda	$4
-
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

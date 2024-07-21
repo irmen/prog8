@@ -16,96 +16,65 @@ main {
         word @shared wvalue = -8888
 
         txt.print_b(bvalue/2)
-        txt.nl()
-        txt.print_w(wvalue/2)
+        txt.spc()
+        txt.print_b(bvalue/4)
+        txt.spc()
+        txt.print_b(bvalue/8)
         txt.nl()
 
         bvalue /= 2
-        wvalue /= 2
-
+        txt.print_b(bvalue)
+        txt.spc()
+        bvalue /= 8
         txt.print_b(bvalue)
         txt.nl()
-        txt.print_w(wvalue)
-        txt.nl()
 
-        bvalue *= 2
-        wvalue *= 2
-
-        txt.print_b(bvalue)
-        txt.nl()
-        txt.print_w(wvalue)
-        txt.nl()
-        txt.nl()
-
-        txt.print_b(bvalue/4)
-        txt.nl()
+        txt.print_w(wvalue/2)
+        txt.spc()
         txt.print_w(wvalue/4)
+        txt.spc()
+        txt.print_w(wvalue/8)
         txt.nl()
 
-        bvalue /= 4
-        wvalue /= 4
-
-        txt.print_b(bvalue)
-        txt.nl()
+        wvalue /= 2
         txt.print_w(wvalue)
-        txt.nl()
-
-        bvalue *= 4
-        wvalue *= 4
-
-        txt.print_b(bvalue)
-        txt.nl()
+        txt.spc()
+        wvalue /= 8
         txt.print_w(wvalue)
-        txt.nl()
         txt.nl()
     }
 
     sub unsigned() {
         txt.print("\nunsigned\n")
-        ubyte @shared ubvalue = 88
-        uword @shared uwvalue = 8888
+        ubyte @shared bvalue = 88
+        uword @shared wvalue = 8888
 
-        txt.print_ub(ubvalue/2)
-        txt.nl()
-        txt.print_uw(uwvalue/2)
-        txt.nl()
-
-        ubvalue /= 2
-        uwvalue /= 2
-
-        txt.print_ub(ubvalue)
-        txt.nl()
-        txt.print_uw(uwvalue)
+        txt.print_ub(bvalue/2)
+        txt.spc()
+        txt.print_ub(bvalue/4)
+        txt.spc()
+        txt.print_ub(bvalue/8)
         txt.nl()
 
-        ubvalue *= 2
-        uwvalue *= 2
-
-        txt.print_ub(ubvalue)
-        txt.nl()
-        txt.print_uw(uwvalue)
-        txt.nl()
+        bvalue /= 2
+        txt.print_ub(bvalue)
+        txt.spc()
+        bvalue /= 8
+        txt.print_ub(bvalue)
         txt.nl()
 
-        txt.print_ub(ubvalue/4)
-        txt.nl()
-        txt.print_uw(uwvalue/4)
-        txt.nl()
-
-        ubvalue /= 4
-        uwvalue /= 4
-
-        txt.print_ub(ubvalue)
-        txt.nl()
-        txt.print_uw(uwvalue)
+        txt.print_uw(wvalue/2)
+        txt.spc()
+        txt.print_uw(wvalue/4)
+        txt.spc()
+        txt.print_uw(wvalue/8)
         txt.nl()
 
-        ubvalue *= 4
-        uwvalue *= 4
-
-        txt.print_ub(ubvalue)
-        txt.nl()
-        txt.print_uw(uwvalue)
+        wvalue /= 2
+        txt.print_uw(wvalue)
+        txt.spc()
+        wvalue /= 8
+        txt.print_uw(wvalue)
         txt.nl()
     }
 }

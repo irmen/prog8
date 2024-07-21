@@ -1105,7 +1105,10 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             }
                         } else {
                             if (signed && shifts > 0) {
-                                asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
+                                if(shifts==1)
+                                    asmgen.out("  cmp  #$80 |  ror  a")
+                                else
+                                    asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
                             } else {
                                 repeat(shifts) {
                                     asmgen.out("  lsr  a")
@@ -1139,7 +1142,18 @@ internal class AssignmentAsmGen(private val program: PtProgram,
                             }
                         } else {
                             if(signed && shifts>0) {
-                                asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
+                                if(shifts==1) {
+                                    asmgen.out("""
+                                        pha
+                                        tya
+                                        cmp  #$80
+                                        ror  a
+                                        tay
+                                        pla
+                                        ror  a""")
+                                }
+                                else
+                                    asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
                             } else {
                                 if(shifts>0) {
                                     asmgen.out("  sty  P8ZP_SCRATCH_B1")
