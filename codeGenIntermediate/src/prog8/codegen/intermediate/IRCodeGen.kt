@@ -5,7 +5,6 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
 import kotlin.io.path.readBytes
-import kotlin.math.pow
 
 
 class IRCodeGen(
@@ -682,13 +681,11 @@ class IRCodeGen(
         return code
     }
 
-    internal val powersOfTwo = (0..16).map { 2.0.pow(it.toDouble()).toInt() }
-
     internal fun multiplyByConst(dt: IRDataType, reg: Int, factor: Int): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
-        val pow2 = powersOfTwo.indexOf(factor)
+        val pow2 = powersOfTwoInt.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
             code += IRInstruction(Opcode.LSL, dt, reg1=reg)
@@ -712,7 +709,7 @@ class IRCodeGen(
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
-        val pow2 = powersOfTwo.indexOf(factor)
+        val pow2 = powersOfTwoInt.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
             code += if(knownAddress!=null)
@@ -785,13 +782,13 @@ class IRCodeGen(
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
-        val pow2 = powersOfTwo.indexOf(factor)
+        val pow2 = powersOfTwoInt.indexOf(factor)
+        // TODO also try to optimize for signed division by powers of 2
         if(pow2==1 && !signed) {
             code += IRInstruction(Opcode.LSR, dt, reg1=reg)     // simple single bit shift
         }
         else if(pow2>=1 &&!signed) {
-            // just shift multiple bits
-            // TODO also try to optimize for signed division by powers of 2
+            // just shift multiple bits (unsigned)
             val pow2reg = registers.nextFree()
             code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
             code += if(signed)
@@ -815,7 +812,8 @@ class IRCodeGen(
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
-        val pow2 = powersOfTwo.indexOf(factor)
+        val pow2 = powersOfTwoInt.indexOf(factor)
+        // TODO also try to optimize for signed division by powers of 2
         if(pow2==1 && !signed) {
             // just simple bit shift
             code += if(knownAddress!=null)
@@ -824,7 +822,7 @@ class IRCodeGen(
                 IRInstruction(Opcode.LSRM, dt, labelSymbol = symbol)
         }
         else if(pow2>=1 && !signed) {
-            // just shift multiple bits
+            // just shift multiple bits (unsigned)
             val pow2reg = registers.nextFree()
             code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
             code += if(signed) {

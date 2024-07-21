@@ -182,7 +182,7 @@ sprites {
     }
 
     sub set_mousepointer_image(uword data, bool compressed) {
-        get_data_ptr(0)  ; the mouse cursor is sprite 0
+        get_data_ptr_internal(0)  ; the mouse cursor is sprite 0
         if cx16.r1L==0 and cx16.r0==0
             return    ; mouse cursor not enabled
         ubyte vbank = cx16.r1L

@@ -1,6 +1,11 @@
 package prog8.code.core
 
 import kotlin.math.abs
+import kotlin.math.pow
+
+val powersOfTwoFloat = (1..16).map { (2.0).pow(it) }.toTypedArray()
+val negativePowersOfTwoFloat = powersOfTwoFloat.map { -it }.toTypedArray()
+val powersOfTwoInt = (0..16).map { 2.0.pow(it).toInt() }.toTypedArray()
 
 fun Number.toHex(): String {
     //  0..15 -> "0".."15"

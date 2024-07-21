@@ -1477,6 +1477,9 @@ $shortcutLabel:""")
                     asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.multiply_bytes |  sta  $name")
             }
             "/" -> {
+                if(value in powersOfTwoInt) {
+                    println("TODO optimize: (u)byte division by power-of-2 $value")       // TODO
+                }
                 if (dt == DataType.UBYTE)
                     asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.divmod_ub_asm |  sty  $name")
                 else
@@ -1827,6 +1830,9 @@ $shortcutLabel:""")
             "/" -> {
                 if(value==0)
                     throw AssemblyError("division by zero")
+                else if (value in powersOfTwoInt) {
+                    println("TODO optimize: (u)word division by power-of-2 $value")       // TODO
+                }
                 if(dt==DataType.WORD) {
                     asmgen.out("""
                         lda  $lsb

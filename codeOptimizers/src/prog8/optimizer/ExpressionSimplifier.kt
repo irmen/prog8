@@ -14,9 +14,6 @@ import kotlin.math.log2
 import kotlin.math.pow
 
 class ExpressionSimplifier(private val program: Program, private val options: CompilationOptions, private val errors: IErrorReporter) : AstWalker() {
-    private val powersOfTwo = (1..16).map { (2.0).pow(it) }.toSet()
-    private val negativePowersOfTwo = powersOfTwo.map { -it }.toSet()
-
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         val mods = mutableListOf<IAstModification>()
 
@@ -686,7 +683,7 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
                     return NumericLiteral(idt.getOr(DataType.UNDEFINED), 0.0, expr.position)
-                } else if (cv in powersOfTwo) {
+                } else if (cv in powersOfTwoFloat) {
                     expr.operator = "&"
                     expr.right = NumericLiteral.optimalInteger(cv!!.toInt()-1, expr.position)
                     return null
@@ -738,13 +735,15 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
                         else -> return null
                     }
                 }
-                in powersOfTwo -> {
+                in powersOfTwoFloat -> {
                     if (leftDt==DataType.UBYTE || leftDt==DataType.UWORD) {
                         // Unsigned number divided by a power of two => shift right
                         // Signed number can't simply be bitshifted in this case (due to rounding issues for negative values),
                         // so we leave that as is and let the code generator deal with it.
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
+                    } else {
+                        println("TODO optimize: divide by power-of-2 $cv at ${expr.position}")  // TODO
                     }
                 }
             }
@@ -795,14 +794,14 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
                     // left
                     return expr2.left
                 }
-                in powersOfTwo -> {
+                in powersOfTwoFloat -> {
                     if (leftValue.inferType(program).isInteger) {
                         // times a power of two => shift left
                         val numshifts = log2(cv).toInt()
                         return BinaryExpression(expr2.left, "<<", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
                     }
                 }
-                in negativePowersOfTwo -> {
+                in negativePowersOfTwoFloat -> {
                     if (leftValue.inferType(program).isInteger) {
                         // times a negative power of two => negate, then shift
                         val numshifts = log2(-cv).toInt()
