@@ -32,11 +32,14 @@ class AsmList:
                 value, symbol, _ = line.split(maxsplit=2)
                 value = value[1:]
                 if value:
-                    if value[0] == '$':
-                        address = int(value[1:], 16)
-                    else:
-                        address = int(value)
-                    symbols[symbol] = (address, index)
+                    try:
+                        if value[0] == '$':
+                            address = int(value[1:], 16)
+                        else:
+                            address = int(value)
+                        symbols[symbol] = (address, index)
+                    except ValueError:
+                        pass
             elif line[0] == '>':
                 value, rest = line.split(maxsplit=1)
                 address = int(value[1:], 16)

@@ -64,7 +64,7 @@ adpcm {
         pstep_2 = t_step[index_2]
     }
 
-    sub decode_nibble(ubyte nibble) {
+    sub decode_nibble(ubyte @zp nibble) {
         ; Decoder for nibbles for the first channel.
         ; this is the hotspot of the decoder algorithm!
         ; Note that the generated assembly from this is pretty efficient,
@@ -100,7 +100,7 @@ adpcm {
         pstep = t_step[index]
     }
 
-    sub decode_nibble_second(ubyte nibble) {
+    sub decode_nibble_second(ubyte @zp nibble) {
         ; Decoder for nibbles for the second channel.
         ; this is the hotspot of the decoder algorithm!
         ; Note that the generated assembly from this is pretty efficient,

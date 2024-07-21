@@ -1,5 +1,4 @@
 %import textio
-%zeropage basicsafe
 
 ; Recursive N-Queens solver.
 ; The problem is: find all possible ways to place 8 Queen chess pieces on a chess board, so that none of them attacks any other.
@@ -68,5 +67,7 @@ main {
         uword duration=100*cbm.RDTIM16()/6
         txt.print_uw(duration)
         txt.print(" milliseconds\n")
+        repeat {
+        }
     }
 }
