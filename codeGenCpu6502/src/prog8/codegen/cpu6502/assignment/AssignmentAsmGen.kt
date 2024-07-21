@@ -933,11 +933,7 @@ internal class AssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun optimizedDivideExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
-        val constDivisor = expr.right.asConstInteger()
-        if(constDivisor in powersOfTwoInt) {
-            println("TODO optimize: divide ${expr.type} by power-of-2 ${constDivisor} at ${expr.position}")    // TODO
-        }
-
+        // replacing division by shifting is done in an optimizer step.
         when(expr.type) {
             DataType.UBYTE -> {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)

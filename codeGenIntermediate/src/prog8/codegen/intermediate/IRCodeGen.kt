@@ -783,19 +783,31 @@ class IRCodeGen(
         if(factor==1)
             return code
         val pow2 = powersOfTwoInt.indexOf(factor)
-        // TODO also try to optimize for signed division by powers of 2
-        if(pow2==1 && !signed) {
-            code += IRInstruction(Opcode.LSR, dt, reg1=reg)     // simple single bit shift
-        }
-        else if(pow2>=1 &&!signed) {
-            // just shift multiple bits (unsigned)
-            val pow2reg = registers.nextFree()
-            code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
-            code += if(signed)
-                IRInstruction(Opcode.ASRN, dt, reg1=reg, reg2=pow2reg)
-            else
-                IRInstruction(Opcode.LSRN, dt, reg1=reg, reg2=pow2reg)
+        if(pow2>=0) {
+            if(signed) {
+                if(pow2==1) {
+                    // simple single bit shift (signed)
+                    code += IRInstruction(Opcode.ASR, dt, reg1=reg)
+                } else {
+                    // just shift multiple bits (signed)
+                    val pow2reg = registers.nextFree()
+                    code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
+                    code += IRInstruction(Opcode.ASRN, dt, reg1=reg, reg2=pow2reg)
+                }
+            } else {
+                if(pow2==1) {
+                    // simple single bit shift (unsigned)
+                    code += IRInstruction(Opcode.LSR, dt, reg1=reg)
+                } else {
+                    // just shift multiple bits (unsigned)
+                    val pow2reg = registers.nextFree()
+                    code += IRInstruction(Opcode.LOAD, dt, reg1 = pow2reg, immediate = pow2)
+                    code += IRInstruction(Opcode.LSRN, dt, reg1 = reg, reg2 = pow2reg)
+                }
+            }
+            return code
         } else {
+            // regular div
             code += if (factor == 0) {
                 IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0xffff)
             } else {
@@ -804,8 +816,8 @@ class IRCodeGen(
                 else
                     IRInstruction(Opcode.DIV, dt, reg1=reg, immediate = factor)
             }
+            return code
         }
-        return code
     }
 
     internal fun divideByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int, signed: Boolean): IRCodeChunk {
@@ -813,31 +825,47 @@ class IRCodeGen(
         if(factor==1)
             return code
         val pow2 = powersOfTwoInt.indexOf(factor)
-        // TODO also try to optimize for signed division by powers of 2
-        if(pow2==1 && !signed) {
-            // just simple bit shift
-            code += if(knownAddress!=null)
-                IRInstruction(Opcode.LSRM, dt, address = knownAddress)
-            else
-                IRInstruction(Opcode.LSRM, dt, labelSymbol = symbol)
+        if(pow2>=0) {
+            // can do bit shift instead of division
+            if(signed) {
+                if(pow2==1) {
+                    // just simple bit shift (signed)
+                    code += if (knownAddress != null)
+                        IRInstruction(Opcode.ASRM, dt, address = knownAddress)
+                    else
+                        IRInstruction(Opcode.ASRM, dt, labelSymbol = symbol)
+                } else {
+                    // just shift multiple bits (signed)
+                    val pow2reg = registers.nextFree()
+                    code += IRInstruction(Opcode.LOAD, dt, reg1 = pow2reg, immediate = pow2)
+                    code += if (knownAddress != null)
+                                IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, address = knownAddress)
+                            else
+                                IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
+                }
+            } else {
+                if(pow2==1) {
+                    // just simple bit shift (unsigned)
+                    code += if(knownAddress!=null)
+                        IRInstruction(Opcode.LSRM, dt, address = knownAddress)
+                    else
+                        IRInstruction(Opcode.LSRM, dt, labelSymbol = symbol)
+                }
+                else {
+                    // just shift multiple bits (unsigned)
+                    val pow2reg = registers.nextFree()
+                    code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
+                    code += if(knownAddress!=null)
+                                IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = knownAddress)
+                            else
+                                IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
+                }
+            }
+            return code
         }
-        else if(pow2>=1 && !signed) {
-            // just shift multiple bits (unsigned)
-            val pow2reg = registers.nextFree()
-            code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
-            code += if(signed) {
-                if(knownAddress!=null)
-                    IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, address = knownAddress)
-                else
-                    IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
-            }
-            else {
-                if(knownAddress!=null)
-                    IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = knownAddress)
-                else
-                    IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
-            }
-        } else {
+        else
+        {
+            // regular div
             if (factor == 0) {
                 val reg = registers.nextFree()
                 code += IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0xffff)
@@ -862,8 +890,8 @@ class IRCodeGen(
                         IRInstruction(Opcode.DIVM, dt, reg1 = factorReg, labelSymbol = symbol)
                 }
             }
+            return code
         }
-        return code
     }
 
     private fun translate(ifElse: PtIfElse): IRCodeChunks {

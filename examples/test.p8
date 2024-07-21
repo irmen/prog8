@@ -61,7 +61,7 @@ main {
     }
 
     sub unsigned() {
-        txt.print("unsigned\n")
+        txt.print("\nunsigned\n")
         ubyte @shared ubvalue = 88
         uword @shared uwvalue = 8888
 

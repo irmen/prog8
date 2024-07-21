@@ -5,11 +5,7 @@ See open issues on github.
 
 Re-generate the skeletons doc files.
 
-optimize byte/word division by powers of 2 (and shift right?), it's now often still using divmod routine.  (also % ?)
-    see the TODOs in inplacemodificationByteVariableWithLiteralval(), inplacemodificationSomeWordWithLiteralval(), optimizedDivideExpr(),
-    and finally in optimizeDivision()
-    and for IR: see divideByConst() / divideByConstInplace() in IRCodeGen
-
+optimize signed word bit shifting?:
     1 shift right of AX signed word:
                  stx	P8ZP_SCRATCH_B1
                  cpx	#$80

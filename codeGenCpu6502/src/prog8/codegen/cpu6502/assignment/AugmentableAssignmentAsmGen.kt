@@ -1477,9 +1477,7 @@ $shortcutLabel:""")
                     asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.multiply_bytes |  sta  $name")
             }
             "/" -> {
-                if(value in powersOfTwoInt) {
-                    println("TODO optimize: (u)byte division by power-of-2 $value")       // TODO
-                }
+                // replacing division by shifting is done in an optimizer step.
                 if (dt == DataType.UBYTE)
                     asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.divmod_ub_asm |  sty  $name")
                 else
@@ -1828,36 +1826,36 @@ $shortcutLabel:""")
                 }
             }
             "/" -> {
-                if(value==0)
+                // replacing division by shifting is done in an optimizer step.
+                if(value==0) {
                     throw AssemblyError("division by zero")
-                else if (value in powersOfTwoInt) {
-                    println("TODO optimize: (u)word division by power-of-2 $value")       // TODO
-                }
-                if(dt==DataType.WORD) {
-                    asmgen.out("""
-                        lda  $lsb
-                        ldy  $msb
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #<$value
-                        ldy  #>$value
-                        jsr  math.divmod_w_asm
-                        sta  $lsb
-                        sty  $msb
-                    """)
-                }
-                else {
-                    asmgen.out("""
-                        lda  $lsb
-                        ldy  $msb
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #<$value
-                        ldy  #>$value
-                        jsr  math.divmod_uw_asm
-                        sta  $lsb
-                        sty  $msb
-                    """)
+                } else {
+                    if(dt==DataType.WORD) {
+                        asmgen.out("""
+                            lda  $lsb
+                            ldy  $msb
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  #<$value
+                            ldy  #>$value
+                            jsr  math.divmod_w_asm
+                            sta  $lsb
+                            sty  $msb
+                        """)
+                    }
+                    else {
+                        asmgen.out("""
+                            lda  $lsb
+                            ldy  $msb
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            lda  #<$value
+                            ldy  #>$value
+                            jsr  math.divmod_uw_asm
+                            sta  $lsb
+                            sty  $msb
+                        """)
+                    }
                 }
             }
             "%" -> {

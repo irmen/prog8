@@ -708,6 +708,7 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
                 return null
             val leftDt = leftIDt.getOr(DataType.UNDEFINED)
             when (cv) {
+                0.0 -> return null // fall through to regular float division to properly deal with division by zero
                 -1.0 -> {
                     //  '/' -> -left
                     if (expr.operator == "/") {
@@ -736,14 +737,10 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
                     }
                 }
                 in powersOfTwoFloat -> {
-                    if (leftDt==DataType.UBYTE || leftDt==DataType.UWORD) {
-                        // Unsigned number divided by a power of two => shift right
-                        // Signed number can't simply be bitshifted in this case (due to rounding issues for negative values),
-                        // so we leave that as is and let the code generator deal with it.
-                        val numshifts = log2(cv).toInt()
+                    val numshifts = powersOfTwoFloat.indexOf(cv)
+                    if (leftDt in IntegerDatatypes) {
+                        // division by a power of two => shift right (signed and unsigned)
                         return BinaryExpression(expr.left, ">>", NumericLiteral.optimalInteger(numshifts, expr.position), expr.position)
-                    } else {
-                        println("TODO optimize: divide by power-of-2 $cv at ${expr.position}")  // TODO
                     }
                 }
             }
