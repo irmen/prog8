@@ -3,6 +3,16 @@ TODO
 
 See open issues on github.
 
+Asm peephole optimizer: while cx16.VERA_AUDIO_CTRL & %01000000 == 0 { } compiles into the following. Replace the bne+bra into a beq. Similar for !=0 I guess?
+    p8l_label_5_whileloop
+        lda  cx16.VERA_AUDIO_CTRL
+        and  #$40
+        bne  p8l_label_6_afterwhile
+        bra  p8l_label_5_whileloop
+    p8l_label_6_afterwhile
+
+Codegen: use BIT instruction for memory location bit 7 and 6 tests (use N and V flags)
+
 Re-generate the skeletons doc files.
 
 Improve register load order in subroutine call args assignments:

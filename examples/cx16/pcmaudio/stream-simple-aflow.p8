@@ -1,9 +1,11 @@
 ; This program can stream a simple uncompressed PCM file from the sdcard.
-; Currently it has been set up to play a 16 bit stereo PCM file,
-; and it plays it in the given sample frequency typed in by the user.
 ;
-; It uses a AFLOW irq handler to refill the vera's PCM fifo buffer,
-; and sets a flag that signals the main program to load the next block of
+; It is hardwired to play a 16 bit stereo PCM file,
+; but you can type in the sample rate you want to play it in.
+;
+; It uses a AFLOW irq handler to refill the vera's PCM fifo buffer.
+;
+; The irq handler sets a flag that signals the main program to load the next block of
 ; data from disk.  It is problematic to call kernal I/O routines inside an irq handler,
 ; otherwise the aflow handler itself could have loaded the pcm data straight into
 ; the vera's fifo buffer.  But this could lead to race conditions so we need explicit buffering.
