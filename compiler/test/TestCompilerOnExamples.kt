@@ -108,6 +108,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "vtui/testvtui",
             "pcmaudio/play-adpcm",
             "pcmaudio/stream-wav",
+            "pcmaudio/stream-pcm-simple",
             "pcmaudio/vumeter",
             "sprites/dragon",
             "sprites/dragons",

@@ -128,10 +128,6 @@ main {
 
             repeat {
                 interrupts.wait()
-                if interrupts.vsync {
-                    interrupts.vsync=false
-                    ; ...do something triggered by vsync irq...
-                }
                 if interrupts.aflow {
                     interrupts.aflow=false
                     if not music.load_next_block(block_size)
@@ -158,13 +154,12 @@ interrupts {
 
     sub set_handler() {
         sys.set_irqd()
-        cx16.CINV = &handler         ; handles both AFLOW and VSYNC
-        cx16.VERA_IEN = %00001001    ; enable AFLOW + VSYNC
+        cx16.CINV = &handler         ; handler for AFLOW
+        cx16.VERA_IEN = %00001000    ; enable AFLOW only
         sys.clear_irqd()
     }
 
     bool aflow
-    bool vsync
 
     asmsub wait() {
         %asm {{
@@ -173,6 +168,8 @@ interrupts {
     }
 
     sub handler() {
+        ; we only handle aflow in this example.
+
         if cx16.VERA_ISR & %00001000 !=0 {
             ; Filling the fifo is the only way to clear the Aflow irq.
             ; So we do this here, otherwise the aflow irq will keep triggering.
@@ -182,10 +179,6 @@ interrupts {
             music.aflow_play_block()
             cx16.restore_virtual_registers()
             aflow = true
-        }
-        if cx16.VERA_ISR & %00000001 !=0 {
-            cx16.VERA_ISR = %00000001
-            vsync = true
         }
 
         %asm {{
@@ -233,23 +226,30 @@ music {
     }
 
     asmsub uncompressed_block_8() {
-        ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
-        ; converting unsigned wav 8 bit samples to signed 8 bit on the fly
+        ; copy 1024 bytes of audio data from the buffer into vera's fifo, quickly!
+        ; converting unsigned wav 8 bit samples to signed 8 bit on the fly.
         %asm {{
             lda  p8v_buffer
-            sta  cx16.r0L
+            sta  _loop+1
+            sta  _lp2+1
             lda  p8v_buffer+1
-            sta  cx16.r0H
+            sta  _loop+2
+            sta  _lp2+2
             ldx  #4
--           ldy  #0
--           lda  (cx16.r0),y
-            eor  #$80       ; convert to signed 8-bit
+            ldy  #0
+_loop       lda  $ffff,y
+            eor  #$80       ; convert to signed
             sta  cx16.VERA_AUDIO_DATA
             iny
-            bne  -
-            inc  cx16.r0H
+_lp2        lda  $ffff,y
+            eor  #$80       ; convert to signed
+            sta  cx16.VERA_AUDIO_DATA
+            iny
+            bne  _loop
+            inc  _loop+2
+            inc  _lp2+2
             dex
-            bne  --
+            bne  _loop
             rts
         }}
 
@@ -264,22 +264,27 @@ music {
     }
 
     asmsub uncompressed_block_16() {
-        ; optimized loop to put 1024 bytes of data into the fifo as fast as possible
+        ; copy 1024 bytes of audio data from the buffer into vera's fifo, quickly!
         %asm {{
             lda  p8v_buffer
-            sta  cx16.r0L
+            sta  _loop+1
+            sta  _lp2+1
             lda  p8v_buffer+1
-            sta  cx16.r0H
+            sta  _loop+2
+            sta  _lp2+2
             ldx  #4
--           ldy  #0
--           lda  (cx16.r0),y
+            ldy  #0
+_loop       lda  $ffff,y
             sta  cx16.VERA_AUDIO_DATA
             iny
-            bne  -
-            inc  cx16.r0H
+_lp2        lda  $ffff,y
+            sta  cx16.VERA_AUDIO_DATA
+            iny
+            bne  _loop
+            inc  _loop+2
+            inc  _lp2+2
             dex
-            bne  --
-            rts
+            bne  _loop
         }}
 ; original prog8 code:
 ;        uword @requirezp ptr = main.start.buffer

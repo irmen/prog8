@@ -1195,6 +1195,7 @@ asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
 asmsub set_aflow_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the AFLOW irq handler to use with enable_irq_handlers().  Also enables AFLOW irqs.
     ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
+    ; NOTE: the handler itself must fill the audio fifo buffer to at least 25% full again (1 KB) or the aflow irq will keep triggering!
     %asm {{
         php
         sei

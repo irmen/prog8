@@ -224,6 +224,8 @@ Here they are, all available in ``cx16``:
 
 ``set_aflow_irq_handler (uword address)``
     Sets the audio buffer underrun interrupt handler routine.  Also enables AFLOW interrupts.
+    Note: the handler must fill the Vera's audio fifo buffer by itself with at least 25% worth of data (1 kb)
+    otherwise the aflow irq keeps triggering.
 
 ``disable_irq_handlers ()``
     Hand control back to the system default IRQ handler.
