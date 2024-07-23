@@ -1,4 +1,3 @@
-%import buffers
 %import textio
 %option no_sysinit
 %zeropage basicsafe
@@ -6,75 +5,114 @@
 
 main {
     sub start() {
-        signed()
-        unsigned()
-    }
+        ubyte @shared variable
 
-    sub signed() {
-        txt.print("signed\n")
-        byte @shared bvalue = -88
-        word @shared wvalue = -8888
+        variable = 0
+        while variable & %10000000 == 0 {
+            cx16.r0L++
+            variable = 128
+        }
+        txt.chrout('1')
+        while variable & %10000000 != 0 {
+            cx16.r0L++
+            variable = 0
+        }
+        txt.chrout('2')
+        while variable & %01000000 == 0 {
+            cx16.r0L++
+            variable = 64
+        }
+        txt.chrout('3')
+        while variable & %01000000 != 0 {
+            cx16.r0L++
+            variable=0
+        }
+        txt.chrout('4')
+        variable = 255
+        while variable & %10000000 == 0 {
+        }
+        while variable & %01000000 == 0 {
+        }
+        txt.chrout('5')
+        variable = 0
+        while variable & %10000000 != 0 {
+        }
+        while variable & %01000000 != 0 {
+        }
+        txt.chrout('6')
+        txt.chrout('\n')
 
-        txt.print_b(bvalue/2)
-        txt.spc()
-        txt.print_b(bvalue/4)
-        txt.spc()
-        txt.print_b(bvalue/8)
-        txt.nl()
+        variable = 0
+        cx16.r0L++
+        if variable & %10000000 == 0 {
+            txt.print("bit 7 not set\n")
+        }
+        if variable & %10000000 != 0 {
+            txt.print("bit 7 set\n")
+        }
+        if variable & %10000000 == 0 {
+            txt.print("bit 7 not set\n")
+        } else {
+            txt.print("bit 7 set\n")
+        }
+        if variable & %10000000 != 0 {
+            txt.print("bit 7 set\n")
+        } else {
+            txt.print("bit 7 not set\n")
+        }
 
-        bvalue /= 2
-        txt.print_b(bvalue)
-        txt.spc()
-        bvalue /= 8
-        txt.print_b(bvalue)
-        txt.nl()
+        variable = 128
+        cx16.r0L++
+        if variable & %10000000 == 0 {
+            txt.print("bit 7 not set\n")
+        }
+        if variable & %10000000 != 0 {
+            txt.print("bit 7 set\n")
+        }
+        if variable & %10000000 == 0 {
+            txt.print("bit 7 not set\n")
+        } else {
+            txt.print("bit 7 set\n")
+        }
+        if variable & %10000000 != 0 {
+            txt.print("bit 7 set\n")
+        } else {
+            txt.print("bit 7 not set\n")
+        }
 
-        txt.print_w(wvalue/2)
-        txt.spc()
-        txt.print_w(wvalue/4)
-        txt.spc()
-        txt.print_w(wvalue/8)
-        txt.nl()
-
-        wvalue /= 2
-        txt.print_w(wvalue)
-        txt.spc()
-        wvalue /= 8
-        txt.print_w(wvalue)
-        txt.nl()
-    }
-
-    sub unsigned() {
-        txt.print("\nunsigned\n")
-        ubyte @shared bvalue = 88
-        uword @shared wvalue = 8888
-
-        txt.print_ub(bvalue/2)
-        txt.spc()
-        txt.print_ub(bvalue/4)
-        txt.spc()
-        txt.print_ub(bvalue/8)
-        txt.nl()
-
-        bvalue /= 2
-        txt.print_ub(bvalue)
-        txt.spc()
-        bvalue /= 8
-        txt.print_ub(bvalue)
-        txt.nl()
-
-        txt.print_uw(wvalue/2)
-        txt.spc()
-        txt.print_uw(wvalue/4)
-        txt.spc()
-        txt.print_uw(wvalue/8)
-        txt.nl()
-
-        wvalue /= 2
-        txt.print_uw(wvalue)
-        txt.spc()
-        wvalue /= 8
-        txt.print_uw(wvalue)
-        txt.nl()
+        if variable & %01000000 == 0 {
+            txt.print("bit 6 not set\n")
+        }
+        if variable & %01000000 != 0 {
+            txt.print("bit 6 set\n")
+        }
+        if variable & %01000000 == 0 {
+            txt.print("bit 6 not set\n")
+        } else {
+            txt.print("bit 6 set\n")
+        }
+        if variable & %01000000 != 0 {
+            txt.print("bit 6 set\n")
+        } else {
+            txt.print("bit 6 not set\n")
+        }
+        variable = %01000000
+        cx16.r0L++
+        if variable & %01000000 == 0 {
+            txt.print("bit 6 not set\n")
+        }
+        if variable & %01000000 != 0 {
+            txt.print("bit 6 set\n")
+        }
+        if variable & %01000000 == 0 {
+            txt.print("bit 6 not set\n")
+        } else {
+            txt.print("bit 6 set\n")
+        }
+        if variable & %01000000 != 0 {
+            txt.print("bit 6 set\n")
+        } else {
+            txt.print("bit 6 not set\n")
+        }
     }
 }

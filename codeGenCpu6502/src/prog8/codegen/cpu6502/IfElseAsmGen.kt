@@ -83,9 +83,80 @@ internal class IfElseAsmGen(private val program: PtProgram,
     }
 
     private fun fallbackTranslateForSimpleCondition(ifElse: PtIfElse) {
+        val bittest = ifElse.condition as? PtBuiltinFunctionCall
+        val jumpAfterIf = ifElse.ifScope.children.singleOrNull() as? PtJump
+
+        if(bittest!=null && bittest.name.startsWith("prog8_ifelse_bittest_")) {
+            val variable = bittest.args[0] as PtIdentifier
+            val bitnumber = (bittest.args[1] as PtNumber).number.toInt()
+            val testForBitSet = bittest.name.endsWith("_set")
+            when (bitnumber) {
+                7 -> {
+                    // test via bit + N flag
+                    asmgen.out("  bit  ${variable.name}")
+                    if(testForBitSet) {
+                        if(jumpAfterIf!=null) {
+                            val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
+                            if(indirect)
+                                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
+                            if(ifElse.hasElse())
+                                throw AssemblyError("didn't expect else part here ${ifElse.position}")
+                            else
+                                asmgen.out("  bmi  $asmLabel")
+                        }
+                        else
+                            translateIfElseBodies("bpl", ifElse)
+                    } else {
+                        if(jumpAfterIf!=null) {
+                            val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
+                            if(indirect)
+                                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
+                            if(ifElse.hasElse())
+                                throw AssemblyError("didn't expect else part here ${ifElse.position}")
+                            else
+                                asmgen.out("  bpl  $asmLabel")
+                        }
+                        else
+                            translateIfElseBodies("bmi", ifElse)
+                    }
+                    return
+                }
+                6 -> {
+                    // test via bit + V flag
+                    asmgen.out("  bit  ${variable.name}")
+                    if(testForBitSet) {
+                        if(jumpAfterIf!=null) {
+                            val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
+                            if(indirect)
+                                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
+                            if(ifElse.hasElse())
+                                throw AssemblyError("didn't expect else part here ${ifElse.position}")
+                            else
+                                asmgen.out("  bvs  $asmLabel")
+                        }
+                        else
+                            translateIfElseBodies("bvc", ifElse)
+                    } else {
+                        if(jumpAfterIf!=null) {
+                            val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
+                            if(indirect)
+                                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
+                            if(ifElse.hasElse())
+                                throw AssemblyError("didn't expect else part here ${ifElse.position}")
+                            else
+                                asmgen.out("  bvc  $asmLabel")
+                        }
+                        else
+                            translateIfElseBodies("bvs", ifElse)
+                    }
+                    return
+                }
+                else -> throw AssemblyError("prog8_ifelse_bittest can only work on bits 7 and 6")
+            }
+        }
+
         // the condition is "simple" enough to just assign its 0/1 value to a register and branch on that
         assignConditionValueToRegisterAndTest(ifElse.condition)
-        val jumpAfterIf = ifElse.ifScope.children.singleOrNull() as? PtJump
         if(jumpAfterIf!=null)
             translateJumpElseBodies("bne", "beq", jumpAfterIf, ifElse.elseScope)
         else

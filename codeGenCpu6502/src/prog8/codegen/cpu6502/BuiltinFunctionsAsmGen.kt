@@ -65,6 +65,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall, resultRegister)
             "call" -> funcCall(fcall)
+            "prog8_ifelse_bittest_set" -> throw AssemblyError("prog8_ifelse_bittest_set() should have been translated as part of an ifElse statement")
+            "prog8_ifelse_bittest_notset" -> throw AssemblyError("prog8_ifelse_bittest_notset() should have been translated as part of an ifElse statement")
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
             "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE, resultRegister)
             "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD, resultRegister)

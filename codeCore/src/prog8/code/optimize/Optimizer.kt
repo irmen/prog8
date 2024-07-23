@@ -11,6 +11,7 @@ fun optimizeIntermediateAst(program: PtProgram, options: CompilationOptions, st:
         return
     while (errors.noErrors() &&
         (optimizeCommonSubExpressions(program, errors)
+                + optimizeBitTest(program, options)
                 + optimizeAssignTargets(program, st, errors)) > 0
     ) {
         // keep rolling
@@ -163,6 +164,51 @@ private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable, errors: I
     }
     return changes
 }
+
+
+private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): Int {
+    if(options.compTarget.machine.cpu == CpuType.VIRTUAL)
+        return 0        // the special bittest optimization is not yet valid for the IR
+
+    var changes = 0
+    var recurse = true
+    walkAst(program) { node: PtNode, depth: Int ->
+        if(node is PtIfElse) {
+            val condition = node.condition as? PtBinaryExpression
+            if(condition!=null && (condition.operator=="==" || condition.operator=="!=")) {
+                if(condition.right.asConstInteger()==0) {
+                    val and = condition.left as? PtBinaryExpression
+                    if(and != null && and.operator=="&" && and.type == DataType.UBYTE) {
+                        val variable = and.left as? PtIdentifier
+                        val bitmask = and.right.asConstInteger()
+                        if(variable!=null && variable.type in ByteDatatypes && (bitmask==128 || bitmask==64)) {
+                            val setOrNot = if(condition.operator=="!=") "set" else "notset"
+                            val index = node.parent.children.indexOf(node)
+                            val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataType.BOOL, node.condition.position)
+                            bittestCall.add(variable)
+                            if(bitmask==128)
+                                bittestCall.add(PtNumber(DataType.UBYTE, 7.0, and.right.position))
+                            else
+                                bittestCall.add(PtNumber(DataType.UBYTE, 6.0, and.right.position))
+                            val ifElse = PtIfElse(node.position)
+                            ifElse.add(bittestCall)
+                            ifElse.add(node.ifScope)
+                            if(node.hasElse())
+                                ifElse.add(node.elseScope)
+                            node.parent.children[index] = ifElse
+                            ifElse.parent = node.parent
+                            changes++
+                            recurse = false
+                        }
+                    }
+                }
+            }
+        }
+        recurse
+    }
+    return changes
+}
+
 
 internal fun isSame(identifier: PtIdentifier, type: DataType, returnedRegister: RegisterOrPair): Boolean {
     if(returnedRegister in Cx16VirtualRegisters) {

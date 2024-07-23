@@ -1318,6 +1318,10 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
 
         fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode) {
+
+            if(condition is PtBuiltinFunctionCall && condition.name.startsWith("prog8_ifelse_bittest_"))
+                throw AssemblyError("IR codegen doesn't have special instructions for dedicated BIT tests and should just still use normal AND")
+
             val tr = expressionEval.translateExpression(condition)
             result += tr.chunks
             if(ifElse.hasElse()) {

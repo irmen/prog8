@@ -626,6 +626,16 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
                 mods.add(Modification(lines[0].index, true, null))
                 mods.add(Modification(lines[1].index, false, branch))
             }
+            else if((" bvc " in first || "\tbvc " in first) && sameLabel(first, second, third)) {
+                val branch = second.replace("jmp", "bvs")
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, false, branch))
+            }
+            else if((" bvs " in first || "\tbvs " in first) && sameLabel(first, second, third)) {
+                val branch = second.replace("jmp", "bvc")
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, false, branch))
+            }
         }
     }
     return mods

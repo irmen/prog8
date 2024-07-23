@@ -82,6 +82,8 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "prog8_lib_arraycopy"         to FSignature(false, listOf(FParam("source", ArrayDatatypes), FParam("target", ArrayDatatypes)), null),
     "prog8_lib_square_byte"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.BYTE, DataType.UBYTE))), DataType.UBYTE),
     "prog8_lib_square_word"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.WORD, DataType.UWORD))), DataType.UWORD),
+    "prog8_ifelse_bittest_set"    to FSignature(true, listOf(FParam("variable", ByteDatatypes), FParam("bitnumber", arrayOf(DataType.UBYTE))), DataType.BOOL),
+    "prog8_ifelse_bittest_notset" to FSignature(true, listOf(FParam("variable", ByteDatatypes), FParam("bitnumber", arrayOf(DataType.UBYTE))), DataType.BOOL),
     "abs"       to FSignature(true, listOf(FParam("value", NumericDatatypes)), null),
     "abs__byte"  to FSignature(true, listOf(FParam("value", arrayOf(DataType.BYTE))), DataType.BYTE),
     "abs__word"  to FSignature(true, listOf(FParam("value", arrayOf(DataType.WORD))), DataType.WORD),
