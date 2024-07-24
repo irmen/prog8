@@ -1088,9 +1088,15 @@ $shortcutLabel:""")
 
         if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
             if(operator=="&" && value is PtPrefix && value.operator=="~") {
-                // M &= ~A  -->  use special TRB 65c02 instruction for that
+                // M &= ~A  -->  use TRB 65c02 instruction for that
                 asmgen.assignExpressionToRegister(value.value, RegisterOrPair.A, dt in SignedDatatypes)
                 asmgen.out("  trb  $name")
+                return
+            }
+            else if(operator=="|") {
+                // M |= A --> use TSB 65c02 instruction for that
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                asmgen.out("  tsb  $name")
                 return
             }
         }
@@ -1106,7 +1112,7 @@ $shortcutLabel:""")
 
         if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
             if(operator=="|") {
-                // M |= A  -->  use special TSB 65c02 instruction for that
+                // M |= A  -->  use TSB 65c02 instruction for that
                 asmgen.out("  lda  $otherName |  tsb  $name")
                 return
             }
@@ -1661,7 +1667,7 @@ $shortcutLabel:""")
     }
 
     private fun immediateOrInplace(name: String, value: Int) {
-        if(asmgen.isTargetCpu(CpuType.CPU65c02) && ((value and (value-1))==0)) {
+        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
             asmgen.out(" lda  #$value |  tsb  $name")       // set bit
         } else  {
             asmgen.out(" lda  $name |  ora  #$value |  sta  $name")

@@ -715,9 +715,9 @@ private fun optimizeTSBtoRegularOr(linesByFour: Sequence<List<IndexedValue<Strin
             val operand2 = second.substring(3)
             val operand3 = third.substring(3)
             if(operand1!=operand2 && operand2==operand3) {
-                mods.add(Modification(lines[0].index, false, "  lda  $operand2  ; op2"))
-                mods.add(Modification(lines[1].index, false, "  ora  $operand1  ; op1"))
-                mods.add(Modification(lines[2].index, false, "  sta  $operand2  ; op2"))
+                mods.add(Modification(lines[0].index, false, "  lda  $operand2"))
+                mods.add(Modification(lines[1].index, false, "  ora  $operand1"))
+                mods.add(Modification(lines[2].index, false, "  sta  $operand2"))
             }
         }
     }

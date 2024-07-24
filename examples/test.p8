@@ -5,114 +5,44 @@
 
 main {
     sub start() {
-        ubyte @shared variable
+        ubyte @shared v1,v2,v3
+        v1 = %10011001
+        v2 = %10101010
+        v3 = %00111100
 
-        variable = 0
-        while variable & %10000000 == 0 {
-            cx16.r0L++
-            variable = 128
-        }
-        txt.chrout('1')
-        while variable & %10000000 != 0 {
-            cx16.r0L++
-            variable = 0
-        }
-        txt.chrout('2')
-        while variable & %01000000 == 0 {
-            cx16.r0L++
-            variable = 64
-        }
-        txt.chrout('3')
-        while variable & %01000000 != 0 {
-            cx16.r0L++
-            variable=0
-        }
-        txt.chrout('4')
-        variable = 255
-        while variable & %10000000 == 0 {
-        }
-        while variable & %01000000 == 0 {
-        }
-        txt.chrout('5')
-        variable = 0
-        while variable & %10000000 != 0 {
-        }
-        while variable & %01000000 != 0 {
-        }
-        txt.chrout('6')
-        txt.chrout('\n')
+        v1 &= %00011111
+        v1++
+        txt.print_ubbin(v1, true)
+        txt.nl()
 
-        variable = 0
-        cx16.r0L++
-        if variable & %10000000 == 0 {
-            txt.print("bit 7 not set\n")
-        }
-        if variable & %10000000 != 0 {
-            txt.print("bit 7 set\n")
-        }
-        if variable & %10000000 == 0 {
-            txt.print("bit 7 not set\n")
-        } else {
-            txt.print("bit 7 set\n")
-        }
-        if variable & %10000000 != 0 {
-            txt.print("bit 7 set\n")
-        } else {
-            txt.print("bit 7 not set\n")
-        }
+        v1 &= ~v2
+        v1++
+        txt.print_ubbin(v1, true)
+        txt.nl()
 
-        variable = 128
-        cx16.r0L++
-        if variable & %10000000 == 0 {
-            txt.print("bit 7 not set\n")
-        }
-        if variable & %10000000 != 0 {
-            txt.print("bit 7 set\n")
-        }
-        if variable & %10000000 == 0 {
-            txt.print("bit 7 not set\n")
-        } else {
-            txt.print("bit 7 set\n")
-        }
-        if variable & %10000000 != 0 {
-            txt.print("bit 7 set\n")
-        } else {
-            txt.print("bit 7 not set\n")
-        }
+        v1 |= 100
+        v1++
+        txt.print_ubbin(v1, true)
+        txt.nl()
 
-        if variable & %01000000 == 0 {
-            txt.print("bit 6 not set\n")
-        }
-        if variable & %01000000 != 0 {
-            txt.print("bit 6 set\n")
-        }
-        if variable & %01000000 == 0 {
-            txt.print("bit 6 not set\n")
-        } else {
-            txt.print("bit 6 set\n")
-        }
-        if variable & %01000000 != 0 {
-            txt.print("bit 6 set\n")
-        } else {
-            txt.print("bit 6 not set\n")
-        }
-        variable = %01000000
-        cx16.r0L++
-        if variable & %01000000 == 0 {
-            txt.print("bit 6 not set\n")
-        }
-        if variable & %01000000 != 0 {
-            txt.print("bit 6 set\n")
-        }
-        if variable & %01000000 == 0 {
-            txt.print("bit 6 not set\n")
-        } else {
-            txt.print("bit 6 set\n")
-        }
-        if variable & %01000000 != 0 {
-            txt.print("bit 6 set\n")
-        } else {
-            txt.print("bit 6 not set\n")
-        }
+        v1 |= v2
+        v1++
+        txt.print_ubbin(v1, true)
+        txt.nl()
+
+        v1 |= v2 & v3
+        v1++
+        txt.print_ubbin(v1, true)
+        txt.nl()
+
+        v1 &= v2|v3
+        v1++
+        txt.print_ubbin(v1, true)
+        txt.nl()
+
+        v1 &= ~(v2|v3)
+        v1++
+        txt.print_ubbin(v1, true)
+        txt.nl()
     }
 }
