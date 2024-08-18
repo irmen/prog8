@@ -153,6 +153,8 @@ cx16 {
     &uword  edkeyvec    = $ac03     ; (ram bank 0): for intercepting BASIN/CHRIN key strokes. See set_chrin_keyhandler()
     &ubyte  edkeybk     = $ac05     ; ...the RAM bank of the handler routine, if not in low ram
 
+    &ubyte  stavec      = $03b2     ; argument for stash()
+
 
 ; the sixteen virtual 16-bit registers in both normal unsigned mode and signed mode (s)
     &uword r0  = $0002
@@ -395,8 +397,8 @@ romsub $ff5c = LKUPSA(ubyte sa @Y)  clobbers(A,X,Y)
 romsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc) -> ubyte @A, ubyte @X, ubyte @Y, bool @Pc        ; also see SCREEN or get_screen_mode()
 romsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)
 romsub $ff6e = JSRFAR()  ; following word = address to call, byte after that=rom/ram bank it is in
-romsub $ff74 = fetch(ubyte bank @X, ubyte index @Y)  clobbers(X) -> ubyte @A
-romsub $ff77 = stash(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)
+romsub $ff74 = fetch(ubyte zp_startaddr @A, ubyte bank @X, ubyte index @Y)  clobbers(X) -> ubyte @A
+romsub $ff77 = stash(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)     ;  note: The the zero page address containing the base address is passed in stavec ($03B2)
 romsub $ff7d = PRIMM()
 
 ; high level graphics & fonts
