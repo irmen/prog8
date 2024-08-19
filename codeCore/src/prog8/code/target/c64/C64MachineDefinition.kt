@@ -37,13 +37,6 @@ class C64MachineDefinition: IMachineDefinition {
         return m5.toDouble()
     }
 
-    override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
-        return if (compilerOptions.launcher == CbmPrgLauncherType.BASIC || compilerOptions.output == OutputType.PRG)
-            listOf("syslib")
-        else
-            emptyList()
-    }
-
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
         if(selectedEmulator!=1) {
             System.err.println("The c64 target only supports the main emulator (Vice).")

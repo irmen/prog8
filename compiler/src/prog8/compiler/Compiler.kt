@@ -302,10 +302,9 @@ fun parseMainModule(filepath: Path,
         .filter { it.isFromFilesystem }
         .map { Path(it.origin) }
     val compilerOptions = determineCompilationOptions(program, compTarget)
-    // depending on the machine and compiler options we may have to include some libraries
-    for(lib in compTarget.machine.importLibs(compilerOptions, compTarget.name))
-        importer.importImplicitLibraryModule(lib)
 
+    // import the default modules
+    importer.importImplicitLibraryModule("syslib")
     if(compilerOptions.compTarget.name!=VMTarget.NAME && !compilerOptions.experimentalCodegen) {
         importer.importImplicitLibraryModule("math")
     }

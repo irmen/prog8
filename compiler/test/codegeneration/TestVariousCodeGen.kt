@@ -11,9 +11,7 @@ import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtBinaryExpression
 import prog8.code.ast.PtVariable
 import prog8.code.core.DataType
-import prog8.code.target.C64Target
-import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
+import prog8.code.target.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
@@ -363,5 +361,26 @@ main {
         assembly shouldContain "inlined routine follows: pushw"
         assembly shouldContain "inlined routine follows: pop"
         assembly shouldContain "inlined routine follows: popw"
+    }
+
+    test("syslib correctly available for raw outputs") {
+        val text = """
+%output raw
+%launcher none
+%address ${'$'}2000
+
+main {
+    sub start() {
+        cx16.r0++
+        sys.clear_carry()
+    }
+}
+"""
+        compileText(Cx16Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C128Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(PETTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(AtariTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 })

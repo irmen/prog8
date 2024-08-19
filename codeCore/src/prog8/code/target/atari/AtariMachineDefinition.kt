@@ -25,13 +25,6 @@ class AtariMachineDefinition: IMachineDefinition {
     override fun convertFloatToBytes(num: Double): List<UByte> = TODO("atari float to bytes")
     override fun convertBytesToFloat(bytes: List<UByte>): Double = TODO("atari bytes to float")
 
-    override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
-        return if (compilerOptions.output == OutputType.XEX)
-            listOf("syslib")
-        else
-            emptyList()
-    }
-
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
         val emulatorName: String
         val cmdline: List<String>

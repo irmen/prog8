@@ -50,10 +50,6 @@ class VirtualMachineDefinition: IMachineDefinition {
         return Double.fromBits(b0 or b1 or b2 or b3 or b4 or b5 or b6 or b7)
     }
 
-    override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
-        return listOf("syslib")
-    }
-
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
         println("\nStarting Virtual Machine...")
         // to not have external module dependencies in our own module, we launch the virtual machine via reflection
