@@ -548,13 +548,14 @@ String length is limited to 255 characters.
 Here are examples of the various encodings:
 
     - ``"hello"``   a string translated into the default character encoding (PETSCII on the CBM machines)
-    - ``petscii:"hello"``            string in CBM PETSCII encoding
-    - ``sc:"my name is Alice"``      string in CBM screencode encoding
-    - ``iso:"Ich heiße François"``   string in iso-8859-15 encoding (Latin)
-    - ``iso5:"Хозяин и Работник"``   string in iso-8859-5 encoding (Cyrillic)
-    - ``iso16:"zażółć gęślą jaźń"``  string in iso-8859-16 encoding (Eastern Europe)
-    - ``atascii:"I am Atari!"``      string in "atascii" encoding (Atari 8-bit)
-    - ``cp437:"≈ IBM Pc ≈ ♂♀♪☺¶"``  string in "cp437" encoding (IBM PC codepage 437)
+    - ``petscii:"hello"``               string in CBM PETSCII encoding
+    - ``sc:"my name is Alice"``         string in CBM screencode encoding
+    - ``iso:"Ich heiße François"``      string in iso-8859-15 encoding (Latin)
+    - ``iso5:"Хозяин и Работник"``      string in iso-8859-5 encoding (Cyrillic)
+    - ``iso16:"zażółć gęślą jaźń"``     string in iso-8859-16 encoding (Eastern Europe)
+    - ``atascii:"I am Atari!"``         string in "atascii" encoding (Atari 8-bit)
+    - ``cp437:"≈ IBM Pc ≈ ♂♀♪☺¶"``     string in "cp437" encoding (IBM PC codepage 437)
+    - ``kata:"ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ｡"``  string in "kata" encoding (Katakana half-width support only for now)
 
 
 There are several escape sequences available to put special characters into your string value:

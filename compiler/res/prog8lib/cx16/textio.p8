@@ -262,6 +262,12 @@ sub iso16() {
     cx16.screen_set_charset(10, 0)  ; charset
 }
 
+sub kata() {
+    ; -- switch to katakana character set
+    cbm.CHROUT($0f)                 ; iso mode
+    cx16.screen_set_charset(12, 0)  ; charset
+}
+
 asmsub  scroll_left() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself

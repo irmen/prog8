@@ -18,6 +18,7 @@ Compiler:
 - Relax newline / bracket in parser so that you can put open and close brackets on the same line or on the next line if you so wish. For example be able to write a true one liner?
 - Can we support signed % (remainder) somehow?
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
+- expand the kata encoding to somehow translate normal katana to half-widths?  (see comment in KatakanaEncoding)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.

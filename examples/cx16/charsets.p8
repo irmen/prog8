@@ -13,7 +13,10 @@ main {
         wait()
         eastern()
         wait()
+        kata()
+        wait()
         ibmpc()
+        wait()
     }
 
     sub latin() {
@@ -46,6 +49,13 @@ main {
         ; regular print() won't work because of control codes (<32) in this one.
         txt.print_lit(cp437:"≈ IBM Pc ≈ ÇüéâäàåçêëèïîìÄ ░▒▓│┤╡╢╖╕╣║╗╝╜╛┐ ☺☻♥♦♣♠•◘○◙♂♀♪♫☼ ►◄↕‼¶§▬↨↑↓→←∟↔▲▼")
         txt.nl()
+    }
+
+    sub kata() {
+        txt.kata()
+        repeat 3 txt.nl()
+        write_screencodes(kata:"Katakana hw: ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ ﾉ ﾆﾎﾝｺﾞ ｶﾞ ｼﾞｮｳｽﾞ ﾀﾞｯﾃ ﾕｯﾀ｡")
+        txt.print(kata:"Katakana hw: ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ ﾉ ﾆﾎﾝｺﾞ ｶﾞ ｼﾞｮｳｽﾞ ﾀﾞｯﾃ ﾕｯﾀ｡")
     }
 
     sub wait() {

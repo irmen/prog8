@@ -8,7 +8,8 @@ enum class Encoding(val prefix: String) {
     ISO("iso"),                 // cx16  (iso-8859-15)
     ISO5("iso5"),               // cx16  (iso-8859-5, cyrillic)
     ISO16("iso16"),             // cx16  (iso-8859-16, eastern european)
-    CP437("cp437")              // cx16  (ibm pc, codepage 437)
+    CP437("cp437"),             // cx16  (ibm pc, codepage 437)
+    KATAKANA("kata")                 // cx16  (katakana)
 }
 
 interface IStringEncoding {
