@@ -10,6 +10,8 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.target.encodings.JapaneseCharacterConverter
+import java.io.CharConversionException
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.floor
@@ -713,7 +715,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
     }
 }
 
-class CharLiteral(val value: Char,
+class CharLiteral private constructor(val value: Char,
                   var encoding: Encoding,
                   override val position: Position) : Expression() {
     override lateinit var parent: Node
@@ -723,9 +725,20 @@ class CharLiteral(val value: Char,
     }
 
     companion object {
+        fun create(character: Char, encoding: Encoding, position: Position): CharLiteral {
+            if(encoding==Encoding.KATAKANA) {
+                val processed = JapaneseCharacterConverter.zenkakuKatakanaToHankakuKatakana(character.toString())
+                if(processed.length==1)
+                    return CharLiteral(processed[0], encoding, position)
+                else
+                    throw CharConversionException("character literal encodes into multiple bytes at $position")
+            } else
+                return CharLiteral(character, encoding, position)
+        }
+
         fun fromEscaped(raw: String, encoding: Encoding, position: Position): CharLiteral {
             val unescaped = raw.unescape()
-            return CharLiteral(unescaped[0], encoding, position)
+            return create(unescaped[0], encoding, position)
         }
     }
 
@@ -756,7 +769,7 @@ class CharLiteral(val value: Char,
     }
 }
 
-class StringLiteral(val value: String,
+class StringLiteral private constructor(val value: String,
                     var encoding: Encoding,
                     override val position: Position) : Expression() {
     override lateinit var parent: Node
@@ -766,10 +779,15 @@ class StringLiteral(val value: String,
     }
 
     companion object {
-        fun fromEscaped(raw: String, encoding: Encoding, position: Position): StringLiteral {
-            val unescaped = raw.unescape()
-            return StringLiteral(unescaped, encoding, position)
+        fun create(str: String, encoding: Encoding, position: Position): StringLiteral {
+            if (encoding == Encoding.KATAKANA) {
+                val processed = JapaneseCharacterConverter.zenkakuKatakanaToHankakuKatakana(str)
+                return StringLiteral(processed, encoding, position)
+            } else
+                return StringLiteral(str, encoding, position)
         }
+
+        fun fromEscaped(raw: String, encoding: Encoding, position: Position): StringLiteral = create(raw.unescape(), encoding, position)
     }
 
     override val isSimple = true

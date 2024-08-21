@@ -6,6 +6,61 @@ import com.github.michaelbull.result.Result
 import java.io.CharConversionException
 import java.nio.charset.Charset
 
+
+object JapaneseCharacterConverter {
+    // adapted from https://github.com/raminduw/Japanese-Character-Converter
+
+    private val ZENKAKU_KATAKANA = charArrayOf(
+        'ァ', 'ア', 'ィ', 'イ', 'ゥ',
+        'ウ', 'ェ', 'エ', 'ォ', 'オ', 'カ', 'ガ', 'キ', 'ギ', 'ク', 'グ', 'ケ', 'ゲ',
+        'コ', 'ゴ', 'サ', 'ザ', 'シ', 'ジ', 'ス', 'ズ', 'セ', 'ゼ', 'ソ', 'ゾ', 'タ',
+        'ダ', 'チ', 'ヂ', 'ッ', 'ツ', 'ヅ', 'テ', 'デ', 'ト', 'ド', 'ナ', 'ニ', 'ヌ',
+        'ネ', 'ノ', 'ハ', 'バ', 'パ', 'ヒ', 'ビ', 'ピ', 'フ', 'ブ', 'プ', 'ヘ', 'ベ',
+        'ペ', 'ホ', 'ボ', 'ポ', 'マ', 'ミ', 'ム', 'メ', 'モ', 'ャ', 'ヤ', 'ュ', 'ユ',
+        'ョ', 'ヨ', 'ラ', 'リ', 'ル', 'レ', 'ロ', 'ヮ', 'ワ', 'ヰ', 'ヱ', 'ヲ', 'ン',
+        'ヴ', 'ヵ', 'ヶ'
+    )
+
+    private val HANKAKU_HIRAGANA = charArrayOf(
+        'ぁ', 'あ', 'ぃ', 'い', 'ぅ', 'う', 'ぇ', 'え',
+        'ぉ', 'お', 'か', 'が', 'き', 'ぎ', 'く', 'ぐ',
+        'け', 'げ', 'こ', 'ご', 'さ', 'ざ', 'し', 'じ',
+        'す', 'ず', 'せ', 'ぜ', 'そ', 'ぞ', 'た', 'だ',
+        'ち', 'ぢ', 'っ', 'つ', 'づ', 'て', 'で', 'と',
+        'ど', 'な', 'に', 'ぬ', 'ね', 'の', 'は', 'ば',
+        'ぱ', 'ひ', 'び', 'ぴ', 'ふ', 'ぶ', 'ぷ', 'へ',
+        'べ', 'ぺ', 'ほ', 'ぼ', 'ぽ', 'ま', 'み', 'む',
+        'め', 'も', 'ゃ', 'や', 'ゅ', 'ゆ', 'ょ', 'よ',
+        'ら', 'り', 'る', 'れ', 'ろ', 'ゎ', 'わ', 'ゐ',
+        'ゑ', 'を', 'ん', 'ゔ', 'ゕ', 'ゖ'
+    )
+
+    private val HANKAKU_KATAKANA = arrayOf(
+        "ｧ", "ｱ", "ｨ", "ｲ", "ｩ",
+        "ｳ", "ｪ", "ｴ", "ｫ", "ｵ", "ｶ", "ｶﾞ", "ｷ", "ｷﾞ", "ｸ", "ｸﾞ", "ｹ",
+        "ｹﾞ", "ｺ", "ｺﾞ", "ｻ", "ｻﾞ", "ｼ", "ｼﾞ", "ｽ", "ｽﾞ", "ｾ", "ｾﾞ", "ｿ",
+        "ｿﾞ", "ﾀ", "ﾀﾞ", "ﾁ", "ﾁﾞ", "ｯ", "ﾂ", "ﾂﾞ", "ﾃ", "ﾃﾞ", "ﾄ", "ﾄﾞ",
+        "ﾅ", "ﾆ", "ﾇ", "ﾈ", "ﾉ", "ﾊ", "ﾊﾞ", "ﾊﾟ", "ﾋ", "ﾋﾞ", "ﾋﾟ", "ﾌ",
+        "ﾌﾞ", "ﾌﾟ", "ﾍ", "ﾍﾞ", "ﾍﾟ", "ﾎ", "ﾎﾞ", "ﾎﾟ", "ﾏ", "ﾐ", "ﾑ", "ﾒ",
+        "ﾓ", "ｬ", "ﾔ", "ｭ", "ﾕ", "ｮ", "ﾖ", "ﾗ", "ﾘ", "ﾙ", "ﾚ", "ﾛ", "ﾜ",
+        "ﾜ", "ｲ", "ｴ", "ｦ", "ﾝ", "ｳﾞ", "ｶ", "ｹ"
+    )
+
+    private val ZENKAKU_KATAKANA_FIRST_CHAR_CODE = ZENKAKU_KATAKANA.first().code
+    private val HANKAKU_HIRAGANA_FIRST_CHAR_CODE = HANKAKU_HIRAGANA.first().code
+
+    private fun zenkakuKatakanaToHankakuKatakana(c: Char): String = if (c in ZENKAKU_KATAKANA) HANKAKU_KATAKANA[c.code - ZENKAKU_KATAKANA_FIRST_CHAR_CODE] else c.toString()
+    private fun hankakuKatakanaToZenkakuKatakana(c: Char): Char = if (c in HANKAKU_HIRAGANA) ZENKAKU_KATAKANA[c.code - HANKAKU_HIRAGANA_FIRST_CHAR_CODE] else c
+
+    fun zenkakuKatakanaToHankakuKatakana(s: String): String = buildString {
+        for (element in s) {
+            val converted = hankakuKatakanaToZenkakuKatakana(element)
+            val convertedChar = zenkakuKatakanaToHankakuKatakana(converted)
+            append(convertedChar)
+        }
+    }
+}
+
 object KatakanaEncoding {
     val charset: Charset = Charset.forName("JIS_X0201")
 
@@ -13,11 +68,6 @@ object KatakanaEncoding {
         return try {
             val mapped = str.map { chr ->
                 when (chr) {
-                    // TODO: Convert regular katakana to halfwidth katakana (java lib doesn't do that for us
-                    //       and simply returns '?' upon reaching a regular katakana character)
-                    //       NOTE: we probably need to somehow do that before we reach this `when`,
-                    //             as one regular katakana character often results in two HW katakana characters
-                    //             due to differences in how diacritics are handled.
 
                     '\u0000' -> 0u
                     '\u00a0' -> 0xa0u // $a0 isn't technically a part of JIS X 0201 spec, and so we need to handle this ourselves

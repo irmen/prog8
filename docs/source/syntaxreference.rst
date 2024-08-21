@@ -555,7 +555,7 @@ Here are examples of the various encodings:
     - ``iso16:"zażółć gęślą jaźń"``     string in iso-8859-16 encoding (Eastern Europe)
     - ``atascii:"I am Atari!"``         string in "atascii" encoding (Atari 8-bit)
     - ``cp437:"≈ IBM Pc ≈ ♂♀♪☺¶"``     string in "cp437" encoding (IBM PC codepage 437)
-    - ``kata:"ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ｡"``  string in "kata" encoding (Katakana half-width support only for now)
+    - ``kata:"ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ｡ # が # ガ"``  string in "kata" encoding (Katakana)
 
 
 There are several escape sequences available to put special characters into your string value:
@@ -976,7 +976,7 @@ where <statements> can be just a single statement or a block again::
 	if_XX {
 		<statements>
 	} else {
-	  	<alternative statements>
+		<alternative statements>
 	}
 
 The XX corresponds to one of the processor's branching instructions, so the possibilities are:

@@ -91,7 +91,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                         program.encoding.encodeString(leftString.value, leftString.encoding) + program.encoding.encodeString(rightString.value, rightString.encoding),
                         leftString.encoding)
                 }
-                val concatStr = StringLiteral(concatenated, leftString.encoding, expr.position)
+                val concatStr = StringLiteral.create(concatenated, leftString.encoding, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, concatStr, parent))
             }
             else if(expr.operator=="*" && rightconst!=null && expr.left is StringLiteral) {
@@ -99,7 +99,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 val part = expr.left as StringLiteral
                 if(part.value.isEmpty())
                     errors.warn("resulting string has length zero", part.position)
-                val newStr = StringLiteral(part.value.repeat(rightconst.number.toInt()), part.encoding, expr.position)
+                val newStr = StringLiteral.create(part.value.repeat(rightconst.number.toInt()), part.encoding, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, newStr, parent))
             }
         }

@@ -263,7 +263,7 @@ sub iso16() {
 }
 
 sub kata() {
-    ; -- switch to katakana character set
+    ; -- switch to katakana character set (requires rom 48+)
     cbm.CHROUT($0f)                 ; iso mode
     cx16.screen_set_charset(12, 0)  ; charset
 }

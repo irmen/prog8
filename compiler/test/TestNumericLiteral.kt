@@ -96,11 +96,11 @@ class TestNumericLiteral: FunSpec({
     }
 
     test("testEqualsRef") {
-        (StringLiteral("hello", Encoding.PETSCII, dummyPos) == StringLiteral("hello", Encoding.PETSCII, dummyPos)) shouldBe true
-        (StringLiteral("hello", Encoding.PETSCII, dummyPos) != StringLiteral("bye", Encoding.PETSCII, dummyPos)) shouldBe true
-        (StringLiteral("hello", Encoding.SCREENCODES, dummyPos) == StringLiteral("hello", Encoding.SCREENCODES, dummyPos)) shouldBe true
-        (StringLiteral("hello", Encoding.SCREENCODES, dummyPos) != StringLiteral("bye", Encoding.SCREENCODES, dummyPos)) shouldBe true
-        (StringLiteral("hello", Encoding.SCREENCODES, dummyPos) != StringLiteral("hello", Encoding.PETSCII, dummyPos)) shouldBe true
+        (StringLiteral.create("hello", Encoding.PETSCII, dummyPos) == StringLiteral.create("hello", Encoding.PETSCII, dummyPos)) shouldBe true
+        (StringLiteral.create("hello", Encoding.PETSCII, dummyPos) != StringLiteral.create("bye", Encoding.PETSCII, dummyPos)) shouldBe true
+        (StringLiteral.create("hello", Encoding.SCREENCODES, dummyPos) == StringLiteral.create("hello", Encoding.SCREENCODES, dummyPos)) shouldBe true
+        (StringLiteral.create("hello", Encoding.SCREENCODES, dummyPos) != StringLiteral.create("bye", Encoding.SCREENCODES, dummyPos)) shouldBe true
+        (StringLiteral.create("hello", Encoding.SCREENCODES, dummyPos) != StringLiteral.create("hello", Encoding.PETSCII, dummyPos)) shouldBe true
 
         val lvOne = NumericLiteral(DataType.UBYTE, 1.0, dummyPos)
         val lvTwo = NumericLiteral(DataType.UBYTE, 2.0, dummyPos)

@@ -75,17 +75,6 @@ private fun oneFloatArgOutputFloat(args: List<Expression>, position: Position, p
     return NumericLiteral(DataType.FLOAT, function(constval.number), args[0].position)
 }
 
-private fun collectionArgBoolResult(args: List<Expression>, position: Position, program: Program, function: (arg: List<Double>)->Boolean): NumericLiteral {
-    if(args.size!=1)
-        throw SyntaxError("builtin function requires one non-scalar argument", position)
-
-    val array= args[0] as? ArrayLiteral ?: throw NotConstArgumentException()
-    val constElements = array.value.map{it.constValue(program)?.number}
-    if(constElements.contains(null))
-        throw NotConstArgumentException()
-    return NumericLiteral.fromBoolean(function(constElements.mapNotNull { it }), args[0].position)
-}
-
 private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     // 1 arg, type = int, result type= uword
     if(args.size!=1)
@@ -138,6 +127,8 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
         return NumericLiteral.optimalInteger(arraySize, position)
     if(args[0] is ArrayLiteral)
         return NumericLiteral.optimalInteger((args[0] as ArrayLiteral).value.size, position)
+    if(args[0] is StringLiteral)
+        return NumericLiteral.optimalInteger((args[0] as StringLiteral).value.length, position)
     if(args[0] !is IdentifierReference)
         throw SyntaxError("len argument should be an identifier", position)
     val target = (args[0] as IdentifierReference).targetVarDecl(program)

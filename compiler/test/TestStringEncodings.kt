@@ -3,15 +3,18 @@ package prog8tests
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.expectError
 import com.github.michaelbull.result.getOrElse
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import prog8.ast.expressions.CharLiteral
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.VarDecl
 import prog8.code.core.Encoding
+import prog8.code.core.Position
 import prog8.code.core.unescape
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
@@ -21,6 +24,7 @@ import prog8.code.target.encodings.IsoEncoding
 import prog8.code.target.encodings.PetsciiEncoding
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import java.io.CharConversionException
 
 
 class TestStringEncodings: FunSpec({
@@ -231,6 +235,22 @@ class TestStringEncodings: FunSpec({
         }
     }
 
+    context("kata") {
+        test("kata translation to half width glyphs") {
+            val orig = "ｶ が ガ"
+            orig.length shouldBe 5
+            val str = StringLiteral.create(orig, Encoding.KATAKANA, Position.DUMMY)
+            str.value.length shouldBe 7
+
+            val character = CharLiteral.create('ｶ', Encoding.KATAKANA, Position.DUMMY)
+            character.value shouldBe 'ｶ'
+
+            shouldThrow<CharConversionException> {
+                CharLiteral.create('ガ', Encoding.KATAKANA, Position.DUMMY)
+            }
+        }
+    }
+
     test("special pass-through") {
         val passthroughEscaped= """\x00\x1b\x99\xff"""
         val passthrough = passthroughEscaped.unescape()
@@ -299,12 +319,22 @@ class TestStringEncodings: FunSpec({
                 str string1 = "default"
                 str string2 = sc:"screencodes"
                 str string3 = iso:"iso"
-                str string4 = petscii:"petscii"
+                str string4 = iso5:"Хозяин и Работник"
+                str string5 = iso16:"zażółć gęślą jaźń"
+                str string6 = cp437:"≈ IBM Pc ≈ ♂♀♪☺¶"
+                str string7 = petscii:"petscii"
+                str string8 = atascii:"atascii"
+                str string9 = kata:"ｸｼﾞﾝ｡ # が # ガ"
             
                 ubyte char1 = 'd'
                 ubyte char2 = sc:'s'
                 ubyte char3 = iso:'i'
-                ubyte char4 = petscii:'p'
+                ubyte char4 = iso5:'и'
+                ubyte char5 = iso16:'ł'
+                ubyte char6 = cp437:'☺'
+                ubyte char7 = petscii:'p'
+                ubyte char8 = atascii:'p'
+                ubyte char9 = kata:'ｶ'
             
                 sub start() {
                 }

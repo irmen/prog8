@@ -54,8 +54,8 @@ main {
     sub kata() {
         txt.kata()
         repeat 3 txt.nl()
-        write_screencodes(kata:"Katakana hw: ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ ﾉ ﾆﾎﾝｺﾞ ｶﾞ ｼﾞｮｳｽﾞ ﾀﾞｯﾃ ﾕｯﾀ｡")
-        txt.print(kata:"Katakana hw: ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ ﾉ ﾆﾎﾝｺﾞ ｶﾞ ｼﾞｮｳｽﾞ ﾀﾞｯﾃ ﾕｯﾀ｡")
+        write_screencodes(kata:"Katakana: ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ ﾉ ﾆﾎﾝｺﾞ ｶﾞ ｼﾞｮｳｽﾞ ﾀﾞｯﾃ ﾕｯﾀ｡ ## がが ## ガガ")
+        txt.print(kata:"Katakana: ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ ﾉ ﾆﾎﾝｺﾞ ｶﾞ ｼﾞｮｳｽﾞ ﾀﾞｯﾃ ﾕｯﾀ｡ ## がが ## ガガ")
     }
 
     sub wait() {
