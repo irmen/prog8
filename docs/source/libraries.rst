@@ -483,14 +483,15 @@ Provides string manipulation routines.
     Also, you have to make sure yourself that start and length are within bounds of the strings.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
 
-``find (string, char) -> ubyte index + carry bit``
-    Locates the first position of the given character in the string, returns carry bit set if found
-    and the index in the string. Or 0+carry bit clear if the character was not found.
+``find (string, char) -> ubyte index, bool found``
+    Locates the first index of the given character in the string, and a boolean (in Carry flag)
+    to say if it was found at all. If the character is not found, index 255 (and false) is returned.
     You can consider this a safer way of checking if a character occurs
-    in a string than using an `in` containment check - because the find routine
-    properly stops at the first 0-byte string terminator it encounters.
-    Simply call this and only act on the carry status with ``if_cc`` for example.
-    Much like the difference between len(str) and length(str).
+    in a string than using an `in` containment check - because this find routine
+    properly stops at the first 0-byte string terminator it encounters in case the string was modified.
+
+``rfind (string, char) -> ubyte index, bool found``
+    Like ``find``, but now looking from the *right* of the string instead.
 
 ``contains (string, char) -> bool``
     Just returns true if the character is in the given string, or false if it's not.

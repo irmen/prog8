@@ -68,6 +68,21 @@ string {
         return 255
     }
 
+    sub rfind(uword stringptr, ubyte character) -> ubyte {
+        ; Locates the first position of the given character in the string, starting from the right.
+        ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
+        ; NOTE: because this isn't an asmsub, there's only a SINGLE return value here. On the c64/cx16 targets etc there are 2 return values.
+        ubyte ix
+        for ix in string.length(stringptr)-1 downto 0 {
+            if stringptr[ix]==character {
+                sys.set_carry()
+                return ix
+            }
+        }
+        sys.clear_carry()
+        return 255
+    }
+
     sub contains(str st, ubyte character) -> bool {
         void find(st, character)
         if_cs

@@ -13,6 +13,7 @@
 ; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
 ;       You'll have to make sure yourself that you're not writing outside of bitmap boundaries!
 ;
+; NOTE: the bitmap screen data is positioned in vram at $0:0000
 ;
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
