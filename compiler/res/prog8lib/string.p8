@@ -134,11 +134,11 @@ _startloop	dey
 		; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
-		stx  _comparemod+1
+		stx  P8ZP_SCRATCH_B1
 		ldy  #0
 -		lda  (P8ZP_SCRATCH_W1),y
 		beq  _notfound
-_comparemod		cmp  #0     ; modified
+		cmp  P8ZP_SCRATCH_B1
 		beq  _found
 		iny
 		bne  -
@@ -155,7 +155,7 @@ _found	tya
         ; Locates the first position of the given character in the string, starting from the right.
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
         %asm {{
-            stx  _comparemod+1
+            stx  P8ZP_SCRATCH_B1
             sta  _str
             sty  _str+1
             jsr  string.length
@@ -165,7 +165,7 @@ _found	tya
     		lda  _str+1
     		sta  P8ZP_SCRATCH_W1+1
 -           lda  (P8ZP_SCRATCH_W1),y
-_comparemod cmp  #0     ; modified
+            cmp  P8ZP_SCRATCH_B1
             beq  _found
             dey
             cpy  #255
