@@ -1,7 +1,8 @@
 TODO
 ====
 
-Move vectors such as USRADD in cx16 to cbm block?
+Optimize gfx2 fill_scanline_XXX routines also for the 2bpp modes (4c hires)
+
 
 See open issues on github.
 
@@ -40,7 +41,6 @@ Compiler:
 - do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
 - ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
 - ir: fix call() return value handling
-- ir: add specialized bit test instructions to support "prog8_ifelse_bittest_xxx" see the check in IRCodeGen
 - ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.

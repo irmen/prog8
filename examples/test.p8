@@ -1,64 +1,39 @@
+%import gfx2
 %import textio
-%import string
+%import math
+
 %option no_sysinit
 %zeropage basicsafe
 
 
 main {
-    str large1 = "the quick brown fox jumps over the lazy dog. the quick brown fox jumps over the lazy dog. the quick brown fox jumps over the lazy dog. the quick brown fox jumps over the lazy dog."
-    str large2 = "the quick brown fox jumps over the lazy dog. the quick brown fox jumps over the lazy dog. the quick brown fox jumps over the lazy dog. the quick brown fox jumps over the laxx doggo doggo."
 
     sub start() {
-        txt.nl()
-        check("", "", 0)
-        check("", "a", -1)
-        check("a", "", 1)
-        check("a", "a", 0)
-        check("a", "z", -1)
-        check("z", "a", 1)
-        check("irmen", "irmen", 0)
-        check("irmen", "irmen2", -1)
-        check("irmen2", "irmen", 1)
-        check("irmen", "irxen", -1)
-        check("irmen", "irman", 1)
-        txt.nl()
-
-        bench()     ; orig: 88   (pet: 713)      optimized:   56  451
-        bench2()    ; orig: 131  (pet: 1066)     optimized:   83  674
+        gfx2.screen_mode(2)
+        demofill()
     }
 
-    sub bench2() {
+    sub demofill() {
+        gfx2.circle(160, 120, 110, 1)
+        gfx2.rect(180, 5, 25, 190, 2)
+        gfx2.line(100, 150, 240, 10, 2)
+        gfx2.rect(150, 130, 10, 100, 3)
+
+        sys.wait(30)
+
         cbm.SETTIM(0,0,0)
-        repeat 1000 {
-            bool compare = large1 != large2
-            cx16.r0L++
-            compare = large1 > large2
-            cx16.r0L++
-            compare = large1 <= large2
-        }
-        txt.print_uw(cbm.RDTIM16())
-        txt.nl()
-    }
+        gfx2.fill(100,100,3)
+        gfx2.fill(100,100,2)
+        gfx2.fill(100,100,0)
+        uword duration = cbm.RDTIM16()
+        sys.wait(30)
 
-    sub bench() {
-        cbm.SETTIM(0,0,0)
-        repeat 2000 {
-            void string.compare(large1,large2)
-        }
-        txt.print_uw(cbm.RDTIM16())
+        gfx2.screen_mode(0)
         txt.nl()
-    }
+        txt.print_uw(duration)
+        txt.print(" jiffies\n")
 
-    sub check(str s1, str s2, byte expected) {
-        byte result = string.compare(s1, s2)
-        txt.print(s1)
-        txt.print(" & ")
-        txt.print(s2)
-        txt.print(": ")
-        txt.print_b(result)
-        if result!=expected
-            txt.print("  !wrong!\n")
-        else
-            txt.nl()
+        ; hires 4c before optimizations: ~345 jiffies
+
     }
 }
