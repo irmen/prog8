@@ -255,6 +255,7 @@ gfx2 {
                 ;; color <<= gfx2.plot.shift4c[lsb(xx) & 3]
                 cx16.r2L = lsb(xx) & 3
                 when color & 3 {
+                    0 -> color = 0
                     1 -> color = gfx2.plot.shiftedleft_4c_1[cx16.r2L]
                     2 -> color = gfx2.plot.shiftedleft_4c_2[cx16.r2L]
                     3 -> color = gfx2.plot.shiftedleft_4c_3[cx16.r2L]
@@ -548,6 +549,7 @@ gfx2 {
                 ; color &= 3
                 ; color <<= shift4c[cx16.r2L]
                 when color & 3 {
+                    0 -> color = 0
                     1 -> color = shiftedleft_4c_1[cx16.r2L]
                     2 -> color = shiftedleft_4c_2[cx16.r2L]
                     3 -> color = shiftedleft_4c_3[cx16.r2L]
