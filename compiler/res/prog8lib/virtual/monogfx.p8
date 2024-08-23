@@ -377,7 +377,7 @@ monogfx {
         ; Non-recursive scanline flood fill.
         ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
         ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
-        const ubyte MAXDEPTH = 64
+        const ubyte MAXDEPTH = 100
         word @zp xx = x as word
         word @zp yy = y as word
         word[MAXDEPTH] @split @shared stack_xl
@@ -423,11 +423,10 @@ monogfx {
             while xx >= 0 {
                 if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
                     break
+                plot(xx as uword, yy as uword, cx16.r10L as bool)
                 xx--
             }
-            if x1!=xx
-                horizontal_line(xx as uword+1, yy as uword, x1-xx as uword, cx16.r10L as bool)
-            else
+            if x1==xx
                 goto skip
 
             left = xx + 1
@@ -436,15 +435,12 @@ monogfx {
             xx = x1 + 1
 
             do {
-                cx16.r9 = xx as uword
                 while xx <= width-1 {
                     if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
                         break
+                    plot(xx as uword, yy as uword, cx16.r10L as bool)
                     xx++
                 }
-                if cx16.r9!=xx
-                    horizontal_line(cx16.r9, yy as uword, (xx as uword)-cx16.r9, cx16.r10L as bool)
-
                 push_stack(left, xx - 1, yy, dy)
                 if xx > x2 + 1
                     push_stack(x2 + 1, xx - 1, yy, -dy)

@@ -632,7 +632,7 @@ gfx2 {
         ; Non-recursive scanline flood fill.
         ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
         ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
-        const ubyte MAXDEPTH = 64
+        const ubyte MAXDEPTH = 100
         word @zp xx = x as word
         word @zp yy = y as word
         word[MAXDEPTH] @split @shared stack_xl
