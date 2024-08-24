@@ -112,9 +112,9 @@ string {
 
     sub compare(str st1, str st2) -> byte {
         ; Compares two strings for sorting.
-        ; Returns -1 (255), 0 or 1 depending on wether string1 sorts before, equal or after string2.
+        ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
         ; Note that you can also directly compare strings and string values with eachother using
-        ; comparison operators ==, < etcetera (it will use strcmp for you under water automatically).
+        ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
             loadm.w r65534,string.compare.st1
             loadm.w r65535,string.compare.st2

@@ -248,31 +248,25 @@ _arg_s2		.word  0
 
 strcmp_mem	.proc
 		; --   compares strings in s1 (AY) and s2 (P8ZP_SCRATCH_W2).
-		;      Returns -1,0,1 in A, depeding on the ordering. Clobbers Y.
+		;      Returns -1,0,1 in A, depending on the ordering. Clobbers Y.
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
 		ldy  #0
-_loop		lda  (P8ZP_SCRATCH_W1),y
-		bne  +
-		lda  (P8ZP_SCRATCH_W2),y
-		bne  _return_minusone
-		beq  _return
-+		cmp  (P8ZP_SCRATCH_W2),y
-		bcc  _return_minusone
-		bne  _return_one
-		inc  P8ZP_SCRATCH_W1
-		bne  +
-		inc  P8ZP_SCRATCH_W1+1
-+		inc  P8ZP_SCRATCH_W2
-		bne  _loop
-		inc  P8ZP_SCRATCH_W2+1
-		bne  _loop
-_return_one
+_loop           lda  (P8ZP_SCRATCH_W1),y
+		beq  _c1_zero
+		cmp  (P8ZP_SCRATCH_W2),y
+		beq  _equal
+		bmi  _less
 		lda  #1
-_return		rts
-_return_minusone
-		lda  #-1
 		rts
+_less           lda  #-1
+		rts
+_equal          iny
+		bne  _loop
+_c1_zero        lda  (P8ZP_SCRATCH_W2),y
+		beq  +
+		lda  #-1
++		rts
 		.pend
 
 
