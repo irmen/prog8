@@ -154,7 +154,7 @@ interrupts {
 
     sub set_handler() {
         sys.set_irqd()
-        cx16.CINV = &handler         ; handler for AFLOW
+        cbm.CINV = &handler          ; irq handler for AFLOW
         cx16.VERA_IEN = %00001000    ; enable AFLOW only
         sys.clear_irqd()
     }

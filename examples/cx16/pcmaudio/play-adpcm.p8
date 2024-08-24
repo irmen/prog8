@@ -109,11 +109,11 @@ main {
         when wavfile.nchannels {
             1 -> {
                 cx16.VERA_AUDIO_CTRL = %10101011        ; mono 16 bit, volume 11
-                cx16.CINV = &mono.irq_handler
+                cbm.CINV = &mono.irq_handler
             }
             2 -> {
                 cx16.VERA_AUDIO_CTRL = %10111011        ; stereo 16 bit, volume 11
-                cx16.CINV = &stereo.irq_handler
+                cbm.CINV = &stereo.irq_handler
             }
         }
 

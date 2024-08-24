@@ -6,6 +6,39 @@
 cbm {
     ; Commodore (CBM) common variables, vectors and kernal routines
 
+; irq, system and hardware vectors  (common across cbm machines):
+    &uword  IERROR      = $0300
+    &uword  IMAIN       = $0302
+    &uword  ICRNCH      = $0304
+    &uword  IQPLOP      = $0306
+    &uword  IGONE       = $0308
+    &uword  IEVAL       = $030a
+    &ubyte  SAREG       = $030c     ; register storage for A for SYS calls
+    &ubyte  SXREG       = $030d     ; register storage for X for SYS calls
+    &ubyte  SYREG       = $030e     ; register storage for Y for SYS calls
+    &ubyte  SPREG       = $030f     ; register storage for P (status register) for SYS calls
+    &uword  USRADD      = $0311     ; vector for the USR() basic command
+    ; $0313 is unused.
+    &uword  CINV        = $0314     ; IRQ vector (in ram)
+    &uword  CBINV       = $0316     ; BRK vector (in ram)
+    &uword  NMINV       = $0318     ; NMI vector (in ram)
+    &uword  IOPEN       = $031a
+    &uword  ICLOSE      = $031c
+    &uword  ICHKIN      = $031e
+    &uword  ICKOUT      = $0320
+    &uword  ICLRCH      = $0322
+    &uword  IBASIN      = $0324
+    &uword  IBSOUT      = $0326
+    &uword  ISTOP       = $0328
+    &uword  IGETIN      = $032a
+    &uword  ICLALL      = $032c
+    ; $032e has a X16 specific function (KEYHDL) so you'll find this as cx16.KEYHDL
+    &uword  ILOAD       = $0330
+    &uword  ISAVE       = $0332
+    &uword  NMI_VEC     = $FFFA     ; 65c02 nmi vector, determined by the kernal if banked in
+    &uword  RESET_VEC   = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
+    &uword  IRQ_VEC     = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
+
 
 ; STROUT --> use txt.print
 ; CLEARSCR -> use txt.clear_screen
@@ -117,38 +150,8 @@ asmsub kbdbuf_clear() {
 
 cx16 {
 
-; irq, system and hardware vectors:
-    &uword  IERROR      = $0300
-    &uword  IMAIN       = $0302
-    &uword  ICRNCH      = $0304
-    &uword  IQPLOP      = $0306
-    &uword  IGONE       = $0308
-    &uword  IEVAL       = $030a
-    &ubyte  SAREG       = $030c     ; register storage for A for SYS calls
-    &ubyte  SXREG       = $030d     ; register storage for X for SYS calls
-    &ubyte  SYREG       = $030e     ; register storage for Y for SYS calls
-    &ubyte  SPREG       = $030f     ; register storage for P (status register) for SYS calls
-    &uword  USRADD      = $0311     ; vector for the USR() basic command
-    ; $0313 is unused.
-    &uword  CINV        = $0314     ; IRQ vector (in ram)
-    &uword  CBINV       = $0316     ; BRK vector (in ram)
-    &uword  NMINV       = $0318     ; NMI vector (in ram)
-    &uword  IOPEN       = $031a
-    &uword  ICLOSE      = $031c
-    &uword  ICHKIN      = $031e
-    &uword  ICKOUT      = $0320
-    &uword  ICLRCH      = $0322
-    &uword  IBASIN      = $0324
-    &uword  IBSOUT      = $0326
-    &uword  ISTOP       = $0328
-    &uword  IGETIN      = $032a
-    &uword  ICLALL      = $032c
+; cx16 specific vectors and variables
     &uword  KEYHDL      = $032e     ; keyboard scan code handler see examples/cx16/keyboardhandler.p8
-    &uword  ILOAD       = $0330
-    &uword  ISAVE       = $0332
-    &uword  NMI_VEC     = $FFFA     ; 65c02 nmi vector, determined by the kernal if banked in
-    &uword  RESET_VEC   = $FFFC     ; 65c02 reset vector, determined by the kernal if banked in
-    &uword  IRQ_VEC     = $FFFE     ; 65c02 interrupt vector, determined by the kernal if banked in
 
     &uword  edkeyvec    = $ac03     ; (ram bank 0): for intercepting BASIN/CHRIN key strokes. See set_chrin_keyhandler()
     &ubyte  edkeybk     = $ac05     ; ...the RAM bank of the handler routine, if not in low ram
@@ -1072,8 +1075,8 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
         trb  cx16.VERA_IEN      ; disable all IRQ sources
 +       lda  #<_irq_dispatcher
         ldy  #>_irq_dispatcher
-        sta  cx16.CINV
-        sty  cx16.CINV+1
+        sta  cbm.CINV
+        sty  cbm.CINV+1
         plp
         rts
 
@@ -1398,9 +1401,9 @@ asmsub  init_system()  {
 asmsub  init_system_phase2()  {
     %asm {{
         sei
-        lda  cx16.CINV
+        lda  cbm.CINV
         sta  restore_irq._orig_irqvec
-        lda  cx16.CINV+1
+        lda  cbm.CINV+1
         sta  restore_irq._orig_irqvec+1
         lda  #PROG8_VARSHIGH_RAMBANK
         sta  $00    ; select ram bank
@@ -1438,9 +1441,9 @@ asmsub  set_irq(uword handler @AY) clobbers(A)  {
         sta  _modified+1
         sty  _modified+2
         lda  #<_irq_handler
-        sta  cx16.CINV
+        sta  cbm.CINV
         lda  #>_irq_handler
-        sta  cx16.CINV+1
+        sta  cbm.CINV+1
         lda  #1
         tsb  cx16.VERA_IEN      ; enable the vsync irq
         cli
@@ -1469,9 +1472,9 @@ asmsub  restore_irq() clobbers(A) {
 	%asm {{
 	    sei
 	    lda  _orig_irqvec
-	    sta  cx16.CINV
+	    sta  cbm.CINV
 	    lda  _orig_irqvec+1
-	    sta  cx16.CINV+1
+	    sta  cbm.CINV+1
 	    lda  cx16.VERA_IEN
 	    and  #%11110000     ; disable all Vera IRQs but the vsync
 	    ora  #%00000001
@@ -1498,9 +1501,9 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
             ldy  cx16.r0+1
             jsr  set_rasterline
             lda  #<_raster_irq_handler
-            sta  cx16.CINV
+            sta  cbm.CINV
             lda  #>_raster_irq_handler
-            sta  cx16.CINV+1
+            sta  cbm.CINV+1
             cli
             rts
 
