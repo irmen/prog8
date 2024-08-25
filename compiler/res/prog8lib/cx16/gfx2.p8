@@ -628,8 +628,6 @@ gfx2 {
         }
     }
 
-    ubyte[4] fill_amask = [$c0,$30,$0c,$03] ; array of cmask bytes
-
     sub fill(uword x, uword y, ubyte new_color) {
         ; reuse a few virtual registers in ZP for variables
         &ubyte fillm = &cx16.r7L
@@ -637,6 +635,7 @@ gfx2 {
         &ubyte cmask = &cx16.r8H
         &ubyte vub   = &cx16.r13L
         &ubyte nvub  = &cx16.r13H
+        ubyte[4] amask = [$c0,$30,$0c,$03] ; array of cmask bytes
 
         ; Non-recursive scanline flood fill.
         ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
@@ -793,7 +792,7 @@ skip:
             void gfx2.addr_mul_24_for_highres_4c(yy as uword,vx)
             cx16.r1L |= %0001_1000  ; auto decrement
             set_vera_address()
-            cmask = fill_amask[lsb(vx) & 3]  ; set the color mask for the first color pel
+            cmask = amask[lsb(vx) & 3]  ; set the color mask for the first color pel
 
             repeat {
                 vub = cx16.VERA_DATA0  ; read the VERA color data for 4 pixels
@@ -837,7 +836,7 @@ set_byte:
             void gfx2.addr_mul_24_for_highres_4c(yy as uword,xx as uword)
             cx16.r1L |= %00010000    ; auto increment
             set_vera_address()
-            cmask = fill_amask[lsb(xx) & 3]  ; set the color mask for the first color pel
+            cmask = amask[lsb(xx) & 3]  ; set the color mask for the first color pel
 
             repeat {
                 vub = cx16.VERA_DATA0  ; read the VERA color data for 4 pixels
