@@ -1,6 +1,5 @@
 
-Prog8 compiler v10.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 42f4b06a in branch master
+Prog8 compiler v10.4 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -69,12 +68,14 @@ diskio  {
     f_open_w_seek  (str filename) -> bool 
     f_read  (uword bufferpointer, uword num_bytes) -> uword 
     f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y 
+    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
     f_seek  (uword pos_hiword, uword pos_loword) 
     f_seek_w  (uword pos_hiword, uword pos_loword) 
+    f_tell  () -> uword @R0, uword @R1, uword @R2, uword @R3 
     f_write  (uword bufferpointer, uword num_bytes) -> bool 
     fastmode  (ubyte mode) -> bool 
     internal_f_open_w  (str filename, bool open_for_seeks) -> bool 
+    internal_f_tell  () 
     internal_load_routine  (uword filenameptr, uword address_override, bool headerless) -> uword 
     internal_save_routine  (uword filenameptr, uword startaddress, uword savesize, bool headerless) -> bool 
     lf_end_list  () 
@@ -132,6 +133,7 @@ txt  {
     iso16  () 
     iso5  () 
     iso_off  () 
+    kata  () 
     lowercase  () 
     nl  () 
     petscii2scr  (ubyte petscii_char @A) -> ubyte @A 
@@ -169,6 +171,35 @@ txt  {
 LIBRARY MODULE NAME: syslib
 ---------------------------
 cbm  {
+    &uword  CBINV 
+    &uword  CINV 
+    &uword  IBASIN 
+    &uword  IBSOUT 
+    &uword  ICHKIN 
+    &uword  ICKOUT 
+    &uword  ICLALL 
+    &uword  ICLOSE 
+    &uword  ICLRCH 
+    &uword  ICRNCH 
+    &uword  IERROR 
+    &uword  IEVAL 
+    &uword  IGETIN 
+    &uword  IGONE 
+    &uword  ILOAD 
+    &uword  IMAIN 
+    &uword  IOPEN 
+    &uword  IQPLOP 
+    &uword  IRQ_VEC 
+    &uword  ISAVE 
+    &uword  ISTOP 
+    &uword  NMINV 
+    &uword  NMI_VEC 
+    &uword  RESET_VEC 
+    &ubyte  SAREG 
+    &ubyte  SPREG 
+    &ubyte  SXREG 
+    &ubyte  SYREG 
+    &uword  USRADD 
     ACPTR  () -> ubyte @A = $ffa5
     CHKIN  (ubyte logical @X) -> clobbers (A,X) -> bool @Pc = $ffc6
     CHKOUT  (ubyte logical @X) -> clobbers (A,X) = $ffc9
@@ -217,8 +248,6 @@ cbm  {
 }
 
 cx16  {
-    &uword  CBINV 
-    &uword  CINV 
     const ubyte  EXTAPI16_stack_enter_kernal_stack 
     const ubyte  EXTAPI16_stack_leave_kernal_stack 
     const ubyte  EXTAPI16_stack_pop 
@@ -236,34 +265,8 @@ cx16  {
     const ubyte  EXTAPI_ps2data_fetch 
     const ubyte  EXTAPI_ps2data_raw 
     const ubyte  EXTAPI_ps2kbd_typematic 
-    &uword  IBASIN 
-    &uword  IBSOUT 
-    &uword  ICHKIN 
-    &uword  ICKOUT 
-    &uword  ICLALL 
-    &uword  ICLOSE 
-    &uword  ICLRCH 
-    &uword  ICRNCH 
-    &uword  IERROR 
-    &uword  IEVAL 
-    &uword  IGETIN 
-    &uword  IGONE 
-    &uword  ILOAD 
-    &uword  IMAIN 
-    &uword  IOPEN 
-    &uword  IQPLOP 
-    &uword  IRQ_VEC 
-    &uword  ISAVE 
-    &uword  ISTOP 
+    const ubyte  EXTAPI_scnsiz 
     &uword  KEYHDL 
-    &uword  NMINV 
-    &uword  NMI_VEC 
-    &uword  RESET_VEC 
-    &ubyte  SAREG 
-    &ubyte  SPREG 
-    &ubyte  SXREG 
-    &ubyte  SYREG 
-    &uword  USRADD 
     &uword  VERA_ADDR 
     &ubyte  VERA_ADDR_H 
     &ubyte  VERA_ADDR_L 
@@ -441,6 +444,7 @@ cx16  {
     &word  r9s 
     &byte  r9sH 
     &byte  r9sL 
+    &ubyte  stavec 
     &ubyte  via1acr 
     &ubyte  via1ddra 
     &ubyte  via1ddrb 
@@ -534,7 +538,7 @@ cx16  {
     enter_basic  (bool cold_or_warm @Pc) -> clobbers (A,X,Y) = $ff47
     entropy_get  () -> ubyte @A, ubyte @X, ubyte @Y = $fecf
     extapi  (ubyte callnumber @A) -> clobbers (A,X,Y) = $feab
-    fetch  (ubyte bank @X, ubyte index @Y) -> clobbers (X) -> ubyte @A = $ff74
+    fetch  (ubyte zp_startaddr @A, ubyte bank @X, ubyte index @Y) -> clobbers (X) -> ubyte @A = $ff74
     get_chrin_keyhandler  () -> ubyte @R0, uword @R1 
     get_program_args  (uword buffer @R0, ubyte buf_size @R1, bool binary @Pc) 
     get_screen_mode  () -> ubyte @A, ubyte @X, ubyte @Y 
@@ -559,9 +563,9 @@ cx16  {
     monitor  () -> clobbers (A,X,Y) = $fecc
     mouse_config  (byte shape @A, ubyte resX @X, ubyte resY @Y) -> clobbers (A,X,Y) = $ff68
     mouse_config2  (byte shape @A) -> clobbers (A,X,Y) 
-    mouse_get  (ubyte zpdataptr @X) -> ubyte @A = $ff6b
+    mouse_get  (ubyte zdataptr @X) -> ubyte @A, byte @X = $ff6b
     mouse_get_sprite_offset  () -> clobbers (A,X,Y) -> word @R0, word @R1 
-    mouse_pos  () -> clobbers (X) -> ubyte @A, word @R0, word @R1 
+    mouse_pos  () -> ubyte @A, uword @R0, uword @R1, byte @X 
     mouse_scan  () -> clobbers (A,X,Y) = $ff71
     mouse_set_pos  (uword xpos @R0, uword ypos @R1) -> clobbers (X) 
     mouse_set_sprite_offset  (word xoffset @R0, word yoffset @R1) -> clobbers (A,X,Y) 
@@ -598,9 +602,11 @@ cx16  {
     reset_system  () 
     restore_vera_context  () -> clobbers (A) 
     restore_virtual_registers  () -> clobbers (A,Y) 
+    rom_version  () -> clobbers (Y) -> ubyte @A, bool @Pc 
     rombank  (ubyte bank @A) 
     save_vera_context  () -> clobbers (A) 
     save_virtual_registers  () -> clobbers (A,Y) 
+    scnsiz  (ubyte width @X, ubyte heigth @Y) -> clobbers (A,X,Y) 
     screen_mode  (ubyte mode @A, bool getCurrent @Pc) -> ubyte @A, ubyte @X, ubyte @Y, bool @Pc = $ff5f
     screen_set_charset  (ubyte charset @A, uword charsetptr @XY) -> clobbers (A,X,Y) = $ff62
     search_x16edit  () -> ubyte 
@@ -741,6 +747,7 @@ string  {
     ltrim  (str s) 
     ltrimmed  (str s) -> str 
     pattern_match  (str string @AY, str pattern @R0) -> clobbers (Y) -> bool @A 
+    rfind  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
     right  (uword source @AY, ubyte length @X, uword target @R1) -> clobbers (A,Y) 
     rstrip  (str s) 
     rtrim  (str s) 
@@ -856,9 +863,12 @@ floats  {
     VAL_1  (uword string @XY, ubyte length @A) -> clobbers (A,X,Y) -> float @FAC1 = $fe09
     ZEROFC  () -> clobbers (A,X,Y) = $fe72
     atan  (float value) -> float 
+    atan2  (float y, float x) -> float 
     ceil  (float value) -> float 
     clampf  (float value, float minimum, float maximum) -> float 
     cos  (float angle) -> float 
+    cot  (float value) -> float 
+    csc  (float value) -> float 
     deg  (float angle) -> float 
     floor  (float value) -> float 
     ln  (float value) -> float 
@@ -875,6 +885,7 @@ floats  {
     rnd  () -> float 
     rndseed  (float seed) 
     round  (float value) -> float 
+    secant  (float value) -> float 
     sin  (float angle) -> float 
     tan  (float value) -> float 
     tostr  (float value @FAC1) -> clobbers (X) -> str @AY 
@@ -1077,7 +1088,8 @@ sprites  {
     data  (ubyte spritenum, ubyte bank, uword addr) 
     flipx  (ubyte spritenum, bool flipped) 
     flipy  (ubyte spritenum, bool flipped) 
-    get_data_ptr  (ubyte spritenum) 
+    get_data_ptr  (ubyte spritenum @A) -> ubyte @R1, uword @R0 
+    get_data_ptr_internal  (ubyte spritenum) 
     getx  (ubyte spritenum) -> word 
     gety  (ubyte spritenum) -> word 
     hide  (ubyte spritenum) 

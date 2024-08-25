@@ -1,5 +1,5 @@
-Prog8 compiler v10.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 42f4b06a in branch master
+
+Prog8 compiler v10.4 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -491,7 +491,7 @@ diskio  {
     f_open_w  (uword filenameptr) -> bool 
     f_read  (uword bufferpointer, uword num_bytes) -> uword 
     f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y 
+    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
     f_write  (uword bufferpointer, uword num_bytes) -> bool 
     lf_end_list  () 
     lf_next_entry  () -> bool 
@@ -535,6 +535,7 @@ string  {
     ltrim  (str s) 
     ltrimmed  (str s) -> str 
     pattern_match  (str string @AY, str pattern @R0) -> clobbers (Y) -> bool @A 
+    rfind  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
     right  (uword source @AY, ubyte length @X, uword target @R1) -> clobbers (A,Y) 
     rstrip  (str s) 
     rtrim  (str s) 
@@ -609,9 +610,12 @@ floats  {
     SQRA  () -> clobbers (A,X,Y) = $bf74
     TAN  () -> clobbers (A,X,Y) = $e2b4
     atan  (float value) -> float 
+    atan2  (float y, float x) -> float 
     ceil  (float value) -> float 
     clampf  (float value, float minimum, float maximum) -> float 
     cos  (float angle) -> float 
+    cot  (float value) -> float 
+    csc  (float value) -> float 
     deg  (float angle) -> float 
     floor  (float value) -> float 
     ln  (float value) -> float 
@@ -628,6 +632,7 @@ floats  {
     rnd  () -> float 
     rndseed  (float seed) 
     round  (float value) -> float 
+    secant  (float value) -> float 
     sin  (float angle) -> float 
     tan  (float value) -> float 
     tostr  (float value @FAC1) -> clobbers (X) -> str @AY 
