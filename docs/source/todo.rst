@@ -1,9 +1,6 @@
 TODO
 ====
 
-Optimize gfx2 fill_scanline_XXX routines also for the 2bpp modes (4c hires)
-
-
 See open issues on github.
 
 Re-generate the skeletons doc files.

@@ -628,7 +628,16 @@ gfx2 {
         }
     }
 
+    ubyte[4] fill_amask = [$c0,$30,$0c,$03] ; array of cmask bytes
+
     sub fill(uword x, uword y, ubyte new_color) {
+        ; reuse a few virtual registers in ZP for variables
+        &ubyte fillm = &cx16.r7L
+        &ubyte seedm = &cx16.r8L
+        &ubyte cmask = &cx16.r8H
+        &ubyte vub   = &cx16.r13L
+        &ubyte nvub  = &cx16.r13H
+
         ; Non-recursive scanline flood fill.
         ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
         ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
@@ -708,6 +717,7 @@ gfx2 {
             return
         if xx<0 or xx>width-1 or yy<0 or yy>height-1
             return
+        if gfx2.active_mode == 2 set_color_masks()
         push_stack(xx, xx, yy, 1)
         push_stack(xx, xx, yy + 1, -1)
         word left = 0
@@ -779,30 +789,93 @@ skip:
         }
 
         sub fill_scanline_left_2bpp() -> bool {
-            ; TODO optimize this to use vera auto-decrements, but requires masking etc because of 4 pixels per byte...
-            cx16.r9s = xx
-            while xx >= 0 {
-                if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
-                    break
-                xx--
+            uword vx = xx as uword
+            void gfx2.addr_mul_24_for_highres_4c(yy as uword,vx)
+            cx16.r1L |= %0001_1000  ; auto decrement
+            set_vera_address()
+            cmask = fill_amask[lsb(vx) & 3]  ; set the color mask for the first color pel
+
+            repeat {
+                vub = cx16.VERA_DATA0  ; read the VERA color data for 4 pixels
+                if cmask == $03 {     ; only speed fill from far right
+                    ; speed fill
+                    if vub == seedm { ; all four colors match the seed
+                        nvub = fillm  ; replace all four colors at once
+                        xx -= 4
+                        goto set_byte  ; go on
+                    }
+                }
+
+                ; replace one color at a time
+                nvub = vub
+                while cmask != 0 {
+                    if vub & cmask == seedm & cmask {
+                        nvub &= ~cmask
+                        nvub |= cmask & fillm
+;                        %asm{{
+;                            lda  p8v_cmask
+;                            trb  p8v_nvub
+;                            and  p8v_fillm
+;                            tsb  p8v_nvub
+;                        }}
+                        xx--
+                        cmask <<= 2
+                    } else { ; not the seed color, finish here
+                        cx16.VERA_DATA1 = nvub
+                        return vx == xx
+                    }
+                }
+set_byte:
+                cx16.VERA_DATA1 = nvub
+                if xx <= 0 break
+                cmask = $03
             }
-            if xx!=cx16.r9s {
-                horizontal_line(xx+1 as uword, yy as uword, cx16.r9s-xx as uword, cx16.r10L)
-                return false
-            }
-            return true
+            return vx == xx
         }
 
         sub fill_scanline_right_2bpp() {
-            ; TODO optimize this to use vera auto-increments, but requires masking etc because of 4 pixels per byte...
-            cx16.r9s = xx
-            while xx <= width-1 {
-                if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
-                    break
-                xx++
+            void gfx2.addr_mul_24_for_highres_4c(yy as uword,xx as uword)
+            cx16.r1L |= %00010000    ; auto increment
+            set_vera_address()
+            cmask = fill_amask[lsb(xx) & 3]  ; set the color mask for the first color pel
+
+            repeat {
+                vub = cx16.VERA_DATA0  ; read the VERA color data for 4 pixels
+                ; speed fill
+                if vub == seedm { ; all four colors match the seed
+                    nvub = fillm  ; replace all four colors at once
+                    xx += 4
+                    goto set_byte   ; go on
+                }
+                ; replace one color at a time
+                nvub = vub
+                while cmask != 0 {
+                    if vub & cmask == seedm & cmask {
+                        nvub &= ~cmask
+                        nvub |= cmask & fillm
+;                        %asm{{
+;                            lda  p8v_cmask
+;                            trb  p8v_nvub
+;                            and  p8v_fillm
+;                            tsb  p8v_nvub
+;                        }}
+                        xx++
+                        cmask >>= 2
+                    } else { ; not the seed color finish here
+                        cx16.VERA_DATA1 = nvub
+                        return
+                    }
+                }
+set_byte:
+                cx16.VERA_DATA1 = nvub
+                if xx >= gfx2.width-1 break
+                cmask = $C0
             }
-            if xx!=cx16.r9s
-                horizontal_line(cx16.r9, yy as uword, xx-cx16.r9s as uword, cx16.r10L)
+        }
+
+        sub set_color_masks() {
+            seedm = cx16.r11L | (cx16.r11L<<2) | (cx16.r11L<<4) | (cx16.r11L<<6) ; seed mask
+            fillm = cx16.r10L | (cx16.r10L<<2) | (cx16.r10L<<4) | (cx16.r10L<<6) ; fill mask
         }
     }
 
