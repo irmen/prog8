@@ -644,6 +644,7 @@ gfx2 {
         word x2
         byte dy
         cx16.r10L = new_color
+
         sub push_stack(word sxl, word sxr, word sy, byte sdy) {
             if cx16.r12L==MAXDEPTH
                 return
@@ -741,16 +742,20 @@ skip:
             } until xx>x2
         }
 
+        sub set_vera_address() {
+            ; set both data0 and data1 addresses (expects H in R1L, M/L in R0)
+            cx16.VERA_CTRL = 0
+            cx16.VERA_ADDR_H = cx16.r1L
+            cx16.VERA_ADDR = cx16.r0
+            cx16.VERA_CTRL = 1
+            cx16.VERA_ADDR_H = cx16.r1L
+            cx16.VERA_ADDR = cx16.r0
+        }
+
         sub fill_scanline_left_8bpp() -> bool {
             void addr_mul_24_for_lores_256c(yy as uword, xx as uword)      ; 24 bits result is in r0 and r1L (highest byte)
-            cx16.VERA_CTRL = 0
-            cx16.VERA_ADDR_H = cx16.r1L | %00011000     ; auto decrement enabled
-            cx16.VERA_ADDR_M = cx16.r0H
-            cx16.VERA_ADDR_L = cx16.r0L
-            cx16.VERA_CTRL = 1
-            cx16.VERA_ADDR_H = cx16.r1L | %00011000     ; auto decrement enabled
-            cx16.VERA_ADDR_M = cx16.r0H
-            cx16.VERA_ADDR_L = cx16.r0L
+            cx16.r1L |= %00011000     ; auto decrement enabled
+            set_vera_address()
             cx16.r9s = xx
             while xx >= 0 {
                 if cx16.VERA_DATA0 != cx16.r11L
@@ -763,14 +768,8 @@ skip:
 
         sub fill_scanline_right_8bpp() {
             void addr_mul_24_for_lores_256c(yy as uword, xx as uword)      ; 24 bits result is in r0 and r1L (highest byte)
-            cx16.VERA_CTRL = 0
-            cx16.VERA_ADDR_H = cx16.r1L | %00010000     ; auto increment enabled
-            cx16.VERA_ADDR_M = cx16.r0H
-            cx16.VERA_ADDR_L = cx16.r0L
-            cx16.VERA_CTRL = 1
-            cx16.VERA_ADDR_H = cx16.r1L | %00010000     ; auto increment enabled
-            cx16.VERA_ADDR_M = cx16.r0H
-            cx16.VERA_ADDR_L = cx16.r0L
+            cx16.r1L |= %00010000    ; auto increment enabled
+            set_vera_address()
             while xx <= width-1 {
                 if cx16.VERA_DATA0 != cx16.r11L
                     break
