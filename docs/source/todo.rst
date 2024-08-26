@@ -11,7 +11,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- Relax newline / bracket in parser so that you can put open and close brackets on the same line or on the next line if you so wish. For example be able to write a true one liner?
 - Can we support signed % (remainder) somehow?
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
 - expand the kata encoding to somehow translate normal katana to half-widths?  (see comment in KatakanaEncoding)
@@ -72,6 +71,7 @@ Optimizations:
 STRUCTS?
 --------
 
+- declare struct *type*, or directly declare the variable itself?  Problem with the latter is: you cannot easily define multiple variables of the same struct type.
 - can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs
 - only as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
 - arrays of struct is just an array of uword pointers. Can even be @split?

@@ -1046,4 +1046,14 @@ main {
         (assigns[3].value as NumericLiteral).number shouldBe 3000001.141592654
     }
 
+    test("oneliner") {
+        val src="""
+            main { sub start() { cx16.r0++ cx16.r1++ } }
+            other { asmsub thing() { %asm {{ inx }} } }
+        """;
+        val result = compileText(VMTarget(),  false, src, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 2
+    }
+
 })

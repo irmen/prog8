@@ -256,7 +256,7 @@ inlineir: '%ir' EOL? INLINEASMBLOCK;
 inline: 'inline';
 
 subroutine :
-	'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL)
+	'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
 	;
 
 sub_return_part : '->' datatype  ;
@@ -271,7 +271,7 @@ statement_block :
 sub_params :  vardecl (',' EOL? vardecl)* ;
 
 asmsubroutine :
-    inline? 'asmsub' asmsub_decl EOL? (statement_block EOL)
+    inline? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
     ;
 
 romsubroutine :
