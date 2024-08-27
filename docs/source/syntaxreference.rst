@@ -75,8 +75,8 @@ Directives
       during normal system operation.
       When the program exits, it simply returns to the BASIC ready prompt.
     - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
-      except the few addresses mentioned above that are used by the system's IRQ routine.
-      Even though the default IRQ routine is still active, it is impossible to use most BASIC and Kernal ROM routines.
+      except for a few addresses that are used by the system's IRQ handler.
+      Even though that default IRQ handler is still active, it is impossible to use most BASIC and Kernal ROM routines.
       This includes many floating point operations and several utility routines that do I/O, such as ``print``.
       This option makes programs smaller and faster because even more variables can
       be stored in the ZP (which allows for more efficient assembly code).

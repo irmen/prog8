@@ -166,19 +166,24 @@ They take care of saving and restoring the Vera state of the interrupted main pr
 will corrupt any Vera operations that were going on in the main program. The routines are::
 
     cx16.save_vera_context()
-    ; perhaps also cx16.save_virtual_registers() here...
+    ; perhaps also cx16.save_virtual_registers() here... see caution below
     ; ... do your work that uses vera here!...
-    ; perhaps also cx16.restore_virtual_registers() here...
+    ; perhaps also cx16.restore_virtual_registers() here... see caution below
     cx16.restore_vera_context()
 
 .. caution::
-    The Commander X16's 16 'virtual registers' R0-R15 are located in zeropage and *are not preserved* in the IRQ handler!
+    The Commander X16's 16 'virtual registers' R0-R15 *are not preserved* in the IRQ handler! (On any system!)
     So you should make sure that the handler routine does NOT use these registers, or do some sort of saving/restoring yourself
-    of the ones that you do need in the IRQ handler.
-    There are two utility routines in cx16 that save and restore *all* 16 registers so it's a bit inefficient but safe.
-    (these are ``save_virtual_registers()`` and ``restore_virtual_registers()``)
+    of the ones that you do need in the IRQ handler.  Note that Prog8 itself may also use these registers, so be very careful.
+    This is not a X16 specific thing; these registers also exist on the other compiler targets, and the same
+    issue holds there.
 
-    It is also advised to not use floating point calculations inside IRQ handler routines.
+    There are two utility routines in cx16 that save and restore *all* 16 registers. It's a bit inefficient if
+    only a few are clobbered, but it's easy to put calls to them into your IRQ handler routine at the start and end.
+    These routines are ``cx16.save_virtual_registers()`` and ``cx16.restore_virtual_registers()``.
+
+
+    It is also advised to **not use floating point calculations** inside IRQ handler routines.
     Beside them being very slow, there are intricate requirements such as having the
     correct ROM bank enabled to be able to successfully call them (and making sure the correct
     ROM bank is reset at the end of the handler), and the possibility
