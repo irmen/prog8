@@ -138,7 +138,15 @@ sprites {
     }
 
     sub hide(ubyte spritenum) {
-        pos(spritenum, -64, -64)
+        cx16.vpoke_and(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11110011)
+    }
+
+    sub show(ubyte spritenum) {
+        cx16.vpoke_or(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %00001100)
+    }
+
+    sub zdepth(ubyte spritenum, ubyte depth) {
+        cx16.vpoke_mask(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11110011, depth<<2)
     }
 
     sub flipx(ubyte spritenum, bool flipped) {
