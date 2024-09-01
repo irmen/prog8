@@ -6,7 +6,7 @@ import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.intermediate.*
 import java.awt.Color
 import java.awt.Toolkit
-import java.util.*
+import kotlin.collections.ArrayDeque
 import kotlin.math.*
 import kotlin.random.Random
 
@@ -39,8 +39,8 @@ class VirtualMachine(irProgram: IRProgram) {
     val program: List<IRCodeChunk>
     val artificialLabelAddresses: Map<Int, IRCodeChunk>
     val registers = Registers()
-    val callStack = Stack<CallSiteContext>()
-    val valueStack = Stack<UByte>()       // max 128 entries
+    val callStack = ArrayDeque<CallSiteContext>()
+    val valueStack = ArrayDeque<UByte>()       // max 128 entries
     var breakpointHandler: ((pcChunk: IRCodeChunk, pcIndex: Int) -> Unit)? = null       // can set custom breakpoint handler
     var pcChunk = IRCodeChunk(null, null)
     var pcIndex = 0
@@ -360,7 +360,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val value = registers.getUB(i.reg1!!)
-                valueStack.push(value)
+                valueStack.add(value)
             }
             IRDataType.WORD -> {
                 val value = registers.getUW(i.reg1!!)
@@ -376,7 +376,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsPOP(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> setResultReg(i.reg1!!, valueStack.pop().toInt(), i.type!!)
+            IRDataType.BYTE -> setResultReg(i.reg1!!, valueStack.removeLast().toInt(), i.type!!)
             IRDataType.WORD -> setResultReg(i.reg1!!, valueStack.popw().toInt(), i.type!!)
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, valueStack.popf())
         }
@@ -392,12 +392,12 @@ class VirtualMachine(irProgram: IRProgram) {
         if(statusCarry)
             status = status or 0b00000001u
         // TODO overflow not yet supported
-        valueStack.push(status)
+        valueStack.add(status)
         nextPc()
     }
 
     private fun InsPOPST() {
-        val status = valueStack.pop().toInt()
+        val status = valueStack.removeLast().toInt()
         statusNegative = status and 0b10000000 != 0
         statusZero = status and 0b00000010 != 0
         statusCarry = status and 0b00000001 != 0
@@ -411,7 +411,7 @@ class VirtualMachine(irProgram: IRProgram) {
             if(value.dt==null)
                 break
             when(value.dt!!) {
-                IRDataType.BYTE -> valueStack.push(value.value as UByte)
+                IRDataType.BYTE -> valueStack.add(value.value as UByte)
                 IRDataType.WORD -> valueStack.pushw(value.value as UShort)
                 IRDataType.FLOAT -> valueStack.pushf(value.value as Double)
             }
@@ -633,7 +633,7 @@ class VirtualMachine(irProgram: IRProgram) {
             }
         }
         // store the call site and jump
-        callStack.push(CallSiteContext(pcChunk, pcIndex+1, i.fcallArgs!!))
+        callStack.add(CallSiteContext(pcChunk, pcIndex+1, i.fcallArgs!!))
         branchTo(i)
     }
 
@@ -641,7 +641,7 @@ class VirtualMachine(irProgram: IRProgram) {
         if(callStack.isEmpty())
             exit(0)
         else {
-            val context = callStack.pop()
+            val context = callStack.removeLast()
             pcChunk = context.returnChunk
             pcIndex = context.returnIndex
             // ignore any return values.
@@ -652,7 +652,7 @@ class VirtualMachine(irProgram: IRProgram) {
         if(callStack.isEmpty())
             exit(0)
         else {
-            val context = callStack.pop()
+            val context = callStack.removeLast()
             val returns = context.fcallSpec.returns
             when (i.type!!) {
                 IRDataType.BYTE -> {
@@ -1487,16 +1487,16 @@ class VirtualMachine(irProgram: IRProgram) {
         val right = registers.getUB(reg2)
         val division = if(right==0.toUByte()) 0xffu else left / right
         val remainder = if(right==0.toUByte()) 0u else left % right
-        valueStack.push(division.toUByte())
-        valueStack.push(remainder.toUByte())
+        valueStack.add(division.toUByte())
+        valueStack.add(remainder.toUByte())
     }
 
     private fun divAndModConstUByte(reg1: Int, value: UByte) {
         val left = registers.getUB(reg1)
         val division = if(value==0.toUByte()) 0xffu else left / value
         val remainder = if(value==0.toUByte()) 0u else left % value
-        valueStack.push(division.toUByte())
-        valueStack.push(remainder.toUByte())
+        valueStack.add(division.toUByte())
+        valueStack.add(remainder.toUByte())
     }
 
     private fun divAndModUWord(reg1: Int, reg2: Int) {
@@ -2491,47 +2491,47 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 }
 
-internal fun Stack<UByte>.pushw(value: UShort) {
-    push((value and 255u).toUByte())
-    push((value.toInt() ushr 8).toUByte())
+internal fun ArrayDeque<UByte>.pushw(value: UShort) {
+    add((value and 255u).toUByte())
+    add((value.toInt() ushr 8).toUByte())
 }
 
-internal fun Stack<UByte>.pushf(value: Double) {
+internal fun ArrayDeque<UByte>.pushf(value: Double) {
     // push float; lsb first, msb last
     var bits = value.toBits()
-    push(bits.toUByte())
+    add(bits.toUByte())
     bits = bits ushr 8
-    push(bits.toUByte())
+    add(bits.toUByte())
     bits = bits ushr 8
-    push(bits.toUByte())
+    add(bits.toUByte())
     bits = bits ushr 8
-    push(bits.toUByte())
+    add(bits.toUByte())
     bits = bits ushr 8
-    push(bits.toUByte())
+    add(bits.toUByte())
     bits = bits ushr 8
-    push(bits.toUByte())
+    add(bits.toUByte())
     bits = bits ushr 8
-    push(bits.toUByte())
+    add(bits.toUByte())
     bits = bits ushr 8
-    push(bits.toUByte())
+    add(bits.toUByte())
 }
 
-internal fun Stack<UByte>.popw(): UShort {
-    val msb = pop()
-    val lsb = pop()
+internal fun ArrayDeque<UByte>.popw(): UShort {
+    val msb = removeLast()
+    val lsb = removeLast()
     return ((msb.toInt() shl 8) + lsb.toInt()).toUShort()
 }
 
-internal fun Stack<UByte>.popf(): Double {
+internal fun ArrayDeque<UByte>.popf(): Double {
     // pop float; lsb is on bottom, msb on top
-    val b0 = pop().toLong()
-    val b1 = pop().toLong()
-    val b2 = pop().toLong()
-    val b3 = pop().toLong()
-    val b4 = pop().toLong()
-    val b5 = pop().toLong()
-    val b6 = pop().toLong()
-    val b7 = pop().toLong()
+    val b0 = removeLast().toLong()
+    val b1 = removeLast().toLong()
+    val b2 = removeLast().toLong()
+    val b3 = removeLast().toLong()
+    val b4 = removeLast().toLong()
+    val b5 = removeLast().toLong()
+    val b6 = removeLast().toLong()
+    val b7 = removeLast().toLong()
     val bits = b7 +
             (1L shl 8)*b6 +
             (1L shl 16)*b5 +

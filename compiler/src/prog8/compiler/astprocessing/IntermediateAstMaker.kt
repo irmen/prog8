@@ -11,9 +11,9 @@ import prog8.ast.statements.*
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.compiler.builtinFunctionReturnType
-import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
+import java.io.File
 
 
 /**

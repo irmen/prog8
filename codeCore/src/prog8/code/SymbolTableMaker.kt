@@ -3,7 +3,8 @@ package prog8.code
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.target.VMTarget
-import java.util.*
+import kotlin.collections.ArrayDeque
+
 
 class SymbolTableMaker(private val program: PtProgram, private val options: CompilationOptions) {
     fun make(): SymbolTable {
@@ -13,8 +14,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             st.add(StNode(it.key, StNodeType.BUILTINFUNC, PtIdentifier(it.key, it.value.returnType ?: DataType.UNDEFINED, Position.DUMMY)))
         }
 
-        val scopestack = Stack<StNode>()
-        scopestack.push(st)
+        val scopestack = ArrayDeque<StNode>()
+        scopestack.add(st)
         program.children.forEach {
             addToSt(it, scopestack)
         }
@@ -35,7 +36,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         return st
     }
 
-    private fun addToSt(node: PtNode, scope: Stack<StNode>) {
+    private fun addToSt(node: PtNode, scope: ArrayDeque<StNode>) {
         val stNode = when(node) {
             is PtAsmSub -> {
                 val parameters = node.parameters.map { StRomSubParameter(it.first, it.second.type) }
@@ -104,7 +105,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     val size = (node.args[1] as PtNumber).number.toUInt()
                     val align = (node.args[2] as PtNumber).number.toUInt()
                     // don't add memory slabs in nested scope, just put them in the top level of the ST
-                    scope.firstElement().add(StMemorySlab("prog8_memoryslab_$slabname", size, align, node))
+                    scope.first().add(StMemorySlab("prog8_memoryslab_$slabname", size, align, node))
                 }
                 null
             }
@@ -112,14 +113,14 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         }
 
         if(stNode!=null) {
-            scope.peek().add(stNode)
-            scope.push(stNode)
+            scope.last().add(stNode)
+            scope.add(stNode)
         }
         node.children.forEach {
             addToSt(it, scope)
         }
         if(stNode!=null)
-            scope.pop()
+            scope.removeLast()
     }
 
     private fun makeInitialArray(value: PtArray): List<StArrayElement> {

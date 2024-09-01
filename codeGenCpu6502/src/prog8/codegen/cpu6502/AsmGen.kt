@@ -9,7 +9,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
 import prog8.codegen.cpu6502.assignment.*
-import java.util.*
+import kotlin.collections.ArrayDeque
 import kotlin.io.path.Path
 import kotlin.io.path.writeLines
 
@@ -772,7 +772,7 @@ class AsmGen6502Internal (
 
     private fun translate(stmt: PtRepeatLoop) {
         val endLabel = makeLabel("repeatend")
-        loopEndLabels.push(endLabel)
+        loopEndLabels.add(endLabel)
 
         when (stmt.count) {
             is PtNumber -> {
@@ -816,7 +816,7 @@ class AsmGen6502Internal (
             }
         }
 
-        loopEndLabels.pop()
+        loopEndLabels.removeLast()
     }
 
     private fun repeatWordCount(iterations: Int, stmt: PtRepeatLoop) {

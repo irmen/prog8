@@ -1,7 +1,7 @@
 package prog8.ast.expressions
 
 import prog8.code.core.*
-import java.util.*
+import java.util.Objects
 
 
 object InferredTypes {

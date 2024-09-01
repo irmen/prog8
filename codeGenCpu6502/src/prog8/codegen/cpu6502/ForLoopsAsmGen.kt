@@ -37,7 +37,7 @@ internal class ForLoopsAsmGen(
         val endLabel = asmgen.makeLabel("for_end")
         val modifiedLabel = asmgen.makeLabel("for_modified")
         val modifiedLabel2 = asmgen.makeLabel("for_modifiedb")
-        asmgen.loopEndLabels.push(endLabel)
+        asmgen.loopEndLabels.add(endLabel)
         val stepsize=range.step.asConstInteger()!!
 
         if(stepsize < -1) {
@@ -277,7 +277,7 @@ $endLabel""")
             else -> throw AssemblyError("range expression can only be byte or word")
         }
 
-        asmgen.loopEndLabels.pop()
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun precheckFromToWord(iterableDt: DataType, stepsize: Int, fromVar: String, endLabel: String) {
@@ -333,7 +333,7 @@ $endLabel""")
     private fun translateForOverIterableVar(stmt: PtForLoop, iterableDt: DataType, ident: PtIdentifier) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
-        asmgen.loopEndLabels.push(endLabel)
+        asmgen.loopEndLabels.add(endLabel)
         val iterableName = asmgen.asmVariableName(ident)
         val numElements = when(val symbol = asmgen.symbolTable.lookup(ident.name)) {
             is StStaticVariable -> symbol.length!!
@@ -477,7 +477,7 @@ $loopLabel          sty  $indexVar
             }
             else -> throw AssemblyError("can't iterate over $iterableDt")
         }
-        asmgen.loopEndLabels.pop()
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun translateForOverConstRange(stmt: PtForLoop, iterableDt: DataType, range: IntProgression) {
@@ -495,7 +495,7 @@ $loopLabel          sty  $indexVar
         // not one of the easy cases, generate more complex code...
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
-        asmgen.loopEndLabels.push(endLabel)
+        asmgen.loopEndLabels.add(endLabel)
         when(iterableDt) {
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
                 // loop over byte range via loopvar, step >= 2 or <= -2
@@ -601,13 +601,13 @@ $loopLabel""")
             }
             else -> throw AssemblyError("range expression can only be byte or word")
         }
-        asmgen.loopEndLabels.pop()
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun translateForSimpleByteRangeAsc(stmt: PtForLoop, range: IntProgression) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
-        asmgen.loopEndLabels.push(endLabel)
+        asmgen.loopEndLabels.add(endLabel)
         val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
                 lda  #${range.first}
@@ -627,13 +627,13 @@ $endLabel""")
                 bne  $loopLabel
 $endLabel""")
         }
-        asmgen.loopEndLabels.pop()
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun translateForSimpleByteRangeDesc(stmt: PtForLoop, range: IntProgression) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
-        asmgen.loopEndLabels.push(endLabel)
+        asmgen.loopEndLabels.add(endLabel)
         val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
                     lda  #${range.first}
@@ -664,13 +664,13 @@ $endLabel""")
 $endLabel""")
             }
         }
-        asmgen.loopEndLabels.pop()
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun translateForSimpleWordRangeAsc(stmt: PtForLoop, range: IntProgression) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
-        asmgen.loopEndLabels.push(endLabel)
+        asmgen.loopEndLabels.add(endLabel)
         val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
             lda  #<${range.first}
@@ -691,13 +691,13 @@ $loopLabel""")
             inc  $varname+1""")
         asmgen.jmp(loopLabel)
         asmgen.out(endLabel)
-        asmgen.loopEndLabels.pop()
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun translateForSimpleWordRangeDesc(stmt: PtForLoop, range: IntProgression) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
-        asmgen.loopEndLabels.push(endLabel)
+        asmgen.loopEndLabels.add(endLabel)
         val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
             lda  #<${range.first}
@@ -719,7 +719,7 @@ $loopLabel""")
 +           dec  $varname""")
         asmgen.jmp(loopLabel)
         asmgen.out(endLabel)
-        asmgen.loopEndLabels.pop()
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun assignLoopvarWord(stmt: PtForLoop, range: PtRange) =

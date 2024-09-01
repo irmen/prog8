@@ -1,7 +1,7 @@
 package prog8.code.ast
 
 import prog8.code.core.*
-import java.util.*
+import java.util.Objects
 import kotlin.math.abs
 import kotlin.math.truncate
 
@@ -227,12 +227,6 @@ class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) 
 
 
 class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOOL, position) {
-
-    companion object {
-        fun fromNumber(number: Number, position: Position): PtBool =
-            PtBool(number != 0.0, position)
-    }
-
     override fun hashCode(): Int = Objects.hash(type, value)
 
     override fun equals(other: Any?): Boolean {
