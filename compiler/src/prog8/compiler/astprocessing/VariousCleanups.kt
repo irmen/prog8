@@ -97,16 +97,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
         }
 
-        if(!options.strictBool && expr.operator=="not") {
-            if(expr.expression.inferType(program).isBytes) {
-                // not bytevalue --> bytevalue==0
-                val cmp = BinaryExpression(expr.expression, "==",
-                    NumericLiteral(expr.expression.inferType(program).getOr(DataType.UNDEFINED), 0.0, expr.expression.position),
-                    expr.expression.position)
-                return listOf(IAstModification.ReplaceNode(expr, cmp, parent))
-            }
-        }
-
         return noModifications
     }
 

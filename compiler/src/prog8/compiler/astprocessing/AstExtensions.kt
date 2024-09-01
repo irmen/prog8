@@ -92,8 +92,8 @@ internal fun Program.addTypecasts(errors: IErrorReporter, options: CompilationOp
     caster.applyModifications()
 }
 
-fun Program.desugaring(errors: IErrorReporter, options: CompilationOptions) {
-    val desugar = CodeDesugarer(this, options, errors)
+fun Program.desugaring(errors: IErrorReporter) {
+    val desugar = CodeDesugarer(this, errors)
     desugar.visit(this)
     while(errors.noErrors() && desugar.applyModifications()>0)
         desugar.visit(this)

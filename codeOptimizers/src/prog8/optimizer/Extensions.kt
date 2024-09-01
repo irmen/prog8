@@ -59,8 +59,8 @@ fun Program.inlineSubroutines(options: CompilationOptions): Int {
     return inliner.applyModifications()
 }
 
-fun Program.simplifyExpressions(errors: IErrorReporter, options: CompilationOptions) : Int {
-    val opti = ExpressionSimplifier(this, options, errors)
+fun Program.simplifyExpressions(errors: IErrorReporter) : Int {
+    val opti = ExpressionSimplifier(this, errors)
     opti.visit(this)
     return opti.applyModifications()
 }

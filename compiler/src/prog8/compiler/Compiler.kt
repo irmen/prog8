@@ -54,7 +54,6 @@ class CompilerArguments(val filepath: Path,
                         val breakpointCpuInstruction: String?,
                         val printAst1: Boolean,
                         val printAst2: Boolean,
-                        val strictBool: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -91,7 +90,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 splitWordArrays = args.splitWordArrays
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
-                strictBool = args.strictBool
             }
             resultingProgram = program
             importedFiles = imported
@@ -412,7 +410,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.reorderStatements(errors)
     errors.report()
-    program.desugaring(errors, compilerOptions)
+    program.desugaring(errors)
     errors.report()
     program.changeNotExpressionAndIfComparisonExpr(errors, compilerOptions.compTarget)
     errors.report()
@@ -438,7 +436,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     removeUnusedCode(program, errors,compilerOptions)
     while (true) {
         // keep optimizing expressions and statements until no more steps remain
-        val optsDone1 = program.simplifyExpressions(errors, compilerOptions)
+        val optsDone1 = program.simplifyExpressions(errors)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
         val optsDone3 = program.inlineSubroutines(compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
@@ -452,7 +450,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     removeUnusedCode(program, errors, compilerOptions)
     if(errors.noErrors()) {
         // last round of optimizations because constFold may have enabled more...
-        program.simplifyExpressions(errors, compilerOptions)
+        program.simplifyExpressions(errors)
         program.optimizeStatements(errors, functions, compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
     }
@@ -461,7 +459,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
 }
 
 private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    program.desugaring(errors, compilerOptions)
+    program.desugaring(errors)
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(errors, compilerOptions)

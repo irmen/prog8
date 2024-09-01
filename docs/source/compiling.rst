@@ -155,10 +155,6 @@ One or more .p8 module files
     Don't perform any code optimizations.
     Useful for debugging or faster compilation cycles.
 
-``-nostrictbool``
-    Relax the strict boolean type checks: bytes and booleans can be interchanged again without explicit type casts.
-    *This option will likely disappear in a future prog8 version, so you may want to prepare for that in your code!*
-
 ``-optfloatx``
     Also optimize float expressions if optimizations are enabled.
     Warning: can increase program size significantly if a lot of floating point expressions are used.

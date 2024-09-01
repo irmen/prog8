@@ -11,9 +11,9 @@ import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 import kotlin.math.abs
 import kotlin.math.log2
-import kotlin.math.pow
 
-class ExpressionSimplifier(private val program: Program, private val options: CompilationOptions, private val errors: IErrorReporter) : AstWalker() {
+
+class ExpressionSimplifier(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         val mods = mutableListOf<IAstModification>()
 
@@ -246,20 +246,15 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
                 }
             }
             if (rightVal?.number == 1.0) {
-                if (options.strictBool) {
-                    if (rightDt != leftDt) {
-                        val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
-                        return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
-                    }
-                } else
-                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                if (rightDt != leftDt) {
+                    val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
+                    return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                }
             }
             else if (rightVal?.number == 0.0) {
-                if (options.strictBool) {
-                    if (rightDt != leftDt) {
-                        val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
-                        return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
-                    }
+                if (rightDt != leftDt) {
+                    val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
+                    return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
         }
@@ -274,21 +269,16 @@ class ExpressionSimplifier(private val program: Program, private val options: Co
                 }
             }
             if (rightVal?.number == 1.0) {
-                if(options.strictBool) {
-                    if(rightDt!=leftDt) {
-                        val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
-                        return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
-                    }
+                if(rightDt!=leftDt) {
+                    val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
+                    return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
             else if (rightVal?.number == 0.0) {
-                if(options.strictBool) {
-                    if(rightDt!=leftDt) {
-                        val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
-                        return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
-                    }
-                } else
-                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                if(rightDt!=leftDt) {
+                    val right = NumericLiteral(leftDt, rightVal.number, rightVal.position)
+                    return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                }
             }
         }
 

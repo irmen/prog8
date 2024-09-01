@@ -490,8 +490,7 @@ internal class ConstantIdentifierReplacer(
                 if(numericLv!=null) {
                     // arraysize initializer is a single value, and we know the array size.
                     if(numericLv.type!=DataType.BOOL) {
-                        if(options.strictBool || numericLv.type !in ByteDatatypes)
-                            errors.err("initializer value is not a boolean", numericLv.position)
+                        errors.err("initializer value is not a boolean", numericLv.position)
                         return null
                     }
                     val array = Array(size) {numericLv.number}.map { NumericLiteral(DataType.BOOL, it, numericLv.position) }.toTypedArray<Expression>()

@@ -163,9 +163,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(ifElse: IfElse) {
         if(!ifElse.condition.inferType(program).isBool) {
-            val ctype = ifElse.condition.inferType(program).getOr(DataType.UNDEFINED)
-            if(compilerOptions.strictBool || ctype !in ByteDatatypes)
-                errors.err("condition should be a boolean", ifElse.condition.position)
+            errors.err("condition should be a boolean", ifElse.condition.position)
         }
 
         val constvalue = ifElse.condition.constValue(program)
@@ -506,9 +504,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(untilLoop: UntilLoop) {
         if(!untilLoop.condition.inferType(program).isBool) {
-            val ctype = untilLoop.condition.inferType(program).getOr(DataType.UNDEFINED)
-            if(compilerOptions.strictBool || ctype !in ByteDatatypes)
-                errors.err("condition should be a boolean", untilLoop.condition.position)
+            errors.err("condition should be a boolean", untilLoop.condition.position)
         }
 
         super.visit(untilLoop)
@@ -516,9 +512,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(whileLoop: WhileLoop) {
         if(!whileLoop.condition.inferType(program).isBool) {
-            val ctype = whileLoop.condition.inferType(program).getOr(DataType.UNDEFINED)
-            if(compilerOptions.strictBool || ctype !in ByteDatatypes)
-                errors.err("condition should be a boolean", whileLoop.condition.position)
+            errors.err("condition should be a boolean", whileLoop.condition.position)
         }
 
         super.visit(whileLoop)
@@ -780,12 +774,8 @@ internal class AstChecker(private val program: Program,
             if (iDt isnot decl.datatype) {
                 if(decl.isArray) {
                     val eltDt = ArrayToElementTypes.getValue(decl.datatype)
-                    if(iDt isnot eltDt) {
-                        if(compilerOptions.strictBool)
-                            err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
-                        else if(!(iDt.isBool && eltDt==DataType.UBYTE || iDt.istype(DataType.UBYTE) && eltDt==DataType.BOOL))
-                            err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
-                    }
+                    if(iDt isnot eltDt)
+                        err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 } else {
                     if(!(iDt.isBool && decl.datatype==DataType.UBYTE || iDt.istype(DataType.UBYTE) && decl.datatype==DataType.BOOL))
                         err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
@@ -1048,8 +1038,7 @@ internal class AstChecker(private val program: Program,
         }
         else if(expr.operator == "not") {
             if(dt!=DataType.BOOL) {
-                if(compilerOptions.strictBool || dt !in ByteDatatypes)
-                    errors.err("logical not is for booleans", expr.position)
+                errors.err("logical not is for booleans", expr.position)
             }
         }
         super.visit(expr)
@@ -1168,8 +1157,7 @@ internal class AstChecker(private val program: Program,
 
         if(expr.operator in LogicalOperators) {
             if (leftDt != DataType.BOOL || rightDt != DataType.BOOL) {
-                if(compilerOptions.strictBool || leftDt !in ByteDatatypes || rightDt !in ByteDatatypes)
-                    errors.err("logical operator requires boolean operands", expr.right.position)
+                errors.err("logical operator requires boolean operands", expr.right.position)
             }
         }
         else {
@@ -1248,7 +1236,7 @@ internal class AstChecker(private val program: Program,
                 errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCallExpr.args.first().position)
         }
 
-        val error = VerifyFunctionArgTypes.checkTypes(functionCallExpr, program, compilerOptions)
+        val error = VerifyFunctionArgTypes.checkTypes(functionCallExpr, program)
         if(error!=null)
             errors.err(error.first, error.second)
 
@@ -1339,7 +1327,7 @@ internal class AstChecker(private val program: Program,
 
         }
 
-        val error = VerifyFunctionArgTypes.checkTypes(functionCallStatement, program, compilerOptions)
+        val error = VerifyFunctionArgTypes.checkTypes(functionCallStatement, program)
         if(error!=null)
             errors.err(error.first, error.second)
 
@@ -1727,8 +1715,7 @@ internal class AstChecker(private val program: Program,
             }
             DataType.BOOL -> {
                 if (value.type!=DataType.BOOL) {
-                    if (compilerOptions.strictBool || value.type !in ByteDatatypes)
-                        err("type of value ${value.type} doesn't match target $targetDt")
+                    err("type of value ${value.type} doesn't match target $targetDt")
                 }
             }
             in ArrayDatatypes -> {
@@ -1829,12 +1816,10 @@ internal class AstChecker(private val program: Program,
             // this is allowed: a pass-by-reference datatype into a uword (pointer value).
         }
         else if(sourceDatatype==DataType.BOOL && targetDatatype!=DataType.BOOL) {
-            if(compilerOptions.strictBool || targetDatatype !in ByteDatatypes)
-                errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
+            errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
         else if(targetDatatype==DataType.BOOL && sourceDatatype!=DataType.BOOL) {
-            if(compilerOptions.strictBool || sourceDatatype !in ByteDatatypes)
-                errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
+            errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
         else {
             errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)

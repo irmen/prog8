@@ -43,7 +43,6 @@ internal fun compileFile(
         breakpointCpuInstruction = null,
         printAst1 = false,
         printAst2 = false,
-        strictBool = true
     )
     return compileProgram(args)
 }
