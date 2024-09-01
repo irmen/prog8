@@ -208,7 +208,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeStartElement("VARIABLESNOINIT")
         xml.writeCharacters("\n")
         for (variable in variablesNoInit) {
-            if(variable.dt in SplitWordArrayTypes) {
+            if(variable.dt.isSplitWordArray) {
                 // split into 2 ubyte arrays lsb+msb
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish}\n")
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb zp=${variable.zpwish}\n")
@@ -223,7 +223,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeCharacters("\n")
 
         for (variable in variablesWithInit) {
-            if(variable.dt in SplitWordArrayTypes) {
+            if(variable.dt.isSplitWordArray) {
                 val lsbValue: String
                 val msbValue: String
                 if(variable.onetimeInitializationArrayValue==null) {
@@ -246,22 +246,22 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish}\n")
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish}\n")
             } else {
-                val value: String = when(variable.dt) {
-                    DataType.BOOL -> variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: ""
-                    DataType.FLOAT -> (variable.onetimeInitializationNumericValue ?: "").toString()
-                    in NumericDatatypes -> variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: ""
-                    DataType.STR -> {
+                val value: String = when {
+                    variable.dt.isBool -> variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: ""
+                    variable.dt.isFloat -> (variable.onetimeInitializationNumericValue ?: "").toString()
+                    variable.dt.isNumeric -> variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: ""
+                    variable.dt.isString -> {
                         val encoded = irProgram.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue.second) + listOf(0u)
                         encoded.joinToString(",") { it.toInt().toString() }
                     }
-                    DataType.ARRAY_F -> {
+                    variable.dt.isFloatArray -> {
                         if(variable.onetimeInitializationArrayValue!=null) {
                             variable.onetimeInitializationArrayValue.joinToString(",") { it.number!!.toString() }
                         } else {
                             ""     // array will be zero'd out at program start
                         }
                     }
-                    in ArrayDatatypes -> {
+                    variable.dt.isArray -> {
                         if(variable.onetimeInitializationArrayValue!==null) {
                             variable.onetimeInitializationArrayValue.joinToString(",") {
                                 if(it.number!=null)

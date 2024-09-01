@@ -16,10 +16,10 @@ internal class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncod
         var nextLocation = 0
         for (variable in st.allVariables()) {
             val memsize =
-                when (variable.dt) {
-                    DataType.STR -> variable.onetimeInitializationStringValue!!.first.length + 1  // include the zero byte
-                    in NumericDatatypes, DataType.BOOL -> memsizer.memorySize(variable.dt)
-                    in ArrayDatatypes -> memsizer.memorySize(variable.dt, variable.length!!)
+                when {
+                    variable.dt.isString -> variable.onetimeInitializationStringValue!!.first.length + 1  // include the zero byte
+                    variable.dt.isNumericOrBool -> memsizer.memorySize(variable.dt, null)
+                    variable.dt.isArray -> memsizer.memorySize(variable.dt, variable.length!!)
                     else -> throw InternalCompilerException("weird dt")
                 }
 

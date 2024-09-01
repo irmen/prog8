@@ -194,7 +194,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         fun replaceWithFalse(): Iterable<IAstModification> {
             errors.warn("condition is always false", containment.position)
-            return listOf(IAstModification.ReplaceNode(containment, NumericLiteral(DataType.UBYTE, 0.0, containment.position), parent))
+            return listOf(IAstModification.ReplaceNode(containment, NumericLiteral(BaseDataType.UBYTE, 0.0, containment.position), parent))
         }
 
         fun checkArray(array: Array<Expression>): Iterable<IAstModification> {
@@ -230,7 +230,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 return replaceWithFalse()
             if(stringVal.value.length==1) {
                 val string = program.encoding.encodeString(stringVal.value, stringVal.encoding)
-                return replaceWithEquals(NumericLiteral(DataType.UBYTE, string[0].toDouble(), stringVal.position))
+                return replaceWithEquals(NumericLiteral(BaseDataType.UBYTE, string[0].toDouble(), stringVal.position))
             }
             return noModifications
         }

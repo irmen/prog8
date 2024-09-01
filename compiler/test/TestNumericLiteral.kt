@@ -10,7 +10,6 @@ import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
-import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
 
@@ -24,7 +23,7 @@ class TestNumericLiteral: FunSpec({
     val dummyPos = Position("test", 0, 0, 0)
 
     test("testIdentity") {
-        val v = NumericLiteral(DataType.UWORD, 12345.0, dummyPos)
+        val v = NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos)
         (v==v) shouldBe true
         (v != v) shouldBe false
         (v <= v) shouldBe true
@@ -32,65 +31,65 @@ class TestNumericLiteral: FunSpec({
         (v < v ) shouldBe false
         (v > v ) shouldBe false
 
-        sameValueAndType(NumericLiteral(DataType.UWORD, 12345.0, dummyPos), NumericLiteral(DataType.UWORD, 12345.0, dummyPos)) shouldBe true
+        sameValueAndType(NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos), NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos)) shouldBe true
     }
 
     test("test truncating") {
         shouldThrow<ExpressionError> {
-            NumericLiteral(DataType.BYTE, -2.345, dummyPos)
+            NumericLiteral(BaseDataType.BYTE, -2.345, dummyPos)
         }.message shouldContain "refused truncating"
         shouldThrow<ExpressionError> {
-            NumericLiteral(DataType.BYTE, -2.6, dummyPos)
+            NumericLiteral(BaseDataType.BYTE, -2.6, dummyPos)
         }.message shouldContain "refused truncating"
         shouldThrow<ExpressionError> {
-            NumericLiteral(DataType.UWORD, 2222.345, dummyPos)
+            NumericLiteral(BaseDataType.UWORD, 2222.345, dummyPos)
         }.message shouldContain "refused truncating"
-        NumericLiteral(DataType.UBYTE, 2.0, dummyPos).number shouldBe 2.0
-        NumericLiteral(DataType.BYTE, -2.0, dummyPos).number shouldBe -2.0
-        NumericLiteral(DataType.UWORD, 2222.0, dummyPos).number shouldBe 2222.0
-        NumericLiteral(DataType.FLOAT, 123.456, dummyPos)
+        NumericLiteral(BaseDataType.UBYTE, 2.0, dummyPos).number shouldBe 2.0
+        NumericLiteral(BaseDataType.BYTE, -2.0, dummyPos).number shouldBe -2.0
+        NumericLiteral(BaseDataType.UWORD, 2222.0, dummyPos).number shouldBe 2222.0
+        NumericLiteral(BaseDataType.FLOAT, 123.456, dummyPos)
     }
 
     test("testEqualsAndNotEquals") {
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) == NumericLiteral(DataType.UBYTE, 100.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) == NumericLiteral(DataType.UWORD, 100.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) == NumericLiteral(DataType.FLOAT, 100.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) == NumericLiteral(DataType.UBYTE, 254.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 12345.0, dummyPos) == NumericLiteral(DataType.UWORD, 12345.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 12345.0, dummyPos) == NumericLiteral(DataType.FLOAT, 12345.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) == NumericLiteral(DataType.UBYTE, 100.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 22239.0, dummyPos) == NumericLiteral(DataType.UWORD, 22239.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 9.99, dummyPos) == NumericLiteral(DataType.FLOAT, 9.99, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) == NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) == NumericLiteral(BaseDataType.UWORD, 100.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) == NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) == NumericLiteral(BaseDataType.UBYTE, 254.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos) == NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos) == NumericLiteral(BaseDataType.FLOAT, 12345.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) == NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 22239.0, dummyPos) == NumericLiteral(BaseDataType.UWORD, 22239.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos) == NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos)) shouldBe true
 
-        sameValueAndType(NumericLiteral(DataType.UBYTE, 100.0, dummyPos), NumericLiteral(DataType.UBYTE, 100.0, dummyPos)) shouldBe true
-        sameValueAndType(NumericLiteral(DataType.UBYTE, 100.0, dummyPos), NumericLiteral(DataType.UWORD, 100.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.UBYTE, 100.0, dummyPos), NumericLiteral(DataType.FLOAT, 100.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.UWORD, 254.0, dummyPos), NumericLiteral(DataType.UBYTE, 254.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.UWORD, 12345.0, dummyPos), NumericLiteral(DataType.UWORD, 12345.0, dummyPos)) shouldBe true
-        sameValueAndType(NumericLiteral(DataType.UWORD, 12345.0, dummyPos), NumericLiteral(DataType.FLOAT, 12345.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.FLOAT, 100.0, dummyPos), NumericLiteral(DataType.UBYTE, 100.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.FLOAT, 22239.0, dummyPos), NumericLiteral(DataType.UWORD, 22239.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.FLOAT, 9.99, dummyPos), NumericLiteral(DataType.FLOAT, 9.99, dummyPos)) shouldBe true
+        sameValueAndType(NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos), NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos)) shouldBe true
+        sameValueAndType(NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos), NumericLiteral(BaseDataType.UWORD, 100.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos), NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos), NumericLiteral(BaseDataType.UBYTE, 254.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos), NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos)) shouldBe true
+        sameValueAndType(NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos), NumericLiteral(BaseDataType.FLOAT, 12345.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos), NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.FLOAT, 22239.0, dummyPos), NumericLiteral(BaseDataType.UWORD, 22239.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos), NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos)) shouldBe true
 
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) != NumericLiteral(DataType.UBYTE, 101.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) != NumericLiteral(DataType.UWORD, 101.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) != NumericLiteral(DataType.FLOAT, 101.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 245.0, dummyPos) != NumericLiteral(DataType.UBYTE, 246.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 12345.0, dummyPos) != NumericLiteral(DataType.UWORD, 12346.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 12345.0, dummyPos) != NumericLiteral(DataType.FLOAT, 12346.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 9.99, dummyPos) != NumericLiteral(DataType.UBYTE, 9.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 9.99, dummyPos) != NumericLiteral(DataType.UWORD, 9.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 9.99, dummyPos) != NumericLiteral(DataType.FLOAT, 9.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) != NumericLiteral(BaseDataType.UBYTE, 101.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) != NumericLiteral(BaseDataType.UWORD, 101.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) != NumericLiteral(BaseDataType.FLOAT, 101.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 245.0, dummyPos) != NumericLiteral(BaseDataType.UBYTE, 246.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos) != NumericLiteral(BaseDataType.UWORD, 12346.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos) != NumericLiteral(BaseDataType.FLOAT, 12346.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos) != NumericLiteral(BaseDataType.UBYTE, 9.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos) != NumericLiteral(BaseDataType.UWORD, 9.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos) != NumericLiteral(BaseDataType.FLOAT, 9.0, dummyPos)) shouldBe true
 
-        sameValueAndType(NumericLiteral(DataType.UBYTE, 100.0, dummyPos), NumericLiteral(DataType.UBYTE, 101.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.UBYTE, 100.0, dummyPos), NumericLiteral(DataType.UWORD, 101.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.UBYTE, 100.0, dummyPos), NumericLiteral(DataType.FLOAT, 101.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.UWORD, 245.0, dummyPos), NumericLiteral(DataType.UBYTE, 246.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.UWORD, 12345.0, dummyPos), NumericLiteral(DataType.UWORD, 12346.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.UWORD, 12345.0, dummyPos), NumericLiteral(DataType.FLOAT, 12346.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.FLOAT, 9.99, dummyPos), NumericLiteral(DataType.UBYTE, 9.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.FLOAT, 9.99, dummyPos), NumericLiteral(DataType.UWORD, 9.0, dummyPos)) shouldBe false
-        sameValueAndType(NumericLiteral(DataType.FLOAT, 9.99, dummyPos), NumericLiteral(DataType.FLOAT, 9.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos), NumericLiteral(BaseDataType.UBYTE, 101.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos), NumericLiteral(BaseDataType.UWORD, 101.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos), NumericLiteral(BaseDataType.FLOAT, 101.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UWORD, 245.0, dummyPos), NumericLiteral(BaseDataType.UBYTE, 246.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos), NumericLiteral(BaseDataType.UWORD, 12346.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos), NumericLiteral(BaseDataType.FLOAT, 12346.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos), NumericLiteral(BaseDataType.UBYTE, 9.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos), NumericLiteral(BaseDataType.UWORD, 9.0, dummyPos)) shouldBe false
+        sameValueAndType(NumericLiteral(BaseDataType.FLOAT, 9.99, dummyPos), NumericLiteral(BaseDataType.FLOAT, 9.0, dummyPos)) shouldBe false
 
 
     }
@@ -102,13 +101,13 @@ class TestNumericLiteral: FunSpec({
         (StringLiteral.create("hello", Encoding.SCREENCODES, dummyPos) != StringLiteral.create("bye", Encoding.SCREENCODES, dummyPos)) shouldBe true
         (StringLiteral.create("hello", Encoding.SCREENCODES, dummyPos) != StringLiteral.create("hello", Encoding.PETSCII, dummyPos)) shouldBe true
 
-        val lvOne = NumericLiteral(DataType.UBYTE, 1.0, dummyPos)
-        val lvTwo = NumericLiteral(DataType.UBYTE, 2.0, dummyPos)
-        val lvThree = NumericLiteral(DataType.UBYTE, 3.0, dummyPos)
-        val lvOneR = NumericLiteral(DataType.UBYTE, 1.0, dummyPos)
-        val lvTwoR = NumericLiteral(DataType.UBYTE, 2.0, dummyPos)
-        val lvThreeR = NumericLiteral(DataType.UBYTE, 3.0, dummyPos)
-        val lvFour= NumericLiteral(DataType.UBYTE, 4.0, dummyPos)
+        val lvOne = NumericLiteral(BaseDataType.UBYTE, 1.0, dummyPos)
+        val lvTwo = NumericLiteral(BaseDataType.UBYTE, 2.0, dummyPos)
+        val lvThree = NumericLiteral(BaseDataType.UBYTE, 3.0, dummyPos)
+        val lvOneR = NumericLiteral(BaseDataType.UBYTE, 1.0, dummyPos)
+        val lvTwoR = NumericLiteral(BaseDataType.UBYTE, 2.0, dummyPos)
+        val lvThreeR = NumericLiteral(BaseDataType.UBYTE, 3.0, dummyPos)
+        val lvFour= NumericLiteral(BaseDataType.UBYTE, 4.0, dummyPos)
         val lv1 = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOne, lvTwo, lvThree), dummyPos)
         val lv2 = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOneR, lvTwoR, lvThreeR), dummyPos)
         val lv3 = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOneR, lvTwoR, lvFour), dummyPos)
@@ -117,39 +116,39 @@ class TestNumericLiteral: FunSpec({
     }
 
     test("testGreaterThan") {
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) > NumericLiteral(DataType.UBYTE, 99.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) > NumericLiteral(DataType.UWORD, 253.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) > NumericLiteral(DataType.FLOAT, 99.9, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) > NumericLiteral(BaseDataType.UBYTE, 99.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) > NumericLiteral(BaseDataType.UWORD, 253.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) > NumericLiteral(BaseDataType.FLOAT, 99.9, dummyPos)) shouldBe true
 
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) >= NumericLiteral(DataType.UBYTE, 100.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) >= NumericLiteral(DataType.UWORD, 254.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) >= NumericLiteral(DataType.FLOAT, 100.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) >= NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) >= NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) >= NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos)) shouldBe true
 
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) > NumericLiteral(DataType.UBYTE, 100.0, dummyPos)) shouldBe false
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) > NumericLiteral(DataType.UWORD, 254.0, dummyPos)) shouldBe false
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) > NumericLiteral(DataType.FLOAT, 100.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) > NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) > NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) > NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos)) shouldBe false
 
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) >= NumericLiteral(DataType.UBYTE, 101.0, dummyPos)) shouldBe false
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) >= NumericLiteral(DataType.UWORD, 255.0, dummyPos)) shouldBe false
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) >= NumericLiteral(DataType.FLOAT, 100.1, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) >= NumericLiteral(BaseDataType.UBYTE, 101.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) >= NumericLiteral(BaseDataType.UWORD, 255.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) >= NumericLiteral(BaseDataType.FLOAT, 100.1, dummyPos)) shouldBe false
     }
 
     test("testLessThan") {
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) < NumericLiteral(DataType.UBYTE, 101.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) < NumericLiteral(DataType.UWORD, 255.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) < NumericLiteral(DataType.FLOAT, 100.1, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) < NumericLiteral(BaseDataType.UBYTE, 101.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) < NumericLiteral(BaseDataType.UWORD, 255.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) < NumericLiteral(BaseDataType.FLOAT, 100.1, dummyPos)) shouldBe true
 
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) <= NumericLiteral(DataType.UBYTE, 100.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) <= NumericLiteral(DataType.UWORD, 254.0, dummyPos)) shouldBe true
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) <= NumericLiteral(DataType.FLOAT, 100.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) <= NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) <= NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos)) shouldBe true
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) <= NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos)) shouldBe true
 
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) < NumericLiteral(DataType.UBYTE, 100.0, dummyPos)) shouldBe false
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) < NumericLiteral(DataType.UWORD, 254.0, dummyPos)) shouldBe false
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) < NumericLiteral(DataType.FLOAT, 100.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) < NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) < NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) < NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos)) shouldBe false
 
-        (NumericLiteral(DataType.UBYTE, 100.0, dummyPos) <= NumericLiteral(DataType.UBYTE, 99.0, dummyPos)) shouldBe false
-        (NumericLiteral(DataType.UWORD, 254.0, dummyPos) <= NumericLiteral(DataType.UWORD, 253.0, dummyPos)) shouldBe false
-        (NumericLiteral(DataType.FLOAT, 100.0, dummyPos) <= NumericLiteral(DataType.FLOAT, 99.9, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.UBYTE, 100.0, dummyPos) <= NumericLiteral(BaseDataType.UBYTE, 99.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.UWORD, 254.0, dummyPos) <= NumericLiteral(BaseDataType.UWORD, 253.0, dummyPos)) shouldBe false
+        (NumericLiteral(BaseDataType.FLOAT, 100.0, dummyPos) <= NumericLiteral(BaseDataType.FLOAT, 99.9, dummyPos)) shouldBe false
     }
 
     test("optimalInteger") {

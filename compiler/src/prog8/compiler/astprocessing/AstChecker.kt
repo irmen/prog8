@@ -1808,7 +1808,7 @@ internal class AstChecker(private val program: Program,
             errors.err("cannot assign string or array to a byte", position)
         }
         else if(sourceDatatype== DataType.FLOAT && targetDatatype in IntegerDatatypes)
-            errors.err("cannot assign float to ${targetDatatype.name.lowercase()}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
+            errors.err("cannot assign float to ${targetDatatype}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else if((sourceValue as? BinaryExpression)?.operator in BitwiseOperators && targetDatatype.equalsSize(sourceDatatype)) {
             // this is allowed: bitwise operation between different types as long as they're the same size.
         }

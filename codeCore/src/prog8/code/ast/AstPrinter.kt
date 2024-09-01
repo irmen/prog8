@@ -7,7 +7,7 @@ import prog8.code.core.*
  * passing it as a String to the specified receiver function.
  */
 fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Unit) {
-    fun type(dt: DataType) = "!${dt.name.lowercase()}!"
+    fun type(dt: DataTypeFull) = "!${dt}!"
     fun txt(node: PtNode): String {
         return when(node) {
             is PtAssignTarget -> if(node.void) "<void>" else "<target>"
@@ -37,14 +37,14 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtIrRegister -> "IRREG#${node.register} ${type(node.type)}"
             is PtMemoryByte -> "@()"
             is PtNumber -> {
-                val numstr = if(node.type == DataType.FLOAT) node.number.toString() else node.number.toHex()
+                val numstr = if(node.type.isFloat) node.number.toString() else node.number.toHex()
                 "$numstr ${type(node.type)}"
             }
             is PtBool -> node.value.toString()
             is PtPrefix -> node.operator
             is PtRange -> "<range>"
             is PtString -> "\"${node.value.escape()}\""
-            is PtTypeCast -> "as ${node.type.name.lowercase()}"
+            is PtTypeCast -> "as ${node.type}"
             is PtForLoop -> "for"
             is PtIfElse -> "ifelse"
             is PtIncludeBinary -> "%incbin '${node.file}', ${node.offset}, ${node.length}"
@@ -90,42 +90,42 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 "\nblock '${node.name}' $addr $align"
             }
             is PtConstant -> {
-                val value = when(node.type) {
-                    DataType.BOOL -> if(node.value==0.0) "false" else "true"
-                    in IntegerDatatypes -> node.value.toInt().toString()
+                val value = when {
+                    node.type.isBool -> if(node.value==0.0) "false" else "true"
+                    node.type.isInteger -> node.value.toInt().toString()
                     else -> node.value.toString()
                 }
-                "const ${node.type.name.lowercase()} ${node.name} = $value"
+                "const ${node.type} ${node.name} = $value"
             }
             is PtLabel -> "${node.name}:"
             is PtMemMapped -> {
-                if(node.type in ArrayDatatypes) {
+                if(node.type.isArray) {
                     val arraysize = if(node.arraySize==null) "" else node.arraySize.toString()
-                    val eltType = ArrayToElementTypes.getValue(node.type)
-                    "&${eltType.name.lowercase()}[$arraysize] ${node.name} = ${node.address.toHex()}"
+                    val eltDt = node.type.sub!!.dt
+                    "&${eltDt.name.lowercase()}[$arraysize] ${node.name} = ${node.address.toHex()}"
                 } else {
-                    "&${node.type.name.lowercase()} ${node.name} = ${node.address.toHex()}"
+                    "&${node.type} ${node.name} = ${node.address.toHex()}"
                 }
             }
             is PtSub -> {
                 val params = node.parameters.joinToString(", ") { "${it.type} ${it.name}" }
                 var str = "sub ${node.name}($params) "
                 if(node.returntype!=null)
-                    str += "-> ${node.returntype.name.lowercase()}"
+                    str += "-> ${node.returntype}"
                 str
             }
             is PtVariable -> {
-                val split = if(node.type in SplitWordArrayTypes) "@split" else ""
+                val split = if(node.type.isSplitWordArray) "@split" else ""
                 val str = if(node.arraySize!=null) {
-                    val eltType = ArrayToElementTypes.getValue(node.type)
-                    "${eltType.name.lowercase()}[${node.arraySize}] $split ${node.name}"
+                    val eltDt = node.type.sub!!.dt
+                    "${eltDt.name.lowercase()}[${node.arraySize}] $split ${node.name}"
                 }
-                else if(node.type in ArrayDatatypes) {
-                    val eltType = ArrayToElementTypes.getValue(node.type)
-                    "${eltType.name.lowercase()}[] $split ${node.name}"
+                else if(node.type.isArray) {
+                    val eltDt = node.type.sub!!.dt
+                    "${eltDt.name.lowercase()}[] $split ${node.name}"
                 }
                 else
-                    "${node.type.name.lowercase()} ${node.name}"
+                    "${node.type} ${node.name}"
                 if(node.value!=null)
                     str + " = " + txt(node.value)
                 else
@@ -136,7 +136,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtProgram -> "PROGRAM ${node.name}"
             is PtRepeatLoop -> "repeat"
             is PtReturn -> "return"
-            is PtSubroutineParameter -> "${node.type.name.lowercase()} ${node.name}"
+            is PtSubroutineParameter -> "${node.type} ${node.name}"
             is PtWhen -> "when"
             is PtWhenChoice -> {
                 if(node.isElse)

@@ -71,7 +71,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
 
     companion object {
 
-        private fun argTypeCompatible(argDt: DataType, paramDt: DataType): Boolean {
+        private fun argTypeCompatible(argDt: DataTypeFull, paramDt: DataTypeFull): Boolean {
             if(argDt==paramDt)
                 return true
 

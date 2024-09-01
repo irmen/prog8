@@ -15,7 +15,7 @@ import prog8.ast.statements.*
 import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtFunctionCall
-import prog8.code.core.DataType
+import prog8.code.core.BaseDataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
@@ -92,7 +92,7 @@ other {
     }
 
     test("generated constvalue from typecast inherits proper parent linkage") {
-        val number = NumericLiteral(DataType.UBYTE, 11.0, Position.DUMMY)
+        val number = NumericLiteral(BaseDataType.UBYTE, 11.0, Position.DUMMY)
         val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
         tc.linkParents(ParentSentinel)
@@ -107,7 +107,7 @@ other {
     }
 
     test("generated constvalue from prefixexpr inherits proper parent linkage") {
-        val number = NumericLiteral(DataType.UBYTE, 11.0, Position.DUMMY)
+        val number = NumericLiteral(BaseDataType.UBYTE, 11.0, Position.DUMMY)
         val pfx = PrefixExpression("-", number, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
         pfx.linkParents(ParentSentinel)
@@ -337,19 +337,19 @@ main {
         val z6init = statements[11] as Assignment
 
         z1decl.name shouldBe "z1"
-        z1init.value shouldBe NumericLiteral(DataType.UBYTE, 10.0, Position.DUMMY)
+        z1init.value shouldBe NumericLiteral(BaseDataType.UBYTE, 10.0, Position.DUMMY)
         z2decl.name shouldBe "z2"
-        z2init.value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
+        z2init.value shouldBe NumericLiteral(BaseDataType.UBYTE, 255.0, Position.DUMMY)
         z3decl.name shouldBe "z3"
-        z3init.value shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
+        z3init.value shouldBe NumericLiteral(BaseDataType.BOOL, 1.0, Position.DUMMY)
         z4decl.name shouldBe "z4"
-        z4init.value shouldBe NumericLiteral(DataType.UWORD, 0.0, Position.DUMMY)
+        z4init.value shouldBe NumericLiteral(BaseDataType.UWORD, 0.0, Position.DUMMY)
         z5decl.name shouldBe "z5"
         (z5init.value as BinaryExpression).operator shouldBe "+"
-        (z5init.value as BinaryExpression).right shouldBe NumericLiteral(DataType.UBYTE, 5.0, Position.DUMMY)
+        (z5init.value as BinaryExpression).right shouldBe NumericLiteral(BaseDataType.UBYTE, 5.0, Position.DUMMY)
         z6decl.name shouldBe "z6"
         (z6init.value as BinaryExpression).operator shouldBe "-"
-        (z6init.value as BinaryExpression).right shouldBe NumericLiteral(DataType.UBYTE, 5.0, Position.DUMMY)
+        (z6init.value as BinaryExpression).right shouldBe NumericLiteral(BaseDataType.UBYTE, 5.0, Position.DUMMY)
     }
 
     test("force_output option should work with optimizing memwrite assignment") {
@@ -514,13 +514,13 @@ main {
         stmts.filterIsInstance<Assignment>().size shouldBe 5
         val assignXX1 = stmts[1] as Assignment
         assignXX1.target.identifier!!.nameInSource shouldBe listOf("xx")
-        assignXX1.value shouldBe NumericLiteral(DataType.UWORD, 20.0, Position.DUMMY)
+        assignXX1.value shouldBe NumericLiteral(BaseDataType.UWORD, 20.0, Position.DUMMY)
         val assignXX2 = stmts.last() as Assignment
         assignXX2.target.identifier!!.nameInSource shouldBe listOf("xx")
         val xxValue = assignXX2.value as BinaryExpression
         xxValue.operator shouldBe "+"
         (xxValue.left as? IdentifierReference)?.nameInSource shouldBe listOf("xx")
-        xxValue.right shouldBe NumericLiteral(DataType.UWORD, 10.0, Position.DUMMY)
+        xxValue.right shouldBe NumericLiteral(BaseDataType.UWORD, 10.0, Position.DUMMY)
     }
 
     test("multi-comparison replaced by containment check") {
@@ -915,16 +915,16 @@ main {
         st.size shouldBe 17
 
         val answerValue = (st[3] as Assignment).value
-        answerValue shouldBe NumericLiteral(DataType.UWORD, 0.0, Position.DUMMY)
+        answerValue shouldBe NumericLiteral(BaseDataType.UWORD, 0.0, Position.DUMMY)
 
         val funcarg1 = (st[4] as FunctionCallStatement).args.single()
-        funcarg1 shouldBe NumericLiteral(DataType.UWORD, 0.0, Position.DUMMY)
+        funcarg1 shouldBe NumericLiteral(BaseDataType.UWORD, 0.0, Position.DUMMY)
 
         val answer2Value = (st[8] as Assignment).value
-        answer2Value shouldBe NumericLiteral(DataType.UWORD, 8.0, Position.DUMMY)
+        answer2Value shouldBe NumericLiteral(BaseDataType.UWORD, 8.0, Position.DUMMY)
 
         val funcarg2 = (st[9] as FunctionCallStatement).args.single()
-        funcarg2 shouldBe NumericLiteral(DataType.UWORD, 8.0, Position.DUMMY)
+        funcarg2 shouldBe NumericLiteral(BaseDataType.UWORD, 8.0, Position.DUMMY)
 
         val answer3ValueTc = (st[15] as Assignment).value as TypecastExpression
         answer3ValueTc.type shouldBe DataType.UWORD

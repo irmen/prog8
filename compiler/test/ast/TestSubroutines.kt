@@ -8,7 +8,6 @@ import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
-import prog8.code.core.DataType
 import prog8.code.core.SourceCode
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget

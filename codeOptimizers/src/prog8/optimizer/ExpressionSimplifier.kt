@@ -30,11 +30,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val subTypecast = typecast.expression as? TypecastExpression
         if (subTypecast != null) {
             // remove the sub-typecast if its datatype is larger than the outer typecast
-            if(subTypecast.type largerThan typecast.type) {
+            if(subTypecast.type.largerSizeThan(typecast.type)) {
                 mods += IAstModification.ReplaceNode(typecast.expression, subTypecast.expression, typecast)
             }
         } else {
-            if (typecast.expression.inferType(program) istype typecast.type) {
+            if (typecast.expression.inferType(program) issimpletype typecast.type) {
                 // remove duplicate cast
                 mods += IAstModification.ReplaceNode(typecast, typecast.expression, parent)
             }
@@ -67,11 +67,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val booleanCondition = ifElse.condition as? BinaryExpression
         if(booleanCondition!=null && booleanCondition.operator=="&") {
             val rightNum = booleanCondition.right as? NumericLiteral
-            if (rightNum!=null && rightNum.type==DataType.UWORD) {
+            if (rightNum!=null && rightNum.type==BaseDataType.UWORD) {
                 if ((rightNum.number.toInt() and 0x00ff) == 0) {
                     // if WORD & $xx00  ->  if msb(WORD) & $xx
                     val msb = BuiltinFunctionCall(IdentifierReference(listOf("msb"), booleanCondition.left.position), mutableListOf(booleanCondition.left), booleanCondition.left.position)
-                    val bytevalue = NumericLiteral(DataType.UBYTE, (rightNum.number.toInt() shr 8).toDouble(), booleanCondition.right.position)
+                    val bytevalue = NumericLiteral(BaseDataType.UBYTE, (rightNum.number.toInt() shr 8).toDouble(), booleanCondition.right.position)
                     return listOf(
                         IAstModification.ReplaceNode(booleanCondition.left, msb, booleanCondition),
                         IAstModification.ReplaceNode(booleanCondition.right, bytevalue, booleanCondition))
@@ -79,7 +79,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 else if ((rightNum.number.toInt() and 0xff00) == 0) {
                     // if WORD & $00ff  ->  if lsb(WORD) & $ff
                     val lsb = BuiltinFunctionCall(IdentifierReference(listOf("lsb"), booleanCondition.left.position), mutableListOf(booleanCondition.left), booleanCondition.left.position)
-                    val bytevalue = NumericLiteral(DataType.UBYTE, rightNum.number, booleanCondition.right.position)
+                    val bytevalue = NumericLiteral(BaseDataType.UBYTE, rightNum.number, booleanCondition.right.position)
                     return listOf(
                         IAstModification.ReplaceNode(booleanCondition.left, lsb, booleanCondition),
                         IAstModification.ReplaceNode(booleanCondition.right, bytevalue, booleanCondition))
@@ -328,10 +328,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 when {
                     leftVal?.number==0.0 -> expr.right
                     rightVal?.number==0.0 -> expr.left
-                    rightIDt.isBytes && rightVal?.number==255.0 -> NumericLiteral(DataType.UBYTE, 255.0, rightVal.position)
-                    rightIDt.isWords && rightVal?.number==65535.0 -> NumericLiteral(DataType.UWORD, 65535.0, rightVal.position)
-                    leftIDt.isBytes && leftVal?.number==255.0 -> NumericLiteral(DataType.UBYTE, 255.0, leftVal.position)
-                    leftIDt.isWords && leftVal?.number==65535.0 -> NumericLiteral(DataType.UWORD, 65535.0, leftVal.position)
+                    rightIDt.isBytes && rightVal?.number==255.0 -> NumericLiteral(BaseDataType.UBYTE, 255.0, rightVal.position)
+                    rightIDt.isWords && rightVal?.number==65535.0 -> NumericLiteral(BaseDataType.UWORD, 65535.0, rightVal.position)
+                    leftIDt.isBytes && leftVal?.number==255.0 -> NumericLiteral(BaseDataType.UBYTE, 255.0, leftVal.position)
+                    leftIDt.isWords && leftVal?.number==65535.0 -> NumericLiteral(BaseDataType.UWORD, 65535.0, leftVal.position)
                     else -> null
                 }
             }
@@ -390,8 +390,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     if ((andNum and 0x00ff) == 0) {
                         // (WORD & $xx00)==y  ->  (msb(WORD) & $xx)==y
                         val msb = BuiltinFunctionCall(IdentifierReference(listOf("msb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
-                        val bytevalue = NumericLiteral(DataType.UBYTE, (andNum shr 8).toDouble(), bitwise.right.position)
-                        val rightvalByte = NumericLiteral(DataType.UBYTE, (rightVal.number.toInt() shr 8).toDouble(), rightVal.position)
+                        val bytevalue = NumericLiteral(BaseDataType.UBYTE, (andNum shr 8).toDouble(), bitwise.right.position)
+                        val rightvalByte = NumericLiteral(BaseDataType.UBYTE, (rightVal.number.toInt() shr 8).toDouble(), rightVal.position)
                         return listOf(
                             IAstModification.ReplaceNode(bitwise.left, msb, bitwise),
                             IAstModification.ReplaceNode(bitwise.right, bytevalue, bitwise),
@@ -401,8 +401,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     else if((andNum and 0xff00) == 0) {
                         // (WORD & $00xx)==y  ->  (lsb(WORD) & $xx)==y
                         val lsb = BuiltinFunctionCall(IdentifierReference(listOf("lsb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
-                        val bytevalue = NumericLiteral(DataType.UBYTE, andNum.toDouble(), bitwise.right.position)
-                        val rightvalByte = NumericLiteral(DataType.UBYTE, (rightVal.number.toInt() and 255).toDouble(), rightVal.position)
+                        val bytevalue = NumericLiteral(BaseDataType.UBYTE, andNum.toDouble(), bitwise.right.position)
+                        val rightvalByte = NumericLiteral(BaseDataType.UBYTE, (rightVal.number.toInt() and 255).toDouble(), rightVal.position)
                         return listOf(
                             IAstModification.ReplaceNode(bitwise.left, lsb, bitwise),
                             IAstModification.ReplaceNode(bitwise.right, bytevalue, bitwise),
@@ -713,7 +713,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 256.0 -> {
                     when(leftDt) {
-                        DataType.UBYTE -> return NumericLiteral(DataType.UBYTE, 0.0, expr.position)
+                        DataType.UBYTE -> return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)
                         DataType.BYTE -> return null        // is either 0 or -1 we cannot tell here
                         DataType.UWORD, DataType.WORD -> {
                             // just use:  msb(value) as type
@@ -737,11 +737,11 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
             if (leftDt == DataType.UBYTE) {
                 if (abs(rightConst.number) >= 256.0) {
-                    return NumericLiteral(DataType.UBYTE, 0.0, expr.position)
+                    return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)
                 }
             } else if (leftDt == DataType.UWORD) {
                 if (abs(rightConst.number) >= 65536.0) {
-                    return NumericLiteral(DataType.UBYTE, 0.0, expr.position)
+                    return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)
                 }
             }
         }
@@ -829,7 +829,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 else if(amount==8) {
                     // shift left by 8 bits is just a byte operation: mkword(lsb(X), 0)
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
-                    return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(DataType.UBYTE, 0.0, expr.position)), expr.position)
+                    return FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)), expr.position)
                 }
                 else if (amount > 8) {
                     // same as above but with residual shifts.
@@ -846,7 +846,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 else if(amount==8) {
                     // shift left by 8 bits is just a byte operation: mkword(lsb(X), 0)
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
-                    val mkword =  FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(DataType.UBYTE, 0.0, expr.position)), expr.position)
+                    val mkword =  FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)), expr.position)
                     return TypecastExpression(mkword, DataType.WORD, true, expr.position)
                 }
                 else if (amount > 8) {

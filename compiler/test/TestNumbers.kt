@@ -8,7 +8,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
-import prog8.code.core.DataType
+import prog8.code.core.BaseDataType
 import prog8.code.core.InternalCompilerException
 import prog8.code.core.Position
 import prog8.code.core.toHex
@@ -200,10 +200,10 @@ class TestNumbers: FunSpec({
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
         val statements = result.compilerAst.entrypoint.statements
         statements.size shouldBe 8
-        (statements[1] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 32768.0, Position.DUMMY)
-        (statements[3] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 65535.0, Position.DUMMY)
-        (statements[5] as Assignment).value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
-        (statements[6] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 65534.0, Position.DUMMY)
-        (statements[7] as Assignment).value shouldBe NumericLiteral(DataType.UBYTE, 254.0, Position.DUMMY)
+        (statements[1] as Assignment).value shouldBe NumericLiteral(BaseDataType.UWORD, 32768.0, Position.DUMMY)
+        (statements[3] as Assignment).value shouldBe NumericLiteral(BaseDataType.UWORD, 65535.0, Position.DUMMY)
+        (statements[5] as Assignment).value shouldBe NumericLiteral(BaseDataType.UBYTE, 255.0, Position.DUMMY)
+        (statements[6] as Assignment).value shouldBe NumericLiteral(BaseDataType.UWORD, 65534.0, Position.DUMMY)
+        (statements[7] as Assignment).value shouldBe NumericLiteral(BaseDataType.UBYTE, 254.0, Position.DUMMY)
     }
 })

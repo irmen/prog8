@@ -10,7 +10,6 @@ import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtBinaryExpression
 import prog8.code.ast.PtVariable
-import prog8.code.core.DataType
 import prog8.code.target.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText

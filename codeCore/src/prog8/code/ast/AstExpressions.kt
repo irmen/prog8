@@ -6,10 +6,10 @@ import kotlin.math.abs
 import kotlin.math.truncate
 
 
-sealed class PtExpression(val type: DataType, position: Position) : PtNode(position) {
+sealed class PtExpression(val type: DataTypeFull, position: Position) : PtNode(position) {
 
     init {
-        if(type==DataType.UNDEFINED) {
+        if(type.isUndefined) {
             @Suppress("LeakingThis")
             when(this) {
                 is PtBuiltinFunctionCall -> { /* void function call */ }
@@ -126,7 +126,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     */
 }
 
-class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
+class PtAddressOf(position: Position) : PtExpression(DataTypeFull.forDt(BaseDataType.UWORD), position) {
     val identifier: PtIdentifier
         get() = children[0] as PtIdentifier
     val arrayIndexExpr: PtExpression?
@@ -137,21 +137,21 @@ class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
 }
 
 
-class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(elementType, position) {
+class PtArrayIndexer(elementType: DataTypeFull, position: Position): PtExpression(elementType, position) {
     val variable: PtIdentifier
         get() = children[0] as PtIdentifier
     val index: PtExpression
         get() = children[1] as PtExpression
     val splitWords: Boolean
-        get() = variable.type in SplitWordArrayTypes
+        get() = variable.type.isSplitWordArray
 
     init {
-        require(elementType in NumericDatatypesWithBoolean)
+        require(elementType.isNumericOrBool)
     }
 }
 
 
-class PtArray(type: DataType, position: Position): PtExpression(type, position) {
+class PtArray(type: DataTypeFull, position: Position): PtExpression(type, position) {
     override fun hashCode(): Int = Objects.hash(children, type)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is PtArray)
@@ -167,11 +167,11 @@ class PtArray(type: DataType, position: Position): PtExpression(type, position) 
 class PtBuiltinFunctionCall(val name: String,
                             val void: Boolean,
                             val hasNoSideEffects: Boolean,
-                            type: DataType,
+                            type: DataTypeFull,
                             position: Position) : PtExpression(type, position) {
     init {
         if(!void)
-            require(type!=DataType.UNDEFINED)
+            require(!type.isUndefined)
     }
 
     val args: List<PtExpression>
@@ -179,7 +179,7 @@ class PtBuiltinFunctionCall(val name: String,
 }
 
 
-class PtBinaryExpression(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
+class PtBinaryExpression(val operator: String, type: DataTypeFull, position: Position): PtExpression(type, position) {
     val left: PtExpression
         get() = children[0] as PtExpression
     val right: PtExpression
@@ -187,14 +187,14 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
 
     init {
         if(operator in ComparisonOperators + LogicalOperators)
-            require(type==DataType.BOOL)
+            require(type.isBool)
         else
-            require(type!=DataType.BOOL) { "no bool allowed for this operator $operator"}
+            require(!type.isBool) { "no bool allowed for this operator $operator"}
     }
 }
 
 
-class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, position) {
+class PtContainmentCheck(position: Position): PtExpression(DataTypeFull.forDt(BaseDataType.BOOL), position) {
     val element: PtExpression
         get() = children[0] as PtExpression
     val iterable: PtIdentifier
@@ -204,14 +204,14 @@ class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, positi
 
 class PtFunctionCall(val name: String,
                      val void: Boolean,
-                     type: DataType,
+                     type: DataTypeFull,
                      position: Position) : PtExpression(type, position) {
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
 }
 
 
-class PtIdentifier(val name: String, type: DataType, position: Position) : PtExpression(type, position) {
+class PtIdentifier(val name: String, type: DataTypeFull, position: Position) : PtExpression(type, position) {
     override fun toString(): String {
         return "[PtIdentifier:$name $type $position]"
     }
@@ -220,13 +220,13 @@ class PtIdentifier(val name: String, type: DataType, position: Position) : PtExp
 }
 
 
-class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) {
+class PtMemoryByte(position: Position) : PtExpression(DataTypeFull.forDt(BaseDataType.UBYTE), position) {
     val address: PtExpression
         get() = children.single() as PtExpression
 }
 
 
-class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOOL, position) {
+class PtBool(val value: Boolean, position: Position) : PtExpression(DataTypeFull.forDt(BaseDataType.BOOL), position) {
     override fun hashCode(): Int = Objects.hash(type, value)
 
     override fun equals(other: Any?): Boolean {
@@ -241,17 +241,17 @@ class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOO
 }
 
 
-class PtNumber(type: DataType, val number: Double, position: Position) : PtExpression(type, position) {
+class PtNumber(type: DataTypeFull, val number: Double, position: Position) : PtExpression(type, position) {
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position): PtNumber =
-            PtNumber(DataType.UBYTE, if(bool) 1.0 else 0.0, position)
+            PtNumber(DataTypeFull.forDt(BaseDataType.UBYTE), if(bool) 1.0 else 0.0, position)
     }
 
     init {
-        if(type==DataType.BOOL)
+        if(type.isBool)
             throw IllegalArgumentException("use PtBool instead")
-        if(type!=DataType.FLOAT) {
+        if(!type.isFloat) {
             val trunc = truncate(number)
             if (trunc != number)
                 throw IllegalArgumentException("refused truncating of float to avoid loss of precision @$position")
@@ -263,7 +263,7 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
     override fun equals(other: Any?): Boolean {
         return if(other==null || other !is PtNumber)
             false
-        else if(type!=DataType.BOOL && other.type!=DataType.BOOL)
+        else if(!type.isBool && !other.type.isBool)
             number==other.number
         else
             type==other.type && number==other.number
@@ -275,7 +275,7 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
 }
 
 
-class PtPrefix(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
+class PtPrefix(val operator: String, type: DataTypeFull, position: Position): PtExpression(type, position) {
     val value: PtExpression
         get() = children.single() as PtExpression
 
@@ -285,7 +285,7 @@ class PtPrefix(val operator: String, type: DataType, position: Position): PtExpr
 }
 
 
-class PtRange(type: DataType, position: Position) : PtExpression(type, position) {
+class PtRange(type: DataTypeFull, position: Position) : PtExpression(type, position) {
     val from: PtExpression
         get() = children[0] as PtExpression
     val to: PtExpression
@@ -323,7 +323,7 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
 }
 
 
-class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.STR, position) {
+class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataTypeFull.forDt(BaseDataType.STR), position) {
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is PtString)
@@ -333,14 +333,14 @@ class PtString(val value: String, val encoding: Encoding, position: Position) : 
 }
 
 
-class PtTypeCast(type: DataType, position: Position) : PtExpression(type, position) {
+class PtTypeCast(type: DataTypeFull, position: Position) : PtExpression(type, position) {
     val value: PtExpression
         get() = children.single() as PtExpression
 }
 
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code
-class PtIrRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position)
+class PtIrRegister(val register: Int, type: DataTypeFull, position: Position) : PtExpression(type, position)
 
 
 fun constValue(expr: PtExpression): Double? = if(expr is PtNumber) expr.number else if(expr is PtBool) expr.asInt().toDouble() else null

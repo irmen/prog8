@@ -11,7 +11,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         val st = SymbolTable(program)
 
         BuiltinFunctions.forEach {
-            st.add(StNode(it.key, StNodeType.BUILTINFUNC, PtIdentifier(it.key, it.value.returnType ?: DataType.UNDEFINED, Position.DUMMY)))
+            val dt = DataTypeFull.forDt(it.value.returnType ?: BaseDataType.UNDEFINED)
+            st.add(StNode(it.key, StNodeType.BUILTINFUNC, PtIdentifier(it.key, dt, Position.DUMMY)))
         }
 
         val scopestack = ArrayDeque<StNode>()
@@ -23,10 +24,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
 
         if(options.compTarget.name != VMTarget.NAME) {
             listOf(
-                PtMemMapped("P8ZP_SCRATCH_B1", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_B1, null, Position.DUMMY),
-                PtMemMapped("P8ZP_SCRATCH_REG", DataType.UBYTE, options.compTarget.machine.zeropage.SCRATCH_REG, null, Position.DUMMY),
-                PtMemMapped("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W1, null, Position.DUMMY),
-                PtMemMapped("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.machine.zeropage.SCRATCH_W2, null, Position.DUMMY),
+                PtMemMapped("P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE), options.compTarget.machine.zeropage.SCRATCH_B1, null, Position.DUMMY),
+                PtMemMapped("P8ZP_SCRATCH_REG", DataTypeFull.forDt(BaseDataType.UBYTE), options.compTarget.machine.zeropage.SCRATCH_REG, null, Position.DUMMY),
+                PtMemMapped("P8ZP_SCRATCH_W1", DataTypeFull.forDt(BaseDataType.UWORD), options.compTarget.machine.zeropage.SCRATCH_W1, null, Position.DUMMY),
+                PtMemMapped("P8ZP_SCRATCH_W2", DataTypeFull.forDt(BaseDataType.UWORD), options.compTarget.machine.zeropage.SCRATCH_W2, null, Position.DUMMY),
             ).forEach {
                 it.parent = program
                 st.add(StMemVar(it.name, it.type, it.address, it.arraySize?.toInt(), it))

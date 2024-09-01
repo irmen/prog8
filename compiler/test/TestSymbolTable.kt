@@ -7,7 +7,6 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.code.*
 import prog8.code.ast.*
-import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.SourceCode
 import prog8.code.core.ZeropageWish

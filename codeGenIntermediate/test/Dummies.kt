@@ -2,16 +2,22 @@ import prog8.code.core.*
 
 
 internal object DummyMemsizer : IMemSizer {
-    override fun memorySize(dt: DataType) = when(dt) {
-        in ByteDatatypesWithBoolean -> 1
-        DataType.FLOAT -> 5
-        else -> 2
-    }
-    override fun memorySize(arrayDt: DataType, numElements: Int) = when(arrayDt) {
-        DataType.ARRAY_UW -> numElements*2
-        DataType.ARRAY_W -> numElements*2
-        DataType.ARRAY_F -> numElements*5
-        else -> numElements
+    override fun memorySize(dt: DataTypeFull, numElements: Int?): Int {
+        if(dt.isArray || dt.isSplitWordArray) {
+            require(numElements!=null)
+            return when(dt.sub) {
+                SubBool, SubSignedByte, SubUnsignedByte -> numElements
+                SubSignedWord, SubUnsignedWord -> numElements*2
+                SubFloat -> numElements*5
+                null -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        require(numElements==null)
+        return when {
+            dt.isByteOrBool -> 1
+            dt.isFloat -> 5
+            else -> 2
+        }
     }
 }
 

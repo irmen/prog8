@@ -165,7 +165,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataType, resultRegister: RegisterOrPair?) {
+    private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataTypeFull, resultRegister: RegisterOrPair?) {
         // square of word value is faster with dedicated routine, square of byte just use the regular multiplication routine.
         when (resultType) {
             DataType.UBYTE -> {

@@ -1,10 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.*
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.ZeropageWish
-import prog8.code.core.internedStringsModuleName
+import prog8.code.core.*
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -80,11 +77,14 @@ class IRSymbolTable {
                 return newArray
             }
             scopedName = variable.scopedName
-            val dt = when(variable.dt) {
-                DataType.BOOL -> DataType.UBYTE
-                DataType.ARRAY_BOOL -> DataType.ARRAY_UB
+
+            // convert booleans to ubytes
+            val dt = when {
+                variable.dt.isBool -> DataTypeFull.forDt(BaseDataType.UBYTE)
+                variable.dt.isBoolArray -> DataTypeFull.arrayFor(BaseDataType.UBYTE)
                 else -> variable.dt
             }
+
             varToadd = IRStStaticVariable(scopedName,
                 dt,
                 variable.onetimeInitializationNumericValue,
@@ -157,7 +157,7 @@ open class IRStNode(val name: String,
 )
 
 class IRStMemVar(name: String,
-               val dt: DataType,
+               val dt: DataTypeFull,
                val address: UInt,
                val length: Int?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                ) :  IRStNode(name, IRStNodeType.MEMVAR) {
@@ -173,7 +173,7 @@ class IRStMemVar(name: String,
     }
 
     init {
-        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
+        require(!dt.isBool && !dt.isBoolArray)
     }
 
     val typeString: String = dt.typeString(length)
@@ -196,7 +196,7 @@ class IRStMemorySlab(
 }
 
 class IRStStaticVariable(name: String,
-                       val dt: DataType,
+                       val dt: DataTypeFull,
                        val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
                        val onetimeInitializationStringValue: IRStString?,
                        val onetimeInitializationArrayValue: IRStArray?,
@@ -216,7 +216,7 @@ class IRStStaticVariable(name: String,
     }
 
     init {
-        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
+        require(!dt.isBool && !dt.isBoolArray)
     }
 
     val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null

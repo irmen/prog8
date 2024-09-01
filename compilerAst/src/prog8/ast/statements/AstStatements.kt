@@ -219,7 +219,7 @@ enum class VarDeclType {
 
 class VarDecl(val type: VarDeclType,
               val origin: VarDeclOrigin,
-              val datatype: DataType,
+              val datatype: DataTypeFull,
               var zeropage: ZeropageWish,
               var arraysize: ArrayIndex?,
               override val name: String,
@@ -235,7 +235,7 @@ class VarDecl(val type: VarDeclType,
         private var autoHeapValueSequenceNumber = 0
 
         fun fromParameter(param: SubroutineParameter): VarDecl {
-            val dt = if(param.type in ArrayDatatypes) DataType.UWORD else param.type
+            val dt = if(param.type.isArray) DataTypeFull.forDt(BaseDataType.UWORD) else param.type
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, ZeropageWish.DONTCARE, null, param.name, emptyList(), null,
                 sharedWithAsm = false,
                 splitArray = false,
@@ -252,8 +252,7 @@ class VarDecl(val type: VarDeclType,
         }
     }
 
-    val isArray: Boolean
-        get() = datatype in ArrayDatatypes
+    val isArray = datatype.isArray
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -274,8 +273,8 @@ class VarDecl(val type: VarDeclType,
 
     fun zeroElementValue(): NumericLiteral {
         if(allowInitializeWithZero) {
-            return if(datatype in ArrayDatatypes) defaultZero(ArrayToElementTypes.getValue(datatype), position)
-            else defaultZero(datatype, position)
+            return if(datatype.isArray) defaultZero(datatype.sub!!, position)
+                else defaultZero(datatype.dt, position)
         }
         else
             throw IllegalArgumentException("attempt to get zero value for vardecl that shouldn't get it")
@@ -530,7 +529,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
         }
 
         if (memoryAddress != null)
-            return InferredTypes.knownFor(DataType.UBYTE)
+            return InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.UBYTE))
 
         // a multi-target has no 1 particular type
         return InferredTypes.unknown()
@@ -765,7 +764,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
 // (multiple return types can only occur for the latter type)
 class Subroutine(override val name: String,
                  val parameters: MutableList<SubroutineParameter>,
-                 val returntypes: MutableList<DataType>,
+                 val returntypes: MutableList<DataTypeFull>,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
                  val asmClobbers: Set<CpuRegister>,
@@ -812,7 +811,7 @@ class Subroutine(override val name: String,
 }
 
 open class SubroutineParameter(val name: String,
-                               val type: DataType,
+                               val type: DataTypeFull,
                                final override val position: Position) : Node {
     override lateinit var parent: Node
 

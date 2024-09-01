@@ -1,9 +1,7 @@
 package prog8.vm
 
-import prog8.code.core.ArrayDatatypes
 import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
-import prog8.code.core.SplitWordArrayTypes
+import prog8.code.core.DataTypeFull
 import prog8.intermediate.*
 
 class VmProgramLoader {
@@ -200,22 +198,22 @@ class VmProgramLoader {
 
             // zero out uninitialized ('bss') variables.
             if(variable.uninitialized) {
-                if(variable.dt in ArrayDatatypes) {
+                if(variable.dt.isArray) {
                     repeat(variable.length!!) {
-                        when(variable.dt) {
-                            DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {
+                        when {
+                            variable.dt.isString || variable.dt.isBoolArray || variable.dt.isByteArray -> {
                                 memory.setUB(addr, 0u)
                                 addr++
                             }
-                            DataType.ARRAY_UW, DataType.ARRAY_W -> {
+                            variable.dt.isWordArray -> {
                                 memory.setUW(addr, 0u)
                                 addr += 2
                             }
-                            DataType.ARRAY_F -> {
+                            variable.dt.isFloatArray -> {
                                 memory.setFloat(addr, 0.0)
                                 addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }
-                            in SplitWordArrayTypes -> {
+                            variable.dt.isSplitWordArray -> {
                                 // lo bytes come after the hi bytes
                                 memory.setUB(addr, 0u)
                                 memory.setUB(addr+variable.length!!, 0u)
@@ -228,12 +226,12 @@ class VmProgramLoader {
             }
 
             variable.onetimeInitializationNumericValue?.let {
-                when(variable.dt) {
-                    DataType.UBYTE -> memory.setUB(addr, it.toInt().toUByte())
-                    DataType.BYTE -> memory.setSB(addr, it.toInt().toByte())
-                    DataType.UWORD -> memory.setUW(addr, it.toInt().toUShort())
-                    DataType.WORD -> memory.setSW(addr, it.toInt().toShort())
-                    DataType.FLOAT -> memory.setFloat(addr, it)
+                when {
+                    variable.dt.isUnsignedByte -> memory.setUB(addr, it.toInt().toUByte())
+                    variable.dt.isSignedByte -> memory.setSB(addr, it.toInt().toByte())
+                    variable.dt.isUnsignedWord -> memory.setUW(addr, it.toInt().toUShort())
+                    variable.dt.isSignedWord -> memory.setSW(addr, it.toInt().toShort())
+                    variable.dt.isFloat -> memory.setFloat(addr, it)
                     else -> throw IRParseException("invalid dt")
                 }
             }
@@ -265,8 +263,8 @@ class VmProgramLoader {
         program: IRProgram
     ) {
         var address = startAddress
-        when (variable.dt) {
-            DataType.STR, DataType.ARRAY_UB -> {
+        when {
+            variable.dt.isString || variable.dt.isUnsignedByteArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toUByte()
                     memory.setUB(address, value)
@@ -274,7 +272,7 @@ class VmProgramLoader {
                 }
             }
 
-            DataType.ARRAY_B -> {
+            variable.dt.isSignedByteArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toByte()
                     memory.setSB(address, value)
@@ -282,7 +280,7 @@ class VmProgramLoader {
                 }
             }
 
-            DataType.ARRAY_UW -> {
+            variable.dt.isUnsignedWordArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toUShort()
                     memory.setUW(address, value)
@@ -290,7 +288,7 @@ class VmProgramLoader {
                 }
             }
 
-            DataType.ARRAY_W -> {
+            variable.dt.isSignedWordArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toShort()
                     memory.setSW(address, value)
@@ -298,7 +296,7 @@ class VmProgramLoader {
                 }
             }
 
-            in SplitWordArrayTypes -> {
+            variable.dt.isSplitWordArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses).toUInt()
                     memory.setUB(address, (value and 255u).toUByte())
@@ -307,7 +305,7 @@ class VmProgramLoader {
                 }
             }
 
-            DataType.ARRAY_F -> {
+            variable.dt.isFloatArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
                     memory.setFloat(address, value)
@@ -328,8 +326,8 @@ class VmProgramLoader {
         program: IRProgram
     ) {
         var address = startAddress
-        when (variable.dt) {
-            DataType.STR, DataType.ARRAY_UB -> {
+        when {
+            variable.dt.isString || variable.dt.isUnsignedByteArray -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toUByte()
                 repeat(variable.length!!) {
                     memory.setUB(address, value)
@@ -337,7 +335,7 @@ class VmProgramLoader {
                 }
             }
 
-            DataType.ARRAY_B -> {
+            variable.dt.isSignedByteArray -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toByte()
                 repeat(variable.length!!) {
                     memory.setSB(address, value)
@@ -345,7 +343,7 @@ class VmProgramLoader {
                 }
             }
 
-            DataType.ARRAY_UW -> {
+            variable.dt.isUnsignedWordArray -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toUShort()
                 repeat(variable.length!!) {
                     memory.setUW(address, value)
@@ -353,7 +351,7 @@ class VmProgramLoader {
                 }
             }
 
-            DataType.ARRAY_W -> {
+            variable.dt.isSignedWordArray -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toShort()
                 repeat(variable.length!!) {
                     memory.setSW(address, value)
@@ -361,7 +359,7 @@ class VmProgramLoader {
                 }
             }
 
-            in SplitWordArrayTypes -> {
+            variable.dt.isSplitWordArray -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toUInt()
                 val lsb = (value and 255u).toUByte()
                 val msb = (value shr 8).toUByte()
@@ -372,7 +370,7 @@ class VmProgramLoader {
                 }
             }
 
-            DataType.ARRAY_F -> {
+            variable.dt.isFloatArray -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
                 repeat(variable.length!!) {
                     memory.setFloat(address, value)
@@ -384,10 +382,10 @@ class VmProgramLoader {
         }
     }
 
-    private fun getInitializerValue(arrayDt: DataType, elt: IRStArrayElement, symbolAddresses: MutableMap<String, Int>): Double {
+    private fun getInitializerValue(arrayDt: DataTypeFull, elt: IRStArrayElement, symbolAddresses: MutableMap<String, Int>): Double {
         if(elt.addressOfSymbol!=null) {
-            when(arrayDt) {
-                DataType.ARRAY_UB, DataType.STR, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {
+            when {
+                arrayDt.isString || arrayDt.isByteArray || arrayDt.isBoolArray -> {
                     val name = elt.addressOfSymbol!!
                     val symbolAddress = if(name.startsWith('<')) {
                         symbolAddresses[name.drop(1)]?.and(255)

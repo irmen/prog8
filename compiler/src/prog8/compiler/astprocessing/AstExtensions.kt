@@ -61,7 +61,7 @@ internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, err
                 val encoded = target.encodeString(char.value.toString(), char.encoding)
                 listOf(IAstModification.ReplaceNode(
                     char,
-                    NumericLiteral(DataType.UBYTE, encoded[0].toDouble(), char.position),
+                    NumericLiteral(BaseDataType.UBYTE, encoded[0].toDouble(), char.position),
                     parent
                 ))
             } catch (x: CharConversionException) {

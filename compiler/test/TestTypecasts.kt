@@ -13,7 +13,7 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtSub
-import prog8.code.core.DataType
+import prog8.code.core.BaseDataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
@@ -125,9 +125,9 @@ main {
         right2.operator shouldBe "!="
         right3.operator shouldBe "!="
         right2.left shouldBe instanceOf<IFunctionCall>()
-        right2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        right2.right shouldBe NumericLiteral(BaseDataType.UBYTE, 0.0, Position.DUMMY)
         right3.left shouldBe instanceOf<IFunctionCall>()
-        right3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        right3.right shouldBe NumericLiteral(BaseDataType.UBYTE, 0.0, Position.DUMMY)
         assignValue4.right shouldBe instanceOf<IFunctionCall>()
         assignValue5.right shouldBe instanceOf<IFunctionCall>()
     }
@@ -155,11 +155,11 @@ main {
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 7
         val fcall1 = ((stmts[4] as Assignment).value as IFunctionCall)
-        fcall1.args[0] shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
-        fcall1.args[1] shouldBe NumericLiteral(DataType.BOOL, 0.0, Position.DUMMY)
+        fcall1.args[0] shouldBe NumericLiteral(BaseDataType.BOOL, 1.0, Position.DUMMY)
+        fcall1.args[1] shouldBe NumericLiteral(BaseDataType.BOOL, 0.0, Position.DUMMY)
         val fcall2 = ((stmts[5] as Assignment).value as IFunctionCall)
-        fcall2.args[0] shouldBe NumericLiteral(DataType.BOOL, 0.0, Position.DUMMY)
-        fcall2.args[1] shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
+        fcall2.args[0] shouldBe NumericLiteral(BaseDataType.BOOL, 0.0, Position.DUMMY)
+        fcall2.args[1] shouldBe NumericLiteral(BaseDataType.BOOL, 1.0, Position.DUMMY)
         val ifCond = (stmts[6] as IfElse).condition as BinaryExpression
         ifCond.operator shouldBe "and" // no asm writing so logical expressions haven't been replaced with bitwise equivalents yet
         (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("boolvalue1")

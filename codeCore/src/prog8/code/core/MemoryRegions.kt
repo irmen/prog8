@@ -9,10 +9,10 @@ class MemAllocationError(message: String) : Exception(message)
 
 
 abstract class MemoryAllocator(protected val options: CompilationOptions) {
-    data class VarAllocation(val address: UInt, val dt: DataType, val size: Int)
+    data class VarAllocation(val address: UInt, val dt: DataTypeFull, val size: Int)
 
     abstract fun allocate(name: String,
-                          datatype: DataType,
+                          datatype: DataTypeFull,
                           numElements: Int?,
                           position: Position?,
                           errors: IErrorReporter): Result<VarAllocation, MemAllocationError>
@@ -59,7 +59,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
     }
 
     override fun allocate(name: String,
-                          datatype: DataType,
+                          datatype: DataTypeFull,
                           numElements: Int?,
                           position: Position?,
                           errors: IErrorReporter): Result<VarAllocation, MemAllocationError> {
@@ -70,9 +70,9 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
             return Err(MemAllocationError("zero page usage has been disabled"))
 
         val size: Int =
-                when (datatype) {
-                    in IntegerDatatypesWithBoolean -> options.compTarget.memorySize(datatype)
-                    DataType.STR, in ArrayDatatypes  -> {
+                when {
+                    datatype.isIntegerOrBool -> options.compTarget.memorySize(datatype, null)
+                    datatype.isString || datatype.isArray -> {
                         val memsize = options.compTarget.memorySize(datatype, numElements!!)
                         if(position!=null)
                             errors.warn("allocating a large value in zeropage; str/array $memsize bytes", position)
@@ -80,9 +80,9 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
                             errors.warn("$name: allocating a large value in zeropage; str/array $memsize bytes", Position.DUMMY)
                         memsize
                     }
-                    DataType.FLOAT -> {
+                    datatype.isFloat -> {
                         if (options.floats) {
-                            val memsize = options.compTarget.memorySize(DataType.FLOAT)
+                            val memsize = options.compTarget.memorySize(DataTypeFull.forDt(BaseDataType.FLOAT), null)
                             if(position!=null)
                                 errors.warn("allocating a large value in zeropage; float $memsize bytes", position)
                             else
@@ -114,14 +114,14 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
 
     private fun reserve(range: UIntRange) = free.removeAll(range)
 
-    private fun makeAllocation(address: UInt, size: Int, datatype: DataType, name: String): UInt {
+    private fun makeAllocation(address: UInt, size: Int, datatype: DataTypeFull, name: String): UInt {
         require(size>=0)
         free.removeAll(address until address+size.toUInt())
         if(name.isNotEmpty()) {
-            allocatedVariables[name] = when(datatype) {
-                in NumericDatatypes, DataType.BOOL -> VarAllocation(address, datatype, size)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
-                DataType.STR -> VarAllocation(address, datatype, size)
-                in ArrayDatatypes -> VarAllocation(address, datatype, size)
+            allocatedVariables[name] = when {
+                datatype.isNumericOrBool -> VarAllocation(address, datatype, size)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
+                datatype.isString -> VarAllocation(address, datatype, size)
+                datatype.isArray -> VarAllocation(address, datatype, size)
                 else -> throw AssemblyError("invalid dt")
             }
         }
@@ -144,20 +144,18 @@ class GoldenRam(options: CompilationOptions, val region: UIntRange): MemoryAlloc
 
     override fun allocate(
         name: String,
-        datatype: DataType,
+        datatype: DataTypeFull,
         numElements: Int?,
         position: Position?,
         errors: IErrorReporter): Result<VarAllocation, MemAllocationError> {
 
         val size: Int =
-            when (datatype) {
-                in IntegerDatatypesWithBoolean -> options.compTarget.memorySize(datatype)
-                DataType.STR, in ArrayDatatypes  -> {
-                    options.compTarget.memorySize(datatype, numElements!!)
-                }
-                DataType.FLOAT -> {
+            when {
+                datatype.isIntegerOrBool -> options.compTarget.memorySize(datatype, null)
+                datatype.isString || datatype.isArray -> options.compTarget.memorySize(datatype, numElements!!)
+                datatype.isFloat -> {
                     if (options.floats) {
-                        options.compTarget.memorySize(DataType.FLOAT)
+                        options.compTarget.memorySize(DataTypeFull.forDt(BaseDataType.FLOAT), null)
                     } else return Err(MemAllocationError("floating point option not enabled"))
                 }
                 else -> throw MemAllocationError("weird dt")

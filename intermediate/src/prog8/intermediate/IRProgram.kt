@@ -214,8 +214,8 @@ class IRProgram(val name: String,
                 if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
                     if(instr.opcode==Opcode.JUMPI) {
                         when(val pointervar = st.lookup(instr.labelSymbol)!!) {
-                            is IRStStaticVariable -> require(pointervar.dt==DataType.UWORD)
-                            is IRStMemVar -> require(pointervar.dt==DataType.UWORD)
+                            is IRStStaticVariable -> require(pointervar.dt.isUnsignedWord)
+                            is IRStMemVar -> require(pointervar.dt.isUnsignedWord)
                             else -> throw AssemblyError("weird pointervar type")
                         }
                     }
@@ -406,10 +406,10 @@ sealed interface IIRBlockElement {
 class IRSubroutine(
     override val label: String,
     val parameters: List<IRParam>,
-    val returnType: DataType?,
+    val returnType: DataTypeFull?,
     val position: Position): IIRBlockElement {
 
-    class IRParam(val name: String, val dt: DataType)
+    class IRParam(val name: String, val dt: DataTypeFull)
 
     val chunks = mutableListOf<IRCodeChunkBase>()
 
@@ -418,8 +418,8 @@ class IRSubroutine(
         require(!label.startsWith("main.main.")) {"subroutine name invalid main prefix: $label"}
 
         // params and return value should not be str
-        require(parameters.all{ it.dt in NumericDatatypes || it.dt==DataType.BOOL }) {"non-numeric/non-bool parameter"}
-        require(returnType==null || returnType in NumericDatatypes || returnType==DataType.BOOL) {"non-numeric/non-bool returntype $returnType"}
+        require(parameters.all{ it.dt.isNumericOrBool }) {"non-numeric/non-bool parameter"}
+        require(returnType==null || returnType.isNumericOrBool) {"non-numeric/non-bool returntype $returnType"}
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) {
@@ -444,7 +444,7 @@ class IRAsmSubroutine(
     val position: Position
 ): IIRBlockElement {
 
-    class IRAsmParam(val reg: RegisterOrStatusflag, val dt: DataType)
+    class IRAsmParam(val reg: RegisterOrStatusflag, val dt: DataTypeFull)
 
     init {
         require('.' in label) { "subroutine name is not scoped: $label" }

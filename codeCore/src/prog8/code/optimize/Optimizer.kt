@@ -39,10 +39,10 @@ private fun optimizeCommonSubExpressions(program: PtProgram, errors: IErrorRepor
             return false
 
         val result = if(expr is PtBinaryExpression)
-            expr.type !in ByteDatatypes ||
+            !expr.type.isByte ||
             !(expr.left.isSimple() && expr.right.isSimple()) ||
             (expr.operator !in LogicalOperators && expr.operator !in BitwiseOperators)
-        else if (expr is PtArrayIndexer && expr.type !in ByteDatatypes)
+        else if (expr is PtArrayIndexer && !expr.type.isByte)
             true
         else
             !expr.isSimple()
@@ -178,18 +178,18 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
             if(condition!=null && (condition.operator=="==" || condition.operator=="!=")) {
                 if(condition.right.asConstInteger()==0) {
                     val and = condition.left as? PtBinaryExpression
-                    if(and != null && and.operator=="&" && and.type == DataType.UBYTE) {
+                    if(and != null && and.operator=="&" && and.type.isUnsignedByte) {
                         val variable = and.left as? PtIdentifier
                         val bitmask = and.right.asConstInteger()
-                        if(variable!=null && variable.type in ByteDatatypes && (bitmask==128 || bitmask==64)) {
+                        if(variable!=null && variable.type.isByte && (bitmask==128 || bitmask==64)) {
                             val setOrNot = if(condition.operator=="!=") "set" else "notset"
                             val index = node.parent.children.indexOf(node)
-                            val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataType.BOOL, node.condition.position)
+                            val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataTypeFull.forDt(BaseDataType.BOOL), node.condition.position)
                             bittestCall.add(variable)
                             if(bitmask==128)
-                                bittestCall.add(PtNumber(DataType.UBYTE, 7.0, and.right.position))
+                                bittestCall.add(PtNumber(DataTypeFull.forDt(BaseDataType.UBYTE), 7.0, and.right.position))
                             else
-                                bittestCall.add(PtNumber(DataType.UBYTE, 6.0, and.right.position))
+                                bittestCall.add(PtNumber(DataTypeFull.forDt(BaseDataType.UBYTE), 6.0, and.right.position))
                             val ifElse = PtIfElse(node.position)
                             ifElse.add(bittestCall)
                             ifElse.add(node.ifScope)
@@ -210,7 +210,7 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
 }
 
 
-internal fun isSame(identifier: PtIdentifier, type: DataType, returnedRegister: RegisterOrPair): Boolean {
+internal fun isSame(identifier: PtIdentifier, type: DataTypeFull, returnedRegister: RegisterOrPair): Boolean {
     if(returnedRegister in Cx16VirtualRegisters) {
         val regname = returnedRegister.name.lowercase()
         val identifierRegName = identifier.name.substringAfterLast('.')
@@ -222,12 +222,12 @@ internal fun isSame(identifier: PtIdentifier, type: DataType, returnedRegister: 
             cx16.r?sL  BYTE
             cx16.r?sH  BYTE
          */
-        if(identifier.type in ByteDatatypes && type in ByteDatatypes) {
+        if(identifier.type.isByte && type.isByte) {
             if(identifier.name.startsWith("cx16.$regname") && identifierRegName.startsWith(regname)) {
                 return identifierRegName.substring(2) in arrayOf("", "L", "sL")     // note: not the -H (msb) variants!
             }
         }
-        else if(identifier.type in WordDatatypes && type in WordDatatypes) {
+        else if(identifier.type.isWord && type.isWord) {
             if(identifier.name.startsWith("cx16.$regname") && identifierRegName.startsWith(regname)) {
                 return identifierRegName.substring(2) in arrayOf("", "s")
             }

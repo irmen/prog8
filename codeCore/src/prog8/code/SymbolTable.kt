@@ -177,7 +177,7 @@ open class StNode(val name: String,
 }
 
 class StStaticVariable(name: String,
-                       val dt: DataType,
+                       val dt: DataTypeFull,
                        val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
                        val onetimeInitializationStringValue: StString?,
                        val onetimeInitializationArrayValue: StArray?,
@@ -194,34 +194,34 @@ class StStaticVariable(name: String,
                 require(onetimeInitializationArrayValue.isEmpty() ||onetimeInitializationArrayValue.size==length)
         }
         if(onetimeInitializationNumericValue!=null) {
-            require(dt in NumericDatatypes || dt==DataType.BOOL)
+            require(dt.isNumericOrBool)
         }
         if(onetimeInitializationArrayValue!=null) {
-            require(dt in ArrayDatatypes)
+            require(dt.isArray)
             require(length==onetimeInitializationArrayValue.size)
         }
         if(onetimeInitializationStringValue!=null) {
-            require(dt == DataType.STR)
+            require(dt.isString)
             require(length == onetimeInitializationStringValue.first.length+1)
         }
     }
 }
 
 
-class StConstant(name: String, val dt: DataType, val value: Double, astNode: PtNode) :
+class StConstant(name: String, val dt: DataTypeFull, val value: Double, astNode: PtNode) :
     StNode(name, StNodeType.CONSTANT, astNode)
 
 
 class StMemVar(name: String,
-               val dt: DataType,
+               val dt: DataTypeFull,
                val address: UInt,
                val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                astNode: PtNode) :
     StNode(name, StNodeType.MEMVAR, astNode) {
 
     init{
-        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
-        if(dt in ArrayDatatypes || dt == DataType.STR)
+        require(!dt.isBool && !dt.isBoolArray)
+        if(dt.isStringly && !dt.isWord)
             requireNotNull(length)
     }
 }
@@ -235,7 +235,7 @@ class StMemorySlab(
     StNode(name, StNodeType.MEMORYSLAB, astNode)
 
 
-class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, astNode: PtNode) :
+class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataTypeFull?, astNode: PtNode) :
         StNode(name, StNodeType.SUBROUTINE, astNode)
 
 
@@ -248,8 +248,8 @@ class StRomSub(name: String,
 
 
 
-class StSubroutineParameter(val name: String, val type: DataType)
-class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
+class StSubroutineParameter(val name: String, val type: DataTypeFull)
+class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataTypeFull)
 class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?)
 
 typealias StString = Pair<String, Encoding>

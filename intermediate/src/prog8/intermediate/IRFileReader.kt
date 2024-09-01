@@ -197,14 +197,14 @@ class IRFileReader {
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
-                val dt: DataType = parseDatatype(type, arraysize!=null)
+                val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
-                when(dt) {
-                    DataType.BOOL -> initNumeric = if(value.lowercase()=="false") 0.0 else 1.0
-                    in NumericDatatypes -> initNumeric = parseIRValue(value)
-                    in ArrayDatatypes -> {
+                when {
+                    dt.isBool -> initNumeric = if(value.lowercase()=="false") 0.0 else 1.0
+                    dt.isNumeric -> initNumeric = parseIRValue(value)
+                    dt.isArray -> {
                         initArray = value.split(',').map {
                             if (it.startsWith('@'))
                                 StArrayElement(null, it.drop(1), null)
@@ -213,7 +213,7 @@ class IRFileReader {
                             // TODO Boolean IR value?
                         }
                     }
-                    DataType.STR -> throw IRParseException("STR should have been converted to byte array")
+                    dt.isString -> throw IRParseException("STR should have been converted to byte array")
                     else -> throw IRParseException("weird dt")
                 }
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
@@ -245,7 +245,7 @@ class IRFileReader {
                 val match = mappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPEDVARIABLES $line")
                 val (type, arrayspec, name, address) = match.destructured
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
-                val dt: DataType = parseDatatype(type, arraysize!=null)
+                val dt = parseDatatype(type, arraysize!=null)
                 val dummyNode = PtVariable(name, dt, ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
                 memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, dummyNode))
             }
@@ -269,7 +269,7 @@ class IRFileReader {
                 // example: "slabname 4096 0"
                 val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid slab $line")
                 val (name, size, align) = match.destructured
-                val dummyNode = PtVariable(name, DataType.ARRAY_UB, ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(name, DataTypeFull.arrayFor(BaseDataType.UBYTE), ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
                 slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), dummyNode))
             }
             slabs
@@ -486,27 +486,27 @@ class IRFileReader {
         return IRInlineAsmChunk(label, text, isIr, null)
     }
 
-    private fun parseDatatype(type: String, isArray: Boolean): DataType {
+    private fun parseDatatype(type: String, isArray: Boolean): DataTypeFull {
         if(isArray) {
             return when(type) {
                 // note: there are no BOOLEANS arrays anymore in the IR. Only UBYTE.
-                "byte" -> DataType.ARRAY_B
-                "ubyte", "str" -> DataType.ARRAY_UB
-                "word" -> DataType.ARRAY_W
-                "uword" -> DataType.ARRAY_UW
-                "float" -> DataType.ARRAY_F
-                "uword_split" -> DataType.ARRAY_UW_SPLIT
-                "word_split" -> DataType.ARRAY_W_SPLIT
+                "byte" -> DataTypeFull.arrayFor(BaseDataType.BYTE)
+                "ubyte", "str" -> DataTypeFull.arrayFor(BaseDataType.UBYTE)
+                "word" -> DataTypeFull.arrayFor(BaseDataType.WORD)
+                "uword" -> DataTypeFull.arrayFor(BaseDataType.UWORD)
+                "float" -> DataTypeFull.arrayFor(BaseDataType.FLOAT)
+                "uword_split" -> DataTypeFull.arrayFor(BaseDataType.UWORD, true)
+                "word_split" -> DataTypeFull.arrayFor(BaseDataType.WORD, true)
                 else -> throw IRParseException("invalid dt  $type")
             }
         } else {
             return when(type) {
-                "bool" -> DataType.BOOL
-                "byte" -> DataType.BYTE
-                "ubyte" -> DataType.UBYTE
-                "word" -> DataType.WORD
-                "uword" -> DataType.UWORD
-                "float" -> DataType.FLOAT
+                "bool" -> DataTypeFull.forDt(BaseDataType.BOOL)
+                "byte" -> DataTypeFull.forDt(BaseDataType.BYTE)
+                "ubyte" -> DataTypeFull.forDt(BaseDataType.UBYTE)
+                "word" -> DataTypeFull.forDt(BaseDataType.WORD)
+                "uword" -> DataTypeFull.forDt(BaseDataType.UWORD)
+                "float" -> DataTypeFull.forDt(BaseDataType.FLOAT)
                 // note: 'str' should not occur anymore in IR. Should be 'uword'
                 else -> throw IRParseException("invalid dt  $type")
             }

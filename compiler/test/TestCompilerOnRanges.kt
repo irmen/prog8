@@ -13,7 +13,6 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
-import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -266,7 +265,7 @@ class TestCompilerOnRanges: FunSpec({
         (array as ArrayLiteral).value.size shouldBe 26
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
-        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.UBYTE, -2.0, Position.DUMMY)
+        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(BaseDataType.UBYTE, -2.0, Position.DUMMY)
     }
 
     test("range with start/end variables should be ok") {
@@ -285,7 +284,7 @@ class TestCompilerOnRanges: FunSpec({
         val statements = result.compilerAst.entrypoint.statements
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
-        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.UBYTE, -2.0, Position.DUMMY)
+        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(BaseDataType.UBYTE, -2.0, Position.DUMMY)
     }
 
 

@@ -30,15 +30,17 @@ class VarConstantValueTypeAdjuster(
 
         try {
             val declConstValue = decl.value?.constValue(program)
+            val constvalueDt = if(declConstValue==null) null else DataTypeFull.forDt(declConstValue.type)
             if(declConstValue!=null && (decl.type== VarDeclType.VAR || decl.type==VarDeclType.CONST)
-                && declConstValue.type != decl.datatype) {
+                && constvalueDt != decl.datatype) {
                 // avoid silent float roundings
-                if(decl.datatype in IntegerDatatypes && declConstValue.type == DataType.FLOAT) {
+                if(decl.datatype.isInteger && declConstValue.type == BaseDataType.FLOAT) {
                     errors.err("refused truncating of float to avoid loss of precision", decl.value!!.position)
-                } else if(decl.datatype!=DataType.BOOL) {
+                } else if(!decl.datatype.isBool) {
                     // cast the numeric literal to the appropriate datatype of the variable if it's not boolean
                     declConstValue.linkParents(decl)
-                    val cast = declConstValue.cast(decl.datatype, true)
+                    require(decl.datatype.sub == null)
+                    val cast = declConstValue.cast(decl.datatype.dt, true)
                     if (cast.isValid)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
                 }
@@ -49,7 +51,7 @@ class VarConstantValueTypeAdjuster(
 
         // replace variables by constants, if possible
         if(options.optimize) {
-            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE || decl.datatype !in NumericDatatypes)
+            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE || !decl.datatype.isNumeric)
                 return noModifications
             if (decl.value != null && decl.value!!.constValue(program) == null)
                 return noModifications
@@ -155,9 +157,9 @@ class VarConstantValueTypeAdjuster(
             val t1 = functionCallExpr.args[0].inferType(program)
             if(t1.isKnown) {
                 val replaceFunc = if(t1.isBytes) {
-                    if(t1.istype(DataType.BYTE)) "clamp__byte" else "clamp__ubyte"
+                    if(t1 issimpletype BaseDataType.BYTE) "clamp__byte" else "clamp__ubyte"
                 } else if(t1.isInteger) {
-                    if(t1.istype(DataType.WORD)) "clamp__word" else "clamp__uword"
+                    if(t1 issimpletype BaseDataType.WORD) "clamp__word" else "clamp__uword"
                 } else {
                     errors.err("clamp builtin not supported for floats, use floats.clamp", functionCallExpr.position)
                     return noModifications
@@ -174,12 +176,12 @@ class VarConstantValueTypeAdjuster(
                 val funcName = func[0]
                 val replaceFunc: String
                 if(t1.isBytes && t2.isBytes) {
-                    replaceFunc = if(t1.istype(DataType.BYTE) || t2.istype(DataType.BYTE))
+                    replaceFunc = if(t1 issimpletype BaseDataType.BYTE || t2 issimpletype BaseDataType.BYTE)
                         "${funcName}__byte"
                     else
                         "${funcName}__ubyte"
                 } else if(t1.isInteger && t2.isInteger) {
-                    replaceFunc = if(t1.istype(DataType.WORD) || t2.istype(DataType.WORD))
+                    replaceFunc = if(t1 issimpletype BaseDataType.WORD || t2 issimpletype BaseDataType.WORD)
                         "${funcName}__word"
                     else
                         "${funcName}__uword"
@@ -199,11 +201,11 @@ class VarConstantValueTypeAdjuster(
             val t1 = functionCallExpr.args[0].inferType(program)
             if(t1.isKnown) {
                 val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
-                val replaceFunc = when(dt) {
-                    DataType.BYTE -> "abs__byte"
-                    DataType.WORD -> "abs__word"
-                    DataType.FLOAT -> "abs__float"
-                    DataType.UBYTE, DataType.UWORD -> {
+                val replaceFunc = when {
+                    dt.isSignedByte -> "abs__byte"
+                    dt.isSignedWord -> "abs__word"
+                    dt.isFloat -> "abs__float"
+                    dt.isUnsignedByte || dt.isUnsignedWord -> {
                         return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
                     }
                     else -> {
@@ -220,10 +222,10 @@ class VarConstantValueTypeAdjuster(
             val t1 = functionCallExpr.args[0].inferType(program)
             if(t1.isKnown) {
                 val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
-                val replaceFunc = when(dt) {
-                    DataType.UBYTE -> "sqrt__ubyte"
-                    DataType.UWORD -> "sqrt__uword"
-                    DataType.FLOAT -> "sqrt__float"
+                val replaceFunc = when {
+                    dt.isUnsignedByte -> "sqrt__ubyte"
+                    dt.isUnsignedWord -> "sqrt__uword"
+                    dt.isFloat -> "sqrt__float"
                     else -> {
                         errors.err("expected unsigned or float numeric argument", functionCallExpr.args[0].position)
                         return noModifications
@@ -249,9 +251,9 @@ class VarConstantValueTypeAdjuster(
             val t1 = argTypes.single()
             if(t1.isKnown) {
                 val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
-                val replaceFunc = when(dt) {
-                    DataType.UBYTE -> "divmod__ubyte"
-                    DataType.UWORD -> "divmod__uword"
+                val replaceFunc = when {
+                    dt.isUnsignedByte -> "divmod__ubyte"
+                    dt.isUnsignedWord -> "divmod__uword"
                     else -> {
                         errors.err("expected all ubyte or all uword arguments", functionCallStatement.args[0].position)
                         return noModifications
@@ -302,7 +304,7 @@ internal class ConstantIdentifierReplacer(
         try {
             val cval = identifier.constValue(program) ?: return noModifications
             val arrayIdx = identifier.parent as? ArrayIndexedExpression
-            if(arrayIdx!=null && cval.type in NumericDatatypes) {
+            if(arrayIdx!=null && cval.type.isNumeric()) {
                 // special case when the identifier is used as a pointer var
                 // var = constpointer[x] --> var = @(constvalue+x) [directmemoryread]
                 // constpointer[x] = var -> @(constvalue+x) [directmemorywrite] = var
@@ -316,8 +318,8 @@ internal class ConstantIdentifierReplacer(
                     listOf(IAstModification.ReplaceNode(arrayIdx, memread, arrayIdx.parent))
                 }
             }
-            when (cval.type) {
-                in NumericDatatypesWithBoolean -> {
+            when {
+                cval.type.isNumericOrBool() -> {
                     if(parent is AddressOf)
                         return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
                     return listOf(
@@ -328,7 +330,7 @@ internal class ConstantIdentifierReplacer(
                         )
                     )
                 }
-                in PassByReferenceDatatypes -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
+                cval.type.isPassByRef() -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
                 else -> return noModifications
             }
         } catch (x: UndefinedSymbolError) {
@@ -369,16 +371,16 @@ internal class ConstantIdentifierReplacer(
                 }
             }
 
-            when(decl.datatype) {
-                DataType.FLOAT -> {
+            when {
+                decl.datatype.isFloat -> {
                     // vardecl: for scalar float vars, promote constant integer initialization values to floats
                     val litval = decl.value as? NumericLiteral
-                    if (litval!=null && litval.type in IntegerDatatypesWithBoolean) {
-                        val newValue = NumericLiteral(DataType.FLOAT, litval.number, litval.position)
+                    if (litval!=null && litval.type.isIntegerOrBool()) {
+                        val newValue = NumericLiteral(BaseDataType.FLOAT, litval.number, litval.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
                     }
                 }
-                in ArrayDatatypes -> {
+                decl.datatype.isArray -> {
                     val replacedArrayInitializer = createConstArrayInitializerValue(decl)
                     if(replacedArrayInitializer!=null)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, replacedArrayInitializer, decl))
@@ -398,8 +400,8 @@ internal class ConstantIdentifierReplacer(
             return null     // memory mapped arrays can never have an initializer value other than the address where they're mapped.
 
         // convert the initializer range expression from a range or int, to an actual array.
-        when(decl.datatype) {
-            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_UW_SPLIT -> {
+        when {
+            decl.datatype.isArray && decl.datatype.sub!!.dt in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD) -> {
                 val rangeExpr = decl.value as? RangeExpression
                 if(rangeExpr!=null) {
                     val constRange = rangeExpr.toConstantIntegerRange()
@@ -413,50 +415,51 @@ internal class ConstantIdentifierReplacer(
                     if(declArraySize!=null && declArraySize!=rangeExpr.size())
                         errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                     if(constRange!=null) {
-                        val eltType = rangeExpr.inferType(program).getOr(DataType.UBYTE)
-                        return if(eltType in ByteDatatypes) {
+                        val eltType = rangeExpr.inferType(program).getOr(DataTypeFull.forDt(BaseDataType.UBYTE))
+                        return if(eltType.isByte) {
                             ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                                constRange.map { NumericLiteral(eltType, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                                constRange.map { NumericLiteral(eltType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                                 position = decl.value!!.position)
                         } else {
+                            require(eltType.sub==null)
                             ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                                constRange.map { NumericLiteral(eltType, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                                constRange.map { NumericLiteral(eltType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                                 position = decl.value!!.position)
                         }
                     }
                 }
                 val numericLv = decl.value as? NumericLiteral
-                if(numericLv!=null && numericLv.type== DataType.FLOAT)
+                if(numericLv!=null && numericLv.type == BaseDataType.FLOAT)
                     errors.err("arraysize requires only integers here", numericLv.position)
                 val size = decl.arraysize?.constIndex() ?: return null
                 if (rangeExpr==null && numericLv!=null) {
                     // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                     val fillvalue = numericLv.number.toInt()
-                    when(decl.datatype){
-                        DataType.ARRAY_UB -> {
+                    when {
+                        decl.datatype.isUnsignedByteArray -> {
                             if(fillvalue !in 0..255)
                                 errors.err("ubyte value overflow", numericLv.position)
                         }
-                        DataType.ARRAY_B -> {
+                        decl.datatype.isSignedByteArray -> {
                             if(fillvalue !in -128..127)
                                 errors.err("byte value overflow", numericLv.position)
                         }
-                        DataType.ARRAY_UW -> {
+                        decl.datatype.isUnsignedWordArray -> {
                             if(fillvalue !in 0..65535)
                                 errors.err("uword value overflow", numericLv.position)
                         }
-                        DataType.ARRAY_W -> {
+                        decl.datatype.isSignedWordArray -> {
                             if(fillvalue !in -32768..32767)
                                 errors.err("word value overflow", numericLv.position)
                         }
                         else -> {}
                     }
                     // create the array itself, filled with the fillvalue.
-                    val array = Array(size) {fillvalue}.map { NumericLiteral(ArrayToElementTypes.getValue(decl.datatype), it.toDouble(), numericLv.position) }.toTypedArray<Expression>()
+                    val array = Array(size) {fillvalue}.map { NumericLiteral(decl.datatype.sub!!.dt, it.toDouble(), numericLv.position) }.toTypedArray<Expression>()
                     return ArrayLiteral(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
                 }
             }
-            DataType.ARRAY_F -> {
+            decl.datatype.isFloatArray -> {
                 val rangeExpr = decl.value as? RangeExpression
                 if(rangeExpr!=null) {
                     // convert the initializer range expression to an actual array of floats
@@ -465,8 +468,8 @@ internal class ConstantIdentifierReplacer(
                         errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                     val constRange = rangeExpr.toConstantIntegerRange()
                     if(constRange!=null) {
-                        return ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_F),
-                            constRange.map { NumericLiteral(DataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                        return ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.FLOAT)),
+                            constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     }
                 }
@@ -479,22 +482,22 @@ internal class ConstantIdentifierReplacer(
                     if (fillvalue < options.compTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > options.compTarget.machine.FLOAT_MAX_POSITIVE)
                         errors.err("float value overflow", numericLv.position)
                     else {
-                        val array = Array(size) {fillvalue}.map { NumericLiteral(DataType.FLOAT, it, numericLv.position) }.toTypedArray<Expression>()
-                        return ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_F), array, position = numericLv.position)
+                        val array = Array(size) {fillvalue}.map { NumericLiteral(BaseDataType.FLOAT, it, numericLv.position) }.toTypedArray<Expression>()
+                        return ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.FLOAT)), array, position = numericLv.position)
                     }
                 }
             }
-            DataType.ARRAY_BOOL -> {
+            decl.datatype.isBoolArray -> {
                 val numericLv = decl.value as? NumericLiteral
                 val size = decl.arraysize?.constIndex() ?: return null
                 if(numericLv!=null) {
                     // arraysize initializer is a single value, and we know the array size.
-                    if(numericLv.type!=DataType.BOOL) {
+                    if(numericLv.type!=BaseDataType.BOOL) {
                         errors.err("initializer value is not a boolean", numericLv.position)
                         return null
                     }
-                    val array = Array(size) {numericLv.number}.map { NumericLiteral(DataType.BOOL, it, numericLv.position) }.toTypedArray<Expression>()
-                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_BOOL), array, position = numericLv.position)
+                    val array = Array(size) {numericLv.number}.map { NumericLiteral(BaseDataType.BOOL, it, numericLv.position) }.toTypedArray<Expression>()
+                    return ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.BOOL)), array, position = numericLv.position)
                 }
             }
             else -> return null

@@ -8,7 +8,6 @@ import io.kotest.matchers.string.shouldContain
 import prog8.code.ast.PtArray
 import prog8.code.ast.PtNumber
 import prog8.code.ast.PtString
-import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
 

@@ -7,8 +7,6 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
 import prog8.code.core.BuiltinFunctions
-import prog8.code.core.DataType
-import prog8.code.core.NumericDatatypes
 import prog8.code.core.RegisterOrPair
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.compileText

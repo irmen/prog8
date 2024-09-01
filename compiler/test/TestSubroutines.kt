@@ -8,7 +8,6 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
-import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8.compiler.astprocessing.hasRtsInAsm
 import prog8tests.helpers.ErrorReporterForTests

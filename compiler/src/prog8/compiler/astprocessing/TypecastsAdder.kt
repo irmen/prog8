@@ -28,7 +28,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(decl.datatype == DataType.ARRAY_BOOL) {
                         val integer = declValue.constValue(program)?.number
                         if(integer!=null) {
-                            val num = NumericLiteral(DataType.BOOL, if(integer==0.0) 0.0 else 1.0, declValue.position)
+                            val num = NumericLiteral(BaseDataType.BOOL, if(integer==0.0) 0.0 else 1.0, declValue.position)
                             num.parent = decl
                             decl.value = num
                         }
@@ -63,9 +63,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 if(leftConst!=null) {
                     val leftConstAsWord =
                         if(leftDt.istype(DataType.UBYTE))
-                            NumericLiteral(DataType.UWORD, leftConst.number, leftConst.position)
+                            NumericLiteral(BaseDataType.UWORD, leftConst.number, leftConst.position)
                         else
-                            NumericLiteral(DataType.WORD, leftConst.number, leftConst.position)
+                            NumericLiteral(BaseDataType.WORD, leftConst.number, leftConst.position)
                     val modifications = mutableListOf<IAstModification>()
                     if (parent is Assignment) {
                         if (parent.target.inferType(program).isWords) {
@@ -143,7 +143,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
                 if((expr.operator!="<<" && expr.operator!=">>") || !leftDt.isWords || !rightDt.isBytes) {
                     // determine common datatype and add typecast as required to make left and right equal types
-                    val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataType.UNDEFINED), rightDt.getOr(DataType.UNDEFINED), expr.left, expr.right)
+                    val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOr(DataTypeUNDEFINED), rightDt.getOr(DataTypeUNDEFINED), expr.left, expr.right)
                     if(toFix!=null) {
                         if(commonDt==DataType.BOOL) {
                             // don't automatically cast to bool
@@ -369,7 +369,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     private fun addTypecastOrCastedValueModification(
         modifications: MutableList<IAstModification>,
         expressionToCast: Expression,
-        requiredType: DataType,
+        requiredType: DataTypeFull,
         parent: Node
     ) {
         val sourceDt = expressionToCast.inferType(program).getOr(DataType.UNDEFINED)
