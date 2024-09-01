@@ -20,10 +20,8 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
         // such as casting byte<->ubyte,  word<->uword  or even redundant casts (sourcetype = target type).
         // the special typecast of a reference type (str, array) to an UWORD will be changed into address-of,
         //   UNLESS it's a str parameter in the containing subroutine - then we remove the typecast altogether
-        val sourceDt = typecast.expression.inferType(program).getOr(DataType.UNDEFINED)
-        if (typecast.type in ByteDatatypes && sourceDt in ByteDatatypes
-            || typecast.type in WordDatatypes && sourceDt in WordDatatypes
-        ) {
+        val sourceDt = typecast.expression.inferType(program).getOrUndef()
+        if (typecast.type.isByte && sourceDt.isByte || typecast.type.isWord && sourceDt.isWord) {
             if(typecast.parent !is Expression) {
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
@@ -32,8 +30,8 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
         if(typecast.type==sourceDt)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
-        if(sourceDt in PassByReferenceDatatypes) {
-            if(typecast.type== DataType.UWORD) {
+        if(sourceDt.isPassByRef) {
+            if(typecast.type == BaseDataType.UWORD) {
                 val identifier = typecast.expression as? IdentifierReference
                 if(identifier!=null) {
                     return if(identifier.isSubroutineParameter(program)) {
@@ -101,8 +99,8 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             // if the datatype of the arguments of cmp() are different, cast the byte one to word.
             val arg1 = bfcs.args[0]
             val arg2 = bfcs.args[1]
-            val dt1 = arg1.inferType(program).getOr(DataType.UNDEFINED)
-            val dt2 = arg2.inferType(program).getOr(DataType.UNDEFINED)
+            val dt1 = arg1.inferType(program).getOrUndef()
+            val dt2 = arg2.inferType(program).getOrUndef()
             if(dt1==DataType.BOOL && dt2==DataType.BOOL)
                 return noModifications
             else if(dt1 in ByteDatatypes) {
@@ -112,7 +110,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg1, cast, bfcs))
             } else {
-                if(dt2 in WordDatatypes)
+                if(dt2.isWord)
                     return noModifications
                 val (replaced, cast) = arg2.typecastTo(if(dt2== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt2, true)
                 if(replaced)
@@ -131,7 +129,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                     errors.warn("shift always results in 0", expr.position)
                 if(dt.istype(DataType.UWORD) && shifts.number>=16.0)
                     errors.warn("shift always results in 0", expr.position)
-                if(shifts.number<=255.0 && shifts.type in WordDatatypes) {
+                if(shifts.number<=255.0 && shifts.type.isWord) {
                     val byteVal = NumericLiteral(BaseDataType.UBYTE, shifts.number, shifts.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, byteVal, expr))
                 }

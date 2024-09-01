@@ -47,48 +47,48 @@ class TestCodegen: FunSpec({
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main",false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        sub.add(PtVariable("pi", DataType.UBYTE, ZeropageWish.DONTCARE, PtNumber(DataType.UBYTE, 0.0, Position.DUMMY), null, Position.DUMMY))
-        sub.add(PtVariable("particleX", DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, 3u, Position.DUMMY))
-        sub.add(PtVariable("particleDX", DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, 3u, Position.DUMMY))
-        sub.add(PtVariable("xx", DataType.WORD, ZeropageWish.DONTCARE, PtNumber(DataType.WORD, 1.0, Position.DUMMY), null, Position.DUMMY))
+        sub.add(PtVariable("pi", DataTypeFull.forDt(BaseDataType.UBYTE), ZeropageWish.DONTCARE, PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY), null, Position.DUMMY))
+        sub.add(PtVariable("particleX", DataTypeFull.arrayFor(BaseDataType.UBYTE), ZeropageWish.DONTCARE, null, 3u, Position.DUMMY))
+        sub.add(PtVariable("particleDX", DataTypeFull.arrayFor(BaseDataType.UBYTE), ZeropageWish.DONTCARE, null, 3u, Position.DUMMY))
+        sub.add(PtVariable("xx", DataTypeFull.forDt(BaseDataType.WORD), ZeropageWish.DONTCARE, PtNumber(BaseDataType.WORD, 1.0, Position.DUMMY), null, Position.DUMMY))
 
         val assign = PtAugmentedAssign("+=", Position.DUMMY)
         val target = PtAssignTarget(false, Position.DUMMY).also {
-            val targetIdx = PtArrayIndexer(DataType.UBYTE, Position.DUMMY).also { idx ->
-                idx.add(PtIdentifier("main.start.particleX", DataType.ARRAY_UB, Position.DUMMY))
-                idx.add(PtNumber(DataType.UBYTE, 2.0, Position.DUMMY))
+            val targetIdx = PtArrayIndexer(DataTypeFull.forDt(BaseDataType.UBYTE), Position.DUMMY).also { idx ->
+                idx.add(PtIdentifier("main.start.particleX", DataTypeFull.arrayFor(BaseDataType.UBYTE), Position.DUMMY))
+                idx.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
             }
             it.add(targetIdx)
         }
-        val value = PtArrayIndexer(DataType.UBYTE, Position.DUMMY)
-        value.add(PtIdentifier("main.start.particleDX", DataType.ARRAY_UB, Position.DUMMY))
-        value.add(PtNumber(DataType.UBYTE, 2.0, Position.DUMMY))
+        val value = PtArrayIndexer(DataTypeFull.forDt(BaseDataType.UBYTE), Position.DUMMY)
+        value.add(PtIdentifier("main.start.particleDX", DataTypeFull.arrayFor(BaseDataType.UBYTE), Position.DUMMY))
+        value.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         assign.add(target)
         assign.add(value)
         sub.add(assign)
 
         val prefixAssign = PtAugmentedAssign("-", Position.DUMMY)
         val prefixTarget = PtAssignTarget(false, Position.DUMMY).also {
-            it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
+            it.add(PtIdentifier("main.start.xx", DataTypeFull.forDt(BaseDataType.WORD), Position.DUMMY))
         }
         prefixAssign.add(prefixTarget)
-        prefixAssign.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
+        prefixAssign.add(PtIdentifier("main.start.xx", DataTypeFull.forDt(BaseDataType.WORD), Position.DUMMY))
         sub.add(prefixAssign)
 
         val numberAssign = PtAugmentedAssign("-=", Position.DUMMY)
         val numberAssignTarget = PtAssignTarget(false, Position.DUMMY).also {
-            it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
+            it.add(PtIdentifier("main.start.xx", DataTypeFull.forDt(BaseDataType.WORD), Position.DUMMY))
         }
         numberAssign.add(numberAssignTarget)
-        numberAssign.add(PtNumber(DataType.WORD, 42.0, Position.DUMMY))
+        numberAssign.add(PtNumber(BaseDataType.WORD, 42.0, Position.DUMMY))
         sub.add(numberAssign)
 
         val cxregAssign = PtAugmentedAssign("+=", Position.DUMMY)
         val cxregAssignTarget = PtAssignTarget(false, Position.DUMMY).also {
-            it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
+            it.add(PtIdentifier("main.start.xx", DataTypeFull.forDt(BaseDataType.WORD), Position.DUMMY))
         }
         cxregAssign.add(cxregAssignTarget)
-        cxregAssign.add(PtIdentifier("cx16.r0", DataType.UWORD, Position.DUMMY))
+        cxregAssign.add(PtIdentifier("cx16.r0", DataTypeFull.forDt(BaseDataType.UWORD), Position.DUMMY))
         sub.add(cxregAssign)
 
         block.add(sub)
@@ -96,7 +96,7 @@ class TestCodegen: FunSpec({
 
         // define the "cx16.r0" virtual register
         val cx16block = PtBlock("cx16", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        cx16block.add(PtMemMapped("r0", DataType.UWORD, 100u, null, Position.DUMMY))
+        cx16block.add(PtMemMapped("r0", DataTypeFull.forDt(BaseDataType.UWORD), 100u, null, Position.DUMMY))
         program.add(cx16block)
 
         val options = getTestOptions()

@@ -241,17 +241,17 @@ class PtBool(val value: Boolean, position: Position) : PtExpression(DataTypeFull
 }
 
 
-class PtNumber(type: DataTypeFull, val number: Double, position: Position) : PtExpression(type, position) {
+class PtNumber(type: BaseDataType, val number: Double, position: Position) : PtExpression(DataTypeFull.forDt(type), position) {
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position): PtNumber =
-            PtNumber(DataTypeFull.forDt(BaseDataType.UBYTE), if(bool) 1.0 else 0.0, position)
+            PtNumber(BaseDataType.UBYTE, if(bool) 1.0 else 0.0, position)
     }
 
     init {
-        if(type.isBool)
+        if(type==BaseDataType.BOOL)
             throw IllegalArgumentException("use PtBool instead")
-        if(!type.isFloat) {
+        if(type!=BaseDataType.FLOAT) {
             val trunc = truncate(number)
             if (trunc != number)
                 throw IllegalArgumentException("refused truncating of float to avoid loss of precision @$position")
@@ -333,7 +333,7 @@ class PtString(val value: String, val encoding: Encoding, position: Position) : 
 }
 
 
-class PtTypeCast(type: DataTypeFull, position: Position) : PtExpression(type, position) {
+class PtTypeCast(type: BaseDataType, position: Position) : PtExpression(DataTypeFull.forDt(type), position) {
     val value: PtExpression
         get() = children.single() as PtExpression
 }

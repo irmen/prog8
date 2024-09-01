@@ -212,7 +212,7 @@ class StatementOptimizer(private val program: Program,
                 if(fromExpr.constValue(program)==null) {
                     // FOR X = something DOWNTO 0 {...} -->  X=something,  DO { ... , X-- } UNTIL X=255 (or 65535 if uword)
                     val pos = forLoop.position
-                    val checkValue = NumericLiteral(loopvarDt.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED)).dt, if(loopvarDt issimpletype BaseDataType.UBYTE) 255.0 else 65535.0, pos)
+                    val checkValue = NumericLiteral(loopvarDt.getOrUndef().dt, if(loopvarDt issimpletype BaseDataType.UBYTE) 255.0 else 65535.0, pos)
                     val condition = BinaryExpression(forLoop.loopVar.copy(), "==", checkValue, pos)
                     val decOne = incOrDec(false)
                     forLoop.body.statements.add(decOne)

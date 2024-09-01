@@ -364,7 +364,4 @@ fun defaultZero(dt: BaseDataType, position: Position) = when(dt) {
 
 fun defaultZero(dt: SubType, position: Position) = defaultZero(dt.dt, position)
 
-fun defaultZero(idt: InferredTypes.InferredType, position: Position): NumericLiteral {
-    val dt = idt.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED))
-    return defaultZero(dt.dt, position)
-}
+fun defaultZero(idt: InferredTypes.InferredType, position: Position) = defaultZero(idt.getOrUndef().dt, position)

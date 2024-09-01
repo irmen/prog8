@@ -403,8 +403,8 @@ class IRCodeGen(
                 val tmpReg = registers.nextFree()
                 val loopLabel = createLabelName()
                 val endLabel = createLabelName()
-                when (iterable.type) {
-                    DataType.STR -> {
+                when {
+                    iterable.type.isString -> {
                         // iterate over a zero-terminated string
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
@@ -419,10 +419,10 @@ class IRCodeGen(
                         result += jumpChunk
                         result += IRCodeChunk(endLabel, null)
                     }
-                    in SplitWordArrayTypes -> {
+                    iterable.type.isSplitWordArray -> {
                         // iterate over lsb/msb split word array
-                        val elementDt = ArrayToElementTypes.getValue(iterable.type)
-                        if(elementDt !in WordDatatypes)
+                        val elementDt = iterable.type.elementType()
+                        if(!elementDt.isWord)
                             throw AssemblyError("weird dt")
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
@@ -446,13 +446,14 @@ class IRCodeGen(
                     }
                     else -> {
                         // iterate over regular array
-                        val elementDt = ArrayToElementTypes.getValue(iterable.type)
-                        val elementSize = program.memsizer.memorySize(elementDt)
+                        val element = iterable.type.sub!!
+                        val elementDt = element.dt
+                        val elementSize = program.memsizer.memorySize(element)
                         val lengthBytes = iterableLength!! * elementSize
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
-                            it += IRInstruction(Opcode.LOADX, irType(elementDt), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
-                            it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=tmpReg, labelSymbol = loopvarSymbol)
+                            it += IRInstruction(Opcode.LOADX, irType(DataTypeFull.forDt(elementDt)), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
+                            it += IRInstruction(Opcode.STOREM, irType(DataTypeFull.forDt(elementDt)), reg1=tmpReg, labelSymbol = loopvarSymbol)
                         }
                         result += translateNode(forLoop.statements)
                         result += addConstReg(IRDataType.BYTE, indexReg, elementSize)
@@ -493,7 +494,7 @@ class IRCodeGen(
         addToResult(result, fromTr, fromTr.resultReg, -1)
 
         val labelAfterFor = createLabelName()
-        val precheckInstruction = if(loopvarDt in SignedDatatypes) {
+        val precheckInstruction = if(loopvarDt.isSigned) {
             if(step>0)
                 IRInstruction(Opcode.BGTSR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
             else
@@ -905,7 +906,7 @@ class IRCodeGen(
 
     private fun translateIfFollowedByJustGoto(ifElse: PtIfElse, goto: PtJump): MutableList<IRCodeChunkBase> {
         val condition = ifElse.condition as? PtBinaryExpression
-        if(condition==null || condition.left.type!=DataType.FLOAT) {
+        if(condition==null || !condition.left.type.isFloat) {
             return if(isIndirectJump(goto))
                 ifWithOnlyIndirectJump_IntegerCond(ifElse, goto)
             else
@@ -1010,7 +1011,7 @@ class IRCodeGen(
 
             val leftTr = expressionEval.translateExpression(condition.left)
             val irDt = leftTr.dt
-            val signed = condition.left.type in SignedDatatypes
+            val signed = condition.left.type.isSigned
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val number = (condition.right as? PtNumber)?.number?.toInt()
             if(number!=null) {
@@ -1098,7 +1099,7 @@ class IRCodeGen(
 
         when(val cond = ifElse.condition) {
             is PtTypeCast -> {
-                require(cond.type==DataType.BOOL && cond.value.type in NumericDatatypes)
+                require(cond.type.isBool && cond.value.type.isNumeric)
                 val tr = expressionEval.translateExpression(cond)
                 result += tr.chunks
                 addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = afterIfLabel), null)
@@ -1140,7 +1141,7 @@ class IRCodeGen(
 
             val leftTr = expressionEval.translateExpression(condition.left)
             val irDt = leftTr.dt
-            val signed = condition.left.type in SignedDatatypes
+            val signed = condition.left.type.isSigned
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val number = (condition.right as? PtNumber)?.number?.toInt()
             if(number!=null) {
@@ -1229,7 +1230,7 @@ class IRCodeGen(
 
         when(val cond = ifElse.condition) {
             is PtTypeCast -> {
-                require(cond.type==DataType.BOOL && cond.value.type in NumericDatatypes)
+                require(cond.type.isBool && cond.value.type.isNumeric)
                 val tr = expressionEval.translateExpression(cond)
                 result += tr.chunks
                 addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
@@ -1253,7 +1254,7 @@ class IRCodeGen(
 
     private fun translateIfElse(ifElse: PtIfElse): IRCodeChunks {
         val condition = ifElse.condition as? PtBinaryExpression
-        if(condition==null || condition.left.type != DataType.FLOAT) {
+        if(condition==null || !condition.left.type.isFloat) {
             return ifWithElse_IntegerCond(ifElse)
         }
 
@@ -1344,7 +1345,7 @@ class IRCodeGen(
             if(condition.operator in LogicalOperators)
                 return translateSimple(condition, Opcode.BSTEQ)
 
-            val signed = condition.left.type in SignedDatatypes
+            val signed = condition.left.type.isSigned
             val elseBranchFirstReg: Int
             val elseBranchSecondReg: Int
             val number = (condition.right as? PtNumber)?.number?.toInt()
@@ -1484,7 +1485,7 @@ class IRCodeGen(
                 translateSimple(cond, Opcode.BSTEQ)
             }
             is PtTypeCast -> {
-                require(cond.type==DataType.BOOL && cond.value.type in NumericDatatypes)
+                require(cond.type.isBool && !cond.value.type.isNumeric)
                 translateSimple(cond, Opcode.BSTEQ)
             }
             is PtIdentifier, is PtArrayIndexer, is PtBuiltinFunctionCall, is PtFunctionCall, is PtContainmentCheck -> {
@@ -1508,7 +1509,7 @@ class IRCodeGen(
             1 -> return translateGroup(repeat.children)
             256 -> {
                 // 256 iterations can still be done with just a byte counter if you set it to zero as starting value.
-                repeat.children[0] = PtNumber(DataType.UBYTE, 0.0, repeat.count.position)
+                repeat.children[0] = PtNumber(BaseDataType.UBYTE, 0.0, repeat.count.position)
             }
         }
 
@@ -1569,7 +1570,7 @@ class IRCodeGen(
         if(value==null) {
             addInstr(result, IRInstruction(Opcode.RETURN), null)
         } else {
-            if(value.type==DataType.FLOAT) {
+            if(value.type.isFloat) {
                 val tr = expressionEval.translateExpression(value)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, IRInstruction(Opcode.RETURNR, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)

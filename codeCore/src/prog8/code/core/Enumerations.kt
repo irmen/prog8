@@ -17,11 +17,11 @@ enum class BaseDataType {
     fun largerSizeThan(other: BaseDataType) =
         when {
             this == other -> false
-            this.isByteOrBool() -> false
-            this.isWord() -> other.isByteOrBool()
-            this == LONG -> other.isByteOrBool() || other.isWord()
+            this.isByteOrBool -> false
+            this.isWord -> other.isByteOrBool
+            this == LONG -> other.isByteOrBool || other.isWord
             this == STR && other == UWORD || this == UWORD && other == STR -> false
-            this.isArray() -> other != FLOAT
+            this.isArray -> other != FLOAT
             this == STR -> other != FLOAT
             else -> true
         }
@@ -29,28 +29,28 @@ enum class BaseDataType {
     fun equalsSize(other: BaseDataType) =
         when {
             this == other -> true
-            this.isByteOrBool() -> other.isByteOrBool()
-            this.isWord() -> other.isWord()
+            this.isByteOrBool -> other.isByteOrBool
+            this.isWord -> other.isWord
             this == STR && other== UWORD || this== UWORD && other== STR -> true
-            this == STR && other.isArray() -> true
-            this.isArray() && other == STR -> true
+            this == STR && other.isArray -> true
+            this.isArray && other == STR -> true
             else -> false
         }
 }
 
-fun BaseDataType.isByte() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
-fun BaseDataType.isByteOrBool() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL)
-fun BaseDataType.isWord() = this in arrayOf(BaseDataType.UWORD, BaseDataType.WORD)
-fun BaseDataType.isInteger() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
-fun BaseDataType.isIntegerOrBool() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.BOOL)
-fun BaseDataType.isNumeric() = this == BaseDataType.FLOAT || this.isInteger()
-fun BaseDataType.isNumericOrBool() = this == BaseDataType.BOOL || this.isNumeric()
-fun BaseDataType.isSigned() = this in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-fun BaseDataType.isArray() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW
-fun BaseDataType.isSplitWordArray() = this == BaseDataType.ARRAY_SPLITW
-fun BaseDataType.isIterable() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
-fun BaseDataType.isPassByRef() = this.isIterable()
-fun BaseDataType.isPassByValue() = !this.isIterable()
+val BaseDataType.isByte get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
+val BaseDataType.isByteOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL)
+val BaseDataType.isWord get() = this in arrayOf(BaseDataType.UWORD, BaseDataType.WORD)
+val BaseDataType.isInteger get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
+val BaseDataType.isIntegerOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.BOOL)
+val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger
+val BaseDataType.isNumericOrBool get() = this == BaseDataType.BOOL || this.isNumeric
+val BaseDataType.isSigned get() = this in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW
+val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW
+val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
+val BaseDataType.isPassByRef get() = this.isIterable
+val BaseDataType.isPassByValue get() = !this.isIterable
 
 
 sealed class SubType(val dt: BaseDataType) {
@@ -81,13 +81,13 @@ internal object SubFloat: SubType(BaseDataType.FLOAT)
 data class DataTypeFull(val dt: BaseDataType, val sub: SubType?) {
 
     init {
-        if(dt.isArray()) {
+        if(dt.isArray) {
             require(sub != null)
-            if(dt.isSplitWordArray())
+            if(dt.isSplitWordArray)
                 require(sub.dt == BaseDataType.UWORD || sub.dt == BaseDataType.WORD)
         }
         else if(dt==BaseDataType.STR)
-            require(sub==SubUnsignedByte)
+            require(sub?.dt==BaseDataType.UBYTE)
         else
             require(sub == null)
     }
@@ -135,6 +135,8 @@ data class DataTypeFull(val dt: BaseDataType, val sub: SubType?) {
             else -> throw IllegalArgumentException("invalid array elt dt")
         }
     }
+
+    fun elementType(): DataTypeFull = if(dt.isArray) forDt(sub!!.dt) else throw IllegalArgumentException("not an array")
 
     override fun toString(): String = when(dt) {
         BaseDataType.ARRAY -> {
@@ -207,37 +209,37 @@ data class DataTypeFull(val dt: BaseDataType, val sub: SubType?) {
     fun equalsSize(other: DataTypeFull) = dt.equalsSize(other.dt)
 
     val isUndefined = dt == BaseDataType.UNDEFINED
-    val isByte = dt.isByte()
+    val isByte = dt.isByte
     val isUnsignedByte = dt == BaseDataType.UBYTE
     val isSignedByte = dt == BaseDataType.BYTE
-    val isByteOrBool = dt.isByteOrBool()
-    val isWord = dt.isWord()
+    val isByteOrBool = dt.isByteOrBool
+    val isWord = dt.isWord
     val isUnsignedWord =  dt == BaseDataType.UWORD
     val isSignedWord =  dt == BaseDataType.WORD
-    val isInteger = dt.isInteger()
-    val isIntegerOrBool = dt.isIntegerOrBool()
-    val isNumeric = dt.isNumeric()
-    val isNumericOrBool = dt.isNumericOrBool()
-    val isSigned = dt.isSigned()
-    val isUnsigned = !dt.isSigned()
-    val isArray = dt.isArray()
-    val isBoolArray = dt.isArray() && sub == SubBool
-    val isByteArray = dt.isArray() && (sub == SubUnsignedByte || sub == SubSignedByte)
-    val isUnsignedByteArray = dt.isArray() && sub == SubUnsignedByte
-    val isSignedByteArray = dt.isArray() && sub == SubSignedByte
-    val isWordArray = dt.isArray() && (sub == SubUnsignedWord || sub == SubSignedWord)
-    val isUnsignedWordArray = dt.isArray() && sub == SubUnsignedWord
-    val isSignedWordArray = dt.isArray() && sub == SubSignedWord
-    val isFloatArray = dt.isArray() && sub == SubFloat
+    val isInteger = dt.isInteger
+    val isIntegerOrBool = dt.isIntegerOrBool
+    val isNumeric = dt.isNumeric
+    val isNumericOrBool = dt.isNumericOrBool
+    val isSigned = dt.isSigned
+    val isUnsigned = !dt.isSigned
+    val isArray = dt.isArray
+    val isBoolArray = dt.isArray && sub?.dt == BaseDataType.BOOL
+    val isByteArray = dt.isArray && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE)
+    val isUnsignedByteArray = dt.isArray && sub?.dt == BaseDataType.UBYTE
+    val isSignedByteArray = dt.isArray && sub?.dt == BaseDataType.BYTE
+    val isWordArray = dt.isArray && (sub?.dt == BaseDataType.UWORD || sub?.dt == BaseDataType.WORD)
+    val isUnsignedWordArray = dt.isArray && sub?.dt == BaseDataType.UWORD
+    val isSignedWordArray = dt.isArray && sub?.dt == BaseDataType.WORD
+    val isFloatArray = dt.isArray && sub?.dt == BaseDataType.FLOAT
     val isString = dt == BaseDataType.STR
     val isBool = dt == BaseDataType.BOOL
     val isFloat = dt == BaseDataType.FLOAT
     val isLong = dt == BaseDataType.LONG
-    val isStringly = dt == BaseDataType.STR || dt == BaseDataType.UWORD || (dt == BaseDataType.ARRAY && (sub==SubUnsignedByte || sub==SubSignedByte))
-    val isSplitWordArray = dt.isSplitWordArray()
-    val isIterable =  dt.isIterable()
-    val isPassByRef = dt.isPassByRef()
-    val isPassByValue = dt.isPassByValue()
+    val isStringly = dt == BaseDataType.STR || dt == BaseDataType.UWORD || (dt == BaseDataType.ARRAY && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE))
+    val isSplitWordArray = dt.isSplitWordArray
+    val isIterable =  dt.isIterable
+    val isPassByRef = dt.isPassByRef
+    val isPassByValue = dt.isPassByValue
 }
 
 

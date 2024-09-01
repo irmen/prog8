@@ -54,7 +54,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         val sourceDt = typecast.expression.inferType(program)
-        if(sourceDt istype typecast.type)
+        if(sourceDt issimpletype typecast.type)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {
@@ -136,6 +136,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
                 if(isMultiComparisonRecurse(leftBinExpr1)) {
                     val elementType = needle.inferType(program).getOrElse { throw FatalAstException("invalid needle dt") }
+                    require(elementType.isNumericOrBool)
                     if(values.size==2 || values.size==3 && elementType in IntegerDatatypes) {
                         val numbers = values.map{it.number}.toSet()
                         if(numbers == setOf(0.0, 1.0)) {
@@ -152,7 +153,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     if(values.size<4)
                         return noModifications  // replacement only worthwhile for 4 or more values
                     val valueCopies = values.sortedBy { it.number }.map { it.copy() }
-                    val arrayType = ElementToArrayTypes.getValue(elementType)
+                    val arrayType = DataType.arrayFor(elementType.dt)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
                     val containment = ContainmentCheck(needle, valuesArray, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, containment, parent))

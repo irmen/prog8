@@ -6,7 +6,7 @@ import prog8.code.ast.PtSub
 import prog8.code.core.*
 
 
-internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
+internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataTypeFull>> {
     when(this) {
         is PtAsmSub -> {
             return returns
@@ -16,10 +16,10 @@ internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, D
             return if(returntype==null)
                 emptyList()
             else {
-                val register = when (returntype!!) {
-                    in ByteDatatypesWithBoolean -> RegisterOrStatusflag(RegisterOrPair.A, null)
-                    in WordDatatypes -> RegisterOrStatusflag(RegisterOrPair.AY, null)
-                    DataType.FLOAT -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
+                val register = when {
+                    returntype!!.isByteOrBool -> RegisterOrStatusflag(RegisterOrPair.A, null)
+                    returntype!!.isWord -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+                    returntype!!.isFloat -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
                     else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
                 }
                 listOf(Pair(register, returntype!!))
@@ -30,11 +30,11 @@ internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, D
 
 
 internal fun PtSub.returnRegister(): RegisterOrStatusflag? {
-    return when(returntype) {
-        in ByteDatatypesWithBoolean -> RegisterOrStatusflag(RegisterOrPair.A, null)
-        in WordDatatypes -> RegisterOrStatusflag(RegisterOrPair.AY, null)
-        DataType.FLOAT -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
-        null -> null
+    return when {
+        returntype?.isByteOrBool==true -> RegisterOrStatusflag(RegisterOrPair.A, null)
+        returntype?.isWord==true -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+        returntype?.isFloat==true -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
+        returntype==null -> null
         else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
     }
 }

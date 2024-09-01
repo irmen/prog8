@@ -101,8 +101,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtMemMapped -> {
                 if(node.type.isArray) {
                     val arraysize = if(node.arraySize==null) "" else node.arraySize.toString()
-                    val eltDt = node.type.sub!!.dt
-                    "&${eltDt.name.lowercase()}[$arraysize] ${node.name} = ${node.address.toHex()}"
+                    "&${node.type.elementType()}[$arraysize] ${node.name} = ${node.address.toHex()}"
                 } else {
                     "&${node.type} ${node.name} = ${node.address.toHex()}"
                 }
@@ -116,16 +115,12 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             }
             is PtVariable -> {
                 val split = if(node.type.isSplitWordArray) "@split" else ""
-                val str = if(node.arraySize!=null) {
-                    val eltDt = node.type.sub!!.dt
-                    "${eltDt.name.lowercase()}[${node.arraySize}] $split ${node.name}"
-                }
-                else if(node.type.isArray) {
-                    val eltDt = node.type.sub!!.dt
-                    "${eltDt.name.lowercase()}[] $split ${node.name}"
-                }
-                else
-                    "${node.type} ${node.name}"
+                val str = if(node.arraySize!=null)
+                        "${node.type.elementType()}[${node.arraySize}] $split ${node.name}"
+                    else if(node.type.isArray)
+                        "${node.type.elementType()}[] $split ${node.name}"
+                    else
+                        "${node.type} ${node.name}"
                 if(node.value!=null)
                     str + " = " + txt(node.value)
                 else

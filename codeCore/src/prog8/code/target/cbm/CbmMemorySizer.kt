@@ -21,4 +21,8 @@ internal object CbmMemorySizer: IMemSizer {
             else -> 2
         }
     }
+
+    override fun memorySize(dt: SubType): Int {
+        return memorySize(DataTypeFull.forDt(dt.dt), null)
+    }
 }

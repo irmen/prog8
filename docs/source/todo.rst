@@ -1,7 +1,20 @@
 TODO
 ====
 
-replace use of Java Stack<> by kotlin's ArrayDeque / arrayDequeOf
+is the second MemorySize() required?
+
+replace some  when { xxx.isWord... }  with (when xxx.dt) { UWORD -> ...} again
+
+
+codegens: check array copy (elt size)
+check: try to replace a multi-comparison expression (if x==1 | x==2 | x==3 ... ) by a simple containment check.
+IR: check for loop over split word array
+IR: check rol ror in array (elt size)
+IR: check set lsb/msb in array (elt size)
+
+
+cleanup all imports
+
 
 
 Improve register load order in subroutine call args assignments:

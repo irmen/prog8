@@ -9,7 +9,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.AssociativeOperators
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
 import prog8.code.core.IErrorReporter
 import kotlin.math.floor
 
@@ -37,7 +36,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if(parent is Assignment) {
             val iDt = parent.target.inferType(program)
             if(iDt.isKnown && !iDt.isBool && !(iDt issimpletype numLiteral.type)) {
-                val casted = numLiteral.cast(iDt.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED)).dt, true)
+                val casted = numLiteral.cast(iDt.getOrUndef().dt, true)
                 if(casted.isValid) {
                     return listOf(IAstModification.ReplaceNode(numLiteral, casted.valueOrZero(), parent))
                 }
@@ -282,7 +281,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         } else {
             val arrayDt = array.guessDatatype(program)
             if (arrayDt.isKnown) {
-                val newArray = array.cast(arrayDt.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED)))
+                val newArray = array.cast(arrayDt.getOrUndef())
                 if (newArray != null && newArray != array)
                     return listOf(IAstModification.ReplaceNode(array, newArray, parent))
             }

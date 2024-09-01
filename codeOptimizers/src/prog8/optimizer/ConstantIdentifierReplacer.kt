@@ -304,7 +304,7 @@ internal class ConstantIdentifierReplacer(
         try {
             val cval = identifier.constValue(program) ?: return noModifications
             val arrayIdx = identifier.parent as? ArrayIndexedExpression
-            if(arrayIdx!=null && cval.type.isNumeric()) {
+            if(arrayIdx!=null && cval.type.isNumeric) {
                 // special case when the identifier is used as a pointer var
                 // var = constpointer[x] --> var = @(constvalue+x) [directmemoryread]
                 // constpointer[x] = var -> @(constvalue+x) [directmemorywrite] = var
@@ -319,7 +319,7 @@ internal class ConstantIdentifierReplacer(
                 }
             }
             when {
-                cval.type.isNumericOrBool() -> {
+                cval.type.isNumericOrBool -> {
                     if(parent is AddressOf)
                         return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
                     return listOf(
@@ -330,7 +330,7 @@ internal class ConstantIdentifierReplacer(
                         )
                     )
                 }
-                cval.type.isPassByRef() -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
+                cval.type.isPassByRef -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
                 else -> return noModifications
             }
         } catch (x: UndefinedSymbolError) {
@@ -375,7 +375,7 @@ internal class ConstantIdentifierReplacer(
                 decl.datatype.isFloat -> {
                     // vardecl: for scalar float vars, promote constant integer initialization values to floats
                     val litval = decl.value as? NumericLiteral
-                    if (litval!=null && litval.type.isIntegerOrBool()) {
+                    if (litval!=null && litval.type.isIntegerOrBool) {
                         val newValue = NumericLiteral(BaseDataType.FLOAT, litval.number, litval.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
                     }
@@ -401,7 +401,7 @@ internal class ConstantIdentifierReplacer(
 
         // convert the initializer range expression from a range or int, to an actual array.
         when {
-            decl.datatype.isArray && decl.datatype.sub!!.dt in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD) -> {
+            decl.datatype.isUnsignedByteArray || decl.datatype.isSignedByteArray || decl.datatype.isUnsignedWordArray || decl.datatype.isSignedWordArray -> {
                 val rangeExpr = decl.value as? RangeExpression
                 if(rangeExpr!=null) {
                     val constRange = rangeExpr.toConstantIntegerRange()
@@ -455,7 +455,7 @@ internal class ConstantIdentifierReplacer(
                         else -> {}
                     }
                     // create the array itself, filled with the fillvalue.
-                    val array = Array(size) {fillvalue}.map { NumericLiteral(decl.datatype.sub!!.dt, it.toDouble(), numericLv.position) }.toTypedArray<Expression>()
+                    val array = Array(size) {fillvalue}.map { NumericLiteral(decl.datatype.elementType().dt, it.toDouble(), numericLv.position) }.toTypedArray<Expression>()
                     return ArrayLiteral(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
                 }
             }

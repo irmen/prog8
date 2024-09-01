@@ -32,7 +32,7 @@ internal class ForLoopsAsmGen(
         }
     }
 
-    private fun translateForOverNonconstRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
+    private fun translateForOverNonconstRange(stmt: PtForLoop, iterableDt: DataTypeFull, range: PtRange) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         val modifiedLabel = asmgen.makeLabel("for_modified")
@@ -46,8 +46,8 @@ internal class ForLoopsAsmGen(
                 throw AssemblyError("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping")
         }
 
-        when(iterableDt) {
-            DataType.ARRAY_B, DataType.ARRAY_UB -> {
+        when  {
+            iterableDt.isByteArray -> {
                 if (stepsize==1 || stepsize==-1) {
 
                     // bytes array, step 1 or -1
@@ -55,10 +55,10 @@ internal class ForLoopsAsmGen(
                     val incdec = if(stepsize==1) "inc" else "dec"
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.variable)
-                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
+                    asmgen.assignExpressionToVariable(range.from, varname, iterableDt.elementType())
                     asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
                     // pre-check for end already reached
-                    if(iterableDt==DataType.ARRAY_B) {
+                    if(iterableDt.isSignedByteArray) {
                         asmgen.out("  sta  $modifiedLabel+1")
                         if(stepsize<0)
                             asmgen.out("""
@@ -101,10 +101,10 @@ $modifiedLabel          cmp  #0         ; modified
 
                     // loop over byte range via loopvar
                     val varname = asmgen.asmVariableName(stmt.variable)
-                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
+                    asmgen.assignExpressionToVariable(range.from, varname, iterableDt.elementType())
                     asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
                     // pre-check for end already reached
-                    if(iterableDt==DataType.ARRAY_B) {
+                    if(iterableDt.isSignedByteArray) {
                         asmgen.out("  sta  $modifiedLabel+1")
                         if(stepsize<0)
                             asmgen.out("""
@@ -154,7 +154,7 @@ $modifiedLabel              cmp  #0     ; modified
                     asmgen.out(endLabel)
                 }
             }
-            DataType.ARRAY_W, DataType.ARRAY_UW -> {
+            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> {
                 when {
 
                     // words, step 1 or -1
@@ -205,7 +205,7 @@ $modifiedLabel2 cmp  #0    ; modified
 $loopLabel""")
                         asmgen.translate(stmt.statements)
 
-                        if (iterableDt == DataType.ARRAY_UW) {
+                        if (iterableDt.isUnsignedWordArray) {
                             asmgen.out("""
                 lda  $varname
                 clc
@@ -280,10 +280,10 @@ $endLabel""")
         asmgen.loopEndLabels.removeLast()
     }
 
-    private fun precheckFromToWord(iterableDt: DataType, stepsize: Int, fromVar: String, endLabel: String) {
+    private fun precheckFromToWord(iterableDt: DataTypeFull, stepsize: Int, fromVar: String, endLabel: String) {
         // pre-check for end already reached.
         // 'to' is in AY, do NOT clobber this!
-        if(iterableDt==DataType.ARRAY_W) {
+        if(iterableDt.isSignedWordArray) {
             if(stepsize<0)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W2        ; to
@@ -330,7 +330,7 @@ $endLabel""")
         }
     }
 
-    private fun translateForOverIterableVar(stmt: PtForLoop, iterableDt: DataType, ident: PtIdentifier) {
+    private fun translateForOverIterableVar(stmt: PtForLoop, iterableDt: DataTypeFull, ident: PtIdentifier) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.add(endLabel)
@@ -340,8 +340,8 @@ $endLabel""")
             is StMemVar -> symbol.length!!
             else -> 0
         }
-        when(iterableDt) {
-            DataType.STR -> {
+        when {
+            iterableDt.isString -> {
                 asmgen.out("""
                     lda  #<$iterableName
                     ldy  #>$iterableName
@@ -358,7 +358,7 @@ $loopLabel          lda  ${65535.toHex()}       ; modified
                     bne  $loopLabel
 $endLabel""")
             }
-            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {
+            iterableDt.isByteArray || iterableDt.isBoolArray -> {
                 val indexVar = asmgen.makeLabel("for_index")
                 asmgen.out("""
                     ldy  #0
@@ -383,7 +383,7 @@ $loopLabel          sty  $indexVar
                 }
                 if(numElements>=16) {
                     // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    val result = zeropage.allocate(indexVar, DataTypeFull.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
@@ -393,7 +393,7 @@ $loopLabel          sty  $indexVar
                 }
                 asmgen.out(endLabel)
             }
-            DataType.ARRAY_W, DataType.ARRAY_UW -> {
+            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> {         // TODO swap this block with the split word array block below and simplify the condition
                 val length = numElements * 2
                 val indexVar = asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmVariableName(stmt.variable)
@@ -424,7 +424,7 @@ $loopLabel          sty  $indexVar
                 }
                 if(length>=16) {
                     // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    val result = zeropage.allocate(indexVar, DataTypeFull.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address,_,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
@@ -434,7 +434,7 @@ $loopLabel          sty  $indexVar
                 }
                 asmgen.out(endLabel)
             }
-            DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT -> {
+            iterableDt.isSplitWordArray -> {
                 val indexVar = asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""
@@ -462,7 +462,7 @@ $loopLabel          sty  $indexVar
                 }
                 if(numElements>=16) {
                     // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    val result = zeropage.allocate(indexVar, DataTypeFull.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address,_,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
@@ -472,7 +472,7 @@ $loopLabel          sty  $indexVar
                 }
                 asmgen.out(endLabel)
             }
-            DataType.ARRAY_F -> {
+            iterableDt.isFloatArray -> {
                 throw AssemblyError("for loop with floating point variables is not supported")
             }
             else -> throw AssemblyError("can't iterate over $iterableDt")
@@ -480,15 +480,15 @@ $loopLabel          sty  $indexVar
         asmgen.loopEndLabels.removeLast()
     }
 
-    private fun translateForOverConstRange(stmt: PtForLoop, iterableDt: DataType, range: IntProgression) {
+    private fun translateForOverConstRange(stmt: PtForLoop, iterableDt: DataTypeFull, range: IntProgression) {
         if (range.isEmpty() || range.step==0)
             throw AssemblyError("empty range or step 0")
-        if(iterableDt==DataType.ARRAY_B || iterableDt==DataType.ARRAY_UB) {
+        if(iterableDt.isByteArray) {
             if(range.last==range.first) return translateForSimpleByteRangeAsc(stmt, range)
             if(range.step==1 && range.last>range.first) return translateForSimpleByteRangeAsc(stmt, range)
             if(range.step==-1 && range.last<range.first) return translateForSimpleByteRangeDesc(stmt, range)
         }
-        else if(iterableDt==DataType.ARRAY_W || iterableDt==DataType.ARRAY_UW) {
+        else if(iterableDt.isWordArray) {
             if(range.last==range.first) return translateForSimpleWordRangeAsc(stmt, range)
             if(range.step==1 && range.last>range.first) return translateForSimpleWordRangeAsc(stmt, range)
             if(range.step==-1 && range.last<range.first) return translateForSimpleWordRangeDesc(stmt, range)
@@ -498,8 +498,8 @@ $loopLabel          sty  $indexVar
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.add(endLabel)
-        when(iterableDt) {
-            DataType.ARRAY_B, DataType.ARRAY_UB -> {
+        when {
+            iterableDt.isByteArray -> {
                 // loop over byte range via loopvar, step >= 2 or <= -2
                 val varname = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""
@@ -564,7 +564,7 @@ $loopLabel""")
                 }
                 asmgen.out(endLabel)
             }
-            DataType.ARRAY_W, DataType.ARRAY_UW -> {
+            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> {
                 // loop over word range via loopvar, step >= 2 or <= -2
                 val varname = asmgen.asmVariableName(stmt.variable)
                 when (range.step) {

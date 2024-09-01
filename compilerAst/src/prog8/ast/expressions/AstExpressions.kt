@@ -103,7 +103,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         val converted = when(operator) {
             "+" -> constval
             "-" -> when {
-                constval.type.isInteger() -> NumericLiteral.optimalInteger(-constval.number.toInt(), constval.position)
+                constval.type.isInteger -> NumericLiteral.optimalInteger(-constval.number.toInt(), constval.position)
                 constval.type == BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, -constval.number, constval.position)
                 else -> throw ExpressionError("can only take negative of int or float", constval.position)
             }
@@ -223,7 +223,7 @@ class BinaryExpression(
                     }
                 }
             }
-            "&", "|", "^" -> when(leftDt.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED))) {
+            "&", "|", "^" -> when(leftDt.getOrUndef()) {
                 DataTypeFull.forDt(BaseDataType.BYTE) -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.UBYTE))
                 DataTypeFull.forDt(BaseDataType.WORD) -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.UWORD))
                 DataTypeFull.forDt(BaseDataType.BOOL) -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.UBYTE))
@@ -335,7 +335,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
         if (target is VarDecl) {
             return when {
                 target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.UBYTE))
-                target.datatype.isArray -> InferredTypes.knownFor(DataTypeFull(target.datatype.sub!!.dt, null))
+                target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
                 else -> InferredTypes.knownFor(target.datatype)
             }
         }
@@ -604,7 +604,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed
         if (implicit) {
             if (targettype == BaseDataType.BOOL)
                 return ValueAfterCast(false, "no implicit cast to boolean allowed", this)
-            if (targettype.isInteger() && type==BaseDataType.BOOL)
+            if (targettype.isInteger && type==BaseDataType.BOOL)
                 return ValueAfterCast(false, "no implicit cast from boolean to integer allowed", this)
         }
 
@@ -698,7 +698,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed
             BaseDataType.BOOL -> {
                 if(implicit)
                     return ValueAfterCast(false, "no implicit cast from boolean to integer allowed", null)
-                else if(targettype.isInteger())
+                else if(targettype.isInteger)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
             BaseDataType.LONG -> {
@@ -869,7 +869,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 return if(!loopvarDt.isNumericOrBool)
                     InferredTypes.InferredType.unknown()
                 else
-                    InferredTypes.InferredType.known(loopvarDt.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED)).elementToArray())
+                    InferredTypes.InferredType.known(loopvarDt.getOrUndef().elementToArray())
             }
         }
 
@@ -878,7 +878,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         val datatypesInArray = value.map { it.inferType(program) }
         if(datatypesInArray.any{ it.isUnknown })
             return InferredTypes.InferredType.unknown()
-        val dts = datatypesInArray.map { it.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED)) }
+        val dts = datatypesInArray.map { it.getOrUndef() }
         return when {
             dts.any { it.isFloat } -> InferredTypes.InferredType.known(DataTypeFull.forDt(BaseDataType.FLOAT).elementToArray())
             dts.any { it.isString } -> InferredTypes.InferredType.known(DataTypeFull.forDt(BaseDataType.UWORD).elementToArray())
@@ -901,7 +901,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         if(type istype targettype)
             return this
         if(targettype.isArray) {
-            val elementType = targettype.sub!!.dt
+            val elementType = targettype.elementType()
 
             // if all values are numeric literals, just do the cast.
             // if not:
@@ -910,7 +910,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             // otherwise: return null (cast cannot be done)
 
             if(value.all { it is NumericLiteral }) {
-                val castArray = if(elementType==BaseDataType.BOOL) {
+                val castArray = if(elementType.isBool) {
                     value.map {
                         if((it as NumericLiteral).type==BaseDataType.BOOL)
                             it
@@ -918,8 +918,9 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                             return null // abort
                     }
                 } else {
+                    require(elementType.isNumericOrBool)
                     value.map {
-                        val cast = (it as NumericLiteral).cast(elementType, true)
+                        val cast = (it as NumericLiteral).cast(elementType.dt, true)
                         if(cast.isValid)
                             cast.valueOrZero()
                         else
@@ -928,13 +929,13 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 }
                 return ArrayLiteral(InferredTypes.InferredType.known(targettype), castArray.toTypedArray(), position = position)
             }
-            else if(elementType.isWord() && value.all { it is NumericLiteral || it is AddressOf || it is IdentifierReference}) {
+            else if(elementType.isWord && value.all { it is NumericLiteral || it is AddressOf || it is IdentifierReference}) {
                 val castArray = value.map {
                     when(it) {
                         is AddressOf -> it
                         is IdentifierReference -> it
                         is NumericLiteral -> {
-                            val numcast = it.cast(elementType, true)
+                            val numcast = it.cast(elementType.dt, true)
                             if(numcast.isValid)
                                 numcast.valueOrZero()
                             else
@@ -995,8 +996,8 @@ class RangeExpression(var from: Expression,
             fromDt istype DataTypeFull.forDt(BaseDataType.WORD) || toDt istype DataTypeFull.forDt(BaseDataType.WORD) -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.WORD).elementToArray())
             fromDt istype DataTypeFull.forDt(BaseDataType.BYTE) || toDt istype DataTypeFull.forDt(BaseDataType.BYTE) -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.BYTE).elementToArray())
             else -> {
-                val fdt = fromDt.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED))
-                val tdt = toDt.getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED))
+                val fdt = fromDt.getOrUndef()
+                val tdt = toDt.getOrUndef()
                 if(fdt.largerSizeThan(tdt))
                     InferredTypes.knownFor(fdt.elementToArray())
                 else
@@ -1067,7 +1068,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             "<builtin>.${target.name}"
         else
             target.scopedName.joinToString(".")
-        val type = inferType(program).getOr(DataTypeFull.forDt(BaseDataType.UNDEFINED))
+        val type = inferType(program).getOrUndef()
         return Pair(targetname, type)
     }
 
@@ -1222,7 +1223,7 @@ class ContainmentCheck(var element: Expression,
                     return NumericLiteral.fromBoolean(exists, position)
                 }
                 is StringLiteral -> {
-                    if(elementConst.type.isByte()) {
+                    if(elementConst.type.isByte) {
                         val stringval = iterable as StringLiteral
                         val exists = program.encoding.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
                         return NumericLiteral.fromBoolean(exists, position)

@@ -189,7 +189,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 }
             }
             is VarDecl -> {
-                if(target.type!=VarDeclType.VAR || target.datatype!=DataType.UWORD)
+                if(target.type!=VarDeclType.VAR || !target.datatype.isUnsignedWord)
                     errors.err("wrong address variable datatype, expected uword", call.target.position)
             }
             null -> {}

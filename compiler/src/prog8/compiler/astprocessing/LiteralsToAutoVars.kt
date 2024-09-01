@@ -44,7 +44,7 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
         if(vardecl!=null) {
             // adjust the datatype of the array (to an educated guess from the vardecl type)
             val arrayDt = array.type
-            if(arrayDt isnot vardecl.datatype) {
+            if(!(arrayDt istype vardecl.datatype)) {
                 val cast = array.cast(vardecl.datatype)
                 if(cast!=null && cast !== array)
                     return listOf(IAstModification.ReplaceNode(vardecl.value!!, cast, vardecl))
@@ -55,9 +55,9 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
                 val parentAssign = parent as? Assignment
                 val targetDt = parentAssign?.target?.inferType(program) ?: arrayDt
                 // turn the array literal it into an identifier reference
-                val litval2 = array.cast(targetDt.getOr(DataType.UNDEFINED))
+                val litval2 = array.cast(targetDt.getOrUndef())
                 if(litval2!=null) {
-                    val vardecl2 = VarDecl.createAuto(litval2, targetDt.getOr(DataType.UNDEFINED) in SplitWordArrayTypes)
+                    val vardecl2 = VarDecl.createAuto(litval2, targetDt.getOrUndef().isSplitWordArray)
                     val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                     return listOf(
                         IAstModification.ReplaceNode(array, identifier, parent),
@@ -80,7 +80,7 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
 
             // note: the desugaring of a multi-variable vardecl has to be done here
             // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
-            if(decl.datatype !in NumericDatatypesWithBoolean)
+            if(!decl.datatype.isNumericOrBool)
                 errors.err("can only multi declare numeric and boolean variables", decl.position)
             if(errors.noErrors()) {
                 // desugar into individual vardecl per name.

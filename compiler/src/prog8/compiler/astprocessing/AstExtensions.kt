@@ -167,7 +167,7 @@ internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, st
         is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement
         is VarDecl -> {
             if(statement is Jump) {
-                if (targetStatement.datatype == DataType.UWORD)
+                if (targetStatement.datatype.isUnsignedWord)
                     return targetStatement
                 else
                     errors.err("wrong address variable datatype, expected uword", this.position)

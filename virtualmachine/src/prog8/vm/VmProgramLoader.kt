@@ -205,6 +205,12 @@ class VmProgramLoader {
                                 memory.setUB(addr, 0u)
                                 addr++
                             }
+                            variable.dt.isSplitWordArray -> {
+                                // lo bytes come after the hi bytes
+                                memory.setUB(addr, 0u)
+                                memory.setUB(addr+variable.length!!, 0u)
+                                addr++
+                            }
                             variable.dt.isWordArray -> {
                                 memory.setUW(addr, 0u)
                                 addr += 2
@@ -212,12 +218,6 @@ class VmProgramLoader {
                             variable.dt.isFloatArray -> {
                                 memory.setFloat(addr, 0.0)
                                 addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
-                            }
-                            variable.dt.isSplitWordArray -> {
-                                // lo bytes come after the hi bytes
-                                memory.setUB(addr, 0u)
-                                memory.setUB(addr+variable.length!!, 0u)
-                                addr++
                             }
                             else -> throw IRParseException("invalid dt")
                         }

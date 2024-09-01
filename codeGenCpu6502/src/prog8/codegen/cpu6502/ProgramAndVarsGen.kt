@@ -173,12 +173,12 @@ internal class ProgramAndVarsGen(
                 for(num in 1..count) {
                     val name = asmgen.buildTempVarName(dt, num)
                     when (dt) {
-                        DataType.BOOL  -> asmgen.out("$name    .byte  ?")
-                        DataType.BYTE  -> asmgen.out("$name    .char  ?")
-                        DataType.UBYTE -> asmgen.out("$name    .byte  ?")
-                        DataType.WORD  -> asmgen.out("$name    .sint  ?")
-                        DataType.UWORD -> asmgen.out("$name    .word  ?")
-                        DataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
+                        BaseDataType.BOOL  -> asmgen.out("$name    .byte  ?")
+                        BaseDataType.BYTE  -> asmgen.out("$name    .char  ?")
+                        BaseDataType.UBYTE -> asmgen.out("$name    .byte  ?")
+                        BaseDataType.WORD  -> asmgen.out("$name    .sint  ?")
+                        BaseDataType.UWORD -> asmgen.out("$name    .word  ?")
+                        BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
                         else -> throw AssemblyError("weird dt for extravar $dt")
                     }
                 }
@@ -405,7 +405,7 @@ internal class ProgramAndVarsGen(
             if(sub.parameters.size==1) {
                 val dt = sub.parameters[0].type
                 val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, sub.parameters[0].position, variableAsmName = sub.parameters[0].name)
-                if(dt in ByteDatatypesWithBoolean)
+                if(dt.isByteOrBool)
                     asmgen.assignRegister(RegisterOrPair.A, target)
                 else
                     asmgen.assignRegister(RegisterOrPair.AY, target)
@@ -429,9 +429,9 @@ internal class ProgramAndVarsGen(
             if(addr!=null)
                 asmgen.out("$name = $addr")
             else when(dt) {
-                DataType.UBYTE -> asmgen.out("$name    .byte  ?")
-                DataType.UWORD -> asmgen.out("$name    .word  ?")
-                DataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
+                BaseDataType.UBYTE -> asmgen.out("$name    .byte  ?")
+                BaseDataType.UWORD -> asmgen.out("$name    .word  ?")
+                BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
                 else -> throw AssemblyError("weird dt for extravar $dt")
             }
         }
@@ -536,7 +536,7 @@ internal class ProgramAndVarsGen(
 
     private fun getZpStringVarsWithInitvalue(): Collection<ZpStringWithInitial> {
         val result = mutableListOf<ZpStringWithInitial>()
-        val vars = allocator.zeropageVars.filter { it.value.dt==DataType.STR }
+        val vars = allocator.zeropageVars.filter { it.value.dt.isString }
         for (variable in vars) {
             val scopedName = variable.key
             val svar = symboltable.lookup(scopedName) as? StStaticVariable
@@ -548,7 +548,7 @@ internal class ProgramAndVarsGen(
 
     private fun getZpArrayVarsWithInitvalue(): Collection<ZpArrayWithInitial> {
         val result = mutableListOf<ZpArrayWithInitial>()
-        val vars = allocator.zeropageVars.filter { it.value.dt in ArrayDatatypes }
+        val vars = allocator.zeropageVars.filter { it.value.dt.isArray }
         for (variable in vars) {
             val scopedName = variable.key
             val svar = symboltable.lookup(scopedName) as? StStaticVariable
@@ -564,7 +564,7 @@ internal class ProgramAndVarsGen(
             if (scopedName.startsWith("cx16.r"))
                 continue        // The 16 virtual registers of the cx16 are not actual variables in zp, they're memory mapped
             val variable = symboltable.flat.getValue(scopedName) as StStaticVariable
-            if(variable.dt in SplitWordArrayTypes) {
+            if(variable.dt.isSplitWordArray) {
                 val lsbAddr = zpvar.address
                 val msbAddr = zpvar.address + (zpvar.size/2).toUInt()
                 asmgen.out("${scopedName.substringAfterLast('.')}_lsb \t= $lsbAddr \t; zp ${zpvar.dt} (lsbs)")
@@ -581,7 +581,7 @@ internal class ProgramAndVarsGen(
         if(varsNoInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables without initialization value")
             asmgen.out("  .section BSS")
-            varsNoInit.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
+            varsNoInit.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt.dt }).forEach {
                 uninitializedVariable2asm(it)
             }
             asmgen.out("  .send BSS")
@@ -589,7 +589,7 @@ internal class ProgramAndVarsGen(
 
         if(varsWithInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables")
-            val (stringvars, othervars) = varsWithInit.sortedBy { it.name }.partition { it.dt == DataType.STR }
+            val (stringvars, othervars) = varsWithInit.sortedBy { it.name }.partition { it.dt.isString }
             stringvars.forEach {
                 outputStringvar(
                     it.name,
@@ -604,18 +604,18 @@ internal class ProgramAndVarsGen(
     }
 
     private fun uninitializedVariable2asm(variable: StStaticVariable) {
-        when (variable.dt) {
-            DataType.BOOL, DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ?")
-            DataType.BYTE -> asmgen.out("${variable.name}\t.char  ?")
-            DataType.UWORD -> asmgen.out("${variable.name}\t.word  ?")
-            DataType.WORD -> asmgen.out("${variable.name}\t.sint  ?")
-            DataType.FLOAT -> asmgen.out("${variable.name}\t.fill  ${compTarget.machine.FLOAT_MEM_SIZE}")
-            in SplitWordArrayTypes -> {
+        when {
+            variable.dt.isBool || variable.dt.isUnsignedByte -> asmgen.out("${variable.name}\t.byte  ?")
+            variable.dt.isSignedByte -> asmgen.out("${variable.name}\t.char  ?")
+            variable.dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ?")
+            variable.dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  ?")
+            variable.dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.machine.FLOAT_MEM_SIZE}")
+            variable.dt.isSplitWordArray -> {
                 val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!) / 2
                 asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf")
                 asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf")
             }
-            in ArrayDatatypes -> {
+            variable.dt.isArray -> {
                 val numbytes = compTarget.memorySize(variable.dt, variable.length!!)
                 asmgen.out("${variable.name}\t.fill  $numbytes")
             }
@@ -628,18 +628,18 @@ internal class ProgramAndVarsGen(
     private fun staticVariable2asm(variable: StStaticVariable) {
         val initialValue: Number =
             if(variable.onetimeInitializationNumericValue!=null) {
-                if(variable.dt== DataType.FLOAT)
+                if(variable.dt.isFloat)
                     variable.onetimeInitializationNumericValue!!
                 else
                     variable.onetimeInitializationNumericValue!!.toInt()
             } else 0
 
-        when (variable.dt) {
-            DataType.BOOL, DataType.UBYTE -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
-            DataType.BYTE -> asmgen.out("${variable.name}\t.char  $initialValue")
-            DataType.UWORD -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
-            DataType.WORD -> asmgen.out("${variable.name}\t.sint  $initialValue")
-            DataType.FLOAT -> {
+        when {
+            variable.dt.isBool || variable.dt.isUnsignedByte -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
+            variable.dt.isSignedByte -> asmgen.out("${variable.name}\t.char  $initialValue")
+            variable.dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
+            variable.dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  $initialValue")
+            variable.dt.isFloat -> {
                 if(initialValue==0) {
                     asmgen.out("${variable.name}\t.byte  0,0,0,0,0  ; float")
                 } else {
@@ -647,19 +647,19 @@ internal class ProgramAndVarsGen(
                     asmgen.out("${variable.name}\t.byte  $floatFill  ; float $initialValue")
                 }
             }
-            DataType.STR -> {
+            variable.dt.isString -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(variable.name, variable.dt, variable.onetimeInitializationArrayValue, variable.length)
+            variable.dt.isArray -> arrayVariable2asm(variable.name, variable.dt, variable.onetimeInitializationArrayValue, variable.length)
             else -> {
                 throw AssemblyError("weird dt")
             }
         }
     }
 
-    private fun arrayVariable2asm(varname: String, dt: DataType, value: StArray?, orNumberOfZeros: Int?) {
-        when(dt) {
-            DataType.ARRAY_UB, DataType.ARRAY_BOOL -> {
+    private fun arrayVariable2asm(varname: String, dt: DataTypeFull, value: StArray?, orNumberOfZeros: Int?) {
+        when {
+            dt.isUnsignedByteArray || dt.isBoolArray -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
                     asmgen.out("$varname\t.byte  ${data.joinToString()}")
@@ -669,7 +669,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .byte  " + chunk.joinToString())
                 }
             }
-            DataType.ARRAY_B -> {
+            dt.isSignedByteArray -> {
                 val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
                     asmgen.out("$varname\t.char  ${data.joinToString()}")
@@ -679,7 +679,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .char  " + chunk.joinToString())
                 }
             }
-            DataType.ARRAY_UW -> {
+            dt.isUnsignedWordArray -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
                     asmgen.out("$varname\t.word  ${data.joinToString()}")
@@ -689,7 +689,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .word  " + chunk.joinToString())
                 }
             }
-            DataType.ARRAY_W -> {
+            dt.isSignedWordArray -> {
                 val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
                     asmgen.out("$varname\t.sint  ${data.joinToString()}")
@@ -699,19 +699,20 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .sint  " + chunk.joinToString())
                 }
             }
-            DataType.ARRAY_UW_SPLIT -> {
-                val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
-                asmgen.out("_array_$varname := ${data.joinToString()}")
-                asmgen.out("${varname}_lsb\t.byte <_array_$varname")
-                asmgen.out("${varname}_msb\t.byte >_array_$varname")
+            dt.isSplitWordArray -> {
+                if(dt.elementType().isUnsignedWord) {
+                    val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
+                    asmgen.out("_array_$varname := ${data.joinToString()}")
+                    asmgen.out("${varname}_lsb\t.byte <_array_$varname")
+                    asmgen.out("${varname}_msb\t.byte >_array_$varname")
+                } else {
+                    val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
+                    asmgen.out("_array_$varname := ${data.joinToString()}")
+                    asmgen.out("${varname}_lsb\t.byte <_array_$varname")
+                    asmgen.out("${varname}_msb\t.byte >_array_$varname")
+                }
             }
-            DataType.ARRAY_W_SPLIT -> {
-                val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
-                asmgen.out("_array_$varname := ${data.joinToString()}")
-                asmgen.out("${varname}_lsb\t.byte <_array_$varname")
-                asmgen.out("${varname}_msb\t.byte >_array_$varname")
-            }
-            DataType.ARRAY_F -> {
+            dt.isFloatArray -> {
                 val array = value ?: zeroFilledArray(orNumberOfZeros!!)
                 val floatFills = array.map {
                     compTarget.machine.getFloatAsmBytes(it.number!!)
@@ -737,7 +738,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("  ${it.name} = ${it.address.toHex()}")
         }
         consts.sortedBy { it.name }.forEach {
-            if(it.dt==DataType.FLOAT)
+            if(it.dt.isFloat)
                 asmgen.out("  ${it.name} = ${it.value}")
             else
                 asmgen.out("  ${it.name} = ${it.value.toHex()}")
@@ -761,10 +762,10 @@ internal class ProgramAndVarsGen(
             asmgen.out("  .byte  " + chunk.joinToString())
     }
 
-    private fun makeArrayFillDataUnsigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
+    private fun makeArrayFillDataUnsigned(dt: DataTypeFull, value: StArray?, orNumberOfZeros: Int?): List<String> {
         val array = value ?: zeroFilledArray(orNumberOfZeros!!)
-        return when (dt) {
-            DataType.ARRAY_BOOL ->
+        return when {
+            dt.isBoolArray ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
                     if(it.boolean!=null)
@@ -774,13 +775,13 @@ internal class ProgramAndVarsGen(
                         if(number==0.0) "0" else "1"
                     }
                 }
-            DataType.ARRAY_UB ->
+            dt.isUnsignedByteArray ->
                 // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
                     val number = it.number!!.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
-            DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> array.map {
+            dt.isArray && dt.elementType().isUnsignedWord -> array.map {
                 if(it.number!=null) {
                     "$" + it.number!!.toInt().toString(16).padStart(4, '0')
                 }
@@ -794,16 +795,16 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun makeArrayFillDataSigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
+    private fun makeArrayFillDataSigned(dt: DataTypeFull, value: StArray?, orNumberOfZeros: Int?): List<String> {
         val array = value ?: zeroFilledArray(orNumberOfZeros!!)
-        return when (dt) {
+        return when {
             // byte array can never contain pointer-to types, so treat values as all integers
-            DataType.ARRAY_UB ->
+            dt.isUnsignedByteArray ->
                 array.map {
                     val number = it.number!!.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
-            DataType.ARRAY_B ->
+            dt.isSignedByteArray ->
                 array.map {
                     val number = it.number!!.toInt()
                     val hexnum = number.absoluteValue.toString(16).padStart(2, '0')
@@ -812,11 +813,11 @@ internal class ProgramAndVarsGen(
                     else
                         "-$$hexnum"
                 }
-            DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> array.map {
+            dt.isArray && dt.elementType().isUnsignedWord -> array.map {
                 val number = it.number!!.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
-            DataType.ARRAY_W, DataType.ARRAY_W_SPLIT -> array.map {
+            dt.isArray && dt.elementType().isSignedWord -> array.map {
                 val number = it.number!!.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
                 if(number>=0)

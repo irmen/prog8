@@ -342,7 +342,7 @@ internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag
 
 
 fun irType(type: DataTypeFull): IRDataType {
-    if(type.dt.isPassByRef())
+    if(type.dt.isPassByRef)
         return IRDataType.WORD
 
     return when(type.dt) {

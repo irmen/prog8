@@ -187,9 +187,9 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
                             val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataTypeFull.forDt(BaseDataType.BOOL), node.condition.position)
                             bittestCall.add(variable)
                             if(bitmask==128)
-                                bittestCall.add(PtNumber(DataTypeFull.forDt(BaseDataType.UBYTE), 7.0, and.right.position))
+                                bittestCall.add(PtNumber(BaseDataType.UBYTE, 7.0, and.right.position))
                             else
-                                bittestCall.add(PtNumber(DataTypeFull.forDt(BaseDataType.UBYTE), 6.0, and.right.position))
+                                bittestCall.add(PtNumber(BaseDataType.UBYTE, 6.0, and.right.position))
                             val ifElse = PtIfElse(node.position)
                             ifElse.add(bittestCall)
                             ifElse.add(node.ifScope)

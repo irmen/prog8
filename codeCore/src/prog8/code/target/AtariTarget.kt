@@ -30,4 +30,8 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
             else -> 2
         }
     }
+
+    override fun memorySize(dt: SubType): Int {
+        return memorySize(DataTypeFull.forDt(dt.dt), null)
+    }
 }

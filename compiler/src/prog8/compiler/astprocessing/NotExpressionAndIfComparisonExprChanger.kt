@@ -18,7 +18,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             val left = expr.left as? BinaryExpression
             if (left != null) {
                 val rightValue = expr.right.constValue(program)
-                if (rightValue?.number == 0.0 && rightValue.type in IntegerDatatypesWithBoolean) {
+                if (rightValue?.number == 0.0 && rightValue.type.isIntegerOrBool) {
                     if (left.operator == "==" && expr.operator == "==") {
                         // (x==something)==0  -->  x!=something
                         left.operator = "!="
@@ -61,14 +61,14 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             val rightC = expr.right as? BinaryExpression
             if(expr.operator=="and" && leftC!=null && rightC!=null && leftC.operator=="==" && rightC.operator=="==") {
                 if (leftC.right.constValue(program)?.number == 0.0 && rightC.right.constValue(program)?.number == 0.0) {
-                    val leftDt = leftC.left.inferType(program).getOr(DataType.UNDEFINED)
-                    val rightDt = rightC.left.inferType(program).getOr(DataType.UNDEFINED)
-                    if(leftDt==rightDt && leftDt in IntegerDatatypes) {
+                    val leftDt = leftC.left.inferType(program).getOrUndef()
+                    val rightDt = rightC.left.inferType(program).getOrUndef()
+                    if(leftDt==rightDt && leftDt.isInteger) {
                         if (rightC.left.isSimple) {
                             // x==0 and y==0   ->  (x | y)==0
                             // the 'or' case cannot be easily optimized with a binary and like this!
                             val inner = BinaryExpression(leftC.left, "|", rightC.left, expr.position)
-                            val compare = BinaryExpression(inner, "==", NumericLiteral(leftDt, 0.0, expr.position), expr.position)
+                            val compare = BinaryExpression(inner, "==", NumericLiteral(leftDt.dt, 0.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
                     }
@@ -152,7 +152,8 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
             if((expr.expression as? PrefixExpression)?.operator=="~") {
                 val x = (expr.expression as PrefixExpression).expression
                 val dt = x.inferType(program).getOrElse { throw FatalAstException("invalid dt ${x.position}") }
-                val notZero = BinaryExpression(x, "!=", NumericLiteral(dt, 0.0, expr.position), expr.position)
+                require(dt.isNumeric)
+                val notZero = BinaryExpression(x, "!=", NumericLiteral(dt.dt, 0.0, expr.position), expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, notZero, parent))
             }
             val subBinExpr = expr.expression as? BinaryExpression

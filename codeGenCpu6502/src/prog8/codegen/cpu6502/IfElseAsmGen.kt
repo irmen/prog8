@@ -16,7 +16,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             private val errors: IErrorReporter) {
 
     fun translate(stmt: PtIfElse) {
-        require(stmt.condition.type== DataType.BOOL)
+        require(stmt.condition.type.isBool)
         checkNotRomsubReturnsStatusReg(stmt.condition)
 
         val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
@@ -33,10 +33,11 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
         val compareCond = stmt.condition as? PtBinaryExpression
         if(compareCond!=null) {
-            return when(compareCond.right.type) {
-                in ByteDatatypesWithBoolean -> translateIfByte(stmt, jumpAfterIf)
-                in WordDatatypes -> translateIfWord(stmt, compareCond, jumpAfterIf)
-                DataType.FLOAT -> translateIfFloat(stmt, compareCond, jumpAfterIf)
+            val rightDt = compareCond.right.type
+            return when {
+                rightDt.isByteOrBool -> translateIfByte(stmt, jumpAfterIf)
+                rightDt.isWord -> translateIfWord(stmt, compareCond, jumpAfterIf)
+                rightDt.isFloat -> translateIfFloat(stmt, compareCond, jumpAfterIf)
                 else -> throw AssemblyError("weird dt")
             }
         }
@@ -56,7 +57,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
     private fun checkNotRomsubReturnsStatusReg(condition: PtExpression) {
         val fcall = condition as? PtFunctionCall
-        if(fcall!=null && fcall.type==DataType.BOOL) {
+        if(fcall!=null && fcall.type.isBool) {
             val romsub = st.lookup(fcall.name) as? StRomSub
             if(romsub!=null && romsub.returns.any { it.register.statusflag!=null }) {
                 throw AssemblyError("if romsub() that returns a status register boolean should have been changed into a Conditional branch such as if_cc")
@@ -75,7 +76,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             is PtPrefix,
             is PtBinaryExpression -> { /* no cmp necessary the lda has been done just prior */ }
             is PtTypeCast -> {
-                if(condition.value.type !in ByteDatatypes && condition.value.type !in WordDatatypes)
+                if(!condition.value.type.isByte && !condition.value.type.isWord)
                     asmgen.out("  cmp  #0")
             }
             else -> asmgen.out("  cmp  #0")
@@ -198,7 +199,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
     private fun translateIfByte(stmt: PtIfElse, jumpAfterIf: PtJump?) {
         val condition = stmt.condition as PtBinaryExpression
-        val signed = condition.left.type in SignedDatatypes
+        val signed = condition.left.type.isSigned
         val constValue = condition.right.asConstInteger()
         if(constValue==0) {
             return translateIfCompareWithZeroByte(stmt, signed, jumpAfterIf)
@@ -257,7 +258,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 }
             }
             in LogicalOperators -> {
-                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, stmt.definingISub(), condition.position, register=RegisterOrPair.A)
+                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataTypeFull.forDt(BaseDataType.BOOL), stmt.definingISub(), condition.position, register=RegisterOrPair.A)
                 if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
                     if (jumpAfterIf != null)
                         translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
@@ -427,7 +428,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             is PtArrayIndexer -> {
                 val constIndex = value.index.asConstInteger()
                 if(constIndex!=null) {
-                    val offset = constIndex * program.memsizer.memorySize(value.type)
+                    val offset = program.memsizer.memorySize(value.type, constIndex)
                     if(offset<256) {
                         return asmgen.out("  ldy  #$offset |  $compare  ${asmgen.asmVariableName(value.variable)},y")
                     }
@@ -521,7 +522,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
     }
 
     private fun translateIfWord(stmt: PtIfElse, condition: PtBinaryExpression, jumpAfterIf: PtJump?) {
-        val signed = condition.left.type in SignedDatatypes
+        val signed = condition.left.type.isSigned
         val constValue = condition.right.asConstInteger()
         if(constValue==0) {
             // optimized comparisons with zero
@@ -914,7 +915,7 @@ _jump                       jmp  ($asmLabel)
                     if(value.splitWords) {
                         return compareLsbMsb("${varname}_lsb+$constIndex", "${varname}_msb+$constIndex")
                     } else {
-                        val offset = constIndex * program.memsizer.memorySize(value.type)
+                        val offset = program.memsizer.memorySize(value.type, constIndex)
                         return compareLsbMsb("$varname+$offset", "$varname+$offset+1")
                     }
                 } else {
@@ -1051,7 +1052,7 @@ _jump                       jmp  ($asmLabel)
                     if(value.splitWords) {
                         return compareLsbMsb("${varname}_lsb+$constIndex", "${varname}_msb+$constIndex")
                     } else {
-                        val offset = constIndex * program.memsizer.memorySize(value.type)
+                        val offset = program.memsizer.memorySize(value.type, constIndex)
                         return compareLsbMsb("$varname+$offset", "$varname+$offset+1")
                     }
                 } else {
@@ -1158,7 +1159,7 @@ _jump                       jmp  ($asmLabel)
                         if(value.splitWords) {
                             return translateLoadFromVarSplitw(varName, constIndex, "bne", "beq")
                         }
-                        val offset = constIndex * program.memsizer.memorySize(value.type)
+                        val offset = program.memsizer.memorySize(value.type, constIndex)
                         if (offset < 256) {
                             return translateLoadFromVar("$varName+$offset", "bne", "beq")
                         }
@@ -1179,7 +1180,7 @@ _jump                       jmp  ($asmLabel)
                         if(value.splitWords) {
                             return translateLoadFromVarSplitw(varName, constIndex, "beq", "bne")
                         }
-                        val offset = constIndex * program.memsizer.memorySize(value.type)
+                        val offset = program.memsizer.memorySize(value.type, constIndex)
                         if (offset < 256) {
                             return translateLoadFromVar("$varName+$offset", "beq", "bne")
                         }
@@ -1534,7 +1535,7 @@ _jump                       jmp  ($asmLabel)
                     else
                         translateAYEquals("${varName}_lsb+$constIndex", "${varName}_msb+$constIndex")
                 }
-                val offset = constIndex * program.memsizer.memorySize(left.type)
+                val offset = program.memsizer.memorySize(left.type, constIndex)
                 if(offset<256) {
                     return if(notEquals)
                         translateAYNotEquals("$varName+$offset", "$varName+$offset+1")
@@ -1764,7 +1765,7 @@ _jump                       jmp  ($asmLabel)
                 is PtIdentifier -> equalf(asmgen.asmVariableName(left), asmgen.asmVariableName(right))
                 is PtNumber -> equalf(asmgen.asmVariableName(left), allocator.getFloatAsmConst(right.number))
                 else -> {
-                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataTypeFull.forDt(BaseDataType.FLOAT))
                     equalf(asmgen.asmVariableName(left), subroutineFloatEvalResultVar1)
                     asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1774,7 +1775,7 @@ _jump                       jmp  ($asmLabel)
                 is PtIdentifier -> equalf(left, asmgen.asmVariableName(right))
                 is PtNumber -> equalf(left, allocator.getFloatAsmConst(right.number))
                 else -> {
-                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataTypeFull.forDt(BaseDataType.FLOAT))
                     equalf(left, subroutineFloatEvalResultVar1)
                     asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1809,7 +1810,7 @@ _jump                       jmp  ($asmLabel)
                 is PtIdentifier -> lessf(asmgen.asmVariableName(left), asmgen.asmVariableName(right))
                 is PtNumber -> lessf(asmgen.asmVariableName(left), allocator.getFloatAsmConst(right.number))
                 else -> {
-                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataTypeFull.forDt(BaseDataType.FLOAT))
                     lessf(asmgen.asmVariableName(left), subroutineFloatEvalResultVar1)
                     asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1819,7 +1820,7 @@ _jump                       jmp  ($asmLabel)
                 is PtIdentifier -> lessf(left, asmgen.asmVariableName(right))
                 is PtNumber -> lessf(left, allocator.getFloatAsmConst(right.number))
                 else -> {
-                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataTypeFull.forDt(BaseDataType.FLOAT))
                     lessf(left, subroutineFloatEvalResultVar1)
                     asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }

@@ -12,6 +12,7 @@ object InferredTypes {
 
         val isKnown get() = datatype!=null && !datatype!!.isUndefined
         fun getOr(default: DataTypeFull) = if(isUnknown || isVoid) default else datatype!!
+        fun getOrUndef() = if(isUnknown || isVoid) DataTypeFull.forDt(BaseDataType.UNDEFINED) else datatype!!
         fun getOrElse(transform: (InferredType) -> DataTypeFull): DataTypeFull =
             if(isUnknown || isVoid) transform(this) else datatype!!
         infix fun istype(type: DataTypeFull): Boolean = if(isUnknown || isVoid) false else this.datatype==type     // strict equality if known

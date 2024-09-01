@@ -7,11 +7,11 @@ internal object DummyMemsizer : IMemSizer {
     override fun memorySize(dt: DataTypeFull, numElements: Int?): Int {
         if(dt.isArray || dt.isSplitWordArray) {
             require(numElements != null)
-            return when (dt.sub) {
-                SubBool, SubSignedByte, SubUnsignedByte -> numElements
-                SubSignedWord, SubUnsignedWord -> numElements * 2
-                SubFloat -> numElements * 5
-                null -> throw IllegalArgumentException("invalid sub type")
+            return when(dt.sub?.dt) {
+                BaseDataType.BOOL, BaseDataType.BYTE, BaseDataType.UBYTE -> numElements
+                BaseDataType.UWORD, BaseDataType.WORD -> numElements*2
+                BaseDataType.FLOAT -> numElements*5
+                else -> throw IllegalArgumentException("invalid sub type")
             }
         }
         require(numElements==null)
@@ -20,6 +20,10 @@ internal object DummyMemsizer : IMemSizer {
             dt.isFloat -> 5
             else -> 2
         }
+    }
+
+    override fun memorySize(dt: SubType): Int {
+        return memorySize(DataTypeFull.forDt(dt.dt), null)
     }
 }
 
