@@ -12,6 +12,7 @@ class Neo6502MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97
     override val FLOAT_MEM_SIZE = 6
     override val PROGRAM_LOAD_ADDRESS = 0x0800u
+    override val PROGRAM_TOP_ADDRESS = 0xfbffu
 
     override val BSSHIGHRAM_START = 0u    // TODO
     override val BSSHIGHRAM_END = 0u      // TODO
@@ -24,10 +25,6 @@ class Neo6502MachineDefinition: IMachineDefinition {
     override fun getFloatAsmBytes(num: Number) = TODO("atari float asm bytes from number")
     override fun convertFloatToBytes(num: Double): List<UByte> = TODO("atari float to bytes")
     override fun convertBytesToFloat(bytes: List<UByte>): Double = TODO("atari bytes to float")
-
-    override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
-        return listOf("syslib")
-    }
 
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
         if(selectedEmulator!=1) {
