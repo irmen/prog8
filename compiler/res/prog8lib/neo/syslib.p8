@@ -15,6 +15,14 @@ sys {
 
     const ubyte target = 7         ;  compilation target specifier.  255=virtual, 128=C128, 64=C64, 32=PET, 16=CommanderX16, 8=atari800XL, 7=Neo6502
 
+    const ubyte sizeof_bool = 1
+    const ubyte sizeof_byte = 1
+    const ubyte sizeof_ubyte = 1
+    const ubyte sizeof_word = 2
+    const ubyte sizeof_uword = 2
+    const ubyte sizeof_float = 0    ; undefined, no floats supported
+
+
     asmsub  init_system()  {
         ; Initializes the machine to a sane starting state.
         ; Called automatically by the loader program logic.
@@ -34,6 +42,22 @@ sys {
             rts     ; no phase 2 steps on the Neo6502
         }}
     }
+
+asmsub  cleanup_at_exit() {
+    ; executed when the main subroutine does rts
+    %asm {{
+_exitcodeCarry = *+1
+        lda  #0
+        lsr  a
+_exitcode = *+1
+        lda  #0        ; exit code possibly modified in exit()
+_exitcodeX = *+1
+        ldx  #0
+_exitcodeY = *+1
+        ldy  #0
+        rts
+    }}
+}
 
     asmsub  reset_system()  {
         ; Soft-reset the system back to initial power-on status
@@ -239,27 +263,38 @@ save_SCRATCH_ZPWORD2	.word  0
 
     asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
-        ;    TODO where to store A as exit code?
         %asm {{
+            sta  cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
             txs
-            rts		; return to original caller
+            jmp  cleanup_at_exit
         }}
     }
 
     asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
         ; -- immediately exit the program with result values in the A, X and Y registers.
-        ;    TODO where to store A,X,Y as exit code?
         %asm {{
-            jmp  exit
+            sta  cleanup_at_exit._exitcode
+            stx  cleanup_at_exit._exitcodeX
+            sty  cleanup_at_exit._exitcodeY
+            ldx  prog8_lib.orig_stackpointer
+            txs
+            jmp  cleanup_at_exit
         }}
     }
 
     asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
         ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
-        ;    TODO where to store A,X,Y,Carry as exit code?
         %asm {{
-            jmp  exit
+            sta  cleanup_at_exit._exitcode
+            lda  #0
+            rol  a
+            sta  cleanup_at_exit._exitcodeCarry
+            stx  cleanup_at_exit._exitcodeX
+            sty  cleanup_at_exit._exitcodeY
+            ldx  prog8_lib.orig_stackpointer
+            txs
+            jmp  cleanup_at_exit
         }}
     }
 
