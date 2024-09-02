@@ -12,6 +12,7 @@ Future Things and Ideas
 Compiler:
 
 - Can we support signed % (remainder) somehow?
+- Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
 - expand the kata encoding to somehow translate normal katana to half-widths?  (see comment in KatakanaEncoding)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
@@ -76,8 +77,10 @@ STRUCTS?
 - only as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
 - arrays of struct is just an array of uword pointers. Can even be @split?
 - need to introduce typed pointer datatype in prog8
-- str is then syntactic sugar for pointer to character/byte?
-- arrays are then syntactic sugar for pointer to byte/word/float?
+- STR remains the type for a string literal (so we can keep doing register-indexed addressing directly on it)
+- ARRAY remains the type for an array literal (so we can keep doing register-indexed addressing directly on it)
+- we probably need to have a STRBYREF and ARRAYBYREF if we deal with a pointer to a string / array (such as when passing it to a function)
+  the subtype of those should include the declared element type and the declared length of the string / array
 
 
 Other language/syntax features to think about
@@ -86,3 +89,5 @@ Other language/syntax features to think about
 - add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
   challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
   How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
+  Maybe by having a %option rombank=4 rambank=22   to set that as fixed rombank/rambank for that subroutine/block (and pray the user doesn't change it themselves)
+  and then only do bank switching if the bank of the routine is different from the configured rombank/rambank.
