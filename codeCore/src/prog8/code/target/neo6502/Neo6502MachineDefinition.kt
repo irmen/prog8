@@ -25,10 +25,6 @@ class Neo6502MachineDefinition: IMachineDefinition {
     override fun convertFloatToBytes(num: Double): List<UByte> = TODO("atari float to bytes")
     override fun convertBytesToFloat(bytes: List<UByte>): Double = TODO("atari bytes to float")
 
-    override fun importLibs(compilerOptions: CompilationOptions, compilationTargetName: String): List<String> {
-        return listOf("syslib")
-    }
-
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
         if(selectedEmulator!=1) {
             System.err.println("The neo target only supports the main emulator (neo).")
