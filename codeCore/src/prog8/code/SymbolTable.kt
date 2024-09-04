@@ -208,7 +208,7 @@ class StStaticVariable(name: String,
 }
 
 
-class StConstant(name: String, val dt: DataTypeFull, val value: Double, astNode: PtNode) :
+class StConstant(name: String, val dt: BaseDataType, val value: Double, astNode: PtNode) :
     StNode(name, StNodeType.CONSTANT, astNode)
 
 

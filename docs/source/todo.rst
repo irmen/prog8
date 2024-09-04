@@ -1,7 +1,7 @@
 TODO
 ====
 
-is the second MemorySize() required?
+add extra Memsizer unit tests
 
 replace some  when { xxx.isWord... }  with (when xxx.dt) { UWORD -> ...} again
 

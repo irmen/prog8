@@ -16,18 +16,18 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
     override fun memorySize(dt: DataTypeFull, numElements: Int?): Int {
         if(dt.isArray || dt.isSplitWordArray) {
             require(numElements!=null)
-            return when(dt.sub) {
-                SubBool, SubSignedByte, SubUnsignedByte -> numElements
-                SubSignedWord, SubUnsignedWord -> numElements * 2
-                SubFloat -> numElements * machine.FLOAT_MEM_SIZE
-                null -> throw IllegalArgumentException("invalid sub type")
+            return when(dt.sub?.dt) {
+                BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> numElements
+                BaseDataType.UWORD, BaseDataType.WORD -> numElements * 2
+                BaseDataType.FLOAT-> numElements * machine.FLOAT_MEM_SIZE
+                else -> throw IllegalArgumentException("invalid sub type")
             }
         }
-        require(numElements==null)
+
         return when {
-            dt.isByteOrBool -> 1
-            dt.isFloat -> machine.FLOAT_MEM_SIZE
-            else -> 2
+            dt.isByteOrBool -> 1 * (numElements ?: 1)
+            dt.isFloat -> machine.FLOAT_MEM_SIZE * (numElements ?: 1)
+            else -> 2 * (numElements ?: 1)
         }
     }
 

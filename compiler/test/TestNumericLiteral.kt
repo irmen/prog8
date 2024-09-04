@@ -10,6 +10,8 @@ import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
 import prog8.code.core.Encoding
 import prog8.code.core.Position
 
@@ -108,9 +110,9 @@ class TestNumericLiteral: FunSpec({
         val lvTwoR = NumericLiteral(BaseDataType.UBYTE, 2.0, dummyPos)
         val lvThreeR = NumericLiteral(BaseDataType.UBYTE, 3.0, dummyPos)
         val lvFour= NumericLiteral(BaseDataType.UBYTE, 4.0, dummyPos)
-        val lv1 = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOne, lvTwo, lvThree), dummyPos)
-        val lv2 = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOneR, lvTwoR, lvThreeR), dummyPos)
-        val lv3 = ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_UB), arrayOf(lvOneR, lvTwoR, lvFour), dummyPos)
+        val lv1 = ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOne, lvTwo, lvThree), dummyPos)
+        val lv2 = ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOneR, lvTwoR, lvThreeR), dummyPos)
+        val lv3 = ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOneR, lvTwoR, lvFour), dummyPos)
         lv1 shouldBe lv2
         lv1 shouldNotBe lv3
     }
@@ -152,34 +154,34 @@ class TestNumericLiteral: FunSpec({
     }
 
     test("optimalInteger") {
-        NumericLiteral.optimalInteger(10, Position.DUMMY).type shouldBe DataType.UBYTE
+        NumericLiteral.optimalInteger(10, Position.DUMMY).type shouldBe BaseDataType.UBYTE
         NumericLiteral.optimalInteger(10, Position.DUMMY).number shouldBe 10.0
-        NumericLiteral.optimalInteger(-10, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalInteger(-10, Position.DUMMY).type shouldBe BaseDataType.BYTE
         NumericLiteral.optimalInteger(-10, Position.DUMMY).number shouldBe -10.0
-        NumericLiteral.optimalInteger(1000, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalInteger(1000, Position.DUMMY).type shouldBe BaseDataType.UWORD
         NumericLiteral.optimalInteger(-1000, Position.DUMMY).number shouldBe -1000.0
-        NumericLiteral.optimalInteger(1000u, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalInteger(1000u, Position.DUMMY).type shouldBe BaseDataType.UWORD
         NumericLiteral.optimalInteger(1000u, Position.DUMMY).number shouldBe 1000.0
     }
 
     test("optimalNumeric") {
-        NumericLiteral.optimalNumeric(10, Position.DUMMY).type shouldBe DataType.UBYTE
+        NumericLiteral.optimalNumeric(10, Position.DUMMY).type shouldBe BaseDataType.UBYTE
         NumericLiteral.optimalNumeric(10, Position.DUMMY).number shouldBe 10.0
-        NumericLiteral.optimalNumeric(-10, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalNumeric(-10, Position.DUMMY).type shouldBe BaseDataType.BYTE
         NumericLiteral.optimalNumeric(-10, Position.DUMMY).number shouldBe -10.0
-        NumericLiteral.optimalNumeric(1000, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalNumeric(1000, Position.DUMMY).type shouldBe BaseDataType.UWORD
         NumericLiteral.optimalNumeric(1000, Position.DUMMY).number shouldBe 1000.0
-        NumericLiteral.optimalNumeric(-1000, Position.DUMMY).type shouldBe DataType.WORD
+        NumericLiteral.optimalNumeric(-1000, Position.DUMMY).type shouldBe BaseDataType.WORD
         NumericLiteral.optimalNumeric(-1000, Position.DUMMY).number shouldBe -1000.0
-        NumericLiteral.optimalNumeric(1.123, Position.DUMMY).type shouldBe DataType.FLOAT
+        NumericLiteral.optimalNumeric(1.123, Position.DUMMY).type shouldBe BaseDataType.FLOAT
         NumericLiteral.optimalNumeric(1.123, Position.DUMMY).number shouldBe 1.123
-        NumericLiteral.optimalNumeric(1.0, Position.DUMMY).type shouldBe DataType.UBYTE
+        NumericLiteral.optimalNumeric(1.0, Position.DUMMY).type shouldBe BaseDataType.UBYTE
         NumericLiteral.optimalNumeric(1.0, Position.DUMMY).number shouldBe 1.0
-        NumericLiteral.optimalNumeric(-1.0, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalNumeric(-1.0, Position.DUMMY).type shouldBe BaseDataType.BYTE
         NumericLiteral.optimalNumeric(-1.0, Position.DUMMY).number shouldBe -1.0
-        NumericLiteral.optimalNumeric(1234.0, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalNumeric(1234.0, Position.DUMMY).type shouldBe BaseDataType.UWORD
         NumericLiteral.optimalNumeric(1234.0, Position.DUMMY).number shouldBe 1234.0
-        NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).type shouldBe DataType.WORD
+        NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).type shouldBe BaseDataType.WORD
         NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).number shouldBe -1234.0
     }
 })

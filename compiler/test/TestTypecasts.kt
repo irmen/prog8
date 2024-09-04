@@ -14,6 +14,7 @@ import prog8.ast.statements.IfElse
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtSub
 import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
@@ -223,11 +224,11 @@ main {
         stmts.size shouldBe 4
         val assign1tc = (stmts[2] as Assignment).value as TypecastExpression
         val assign2tc = (stmts[3] as Assignment).value as TypecastExpression
-        assign1tc.type shouldBe DataType.WORD
-        assign2tc.type shouldBe DataType.WORD
+        assign1tc.type shouldBe BaseDataType.WORD
+        assign2tc.type shouldBe BaseDataType.WORD
         assign2tc.expression shouldBe instanceOf<IdentifierReference>()
         val assign1subtc = (assign1tc.expression as TypecastExpression)
-        assign1subtc.type shouldBe DataType.BYTE
+        assign1subtc.type shouldBe BaseDataType.BYTE
         assign1subtc.expression shouldBe instanceOf<IdentifierReference>()
     }
 
@@ -801,11 +802,11 @@ main {
         val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
         val main = result.codegenAst!!.allBlocks().first()
         val derp = main.children.single { it is PtSub && it.name=="main.derp"} as PtSub
-        derp.returntype shouldBe DataType.UWORD
-        derp.parameters.single().type shouldBe DataType.UWORD
+        derp.returntype shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
+        derp.parameters.single().type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
         val mult3 = main.children.single { it is PtAsmSub && it.name=="main.mult3"} as PtAsmSub
-        mult3.parameters.single().second.type shouldBe DataType.UWORD
-        mult3.returns.single().second shouldBe DataType.UWORD
+        mult3.parameters.single().second.type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
+        mult3.returns.single().second shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
     }
 
     test("return 0 for str converted to uword") {

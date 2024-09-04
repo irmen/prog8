@@ -8,6 +8,8 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
 import prog8.code.target.C64Target
 import prog8.compiler.astprocessing.hasRtsInAsm
 import prog8tests.helpers.ErrorReporterForTests
@@ -67,12 +69,12 @@ class TestSubroutines: FunSpec({
         asmfunc.statements.isEmpty() shouldBe true
         func.isAsmSubroutine shouldBe false
         withClue("str param for subroutines should be changed into UWORD") {
-            asmfunc.parameters.single().type shouldBe DataType.UWORD
-            func.parameters.single().type shouldBe DataType.UWORD
+            asmfunc.parameters.single().type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
+            func.parameters.single().type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
             func.statements.size shouldBe 4
             val paramvar = func.statements[0] as VarDecl
             paramvar.name shouldBe "thing"
-            paramvar.datatype shouldBe DataType.UWORD
+            paramvar.datatype shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
         }
         val assign = func.statements[2] as Assignment
         assign.target.identifier!!.nameInSource shouldBe listOf("t2")
@@ -126,8 +128,8 @@ class TestSubroutines: FunSpec({
         asmfunc.hasRtsInAsm() shouldBe true
         func.isAsmSubroutine shouldBe false
         withClue("str param should have been changed to uword") {
-            asmfunc.parameters.single().type shouldBe DataType.UWORD
-            func.parameters.single().type shouldBe DataType.UWORD
+            asmfunc.parameters.single().type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
+            func.parameters.single().type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
         }
 
         func.statements.size shouldBe 5
@@ -135,7 +137,7 @@ class TestSubroutines: FunSpec({
         val paramvar = func.statements[0] as VarDecl
         paramvar.name shouldBe "thing"
         withClue("pre-asmgen should have changed str to uword type") {
-            paramvar.datatype shouldBe DataType.UWORD
+            paramvar.datatype shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
         }
         val assign = func.statements[2] as Assignment
         assign.target.identifier!!.nameInSource shouldBe listOf("t2")
@@ -182,8 +184,8 @@ class TestSubroutines: FunSpec({
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         withClue("ubyte array param should have been replaced by UWORD pointer") {
-            asmfunc.parameters.single().type shouldBe DataType.UWORD
-            func.parameters.single().type shouldBe DataType.UWORD
+            asmfunc.parameters.single().type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
+            func.parameters.single().type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
         }
     }
 

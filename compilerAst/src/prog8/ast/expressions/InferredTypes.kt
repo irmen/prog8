@@ -17,7 +17,6 @@ object InferredTypes {
             if(isUnknown || isVoid) transform(this) else datatype!!
         infix fun istype(type: DataTypeFull): Boolean = if(isUnknown || isVoid) false else this.datatype==type     // strict equality if known
         infix fun issimpletype(type: BaseDataType): Boolean = if(isUnknown || isVoid) false else (this.datatype?.dt==type && this.datatype?.sub==null)     // strict equality if known
-        fun oneOf(vararg types: DataTypeFull) = if(isUnknown || isVoid) false else this.datatype in types
 
         companion object {
             fun unknown() = InferredType(isUnknown = true, isVoid = false, datatype = null)
@@ -56,6 +55,8 @@ object InferredTypes {
         val isNumeric get() = datatype?.isNumeric==true
         val isNumericOrBool get() = datatype?.isNumericOrBool==true
         val isArray get() = datatype?.isArray==true
+        val isFloatArray get() = datatype?.isFloatArray==true
+        val isByteArray get() = datatype?.isByteArray==true
         val isString get() = datatype?.isString==true
         val isStringLy get() = datatype?.isStringly==true
         val isIterable get() = datatype?.isIterable==true

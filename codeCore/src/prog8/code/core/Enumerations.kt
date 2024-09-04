@@ -55,16 +55,18 @@ val BaseDataType.isPassByValue get() = !this.isIterable
 
 sealed class SubType(val dt: BaseDataType) {
     companion object {
-        private val types = mapOf(
-            BaseDataType.UBYTE to SubUnsignedByte,
-            BaseDataType.BYTE to SubSignedByte,
-            BaseDataType.UWORD to SubUnsignedWord,
-            BaseDataType.WORD to SubSignedWord,
-            BaseDataType.FLOAT to SubFloat,
-            BaseDataType.BOOL to SubBool
-        )
+        private val types by lazy {
+            // lazy because of static initialization order
+            mapOf(
+                BaseDataType.UBYTE to SubUnsignedByte,
+                BaseDataType.BYTE to SubSignedByte,
+                BaseDataType.UWORD to SubUnsignedWord,
+                BaseDataType.WORD to SubSignedWord,
+                BaseDataType.FLOAT to SubFloat,
+                BaseDataType.BOOL to SubBool
+            )}
         fun forDt(dt: BaseDataType): SubType =
-            types.getOrElse(dt) { throw IllegalArgumentException("invalid sub type") }
+            types.getOrElse(dt) { throw IllegalArgumentException("invalid sub type $dt possible ${types.keys}") }
     }
 }
 
@@ -237,6 +239,8 @@ data class DataTypeFull(val dt: BaseDataType, val sub: SubType?) {
     val isLong = dt == BaseDataType.LONG
     val isStringly = dt == BaseDataType.STR || dt == BaseDataType.UWORD || (dt == BaseDataType.ARRAY && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE))
     val isSplitWordArray = dt.isSplitWordArray
+    val isSplitUnsignedWordArray = dt.isSplitWordArray && sub?.dt == BaseDataType.UWORD
+    val isSplitSignedWordArray = dt.isSplitWordArray && sub?.dt == BaseDataType.WORD
     val isIterable =  dt.isIterable
     val isPassByRef = dt.isPassByRef
     val isPassByValue = dt.isPassByValue

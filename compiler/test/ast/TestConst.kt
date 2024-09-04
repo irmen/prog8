@@ -209,13 +209,13 @@ class TestConst: FunSpec({
         declX2.value shouldBe null
         declY1.value shouldBe null
         declY2.value shouldBe null
-        (initX1.value as NumericLiteral).type shouldBe DataType.BYTE
+        (initX1.value as NumericLiteral).type shouldBe BaseDataType.BYTE
         (initX1.value as NumericLiteral).number shouldBe 11.0
-        (initX2.value as NumericLiteral).type shouldBe DataType.BYTE
+        (initX2.value as NumericLiteral).type shouldBe BaseDataType.BYTE
         (initX2.value as NumericLiteral).number shouldBe 11.0
-        (initY1.value as NumericLiteral).type shouldBe DataType.UBYTE
+        (initY1.value as NumericLiteral).type shouldBe BaseDataType.UBYTE
         (initY1.value as NumericLiteral).number shouldBe 11.0
-        (initY2.value as NumericLiteral).type shouldBe DataType.UBYTE
+        (initY2.value as NumericLiteral).type shouldBe BaseDataType.UBYTE
         (initY2.value as NumericLiteral).number shouldBe 11.0
     }
 

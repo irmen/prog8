@@ -12,11 +12,10 @@ internal object DummyMemsizer : IMemSizer {
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
-        require(numElements==null)
         return when {
-            dt.isByteOrBool -> 1
-            dt.isFloat -> 5
-            else -> 2
+            dt.isByteOrBool -> 1 * (numElements ?: 1)
+            dt.isFloat -> 5 * (numElements ?: 1)
+            else -> 2 * (numElements ?: 1)
         }
     }
 

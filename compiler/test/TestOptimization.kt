@@ -16,6 +16,7 @@ import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtFunctionCall
 import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
@@ -93,7 +94,7 @@ other {
 
     test("generated constvalue from typecast inherits proper parent linkage") {
         val number = NumericLiteral(BaseDataType.UBYTE, 11.0, Position.DUMMY)
-        val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
+        val tc = TypecastExpression(number, BaseDataType.BYTE, false, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
         tc.linkParents(ParentSentinel)
         tc.parent shouldNotBe null
@@ -102,7 +103,7 @@ other {
         val constvalue = tc.constValue(program)!!
         constvalue shouldBe instanceOf<NumericLiteral>()
         constvalue.number shouldBe 11.0
-        constvalue.type shouldBe DataType.BYTE
+        constvalue.type shouldBe BaseDataType.BYTE
         constvalue.parent shouldBeSameInstanceAs tc.parent
     }
 
@@ -117,7 +118,7 @@ other {
         val constvalue = pfx.constValue(program)!!
         constvalue shouldBe instanceOf<NumericLiteral>()
         constvalue.number shouldBe -11.0
-        constvalue.type shouldBe DataType.BYTE
+        constvalue.type shouldBe BaseDataType.BYTE
         constvalue.parent shouldBeSameInstanceAs pfx.parent
     }
 
@@ -555,7 +556,7 @@ main {
         arrayDecl.isArray shouldBe true
         arrayDecl.arraysize?.constIndex() shouldBe 4
         val arrayValue = arrayDecl.value as ArrayLiteral
-        arrayValue.type shouldBe InferredTypes.InferredType.known(DataType.ARRAY_UB)
+        arrayValue.type shouldBe InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE))
         arrayValue.value shouldBe listOf(
             NumericLiteral.optimalInteger(1, Position.DUMMY),
             NumericLiteral.optimalInteger(3, Position.DUMMY),
@@ -927,13 +928,13 @@ main {
         funcarg2 shouldBe NumericLiteral(BaseDataType.UWORD, 8.0, Position.DUMMY)
 
         val answer3ValueTc = (st[15] as Assignment).value as TypecastExpression
-        answer3ValueTc.type shouldBe DataType.UWORD
+        answer3ValueTc.type shouldBe BaseDataType.UWORD
         val answer3Value = answer3ValueTc.expression as FunctionCallExpression
         answer3Value.target.nameInSource shouldBe listOf("msb")
         answer3Value.args.single() shouldBe instanceOf<BinaryExpression>()
 
         val funcarg3tc = (st[16] as FunctionCallStatement).args.single() as TypecastExpression
-        funcarg3tc.type shouldBe DataType.UWORD
+        funcarg3tc.type shouldBe BaseDataType.UWORD
         val funcarg3 = funcarg3tc.expression as FunctionCallExpression
         funcarg3.target.nameInSource shouldBe listOf("msb")
         funcarg3.args.single() shouldBe instanceOf<BinaryExpression>()

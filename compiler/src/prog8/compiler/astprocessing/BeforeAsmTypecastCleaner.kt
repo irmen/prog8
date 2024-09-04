@@ -27,7 +27,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             }
         }
 
-        if(typecast.type==sourceDt)
+        if(typecast.type==sourceDt.dt)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(sourceDt.isPassByRef) {
@@ -101,18 +101,18 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             val arg2 = bfcs.args[1]
             val dt1 = arg1.inferType(program).getOrUndef()
             val dt2 = arg2.inferType(program).getOrUndef()
-            if(dt1==DataType.BOOL && dt2==DataType.BOOL)
+            if(dt1.isBool && dt2.isBool)
                 return noModifications
-            else if(dt1 in ByteDatatypes) {
-                if(dt2 in ByteDatatypes)
+            else if(dt1.isByte) {
+                if(dt2.isByte)
                     return noModifications
-                val (replaced, cast) = arg1.typecastTo(if(dt1== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt1, true)
+                val (replaced, cast) = arg1.typecastTo(if(dt1.isUnsignedByte) BaseDataType.UWORD else BaseDataType.WORD, dt1, true)
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg1, cast, bfcs))
             } else {
                 if(dt2.isWord)
                     return noModifications
-                val (replaced, cast) = arg2.typecastTo(if(dt2== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt2, true)
+                val (replaced, cast) = arg2.typecastTo(if(dt2.isUnsignedByte) BaseDataType.UWORD else BaseDataType.WORD, dt2, true)
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg2, cast, bfcs))
             }
@@ -125,9 +125,9 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             val shifts = expr.right.constValue(program)
             if(shifts!=null) {
                 val dt = expr.left.inferType(program)
-                if(dt.istype(DataType.UBYTE) && shifts.number>=8.0)
+                if(dt issimpletype BaseDataType.UBYTE && shifts.number>=8.0)
                     errors.warn("shift always results in 0", expr.position)
-                if(dt.istype(DataType.UWORD) && shifts.number>=16.0)
+                if(dt issimpletype BaseDataType.UWORD && shifts.number>=16.0)
                     errors.warn("shift always results in 0", expr.position)
                 if(shifts.number<=255.0 && shifts.type.isWord) {
                     val byteVal = NumericLiteral(BaseDataType.UBYTE, shifts.number, shifts.position)

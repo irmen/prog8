@@ -218,7 +218,7 @@ internal class StatementReorderer(
         }
 
         if(!assignment.isAugmentable) {
-            if (valueType.isString && (targetType issimpletype BaseDataType.STR || targetType istype DataType.ARRAY_B || targetType istype DataType.ARRAY_UB)) {
+            if (valueType.isString && (targetType issimpletype BaseDataType.STR || targetType.isByteArray)) {
                 // replace string assignment by a call to stringcopy
                 return copyStringValue(assignment)
             }

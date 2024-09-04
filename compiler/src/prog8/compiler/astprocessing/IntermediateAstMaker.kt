@@ -555,7 +555,8 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     }
 
     private fun transform(srcArr: ArrayIndexedExpression): PtArrayIndexer {
-        if(srcArr.arrayvar.targetVarDecl(program)!!.datatype !in ArrayDatatypes + DataType.STR)
+        val dt = srcArr.arrayvar.targetVarDecl(program)!!.datatype
+        if(!dt.isArray && !dt.isString)
             throw FatalAstException("array indexing can only be used on array or string variables ${srcArr.position}")
         val eltType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
         val array = PtArrayIndexer(eltType, srcArr.position)

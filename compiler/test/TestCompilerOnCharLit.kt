@@ -9,6 +9,8 @@ import prog8.ast.IFunctionCall
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.VarDeclType
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
 import prog8.code.core.Encoding
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.compileText
@@ -40,7 +42,7 @@ class TestCompilerOnCharLit: FunSpec({
             funCall.args[0] shouldBe instanceOf<NumericLiteral>()
         }
         val arg = funCall.args[0] as NumericLiteral
-        arg.type shouldBe DataType.UBYTE
+        arg.type shouldBe BaseDataType.UBYTE
         arg.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
     }
 
@@ -64,7 +66,7 @@ class TestCompilerOnCharLit: FunSpec({
         val arg = funCall.args[0] as IdentifierReference
         val decl = arg.targetVarDecl(program)!!
         decl.type shouldBe VarDeclType.VAR
-        decl.datatype shouldBe DataType.UBYTE
+        decl.datatype shouldBe BaseDataType.UBYTE
 
         withClue("initializer value should have been moved to separate assignment"){
             decl.value shouldBe null
@@ -75,7 +77,7 @@ class TestCompilerOnCharLit: FunSpec({
             assignInitialValue.value shouldBe instanceOf<NumericLiteral>()
         }
         val initializerValue = assignInitialValue.value as NumericLiteral
-        initializerValue.type shouldBe DataType.UBYTE
+        initializerValue.type shouldBe BaseDataType.UBYTE
         initializerValue.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
     }
 
@@ -100,7 +102,7 @@ class TestCompilerOnCharLit: FunSpec({
             is IdentifierReference -> {
                 val decl = arg.targetVarDecl(program)!!
                 decl.type shouldBe VarDeclType.CONST
-                decl.datatype shouldBe DataType.UBYTE
+                decl.datatype shouldBe DataTypeFull.forDt(BaseDataType.UBYTE)
                 (decl.value as NumericLiteral).number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0]
             }
             is NumericLiteral -> {

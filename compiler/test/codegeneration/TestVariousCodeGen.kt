@@ -10,6 +10,8 @@ import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtBinaryExpression
 import prog8.code.ast.PtVariable
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
 import prog8.code.target.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -73,7 +75,7 @@ main {
         val seed = start.children[0] as PtVariable
         seed.name shouldBe "p8v_seed"
         seed.value shouldBe null
-        seed.type shouldBe DataType.ARRAY_UW
+        seed.type shouldBe DataTypeFull.arrayFor(BaseDataType.UWORD)
         val assign = start.children[1] as PtAssignment
         assign.target.identifier!!.name shouldBe "cx16.r0"
         assign.value shouldBe instanceOf<PtBinaryExpression>()

@@ -9,6 +9,8 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
@@ -185,10 +187,10 @@ main {
         val assign2expr = (stmts[5] as Assignment).value as BinaryExpression
         assign1expr.operator shouldBe "<<"
         val leftval1 = assign1expr.left.constValue(result.compilerAst)!!
-        leftval1.type shouldBe DataType.UWORD
+        leftval1.type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
         leftval1.number shouldBe 1.0
         val leftval2 = assign2expr.left.constValue(result.compilerAst)!!
-        leftval2.type shouldBe DataType.UWORD
+        leftval2.type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
         leftval2.number shouldBe 1.0
     }
 
@@ -541,12 +543,12 @@ main {
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
         val assignUbb = ((st[5] as Assignment).value as TypecastExpression)
-        assignUbb.type shouldBe DataType.UBYTE
+        assignUbb.type shouldBe DataTypeFull.forDt(BaseDataType.UBYTE)
         assignUbb.expression shouldBe instanceOf<IdentifierReference>()
         val assignVaddr = (st[7] as Assignment).value as FunctionCallExpression
         assignVaddr.target.nameInSource shouldBe listOf("mkword")
         val tc = assignVaddr.args[0] as TypecastExpression
-        tc.type shouldBe DataType.UBYTE
+        tc.type shouldBe BaseDataType.UBYTE
         tc.expression shouldBe instanceOf<ArrayIndexedExpression>()
     }
 

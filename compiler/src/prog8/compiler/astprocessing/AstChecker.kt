@@ -132,12 +132,12 @@ internal class AstChecker(private val program: Program,
             val valueDt = returnStmt.value!!.inferType(program)
             if(valueDt.isKnown) {
                 if (expectedReturnValues[0] != valueDt.getOrUndef()) {
-                    if(valueDt istype DataType.BOOL && expectedReturnValues[0] == DataType.UBYTE) {
+                    if(valueDt.isBool && expectedReturnValues[0].isUnsignedByte) {
                         // if the return value is a bool and the return type is ubyte, allow this. But give a warning.
                         errors.info("return type of the subroutine should probably be bool instead of ubyte", returnStmt.position)
                     } else if(valueDt.isIterable && expectedReturnValues[0].isUnsignedWord) {
                         // you can return a string or array when an uword (pointer) is returned
-                    } else if(valueDt istype DataType.UWORD && expectedReturnValues[0].isString) {
+                    } else if(valueDt issimpletype BaseDataType.UWORD && expectedReturnValues[0].isString) {
                         // you can return a uword pointer when the return type is a string
                     }
                     else {
@@ -188,6 +188,9 @@ internal class AstChecker(private val program: Program,
         }
 
         val iterableDt = forLoop.iterable.inferType(program).getOr(DataTypeFull.forDt(BaseDataType.BYTE))
+
+        if(iterableDt.isNumeric) TODO("iterable type should not be simple numeric!? "+forLoop.position) // TODO
+
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
         } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression) {
@@ -200,9 +203,8 @@ internal class AstChecker(private val program: Program,
                 require(loopvar.datatype.isNumericOrBool)
                 when (loopvar.datatype.dt) {
                     BaseDataType.UBYTE -> {
-                        if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.ARRAY_UB && iterableDt != DataType.STR)
+                        if(!iterableDt.isUnsignedByte && !iterableDt.isUnsignedByteArray && !iterableDt.isString)      // TODO remove ubyte check?
                             errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
-
                         checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }
                     BaseDataType.BOOL -> {
@@ -210,21 +212,21 @@ internal class AstChecker(private val program: Program,
                             errors.err("bool loop variable can only loop over boolean array", forLoop.position)
                     }
                     BaseDataType.UWORD -> {
-                        if(iterableDt!= DataType.UBYTE && iterableDt!= DataType.UWORD && iterableDt != DataType.STR &&
-                                iterableDt != DataType.ARRAY_UB && iterableDt != DataType.ARRAY_UW &&
-                                iterableDt != DataType.ARRAY_UW_SPLIT)
+                        if(!iterableDt.isUnsignedByte && !iterableDt.isUnsignedWord && !iterableDt.isString &&      // TODO remove byte and word check?
+                                !iterableDt.isUnsignedByteArray && !iterableDt.isUnsignedWordArray &&
+                                !iterableDt.isSplitWordArray)
                             errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
 
                         checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }
                     BaseDataType.BYTE -> {
-                        if(iterableDt!= DataType.BYTE && iterableDt!= DataType.ARRAY_B)
+                        if(!iterableDt.isSignedByte && !iterableDt.isSignedByteArray)       // TODO remove byte check?
                             errors.err("byte loop variable can only loop over bytes", forLoop.position)
                     }
                     BaseDataType.WORD -> {
-                        if(iterableDt!= DataType.BYTE && iterableDt!= DataType.WORD &&
-                                iterableDt != DataType.ARRAY_B && iterableDt!= DataType.ARRAY_W &&
-                                iterableDt != DataType.ARRAY_W_SPLIT)
+                        if(!iterableDt.isSignedByte && !iterableDt.isSignedWord &&      // TODO remove byte and word check?
+                                !iterableDt.isSignedByteArray && !iterableDt.isSignedWordArray &&
+                                !iterableDt.isSplitWordArray)
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }
                     BaseDataType.FLOAT -> {
@@ -393,12 +395,11 @@ internal class AstChecker(private val program: Program,
                 err("number of return registers is not the isSameAs as number of return values")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 if(param.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
-                    if (param.first.type != DataType.UBYTE && param.first.type != DataType.BYTE && param.first.type != DataType.BOOL)
+                    if (!param.first.type.isByteOrBool)
                         errors.err("parameter '${param.first.name}' should be (u)byte or bool", param.first.position)
                 }
                 else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                    if (param.first.type != DataType.UWORD && param.first.type != DataType.WORD
-                            && !param.first.type.isString && !param.first.type.isArray)
+                    if (!param.first.type.isWord && !param.first.type.isString && !param.first.type.isArray)
                         err("parameter '${param.first.name}' should be (u)word (an address) or str")
                 }
                 else if(param.second.statusflag!=null) {
@@ -408,12 +409,11 @@ internal class AstChecker(private val program: Program,
             }
             subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).forEachIndexed { index, pair ->
                 if(pair.second.registerOrPair in arrayOf(RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y)) {
-                    if (pair.first != DataType.UBYTE && pair.first != DataType.BYTE && pair.first != DataType.BOOL)
+                    if (!pair.first.isByteOrBool)
                         err("return type #${index + 1} should be (u)byte")
                 }
                 else if(pair.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                    if (pair.first != DataType.UWORD && pair.first != DataType.WORD
-                            && pair.first != DataType.STR && pair.first !in ArrayDatatypes)
+                    if (!pair.first.isWord && !pair.first.isString && !pair.first.isArray)
                         err("return type #${index + 1} should be (u)word/address")
                 }
                 else if(pair.second.statusflag!=null) {
@@ -497,7 +497,7 @@ internal class AstChecker(private val program: Program,
             if(p.name.startsWith('_'))
                 errors.err("identifiers cannot start with an underscore", p.position)
 
-            if(p.type.isPassByRef && p.type !in listOf(DataType.STR, DataType.ARRAY_UB)) {
+            if(p.type.isPassByRef && !p.type.isString && !p.type.isUnsignedByteArray) {
                 errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use an uword to receive the address, or access the variable from the outer scope directly.", p.position)
             }
         }
@@ -693,7 +693,7 @@ internal class AstChecker(private val program: Program,
         }
 
         // FLOATS enabled?
-        if(!compilerOptions.floats && decl.datatype.oneOf(DataType.FLOAT, DataType.ARRAY_F) && decl.type!= VarDeclType.MEMORY)
+        if(!compilerOptions.floats && (decl.datatype.isFloat || decl.datatype.isFloatArray) && decl.type != VarDeclType.MEMORY)
             err("floating point used, but that is not enabled via options")
 
         // ARRAY without size specifier MUST have an iterable initializer value
@@ -967,7 +967,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(array: ArrayLiteral) {
         if(array.type.isKnown) {
-            if (!compilerOptions.floats && array.type.oneOf(DataType.FLOAT, DataType.ARRAY_F)) {
+            if (!compilerOptions.floats && (array.type issimpletype BaseDataType.FLOAT || array.type.isFloatArray)) {
                 errors.err("floating point used, but that is not enabled via options", array.position)
             }
             val arrayspec = ArrayIndex.forArray(array)
@@ -977,10 +977,7 @@ internal class AstChecker(private val program: Program,
         fun isPassByReferenceElement(e: Expression): Boolean {
             if(e is IdentifierReference) {
                 val decl = e.targetVarDecl(program)
-                return if(decl!=null)
-                    decl.datatype.isPassByRef
-                else
-                    true     // is probably a symbol that needs addr-of
+                return decl?.datatype?.isPassByRef ?: true     // is probably a symbol that needs addr-of
             }
             return e is StringLiteral
         }
@@ -1027,7 +1024,7 @@ internal class AstChecker(private val program: Program,
             return  // any error should be reported elsewhere
 
         if(expr.operator=="-") {
-            if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
+            if (!(dt.isSigned && dt.isNumeric)) {
                 errors.err("can only take negative of a signed number type", expr.position)
             }
         }
@@ -1078,7 +1075,7 @@ internal class AstChecker(private val program: Program,
                 if(divisor==0.0)
                     errors.err("division by zero", expr.right.position)
                 if(expr.operator=="%") {
-                    if ((rightDt != DataType.UBYTE && rightDt != DataType.UWORD) || (leftDt!= DataType.UBYTE && leftDt!= DataType.UWORD))
+                    if ((!rightDt.isUnsignedByte && !rightDt.isUnsignedWord) || (!leftDt.isUnsignedByte && !leftDt.isUnsignedWord))
                         errors.err("remainder can only be used on unsigned integer operands", expr.right.position)
                 }
             }
@@ -1093,9 +1090,9 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(leftDt !in NumericDatatypes && leftDt != DataType.STR && leftDt != DataType.BOOL)
+        if(!leftDt.isNumeric && !leftDt.isString && !leftDt.isBool)
             errors.err("left operand is not numeric or str", expr.left.position)
-        if(rightDt!in NumericDatatypes && rightDt != DataType.STR && rightDt != DataType.BOOL)
+        if(!rightDt.isNumeric && !rightDt.isString && !rightDt.isBool)
             errors.err("right operand is not numeric or str", expr.right.position)
         if(leftDt!=rightDt) {
             if(leftDt.isString && rightDt.isInteger && expr.operator=="*") {
@@ -1123,12 +1120,12 @@ internal class AstChecker(private val program: Program,
         } else {
             if(expr.left is TypecastExpression && expr.right is NumericLiteral && !(expr.right.inferType(program) issimpletype BaseDataType.FLOAT)) {
                 val origLeftDt = (expr.left as TypecastExpression).expression.inferType(program).getOrUndef()
-                if(rightDt.largerSizeThan(origLeftDt) && !(expr.right as NumericLiteral).cast(origLeftDt, true).isValid)
+                if(rightDt.largerSizeThan(origLeftDt) && !(expr.right as NumericLiteral).cast(origLeftDt.dt, true).isValid)
                     errors.err("operands are not the same type", expr.right.position)
             }
             if(expr.right is TypecastExpression && expr.left is NumericLiteral && !(expr.left.inferType(program) issimpletype BaseDataType.FLOAT)) {
                 val origRightDt = (expr.right as TypecastExpression).expression.inferType(program).getOrUndef()
-                if(leftDt.largerSizeThan(origRightDt) && !(expr.left as NumericLiteral).cast(origRightDt, true).isValid)
+                if(leftDt.largerSizeThan(origRightDt) && !(expr.left as NumericLiteral).cast(origRightDt.dt, true).isValid)
                     errors.err("operands are not the same type", expr.right.position)
             }
         }
@@ -1157,7 +1154,7 @@ internal class AstChecker(private val program: Program,
 
 
         if(expr.operator in LogicalOperators) {
-            if (leftDt != DataType.BOOL || rightDt != DataType.BOOL) {
+            if (!leftDt.isBool || !rightDt.isBool) {
                 errors.err("logical operator requires boolean operands", expr.right.position)
             }
         }
@@ -1294,7 +1291,7 @@ internal class AstChecker(private val program: Program,
             if(funcName[0] == "sort") {
                 // sort is not supported on float arrays
                 val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
-                if(idref!=null && idref.inferType(program) istype DataType.ARRAY_F) {
+                if(idref!=null && idref.inferType(program).isFloatArray) {
                     errors.err("sorting a floating point array is not supported", functionCallStatement.args.first().position)
                 }
             }
@@ -1409,7 +1406,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("indexing requires an iterable or address uword variable", arrayIndexedExpression.position)
             val indexVariable = arrayIndexedExpression.indexer.indexExpr as? IdentifierReference
             if(indexVariable!=null) {
-                if(indexVariable.targetVarDecl(program)?.datatype.isSigned) {
+                if(indexVariable.targetVarDecl(program)?.datatype?.isSigned==true) {
                     errors.err("variable array indexing can't be performed with signed variables", indexVariable.position)
                     return
                 }
@@ -1476,7 +1473,7 @@ internal class AstChecker(private val program: Program,
                 when {
                     constvalue == null -> errors.err("choice value must be a constant", pos)
                     !constvalue.type.isIntegerOrBool -> errors.err("choice value must be a byte or word", pos)
-                    conditionType isnot constvalue.type -> {
+                    !(conditionType issimpletype constvalue.type) -> {
                         if(conditionType.isKnown) {
                             if(conditionType.isBool) {
                                 if(constvalue.number!=0.0 && constvalue.number!=1.0)
@@ -1749,23 +1746,23 @@ internal class AstChecker(private val program: Program,
             }
         }
         val correct: Boolean
-        when (type) {
-            DataType.ARRAY_UB -> {
+        when {
+            type.isUnsignedByteArray -> {
                 correct = array.all { it in 0..255 }
             }
-            DataType.ARRAY_B -> {
+            type.isSignedByteArray -> {
                 correct = array.all { it in -128..127 }
             }
-            DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> {
+            type.isUnsignedWordArray || type.isSplitUnsignedWordArray -> {
                 correct = array.all { (it in 0..65535) }
             }
-            DataType.ARRAY_W, DataType.ARRAY_W_SPLIT -> {
+            type.isSignedWordArray || type.isSplitSignedWordArray -> {
                 correct = array.all { it in -32768..32767 }
             }
-            DataType.ARRAY_BOOL -> {
+            type.isBoolArray -> {
                 correct = array.all { it==0 || it==1 }
             }
-            DataType.ARRAY_F -> correct = true
+            type.isFloatArray -> correct = true
             else -> throw FatalAstException("invalid array type $type")
         }
         if (!correct)
@@ -1788,14 +1785,14 @@ internal class AstChecker(private val program: Program,
             return false
         }
 
-        val result =  when(targetDatatype) {
-            DataType.BOOL -> sourceDatatype.isBool
-            DataType.BYTE -> sourceDatatype == DataType.BYTE
-            DataType.UBYTE -> sourceDatatype == DataType.UBYTE
-            DataType.WORD -> sourceDatatype in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD)
-            DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD
-            DataType.FLOAT -> sourceDatatype.isNumeric
-            DataType.STR -> sourceDatatype.isString
+        val result =  when {
+            targetDatatype.isBool -> sourceDatatype.isBool
+            targetDatatype.isSignedByte -> sourceDatatype.isSignedByte
+            targetDatatype.isUnsignedByte -> sourceDatatype.isUnsignedByte
+            targetDatatype.isSignedWord -> sourceDatatype.isSignedWord || sourceDatatype.isByte
+            targetDatatype.isUnsignedWord -> sourceDatatype.isUnsignedWord || sourceDatatype.isUnsignedByte
+            targetDatatype.isFloat -> sourceDatatype.isNumeric
+            targetDatatype.isString -> sourceDatatype.isString
             else -> {
                 errors.err("cannot assign new value to variable of type $targetDatatype", position)
                 false
@@ -1805,7 +1802,7 @@ internal class AstChecker(private val program: Program,
         if(result)
             return true
 
-        if((sourceDatatype== DataType.UWORD || sourceDatatype== DataType.WORD) && (targetDatatype== DataType.UBYTE || targetDatatype== DataType.BYTE)) {
+        if(sourceDatatype.isWord && targetDatatype.isByte) {
             errors.err("cannot assign word to byte, use msb() or lsb()?", position)
         }
         else if(sourceDatatype.isIterable && targetDatatype.isByte) {
@@ -1819,10 +1816,10 @@ internal class AstChecker(private val program: Program,
         else if(targetDatatype.isUnsignedWord && sourceDatatype.isPassByRef) {
             // this is allowed: a pass-by-reference datatype into a uword (pointer value).
         }
-        else if(sourceDatatype.isBool && targetDatatype!=DataType.BOOL) {
+        else if(sourceDatatype.isBool && !targetDatatype.isBool) {
             errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
-        else if(targetDatatype.isBool && sourceDatatype!=DataType.BOOL) {
+        else if(targetDatatype.isBool && !sourceDatatype.isBool) {
             errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
         else {
