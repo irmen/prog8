@@ -1,6 +1,8 @@
 package prog8.code.ast
 
-import prog8.code.core.*
+import prog8.code.core.DataTypeFull
+import prog8.code.core.escape
+import prog8.code.core.toHex
 
 /**
  * Produces readable text from a [PtNode] (AST node, usually starting with PtProgram as root),

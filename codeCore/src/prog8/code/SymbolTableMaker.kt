@@ -3,7 +3,6 @@ package prog8.code
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.target.VMTarget
-import kotlin.collections.ArrayDeque
 
 
 class SymbolTableMaker(private val program: PtProgram, private val options: CompilationOptions) {

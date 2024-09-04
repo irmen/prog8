@@ -5,7 +5,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.AssociativeOperators
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
+import prog8.code.core.IErrorReporter
 
 internal class StatementReorderer(
     val program: Program,

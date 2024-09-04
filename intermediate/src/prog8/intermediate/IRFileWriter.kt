@@ -1,6 +1,9 @@
 package prog8.intermediate
 
-import prog8.code.core.*
+import prog8.code.core.InternalCompilerException
+import prog8.code.core.Position
+import prog8.code.core.SourceLineCache
+import prog8.code.core.toHex
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter

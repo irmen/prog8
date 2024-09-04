@@ -9,7 +9,9 @@ import prog8.ast.expressions.PrefixExpression
 import prog8.ast.expressions.invertCondition
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.IErrorReporter
+import prog8.code.core.isIntegerOrBool
 
 internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val errors: IErrorReporter, val compTarget: ICompilationTarget) : AstWalker() {
 

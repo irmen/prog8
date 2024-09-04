@@ -9,7 +9,6 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
 import prog8.codegen.cpu6502.assignment.*
-import kotlin.collections.ArrayDeque
 import kotlin.io.path.Path
 import kotlin.io.path.writeLines
 

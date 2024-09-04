@@ -5,7 +5,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.ComparisonOperators
+import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 
 
 internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {

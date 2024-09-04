@@ -2,7 +2,8 @@ package prog8.ast
 
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.*
+import prog8.code.core.ZeropageWish
+import prog8.code.core.toHex
 
 
 fun printSymbols(program: Program) {

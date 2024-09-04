@@ -6,7 +6,6 @@ import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.intermediate.*
 import java.awt.Color
 import java.awt.Toolkit
-import kotlin.collections.ArrayDeque
 import kotlin.math.*
 import kotlin.random.Random
 

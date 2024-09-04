@@ -1,7 +1,8 @@
 package prog8.codegen.intermediate
 
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.AssemblyError
+import prog8.code.core.BaseDataType
 import prog8.intermediate.*
 
 

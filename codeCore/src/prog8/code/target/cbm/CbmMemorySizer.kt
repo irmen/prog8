@@ -1,6 +1,9 @@
 package prog8.code.target.cbm
 
-import prog8.code.core.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataTypeFull
+import prog8.code.core.IMemSizer
+import prog8.code.core.SubType
 
 
 internal object CbmMemorySizer: IMemSizer {

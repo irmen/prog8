@@ -13,10 +13,6 @@ IR: check rol ror in array (elt size)
 IR: check set lsb/msb in array (elt size)
 
 
-cleanup all imports
-
-
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
