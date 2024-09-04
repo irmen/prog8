@@ -374,7 +374,7 @@ class TypecastExpression(var expression: Expression, var type: BaseDataType, val
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun referencesIdentifier(nameInSource: List<String>) = expression.referencesIdentifier(nameInSource)
-    override fun inferType(program: Program) = InferredTypes.knownFor(DataTypeFull(type, null))
+    override fun inferType(program: Program) = InferredTypes.knownFor(DataTypeFull.forDt(type))
     override fun constValue(program: Program): NumericLiteral? {
         val cv = expression.constValue(program) ?: return null
         cv.linkParents(parent)
@@ -476,7 +476,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     }
 }
 
-class NumericLiteral(val type: BaseDataType,    // only numerical types allowed
+class NumericLiteral(val type: BaseDataType,    // only numerical types allowed + bool (there is no separate BooleanLiteral node)
                      numbervalue: Double,    // can be byte, word or float depending on the type
                      override val position: Position) : Expression() {
     override lateinit var parent: Node
@@ -491,6 +491,12 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed
         }
     }
 
+    init {
+        require(type.isNumericOrBool) {
+            "invalid type for numeric literal: $type"
+        }
+    }
+    
     override val isSimple = true
     override fun copy() = NumericLiteral(type, number, position)
 
@@ -569,7 +575,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed
         BaseDataType.FLOAT -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.FLOAT))
         BaseDataType.BOOL -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.BOOL))
         BaseDataType.STR -> InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.STR))
-        else -> throw IllegalArgumentException("invalid type")
+        else -> throw IllegalArgumentException("invalid type for numeric literal: $type")
     }
 
     override fun hashCode(): Int = Objects.hash(type, number)
@@ -1161,7 +1167,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
         val resultValue: NumericLiteral? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
-            if(resultValue==null || resultDt istype DataTypeFull(resultValue.type, null))
+            if(resultValue==null || resultDt istype DataTypeFull.forDt(resultValue.type))
                 return resultValue
             throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
         } else {
@@ -1181,7 +1187,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
     override fun inferType(program: Program): InferredTypes.InferredType {
         val constVal = constValue(program ,false)
         if(constVal!=null)
-            return InferredTypes.knownFor(DataTypeFull(constVal.type, null))
+            return InferredTypes.knownFor(DataTypeFull.forDt(constVal.type))
         val stmt = target.targetStatement(program) ?: return InferredTypes.unknown()
         when (stmt) {
             is BuiltinFunctionPlaceholder -> {

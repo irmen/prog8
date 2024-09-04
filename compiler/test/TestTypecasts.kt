@@ -37,7 +37,7 @@ class TestTypecasts: FunSpec({
         val result = compileText(C64Target(), false, text, writeAssembly = false, errors=errors)
         result shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "type mismatch, was: FLOAT expected one of: [UWORD, WORD]"
+        errors.errors[0] shouldContain "type mismatch, was: float expected one of: [UWORD, WORD]"
     }
 
     test("not casting bool operands to logical operators") {
@@ -690,8 +690,8 @@ main {
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain("argument 1 type mismatch")
         errors.errors[1] shouldContain("argument 1 type mismatch")
-        errors.errors[2] shouldContain("type of value BOOL doesn't match target")
-        errors.errors[3] shouldContain("type of value BOOL doesn't match target")
+        errors.errors[2] shouldContain("type of value bool doesn't match target")
+        errors.errors[3] shouldContain("type of value bool doesn't match target")
     }
 
     test("bool function parameters correct typing") {
@@ -722,7 +722,7 @@ main {
         errors.errors[2] shouldContain("type mismatch")
         errors.errors[3] shouldContain("type mismatch")
         errors.errors[4] shouldContain("type mismatch")
-        errors.errors[5] shouldContain("type of value BOOL doesn't match target")
+        errors.errors[5] shouldContain("type of value bool doesn't match target")
     }
 
     test("no implicit bool-to-int cast") {
@@ -743,7 +743,7 @@ main {
         compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain(":5:14: argument 1 type mismatch")
-        errors.errors[1] shouldContain(":6:20: type of value BOOL doesn't match target")
+        errors.errors[1] shouldContain(":6:20: type of value bool doesn't match target")
     }
 
     test("no implicit int-to-bool cast") {
@@ -773,8 +773,8 @@ main {
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain(":4:15: no implicit cast")
         errors.errors[1] shouldContain(":5:15: no implicit cast")
-        errors.errors[2] shouldContain(":8:28: type of value UBYTE doesn't match target")
-        errors.errors[3] shouldContain(":9:28: type of value UWORD doesn't match target")
+        errors.errors[2] shouldContain(":8:28: type of value ubyte doesn't match target")
+        errors.errors[3] shouldContain(":9:28: type of value uword doesn't match target")
     }
 
     test("str replaced with uword in subroutine params and return types") {

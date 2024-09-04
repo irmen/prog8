@@ -80,7 +80,7 @@ internal object SubFloat: SubType(BaseDataType.FLOAT)
 
 
 // TODO rename back to DataType once everything has been converted
-data class DataTypeFull(val dt: BaseDataType, val sub: SubType?) {
+data class DataTypeFull private constructor(val dt: BaseDataType, val sub: SubType?) {
 
     init {
         if(dt.isArray) {
@@ -89,7 +89,7 @@ data class DataTypeFull(val dt: BaseDataType, val sub: SubType?) {
                 require(sub.dt == BaseDataType.UWORD || sub.dt == BaseDataType.WORD)
         }
         else if(dt==BaseDataType.STR)
-            require(sub?.dt==BaseDataType.UBYTE)
+            require(sub?.dt==BaseDataType.UBYTE) { "STR subtype should be ubyte" }
         else
             require(sub == null)
     }
@@ -107,15 +107,13 @@ data class DataTypeFull(val dt: BaseDataType, val sub: SubType?) {
             BaseDataType.UNDEFINED to DataTypeFull(BaseDataType.UNDEFINED, null)
         )
 
-        fun forDt(dt: BaseDataType): DataTypeFull = when (dt) {
-            BaseDataType.ARRAY -> TODO()
-            BaseDataType.ARRAY_SPLITW -> TODO()
-            else -> simpletypes.getOrElse(dt) { throw IllegalArgumentException("invalid data type") }
-        }
+        fun forDt(dt: BaseDataType): DataTypeFull =
+            simpletypes.getOrElse(dt) { throw IllegalArgumentException("invalid data type") }
 
         fun arrayFor(elementDt: BaseDataType, split: Boolean=false): DataTypeFull {
-            if(split) return DataTypeFull(BaseDataType.ARRAY_SPLITW, SubType.forDt(elementDt))
-            else return DataTypeFull(BaseDataType.ARRAY, SubType.forDt(elementDt))
+            val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
+            if(split) return DataTypeFull(BaseDataType.ARRAY_SPLITW, SubType.forDt(actualElementDt))
+            else return DataTypeFull(BaseDataType.ARRAY, SubType.forDt(actualElementDt))
         }
     }
 
@@ -124,21 +122,18 @@ data class DataTypeFull(val dt: BaseDataType, val sub: SubType?) {
             return when(dt) {
                 BaseDataType.UWORD -> DataTypeFull(BaseDataType.ARRAY_SPLITW, SubUnsignedWord)
                 BaseDataType.WORD -> DataTypeFull(BaseDataType.ARRAY_SPLITW, SubSignedWord)
+                BaseDataType.STR -> DataTypeFull(BaseDataType.ARRAY_SPLITW, SubUnsignedWord)
                 else -> throw IllegalArgumentException("invalid array elt dt")
             }
         }
-        return when(dt) {
-            BaseDataType.UBYTE -> DataTypeFull(BaseDataType.ARRAY, SubUnsignedByte)
-            BaseDataType.BYTE -> DataTypeFull(BaseDataType.ARRAY, SubSignedByte)
-            BaseDataType.UWORD -> DataTypeFull(BaseDataType.ARRAY, SubUnsignedWord)
-            BaseDataType.WORD -> DataTypeFull(BaseDataType.ARRAY, SubSignedWord)
-            BaseDataType.FLOAT -> DataTypeFull(BaseDataType.ARRAY, SubFloat)
-            BaseDataType.BOOL -> DataTypeFull(BaseDataType.ARRAY, SubBool)
-            else -> throw IllegalArgumentException("invalid array elt dt")
-        }
+        return arrayFor(dt)
     }
 
-    fun elementType(): DataTypeFull = if(dt.isArray) forDt(sub!!.dt) else throw IllegalArgumentException("not an array")
+    fun elementType(): DataTypeFull =
+        if(dt.isArray || dt==BaseDataType.STR)
+            forDt(sub!!.dt)
+        else
+            throw IllegalArgumentException("not an array")
 
     override fun toString(): String = when(dt) {
         BaseDataType.ARRAY -> {

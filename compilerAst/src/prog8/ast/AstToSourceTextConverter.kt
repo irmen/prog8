@@ -412,7 +412,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     override fun visit(typecast: TypecastExpression) {
         output("(")
         typecast.expression.accept(this)
-        output(" as ${DataTypeFull(typecast.type, null).sourceString()}) ")
+        output(" as ${DataTypeFull.forDt(typecast.type).sourceString()}) ")
     }
 
     override fun visit(memread: DirectMemoryRead) {

@@ -132,7 +132,12 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 if(argtypes.size != consideredParamTypes.size)
                     return Pair("invalid number of arguments", call.position)
                 argtypes.zip(consideredParamTypes).forEachIndexed { index, pair ->
-                    val anyCompatible = pair.second.any { argTypeCompatible(pair.first, DataTypeFull.forDt(it)) }
+                    val anyCompatible = pair.second.any {
+                        if(it.isArray)
+                            pair.first.isArray
+                        else
+                            argTypeCompatible(pair.first, DataTypeFull.forDt(it))
+                    }
                     if (!anyCompatible) {
                         val actual = pair.first
                         return if(pair.second.size==1) {

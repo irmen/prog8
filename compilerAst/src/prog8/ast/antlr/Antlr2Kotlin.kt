@@ -221,7 +221,7 @@ private fun Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
             // asmsubs currently only return a base datatype
             val returnBaseDt = it.datatype().toAst()
             AsmSubroutineReturn(
-                    DataTypeFull(returnBaseDt, null),
+                    DataTypeFull.forDt(returnBaseDt),
                     registerorpair,
                     statusregister)
         }
@@ -229,7 +229,7 @@ private fun Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
 private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter> = asmsub_param().map {
     val vardecl = it.vardecl()
     val baseDt = vardecl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
-    var datatype = DataTypeFull(baseDt, null)
+    var datatype = DataTypeFull.forDt(baseDt)
     if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
         datatype = datatype.elementToArray()
     val register = it.register.text
@@ -298,7 +298,7 @@ private fun SubroutineContext.toAst() : Subroutine {
     return Subroutine(
         identifier().text,
         sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
-        if (returntype == null) mutableListOf() else mutableListOf(DataTypeFull(returntype, null)),
+        if (returntype == null) mutableListOf() else mutableListOf(DataTypeFull.forDt(returntype)),
         emptyList(),
         emptyList(),
         emptySet(),
@@ -313,7 +313,7 @@ private fun SubroutineContext.toAst() : Subroutine {
 private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
         vardecl().map {
             val baseDt = it.datatype()?.toAst() ?: BaseDataType.UNDEFINED
-            var datatype = DataTypeFull(baseDt, null)
+            var datatype = DataTypeFull.forDt(baseDt)
             if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
                 datatype = datatype.elementToArray()
 
@@ -689,8 +689,13 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val split = options.SPLIT().isNotEmpty()
     val baseDt = datatype()?.toAst() ?: BaseDataType.UNDEFINED
-    val origDt = DataTypeFull(baseDt, null)
-    val dt = if(isArray) origDt.elementToArray(split) else origDt
+    val origDt = DataTypeFull.forDt(baseDt)
+    val dt = if(isArray) {
+        if(split && origDt.isWord)
+            origDt.elementToArray(split)
+        else
+            origDt.elementToArray(false)    // type error will be generated later in the ast check
+    } else origDt
 
     return VarDecl(
             type, VarDeclOrigin.USERCODE,

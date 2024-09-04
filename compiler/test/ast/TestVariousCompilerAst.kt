@@ -187,10 +187,10 @@ main {
         val assign2expr = (stmts[5] as Assignment).value as BinaryExpression
         assign1expr.operator shouldBe "<<"
         val leftval1 = assign1expr.left.constValue(result.compilerAst)!!
-        leftval1.type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
+        leftval1.type shouldBe BaseDataType.UWORD
         leftval1.number shouldBe 1.0
         val leftval2 = assign2expr.left.constValue(result.compilerAst)!!
-        leftval2.type shouldBe DataTypeFull.forDt(BaseDataType.UWORD)
+        leftval2.type shouldBe BaseDataType.UWORD
         leftval2.number shouldBe 1.0
     }
 
@@ -542,9 +542,9 @@ main {
         val result = compileText(VMTarget(), optimize=true, src, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
-        val assignUbb = ((st[5] as Assignment).value as TypecastExpression)
-        assignUbb.type shouldBe DataTypeFull.forDt(BaseDataType.UBYTE)
-        assignUbb.expression shouldBe instanceOf<IdentifierReference>()
+        val assignUbbVal = ((st[5] as Assignment).value as TypecastExpression)
+        assignUbbVal.type shouldBe BaseDataType.UBYTE
+        assignUbbVal.expression shouldBe instanceOf<IdentifierReference>()
         val assignVaddr = (st[7] as Assignment).value as FunctionCallExpression
         assignVaddr.target.nameInSource shouldBe listOf("mkword")
         val tc = assignVaddr.args[0] as TypecastExpression

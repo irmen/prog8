@@ -121,7 +121,7 @@ class TestAstChecks: FunSpec({
             main {
                 sub start() {
                     &ubyte a = 10000
-                    uword z = 500
+                    uword @shared z = 500
                     a[4] = (z % 3) as ubyte
                 }
             }
@@ -137,8 +137,8 @@ class TestAstChecks: FunSpec({
         val text = """
             main {
                 sub start() {
-                    const ubyte n = 40
-                    const ubyte half = n / 2
+                    const ubyte @shared n = 40
+                    const ubyte @shared half = n / 2
                     ubyte[half] @shared a = 5
                 }
             }

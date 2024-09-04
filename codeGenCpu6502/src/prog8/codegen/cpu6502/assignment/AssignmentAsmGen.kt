@@ -1491,7 +1491,7 @@ internal class AssignmentAsmGen(
         if(address is PtBinaryExpression) {
             val constOffset = address.right.asConstInteger()
             // check that the offset is actually a byte (so that it fits in a single register)
-            if(constOffset==null && address.right.type !in ByteDatatypes)
+            if(constOffset==null && !address.right.type.isByte)
                 return false
             if(constOffset!=null && constOffset !in -128..255)
                 return false

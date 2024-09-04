@@ -2,7 +2,8 @@ TODO
 ====
 
 add extra Memsizer unit tests
-
+add array of strings test that it becomes an array of uword pointers
+check all occurences of isSplitWordArray , they should be BEFORE the other options that check for the regular word array types.
 replace some  when { xxx.isWord... }  with (when xxx.dt) { UWORD -> ...} again
 
 

@@ -1677,53 +1677,50 @@ internal class AstChecker(private val program: Program,
             errors.err(msg, value.position)
             return false
         }
-        if(!targetDt.isNumeric) {
-            return err("type of value ${value.type} doesn't match target $targetDt")
-        }
 
-        when (targetDt.dt) {
-            BaseDataType.FLOAT -> {
+        when {
+            targetDt.isFloat -> {
                 val number=value.number
                 if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
                     return err("value '$number' out of range for MFLPT format")
             }
-            BaseDataType.UBYTE -> {
+            targetDt.isUnsignedByte -> {
                 if(value.type==BaseDataType.FLOAT)
                     err("unsigned byte value expected instead of float; possible loss of precision")
                 val number=value.number.toInt()
                 if (number < 0 || number > 255)
                     return err("value '$number' out of range for unsigned byte")
             }
-            BaseDataType.BYTE -> {
+            targetDt.isSignedByte -> {
                 if(value.type==BaseDataType.FLOAT)
                     err("byte value expected instead of float; possible loss of precision")
                 val number=value.number.toInt()
                 if (number < -128 || number > 127)
                     return err("value '$number' out of range for byte")
             }
-            BaseDataType.UWORD -> {
+            targetDt.isUnsignedWord -> {
                 if(value.type==BaseDataType.FLOAT)
                     err("unsigned word value expected instead of float; possible loss of precision")
                 val number=value.number.toInt()
                 if (number < 0 || number > 65535)
                     return err("value '$number' out of range for unsigned word")
             }
-            BaseDataType.WORD -> {
+            targetDt.isSignedWord -> {
                 if(value.type==BaseDataType.FLOAT)
                     err("word value expected instead of float; possible loss of precision")
                 val number=value.number.toInt()
                 if (number < -32768 || number > 32767)
                     return err("value '$number' out of range for word")
             }
-            BaseDataType.BOOL -> {
+            targetDt.isBool -> {
                 if (value.type!=BaseDataType.BOOL) {
-                    err("type of value ${value.type} doesn't match target $targetDt")
+                    err("type of value ${value.type.toString().lowercase()} doesn't match target $targetDt")
                 }
             }
-            BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> {
+            targetDt.isArray -> {
                 return checkValueTypeAndRange(targetDt.elementType(), value)
             }
-            else -> return err("type of value ${value.type} doesn't match target $targetDt")
+            else -> return err("type of value ${value.type.toString().lowercase()} doesn't match target $targetDt")
         }
         return true
     }

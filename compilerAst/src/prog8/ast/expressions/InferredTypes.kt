@@ -17,7 +17,11 @@ object InferredTypes {
         fun getOrElse(transform: (InferredType) -> DataTypeFull): DataTypeFull =
             if(isUnknown || isVoid) transform(this) else datatype!!
         infix fun istype(type: DataTypeFull): Boolean = if(isUnknown || isVoid) false else this.datatype==type     // strict equality if known
-        infix fun issimpletype(type: BaseDataType): Boolean = if(isUnknown || isVoid) false else (this.datatype?.dt==type && this.datatype?.sub==null)     // strict equality if known
+        infix fun issimpletype(type: BaseDataType): Boolean = if (isUnknown || isVoid)
+                false
+            else if(type==BaseDataType.STR && this.datatype?.dt==BaseDataType.STR)
+                true
+            else (this.datatype?.dt == type && this.datatype?.sub == null)     // strict equality if known
 
         companion object {
             fun unknown() = InferredType(isUnknown = true, isVoid = false, datatype = null)
@@ -82,19 +86,12 @@ object InferredTypes {
                 when(type.sub?.dt) {
                     BaseDataType.UWORD -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.UWORD, true))
                     BaseDataType.WORD -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.WORD, true))
+                    BaseDataType.STR -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.STR, true))
                     else -> throw IllegalArgumentException("invalid sub type")
                 }
             }
             type.isArray -> {
-                when(type.sub?.dt) {
-                    BaseDataType.UBYTE -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE))
-                    BaseDataType.UWORD -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.UWORD))
-                    BaseDataType.BYTE -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.BYTE))
-                    BaseDataType.WORD -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.WORD))
-                    BaseDataType.BOOL -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.BOOL))
-                    BaseDataType.FLOAT -> InferredType.known(DataTypeFull.arrayFor(BaseDataType.FLOAT))
-                    else -> throw IllegalArgumentException("invalid sub type")
-                }
+                InferredType.known(DataTypeFull.arrayFor(type.sub!!.dt))
             }
             else -> throw IllegalArgumentException("invalid type")
         }

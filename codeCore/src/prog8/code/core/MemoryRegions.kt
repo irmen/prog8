@@ -152,7 +152,8 @@ class GoldenRam(options: CompilationOptions, val region: UIntRange): MemoryAlloc
         val size: Int =
             when {
                 datatype.isIntegerOrBool -> options.compTarget.memorySize(datatype, null)
-                datatype.isString || datatype.isArray -> options.compTarget.memorySize(datatype, numElements!!)
+                datatype.isString -> numElements!!
+                datatype.isArray -> options.compTarget.memorySize(datatype, numElements!!)
                 datatype.isFloat -> {
                     if (options.floats) {
                         options.compTarget.memorySize(DataTypeFull.forDt(BaseDataType.FLOAT), null)

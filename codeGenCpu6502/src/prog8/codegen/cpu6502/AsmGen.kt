@@ -789,7 +789,7 @@ class AsmGen6502Internal (
                 val vardecl = symbol!!.astNode as IPtVariable
                 val name = asmVariableName(stmt.count as PtIdentifier)
                 when {
-                    vardecl.type.isBool -> {
+                    vardecl.type.isByte -> {
                         assignVariableToRegister(name, RegisterOrPair.Y, stmt.definingISub(), stmt.count.position)
                         repeatCountInY(stmt, endLabel)
                     }
@@ -797,7 +797,7 @@ class AsmGen6502Internal (
                         assignVariableToRegister(name, RegisterOrPair.AY, stmt.definingISub(), stmt.count.position)
                         repeatWordCountInAY(endLabel, stmt)
                     }
-                    else -> throw AssemblyError("invalid loop variable datatype $vardecl")
+                    else -> throw AssemblyError("invalid loop variable datatype ${vardecl.type}")
                 }
             }
             else -> {

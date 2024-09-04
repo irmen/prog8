@@ -679,6 +679,19 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .char  " + chunk.joinToString())
                 }
             }
+            dt.isSplitWordArray -> {
+                if(dt.elementType().isUnsignedWord) {
+                    val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
+                    asmgen.out("_array_$varname := ${data.joinToString()}")
+                    asmgen.out("${varname}_lsb\t.byte <_array_$varname")
+                    asmgen.out("${varname}_msb\t.byte >_array_$varname")
+                } else {
+                    val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
+                    asmgen.out("_array_$varname := ${data.joinToString()}")
+                    asmgen.out("${varname}_lsb\t.byte <_array_$varname")
+                    asmgen.out("${varname}_msb\t.byte >_array_$varname")
+                }
+            }
             dt.isUnsignedWordArray -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                 if (data.size <= 16)
@@ -697,19 +710,6 @@ internal class ProgramAndVarsGen(
                     asmgen.out(varname)
                     for (chunk in data.chunked(16))
                         asmgen.out("  .sint  " + chunk.joinToString())
-                }
-            }
-            dt.isSplitWordArray -> {
-                if(dt.elementType().isUnsignedWord) {
-                    val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
-                    asmgen.out("_array_$varname := ${data.joinToString()}")
-                    asmgen.out("${varname}_lsb\t.byte <_array_$varname")
-                    asmgen.out("${varname}_msb\t.byte >_array_$varname")
-                } else {
-                    val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
-                    asmgen.out("_array_$varname := ${data.joinToString()}")
-                    asmgen.out("${varname}_lsb\t.byte <_array_$varname")
-                    asmgen.out("${varname}_msb\t.byte >_array_$varname")
                 }
             }
             dt.isFloatArray -> {

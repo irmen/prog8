@@ -39,7 +39,6 @@ class VarConstantValueTypeAdjuster(
                 } else if(!decl.datatype.isBool) {
                     // cast the numeric literal to the appropriate datatype of the variable if it's not boolean
                     declConstValue.linkParents(decl)
-                    require(decl.datatype.sub == null)
                     val cast = declConstValue.cast(decl.datatype.dt, true)
                     if (cast.isValid)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
@@ -400,6 +399,7 @@ internal class ConstantIdentifierReplacer(
             return null     // memory mapped arrays can never have an initializer value other than the address where they're mapped.
 
         // convert the initializer range expression from a range or int, to an actual array.
+        // this is to allow initialization of arrays with a single value like  ubyte[10] array = 42
         when {
             decl.datatype.isUnsignedByteArray || decl.datatype.isSignedByteArray || decl.datatype.isUnsignedWordArray || decl.datatype.isSignedWordArray -> {
                 val rangeExpr = decl.value as? RangeExpression
@@ -415,15 +415,15 @@ internal class ConstantIdentifierReplacer(
                     if(declArraySize!=null && declArraySize!=rangeExpr.size())
                         errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                     if(constRange!=null) {
-                        val eltType = rangeExpr.inferType(program).getOr(DataTypeFull.forDt(BaseDataType.UBYTE))
-                        return if(eltType.isByte) {
+                        val rangeType = rangeExpr.inferType(program).getOr(DataTypeFull.forDt(BaseDataType.UBYTE))
+                        return if(rangeType.isByte) {
                             ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                                constRange.map { NumericLiteral(eltType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                                constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                                 position = decl.value!!.position)
                         } else {
-                            require(eltType.sub==null)
+                            require(rangeType.sub!=null)
                             ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                                constRange.map { NumericLiteral(eltType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                                constRange.map { NumericLiteral(rangeType.sub!!.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                                 position = decl.value!!.position)
                         }
                     }
@@ -488,8 +488,8 @@ internal class ConstantIdentifierReplacer(
                 }
             }
             decl.datatype.isBoolArray -> {
-                val numericLv = decl.value as? NumericLiteral
                 val size = decl.arraysize?.constIndex() ?: return null
+                val numericLv = decl.value as? NumericLiteral
                 if(numericLv!=null) {
                     // arraysize initializer is a single value, and we know the array size.
                     if(numericLv.type!=BaseDataType.BOOL) {

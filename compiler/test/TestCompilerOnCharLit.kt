@@ -66,7 +66,7 @@ class TestCompilerOnCharLit: FunSpec({
         val arg = funCall.args[0] as IdentifierReference
         val decl = arg.targetVarDecl(program)!!
         decl.type shouldBe VarDeclType.VAR
-        decl.datatype shouldBe BaseDataType.UBYTE
+        decl.datatype shouldBe DataTypeFull.forDt(BaseDataType.UBYTE)
 
         withClue("initializer value should have been moved to separate assignment"){
             decl.value shouldBe null
