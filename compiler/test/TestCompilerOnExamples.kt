@@ -129,6 +129,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "highresbitmap",
             "kefrenbars",
             "keyboardhandler",
+            "life",
             "mandelbrot",
             "multi-irq-old",
             "multi-irq-new",
