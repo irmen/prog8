@@ -484,10 +484,12 @@ $loopLabel          sty  $indexVar
         if (range.isEmpty() || range.step==0)
             throw AssemblyError("empty range or step 0")
         if(iterableDt==DataType.ARRAY_B || iterableDt==DataType.ARRAY_UB) {
+            if(range.last==range.first) return translateForSimpleByteRangeAsc(stmt, range)
             if(range.step==1 && range.last>range.first) return translateForSimpleByteRangeAsc(stmt, range)
             if(range.step==-1 && range.last<range.first) return translateForSimpleByteRangeDesc(stmt, range)
         }
         else if(iterableDt==DataType.ARRAY_W || iterableDt==DataType.ARRAY_UW) {
+            if(range.last==range.first) return translateForSimpleWordRangeAsc(stmt, range)
             if(range.step==1 && range.last>range.first) return translateForSimpleWordRangeAsc(stmt, range)
             if(range.step==-1 && range.last<range.first) return translateForSimpleWordRangeDesc(stmt, range)
         }
@@ -507,7 +509,7 @@ $loopLabel""")
                 asmgen.translate(stmt.statements)
                 when (range.step) {
                     0, 1, -1 -> {
-                        throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $stmt")
+                        throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $range ${stmt.position}")
                     }
                     2 -> {
                         if(range.last==255 || range.last==254) {

@@ -1006,6 +1006,7 @@ class RangeExpression(var from: Expression,
 
         fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
             return when {
+                fromVal == toVal -> fromVal .. toVal
                 fromVal <= toVal -> when {
                     stepVal <= 0 -> IntRange.EMPTY
                     stepVal == 1 -> fromVal..toVal

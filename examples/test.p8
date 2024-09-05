@@ -1,39 +1,53 @@
-%import gfx2
 %import textio
-%import math
 
-%option no_sysinit
 %zeropage basicsafe
 
-
 main {
-
     sub start() {
-        gfx2.screen_mode(2)
-        demofill()
-    }
-
-    sub demofill() {
-        gfx2.circle(160, 120, 110, 1)
-        gfx2.rect(180, 5, 25, 190, 2)
-        gfx2.line(100, 150, 240, 10, 2)
-        gfx2.rect(150, 130, 10, 100, 3)
-
-        sys.wait(30)
-
-        cbm.SETTIM(0,0,0)
-        gfx2.fill(100,100,3)
-        gfx2.fill(100,100,2)
-        gfx2.fill(100,100,0)
-        uword duration = cbm.RDTIM16()
-        sys.wait(30)
-
-        gfx2.screen_mode(0)
-        txt.nl()
-        txt.print_uw(duration)
-        txt.print(" jiffies\n")
-
-        ; hires 4c before optimizations: ~345 jiffies
-
+        for cx16.r0L in 5 to 5 {
+            txt.print("derp0.")
+            txt.print_ub(cx16.r0L)
+            txt.nl()
+        }
+        for cx16.r0L in 100 downto 100 {
+            txt.print("derp1.")
+            txt.print_ub(cx16.r0L)
+            txt.nl()
+        }
+        for cx16.r0L in 100 to 100 {
+            txt.print("derp2.")
+            txt.print_ub(cx16.r0L)
+            txt.nl()
+        }
+        for cx16.r0 in 2222 downto 2222 {
+            txt.print("derp3.")
+            txt.print_uw(cx16.r0)
+            txt.nl()
+        }
+        for cx16.r0 in 2222 to 2222 {
+            txt.print("derp4.")
+            txt.print_uw(cx16.r0)
+            txt.nl()
+        }
+        for cx16.r0L in 100 downto 100 step -5 {
+            txt.print("derp5.")
+            txt.print_ub(cx16.r0L)
+            txt.nl()
+        }
+        for cx16.r0L in 100 to 100 step 5 {
+            txt.print("derp6.")
+            txt.print_ub(cx16.r0L)
+            txt.nl()
+        }
+        for cx16.r0 in 2222 downto 2222 step -5 {
+            txt.print("derp7.")
+            txt.print_uw(cx16.r0)
+            txt.nl()
+        }
+        for cx16.r0 in 2222 to 2222 step 5 {
+            txt.print("derp8.")
+            txt.print_uw(cx16.r0)
+            txt.nl()
+        }
     }
 }

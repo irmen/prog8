@@ -296,6 +296,7 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
     fun toConstantIntegerRange(): IntProgression? {
         fun makeRange(fromVal: Int, toVal: Int, stepVal: Int): IntProgression {
             return when {
+                fromVal == toVal -> fromVal .. toVal
                 fromVal <= toVal -> when {
                     stepVal <= 0 -> IntRange.EMPTY
                     stepVal == 1 -> fromVal..toVal

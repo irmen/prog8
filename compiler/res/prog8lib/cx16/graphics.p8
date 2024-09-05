@@ -101,4 +101,12 @@ graphics {
             return
         cx16.GRAPH_draw_oval(xcenter - h_radius, ycenter - v_radius, h_radius*2, v_radius*2, true)
     }
+
+    inline asmsub  plot(uword plotx @R0, uword ploty @R1) clobbers(A, X, Y) {
+        %asm {{
+            jsr  cx16.FB_cursor_position
+            lda  p8b_graphics.p8v_stroke_color
+            jsr  cx16.FB_set_pixel
+        }}
+    }
 }

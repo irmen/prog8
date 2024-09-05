@@ -383,4 +383,41 @@ main {
         compileText(AtariTarget(), false, text, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
+
+    test("for loops with just 1 iteration") {
+        val src="""
+main {
+    sub start() {
+        for cx16.r0L in 100 downto 100 {
+            cx16.r1++
+        }
+        for cx16.r0L in 100 to 100 {
+            cx16.r1++
+        }
+        for cx16.r0 in 2222 downto 2222 {
+            cx16.r1++
+        }
+        for cx16.r0 in 2222 to 2222 {
+            cx16.r1++
+        }
+
+        for cx16.r0L in 100 downto 100 step -5 {
+            cx16.r1++
+        }
+        for cx16.r0L in 100 to 100 step 5 {
+            cx16.r1++
+        }
+        for cx16.r0 in 2222 downto 2222 step -5 {
+            cx16.r1++
+        }
+        for cx16.r0 in 2222 to 2222 step 5 {
+            cx16.r1++
+        }
+    }
+}"""
+        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
 })
