@@ -76,90 +76,29 @@ graphics {
 
     sub circle(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
-
-        ;cx16.r0 = xcenter - radius/2
-        ;cx16.r1 = ycenter - radius/2
-        ;cx16.r2 = radius*2
-        ;cx16.r3 = radius*2
-        ;cx16.GRAPH_draw_oval(false)          ; currently this call is not implemented on cx16, does a BRK
-
-        ; Midpoint algorithm
         if radius==0
             return
-        ubyte @zp xx = radius
-        ubyte @zp yy = 0
-        word @zp decisionOver2 = (1 as word)-xx
-
-        while xx>=yy {
-            cx16.r0 = xcenter + xx
-            cx16.r1 = ycenter + yy
-            FB_cursor_position2()
-            cx16.FB_set_pixel(stroke_color)
-            cx16.r0 = xcenter - xx
-            FB_cursor_position2()
-            cx16.FB_set_pixel(stroke_color)
-            cx16.r0 = xcenter + xx
-            cx16.r1 = ycenter - yy
-            FB_cursor_position2()
-            cx16.FB_set_pixel(stroke_color)
-            cx16.r0 = xcenter - xx
-            FB_cursor_position2()
-            cx16.FB_set_pixel(stroke_color)
-            cx16.r0 = xcenter + yy
-            cx16.r1 = ycenter + xx
-            FB_cursor_position2()
-            cx16.FB_set_pixel(stroke_color)
-            cx16.r0 = xcenter - yy
-            FB_cursor_position2()
-            cx16.FB_set_pixel(stroke_color)
-            cx16.r0 = xcenter + yy
-            cx16.r1 = ycenter - xx
-            FB_cursor_position2()
-            cx16.FB_set_pixel(stroke_color)
-            cx16.r0 = xcenter - yy
-            FB_cursor_position2()
-            cx16.FB_set_pixel(stroke_color)
-
-            yy++
-            if decisionOver2>=0 {
-                xx--
-                decisionOver2 -= xx*$0002
-            }
-            decisionOver2 += yy*$0002
-            decisionOver2++
-        }
+        cx16.GRAPH_draw_oval(xcenter - radius, ycenter - radius, radius*2, radius*2, false)
     }
 
     sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
-        ; Midpoint algorithm, filled
-
         if radius==0
             return
-        ubyte @zp yy = 0
-        word decisionOver2 = (1 as word)-radius
-
-        while radius>=yy {
-            horizontal_line(xcenter-radius, ycenter+yy, radius*2+1)
-            horizontal_line(xcenter-radius, ycenter-yy, radius*2+1)
-            horizontal_line(xcenter-yy, ycenter+radius, yy*2+1)
-            horizontal_line(xcenter-yy, ycenter-radius, yy*2+1)
-
-            yy++
-            if decisionOver2>=0 {
-                radius--
-                decisionOver2 -= radius*$0002
-            }
-            decisionOver2 += yy*$0002
-            decisionOver2++
-        }
+        cx16.GRAPH_draw_oval(xcenter - radius, ycenter - radius, radius*2, radius*2, true)
     }
 
-    inline asmsub  plot(uword plotx @R0, uword ploty @R1) clobbers(A, X, Y) {
-        %asm {{
-            jsr  cx16.FB_cursor_position
-            lda  p8b_graphics.p8v_stroke_color
-            jsr  cx16.FB_set_pixel
-        }}
+    sub oval(uword xcenter, ubyte ycenter, uword h_radius, ubyte v_radius) {
+        ; specific for the X16 which has a kernal routine that can draw ovals
+        if h_radius==0 or v_radius==0
+            return
+        cx16.GRAPH_draw_oval(xcenter - h_radius, ycenter - v_radius, h_radius*2, v_radius*2, false)
+    }
+
+    sub filled_oval(uword xcenter, ubyte ycenter, uword h_radius, ubyte v_radius) {
+        ; specific for the X16 which has a kernal routine that can draw ovals
+        if h_radius==0 or v_radius==0
+            return
+        cx16.GRAPH_draw_oval(xcenter - h_radius, ycenter - v_radius, h_radius*2, v_radius*2, true)
     }
 }
