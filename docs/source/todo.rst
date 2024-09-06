@@ -14,6 +14,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- Some facility to use add-with-carry and sub-with-carry (so we can chain additions/subtractions without clc/sec inserted every time)
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)

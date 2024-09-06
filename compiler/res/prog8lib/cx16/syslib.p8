@@ -554,7 +554,8 @@ const ubyte  EXTAPI_ps2data_raw = $09
 const ubyte  EXTAPI_cursor_blink = $0A
 const ubyte  EXTAPI_led_update = $0B
 const ubyte  EXTAPI_mouse_set_position = $0C
-const ubyte  EXTAPI_scnsiz = $0D        ; rom R48+
+const ubyte  EXTAPI_scnsiz = $0D
+const ubyte  EXTAPI_kbd_leds = $0E
 
 ; extapi16 call numbers
 const ubyte  EXTAPI16_test = $00
