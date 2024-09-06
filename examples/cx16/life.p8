@@ -2,7 +2,6 @@
 
 %import math
 %import textio
-%import emudbg
 
 main {
     const ubyte WIDTH = 80
@@ -81,24 +80,22 @@ main {
         ubyte y
         for y in 0 to HEIGHT-1 {
             for x in 0 to WIDTH-1 {
-                if math.rnd() & 1 == 1
-                    active_world[offset+x] = 1
+                active_world[offset+x] = math.rnd() & 1
             }
             offset += STRIDE
         }
     }
 
     sub next_gen() {
-        uword @requirezp new_world
-        if active_world == world1
-            new_world = world2
-        else
-            new_world = world1
-
         const ubyte DXOFFSET = 0
         const ubyte DYOFFSET = 2
         uword voffset = STRIDE+1-DXOFFSET
-        uword offset
+        uword @zp offset
+        ubyte[2] cell_chars = [sc:' ', sc:'●']
+
+        uword @requirezp new_world = world1
+        if active_world == world1
+            new_world = world2
 
         ubyte x
         ubyte y
@@ -108,9 +105,9 @@ main {
 
             for x in DXOFFSET to WIDTH+DXOFFSET-1 {
                 offset = voffset + x
-                ubyte cell = active_world[offset]
 
-                ; count the neighbors
+                ; count the living neighbors
+                ubyte cell = active_world[offset]
                 uword @requirezp ptr = active_world + offset - STRIDE - 1
                 ubyte neighbors = @(ptr) + @(ptr+1) + @(ptr+2) +
                                   @(ptr+STRIDE) + cell + @(ptr+STRIDE+2) +
@@ -124,12 +121,8 @@ main {
                 new_world[offset] = cell
 
                 ; draw new cell
-                if cell==0
-                    ; txt.setchr(x, y, sc:' ')
-                    cx16.VERA_DATA0 = sc:' '
-                else
-                    ; txt.setchr(x, y, sc:'●')
-                    cx16.VERA_DATA0 = sc:'●'
+                ; txt.setchr(x,y,cell_chars[cell])
+                cx16.VERA_DATA0 = cell_chars[cell]
             }
             voffset += STRIDE
         }
