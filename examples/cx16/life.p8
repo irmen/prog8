@@ -95,6 +95,13 @@ main {
         if active_world == world1
             new_world = world2
 
+        ; To avoid re-calculating word index lookups into the new- and active world arrays,
+        ; we calculate the required pointer values upfront.
+        ; Inside the loop we can use ptr+x just fine (results in efficient LDA (ptr),Y instruction because x is a byte type),
+        ; and for each row we simply add the stride to the pointer.
+        ; It's more readable to use active_world[offset] etc, but offset is a word value, and this produces
+        ; inefficient assembly code because we can't use a register indexed mode in this case. Costly inside a loop.
+
         uword @requirezp new_world_ptr = new_world + STRIDE+1-DXOFFSET
         uword @requirezp active_world_ptr = active_world + STRIDE+1-DXOFFSET
 
