@@ -336,7 +336,7 @@ internal class AssignmentAsmGen(
                             return
                         }
                         is PtNumber -> {
-                            val indexValue = index.number.toString()
+                            val indexValue = index.number.toInt().toString()
                             asmgen.out("""
                                 lda  $pointer
                                 sta  P8ZP_SCRATCH_W2
@@ -385,7 +385,7 @@ internal class AssignmentAsmGen(
                             return
                         }
                         is PtNumber -> {
-                            val indexValue = index.number.toString()
+                            val indexValue = index.number.toInt().toString()
                             asmgen.out("""
                                 tax
                                 lda  $pointer
@@ -1484,11 +1484,16 @@ internal class AssignmentAsmGen(
         // special optimization for  bytevalue +/- pointervar[y]  (actually: bytevalue +/-  @(address) )
         val address = mem.address as? PtBinaryExpression
         if(address is PtBinaryExpression) {
+            val constOffset = address.right.asConstInteger()
+            // check that the offset is actually a byte (so that it fits in a single register)
+            if(constOffset==null && address.right.type !in ByteDatatypes)
+                return false
+            if(constOffset!=null && constOffset !in -128..255)
+                return false
             val ptrVar = address.left as? PtIdentifier
             if(ptrVar!=null && asmgen.isZpVar(ptrVar)) {
                 assignExpressionToRegister(value, RegisterOrPair.A, false)
                 val pointername = asmgen.asmVariableName(ptrVar)
-                val constOffset = address.right.asConstInteger()
                 if (constOffset != null && constOffset < 256) {
                     // we have value + @(zpptr + 255), or value - @(zpptr+255)
                     asmgen.out("  ldy  #$constOffset")
