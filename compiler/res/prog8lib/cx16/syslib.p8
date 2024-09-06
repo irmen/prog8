@@ -603,6 +603,14 @@ asmsub mouse_pos() -> ubyte @A, uword @R0, uword @R1, byte @X {
     }}
 }
 
+sub mouse_present() -> bool {
+    ; -- check if a mouse is connected to the machine
+    cx16.r0L, void = cx16.i2c_read_byte($42, $22)         ; $22 = I2C_GET_MOUSE_DEVICE_ID
+    if_cs
+        return false
+    return cx16.r0L != $fc       ; $fc = BAT_FAIL
+}
+
 ; shims for the kernal routines called via the extapi call:
 
 asmsub mouse_set_pos(uword xpos @R0, uword ypos @R1) clobbers(X) {

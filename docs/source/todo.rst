@@ -7,6 +7,9 @@ in overwriting registers that already got their value, which requires a lot of s
 Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 
 
+Regenerate skeletons in doc.
+
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
