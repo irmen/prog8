@@ -19,6 +19,11 @@ import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
+
+    // NOTE: if your compiler/IDE complains here about "Unresolved reference: buildversion",
+    //       it means that you have to run the gradle task once to generate this file.
+    //       Do that with this command:  gradle createVersionFile
+
     println("\nProg8 compiler v${prog8.buildversion.VERSION} by Irmen de Jong (irmen@razorvine.net)")
     if('-' in prog8.buildversion.VERSION) {
         println("Prerelease version from git commit ${prog8.buildversion.GIT_SHA.take(8)} in branch ${prog8.buildversion.GIT_BRANCH}")

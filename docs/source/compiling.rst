@@ -65,8 +65,12 @@ For normal use, the ``installDist`` task should suffice and after succesful comp
     but the actual prog8 compiler should run on all operating systems that provide a java runtime (version 11 or newer).
     If you do have trouble building or running the compiler on your operating system, please let me know!
 
-    To successfully build and debug in IDEA, you have to manually generate the Antlr-parser classes first.
-    The easiest way to do this is the following:
+    To successfully build and debug in IDEA, you have to do two things manually first:
+
+    1. you have to generate the buildversion file, do this with the shell command:   ``gradle createVersionFile``
+    2. manually generate the Antlr-parser classes first.
+
+    The easiest way to build the parser classes this is the following:
 
     1. make sure you have the Antlr4 plugin installed in IDEA
     2. right click the grammar file Prog8ANTLR.g4 in the parser project, and choose "Generate Antlr Recognizer" from the menu.

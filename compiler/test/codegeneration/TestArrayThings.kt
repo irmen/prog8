@@ -111,16 +111,23 @@ main {
   sub start() {
   }
 }"""
-        compileText(C64Target(), false, srcWrong1, writeAssembly = false) shouldBe null
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, srcWrong1, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "split can only be used on word arrays"
 
         val srcWrong2 = """
+%option enable_floats
 main {
   float[10] @split sf
 
   sub start() {
   }
 }"""
-        compileText(C64Target(), false, srcWrong2, writeAssembly = false) shouldBe null
+        errors.clear()
+        compileText(C64Target(), false, srcWrong2, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "split can only be used on word arrays"
     }
 
     test("split word arrays in asm as lsb/msb") {
