@@ -135,9 +135,23 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 }
 
                 if(isMultiComparisonRecurse(leftBinExpr1)) {
-                    // replace it!
-                    val valueCopies = values.sortedBy { it.number }.map { it.copy() }
                     val elementType = needle.inferType(program).getOrElse { throw FatalAstException("invalid needle dt") }
+                    if(values.size==2 || values.size==3 && elementType in IntegerDatatypes) {
+                        val numbers = values.map{it.number}.toSet()
+                        if(numbers == setOf(0.0, 1.0)) {
+                            // we can replace x==0 or x==1 with x<2
+                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType, 2.0, expr.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr, compare, parent))
+                        }
+                        if(numbers == setOf(0.0, 1.0, 2.0)) {
+                            // we can replace x==0 or x==1 or x==2 with x<3
+                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType, 3.0, expr.position), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr, compare, parent))
+                        }
+                    }
+                    if(values.size<4)
+                        return noModifications  // replacement only worthwhile for 4 or more values
+                    val valueCopies = values.sortedBy { it.number }.map { it.copy() }
                     val arrayType = ElementToArrayTypes.getValue(elementType)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
                     val containment = ContainmentCheck(needle, valuesArray, expr.position)

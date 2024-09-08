@@ -23,7 +23,7 @@ sprites {
              ubyte databank, uword dataaddr,
              ubyte width_flag, ubyte height_flag,
              ubyte colors_flag, ubyte palette_offset) {
-        hide(spritenum)
+        pos(spritenum, -64, -64)                    ; move sprite off-screen initially
         cx16.VERA_DC_VIDEO |= %01000000             ; enable sprites globally
         dataaddr >>= 5
         dataaddr |= (databank as uword)<<11
