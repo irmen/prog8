@@ -1,6 +1,8 @@
 package prog8tests
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.Module
@@ -10,11 +12,8 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
-import prog8.code.core.DataType
-import prog8.code.core.Position
-import prog8.code.core.SourceCode
-import prog8.code.core.ZeropageWish
-import prog8.code.target.C64Target
+import prog8.code.core.*
+import prog8.code.target.*
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
@@ -243,5 +242,35 @@ class TestMemory: FunSpec({
                 }
             }
         """, writeAssembly = true) shouldBe null
+    }
+
+    context("memsizer") {
+        withData(VMTarget(), AtariTarget(), C64Target(), PETTarget(), AtariTarget(), C128Target()) { target ->
+            shouldThrow<IllegalArgumentException> {
+                target.memorySize(DataType.UNDEFINED)
+            }
+            shouldThrow<IllegalArgumentException> {
+                target.memorySize(DataType.LONG)
+            }
+            target.memorySize(DataType.BOOL) shouldBe 1
+            target.memorySize(DataType.BYTE) shouldBe 1
+            target.memorySize(DataType.WORD) shouldBe 2
+            target.memorySize(DataType.FLOAT) shouldBe target.machine.FLOAT_MEM_SIZE
+            target.memorySize(DataType.STR) shouldBe 2
+            target.memorySize(DataType.ARRAY_UB) shouldBe 2
+            target.memorySize(DataType.ARRAY_UW) shouldBe 2
+            target.memorySize(DataType.ARRAY_F) shouldBe 2
+
+            shouldThrow<NoSuchElementException> {
+                target.memorySize(DataType.UBYTE, 10)
+            }
+            target.memorySize(DataType.UWORD, 10) shouldBe 10   // uword is pointer to array of bytes
+            target.memorySize(DataType.ARRAY_B, 10) shouldBe 10
+            target.memorySize(DataType.ARRAY_UB, 10) shouldBe 10
+            target.memorySize(DataType.ARRAY_F, 10) shouldBe 10*target.machine.FLOAT_MEM_SIZE
+            target.memorySize(DataType.ARRAY_UW, 10) shouldBe 20
+            target.memorySize(DataType.ARRAY_W_SPLIT, 10) shouldBe 20
+            target.memorySize(DataType.ARRAY_UW_SPLIT, 10) shouldBe 20
+        }
     }
 })

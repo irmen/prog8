@@ -15,7 +15,7 @@
     <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
     <orderEntry type="library" name="io.kotest.assertions.core.jvm" level="project" />
     <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
-    <orderEntry type="library" name="antlr.antlr4" level="project" />
+    <orderEntry type="library" name="io.kotest.framework.datatest" level="project" />
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="compilerAst" />
     <orderEntry type="module" module-name="codeOptimizers" />
@@ -24,5 +24,6 @@
     <orderEntry type="module" module-name="codeGenIntermediate" />
     <orderEntry type="module" module-name="virtualmachine" />
     <orderEntry type="module" module-name="intermediate" scope="TEST" />
+    <orderEntry type="library" name="antlr.antlr4" level="project" />
   </component>
 </module>
