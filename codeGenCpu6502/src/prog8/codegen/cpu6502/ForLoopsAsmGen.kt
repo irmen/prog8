@@ -32,7 +32,7 @@ internal class ForLoopsAsmGen(
         }
     }
 
-    private fun translateForOverNonconstRange(stmt: PtForLoop, iterableDt: DataTypeFull, range: PtRange) {
+    private fun translateForOverNonconstRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         val modifiedLabel = asmgen.makeLabel("for_modified")
@@ -280,7 +280,7 @@ $endLabel""")
         asmgen.loopEndLabels.removeLast()
     }
 
-    private fun precheckFromToWord(iterableDt: DataTypeFull, stepsize: Int, fromVar: String, endLabel: String) {
+    private fun precheckFromToWord(iterableDt: DataType, stepsize: Int, fromVar: String, endLabel: String) {
         // pre-check for end already reached.
         // 'to' is in AY, do NOT clobber this!
         if(iterableDt.isSignedWordArray) {
@@ -330,7 +330,7 @@ $endLabel""")
         }
     }
 
-    private fun translateForOverIterableVar(stmt: PtForLoop, iterableDt: DataTypeFull, ident: PtIdentifier) {
+    private fun translateForOverIterableVar(stmt: PtForLoop, iterableDt: DataType, ident: PtIdentifier) {
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.add(endLabel)
@@ -383,50 +383,9 @@ $loopLabel          sty  $indexVar
                 }
                 if(numElements>=16) {
                     // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataTypeFull.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
+                    val result = zeropage.allocate(indexVar, DataType.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
-                        failure = { asmgen.out("$indexVar    .byte  0") }
-                    )
-                } else {
-                    asmgen.out("$indexVar    .byte  0")
-                }
-                asmgen.out(endLabel)
-            }
-            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> {         // TODO swap this block with the split word array block below and simplify the condition
-                val length = numElements * 2
-                val indexVar = asmgen.makeLabel("for_index")
-                val loopvarName = asmgen.asmVariableName(stmt.variable)
-                asmgen.out("""
-                    ldy  #0
-$loopLabel          sty  $indexVar
-                    lda  $iterableName,y
-                    sta  $loopvarName
-                    lda  $iterableName+1,y
-                    sta  $loopvarName+1""")
-                asmgen.translate(stmt.statements)
-                if(length<=127) {
-                    asmgen.out("""
-                        ldy  $indexVar
-                        iny
-                        iny
-                        cpy  #$length
-                        beq  $endLabel
-                        bne  $loopLabel""")
-                } else {
-                    // length is 128 words, 256 bytes
-                    asmgen.out("""
-                        ldy  $indexVar
-                        iny
-                        iny
-                        bne  $loopLabel
-                        beq  $endLabel""")
-                }
-                if(length>=16) {
-                    // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataTypeFull.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
-                    result.fold(
-                        success = { (address,_,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
                     )
                 } else {
@@ -462,7 +421,48 @@ $loopLabel          sty  $indexVar
                 }
                 if(numElements>=16) {
                     // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataTypeFull.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
+                    val result = zeropage.allocate(indexVar, DataType.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
+                    result.fold(
+                        success = { (address,_,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                        failure = { asmgen.out("$indexVar    .byte  0") }
+                    )
+                } else {
+                    asmgen.out("$indexVar    .byte  0")
+                }
+                asmgen.out(endLabel)
+            }
+            iterableDt.isWordArray -> {
+                val length = numElements * 2
+                val indexVar = asmgen.makeLabel("for_index")
+                val loopvarName = asmgen.asmVariableName(stmt.variable)
+                asmgen.out("""
+                    ldy  #0
+$loopLabel          sty  $indexVar
+                    lda  $iterableName,y
+                    sta  $loopvarName
+                    lda  $iterableName+1,y
+                    sta  $loopvarName+1""")
+                asmgen.translate(stmt.statements)
+                if(length<=127) {
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        iny
+                        cpy  #$length
+                        beq  $endLabel
+                        bne  $loopLabel""")
+                } else {
+                    // length is 128 words, 256 bytes
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        iny
+                        bne  $loopLabel
+                        beq  $endLabel""")
+                }
+                if(length>=16) {
+                    // allocate index var on ZP if possible
+                    val result = zeropage.allocate(indexVar, DataType.forDt(BaseDataType.UBYTE), null, stmt.position, asmgen.errors)
                     result.fold(
                         success = { (address,_,_)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
                         failure = { asmgen.out("$indexVar    .byte  0") }
@@ -480,7 +480,7 @@ $loopLabel          sty  $indexVar
         asmgen.loopEndLabels.removeLast()
     }
 
-    private fun translateForOverConstRange(stmt: PtForLoop, iterableDt: DataTypeFull, range: IntProgression) {
+    private fun translateForOverConstRange(stmt: PtForLoop, iterableDt: DataType, range: IntProgression) {
         if (range.isEmpty() || range.step==0)
             throw AssemblyError("empty range or step 0")
         if(iterableDt.isByteArray) {

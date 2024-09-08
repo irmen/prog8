@@ -219,7 +219,7 @@ enum class VarDeclType {
 
 class VarDecl(val type: VarDeclType,
               val origin: VarDeclOrigin,
-              val datatype: DataTypeFull,
+              val datatype: DataType,
               var zeropage: ZeropageWish,
               var arraysize: ArrayIndex?,
               override val name: String,
@@ -235,7 +235,7 @@ class VarDecl(val type: VarDeclType,
         private var autoHeapValueSequenceNumber = 0
 
         fun fromParameter(param: SubroutineParameter): VarDecl {
-            val dt = if(param.type.isArray) DataTypeFull.forDt(BaseDataType.UWORD) else param.type
+            val dt = if(param.type.isArray) DataType.forDt(BaseDataType.UWORD) else param.type
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, ZeropageWish.DONTCARE, null, param.name, emptyList(), null,
                 sharedWithAsm = false,
                 splitArray = false,
@@ -529,7 +529,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
         }
 
         if (memoryAddress != null)
-            return InferredTypes.knownFor(DataTypeFull.forDt(BaseDataType.UBYTE))
+            return InferredTypes.knownFor(DataType.forDt(BaseDataType.UBYTE))
 
         // a multi-target has no 1 particular type
         return InferredTypes.unknown()
@@ -764,7 +764,7 @@ class AnonymousScope(override var statements: MutableList<Statement>,
 // (multiple return types can only occur for the latter type)
 class Subroutine(override val name: String,
                  val parameters: MutableList<SubroutineParameter>,
-                 val returntypes: MutableList<DataTypeFull>,
+                 val returntypes: MutableList<DataType>,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
                  val asmClobbers: Set<CpuRegister>,
@@ -811,7 +811,7 @@ class Subroutine(override val name: String,
 }
 
 open class SubroutineParameter(val name: String,
-                               val type: DataTypeFull,
+                               val type: DataType,
                                final override val position: Position) : Node {
     override lateinit var parent: Node
 

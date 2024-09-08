@@ -177,7 +177,7 @@ open class StNode(val name: String,
 }
 
 class StStaticVariable(name: String,
-                       val dt: DataTypeFull,
+                       val dt: DataType,
                        val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
                        val onetimeInitializationStringValue: StString?,
                        val onetimeInitializationArrayValue: StArray?,
@@ -213,7 +213,7 @@ class StConstant(name: String, val dt: BaseDataType, val value: Double, astNode:
 
 
 class StMemVar(name: String,
-               val dt: DataTypeFull,
+               val dt: DataType,
                val address: UInt,
                val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                astNode: PtNode) :
@@ -235,7 +235,7 @@ class StMemorySlab(
     StNode(name, StNodeType.MEMORYSLAB, astNode)
 
 
-class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataTypeFull?, astNode: PtNode) :
+class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, astNode: PtNode) :
         StNode(name, StNodeType.SUBROUTINE, astNode)
 
 
@@ -248,8 +248,8 @@ class StRomSub(name: String,
 
 
 
-class StSubroutineParameter(val name: String, val type: DataTypeFull)
-class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataTypeFull)
+class StSubroutineParameter(val name: String, val type: DataType)
+class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
 class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?)
 
 typealias StString = Pair<String, Encoding>

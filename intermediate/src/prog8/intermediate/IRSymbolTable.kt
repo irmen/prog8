@@ -80,8 +80,8 @@ class IRSymbolTable {
 
             // convert booleans to ubytes
             val dt = when {
-                variable.dt.isBool -> DataTypeFull.forDt(BaseDataType.UBYTE)
-                variable.dt.isBoolArray -> DataTypeFull.arrayFor(BaseDataType.UBYTE)
+                variable.dt.isBool -> DataType.forDt(BaseDataType.UBYTE)
+                variable.dt.isBoolArray -> DataType.arrayFor(BaseDataType.UBYTE)
                 else -> variable.dt
             }
 
@@ -157,9 +157,9 @@ open class IRStNode(val name: String,
 )
 
 class IRStMemVar(name: String,
-               val dt: DataTypeFull,
-               val address: UInt,
-               val length: Int?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                 val dt: DataType,
+                 val address: UInt,
+                 val length: Int?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                ) :  IRStNode(name, IRStNodeType.MEMVAR) {
     companion object {
         fun from(variable: StMemVar): IRStMemVar {
@@ -196,12 +196,12 @@ class IRStMemorySlab(
 }
 
 class IRStStaticVariable(name: String,
-                       val dt: DataTypeFull,
-                       val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
-                       val onetimeInitializationStringValue: IRStString?,
-                       val onetimeInitializationArrayValue: IRStArray?,
-                       val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
-                       val zpwish: ZeropageWish     // used in the variable allocator
+                         val dt: DataType,
+                         val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
+                         val onetimeInitializationStringValue: IRStString?,
+                         val onetimeInitializationArrayValue: IRStArray?,
+                         val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                         val zpwish: ZeropageWish     // used in the variable allocator
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
     companion object {
         fun from(variable: StStaticVariable): IRStStaticVariable {

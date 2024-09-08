@@ -16,7 +16,7 @@ import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtFunctionCall
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
@@ -556,7 +556,7 @@ main {
         arrayDecl.isArray shouldBe true
         arrayDecl.arraysize?.constIndex() shouldBe 4
         val arrayValue = arrayDecl.value as ArrayLiteral
-        arrayValue.type shouldBe InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE))
+        arrayValue.type shouldBe InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE))
         arrayValue.value shouldBe listOf(
             NumericLiteral.optimalInteger(1, Position.DUMMY),
             NumericLiteral.optimalInteger(3, Position.DUMMY),

@@ -30,7 +30,7 @@ class VarConstantValueTypeAdjuster(
 
         try {
             val declConstValue = decl.value?.constValue(program)
-            val constvalueDt = if(declConstValue==null) null else DataTypeFull.forDt(declConstValue.type)
+            val constvalueDt = if(declConstValue==null) null else DataType.forDt(declConstValue.type)
             if(declConstValue!=null && (decl.type== VarDeclType.VAR || decl.type==VarDeclType.CONST)
                 && constvalueDt != decl.datatype) {
                 // avoid silent float roundings
@@ -415,7 +415,7 @@ internal class ConstantIdentifierReplacer(
                     if(declArraySize!=null && declArraySize!=rangeExpr.size())
                         errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                     if(constRange!=null) {
-                        val rangeType = rangeExpr.inferType(program).getOr(DataTypeFull.forDt(BaseDataType.UBYTE))
+                        val rangeType = rangeExpr.inferType(program).getOr(DataType.forDt(BaseDataType.UBYTE))
                         return if(rangeType.isByte) {
                             ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
                                 constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
@@ -468,7 +468,7 @@ internal class ConstantIdentifierReplacer(
                         errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                     val constRange = rangeExpr.toConstantIntegerRange()
                     if(constRange!=null) {
-                        return ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.FLOAT)),
+                        return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT)),
                             constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     }
@@ -483,7 +483,7 @@ internal class ConstantIdentifierReplacer(
                         errors.err("float value overflow", numericLv.position)
                     else {
                         val array = Array(size) {fillvalue}.map { NumericLiteral(BaseDataType.FLOAT, it, numericLv.position) }.toTypedArray<Expression>()
-                        return ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.FLOAT)), array, position = numericLv.position)
+                        return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT)), array, position = numericLv.position)
                     }
                 }
             }
@@ -497,7 +497,7 @@ internal class ConstantIdentifierReplacer(
                         return null
                     }
                     val array = Array(size) {numericLv.number}.map { NumericLiteral(BaseDataType.BOOL, it, numericLv.position) }.toTypedArray<Expression>()
-                    return ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.BOOL)), array, position = numericLv.position)
+                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.BOOL)), array, position = numericLv.position)
                 }
             }
             else -> return null

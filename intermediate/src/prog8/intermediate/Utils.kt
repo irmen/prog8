@@ -6,7 +6,7 @@ import prog8.code.left
 import prog8.code.right
 
 
-fun DataTypeFull.typeString(length: Int?): String {
+fun DataType.typeString(length: Int?): String {
     val lengthStr = if(length==0) "" else length.toString()
     return when (this.dt) {
         BaseDataType.BOOL -> "ubyte"                // in IR , a boolean is represented by an ubyte.
@@ -341,7 +341,7 @@ internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag
 }
 
 
-fun irType(type: DataTypeFull): IRDataType {
+fun irType(type: DataType): IRDataType {
     if(type.dt.isPassByRef)
         return IRDataType.WORD
 

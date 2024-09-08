@@ -269,7 +269,7 @@ class IRFileReader {
                 // example: "slabname 4096 0"
                 val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid slab $line")
                 val (name, size, align) = match.destructured
-                val dummyNode = PtVariable(name, DataTypeFull.arrayFor(BaseDataType.UBYTE), ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(name, DataType.arrayFor(BaseDataType.UBYTE), ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
                 slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), dummyNode))
             }
             slabs
@@ -486,27 +486,27 @@ class IRFileReader {
         return IRInlineAsmChunk(label, text, isIr, null)
     }
 
-    private fun parseDatatype(type: String, isArray: Boolean): DataTypeFull {
+    private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
             return when(type) {
                 // note: there are no BOOLEANS arrays anymore in the IR. Only UBYTE.
-                "byte" -> DataTypeFull.arrayFor(BaseDataType.BYTE)
-                "ubyte", "str" -> DataTypeFull.arrayFor(BaseDataType.UBYTE)
-                "word" -> DataTypeFull.arrayFor(BaseDataType.WORD)
-                "uword" -> DataTypeFull.arrayFor(BaseDataType.UWORD)
-                "float" -> DataTypeFull.arrayFor(BaseDataType.FLOAT)
-                "uword_split" -> DataTypeFull.arrayFor(BaseDataType.UWORD, true)
-                "word_split" -> DataTypeFull.arrayFor(BaseDataType.WORD, true)
+                "byte" -> DataType.arrayFor(BaseDataType.BYTE)
+                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE)
+                "word" -> DataType.arrayFor(BaseDataType.WORD)
+                "uword" -> DataType.arrayFor(BaseDataType.UWORD)
+                "float" -> DataType.arrayFor(BaseDataType.FLOAT)
+                "uword_split" -> DataType.arrayFor(BaseDataType.UWORD, true)
+                "word_split" -> DataType.arrayFor(BaseDataType.WORD, true)
                 else -> throw IRParseException("invalid dt  $type")
             }
         } else {
             return when(type) {
-                "bool" -> DataTypeFull.forDt(BaseDataType.BOOL)
-                "byte" -> DataTypeFull.forDt(BaseDataType.BYTE)
-                "ubyte" -> DataTypeFull.forDt(BaseDataType.UBYTE)
-                "word" -> DataTypeFull.forDt(BaseDataType.WORD)
-                "uword" -> DataTypeFull.forDt(BaseDataType.UWORD)
-                "float" -> DataTypeFull.forDt(BaseDataType.FLOAT)
+                "bool" -> DataType.forDt(BaseDataType.BOOL)
+                "byte" -> DataType.forDt(BaseDataType.BYTE)
+                "ubyte" -> DataType.forDt(BaseDataType.UBYTE)
+                "word" -> DataType.forDt(BaseDataType.WORD)
+                "uword" -> DataType.forDt(BaseDataType.UWORD)
+                "float" -> DataType.forDt(BaseDataType.FLOAT)
                 // note: 'str' should not occur anymore in IR. Should be 'uword'
                 else -> throw IRParseException("invalid dt  $type")
             }

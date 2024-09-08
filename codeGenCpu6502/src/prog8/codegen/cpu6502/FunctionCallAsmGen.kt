@@ -189,7 +189,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             register!!
             if(requiredDt.largerSizeThan(value.type)) {
                 // we need to sign extend the source, do this via temporary word variable
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataTypeFull.forDt(BaseDataType.UBYTE))
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type.dt)
                 asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, Position.DUMMY)
             } else {
@@ -218,7 +218,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         }
     }
 
-    private fun isArgumentTypeCompatible(argType: DataTypeFull, paramType: DataTypeFull): Boolean {
+    private fun isArgumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
         if(argType isAssignableTo paramType)
             return true
         if(argType.isBool && paramType.isBool)

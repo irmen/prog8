@@ -253,7 +253,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         }
                     } else if(targetDt==BaseDataType.BOOL) {
                         addTypecastOrCastedValueModification(modifications, it.second, BaseDataType.BOOL, call as Node)
-                    } else if(argDt isAssignableTo DataTypeFull.forDt(targetDt)) {
+                    } else if(argDt isAssignableTo DataType.forDt(targetDt)) {
                         if(!argDt.isString || targetDt!=BaseDataType.UWORD)
                             addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
                     }
@@ -289,7 +289,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // make sure the memory address is an uword
         val modifications = mutableListOf<IAstModification>()
         val dt = memread.addressExpression.inferType(program)
-        if(dt.isKnown && !dt.getOr(DataTypeFull.forDt(BaseDataType.UWORD)).isUnsignedWord) {
+        if(dt.isKnown && !dt.getOr(DataType.forDt(BaseDataType.UWORD)).isUnsignedWord) {
             val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memread.addressExpression, castedValue, memread)
@@ -303,7 +303,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // make sure the memory address is an uword
         val modifications = mutableListOf<IAstModification>()
         val dt = memwrite.addressExpression.inferType(program)
-        if(dt.isKnown && !dt.getOr(DataTypeFull.forDt(BaseDataType.UWORD)).isUnsignedWord) {
+        if(dt.isKnown && !dt.getOr(DataType.forDt(BaseDataType.UWORD)).isUnsignedWord) {
             val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memwrite.addressExpression, castedValue, memwrite)

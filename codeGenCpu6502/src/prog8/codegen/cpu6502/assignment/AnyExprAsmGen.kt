@@ -52,7 +52,7 @@ internal class AnyExprAsmGen(
             "+" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE))
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  clc |  adc  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -60,7 +60,7 @@ internal class AnyExprAsmGen(
             "-" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE))
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  sec |  sbc  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -75,7 +75,7 @@ internal class AnyExprAsmGen(
             "&" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE))
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  and  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -83,7 +83,7 @@ internal class AnyExprAsmGen(
             "|" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE))
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  ora  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -91,7 +91,7 @@ internal class AnyExprAsmGen(
             "^", "xor" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE))
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  eor  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -200,7 +200,7 @@ internal class AnyExprAsmGen(
     private fun setupFloatComparisonFAC1vsVarAY(expr: PtBinaryExpression) {
         asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
         if(!expr.right.isSimple()) asmgen.pushFAC1()
-        asmgen.assignExpressionToVariable(expr.right, "floats.floats_temp_var", DataTypeFull.forDt(BaseDataType.FLOAT))
+        asmgen.assignExpressionToVariable(expr.right, "floats.floats_temp_var", DataType.forDt(BaseDataType.FLOAT))
         if(!expr.right.isSimple()) asmgen.popFAC1()
         asmgen.out("  lda  #<floats.floats_temp_var |  ldy  #>floats.floats_temp_var")
     }

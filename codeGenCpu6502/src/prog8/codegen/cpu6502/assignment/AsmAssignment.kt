@@ -25,7 +25,7 @@ internal enum class SourceStorageKind {
 
 internal class AsmAssignTarget(val kind: TargetStorageKind,
                                private val asmgen: AsmGen6502Internal,
-                               val datatype: DataTypeFull,
+                               val datatype: DataType,
                                val scope: IPtSubroutine?,
                                val position: Position,
                                private val variableAsmName: String? = null,
@@ -78,18 +78,18 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.A,
                     RegisterOrPair.X,
                     RegisterOrPair.Y -> {
-                        val dt = DataTypeFull.forDt(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
+                        val dt = DataType.forDt(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
                     RegisterOrPair.AX,
                     RegisterOrPair.AY,
                     RegisterOrPair.XY -> {
-                        val dt = DataTypeFull.forDt(if(signed) BaseDataType.WORD else BaseDataType.UWORD)
+                        val dt = DataType.forDt(if(signed) BaseDataType.WORD else BaseDataType.UWORD)
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
                     RegisterOrPair.FAC1,
                     RegisterOrPair.FAC2 -> {
-                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataTypeFull.forDt(BaseDataType.FLOAT), scope, pos, register = registers)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.FLOAT), scope, pos, register = registers)
                     }
                     RegisterOrPair.R0,
                     RegisterOrPair.R1,
@@ -107,7 +107,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.R13,
                     RegisterOrPair.R14,
                     RegisterOrPair.R15 -> {
-                        val dt = DataTypeFull.forDt(if(signed) BaseDataType.WORD else BaseDataType.UWORD)
+                        val dt = DataType.forDt(if(signed) BaseDataType.WORD else BaseDataType.UWORD)
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
                 }
@@ -139,7 +139,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
 internal class AsmAssignSource(val kind: SourceStorageKind,
                                private val program: PtProgram,
                                private val asmgen: AsmGen6502Internal,
-                               val datatype: DataTypeFull,
+                               val datatype: DataType,
                                private val variableAsmName: String? = null,
                                val array: PtArrayIndexer? = null,
                                val memory: PtMemoryByte? = null,
@@ -162,7 +162,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
             val bv = value as? PtBool
             if(bv!=null)
-                return AsmAssignSource(SourceStorageKind.LITERALBOOLEAN, program, asmgen, DataTypeFull.forDt(BaseDataType.BOOL), boolean = bv)
+                return AsmAssignSource(SourceStorageKind.LITERALBOOLEAN, program, asmgen, DataType.forDt(BaseDataType.BOOL), boolean = bv)
 
             return when(value) {
                 // checked above:   is PtNumber -> throw AssemblyError("should have been constant value")
@@ -183,7 +183,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     }
                 }
                 is PtMemoryByte -> {
-                    AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataTypeFull.forDt(BaseDataType.UBYTE), memory = value)
+                    AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.forDt(BaseDataType.UBYTE), memory = value)
                 }
                 is PtArrayIndexer -> {
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, value.type, array = value)
@@ -209,7 +209,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
     fun adjustSignedUnsigned(target: AsmAssignTarget): AsmAssignSource {
         // allow some signed/unsigned relaxations
 
-        fun withAdjustedDt(newType: DataTypeFull) =
+        fun withAdjustedDt(newType: DataType) =
                 AsmAssignSource(kind, program, asmgen, newType, variableAsmName, array, memory, register, number, boolean, expression)
 
         if(target.datatype!=datatype) {

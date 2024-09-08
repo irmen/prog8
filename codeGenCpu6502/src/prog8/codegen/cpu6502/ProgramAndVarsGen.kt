@@ -657,7 +657,7 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun arrayVariable2asm(varname: String, dt: DataTypeFull, value: StArray?, orNumberOfZeros: Int?) {
+    private fun arrayVariable2asm(varname: String, dt: DataType, value: StArray?, orNumberOfZeros: Int?) {
         when {
             dt.isUnsignedByteArray || dt.isBoolArray -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
@@ -762,7 +762,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("  .byte  " + chunk.joinToString())
     }
 
-    private fun makeArrayFillDataUnsigned(dt: DataTypeFull, value: StArray?, orNumberOfZeros: Int?): List<String> {
+    private fun makeArrayFillDataUnsigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
         val array = value ?: zeroFilledArray(orNumberOfZeros!!)
         return when {
             dt.isBoolArray ->
@@ -795,7 +795,7 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun makeArrayFillDataSigned(dt: DataTypeFull, value: StArray?, orNumberOfZeros: Int?): List<String> {
+    private fun makeArrayFillDataSigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
         val array = value ?: zeroFilledArray(orNumberOfZeros!!)
         return when {
             // byte array can never contain pointer-to types, so treat values as all integers

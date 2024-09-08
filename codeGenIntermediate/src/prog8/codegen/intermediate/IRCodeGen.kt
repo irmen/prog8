@@ -452,8 +452,8 @@ class IRCodeGen(
                         val lengthBytes = iterableLength!! * elementSize
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
-                            it += IRInstruction(Opcode.LOADX, irType(DataTypeFull.forDt(elementDt)), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
-                            it += IRInstruction(Opcode.STOREM, irType(DataTypeFull.forDt(elementDt)), reg1=tmpReg, labelSymbol = loopvarSymbol)
+                            it += IRInstruction(Opcode.LOADX, irType(DataType.forDt(elementDt)), reg1=tmpReg, reg2=indexReg, labelSymbol=iterable.name)
+                            it += IRInstruction(Opcode.STOREM, irType(DataType.forDt(elementDt)), reg1=tmpReg, labelSymbol = loopvarSymbol)
                         }
                         result += translateNode(forLoop.statements)
                         result += addConstReg(IRDataType.BYTE, indexReg, elementSize)

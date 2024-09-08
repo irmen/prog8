@@ -360,7 +360,7 @@ internal class AssignmentAsmGen(
 //              // does this ever occur? we could optimize it too, but it seems like a pathological case
 //          }
         }
-        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataTypeFull.forDt(BaseDataType.UWORD))
+        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
         assignRegisterByte(target, CpuRegister.A, false, true)
     }
@@ -411,7 +411,7 @@ internal class AssignmentAsmGen(
 //          }
         }
         if(saveA) asmgen.out("  pha")
-        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataTypeFull.forDt(BaseDataType.UWORD))
+        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
         if(saveA) asmgen.out("  pla")
         asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
     }
@@ -931,7 +931,7 @@ internal class AssignmentAsmGen(
             expr.type.isUnsignedWord -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
                 asmgen.out("  jsr  math.divmod_uw_asm")
-                assignVariableWord(target, "P8ZP_SCRATCH_W2", DataTypeFull.forDt(BaseDataType.UWORD))
+                assignVariableWord(target, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                 return true
             }
             else -> return false
@@ -1427,7 +1427,7 @@ internal class AssignmentAsmGen(
                     if(right.type.isWord && castedValue.type.isByte && castedValue is PtIdentifier) {
                         if(right.type.isSigned) {
                             // we need to sign extend, do this via temporary word variable
-                            asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataTypeFull.forDt(BaseDataType.WORD))
+                            asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.forDt(BaseDataType.WORD))
                             assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                             if(expr.operator=="+") {
                                 asmgen.out("""
@@ -1566,7 +1566,7 @@ internal class AssignmentAsmGen(
                 asmgen.out("  sty  P8ZP_SCRATCH_B1")
             } else {
                 asmgen.out("  pha")
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE))
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla")
             }
             when (expr.operator) {
@@ -1619,7 +1619,7 @@ internal class AssignmentAsmGen(
                     asmgen.out("  sty  P8ZP_SCRATCH_B1")
                 } else {
                     asmgen.out("  pha")
-                    assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE))
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                     asmgen.out("  pla")
                 }
                 when (operator) {
@@ -1824,34 +1824,34 @@ internal class AssignmentAsmGen(
         val (dt, numElements) = when(symbol) {
             is StStaticVariable  -> symbol.dt to symbol.length!!
             is StMemVar -> symbol.dt to symbol.length!!
-            else -> DataTypeFull.forDt(BaseDataType.UNDEFINED) to 0
+            else -> DataType.forDt(BaseDataType.UNDEFINED) to 0
         }
         when {
             dt.isString -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt.isSigned)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataTypeFull.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #${numElements-1}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
             dt.isFloatArray -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.FAC1, true)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataTypeFull.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  floats.containment_floatarray")
             }
             dt.isByteArray -> {
                 assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt.isSigned)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataTypeFull.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
             dt.isWordArray && !dt.isSplitWordArray -> {
                 assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataTypeFull.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
             }
@@ -1892,7 +1892,7 @@ internal class AssignmentAsmGen(
         assignRegisterByte(target, CpuRegister.A, false, true)
     }
 
-    private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataTypeFull, value: PtExpression, origTypeCastExpression: PtTypeCast) {
+    private fun assignTypeCastedValue(target: AsmAssignTarget, targetDt: DataType, value: PtExpression, origTypeCastExpression: PtTypeCast) {
         val valueDt = value.type
         if(valueDt==targetDt)
             throw AssemblyError("type cast to identical dt should have been removed")
@@ -1914,7 +1914,7 @@ internal class AssignmentAsmGen(
                 if(targetDt.isWord) {
 
                     fun assignViaExprEval(addressExpression: PtExpression) {
-                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataTypeFull.forDt(BaseDataType.UWORD))
+                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
                         asmgen.out("  ldy  #0")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -2141,10 +2141,10 @@ internal class AssignmentAsmGen(
     }
 
     private fun assignCastViaLsbFunc(value: PtExpression, target: AsmAssignTarget) {
-        val lsb = PtBuiltinFunctionCall("lsb", false, true, DataTypeFull.forDt(BaseDataType.UBYTE), value.position)
+        val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.forDt(BaseDataType.UBYTE), value.position)
         lsb.parent = value.parent
         lsb.add(value)
-        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataTypeFull.forDt(BaseDataType.UBYTE), expression = lsb)
+        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.forDt(BaseDataType.UBYTE), expression = lsb)
         val assign = AsmAssignment(src, target, program.memsizer, value.position)
         translateNormalAssignment(assign, value.definingISub())
     }
@@ -2176,8 +2176,8 @@ internal class AssignmentAsmGen(
     }
 
 
-    private fun assignTypeCastedIdentifier(targetAsmVarName: String, targetDt: DataTypeFull,
-                                           sourceAsmVarName: String, sourceDt: DataTypeFull) {
+    private fun assignTypeCastedIdentifier(targetAsmVarName: String, targetDt: DataType,
+                                           sourceAsmVarName: String, sourceDt: DataType) {
         if(sourceDt == targetDt)
             throw AssemblyError("typecast to identical type")
 
@@ -2471,7 +2471,7 @@ internal class AssignmentAsmGen(
         }
     }
 
-    private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, arrayDt: DataTypeFull?, arrayIndexExpr: PtExpression?) {
+    private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         if(arrayIndexExpr!=null) {
             require(arrayDt?.isSplitWordArray!=true)
             val constIndex = arrayIndexExpr.asConstInteger()
@@ -2501,7 +2501,7 @@ internal class AssignmentAsmGen(
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     asmgen.saveRegisterStack(CpuRegister.A, false)
                     asmgen.saveRegisterStack(CpuRegister.Y, false)
-                    assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataTypeFull.forDt(BaseDataType.UBYTE))
+                    assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataType.forDt(BaseDataType.UBYTE))
                     asmgen.restoreRegisterStack(CpuRegister.Y, false)
                     asmgen.restoreRegisterStack(CpuRegister.A, false)
                     asmgen.out("""
@@ -2589,7 +2589,7 @@ internal class AssignmentAsmGen(
         }
     }
 
-    private fun assignVariableWord(target: AsmAssignTarget, sourceName: String, sourceDt: DataTypeFull) {
+    private fun assignVariableWord(target: AsmAssignTarget, sourceName: String, sourceDt: DataType) {
         if(sourceDt.isSignedByte) {
             // need to sign extend
             asmgen.out("  lda  $sourceName")
@@ -3912,7 +3912,7 @@ internal class AssignmentAsmGen(
         translateNormalAssignment(assign, expr.definingISub())
     }
 
-    internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataTypeFull) {
+    internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType) {
         if(expr.type.isFloat && !dt.isFloat) {
             throw AssemblyError("can't directly assign a FLOAT expression to an integer variable $expr")
         } else {
@@ -3959,7 +3959,7 @@ internal class AssignmentAsmGen(
                                 asmgen.storeAIntoPointerVar(memory.address as PtIdentifier)
                             }
                             else -> {
-                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataTypeFull.forDt(BaseDataType.UWORD))
+                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
                                     asmgen.out("""
                                         lda  (P8ZP_SCRATCH_W2)
@@ -4020,8 +4020,8 @@ internal class AssignmentAsmGen(
         val target = assign.target
         val datatype = if(ignoreDatatype) {
             when {
-                target.datatype.isByte -> DataTypeFull.forDt(BaseDataType.BYTE)
-                target.datatype.isWord -> DataTypeFull.forDt(BaseDataType.WORD)
+                target.datatype.isByte -> DataType.forDt(BaseDataType.BYTE)
+                target.datatype.isWord -> DataType.forDt(BaseDataType.WORD)
                 else -> target.datatype
             }
         } else target.datatype

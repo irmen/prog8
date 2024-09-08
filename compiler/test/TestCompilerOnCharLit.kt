@@ -10,7 +10,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.VarDeclType
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.compileText
@@ -66,7 +66,7 @@ class TestCompilerOnCharLit: FunSpec({
         val arg = funCall.args[0] as IdentifierReference
         val decl = arg.targetVarDecl(program)!!
         decl.type shouldBe VarDeclType.VAR
-        decl.datatype shouldBe DataTypeFull.forDt(BaseDataType.UBYTE)
+        decl.datatype shouldBe DataType.forDt(BaseDataType.UBYTE)
 
         withClue("initializer value should have been moved to separate assignment"){
             decl.value shouldBe null
@@ -102,7 +102,7 @@ class TestCompilerOnCharLit: FunSpec({
             is IdentifierReference -> {
                 val decl = arg.targetVarDecl(program)!!
                 decl.type shouldBe VarDeclType.CONST
-                decl.datatype shouldBe DataTypeFull.forDt(BaseDataType.UBYTE)
+                decl.datatype shouldBe DataType.forDt(BaseDataType.UBYTE)
                 (decl.value as NumericLiteral).number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0]
             }
             is NumericLiteral -> {

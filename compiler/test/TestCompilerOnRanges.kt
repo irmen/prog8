@@ -14,7 +14,7 @@ import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -225,7 +225,7 @@ class TestCompilerOnRanges: FunSpec({
             .map { it.iterable }
             .filterIsInstance<IdentifierReference>()[0]
 
-        iterable.inferType(program).getOrUndef() shouldBe DataTypeFull.forDt(BaseDataType.STR)
+        iterable.inferType(program).getOrUndef() shouldBe DataType.forDt(BaseDataType.STR)
     }
 
     test("testRangeExprNumericSize") {

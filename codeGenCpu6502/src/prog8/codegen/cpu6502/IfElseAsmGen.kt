@@ -258,7 +258,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 }
             }
             in LogicalOperators -> {
-                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataTypeFull.forDt(BaseDataType.BOOL), stmt.definingISub(), condition.position, register=RegisterOrPair.A)
+                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.BOOL), stmt.definingISub(), condition.position, register=RegisterOrPair.A)
                 if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
                     if (jumpAfterIf != null)
                         translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
@@ -1765,7 +1765,7 @@ _jump                       jmp  ($asmLabel)
                 is PtIdentifier -> equalf(asmgen.asmVariableName(left), asmgen.asmVariableName(right))
                 is PtNumber -> equalf(asmgen.asmVariableName(left), allocator.getFloatAsmConst(right.number))
                 else -> {
-                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataTypeFull.forDt(BaseDataType.FLOAT))
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
                     equalf(asmgen.asmVariableName(left), subroutineFloatEvalResultVar1)
                     asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1775,7 +1775,7 @@ _jump                       jmp  ($asmLabel)
                 is PtIdentifier -> equalf(left, asmgen.asmVariableName(right))
                 is PtNumber -> equalf(left, allocator.getFloatAsmConst(right.number))
                 else -> {
-                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataTypeFull.forDt(BaseDataType.FLOAT))
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
                     equalf(left, subroutineFloatEvalResultVar1)
                     asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1810,7 +1810,7 @@ _jump                       jmp  ($asmLabel)
                 is PtIdentifier -> lessf(asmgen.asmVariableName(left), asmgen.asmVariableName(right))
                 is PtNumber -> lessf(asmgen.asmVariableName(left), allocator.getFloatAsmConst(right.number))
                 else -> {
-                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataTypeFull.forDt(BaseDataType.FLOAT))
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
                     lessf(asmgen.asmVariableName(left), subroutineFloatEvalResultVar1)
                     asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1820,7 +1820,7 @@ _jump                       jmp  ($asmLabel)
                 is PtIdentifier -> lessf(left, asmgen.asmVariableName(right))
                 is PtNumber -> lessf(left, allocator.getFloatAsmConst(right.number))
                 else -> {
-                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataTypeFull.forDt(BaseDataType.FLOAT))
+                    asmgen.assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
                     lessf(left, subroutineFloatEvalResultVar1)
                     asmgen.subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }

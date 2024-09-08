@@ -3,12 +3,12 @@ package prog8.codegen.cpu6502
 import prog8.code.ast.IPtSubroutine
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtSub
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.RegisterOrPair
 import prog8.code.core.RegisterOrStatusflag
 
 
-internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataTypeFull>> {
+internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
     when(this) {
         is PtAsmSub -> {
             return returns

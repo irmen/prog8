@@ -1,14 +1,14 @@
 package prog8.code.target.cbm
 
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
 import prog8.code.core.SubType
 
 
 internal object CbmMemorySizer: IMemSizer {
-    override fun memorySize(dt: DataTypeFull, numElements: Int?): Int {
-        if(dt.isArray || dt.isSplitWordArray) {
+    override fun memorySize(dt: DataType, numElements: Int?): Int {
+        if(dt.isArray) {
             require(numElements!=null)
             return when(dt.sub?.dt) {
                 BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> numElements
@@ -25,6 +25,6 @@ internal object CbmMemorySizer: IMemSizer {
     }
 
     override fun memorySize(dt: SubType): Int {
-        return memorySize(DataTypeFull.forDt(dt.dt), null)
+        return memorySize(DataType.forDt(dt.dt), null)
     }
 }

@@ -12,7 +12,7 @@ class PtAsmSub(
     val address: UInt?,
     val clobbers: Set<CpuRegister>,
     val parameters: List<Pair<RegisterOrStatusflag, PtSubroutineParameter>>,
-    val returns: List<Pair<RegisterOrStatusflag, DataTypeFull>>,
+    val returns: List<Pair<RegisterOrStatusflag, DataType>>,
     val inline: Boolean,
     position: Position
 ) : PtNamedNode(name, position), IPtSubroutine
@@ -21,7 +21,7 @@ class PtAsmSub(
 class PtSub(
     name: String,
     val parameters: List<PtSubroutineParameter>,
-    val returntype: DataTypeFull?,
+    val returntype: DataType?,
     position: Position
 ) : PtNamedNode(name, position), IPtSubroutine, IPtStatementContainer {
     init {
@@ -35,7 +35,7 @@ class PtSub(
 }
 
 
-class PtSubroutineParameter(name: String, val type: DataTypeFull, position: Position): PtNamedNode(name, position)
+class PtSubroutineParameter(name: String, val type: DataType, position: Position): PtNamedNode(name, position)
 
 
 sealed interface IPtAssignment {
@@ -68,7 +68,7 @@ class PtAssignTarget(val void: Boolean, position: Position) : PtNode(position) {
     val memory: PtMemoryByte?
         get() = children.single() as? PtMemoryByte
 
-    val type: DataTypeFull
+    val type: DataType
         get() {
             return when(val tgt = children.single()) {
                 is PtIdentifier -> tgt.type
@@ -143,21 +143,21 @@ class PtReturn(position: Position) : PtNode(position) {
 
 sealed interface IPtVariable {
     val name: String
-    val type: DataTypeFull
+    val type: DataType
 }
 
 
-class PtVariable(name: String, override val type: DataTypeFull, val zeropage: ZeropageWish, val value: PtExpression?, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
+class PtVariable(name: String, override val type: DataType, val zeropage: ZeropageWish, val value: PtExpression?, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
     init {
         value?.let {it.parent=this}
     }
 }
 
 
-class PtConstant(name: String, override val type: DataTypeFull, val value: Double, position: Position) : PtNamedNode(name, position), IPtVariable
+class PtConstant(name: String, override val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position), IPtVariable
 
 
-class PtMemMapped(name: String, override val type: DataTypeFull, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
+class PtMemMapped(name: String, override val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
     init {
         require(!type.isBool && !type.isBoolArray)
     }

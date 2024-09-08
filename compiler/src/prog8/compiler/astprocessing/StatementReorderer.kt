@@ -7,7 +7,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.AssociativeOperators
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.IErrorReporter
 
 internal class StatementReorderer(
@@ -143,13 +143,13 @@ internal class StatementReorderer(
         // change 'str' and 'ubyte[]' parameters into 'uword' (just treat it as an address)
         val stringParams = subroutine.parameters.filter { it.type.isString || it.type.isUnsignedByteArray }
         val parameterChanges = stringParams.map {
-            val uwordParam = SubroutineParameter(it.name, DataTypeFull.forDt(BaseDataType.UWORD), it.position)
+            val uwordParam = SubroutineParameter(it.name, DataType.forDt(BaseDataType.UWORD), it.position)
             IAstModification.ReplaceNode(it, uwordParam, subroutine)
         }
         // change 'str' and 'ubyte[]' return types into 'uword' (just treat it as an address)
         subroutine.returntypes.withIndex().forEach { (index, type) ->
             if(type.isString || type.isUnsignedByteArray)
-                subroutine.returntypes[index] = DataTypeFull.forDt(BaseDataType.UWORD)
+                subroutine.returntypes[index] = DataType.forDt(BaseDataType.UWORD)
         }
 
         val varsChanges = mutableListOf<IAstModification>()
@@ -162,7 +162,7 @@ internal class StatementReorderer(
                         .filterIsInstance<VarDecl>()
                         .filter { it.origin==VarDeclOrigin.SUBROUTINEPARAM && it.name in stringParamsByNames }
                         .map {
-                            val newvar = VarDecl(it.type, it.origin, DataTypeFull.forDt(BaseDataType.UWORD),
+                            val newvar = VarDecl(it.type, it.origin, DataType.forDt(BaseDataType.UWORD),
                                 it.zeropage,
                                 null,
                                 it.name,

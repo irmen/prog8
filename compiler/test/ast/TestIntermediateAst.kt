@@ -7,7 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.*
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.compiler.astprocessing.IntermediateAstMaker
@@ -55,15 +55,15 @@ class TestIntermediateAst: FunSpec({
         val ccdecl = entry.children[0] as PtVariable
         ccdecl.name shouldBe "cc"
         ccdecl.scopedName shouldBe "main.start.cc"
-        ccdecl.type shouldBe DataTypeFull.forDt(BaseDataType.BOOL)
+        ccdecl.type shouldBe DataType.forDt(BaseDataType.BOOL)
         val dddecl = entry.children[1] as PtVariable
         dddecl.name shouldBe "dd"
         dddecl.scopedName shouldBe "main.start.dd"
-        dddecl.type shouldBe DataTypeFull.forDt(BaseDataType.UBYTE)
+        dddecl.type shouldBe DataType.forDt(BaseDataType.UBYTE)
 
         val arraydecl = entry.children[2] as IPtVariable
         arraydecl.name shouldBe "array"
-        arraydecl.type shouldBe DataTypeFull.arrayFor(BaseDataType.UBYTE)
+        arraydecl.type shouldBe DataType.arrayFor(BaseDataType.UBYTE)
 
         val ccAssignV = (entry.children[5] as PtAssignment).value
         ccAssignV shouldBe instanceOf<PtContainmentCheck>()
@@ -72,28 +72,28 @@ class TestIntermediateAst: FunSpec({
     }
 
     test("isSame on binaryExpressions") {
-        val expr1 = PtBinaryExpression("/", DataTypeFull.forDt(BaseDataType.UBYTE), Position.DUMMY)
+        val expr1 = PtBinaryExpression("/", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)
         expr1.add(PtNumber(BaseDataType.UBYTE, 1.0, Position.DUMMY))
         expr1.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
-        val expr2 = PtBinaryExpression("/", DataTypeFull.forDt(BaseDataType.UBYTE), Position.DUMMY)
+        val expr2 = PtBinaryExpression("/", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)
         expr2.add(PtNumber(BaseDataType.UBYTE, 1.0, Position.DUMMY))
         expr2.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         (expr1 isSameAs expr2) shouldBe true
-        val expr3 = PtBinaryExpression("/", DataTypeFull.forDt(BaseDataType.UBYTE), Position.DUMMY)
+        val expr3 = PtBinaryExpression("/", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)
         expr3.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         expr3.add(PtNumber(BaseDataType.UBYTE, 1.0, Position.DUMMY))
         (expr1 isSameAs expr3) shouldBe false
     }
 
     test("isSame on binaryExpressions with associative operators") {
-        val expr1 = PtBinaryExpression("+", DataTypeFull.forDt(BaseDataType.UBYTE), Position.DUMMY)
+        val expr1 = PtBinaryExpression("+", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)
         expr1.add(PtNumber(BaseDataType.UBYTE, 1.0, Position.DUMMY))
         expr1.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
-        val expr2 = PtBinaryExpression("+", DataTypeFull.forDt(BaseDataType.UBYTE), Position.DUMMY)
+        val expr2 = PtBinaryExpression("+", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)
         expr2.add(PtNumber(BaseDataType.UBYTE, 1.0, Position.DUMMY))
         expr2.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         (expr1 isSameAs expr2) shouldBe true
-        val expr3 = PtBinaryExpression("+", DataTypeFull.forDt(BaseDataType.UBYTE), Position.DUMMY)
+        val expr3 = PtBinaryExpression("+", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)
         expr3.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         expr3.add(PtNumber(BaseDataType.UBYTE, 1.0, Position.DUMMY))
         (expr1 isSameAs expr3) shouldBe true

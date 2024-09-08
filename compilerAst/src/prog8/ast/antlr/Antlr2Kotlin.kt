@@ -179,7 +179,7 @@ private fun RomsubroutineContext.toAst(): Subroutine {
 
 private class AsmsubDecl(val name: String,
                          val parameters: List<SubroutineParameter>,
-                         val returntypes: List<DataTypeFull>,
+                         val returntypes: List<DataType>,
                          val asmParameterRegisters: List<RegisterOrStatusflag>,
                          val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
                          val asmClobbers: Set<CpuRegister>)
@@ -197,12 +197,12 @@ private fun Asmsub_declContext.toAst(): AsmsubDecl {
 }
 
 private class AsmSubroutineParameter(name: String,
-                                     type: DataTypeFull,
+                                     type: DataType,
                                      val registerOrPair: RegisterOrPair?,
                                      val statusflag: Statusflag?,
                                      position: Position) : SubroutineParameter(name, type, position)
 
-private class AsmSubroutineReturn(val type: DataTypeFull,
+private class AsmSubroutineReturn(val type: DataType,
                                   val registerOrPair: RegisterOrPair?,
                                   val statusflag: Statusflag?)
 
@@ -221,7 +221,7 @@ private fun Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
             // asmsubs currently only return a base datatype
             val returnBaseDt = it.datatype().toAst()
             AsmSubroutineReturn(
-                    DataTypeFull.forDt(returnBaseDt),
+                    DataType.forDt(returnBaseDt),
                     registerorpair,
                     statusregister)
         }
@@ -229,7 +229,7 @@ private fun Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
 private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter> = asmsub_param().map {
     val vardecl = it.vardecl()
     val baseDt = vardecl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
-    var datatype = DataTypeFull.forDt(baseDt)
+    var datatype = DataType.forDt(baseDt)
     if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
         datatype = datatype.elementToArray()
     val register = it.register.text
@@ -298,7 +298,7 @@ private fun SubroutineContext.toAst() : Subroutine {
     return Subroutine(
         identifier().text,
         sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
-        if (returntype == null) mutableListOf() else mutableListOf(DataTypeFull.forDt(returntype)),
+        if (returntype == null) mutableListOf() else mutableListOf(DataType.forDt(returntype)),
         emptyList(),
         emptyList(),
         emptySet(),
@@ -313,7 +313,7 @@ private fun SubroutineContext.toAst() : Subroutine {
 private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
         vardecl().map {
             val baseDt = it.datatype()?.toAst() ?: BaseDataType.UNDEFINED
-            var datatype = DataTypeFull.forDt(baseDt)
+            var datatype = DataType.forDt(baseDt)
             if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
                 datatype = datatype.elementToArray()
 
@@ -689,7 +689,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val split = options.SPLIT().isNotEmpty()
     val baseDt = datatype()?.toAst() ?: BaseDataType.UNDEFINED
-    val origDt = DataTypeFull.forDt(baseDt)
+    val origDt = DataType.forDt(baseDt)
     val dt = if(isArray) {
         if(split && origDt.isWord)
             origDt.elementToArray(split)

@@ -13,8 +13,8 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
         const val NAME = "atari"
     }
 
-    override fun memorySize(dt: DataTypeFull, numElements: Int?): Int {
-        if(dt.isArray || dt.isSplitWordArray) {
+    override fun memorySize(dt: DataType, numElements: Int?): Int {
+        if(dt.isArray) {
             require(numElements!=null)
             return when(dt.sub?.dt) {
                 BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> numElements
@@ -32,6 +32,6 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer {
     }
 
     override fun memorySize(dt: SubType): Int {
-        return memorySize(DataTypeFull.forDt(dt.dt), null)
+        return memorySize(DataType.forDt(dt.dt), null)
     }
 }

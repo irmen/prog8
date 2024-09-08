@@ -1,5 +1,6 @@
 package prog8tests.ast
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -10,8 +11,9 @@ import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.Position
+import prog8.code.core.SubType
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -638,6 +640,57 @@ main {
         errors.errors[0] shouldEndWith "cannot assign to 'void'"
         errors.errors[1] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
         errors.errors[2] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
+    }
+
+    test("datatype subtype consistencies") {
+        shouldThrow<IllegalArgumentException> {
+            SubType.forDt(BaseDataType.STR)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SubType.forDt(BaseDataType.UNDEFINED)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SubType.forDt(BaseDataType.ARRAY_SPLITW)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SubType.forDt(BaseDataType.ARRAY)
+        }
+        SubType.forDt(BaseDataType.FLOAT).dt shouldBe BaseDataType.FLOAT
+    }
+
+    test("datatype consistencies") {
+        shouldThrow<IllegalArgumentException> {
+            DataType.forDt(BaseDataType.ARRAY)
+        }
+        shouldThrow<IllegalArgumentException> {
+            DataType.forDt(BaseDataType.ARRAY_SPLITW)
+        }
+        DataType.forDt(BaseDataType.UNDEFINED).isUndefined shouldBe true
+        DataType.forDt(BaseDataType.LONG).isLong shouldBe true
+        DataType.forDt(BaseDataType.WORD).isWord shouldBe true
+        DataType.forDt(BaseDataType.UWORD).isWord shouldBe true
+        DataType.forDt(BaseDataType.BYTE).isByte shouldBe true
+        DataType.forDt(BaseDataType.UBYTE).isByte shouldBe true
+
+        shouldThrow<IllegalArgumentException> {
+            DataType.arrayFor(BaseDataType.ARRAY)
+        }
+        shouldThrow<IllegalArgumentException> {
+            DataType.arrayFor(BaseDataType.LONG)
+        }
+        shouldThrow<IllegalArgumentException> {
+            DataType.arrayFor(BaseDataType.UNDEFINED)
+        }
+        shouldThrow<IllegalArgumentException> {
+            DataType.arrayFor(BaseDataType.UBYTE, true)
+        }
+
+        DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe false
+        DataType.arrayFor(BaseDataType.UWORD, true).isArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, true).isSplitWordArray shouldBe true
     }
 })
 

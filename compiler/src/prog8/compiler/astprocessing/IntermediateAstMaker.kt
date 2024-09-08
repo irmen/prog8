@@ -279,7 +279,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transform(srcCall: FunctionCallExpression): PtFunctionCall {
         val (target, _) = srcCall.target.targetNameAndType(program)
         val iType = srcCall.inferType(program)
-        val call = PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataTypeFull.forDt(BaseDataType.UNDEFINED) }, srcCall.position)
+        val call = PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.forDt(BaseDataType.UNDEFINED) }, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call
@@ -330,8 +330,8 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 val endLabel = program.makeLabel("cend")
                 val scopedElseLabel = (srcIf.definingScope.scopedName + elseLabel).joinToString(".")
                 val scopedEndLabel = (srcIf.definingScope.scopedName + endLabel).joinToString(".")
-                val elseLbl = PtIdentifier(scopedElseLabel, DataTypeFull.forDt(BaseDataType.UNDEFINED), srcIf.position)
-                val endLbl = PtIdentifier(scopedEndLabel, DataTypeFull.forDt(BaseDataType.UNDEFINED), srcIf.position)
+                val elseLbl = PtIdentifier(scopedElseLabel, DataType.forDt(BaseDataType.UNDEFINED), srcIf.position)
+                val endLbl = PtIdentifier(scopedEndLabel, DataType.forDt(BaseDataType.UNDEFINED), srcIf.position)
                 ifScope.add(PtJump(elseLbl, null, srcIf.position))
                 val elseScope = PtNodeGroup()
                 branch.add(ifScope)
@@ -482,7 +482,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         val (vardecls, statements) = srcSub.statements.partition { it is VarDecl }
         var returntype = srcSub.returntypes.singleOrNull()
         if(returntype?.isString==true)
-            returntype=DataTypeFull.forDt(BaseDataType.UWORD)   // if a sub returns 'str', replace with uword.  Intermediate AST and I.R. don't contain 'str' datatype anymore.
+            returntype=DataType.forDt(BaseDataType.UWORD)   // if a sub returns 'str', replace with uword.  Intermediate AST and I.R. don't contain 'str' datatype anymore.
 
         // do not bother about the 'inline' hint of the source subroutine.
         val sub = PtSub(srcSub.name,
@@ -593,27 +593,27 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
         fun desugar(range: RangeExpression): PtExpression {
             require(range.from.inferType(program)==range.to.inferType(program))
-            val expr = PtBinaryExpression("and", DataTypeFull.forDt(BaseDataType.BOOL), srcCheck.position)
+            val expr = PtBinaryExpression("and", DataType.forDt(BaseDataType.BOOL), srcCheck.position)
             val x1 = transformExpression(srcCheck.element)
             val x2 = transformExpression(srcCheck.element)
             val eltDt = srcCheck.element.inferType(program)
             if(eltDt.isInteger) {
-                val low = PtBinaryExpression("<=", DataTypeFull.forDt(BaseDataType.BOOL), srcCheck.position)
+                val low = PtBinaryExpression("<=", DataType.forDt(BaseDataType.BOOL), srcCheck.position)
                 low.add(transformExpression(range.from))
                 low.add(x1)
                 expr.add(low)
-                val high = PtBinaryExpression("<=", DataTypeFull.forDt(BaseDataType.BOOL), srcCheck.position)
+                val high = PtBinaryExpression("<=", DataType.forDt(BaseDataType.BOOL), srcCheck.position)
                 high.add(x2)
                 high.add(transformExpression(range.to))
                 expr.add(high)
             } else {
-                val low = PtBinaryExpression("<=", DataTypeFull.forDt(BaseDataType.BOOL), srcCheck.position)
+                val low = PtBinaryExpression("<=", DataType.forDt(BaseDataType.BOOL), srcCheck.position)
                 val lowFloat = PtTypeCast(BaseDataType.FLOAT, range.from.position)
                 lowFloat.add(transformExpression(range.from))
                 low.add(lowFloat)
                 low.add(x1)
                 expr.add(low)
-                val high = PtBinaryExpression("<=", DataTypeFull.forDt(BaseDataType.BOOL), srcCheck.position)
+                val high = PtBinaryExpression("<=", DataType.forDt(BaseDataType.BOOL), srcCheck.position)
                 high.add(x2)
                 val highFLoat = PtTypeCast(BaseDataType.FLOAT, range.to.position)
                 highFLoat.add(transformExpression(range.to))

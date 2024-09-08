@@ -187,7 +187,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        val iterableDt = forLoop.iterable.inferType(program).getOr(DataTypeFull.forDt(BaseDataType.BYTE))
+        val iterableDt = forLoop.iterable.inferType(program).getOr(DataType.forDt(BaseDataType.BYTE))
 
         if(iterableDt.isNumeric) TODO("iterable type should not be simple numeric!? "+forLoop.position) // TODO
 
@@ -1004,7 +1004,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(string: StringLiteral) {
-        checkValueTypeAndRangeString(DataTypeFull.forDt(BaseDataType.STR), string)
+        checkValueTypeAndRangeString(DataType.forDt(BaseDataType.STR), string)
 
         try {  // just *try* if it can be encoded, don't actually do it
             val bytes = compilerOptions.compTarget.encodeString(string.value, string.encoding)
@@ -1554,7 +1554,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    private fun checkValueTypeAndRangeString(targetDt: DataTypeFull, value: StringLiteral) : Boolean {
+    private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteral) : Boolean {
         return if (targetDt.isString) {
             when {
                 value.value.length > 255 -> {
@@ -1575,7 +1575,7 @@ internal class AstChecker(private val program: Program,
         else false
     }
 
-    private fun checkValueTypeAndRangeArray(targetDt: DataTypeFull, arrayspec: ArrayIndex, value: ArrayLiteral) : Boolean {
+    private fun checkValueTypeAndRangeArray(targetDt: DataType, arrayspec: ArrayIndex, value: ArrayLiteral) : Boolean {
         fun err(msg: String) : Boolean {
             errors.err(msg, value.position)
             return false
@@ -1672,7 +1672,7 @@ internal class AstChecker(private val program: Program,
         }
     }
 
-    private fun checkValueTypeAndRange(targetDt: DataTypeFull, value: NumericLiteral) : Boolean {
+    private fun checkValueTypeAndRange(targetDt: DataType, value: NumericLiteral) : Boolean {
         fun err(msg: String) : Boolean {
             errors.err(msg, value.position)
             return false
@@ -1725,7 +1725,7 @@ internal class AstChecker(private val program: Program,
         return true
     }
 
-    private fun checkArrayValues(value: ArrayLiteral, type: DataTypeFull): Boolean {
+    private fun checkArrayValues(value: ArrayLiteral, type: DataType): Boolean {
         val array = value.value.map {
             when (it) {
                 is NumericLiteral -> it.number.toInt()
@@ -1767,8 +1767,8 @@ internal class AstChecker(private val program: Program,
         return correct
     }
 
-    private fun checkAssignmentCompatible(targetDatatype: DataTypeFull,
-                                          sourceDatatype: DataTypeFull,
+    private fun checkAssignmentCompatible(targetDatatype: DataType,
+                                          sourceDatatype: DataType,
                                           sourceValue: Expression) : Boolean {
         val position = sourceValue.position
 

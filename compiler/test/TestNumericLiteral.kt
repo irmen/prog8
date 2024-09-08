@@ -11,7 +11,7 @@ import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
 
@@ -110,9 +110,9 @@ class TestNumericLiteral: FunSpec({
         val lvTwoR = NumericLiteral(BaseDataType.UBYTE, 2.0, dummyPos)
         val lvThreeR = NumericLiteral(BaseDataType.UBYTE, 3.0, dummyPos)
         val lvFour= NumericLiteral(BaseDataType.UBYTE, 4.0, dummyPos)
-        val lv1 = ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOne, lvTwo, lvThree), dummyPos)
-        val lv2 = ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOneR, lvTwoR, lvThreeR), dummyPos)
-        val lv3 = ArrayLiteral(InferredTypes.InferredType.known(DataTypeFull.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOneR, lvTwoR, lvFour), dummyPos)
+        val lv1 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOne, lvTwo, lvThree), dummyPos)
+        val lv2 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOneR, lvTwoR, lvThreeR), dummyPos)
+        val lv3 = ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE)), arrayOf(lvOneR, lvTwoR, lvFour), dummyPos)
         lv1 shouldBe lv2
         lv1 shouldNotBe lv3
     }

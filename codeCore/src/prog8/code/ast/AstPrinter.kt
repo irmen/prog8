@@ -1,6 +1,6 @@
 package prog8.code.ast
 
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.escape
 import prog8.code.core.toHex
 
@@ -9,7 +9,7 @@ import prog8.code.core.toHex
  * passing it as a String to the specified receiver function.
  */
 fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Unit) {
-    fun type(dt: DataTypeFull) = "!${dt}!"
+    fun type(dt: DataType) = "!${dt}!"
     fun txt(node: PtNode): String {
         return when(node) {
             is PtAssignTarget -> if(node.void) "<void>" else "<target>"

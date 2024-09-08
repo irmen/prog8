@@ -184,7 +184,7 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
                         if(variable!=null && variable.type.isByte && (bitmask==128 || bitmask==64)) {
                             val setOrNot = if(condition.operator=="!=") "set" else "notset"
                             val index = node.parent.children.indexOf(node)
-                            val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataTypeFull.forDt(BaseDataType.BOOL), node.condition.position)
+                            val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataType.forDt(BaseDataType.BOOL), node.condition.position)
                             bittestCall.add(variable)
                             if(bitmask==128)
                                 bittestCall.add(PtNumber(BaseDataType.UBYTE, 7.0, and.right.position))
@@ -210,7 +210,7 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
 }
 
 
-internal fun isSame(identifier: PtIdentifier, type: DataTypeFull, returnedRegister: RegisterOrPair): Boolean {
+internal fun isSame(identifier: PtIdentifier, type: DataType, returnedRegister: RegisterOrPair): Boolean {
     if(returnedRegister in Cx16VirtualRegisters) {
         val regname = returnedRegister.name.lowercase()
         val identifierRegName = identifier.name.substringAfterLast('.')

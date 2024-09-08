@@ -1,12 +1,10 @@
 TODO
 ====
 
-add extra Memsizer unit tests
 add array of strings test that it becomes an array of uword pointers
-check all occurences of isSplitWordArray , they should be BEFORE the other options that check for the regular word array types.
 replace some  when { xxx.isWord... }  with (when xxx.dt) { UWORD -> ...} again
 
-
+Extra CHECKS/Unit tests:
 codegens: check array copy (elt size)
 check: try to replace a multi-comparison expression (if x==1 | x==2 | x==3 ... ) by a simple containment check.
 IR: check for loop over split word array

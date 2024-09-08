@@ -71,7 +71,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
 
     companion object {
 
-        private fun argTypeCompatible(argDt: DataTypeFull, paramDt: DataTypeFull): Boolean {
+        private fun argTypeCompatible(argDt: DataType, paramDt: DataType): Boolean {
             if(argDt==paramDt)
                 return true
 
@@ -98,7 +98,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             val argtypes = argITypes.map { it.getOrUndef() }
             val target = call.target.targetStatement(program)
             if (target is Subroutine) {
-                val consideredParamTypes: List<DataTypeFull> = target.parameters.map { it.type }
+                val consideredParamTypes: List<DataType> = target.parameters.map { it.type }
                 if(argtypes.size != consideredParamTypes.size)
                     return Pair("invalid number of arguments", call.position)
                 val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
@@ -136,7 +136,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                         if(it.isArray)
                             pair.first.isArray
                         else
-                            argTypeCompatible(pair.first, DataTypeFull.forDt(it))
+                            argTypeCompatible(pair.first, DataType.forDt(it))
                     }
                     if (!anyCompatible) {
                         val actual = pair.first

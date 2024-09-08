@@ -1,7 +1,7 @@
 package prog8.vm
 
 import prog8.code.core.AssemblyError
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.intermediate.*
 
 class VmProgramLoader {
@@ -280,6 +280,15 @@ class VmProgramLoader {
                 }
             }
 
+            variable.dt.isSplitWordArray -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toUInt()
+                    memory.setUB(address, (value and 255u).toUByte())
+                    memory.setUB(address + variable.length!!, (value shr 8).toUByte())
+                    address++
+                }
+            }
+
             variable.dt.isUnsignedWordArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toUShort()
@@ -293,15 +302,6 @@ class VmProgramLoader {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toShort()
                     memory.setSW(address, value)
                     address += 2
-                }
-            }
-
-            variable.dt.isSplitWordArray -> {
-                for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toUInt()
-                    memory.setUB(address, (value and 255u).toUByte())
-                    memory.setUB(address + variable.length!!, (value shr 8).toUByte())
-                    address++
                 }
             }
 
@@ -343,6 +343,17 @@ class VmProgramLoader {
                 }
             }
 
+            variable.dt.isSplitWordArray -> {
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toUInt()
+                val lsb = (value and 255u).toUByte()
+                val msb = (value shr 8).toUByte()
+                repeat(variable.length!!) {
+                    memory.setUB(address, lsb)
+                    memory.setUB(address + variable.length!!, msb)
+                    address++
+                }
+            }
+
             variable.dt.isUnsignedWordArray -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toUShort()
                 repeat(variable.length!!) {
@@ -359,17 +370,6 @@ class VmProgramLoader {
                 }
             }
 
-            variable.dt.isSplitWordArray -> {
-                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toUInt()
-                val lsb = (value and 255u).toUByte()
-                val msb = (value shr 8).toUByte()
-                repeat(variable.length!!) {
-                    memory.setUB(address, lsb)
-                    memory.setUB(address + variable.length!!, msb)
-                    address++
-                }
-            }
-
             variable.dt.isFloatArray -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
                 repeat(variable.length!!) {
@@ -382,7 +382,7 @@ class VmProgramLoader {
         }
     }
 
-    private fun getInitializerValue(arrayDt: DataTypeFull, elt: IRStArrayElement, symbolAddresses: MutableMap<String, Int>): Double {
+    private fun getInitializerValue(arrayDt: DataType, elt: IRStArrayElement, symbolAddresses: MutableMap<String, Int>): Double {
         if(elt.addressOfSymbol!=null) {
             when {
                 arrayDt.isString || arrayDt.isByteArray || arrayDt.isBoolArray -> {

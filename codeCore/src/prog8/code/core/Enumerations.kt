@@ -78,9 +78,7 @@ internal object SubBool: SubType(BaseDataType.BOOL)
 internal object SubFloat: SubType(BaseDataType.FLOAT)
 
 
-
-// TODO rename back to DataType once everything has been converted
-data class DataTypeFull private constructor(val dt: BaseDataType, val sub: SubType?) {
+data class DataType private constructor(val dt: BaseDataType, val sub: SubType?) {
 
     init {
         if(dt.isArray) {
@@ -96,40 +94,40 @@ data class DataTypeFull private constructor(val dt: BaseDataType, val sub: SubTy
 
     companion object {
         private val simpletypes = mapOf(
-            BaseDataType.UBYTE to DataTypeFull(BaseDataType.UBYTE, null),
-            BaseDataType.BYTE to DataTypeFull(BaseDataType.BYTE, null),
-            BaseDataType.UWORD to DataTypeFull(BaseDataType.UWORD, null),
-            BaseDataType.WORD to DataTypeFull(BaseDataType.WORD, null),
-            BaseDataType.LONG to DataTypeFull(BaseDataType.LONG, null),
-            BaseDataType.FLOAT to DataTypeFull(BaseDataType.FLOAT, null),
-            BaseDataType.BOOL to DataTypeFull(BaseDataType.BOOL, null),
-            BaseDataType.STR to DataTypeFull(BaseDataType.STR, SubUnsignedByte),
-            BaseDataType.UNDEFINED to DataTypeFull(BaseDataType.UNDEFINED, null)
+            BaseDataType.UBYTE to DataType(BaseDataType.UBYTE, null),
+            BaseDataType.BYTE to DataType(BaseDataType.BYTE, null),
+            BaseDataType.UWORD to DataType(BaseDataType.UWORD, null),
+            BaseDataType.WORD to DataType(BaseDataType.WORD, null),
+            BaseDataType.LONG to DataType(BaseDataType.LONG, null),
+            BaseDataType.FLOAT to DataType(BaseDataType.FLOAT, null),
+            BaseDataType.BOOL to DataType(BaseDataType.BOOL, null),
+            BaseDataType.STR to DataType(BaseDataType.STR, SubUnsignedByte),
+            BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null)
         )
 
-        fun forDt(dt: BaseDataType): DataTypeFull =
+        fun forDt(dt: BaseDataType): DataType =
             simpletypes.getOrElse(dt) { throw IllegalArgumentException("invalid data type") }
 
-        fun arrayFor(elementDt: BaseDataType, split: Boolean=false): DataTypeFull {
+        fun arrayFor(elementDt: BaseDataType, split: Boolean=false): DataType {
             val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
-            if(split) return DataTypeFull(BaseDataType.ARRAY_SPLITW, SubType.forDt(actualElementDt))
-            else return DataTypeFull(BaseDataType.ARRAY, SubType.forDt(actualElementDt))
+            if(split) return DataType(BaseDataType.ARRAY_SPLITW, SubType.forDt(actualElementDt))
+            else return DataType(BaseDataType.ARRAY, SubType.forDt(actualElementDt))
         }
     }
 
-    fun elementToArray(split: Boolean = false): DataTypeFull {
+    fun elementToArray(split: Boolean = false): DataType {
         if(split) {
             return when(dt) {
-                BaseDataType.UWORD -> DataTypeFull(BaseDataType.ARRAY_SPLITW, SubUnsignedWord)
-                BaseDataType.WORD -> DataTypeFull(BaseDataType.ARRAY_SPLITW, SubSignedWord)
-                BaseDataType.STR -> DataTypeFull(BaseDataType.ARRAY_SPLITW, SubUnsignedWord)
+                BaseDataType.UWORD -> DataType(BaseDataType.ARRAY_SPLITW, SubUnsignedWord)
+                BaseDataType.WORD -> DataType(BaseDataType.ARRAY_SPLITW, SubSignedWord)
+                BaseDataType.STR -> DataType(BaseDataType.ARRAY_SPLITW, SubUnsignedWord)
                 else -> throw IllegalArgumentException("invalid array elt dt")
             }
         }
         return arrayFor(dt)
     }
 
-    fun elementType(): DataTypeFull =
+    fun elementType(): DataType =
         if(dt.isArray || dt==BaseDataType.STR)
             forDt(sub!!.dt)
         else
@@ -188,7 +186,7 @@ data class DataTypeFull private constructor(val dt: BaseDataType, val sub: SubTy
     }
 
     // is the type assignable to the given other type (perhaps via a typecast) without loss of precision?
-    infix fun isAssignableTo(targetType: DataTypeFull) =
+    infix fun isAssignableTo(targetType: DataType) =
         when(dt) {
             BaseDataType.BOOL -> targetType.dt == BaseDataType.BOOL
             BaseDataType.UBYTE -> targetType.dt in arrayOf(BaseDataType.UBYTE, BaseDataType.WORD, BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
@@ -202,8 +200,8 @@ data class DataTypeFull private constructor(val dt: BaseDataType, val sub: SubTy
             BaseDataType.UNDEFINED -> false
         }
 
-    fun largerSizeThan(other: DataTypeFull) = dt.largerSizeThan(other.dt)
-    fun equalsSize(other: DataTypeFull) = dt.equalsSize(other.dt)
+    fun largerSizeThan(other: DataType) = dt.largerSizeThan(other.dt)
+    fun equalsSize(other: DataType) = dt.equalsSize(other.dt)
 
     val isUndefined = dt == BaseDataType.UNDEFINED
     val isByte = dt.isByte

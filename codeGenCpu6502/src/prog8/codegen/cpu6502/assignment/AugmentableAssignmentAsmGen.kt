@@ -131,18 +131,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     is PtNumber -> {
                         val addr = (memory.address as PtNumber).number.toInt()
                         when(value.kind) {
-                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.boolean!!.asInt())
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.number!!.number.toInt())
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.boolean!!.asInt())
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(addr.toHex(), false, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(addr.toHex(), false, operator, regName(value))
-                            SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.array!!)
+                            SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.expression)
+                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.expression)
                                 } else {
-                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.expression!!)
+                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.expression!!)
                                 }
                             }
                         }
@@ -192,21 +192,21 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             SourceStorageKind.MEMORY -> {
                                 asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.memory!!)
+                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE), operator, value.memory!!)
                                 asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                             SourceStorageKind.ARRAY -> {
                                 asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.array!!)
+                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE), operator, value.array!!)
                                 asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                             SourceStorageKind.EXPRESSION -> {
                                 val tempVar = asmgen.getTempVarName(BaseDataType.UBYTE)
                                 asmgen.out("  sta  $tempVar")
                                 if(value.expression is PtTypeCast)
-                                    inplacemodificationByteVariableWithValue(tempVar, DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.expression)
+                                    inplacemodificationByteVariableWithValue(tempVar, DataType.forDt(BaseDataType.UBYTE), operator, value.expression)
                                 else
-                                    inplacemodificationByteVariableWithValue(tempVar, DataTypeFull.forDt(BaseDataType.UBYTE), operator, value.expression!!)
+                                    inplacemodificationByteVariableWithValue(tempVar, DataType.forDt(BaseDataType.UBYTE), operator, value.expression!!)
                                 asmgen.out("  ldx  $tempVar")
                             }
                         }
@@ -583,7 +583,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         fun assignValueToA() {
             val assignValue = AsmAssignment(value,
-                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataTypeFull.forDt(BaseDataType.UBYTE),
+                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.UBYTE),
                     address.definingISub(), Position.DUMMY, register = RegisterOrPair.A),
                 program.memsizer, Position.DUMMY)
             assignmentAsmGen.translateNormalAssignment(assignValue, address.definingISub())   // calculate value into A
@@ -672,7 +672,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplacemodificationSplitWordWithLiteralval(arrayVar: String, dt: DataTypeFull, index: Int, operator: String, value: Int) {
+    private fun inplacemodificationSplitWordWithLiteralval(arrayVar: String, dt: DataType, index: Int, operator: String, value: Int) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         inplacemodificationSomeWordWithLiteralval("${arrayVar}_lsb+$index", "${arrayVar}_msb+$index", dt, operator, value, null)
     }
@@ -894,7 +894,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationBytePointerWithValue(pointervar: PtIdentifier, operator: String, value: PtExpression) {
-        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataTypeFull.forDt(BaseDataType.UBYTE))
+        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
         inplacemodificationBytePointerWithVariable(pointervar, operator, "P8ZP_SCRATCH_B1")
     }
 
@@ -1057,7 +1057,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplacemodificationByteVariableWithValue(name: String, dt: DataTypeFull, operator: String, value: PtExpression) {
+    private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
         require(dt.isByteOrBool)
         if(!value.isSimple()) {
             // attempt short-circuit (McCarthy) evaluation
@@ -1465,7 +1465,7 @@ $shortcutLabel:""")
         }
     }
 
-    private fun inplacemodificationByteVariableWithLiteralval(name: String, dt: DataTypeFull, operator: String, value: Int) {
+    private fun inplacemodificationByteVariableWithLiteralval(name: String, dt: DataType, operator: String, value: Int) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         // note: no logical and/or shortcut here, not worth it due to simple right operand
         require(dt.isByteOrBool)
@@ -1676,7 +1676,7 @@ $shortcutLabel:""")
         }
     }
 
-    private fun inplacemodificationWordWithMemread(name: String, dt: DataTypeFull, operator: String, memread: PtMemoryByte) {
+    private fun inplacemodificationWordWithMemread(name: String, dt: DataType, operator: String, memread: PtMemoryByte) {
         require(dt.isInteger)
         when (operator) {
             "+" -> {
@@ -1729,12 +1729,12 @@ $shortcutLabel:""")
 
         
 
-    private fun inplacemodificationWordWithLiteralval(name: String, dt: DataTypeFull, operator: String, value: Int, block: PtBlock?) {
+    private fun inplacemodificationWordWithLiteralval(name: String, dt: DataType, operator: String, value: Int, block: PtBlock?) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         inplacemodificationSomeWordWithLiteralval(name, "$name+1", dt, operator, value, block)
     }
     
-    private fun inplacemodificationSomeWordWithLiteralval(lsb: String, msb: String, dt: DataTypeFull, operator: String, value: Int, block: PtBlock?) {
+    private fun inplacemodificationSomeWordWithLiteralval(lsb: String, msb: String, dt: DataType, operator: String, value: Int, block: PtBlock?) {
         require(dt.isWord)
         when (operator) {
             "+" -> {
@@ -2225,7 +2225,7 @@ $shortcutLabel:""")
         }
     }
 
-    private fun inplacemodificationWordWithVariable(name: String, dt: DataTypeFull, operator: String, otherName: String, valueDt: DataTypeFull, block: PtBlock?) {
+    private fun inplacemodificationWordWithVariable(name: String, dt: DataType, operator: String, otherName: String, valueDt: DataType, block: PtBlock?) {
         require(dt.isWord)
         require(valueDt.isInteger)
         when {
@@ -2650,7 +2650,7 @@ $shortcutLabel:""")
         }
     }
 
-    private fun inplacemodificationWordWithValue(name: String, dt: DataTypeFull, operator: String, value: PtExpression, block: PtBlock?) {
+    private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression, block: PtBlock?) {
         require(dt.isWord)
         fun multiplyVarByWordInAY() {
             if(block?.options?.veraFxMuls==true)

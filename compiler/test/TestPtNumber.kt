@@ -9,7 +9,7 @@ import prog8.code.ast.PtArray
 import prog8.code.ast.PtNumber
 import prog8.code.ast.PtString
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataTypeFull
+import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
 
@@ -108,11 +108,11 @@ class TestPtNumber: FunSpec({
         val lvTwoR = PtNumber(BaseDataType.UBYTE, 2.0, dummyPos)
         val lvThreeR = PtNumber(BaseDataType.UBYTE, 3.0, dummyPos)
         val lvFour= PtNumber(BaseDataType.UBYTE, 4.0, dummyPos)
-        val lv1 = PtArray(DataTypeFull.arrayFor(BaseDataType.UBYTE), dummyPos)
+        val lv1 = PtArray(DataType.arrayFor(BaseDataType.UBYTE), dummyPos)
         arrayOf(lvOne, lvTwo, lvThree).forEach { lv1.add(it) }
-        val lv2 = PtArray(DataTypeFull.arrayFor(BaseDataType.UBYTE), dummyPos)
+        val lv2 = PtArray(DataType.arrayFor(BaseDataType.UBYTE), dummyPos)
         arrayOf(lvOneR, lvTwoR, lvThreeR).forEach { lv2.add(it) }
-        val lv3 = PtArray(DataTypeFull.arrayFor(BaseDataType.UBYTE), dummyPos)
+        val lv3 = PtArray(DataType.arrayFor(BaseDataType.UBYTE), dummyPos)
         arrayOf(lvOneR, lvTwoR, lvFour).forEach { lv3.add(it) }
         lv1 shouldBe lv2
         lv1 shouldNotBe lv3

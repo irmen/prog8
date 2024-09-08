@@ -406,10 +406,10 @@ sealed interface IIRBlockElement {
 class IRSubroutine(
     override val label: String,
     val parameters: List<IRParam>,
-    val returnType: DataTypeFull?,
+    val returnType: DataType?,
     val position: Position): IIRBlockElement {
 
-    class IRParam(val name: String, val dt: DataTypeFull)
+    class IRParam(val name: String, val dt: DataType)
 
     val chunks = mutableListOf<IRCodeChunkBase>()
 
@@ -444,7 +444,7 @@ class IRAsmSubroutine(
     val position: Position
 ): IIRBlockElement {
 
-    class IRAsmParam(val reg: RegisterOrStatusflag, val dt: DataTypeFull)
+    class IRAsmParam(val reg: RegisterOrStatusflag, val dt: DataType)
 
     init {
         require('.' in label) { "subroutine name is not scoped: $label" }

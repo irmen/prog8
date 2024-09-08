@@ -45,7 +45,7 @@ internal fun builtinFunctionReturnType(function: String): InferredTypes.Inferred
     return if(returnType==null)
         InferredTypes.InferredType.void()
     else
-        InferredTypes.knownFor(DataTypeFull.forDt(returnType))
+        InferredTypes.knownFor(DataType.forDt(returnType))
 }
 
 
