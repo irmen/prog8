@@ -1,6 +1,7 @@
-package prog8tests
+package prog8tests.compiler
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.datatest.withData
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.ICompilationTarget
 import prog8.code.target.*
@@ -11,7 +12,6 @@ import prog8tests.helpers.*
 import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.exists
-import kotlin.io.path.readText
 
 
 /**
@@ -89,13 +89,14 @@ class TestCompilerOnExamplesC64: FunSpec({
         listOf(false, true)
     )
 
-    onlyC64.forEach {
-        val (source, optimize) = it
-        val target = C64Target()
-        val (displayName, filepath) = prepareTestFiles(source, optimize, target)
-        test(displayName) {
-            compileTheThing(filepath, optimize, target) shouldNotBe null
-        }
+    val target = C64Target()
+    withData(
+        nameFn = { it.second.first },
+        onlyC64.map { it to prepareTestFiles(it.first, it.second, target) }
+    ) { (params, prep) ->
+        val filepath = prep.second
+        val optimize = params.second
+        compileTheThing(filepath, optimize, target) shouldNotBe null
     }
 })
 
@@ -145,13 +146,14 @@ class TestCompilerOnExamplesCx16: FunSpec({
         listOf(false, true)
     )
 
-    onlyCx16.forEach {
-        val (source, optimize) = it
-        val target = Cx16Target()
-        val (displayName, filepath) = prepareTestFiles(source, optimize, target)
-        test(displayName) {
-            compileTheThing(filepath, optimize, target) shouldNotBe null
-        }
+    val target = Cx16Target()
+    withData(
+        nameFn = { it.second.first },
+        onlyCx16.map { it to prepareTestFiles(it.first, it.second, target) }
+    ) { (params, prep) ->
+        val filepath = prep.second
+        val optimize = params.second
+        compileTheThing(filepath, optimize, target) shouldNotBe null
     }
 })
 
@@ -181,40 +183,39 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "tehtriz",
             "textelite",
         ),
-        listOf(false, true)
+        listOf(false, true),
+        listOf(C64Target(), Cx16Target())
     )
 
-    bothCx16AndC64.forEach {
-        val (source, optimize) = it
-        val c64target = C64Target()
-        val cx16target = Cx16Target()
-        val (displayNameC64, filepathC64) = prepareTestFiles(source, optimize, c64target)
-        val (displayNameCx16, filepathCx16) = prepareTestFiles(source, optimize, cx16target)
-        test(displayNameC64) {
-            compileTheThing(filepathC64, optimize, c64target) shouldNotBe null
-        }
-        test(displayNameCx16) {
-            compileTheThing(filepathCx16, optimize, cx16target) shouldNotBe null
-        }
+    withData(
+        nameFn = { it.third.first },
+        bothCx16AndC64.map { Triple(it.second, it.third, prepareTestFiles(it.first, it.second, it.third)) }
+    ) { params ->
+        val filepath = params.third.second
+        val optimize = params.first
+        compileTheThing(filepath, optimize, params.second) shouldNotBe null
     }
 })
 
 class TestCompilerOnExamplesVirtual: FunSpec({
 
-    val onlyVirtual = listOf(
+    val onlyVirtual = cartesianProduct(
+        listOf(
             "bouncegfx",
             "bsieve",
             "pixelshader",
             "sincos"
-        )
+        ),
+        listOf(false, true)
+    )
 
-    onlyVirtual.forEach {
-        val target = VMTarget()
-        val (displayName, filepath) = prepareTestFiles(it, false, target)
-        test(displayName) {
-            val src = filepath.readText()
-            compileText(target, false, src, writeAssembly = true) shouldNotBe null
-            compileText(target, true, src, writeAssembly = true) shouldNotBe null
-        }
+    val target = VMTarget()
+    withData(
+        nameFn = { it.second.first },
+        onlyVirtual.map { it to prepareTestFiles(it.first, it.second, target) }
+    ) { (params, prep) ->
+        val filepath = prep.second
+        val optimize = params.second
+        compileTheThing(filepath, optimize, target) shouldNotBe null
     }
 })

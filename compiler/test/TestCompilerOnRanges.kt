@@ -1,7 +1,8 @@
-package prog8tests
+package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -93,26 +94,26 @@ class TestCompilerOnRanges: FunSpec({
     }
 
     context("floatArrayInitializerWithRange") {
-        val combos = cartesianProduct(
-            listOf("", "42", "41"),                 // sizeInDecl
-            listOf("%import floats", ""),           // optEnableFloats
-            listOf(Cx16Target(), C64Target()),          // platform
-            listOf(false, true)                     // optimize
-        )
-
-        combos.forEach {
-            val (sizeInDecl, optEnableFloats, platform, optimize) = it
-            val displayName =
-                when (sizeInDecl) {
+        withData(
+            nameFn = {
+                when (it.first) {
                     "" -> "no"
                     "42" -> "correct"
                     else -> "wrong"
                 } + " array size given" +
-                        ", " + (if (optEnableFloats == "") "without" else "with") + " %option enable_floats" +
-                        ", ${platform.name}, optimize: $optimize"
+                        ", " + (if (it.second == "") "without" else "with") + " %option enable_floats" +
+                        ", ${it.third.name}, optimize: ${it.fourth}"
+            },
+            cartesianProduct(
+                listOf("", "42", "41"),                 // sizeInDecl
+                listOf("%import floats", ""),           // optEnableFloats
+                listOf(Cx16Target(), C64Target()),          // platform
+                listOf(false, true)                     // optimize
+            )
+        ) { seq ->
+            val (sizeInDecl, optEnableFloats, platform, optimize) = seq
 
-            test(displayName) {
-                val result = compileText(platform, optimize, """
+            val result = compileText(platform, optimize, """
                     $optEnableFloats
                     main {
                         sub start() {
@@ -121,12 +122,10 @@ class TestCompilerOnRanges: FunSpec({
                         }
                     }
                 """)
-                if (optEnableFloats != "" && (sizeInDecl=="" || sizeInDecl=="42"))
-                    result shouldNotBe null
-                else
-                    result shouldBe null
-
-            }
+            if (optEnableFloats != "" && (sizeInDecl=="" || sizeInDecl=="42"))
+                result shouldNotBe null
+            else
+                result shouldBe null
         }
     }
 

@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.compiler
 
 import com.github.michaelbull.result.expectError
 import com.github.michaelbull.result.getOrElse

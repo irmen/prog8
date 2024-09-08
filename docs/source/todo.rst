@@ -1,10 +1,6 @@
 TODO
 ====
 
-convert example tests that loop over arrays, to data driven withData()
-move those tests to a new separated module in the project so they're not always ran as part of compiler:test
-
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.compiler
 
 import io.kotest.core.config.AbstractProjectConfig
 import io.kotest.core.spec.SpecExecutionOrder

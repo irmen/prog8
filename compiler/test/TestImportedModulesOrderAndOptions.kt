@@ -1,4 +1,4 @@
-package prog8tests
+package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
