@@ -1,7 +1,6 @@
-%import graphics
+%import gfx2
 %import math
 
-; note: this program is tuned for the CX16, but with some minor modifications can run on other systems too.
 
 main {
     const ubyte MAX_NUM_CIRCLES = 80
@@ -13,11 +12,11 @@ main {
     ubyte background_color
 
     sub start() {
-        graphics.enable_bitmap_mode()
+        gfx2.screen_mode(1)
 
         repeat {
             background_color = math.rnd()
-            graphics.clear_screen(0, background_color)
+            gfx2.clear_screen(background_color)
             num_circles = 0
             draw_circles()
         }
@@ -29,17 +28,16 @@ main {
         ubyte @zp radius
 
         while num_circles<MAX_NUM_CIRCLES {
-            x = math.rndw() % graphics.WIDTH
-            y = math.rndw() % graphics.HEIGHT
+            x = math.rndw() % gfx2.width
+            y = math.rndw() % gfx2.height
             radius = GROWTH_RATE * 2        ; use a bit of a buffer between circles.
             if not_colliding() {
                 radius -= GROWTH_RATE
                 ubyte color = math.rnd()
                 while color==background_color
                     color = math.rnd()
-                graphics.colors(color, 0)
                 while not_edge() and not_colliding() {
-                    graphics.disc(x, y as ubyte, radius)
+                    gfx2.disc(x, y as ubyte, radius, color)
                     sys.waitvsync()
                     radius += GROWTH_RATE
                 }
@@ -72,11 +70,11 @@ main {
         sub not_edge() -> bool {
             if x as word - radius < 0
                 return false
-            if x + radius >= graphics.WIDTH
+            if x + radius >= gfx2.width
                 return false
             if y as word - radius < 0
                 return false
-            if y + radius >= graphics.HEIGHT
+            if y + radius >= gfx2.height
                 return false
             return true
         }
