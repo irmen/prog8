@@ -1,15 +1,27 @@
 TODO
 ====
 
-add array of strings test that it becomes an array of uword pointers
-replace some  when { xxx.isWord... }  with (when xxx.dt) { UWORD -> ...} again
+Main branch: IR funcRolRor: add this: if(arr.splitWords)  TODO("rol/ror on split words array")
+Main branch: possible optimization for:  if x < 2/ x<1  ->  if x==0 or x==1   likewise for > 253/ >254
+Main branch: fix IR/VM problem with containment check:
+    main {
+        sub start() {
+            ubyte @shared x
 
-Extra CHECKS/Unit tests:
-codegens: check array copy (elt size)
-check: try to replace a multi-comparison expression (if x==1 | x==2 | x==3 ... ) by a simple containment check.
-IR: check for loop over split word array
-IR: check rol ror in array (elt size)
-IR: check set lsb/msb in array (elt size)
+            x=3
+            if x==1 or x==2 or x==3 or x==4
+                txt.print("yep1\n")
+
+            x = 9
+            if x==1 or x==2 or x==3 or x==4
+                txt.print("yep2-shouldn't-see-this\n")      ; TODO fix this in IR/VM
+
+            if x in 1 to 4
+                txt.print("yep3-shouldn't-see-this\n")
+            if x in 4 to 10
+                txt.print("yep4\n")
+        }
+    }
 
 
 Improve register load order in subroutine call args assignments:

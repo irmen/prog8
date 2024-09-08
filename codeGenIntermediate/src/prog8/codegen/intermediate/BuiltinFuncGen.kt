@@ -98,7 +98,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         }
         else {
             // normal array to array copy (various element types)
-            val eltsize = codeGen.options.compTarget.memorySize(source.type.sub!!)    // TODO  test this!
+            val eltsize = codeGen.options.compTarget.memorySize(source.type.sub!!)
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=fromReg, labelSymbol = source.name)
                 it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=toReg, labelSymbol = target.name)
@@ -583,8 +583,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         if(arr!=null && index!=null) {
             if(arr.splitWords)  TODO("IR rol/ror on split words array")
             val variable = arr.variable.name
-            val itemsize = codeGen.program.memsizer.memorySize(arr.type.sub!!)  // TODO  test this!
-            addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, labelSymbol = variable, symbolOffset = index*itemsize), null)
+            val offset = codeGen.program.memsizer.memorySize(arr.type, index)
+            addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, labelSymbol = variable, symbolOffset = offset), null)
             return ExpressionCodeResult(result, vmDt, -1, -1)
         }
 
@@ -669,7 +669,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     }
                 }
                 else {
-                    val eltSize = codeGen.program.memsizer.memorySize(target.type.sub!!)    // TODO  test this!
+                    val eltSize = codeGen.program.memsizer.memorySize(target.type, null)
                     val constIndex = target.index.asConstInteger()
                     if(isConstZeroValue) {
                         if(constIndex!=null) {

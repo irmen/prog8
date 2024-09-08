@@ -400,8 +400,9 @@ internal class ConstantIdentifierReplacer(
 
         // convert the initializer range expression from a range or int, to an actual array.
         // this is to allow initialization of arrays with a single value like  ubyte[10] array = 42
+        val dt = decl.datatype
         when {
-            decl.datatype.isUnsignedByteArray || decl.datatype.isSignedByteArray || decl.datatype.isUnsignedWordArray || decl.datatype.isSignedWordArray -> {
+            dt.isUnsignedByteArray || dt.isSignedByteArray || dt.isUnsignedWordArray || dt.isSignedWordArray -> {
                 val rangeExpr = decl.value as? RangeExpression
                 if(rangeExpr!=null) {
                     val constRange = rangeExpr.toConstantIntegerRange()
@@ -417,12 +418,12 @@ internal class ConstantIdentifierReplacer(
                     if(constRange!=null) {
                         val rangeType = rangeExpr.inferType(program).getOr(DataType.forDt(BaseDataType.UBYTE))
                         return if(rangeType.isByte) {
-                            ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
+                            ArrayLiteral(InferredTypes.InferredType.known(dt),
                                 constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                                 position = decl.value!!.position)
                         } else {
                             require(rangeType.sub!=null)
-                            ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
+                            ArrayLiteral(InferredTypes.InferredType.known(dt),
                                 constRange.map { NumericLiteral(rangeType.sub!!.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                                 position = decl.value!!.position)
                         }
@@ -436,30 +437,30 @@ internal class ConstantIdentifierReplacer(
                     // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
                     val fillvalue = numericLv.number.toInt()
                     when {
-                        decl.datatype.isUnsignedByteArray -> {
+                        dt.isUnsignedByteArray -> {
                             if(fillvalue !in 0..255)
                                 errors.err("ubyte value overflow", numericLv.position)
                         }
-                        decl.datatype.isSignedByteArray -> {
+                        dt.isSignedByteArray -> {
                             if(fillvalue !in -128..127)
                                 errors.err("byte value overflow", numericLv.position)
                         }
-                        decl.datatype.isUnsignedWordArray -> {
+                        dt.isUnsignedWordArray -> {
                             if(fillvalue !in 0..65535)
                                 errors.err("uword value overflow", numericLv.position)
                         }
-                        decl.datatype.isSignedWordArray -> {
+                        dt.isSignedWordArray -> {
                             if(fillvalue !in -32768..32767)
                                 errors.err("word value overflow", numericLv.position)
                         }
                         else -> {}
                     }
                     // create the array itself, filled with the fillvalue.
-                    val array = Array(size) {fillvalue}.map { NumericLiteral(decl.datatype.elementType().dt, it.toDouble(), numericLv.position) }.toTypedArray<Expression>()
-                    return ArrayLiteral(InferredTypes.InferredType.known(decl.datatype), array, position = numericLv.position)
+                    val array = Array(size) {fillvalue}.map { NumericLiteral(dt.elementType().dt, it.toDouble(), numericLv.position) }.toTypedArray<Expression>()
+                    return ArrayLiteral(InferredTypes.InferredType.known(dt), array, position = numericLv.position)
                 }
             }
-            decl.datatype.isFloatArray -> {
+            dt.isFloatArray -> {
                 val rangeExpr = decl.value as? RangeExpression
                 if(rangeExpr!=null) {
                     // convert the initializer range expression to an actual array of floats
@@ -487,7 +488,7 @@ internal class ConstantIdentifierReplacer(
                     }
                 }
             }
-            decl.datatype.isBoolArray -> {
+            dt.isBoolArray -> {
                 val size = decl.arraysize?.constIndex() ?: return null
                 val numericLv = decl.value as? NumericLiteral
                 if(numericLv!=null) {

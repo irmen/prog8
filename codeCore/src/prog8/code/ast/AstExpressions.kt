@@ -55,19 +55,17 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         }
     }
 
-    infix fun isSameAs(target: PtAssignTarget): Boolean {
-        return when {
-            target.memory != null && this is PtMemoryByte-> {
-                target.memory!!.address isSameAs this.address
-            }
-            target.identifier != null && this is PtIdentifier -> {
-                this.name == target.identifier!!.name
-            }
-            target.array != null && this is PtArrayIndexer -> {
-                this.variable.name == target.array!!.variable.name && this.index isSameAs target.array!!.index && this.splitWords==target.array!!.splitWords
-            }
-            else -> false
+    infix fun isSameAs(target: PtAssignTarget): Boolean = when {
+        target.memory != null && this is PtMemoryByte -> {
+            target.memory!!.address isSameAs this.address
         }
+        target.identifier != null && this is PtIdentifier -> {
+            this.name == target.identifier!!.name
+        }
+        target.array != null && this is PtArrayIndexer -> {
+            this.variable.name == target.array!!.variable.name && this.index isSameAs target.array!!.index && this.splitWords==target.array!!.splitWords
+        }
+        else -> false
     }
 
     fun asConstInteger(): Int? = (this as? PtNumber)?.number?.toInt() ?: (this as? PtBool)?.asInt()

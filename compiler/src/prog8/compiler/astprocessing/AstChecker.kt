@@ -742,17 +742,18 @@ internal class AstChecker(private val program: Program,
                 val arraysize = decl.arraysize
                 if(arraysize!=null) {
                     val arraySize = arraysize.constIndex() ?: 1
+                    val dt = decl.datatype
                     when {
-                        decl.datatype.isString || decl.datatype.isByteArray || decl.datatype.isBoolArray ->
+                        dt.isString || dt.isByteArray || dt.isBoolArray ->
                             if(arraySize > 256)
                                 err("byte array length must be 1-256")
-                        decl.datatype.isSplitWordArray ->
+                        dt.isSplitWordArray ->
                             if(arraySize > 256)
                                 err("split word array length must be 1-256")
-                        decl.datatype.isWordArray ->
+                        dt.isWordArray ->
                             if(arraySize > 128)
                                 err("word array length must be 1-128")
-                        decl.datatype.isFloatArray ->
+                        dt.isFloatArray ->
                             if(arraySize > 51)
                                 err("float array length must be 1-51")
                         else -> {}

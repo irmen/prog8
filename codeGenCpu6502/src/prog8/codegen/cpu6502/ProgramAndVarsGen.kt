@@ -604,19 +604,20 @@ internal class ProgramAndVarsGen(
     }
 
     private fun uninitializedVariable2asm(variable: StStaticVariable) {
+        val dt = variable.dt
         when {
-            variable.dt.isBool || variable.dt.isUnsignedByte -> asmgen.out("${variable.name}\t.byte  ?")
-            variable.dt.isSignedByte -> asmgen.out("${variable.name}\t.char  ?")
-            variable.dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ?")
-            variable.dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  ?")
-            variable.dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.machine.FLOAT_MEM_SIZE}")
-            variable.dt.isSplitWordArray -> {
-                val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!) / 2
+            dt.isBool || dt.isUnsignedByte -> asmgen.out("${variable.name}\t.byte  ?")
+            dt.isSignedByte -> asmgen.out("${variable.name}\t.char  ?")
+            dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ?")
+            dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  ?")
+            dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.machine.FLOAT_MEM_SIZE}")
+            dt.isSplitWordArray -> {
+                val numbytesPerHalf = compTarget.memorySize(dt, variable.length!!) / 2
                 asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf")
                 asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf")
             }
-            variable.dt.isArray -> {
-                val numbytes = compTarget.memorySize(variable.dt, variable.length!!)
+            dt.isArray -> {
+                val numbytes = compTarget.memorySize(dt, variable.length!!)
                 asmgen.out("${variable.name}\t.fill  $numbytes")
             }
             else -> {
@@ -634,12 +635,13 @@ internal class ProgramAndVarsGen(
                     variable.onetimeInitializationNumericValue!!.toInt()
             } else 0
 
+        val dt=variable.dt
         when {
-            variable.dt.isBool || variable.dt.isUnsignedByte -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
-            variable.dt.isSignedByte -> asmgen.out("${variable.name}\t.char  $initialValue")
-            variable.dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
-            variable.dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  $initialValue")
-            variable.dt.isFloat -> {
+            dt.isBool || dt.isUnsignedByte -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
+            dt.isSignedByte -> asmgen.out("${variable.name}\t.char  $initialValue")
+            dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
+            dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  $initialValue")
+            dt.isFloat -> {
                 if(initialValue==0) {
                     asmgen.out("${variable.name}\t.byte  0,0,0,0,0  ; float")
                 } else {
@@ -647,10 +649,10 @@ internal class ProgramAndVarsGen(
                     asmgen.out("${variable.name}\t.byte  $floatFill  ; float $initialValue")
                 }
             }
-            variable.dt.isString -> {
+            dt.isString -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            variable.dt.isArray -> arrayVariable2asm(variable.name, variable.dt, variable.onetimeInitializationArrayValue, variable.length)
+            dt.isArray -> arrayVariable2asm(variable.name, dt, variable.onetimeInitializationArrayValue, variable.length)
             else -> {
                 throw AssemblyError("weird dt")
             }

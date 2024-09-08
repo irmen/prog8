@@ -249,22 +249,23 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish}\n")
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish}\n")
             } else {
+                val dt = variable.dt
                 val value: String = when {
-                    variable.dt.isBool -> variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: ""
-                    variable.dt.isFloat -> (variable.onetimeInitializationNumericValue ?: "").toString()
-                    variable.dt.isNumeric -> variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: ""
-                    variable.dt.isString -> {
+                    dt.isBool -> variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: ""
+                    dt.isFloat -> (variable.onetimeInitializationNumericValue ?: "").toString()
+                    dt.isNumeric -> variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: ""
+                    dt.isString -> {
                         val encoded = irProgram.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue.second) + listOf(0u)
                         encoded.joinToString(",") { it.toInt().toString() }
                     }
-                    variable.dt.isFloatArray -> {
+                    dt.isFloatArray -> {
                         if(variable.onetimeInitializationArrayValue!=null) {
                             variable.onetimeInitializationArrayValue.joinToString(",") { it.number!!.toString() }
                         } else {
                             ""     // array will be zero'd out at program start
                         }
                     }
-                    variable.dt.isArray -> {
+                    dt.isArray -> {
                         if(variable.onetimeInitializationArrayValue!==null) {
                             variable.onetimeInitializationArrayValue.joinToString(",") {
                                 if(it.number!=null)

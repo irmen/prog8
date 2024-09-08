@@ -199,23 +199,24 @@ class VmProgramLoader {
             // zero out uninitialized ('bss') variables.
             if(variable.uninitialized) {
                 if(variable.dt.isArray) {
+                    val dt = variable.dt
                     repeat(variable.length!!) {
                         when {
-                            variable.dt.isString || variable.dt.isBoolArray || variable.dt.isByteArray -> {
+                            dt.isString || dt.isBoolArray || dt.isByteArray -> {
                                 memory.setUB(addr, 0u)
                                 addr++
                             }
-                            variable.dt.isSplitWordArray -> {
+                            dt.isSplitWordArray -> {
                                 // lo bytes come after the hi bytes
                                 memory.setUB(addr, 0u)
                                 memory.setUB(addr+variable.length!!, 0u)
                                 addr++
                             }
-                            variable.dt.isWordArray -> {
+                            dt.isWordArray -> {
                                 memory.setUW(addr, 0u)
                                 addr += 2
                             }
-                            variable.dt.isFloatArray -> {
+                            dt.isFloatArray -> {
                                 memory.setFloat(addr, 0.0)
                                 addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
                             }

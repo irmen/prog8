@@ -10,6 +10,8 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.ast.PtArray
+import prog8.code.ast.PtVariable
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
@@ -691,6 +693,37 @@ main {
         DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe false
         DataType.arrayFor(BaseDataType.UWORD, true).isArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD, true).isSplitWordArray shouldBe true
+    }
+
+    test("array of strings becomes array of uword pointers") {
+        val src="""
+            main {
+                sub start() {
+                    str variable = "name1"
+                    str[2] @shared names = [ variable, "name2" ]
+                }
+            }"""
+
+        val result = compileText(C64Target(), false, src, writeAssembly = true)
+        result shouldNotBe null
+
+        val st1 = result!!.compilerAst.entrypoint.statements
+        st1.size shouldBe 3
+        st1[0] shouldBe instanceOf<VarDecl>()
+        st1[1] shouldBe instanceOf<VarDecl>()
+        (st1[0] as VarDecl).name shouldBe "variable"
+        (st1[1] as VarDecl).name shouldBe "names"
+        val array1 = (st1[1] as VarDecl).value as ArrayLiteral
+        array1.type.isArray shouldBe true
+        array1.type.getOrUndef() shouldBe DataType.arrayFor(BaseDataType.UWORD, false)
+
+        val ast2 = result.codegenAst!!
+        val st2 = ast2.entrypoint()!!.children
+        st2.size shouldBe 3
+        (st2[0] as PtVariable).name shouldBe "p8v_variable"
+        (st2[1] as PtVariable).name shouldBe "p8v_names"
+        val array2 = (st2[1] as PtVariable).value as PtArray
+        array2.type shouldBe DataType.arrayFor(BaseDataType.UWORD, false)
     }
 })
 

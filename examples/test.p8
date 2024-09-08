@@ -4,16 +4,26 @@
 
 main {
     sub start() {
-        str name1 = "name1"
-        str name2 = "name2"
-        uword[] @split names = [name1, name2, "name3"]
-        txt.print(names[2])
+        uword[2] array = [$1111,$eeee]
+        uword[2] @split sarray = [$1111,$eeee]
 
-        ;uword[] @split names2 = [name1, name2, "name3"]
-        ;uword[] addresses = [0,0,0]
-        ;names = [1111,2222,3333]
-        ;addresses = names
-        ;names = addresses
-        ;names2 = names
+        txt.print_uwhex(array[1], true)
+        txt.nl()
+        txt.print_uwhex(sarray[1], true)
+        txt.nl()
+
+        setmsb(array[1], $55)
+        setmsb(sarray[1], $55)
+        txt.print_uwhex(array[1], true)
+        txt.nl()
+        txt.print_uwhex(sarray[1], true)
+        txt.nl()
+
+        setlsb(array[1], $44)
+        setlsb(sarray[1], $44)
+        txt.print_uwhex(array[1], true)
+        txt.nl()
+        txt.print_uwhex(sarray[1], true)
+        txt.nl()
     }
 }
