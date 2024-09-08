@@ -177,6 +177,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableTr = translateExpression(check.iterable)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
                 result += codeGen.makeSyscall(IMSyscall.STRING_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg), IRDataType.BYTE to elementTr.resultReg)
+                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
             DataType.ARRAY_UB, DataType.ARRAY_B -> {
@@ -189,6 +190,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableLength = codeGen.symbolTable.getLength(check.iterable.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 result += codeGen.makeSyscall(IMSyscall.BYTEARRAY_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to elementTr.resultReg)
+                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
             DataType.ARRAY_UW, DataType.ARRAY_W -> {
@@ -201,6 +203,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableLength = codeGen.symbolTable.getLength(check.iterable.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 result += codeGen.makeSyscall(IMSyscall.WORDARRAY_CONTAINS, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to elementTr.resultReg)
+                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
             DataType.ARRAY_F -> {
@@ -214,6 +217,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val iterableLength = codeGen.symbolTable.getLength(check.iterable.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 result += codeGen.makeSyscall(IMSyscall.FLOATARRAY_CONTAINS, listOf(IRDataType.FLOAT to elementTr.resultFpReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
             else -> throw AssemblyError("weird iterable dt ${check.iterable.type} for ${check.iterable.name}")

@@ -1,6 +1,9 @@
 TODO
 ====
 
+Main branch: possible optimization for:  if x < 2/ x<1  ->  if x==0 or x==1   likewise for > 253/ >254
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
