@@ -57,10 +57,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             RegisterOrPair.XY -> IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
             in Cx16VirtualRegisters -> IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}")
             null -> {
-                when(returns.register.statusflag) {
-                    Statusflag.Pc -> IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
-                    else -> throw AssemblyError("weird statusflag as returnvalue")
-                }
+                TODO("assign CPU status flag ${returns.register.statusflag!!}")
             }
             else -> throw AssemblyError("cannot load register")
         }

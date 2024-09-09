@@ -10,8 +10,8 @@ import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
 import prog8.code.core.DataType
 import prog8.code.core.SourceCode
+import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -136,7 +136,7 @@ main {
         }}
     }
 }"""
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
         val errors = ErrorReporterForTests()
         val result = compileText(Cx16Target(), false, src, errors, true)!!
         errors.errors.size shouldBe 0
@@ -186,7 +186,7 @@ main {
     romsub ${'$'}8003 = test3() -> uword @R1, bool @Pc, ubyte @X
 }"""
 
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
         val errors = ErrorReporterForTests()
         val result = compileText(Cx16Target(), false, src, errors, true)!!
         errors.errors.size shouldBe 0

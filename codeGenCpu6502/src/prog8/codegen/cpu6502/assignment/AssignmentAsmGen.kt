@@ -48,6 +48,26 @@ internal class AssignmentAsmGen(
 
         asmgen.translate(values)
 
+        val assignmentTargets = assignment.children.dropLast(1)
+        if(sub.returns.size==assignmentTargets.size) {
+            // because we can only handle integer results right now we can just zip() it all up
+            val (statusFlagResults, registersResults) = sub.returns.zip(assignmentTargets).partition { it.first.register.statusflag!=null }
+            if (statusFlagResults.isEmpty())
+                assignRegisterResults(registersResults)
+            else if(registersResults.isEmpty())
+                assignOnlyTheStatusFlagsResults(false, statusFlagResults)
+            else
+                assignStatusFlagsAndRegistersResults(statusFlagResults, registersResults)
+        } else {
+            throw AssemblyError("number of values and targets don't match")
+        }
+    }
+
+    private fun assignStatusFlagsAndRegistersResults(
+        statusFlagResults: List<Pair<StRomSubParameter, PtNode>>,
+        registersResults: List<Pair<StRomSubParameter, PtNode>>
+    ) {
+
         fun needsToSaveA(registersResults: List<Pair<StRomSubParameter, PtNode>>): Boolean =
             if(registersResults.isEmpty())
                 false
@@ -56,123 +76,122 @@ internal class AssignmentAsmGen(
             else
                 true
 
-        fun assignCarryFlagResult(target: PtAssignTarget, saveA: Boolean) {
-            if(saveA) asmgen.out("  pha")
-            asmgen.out("  lda  #0  |  rol  a")
-            val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-            assignRegisterByte(tgt, CpuRegister.A, false, false)
-            if(saveA) asmgen.out("  pla")
+        if(registersResults.all {
+                val tgt = it.second as PtAssignTarget
+                tgt.void || tgt.identifier!=null})
+        {
+            // all other results are just stored into identifiers directly so first handle those
+            // (simple store instructions that don't modify the carry flag)
+            assignRegisterResults(registersResults)
+            assignOnlyTheStatusFlagsResults(false, statusFlagResults)
+        } else {
+            val saveA = needsToSaveA(registersResults)
+            assignOnlyTheStatusFlagsResults(saveA, statusFlagResults)
+            assignRegisterResults(registersResults)
+        }
+    }
+
+    private fun assignOnlyTheStatusFlagsResults(saveA: Boolean, statusFlagResults: List<Pair<StRomSubParameter, PtNode>>) {
+        // assigning flags to their variables targets requires load-instructions that destroy flags
+        // so if there's more than 1, we need to save and restore the flags
+        val saveFlags = statusFlagResults.size>1
+
+        fun hasFlag(statusFlagResults: List<Pair<StRomSubParameter, PtNode>>, flag: Statusflag): PtAssignTarget? {
+            for ((returns, target) in statusFlagResults) {
+                if(returns.register.statusflag!! == flag)
+                    return target as PtAssignTarget
+            }
+            return null
         }
 
-        fun assignZeroFlagResult(target: PtAssignTarget, saveA: Boolean) {
-            if(saveA) asmgen.out("  pha")
-            asmgen.out("""
+        val targetCarry = hasFlag(statusFlagResults, Statusflag.Pc)
+        val targetZero = hasFlag(statusFlagResults, Statusflag.Pz)
+        val targetNeg = hasFlag(statusFlagResults, Statusflag.Pn)
+        val targetOverflow = hasFlag(statusFlagResults, Statusflag.Pv)
+
+        if(saveA) asmgen.out("  pha")
+        if(targetZero!=null && !targetZero.void)
+            assignZeroFlagResult(targetZero, saveFlags)
+        if(targetNeg!=null && !targetNeg.void)
+            assignNegativeFlagResult(targetNeg, saveFlags)
+        if(targetCarry!=null && !targetCarry.void)
+            assignCarryFlagResult(targetCarry)
+        if(targetOverflow!=null && !targetOverflow.void)
+            assignOverflowFlagResult(targetOverflow)
+        if(saveA) asmgen.out("  pla")
+    }
+
+    private fun assignRegisterResults(registersResults: List<Pair<StRomSubParameter, PtNode>>) {
+        registersResults.forEach { (returns, target) ->
+            target as PtAssignTarget
+            if(!target.void) {
+                val targetIdent = target.identifier
+                val targetMem = target.memory
+                if(targetIdent!=null || targetMem!=null) {
+                    val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+                    when(returns.type) {
+                        in ByteDatatypesWithBoolean -> {
+                            if(returns.register.registerOrPair in Cx16VirtualRegisters) {
+                                assignVirtualRegister(tgt, returns.register.registerOrPair!!)
+                            } else {
+                                assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
+                            }
+                        }
+                        in WordDatatypes -> {
+                            assignRegisterpairWord(tgt, returns.register.registerOrPair!!)
+                        }
+                        else -> throw AssemblyError("weird dt")
+                    }
+                }
+                else TODO("array target for multi-value assignment")        // Not done yet due to result register clobbering complexity
+            }
+        }
+    }
+
+    private fun assignCarryFlagResult(target: PtAssignTarget) {
+        // overflow is not clobbered so no need to save/restore it
+        asmgen.out("  lda  #0  |  rol  a")
+        val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+        assignRegisterByte(tgt, CpuRegister.A, false, false)
+    }
+
+    private fun assignZeroFlagResult(target: PtAssignTarget, saveFlags: Boolean) {
+        if(saveFlags) asmgen.out("  php")
+        asmgen.out("""
                 beq  +
                 lda  #0
                 beq  ++
 +               lda  #1
 +""")
-            val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-            assignRegisterByte(tgt, CpuRegister.A, false, false)
-            if(saveA) asmgen.out("  pla")
-        }
+        val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+        assignRegisterByte(tgt, CpuRegister.A, false, false)
+        if(saveFlags) asmgen.out("  plp")
+    }
 
-        fun assignNegativeFlagResult(target: PtAssignTarget, saveA: Boolean) {
-            if(saveA) asmgen.out("  pha")
-            asmgen.out("""
+    private fun assignNegativeFlagResult(target: PtAssignTarget, saveFlags: Boolean) {
+        if(saveFlags) asmgen.out("  php")
+        asmgen.out("""
                 bmi  +
                 lda  #0
                 beq  ++
 +               lda  #1
 +""")
-            val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-            assignRegisterByte(tgt, CpuRegister.A, false, false)
-            if(saveA) asmgen.out("  pla")
-        }
+        val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+        assignRegisterByte(tgt, CpuRegister.A, false, false)
+        if(saveFlags) asmgen.out("  plp")
+    }
 
-        fun assignOverflowFlagResult(target: PtAssignTarget, saveA: Boolean) {
-            if(saveA) asmgen.out("  pha")
-            asmgen.out("""
+    private fun assignOverflowFlagResult(target: PtAssignTarget) {
+        // overflow is not clobbered so no need to save/restore it
+        asmgen.out("""
                 bvs  +
                 lda  #0
                 beq  ++
 +               lda  #1
 +""")
-            val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-            assignRegisterByte(tgt, CpuRegister.A, false, false)
-            if(saveA) asmgen.out("  pla")
-        }
-
-        fun assignRegisterResults(registersResults: List<Pair<StRomSubParameter, PtNode>>) {
-            registersResults.forEach { (returns, target) ->
-                target as PtAssignTarget
-                if(!target.void) {
-                    val targetIdent = target.identifier
-                    val targetMem = target.memory
-                    if(targetIdent!=null || targetMem!=null) {
-                        val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-                        when(returns.type) {
-                            in ByteDatatypesWithBoolean -> {
-                                if(returns.register.registerOrPair in Cx16VirtualRegisters) {
-                                    assignVirtualRegister(tgt, returns.register.registerOrPair!!)
-                                } else {
-                                    assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
-                                }
-                            }
-                            in WordDatatypes -> {
-                                assignRegisterpairWord(tgt, returns.register.registerOrPair!!)
-                            }
-                            else -> throw AssemblyError("weird dt")
-                        }
-                    }
-                    else TODO("array target for multi-value assignment")        // Not done yet due to result register clobbering complexity
-                }
-            }
-        }
-
-        val assignmentTargets = assignment.children.dropLast(1)
-        if(sub.returns.size==assignmentTargets.size) {
-            // because we can only handle integer results right now we can just zip() it all up
-            val (statusFlagResults, registersResults) = sub.returns.zip(assignmentTargets).partition { it.first.register.statusflag!=null }
-            if(statusFlagResults.isNotEmpty()) {
-                if(statusFlagResults.size>1)
-                    TODO("handle multiple status flag results")
-                val (returns, target) = statusFlagResults.single()
-                target as PtAssignTarget
-                if(target.void) {
-                    // forget about the Carry status flag, only assign the normal return values
-                    assignRegisterResults(registersResults)
-                    return
-                }
-                if(registersResults.all {
-                    val tgt = it.second as PtAssignTarget
-                    tgt.void || tgt.identifier!=null})
-                {
-                    // all other results are just stored into identifiers directly so first handle those
-                    // (simple store instructions that don't modify the carry flag)
-                    assignRegisterResults(registersResults)
-                    return when(returns.register.statusflag!!) {
-                        Statusflag.Pc -> assignCarryFlagResult(target, false)
-                        Statusflag.Pz -> assignZeroFlagResult(target, false)
-                        Statusflag.Pv -> assignOverflowFlagResult(target, false)
-                        Statusflag.Pn -> assignNegativeFlagResult(target, false)
-                    }
-                }
-
-                val saveA = needsToSaveA(registersResults)
-                when(returns.register.statusflag!!) {
-                    Statusflag.Pc -> assignCarryFlagResult(target, saveA)
-                    Statusflag.Pz -> assignZeroFlagResult(target, saveA)
-                    Statusflag.Pv -> assignOverflowFlagResult(target, saveA)
-                    Statusflag.Pn -> assignNegativeFlagResult(target, saveA)
-                }
-            }
-            assignRegisterResults(registersResults)
-        } else {
-            throw AssemblyError("number of values and targets don't match")
-        }
+        val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+        assignRegisterByte(tgt, CpuRegister.A, false, false)
     }
-
 
     fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(assign.source.kind) {

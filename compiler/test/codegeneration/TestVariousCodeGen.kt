@@ -420,4 +420,24 @@ main {
         compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
         compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("multiple status flags return values from asmsub") {
+        val src="""
+main {
+    romsub 5000 = carryAndNegativeAndByteAndWord() -> bool @Pc, bool @Pn, ubyte @X, uword @AY
+
+    sub start() {
+        ubyte @shared x
+        uword @shared w
+        bool @shared flag1
+        bool @shared flag2
+
+        flag1, flag2, x, w = carryAndNegativeAndByteAndWord()
+        flag1, void, void, w = carryAndNegativeAndByteAndWord()
+        void, void, void, void = carryAndNegativeAndByteAndWord()
+        void carryAndNegativeAndByteAndWord()
+    }    
+}"""
+        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
 })
