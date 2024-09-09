@@ -136,15 +136,15 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
                 if(isMultiComparisonRecurse(leftBinExpr1)) {
                     val elementType = needle.inferType(program).getOrElse { throw FatalAstException("invalid needle dt") }
-                    if(values.size==2 || values.size==3 && elementType in IntegerDatatypes) {
+                    if(values.size==2 || values.size==3 && (elementType==DataType.UBYTE || elementType==DataType.UWORD)) {
                         val numbers = values.map{it.number}.toSet()
                         if(numbers == setOf(0.0, 1.0)) {
-                            // we can replace x==0 or x==1 with x<2
+                            // we can replace unsigned  x==0 or x==1 with x<2
                             val compare = BinaryExpression(needle, "<", NumericLiteral(elementType, 2.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
                         if(numbers == setOf(0.0, 1.0, 2.0)) {
-                            // we can replace x==0 or x==1 or x==2 with x<3
+                            // we can replace unsigned  x==0 or x==1 or x==2 with x<3
                             val compare = BinaryExpression(needle, "<", NumericLiteral(elementType, 3.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
