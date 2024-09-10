@@ -1,12 +1,9 @@
 TODO
 ====
 
-Badapple has become 200 bytes LARGER than before!!
-
 Fix testgfx2 screen text being uppercase (should be upper+lowercased)
 
-assembler seems to crash on hello4...
-
+diskio.internal_f_tell gets included in the assembly even though f_tell is never called ??? (when using another routine from diskio...)
 
 IR: Improve codegen for for loops downto 0.  (BPL if <=127 etc like 6502 codegen?)
 
@@ -81,7 +78,6 @@ Optimizations:
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
-- optimizeCommonSubExpressions: currently only looks in expressions on a single line, could search across multiple expressions
 
 STRUCTS?
 --------
