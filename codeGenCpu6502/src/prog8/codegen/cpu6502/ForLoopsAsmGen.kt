@@ -60,13 +60,18 @@ internal class ForLoopsAsmGen(
                     // pre-check for end already reached
                     if(iterableDt==DataType.ARRAY_B) {
                         asmgen.out("  sta  $modifiedLabel+1")
-                        if(stepsize<0)
-                            asmgen.out("""
-                                clc
-                                sbc  $varname
-                                bvc  +
-                                eor  #${'$'}80
-+                               bpl  $endLabel""")
+                        if(stepsize<0) {
+                            if(range.to.asConstInteger()==0 && asmgen.options.optimize) {
+                                throw AssemblyError("downto 0 (signed byte) should have been replaced by an until-loop")
+                            } else {
+                                asmgen.out("""
+                                    clc
+                                    sbc  $varname
+                                    bvc  +
+                                    eor  #${'$'}80
++                                   bpl  $endLabel""")
+                            }
+                        }
                         else
                             asmgen.out("""
                                 sec
@@ -75,12 +80,17 @@ internal class ForLoopsAsmGen(
                                 eor  #${'$'}80
 +                               bmi  $endLabel""")
                     } else {
-                        if(stepsize<0)
-                            asmgen.out("""
-                                cmp  $varname
-                                beq  +
-                                bcs  $endLabel
+                        if(stepsize<0) {
+                            if(range.to.asConstInteger()==0 && asmgen.options.optimize) {
+                                throw AssemblyError("downto 0 (unsigned byte) should have been replaced by an until-loop")
+                            } else {
+                                asmgen.out("""
+                                    cmp  $varname
+                                    beq  +
+                                    bcs  $endLabel
 +""")
+                            }
+                        }
                         else
                             asmgen.out("  cmp  $varname  |  bcc  $endLabel")
                         asmgen.out("  sta  $modifiedLabel+1")
@@ -160,6 +170,8 @@ $modifiedLabel              cmp  #0     ; modified
                     // words, step 1 or -1
 
                     stepsize == 1 || stepsize == -1 -> {
+                        if(range.to.asConstInteger()==0 && asmgen.options.optimize)
+                            throw AssemblyError("downto 0 (words) should have been replaced by an until-loop")
                         val varname = asmgen.asmVariableName(stmt.variable)
                         assignLoopvarWord(stmt, range)
                         asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
@@ -486,7 +498,7 @@ $loopLabel          sty  $indexVar
         if(iterableDt==DataType.ARRAY_B || iterableDt==DataType.ARRAY_UB) {
             if(range.last==range.first) return translateForSimpleByteRangeAsc(stmt, range)
             if(range.step==1 && range.last>range.first) return translateForSimpleByteRangeAsc(stmt, range)
-            if(range.step==-1 && range.last<range.first) return translateForSimpleByteRangeDesc(stmt, range)
+            if(range.step==-1 && range.last<range.first) return translateForSimpleByteRangeDesc(stmt, range, iterableDt==DataType.ARRAY_UB)
         }
         else if(iterableDt==DataType.ARRAY_W || iterableDt==DataType.ARRAY_UW) {
             if(range.last==range.first) return translateForSimpleWordRangeAsc(stmt, range)
@@ -632,41 +644,41 @@ $endLabel""")
         asmgen.loopEndLabels.removeLast()
     }
 
-    private fun translateForSimpleByteRangeDesc(stmt: PtForLoop, range: IntProgression) {
+    private fun translateForSimpleByteRangeDesc(stmt: PtForLoop, range: IntProgression, unsigned: Boolean) {
         val loopLabel = asmgen.makeLabel("for_loop")
-        val endLabel = asmgen.makeLabel("for_end")
-        asmgen.loopEndLabels.add(endLabel)
         val varname = asmgen.asmVariableName(stmt.variable)
         asmgen.out("""
-                    lda  #${range.first}
-                    sta  $varname
+            lda  #${range.first}
+            sta  $varname
 $loopLabel""")
         asmgen.translate(stmt.statements)
         when (range.last) {
             0 -> {
-                asmgen.out("""
-                    lda  $varname
-                    beq  $endLabel
-                    dec  $varname""")
-                asmgen.jmp(loopLabel)
-                asmgen.out(endLabel)
+                if(!unsigned || range.first<=127) {
+                    asmgen.out("""
+                        dec  $varname
+                        bpl  $loopLabel""")
+                } else {
+                    asmgen.out("""
+                        dec  $varname
+                        lda  $varname
+                        cmp  #255
+                        bne  $loopLabel""")
+                }
             }
             1 -> {
                 asmgen.out("""
                     dec  $varname
-                    bne  $loopLabel
-$endLabel""")
+                    bne  $loopLabel""")
             }
             else -> {
                 asmgen.out("""
                     dec  $varname
                     lda  $varname
                     cmp  #${range.last-1}
-                    bne  $loopLabel
-$endLabel""")
+                    bne  $loopLabel""")
             }
         }
-        asmgen.loopEndLabels.removeLast()
     }
 
     private fun translateForSimpleWordRangeAsc(stmt: PtForLoop, range: IntProgression) {
@@ -708,13 +720,22 @@ $loopLabel""")
             sty  $varname+1
 $loopLabel""")
         asmgen.translate(stmt.statements)
+        if(range.last==0) {
+            asmgen.out("""
+                lda  $varname
+                bne  ++
+                lda  $varname+1
+                beq  $endLabel""")
+        } else {
+            asmgen.out("""
+                lda  $varname
+                cmp  #<${range.last}
+                bne  +
+                lda  $varname+1
+                cmp  #>${range.last}
+                beq  $endLabel""")
+        }
         asmgen.out("""
-            lda  $varname
-            cmp  #<${range.last}
-            bne  +
-            lda  $varname+1
-            cmp  #>${range.last}
-            beq  $endLabel
 +           lda  $varname
             bne  +
             dec  $varname+1
