@@ -200,35 +200,6 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
-        val loopvarDt = forLoop.loopVarDt(program)
-        if(loopvarDt.istype(DataType.UWORD) || loopvarDt.istype(DataType.UBYTE)) {
-
-            fun incOrDec(inc: Boolean): Assignment {
-                val pos = forLoop.position
-                val loopVar = forLoop.loopVar
-                val addSubOne = BinaryExpression(loopVar.copy(), if(inc) "+" else "-", NumericLiteral.optimalInteger(1, pos), pos, false)
-                return Assignment(AssignTarget(loopVar.copy(), null, null, null, false, pos), addSubOne, AssignmentOrigin.USERCODE, pos)
-            }
-
-            if (range != null && range.to.constValue(program)?.number == 0.0 && range.step.constValue(program)?.number==-1.0) {
-                val fromExpr = range.from
-                if(fromExpr.constValue(program)==null) {
-                    // FOR X = something DOWNTO 0 {...} -->  X=something,  DO { ... , X-- } UNTIL X=255 (or 65535 if uword)
-                    val pos = forLoop.position
-                    val checkValue = NumericLiteral(loopvarDt.getOr(DataType.UNDEFINED), if(loopvarDt.istype(DataType.UBYTE)) 255.0 else 65535.0, pos)
-                    val condition = BinaryExpression(forLoop.loopVar.copy(), "==", checkValue, pos)
-                    val decOne = incOrDec(false)
-                    forLoop.body.statements.add(decOne)
-                    val replacement = AnonymousScope(mutableListOf(
-                        Assignment(AssignTarget(forLoop.loopVar.copy(), null, null, null, false, pos),
-                            fromExpr, AssignmentOrigin.OPTIMIZER, pos),
-                        UntilLoop(forLoop.body, condition, pos)
-                    ), pos)
-                    return listOf(IAstModification.ReplaceNode(forLoop, replacement, parent))
-                }
-            }
-        }
-
         return noModifications
     }
 

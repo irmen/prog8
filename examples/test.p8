@@ -7,28 +7,29 @@ main {
     sub start() {
         ubyte x
         uword w
-        uword @shared wstart=50000
-        ubyte @shared bstart=127
+        uword @shared wstart=1000
+        ubyte @shared bstart=100
         uword y
         uword duration
         byte b
 
 
         cbm.SETTIM(0,0,0)
-        repeat 5000 {
+        repeat 1000 {
             y=0
-;            for x in bstart downto 0 {
-;                y++
-;            }
-            x = bstart
-            do {
+            for w in wstart downto 0 {
                 y++
-                x--
-            } until x==255
+            }
+            for w in wstart downto 1 {
+                y++
+            }
+            ; TODO words
         }
         txt.print_uw(cbm.RDTIM16())
-        if y!=128
-            txt.print("error 1\n")
+        if y!=2001
+            txt.print("error\n")
+
+        ; without new loops: $26e, 482 jiffies
 
 /*
         for w in 65535 downto 0 {

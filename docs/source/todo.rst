@@ -1,7 +1,11 @@
 TODO
 ====
 
-improve codegen for  for loops  downto 0,1  when start value is not const.
+Badapple has become 200 bytes LARGER than before!!
+
+Fix testgfx2 screen text being uppercase (should be upper+lowercased)
+
+assembler seems to crash on hello4...
 
 
 IR: Improve codegen for for loops downto 0.  (BPL if <=127 etc like 6502 codegen?)

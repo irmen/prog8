@@ -48,29 +48,42 @@ internal class ForLoopsAsmGen(
 
         when(iterableDt) {
             DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                if (stepsize==1 || stepsize==-1) {
-
+                val varname = asmgen.asmVariableName(stmt.variable)
+                asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
+                if (stepsize==-1 && range.to.asConstInteger()==0) {
+                    // simple loop downto 0 step -1
+                    asmgen.out(loopLabel)
+                    asmgen.translate(stmt.statements)
+                    asmgen.out("""
+                        dec  $varname
+                        lda  $varname
+                        cmp  #255
+                        bne  $loopLabel""")
+                }
+                else if (stepsize==-1 && range.to.asConstInteger()==1) {
+                    // simple loop downto 1 step -1
+                    asmgen.out(loopLabel)
+                    asmgen.translate(stmt.statements)
+                    asmgen.out("""
+                        dec  $varname
+                        bne  $loopLabel""")
+                }
+                else if (stepsize==1 || stepsize==-1) {
                     // bytes array, step 1 or -1
 
                     val incdec = if(stepsize==1) "inc" else "dec"
                     // loop over byte range via loopvar
-                    val varname = asmgen.asmVariableName(stmt.variable)
-                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
                     asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
                     // pre-check for end already reached
                     if(iterableDt==DataType.ARRAY_B) {
                         asmgen.out("  sta  $modifiedLabel+1")
                         if(stepsize<0) {
-                            if(range.to.asConstInteger()==0 && asmgen.options.optimize) {
-                                throw AssemblyError("downto 0 (signed byte) should have been replaced by an until-loop")
-                            } else {
-                                asmgen.out("""
-                                    clc
-                                    sbc  $varname
-                                    bvc  +
-                                    eor  #${'$'}80
-+                                   bpl  $endLabel""")
-                            }
+                            asmgen.out("""
+                                clc
+                                sbc  $varname
+                                bvc  +
+                                eor  #${'$'}80
++                               bpl  $endLabel""")
                         }
                         else
                             asmgen.out("""
@@ -81,15 +94,11 @@ internal class ForLoopsAsmGen(
 +                               bmi  $endLabel""")
                     } else {
                         if(stepsize<0) {
-                            if(range.to.asConstInteger()==0 && asmgen.options.optimize) {
-                                throw AssemblyError("downto 0 (unsigned byte) should have been replaced by an until-loop")
-                            } else {
-                                asmgen.out("""
-                                    cmp  $varname
-                                    beq  +
-                                    bcs  $endLabel
+                            asmgen.out("""
+                                cmp  $varname
+                                beq  +
+                                bcs  $endLabel
 +""")
-                            }
                         }
                         else
                             asmgen.out("  cmp  $varname  |  bcc  $endLabel")
@@ -110,8 +119,6 @@ $modifiedLabel          cmp  #0         ; modified
                     // bytes, step >= 2 or <= -2
 
                     // loop over byte range via loopvar
-                    val varname = asmgen.asmVariableName(stmt.variable)
-                    asmgen.assignExpressionToVariable(range.from, varname, ArrayToElementTypes.getValue(iterableDt))
                     asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
                     // pre-check for end already reached
                     if(iterableDt==DataType.ARRAY_B) {
@@ -165,60 +172,85 @@ $modifiedLabel              cmp  #0     ; modified
                 }
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                when {
-
+                val varname = asmgen.asmVariableName(stmt.variable)
+                assignLoopvarWord(stmt, range)
+                if(stepsize==-1 && range.to.asConstInteger()==0) {
+                    // simple loop downto 0 step -1 (words)
+                    asmgen.out(loopLabel)
+                    asmgen.translate(stmt.statements)
+                    asmgen.out("""
+                        lda  $varname
+                        bne  ++
+                        lda  $varname+1
+                        beq  $endLabel
++                       lda  $varname
+                        bne  +
+                        dec  $varname+1
++                       dec  $varname""")
+                    asmgen.jmp(loopLabel)
+                    asmgen.out(endLabel)
+                }
+                else if (stepsize==-1 && range.to.asConstInteger()==1) {
+                    // simple loop downto 1 step -1 (words)
+                    asmgen.out(loopLabel)
+                    asmgen.translate(stmt.statements)
+                    asmgen.out("""
+                        lda  $varname
+                        cmp  #1
+                        bne  +
+                        lda  $varname+1
+                        beq  $endLabel
++                       lda  $varname
+                        bne  +
+                        dec  $varname+1
++                       dec  $varname""")
+                    asmgen.jmp(loopLabel)
+                    asmgen.out(endLabel)
+                }
+                else if (stepsize == 1 || stepsize == -1) {
                     // words, step 1 or -1
-
-                    stepsize == 1 || stepsize == -1 -> {
-                        if(range.to.asConstInteger()==0 && asmgen.options.optimize)
-                            throw AssemblyError("downto 0 (words) should have been replaced by an until-loop")
-                        val varname = asmgen.asmVariableName(stmt.variable)
-                        assignLoopvarWord(stmt, range)
-                        asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
-                        precheckFromToWord(iterableDt, stepsize, varname, endLabel)
-                        asmgen.out("""
-                            sty  $modifiedLabel+1
-                            sta  $modifiedLabel2+1
+                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+                    precheckFromToWord(iterableDt, stepsize, varname, endLabel)
+                    asmgen.out("""
+                sty  $modifiedLabel+1
+                sta  $modifiedLabel2+1
 $loopLabel""")
-                        asmgen.translate(stmt.statements)
-                        asmgen.out("""
+                    asmgen.translate(stmt.statements)
+                    asmgen.out("""
                 lda  $varname+1
 $modifiedLabel  cmp  #0    ; modified 
                 bne  +
                 lda  $varname
 $modifiedLabel2 cmp  #0    ; modified 
                 beq  $endLabel""")
-                        if(stepsize==1) {
-                            asmgen.out("""
+                    if(stepsize==1) {
+                        asmgen.out("""
 +               inc  $varname
                 bne  $loopLabel
                 inc  $varname+1""")
-                            asmgen.jmp(loopLabel)
-                        } else {
-                            asmgen.out("""
+                        asmgen.jmp(loopLabel)
+                    } else {
+                        asmgen.out("""
 +               lda  $varname
                 bne  +
                 dec  $varname+1
 +               dec  $varname""")
-                            asmgen.jmp(loopLabel)
-                        }
-                        asmgen.out(endLabel)
+                        asmgen.jmp(loopLabel)
                     }
-                    stepsize > 0 -> {
-
-                        // (u)words, step >= 2
-                        val varname = asmgen.asmVariableName(stmt.variable)
-                        assignLoopvarWord(stmt, range)
-                        asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
-                        precheckFromToWord(iterableDt, stepsize, varname, endLabel)
-                        asmgen.out("""
-                            sty  $modifiedLabel+1
-                            sta  $modifiedLabel2+1
+                    asmgen.out(endLabel)
+                }
+                else if (stepsize > 0) {
+                    // (u)words, step >= 2
+                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+                    precheckFromToWord(iterableDt, stepsize, varname, endLabel)
+                    asmgen.out("""
+                sty  $modifiedLabel+1
+                sta  $modifiedLabel2+1
 $loopLabel""")
-                        asmgen.translate(stmt.statements)
+                    asmgen.translate(stmt.statements)
 
-                        if (iterableDt == DataType.ARRAY_UW) {
-                            asmgen.out("""
+                    if (iterableDt == DataType.ARRAY_UW) {
+                        asmgen.out("""
                 lda  $varname
                 clc
                 adc  #<$stepsize
@@ -234,8 +266,8 @@ $modifiedLabel2 lda  #0     ; modified
                 bcc  $endLabel
                 bcs  $loopLabel
 $endLabel""")
-                        } else {
-                            asmgen.out("""
+                    } else {
+                        asmgen.out("""
                 lda  $varname
                 clc
                 adc  #<$stepsize
@@ -251,22 +283,20 @@ $modifiedLabel  lda  #0   ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
-                        }
                     }
-                    else -> {
+                }
+                else {
 
-                        // (u)words, step <= -2
-                        val varname = asmgen.asmVariableName(stmt.variable)
-                        assignLoopvarWord(stmt, range)
-                        asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
-                        precheckFromToWord(iterableDt, stepsize, varname, endLabel)
-                        asmgen.out("""
-                            sty  $modifiedLabel+1
-                            sta  $modifiedLabel2+1
+                    // (u)words, step <= -2
+                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+                    precheckFromToWord(iterableDt, stepsize, varname, endLabel)
+                    asmgen.out("""
+                sty  $modifiedLabel+1
+                sta  $modifiedLabel2+1
 $loopLabel""")
-                        asmgen.translate(stmt.statements)
+                    asmgen.translate(stmt.statements)
 
-                            asmgen.out("""
+                    asmgen.out("""
                 lda  $varname
                 sec
                 sbc  #<${stepsize.absoluteValue}
@@ -283,7 +313,6 @@ $modifiedLabel  sbc  #0    ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
-                    }
                 }
             }
             else -> throw AssemblyError("range expression can only be byte or word")
