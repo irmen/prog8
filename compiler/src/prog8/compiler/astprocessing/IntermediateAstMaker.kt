@@ -623,11 +623,10 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         }
 
         when(srcCheck.iterable) {
-            is IdentifierReference -> {
+            is IdentifierReference, is ArrayLiteral -> {
                 val check = PtContainmentCheck(srcCheck.position)
                 check.add(transformExpression(srcCheck.element))
-                val iterable = transformExpression(srcCheck.iterable)
-                check.add(iterable)
+                check.add(transformExpression(srcCheck.iterable))
                 return check
             }
             is RangeExpression -> {

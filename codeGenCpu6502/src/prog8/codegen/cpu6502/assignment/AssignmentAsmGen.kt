@@ -1830,8 +1830,57 @@ internal class AssignmentAsmGen(
     }
 
     private fun containmentCheckIntoA(containment: PtContainmentCheck) {
-        val elementDt = containment.element.type
-        val symbol = asmgen.symbolTable.lookup(containment.iterable.name)!!
+        val elementDt = containment.needle.type
+
+        if(containment.haystackValues!=null) {
+            val haystack = containment.haystackValues!!.children.map {
+                if(it is PtBool) it.asInt()
+                else (it as PtNumber).number
+            }
+            when(elementDt) {
+                in ByteDatatypesWithBoolean -> {
+                    require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
+                    assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt == DataType.BYTE)
+                    for(number in haystack) {
+                        val numstr = if(elementDt==DataType.FLOAT) number.toString() else number.toInt().toString()
+                        asmgen.out("""
+                            cmp  #$numstr
+                            beq  +""")
+                    }
+                    asmgen.out("""
+                        lda  #0
+                        beq  ++
++                       lda  #1
++""")
+                }
+                in WordDatatypes -> {
+                    require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD)
+                    assignExpressionToRegister(containment.needle, RegisterOrPair.AY, elementDt == DataType.WORD)
+                    val gottemLabel = asmgen.makeLabel("gottem")
+                    val endLabel = asmgen.makeLabel("end")
+                    for(number in haystack) {
+                        val numstr = if(elementDt==DataType.FLOAT) number.toString() else number.toInt().toString()
+                        asmgen.out("""
+                            cmp  #<$numstr
+                            bne  +
+                            cpy  #>$numstr
+                            beq  $gottemLabel
++                       """)
+                    }
+                    asmgen.out("""
+                        lda  #0
+                        beq  $endLabel
+$gottemLabel            lda  #1
+$endLabel""")
+                }
+                DataType.FLOAT -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
+                else -> throw AssemblyError("weird dt $elementDt")
+            }
+
+            return
+        }
+
+        val symbol = asmgen.symbolTable.lookup(containment.haystackHeapVar!!.name)!!
         val symbolName = asmgen.asmVariableName(symbol, containment.definingSub())
         val (dt, numElements) = when(symbol) {
             is StStaticVariable  -> symbol.dt to symbol.length!!
@@ -1840,7 +1889,7 @@ internal class AssignmentAsmGen(
         }
         when(dt) {
             DataType.STR -> {
-                assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
+                assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  pla")
@@ -1848,13 +1897,13 @@ internal class AssignmentAsmGen(
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
             DataType.ARRAY_F -> {
-                assignExpressionToRegister(containment.element, RegisterOrPair.FAC1, true)
+                assignExpressionToRegister(containment.needle, RegisterOrPair.FAC1, true)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  floats.containment_floatarray")
             }
-            DataType.ARRAY_B, DataType.ARRAY_UB -> {
-                assignExpressionToRegister(containment.element, RegisterOrPair.A, elementDt == DataType.BYTE)
+            DataType.ARRAY_B, DataType.ARRAY_UB, DataType.ARRAY_BOOL -> {
+                assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt == DataType.BYTE)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  pla")
@@ -1862,7 +1911,7 @@ internal class AssignmentAsmGen(
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
             DataType.ARRAY_W, DataType.ARRAY_UW -> {
-                assignExpressionToVariable(containment.element, "P8ZP_SCRATCH_W1", elementDt)
+                assignExpressionToVariable(containment.needle, "P8ZP_SCRATCH_W1", elementDt)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")

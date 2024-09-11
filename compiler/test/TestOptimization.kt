@@ -523,21 +523,24 @@ main {
         xxValue.right shouldBe NumericLiteral(DataType.UWORD, 10.0, Position.DUMMY)
     }
 
-    test("multi-comparison replaced by containment check") {
+    test("multi-comparison with many values replaced by containment check on heap variable") {
         val src="""
         main {
             sub start() {
                 ubyte @shared source=99
                 ubyte @shared thingy=42
         
-                if source==3 or source==4 or source==99 or source==1
+                if source==3 or source==4 or source==99 or source==1 or source==2 or source==42
                     thingy++
             }
         }"""
+
+        compileText(VMTarget(), optimize=true, src, writeAssembly=true) shouldNotBe null
+
         val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
         /*
         expected result:
-        ubyte[] auto_heap_var = [1,4,99,3]
+        ubyte[] auto_heap_var = [1,2,3,4,42,99]
         ubyte source
         source = 99
         ubyte thingy
@@ -553,14 +556,41 @@ main {
         (containment.iterable as IdentifierReference).nameInSource.single() shouldStartWith "auto_heap_value"
         val arrayDecl = stmts[0] as VarDecl
         arrayDecl.isArray shouldBe true
-        arrayDecl.arraysize?.constIndex() shouldBe 4
+        arrayDecl.arraysize?.constIndex() shouldBe 6
         val arrayValue = arrayDecl.value as ArrayLiteral
         arrayValue.type shouldBe InferredTypes.InferredType.known(DataType.ARRAY_UB)
         arrayValue.value shouldBe listOf(
             NumericLiteral.optimalInteger(1, Position.DUMMY),
+            NumericLiteral.optimalInteger(2, Position.DUMMY),
             NumericLiteral.optimalInteger(3, Position.DUMMY),
             NumericLiteral.optimalInteger(4, Position.DUMMY),
+            NumericLiteral.optimalInteger(42, Position.DUMMY),
             NumericLiteral.optimalInteger(99, Position.DUMMY))
+    }
+
+    test("multi-comparison with few values replaced by inline containment check") {
+        val src="""
+        main {
+            sub start() {
+                ubyte @shared source=99
+                ubyte @shared thingy=42
+        
+                if source==3 or source==4 or source==99
+                    thingy++
+            }
+        }"""
+
+        compileText(VMTarget(), optimize=true, src, writeAssembly=true) shouldNotBe null
+
+        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val stmts = result.compilerAst.entrypoint.statements
+        stmts.size shouldBe 5
+        val ifStmt = stmts[4] as IfElse
+        val containment = ifStmt.condition as ContainmentCheck
+        (containment.element as IdentifierReference).nameInSource shouldBe listOf("source")
+        val array = (containment.iterable as ArrayLiteral)
+        array.value.size shouldBe 3
+        array.value.map { (it as NumericLiteral).number } shouldBe listOf(3.0, 4.0, 99.0)
     }
 
     test("invalid multi-comparison (not all equals) not replaced") {

@@ -42,7 +42,18 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
                 else
                     other.left isSameAs left && other.right isSameAs right
             }
-            is PtContainmentCheck -> other is PtContainmentCheck && other.type==type && other.element isSameAs element && other.iterable isSameAs iterable
+            is PtContainmentCheck -> {
+                if(other !is PtContainmentCheck || other.type != type || !(other.needle isSameAs needle))
+                    false
+                else {
+                    if(haystackHeapVar!=null)
+                        other.haystackHeapVar!=null && other.haystackHeapVar!! isSameAs haystackHeapVar!!
+                    else if(haystackValues!=null)
+                        other.haystackValues!=null && other.haystackValues!! isSameAs haystackValues!!
+                    else
+                        false
+                }
+            }
             is PtIdentifier -> other is PtIdentifier && other.type==type && other.name==name
             is PtIrRegister -> other is PtIrRegister && other.type==type && other.register==register
             is PtMemoryByte -> other is PtMemoryByte && other.address isSameAs address
@@ -195,10 +206,17 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
 
 
 class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, position) {
-    val element: PtExpression
+    val needle: PtExpression
         get() = children[0] as PtExpression
-    val iterable: PtIdentifier
-        get() = children[1] as PtIdentifier
+    val haystackHeapVar: PtIdentifier?
+        get() = children[1] as? PtIdentifier
+    val haystackValues: PtArray?
+        get() = children[1] as? PtArray
+
+    companion object {
+        val MAX_SIZE_FOR_INLINE_CHECKS_BYTE = 5
+        val MAX_SIZE_FOR_INLINE_CHECKS_WORD = 4
+    }
 }
 
 

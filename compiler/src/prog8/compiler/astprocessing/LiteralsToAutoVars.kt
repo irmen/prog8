@@ -4,19 +4,14 @@ import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.expressions.ArrayLiteral
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.StringLiteral
+import prog8.ast.expressions.*
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.DataType
-import prog8.code.core.IErrorReporter
-import prog8.code.core.NumericDatatypesWithBoolean
-import prog8.code.core.SplitWordArrayTypes
+import prog8.code.ast.PtContainmentCheck
+import prog8.code.core.*
 
 
 internal class LiteralsToAutoVars(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
@@ -54,6 +49,16 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
             }
         } else {
             val arrayDt = array.guessDatatype(program)
+            val elementDt = ArrayToElementTypes.getValue(arrayDt.getOr(DataType.UNDEFINED))
+            val maxSize = when(elementDt) {
+                in ByteDatatypesWithBoolean -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE
+                in WordDatatypes -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD
+                else -> 0
+            }
+            if(parent is ContainmentCheck && array.value.size <= maxSize) {
+                // keep the array in the containmentcheck inline
+                return noModifications
+            }
             if(arrayDt.isKnown) {
                 val parentAssign = parent as? Assignment
                 val targetDt = parentAssign?.target?.inferType(program) ?: arrayDt
