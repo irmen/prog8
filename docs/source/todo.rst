@@ -3,8 +3,6 @@ TODO
 
 IR: add codegen for containmentcheck literal + test that it actually works (positive and negative)
 
-Fix testgfx2 screen text being uppercase (should be upper+lowercased)
-
 diskio.internal_f_tell gets included in the assembly even though f_tell is never called ??? (when using another routine from diskio...)
 
 IR: Improve codegen for for loops downto 0.  (BPL if <=127 etc like 6502 codegen?)
