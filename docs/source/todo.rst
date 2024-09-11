@@ -2,10 +2,35 @@ TODO
 ====
 
 IR: add codegen for containmentcheck literal + test that it actually works (positive and negative)
-
-diskio.internal_f_tell gets included in the assembly even though f_tell is never called ??? (when using another routine from diskio...)
-
 IR: Improve codegen for for loops downto 0.  (BPL if <=127 etc like 6502 codegen?)
+
+callgraph issue? : if a sub contains another sub and it calls that, the outer sub is never removed even if it doesn't get called?
+callgraph issue? : there's an odd case that keeps unused subroutines marked as used , they don't get removed. Has to do with declaring string var. ::
+
+    %import conv
+    %option no_sysinit
+
+    main {
+        sub start() {
+            cx16.r0++
+        }
+    }
+
+    stuff {
+        asmsub shim() {
+            %asm {{
+                jmp  p8s_read4hex
+            }}
+        }
+
+        sub read4hex() -> uword {
+            ;ubyte[5] hex = 0
+            str hex = "0000"        ; TODO causes everything to be included , if declared as a byte array, nothing is included
+            return conv.hex2uword(hex)
+        }
+    }
+
+
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results

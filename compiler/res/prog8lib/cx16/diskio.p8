@@ -935,15 +935,14 @@ io_error:
             return
 
         cx16.r0 = cx16.r1 = cx16.r2 = cx16.r3 = 0
-
-        sub read4hex() -> uword {
-            str hex = "0000"
-            hex[0] = cbm.CHRIN()
-            hex[1] = cbm.CHRIN()
-            hex[2] = cbm.CHRIN()
-            hex[3] = cbm.CHRIN()
-            return conv.hex2uword(hex)
-        }
     }
 
+    sub read4hex() -> uword {
+        ubyte[5] hex = 0
+        hex[0] = cbm.CHRIN()
+        hex[1] = cbm.CHRIN()
+        hex[2] = cbm.CHRIN()
+        hex[3] = cbm.CHRIN()
+        return conv.hex2uword(hex)
+    }
 }
