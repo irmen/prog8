@@ -149,8 +149,10 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
                     }
-                    if(values.size<3)
-                        return noModifications  // replacement only worthwhile for 3 or more values
+                    if(values.size<2)
+                        return noModifications
+
+                    // replace x==1 or x==2 or x==3  with a containment check  x in [1,2,3]
                     val valueCopies = values.sortedBy { it.number }.map { it.copy() }
                     val arrayType = ElementToArrayTypes.getValue(elementType)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)

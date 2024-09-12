@@ -22,5 +22,8 @@ main {
 
         if w==1313 or w==4242 or w==9999 or w==10101     ; optimize the containment check to not always use an array + jsr
             txt.print("yep4\n")
+
+        if w==1313 or w==9999     ; optimize the containment check to not always use an array + jsr
+            txt.print("yep5\n")
     }
 }
