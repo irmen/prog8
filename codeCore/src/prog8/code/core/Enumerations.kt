@@ -1,5 +1,7 @@
 package prog8.code.core
 
+import java.util.Objects
+
 enum class BaseDataType {
     UBYTE,              // pass by value            8 bits unsigned
     BYTE,               // pass by value            8 bits signed
@@ -70,15 +72,15 @@ sealed class SubType(val dt: BaseDataType) {
     }
 }
 
-internal object SubUnsignedByte: SubType(BaseDataType.UBYTE)
-internal object SubSignedByte: SubType(BaseDataType.BYTE)
-internal object SubUnsignedWord: SubType(BaseDataType.UWORD)
-internal object SubSignedWord: SubType(BaseDataType.WORD)
-internal object SubBool: SubType(BaseDataType.BOOL)
-internal object SubFloat: SubType(BaseDataType.FLOAT)
+internal data object SubUnsignedByte: SubType(BaseDataType.UBYTE)
+internal data object SubSignedByte: SubType(BaseDataType.BYTE)
+internal data object SubUnsignedWord: SubType(BaseDataType.UWORD)
+internal data object SubSignedWord: SubType(BaseDataType.WORD)
+internal data object SubBool: SubType(BaseDataType.BOOL)
+internal data object SubFloat: SubType(BaseDataType.FLOAT)
 
 
-data class DataType private constructor(val dt: BaseDataType, val sub: SubType?) {
+class DataType private constructor(val dt: BaseDataType, val sub: SubType?) {
 
     init {
         if(dt.isArray) {
@@ -91,6 +93,14 @@ data class DataType private constructor(val dt: BaseDataType, val sub: SubType?)
         else
             require(sub == null)
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is DataType) return false
+        return dt == other.dt && sub == other.sub
+    }
+
+    override fun hashCode(): Int = Objects.hash(dt, sub)
 
     companion object {
         private val simpletypes = mapOf(

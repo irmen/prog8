@@ -129,15 +129,15 @@ internal class AssignmentAsmGen(
                 val targetMem = target.memory
                 if(targetIdent!=null || targetMem!=null) {
                     val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-                    when(returns.type) {
-                        in ByteDatatypesWithBoolean -> {
+                    when {
+                        returns.type.isByteOrBool -> {
                             if(returns.register.registerOrPair in Cx16VirtualRegisters) {
                                 assignVirtualRegister(tgt, returns.register.registerOrPair!!)
                             } else {
                                 assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
                             }
                         }
-                        in WordDatatypes -> {
+                        returns.type.isWord -> {
                             assignRegisterpairWord(tgt, returns.register.registerOrPair!!)
                         }
                         else -> throw AssemblyError("weird dt")
@@ -1844,10 +1844,10 @@ internal class AssignmentAsmGen(
                 if(it is PtBool) it.asInt()
                 else (it as PtNumber).number.toInt()
             }
-            when(elementDt) {
-                in ByteDatatypesWithBoolean -> {
+            when {
+                elementDt.isByteOrBool -> {
                     require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
-                    assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt == DataType.BYTE)
+                    assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt.isSigned)
                     for(number in haystack) {
                         asmgen.out("""
                             cmp  #$number
@@ -1859,9 +1859,9 @@ internal class AssignmentAsmGen(
 +                       lda  #1
 +""")
                 }
-                in WordDatatypes -> {
+                elementDt.isWord -> {
                     require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD)
-                    assignExpressionToRegister(containment.needle, RegisterOrPair.AY, elementDt == DataType.WORD)
+                    assignExpressionToRegister(containment.needle, RegisterOrPair.AY, elementDt.isSigned)
                     val gottemLabel = asmgen.makeLabel("gottem")
                     val endLabel = asmgen.makeLabel("end")
                     for(number in haystack) {
@@ -1878,7 +1878,7 @@ internal class AssignmentAsmGen(
 $gottemLabel            lda  #1
 $endLabel""")
                 }
-                DataType.FLOAT -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
+                elementDt.isFloat -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
                 else -> throw AssemblyError("weird dt $elementDt")
             }
 

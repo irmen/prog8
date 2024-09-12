@@ -170,17 +170,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     private fun translate(check: PtContainmentCheck): ExpressionCodeResult {
         val elementDt = check.needle.type
         val result = mutableListOf<IRCodeChunkBase>()
-        val iterDt = check.iterable.type
 
         if(check.haystackValues!=null) {
             val haystack = check.haystackValues!!.children.map {
                 if(it is PtBool) it.asInt()
                 else (it as PtNumber).number.toInt()
             }
-            when(elementDt) {
-                in IntegerDatatypesWithBoolean -> {
-                    if (elementDt in ByteDatatypesWithBoolean) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
-                    if (elementDt in WordDatatypes) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD)
+            when {
+                elementDt.isIntegerOrBool -> {
+                    if (elementDt.isByteOrBool) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
+                    if (elementDt.isWord) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD)
                     val gottemLabel = codeGen.createLabelName()
                     val endLabel = codeGen.createLabelName()
                     val elementTr = translateExpression(check.needle)
@@ -198,14 +197,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
 
                 }
-                DataType.FLOAT -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
+                elementDt.isFloat -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
                 else -> throw AssemblyError("weird dt $elementDt")
             }
         }
 
         val haystackVar = check.haystackHeapVar!!
-        when(haystackVar.type) {
-            iterDt.isString -> {
+        when {
+            haystackVar.type.isString -> {
                 addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
                 val elementTr = translateExpression(check.needle)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
@@ -215,7 +214,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
-            iterDt.isByteArray -> {
+            haystackVar.type.isByteArray -> {
                 addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
                 val elementTr = translateExpression(check.needle)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
@@ -228,7 +227,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
-            iterDt.isWordArray -> {
+            haystackVar.type.isWordArray -> {
                 addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
                 val elementTr = translateExpression(check.needle)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
@@ -241,7 +240,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
             }
-            iterDt.isFloatArray -> {
+            haystackVar.type.isFloatArray -> {
                 addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
                 val elementTr = translateExpression(check.needle)
                 addToResult(result, elementTr, -1, elementTr.resultFpReg)

@@ -527,7 +527,7 @@ $loopLabel          sty  $indexVar
         if(iterableDt.isByteArray) {
             if(range.last==range.first) return translateForSimpleByteRangeAsc(stmt, range)
             if(range.step==1 && range.last>range.first) return translateForSimpleByteRangeAsc(stmt, range)
-            if(range.step==-1 && range.last<range.first) return translateForSimpleByteRangeDesc(stmt, range, iterableDt==DataType.ARRAY_UB)
+            if(range.step==-1 && range.last<range.first) return translateForSimpleByteRangeDesc(stmt, range, iterableDt.isUnsignedByteArray)
         }
         else if(iterableDt.isWordArray) {
             if(range.last==range.first) return translateForSimpleWordRangeAsc(stmt, range)

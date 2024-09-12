@@ -49,10 +49,10 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
             }
         } else {
             val arrayDt = array.guessDatatype(program)
-            val elementDt = ArrayToElementTypes.getValue(arrayDt.getOr(DataType.UNDEFINED))
-            val maxSize = when(elementDt) {
-                in ByteDatatypesWithBoolean -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE
-                in WordDatatypes -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD
+            val elementDt = arrayDt.getOrUndef().elementType()
+            val maxSize = when {
+                elementDt.isByteOrBool -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE
+                elementDt.isWord -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD
                 else -> 0
             }
             if(parent is ContainmentCheck && array.value.size <= maxSize) {

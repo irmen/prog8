@@ -588,7 +588,7 @@ class IRCodeGen(
         val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)
         if(loopvarDtIr==IRDataType.BYTE && iterable.step==-1 && iterable.last==0) {
             // downto 0 optimization (byte)
-            if(loopvarDt==DataType.BYTE || iterable.first<=127) {
+            if(loopvarDt.isSignedByte || iterable.first<=127) {
                 chunk2 += IRInstruction(Opcode.BSTPOS, labelSymbol = loopLabel)
             } else {
                 chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
