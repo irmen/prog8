@@ -1835,16 +1835,15 @@ internal class AssignmentAsmGen(
         if(containment.haystackValues!=null) {
             val haystack = containment.haystackValues!!.children.map {
                 if(it is PtBool) it.asInt()
-                else (it as PtNumber).number
+                else (it as PtNumber).number.toInt()
             }
             when(elementDt) {
                 in ByteDatatypesWithBoolean -> {
                     require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
                     assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt == DataType.BYTE)
                     for(number in haystack) {
-                        val numstr = if(elementDt==DataType.FLOAT) number.toString() else number.toInt().toString()
                         asmgen.out("""
-                            cmp  #$numstr
+                            cmp  #$number
                             beq  +""")
                     }
                     asmgen.out("""
@@ -1859,11 +1858,10 @@ internal class AssignmentAsmGen(
                     val gottemLabel = asmgen.makeLabel("gottem")
                     val endLabel = asmgen.makeLabel("end")
                     for(number in haystack) {
-                        val numstr = if(elementDt==DataType.FLOAT) number.toString() else number.toInt().toString()
                         asmgen.out("""
-                            cmp  #<$numstr
+                            cmp  #<$number
                             bne  +
-                            cpy  #>$numstr
+                            cpy  #>$number
                             beq  $gottemLabel
 +                       """)
                     }

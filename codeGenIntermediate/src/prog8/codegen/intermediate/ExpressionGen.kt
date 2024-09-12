@@ -174,24 +174,28 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(check.haystackValues!=null) {
             val haystack = check.haystackValues!!.children.map {
                 if(it is PtBool) it.asInt()
-                else (it as PtNumber).number
+                else (it as PtNumber).number.toInt()
             }
             when(elementDt) {
-                in ByteDatatypesWithBoolean -> {
+                in IntegerDatatypesWithBoolean -> {
+                    if (elementDt in ByteDatatypesWithBoolean) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
+                    if (elementDt in WordDatatypes) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD)
+                    val gottemLabel = codeGen.createLabelName()
+                    val endLabel = codeGen.createLabelName()
                     val elementTr = translateExpression(check.needle)
                     addToResult(result, elementTr, elementTr.resultReg, -1)
-                    TODO("byte containment check ${check.needle} in ${haystack}")
-                    // TODO should return a proper result here
-                    val resultReg = -1
-                    return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
-                }
-                in WordDatatypes -> {
-                    val elementTr = translateExpression(check.needle)
-                    addToResult(result, elementTr, elementTr.resultReg, -1)
-                    TODO("word containment check ${check.needle} in ${haystack}")
-                    // TODO should return a proper result here
-                    val resultReg = -1
-                    return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+                    result += IRCodeChunk(null, null).also {
+                        for(value in haystack){
+                            it += IRInstruction(Opcode.CMPI, irType(elementDt), elementTr.resultReg, immediate = value)
+                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = gottemLabel)
+                        }
+                        it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, elementTr.resultReg, immediate = 0)
+                        it += IRInstruction(Opcode.JUMP, labelSymbol = endLabel)
+                    }
+                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, elementTr.resultReg, immediate = 1), gottemLabel)
+                    result += IRCodeChunk(endLabel, null)
+                    return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+
                 }
                 DataType.FLOAT -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
                 else -> throw AssemblyError("weird dt $elementDt")

@@ -1,7 +1,6 @@
 TODO
 ====
 
-IR: add codegen for containmentcheck literal + test that it actually works (positive and negative)
 IR: Improve codegen for for loops downto 0.  (BPL if <=127 etc like 6502 codegen?)
 
 callgraph issue? : if a sub contains another sub and it calls that, the outer sub is never removed even if it doesn't get called?
@@ -49,6 +48,7 @@ Compiler:
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
+- IR: CMPI+BSTEQ --> new BEQ reg,value,label instruction (like BGT etc)
 - expand the kata encoding to somehow translate normal katana to half-widths?  (see comment in KatakanaEncoding)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
