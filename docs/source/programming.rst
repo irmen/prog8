@@ -518,6 +518,12 @@ Loops
 -----
 
 The *for*-loop is used to let a variable iterate over a range of values. Iteration is done in steps of 1, but you can change this.
+
+.. sidebar::
+    Optimization
+
+    Usually a loop in descending order downto 0 or 1, produces more efficient assembly code than the same loop in ascending order.
+
 The loop variable must be declared separately as byte or word earlier, so that you can reuse it for multiple occasions.
 Iterating with a floating point variable is not supported. If you want to loop over a floating-point array, use a loop with an integer index variable instead.
 If the from value is already outside of the loop range, the whole for loop is skipped.

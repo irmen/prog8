@@ -1,27 +1,33 @@
 TODO
 ====
 
-Main branch: IR funcRolRor: add this: if(arr.splitWords)  TODO("rol/ror on split words array")
-Main branch: possible optimization for:  if x < 2/ x<1  ->  if x==0 or x==1   likewise for > 253/ >254
-Main branch: fix IR/VM problem with containment check:
+callgraph issue? : if a sub contains another sub and it calls that, the outer sub is never removed even if it doesn't get called?
+
+callgraph issue? : there's an odd case that keeps unused subroutines marked as used , they don't get removed. Has to do with declaring string var. ::
+
+    %import conv
+    %option no_sysinit
+
     main {
         sub start() {
-            ubyte @shared x
-
-            x=3
-            if x==1 or x==2 or x==3 or x==4
-                txt.print("yep1\n")
-
-            x = 9
-            if x==1 or x==2 or x==3 or x==4
-                txt.print("yep2-shouldn't-see-this\n")      ; TODO fix this in IR/VM
-
-            if x in 1 to 4
-                txt.print("yep3-shouldn't-see-this\n")
-            if x in 4 to 10
-                txt.print("yep4\n")
+            cx16.r0++
         }
     }
+
+    stuff {
+        asmsub shim() {
+            %asm {{
+                jmp  p8s_read4hex
+            }}
+        }
+
+        sub read4hex() -> uword {
+            ;ubyte[5] hex = 0
+            str hex = "0000"        ; TODO causes everything to be included , if declared as a byte array, nothing is included
+            return conv.hex2uword(hex)
+        }
+    }
+
 
 
 Improve register load order in subroutine call args assignments:
@@ -41,6 +47,7 @@ Compiler:
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
+- IR: CMPI+BSTEQ --> new BEQ reg,value,label instruction (like BGT etc)
 - expand the kata encoding to somehow translate normal katana to half-widths?  (see comment in KatakanaEncoding)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
@@ -94,7 +101,6 @@ Optimizations:
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
-- optimizeCommonSubExpressions: currently only looks in expressions on a single line, could search across multiple expressions
 
 STRUCTS?
 --------

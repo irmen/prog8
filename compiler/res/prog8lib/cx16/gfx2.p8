@@ -759,6 +759,7 @@ skip:
             cx16.VERA_CTRL = 1
             cx16.VERA_ADDR_H = cx16.r1L
             cx16.VERA_ADDR = cx16.r0
+            cx16.VERA_CTRL = 0
         }
 
         sub fill_scanline_left_8bpp() -> bool {
