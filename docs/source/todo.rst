@@ -1,9 +1,8 @@
 TODO
 ====
 
-IR: Improve codegen for for loops downto 0.  (BPL if <=127 etc like 6502 codegen?)
-
 callgraph issue? : if a sub contains another sub and it calls that, the outer sub is never removed even if it doesn't get called?
+
 callgraph issue? : there's an odd case that keeps unused subroutines marked as used , they don't get removed. Has to do with declaring string var. ::
 
     %import conv

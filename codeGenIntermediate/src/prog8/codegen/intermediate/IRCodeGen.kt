@@ -487,49 +487,76 @@ class IRCodeGen(
         val loopLabel = createLabelName()
         val result = mutableListOf<IRCodeChunkBase>()
 
-        val toTr = expressionEval.translateExpression(iterable.to)
-        addToResult(result, toTr, toTr.resultReg, -1)
-        val fromTr = expressionEval.translateExpression(iterable.from)
-        addToResult(result, fromTr, fromTr.resultReg, -1)
-
-        val labelAfterFor = createLabelName()
-        val precheckInstruction = if(loopvarDt in SignedDatatypes) {
-            if(step>0)
-                IRInstruction(Opcode.BGTSR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
-            else
-                IRInstruction(Opcode.BGTSR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, labelSymbol=labelAfterFor)
-        } else {
-            if(step>0)
-                IRInstruction(Opcode.BGTR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
-            else
-                IRInstruction(Opcode.BGTR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, labelSymbol=labelAfterFor)
-        }
-        addInstr(result, precheckInstruction, null)
-
-        addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
-        result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
-        if(step==1 || step==-1) {
-            // if endvalue == loopvar, stop loop, else iterate
+        if(loopvarDtIr==IRDataType.BYTE && step==-1 && iterable.to.asConstInteger()==0) {
+            // downto 0 optimization (byte)
+            val fromTr = expressionEval.translateExpression(iterable.from)
+            addToResult(result, fromTr, fromTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+            result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
+            result += addConstMem(loopvarDtIr, null, loopvarSymbol, -1)
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol)
-                it += IRInstruction(Opcode.CMP, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg)
-                it += IRInstruction(Opcode.BSTEQ, labelSymbol = labelAfterFor)
+                it += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = fromTr.resultReg, immediate = 255)
+                it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
             }
-            result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
-            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = loopLabel), null)
-        } else {
-            // ind/dec index, then:
-            // ascending: if endvalue >= loopvar, iterate
-            // descending: if loopvar >= endvalue, iterate
-            result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
-            addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol = loopvarSymbol), null)
-            if(step > 0)
-                addInstr(result, IRInstruction(Opcode.CMP, loopvarDtIr, reg1 = toTr.resultReg, fromTr.resultReg), null)
-            else
-                addInstr(result, IRInstruction(Opcode.CMP, loopvarDtIr, reg1 = fromTr.resultReg, toTr.resultReg), null)
-            addInstr(result, IRInstruction(Opcode.BSTPOS, labelSymbol = loopLabel), null)
         }
-        result += IRCodeChunk(labelAfterFor, null)
+        else if(step==-1 && iterable.to.asConstInteger()==1) {
+            // downto 1 optimization (byte and word)
+            val fromTr = expressionEval.translateExpression(iterable.from)
+            addToResult(result, fromTr, fromTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+            result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
+            result += addConstMem(loopvarDtIr, null, loopvarSymbol, -1)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol)
+                it += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+            }
+        }
+        else {
+            val toTr = expressionEval.translateExpression(iterable.to)
+            addToResult(result, toTr, toTr.resultReg, -1)
+            val fromTr = expressionEval.translateExpression(iterable.from)
+            addToResult(result, fromTr, fromTr.resultReg, -1)
+
+            val labelAfterFor = createLabelName()
+            val precheckInstruction = if(loopvarDt in SignedDatatypes) {
+                if(step>0)
+                    IRInstruction(Opcode.BGTSR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
+                else
+                    IRInstruction(Opcode.BGTSR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, labelSymbol=labelAfterFor)
+            } else {
+                if(step>0)
+                    IRInstruction(Opcode.BGTR, loopvarDtIr, fromTr.resultReg, toTr.resultReg, labelSymbol=labelAfterFor)
+                else
+                    IRInstruction(Opcode.BGTR, loopvarDtIr, toTr.resultReg, fromTr.resultReg, labelSymbol=labelAfterFor)
+            }
+            addInstr(result, precheckInstruction, null)
+
+            addInstr(result, IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol=loopvarSymbol), null)
+            result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
+            if(step==1 || step==-1) {
+                // if endvalue == loopvar, stop loop, else iterate
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = fromTr.resultReg, labelSymbol = loopvarSymbol)
+                    it += IRInstruction(Opcode.CMP, loopvarDtIr, reg1=toTr.resultReg, reg2=fromTr.resultReg)
+                    it += IRInstruction(Opcode.BSTEQ, labelSymbol = labelAfterFor)
+                }
+                result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
+                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = loopLabel), null)
+            } else {
+                // ind/dec index, then:
+                // ascending: if endvalue >= loopvar, iterate
+                // descending: if loopvar >= endvalue, iterate
+                result += addConstMem(loopvarDtIr, null, loopvarSymbol, step)
+                addInstr(result, IRInstruction(Opcode.LOADM, loopvarDtIr, reg1=fromTr.resultReg, labelSymbol = loopvarSymbol), null)
+                if(step > 0)
+                    addInstr(result, IRInstruction(Opcode.CMP, loopvarDtIr, reg1 = toTr.resultReg, fromTr.resultReg), null)
+                else
+                    addInstr(result, IRInstruction(Opcode.CMP, loopvarDtIr, reg1 = fromTr.resultReg, toTr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.BSTPOS, labelSymbol = loopLabel), null)
+            }
+            result += IRCodeChunk(labelAfterFor, null)
+        }
         return result
     }
 
@@ -558,9 +585,25 @@ class IRCodeGen(
         result += chunk
         result += labelFirstChunk(translateNode(forLoop.statements), loopLabel)
         val chunk2 = addConstMem(loopvarDtIr, null, loopvarSymbol, iterable.step)
-        chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
-        chunk2 += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped)
-        chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+        if(loopvarDtIr==IRDataType.BYTE && iterable.step==-1 && iterable.last==0) {
+            // downto 0 optimization (byte)
+            if(loopvarDt==DataType.BYTE || iterable.first<=127) {
+                chunk2 += IRInstruction(Opcode.BSTPOS, labelSymbol = loopLabel)
+            } else {
+                chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
+                chunk2 += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped)
+                chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+            }
+        }
+        else if(iterable.step==-1 && iterable.last==1) {
+            // downto 1 optimization (byte and word)
+            chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+        } else {
+            // downto some other value
+            chunk2 += IRInstruction(Opcode.LOADM, loopvarDtIr, reg1 = indexReg, labelSymbol = loopvarSymbol)
+            chunk2 += IRInstruction(Opcode.CMPI, loopvarDtIr, reg1 = indexReg, immediate = rangeEndExclusiveWrapped)
+            chunk2 += IRInstruction(Opcode.BSTNE, labelSymbol = loopLabel)
+        }
         result += chunk2
         return result
     }
