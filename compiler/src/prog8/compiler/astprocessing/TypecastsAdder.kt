@@ -348,9 +348,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
         if(fromConst!=null) {
             val smaller = NumericLiteral.optimalInteger(fromConst.number.toInt(), fromConst.position)
-            if(fromConst.type.largerThan(smaller.type)) {
+            if(fromConst.type.largerSizeThan(smaller.type)) {
                 val toType = range.to.inferType(program)
-                if(toType isnot smaller.type) {
+                if(!(toType issimpletype smaller.type)) {
                     if(toConst!=null) {
                         // can we make the to value into the same smaller type?
                         val smallerTo = NumericLiteral.optimalInteger(toConst.number.toInt(), toConst.position)
@@ -367,9 +367,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         }
         if(toConst!=null) {
             val smaller = NumericLiteral.optimalInteger(toConst.number.toInt(), toConst.position)
-            if(toConst.type.largerThan(smaller.type)) {
+            if(toConst.type.largerSizeThan(smaller.type)) {
                 val fromType = range.from.inferType(program)
-                if(fromType isnot smaller.type) {
+                if(!(fromType issimpletype  smaller.type)) {
                     if(fromConst!=null) {
                         // can we make the from value into the same smaller type?
                         val smallerFrom = NumericLiteral.optimalInteger(fromConst.number.toInt(), fromConst.position)
@@ -399,8 +399,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val constIdx = arrayIndexedExpression.indexer.constIndex()
         if(constIdx!=null) {
             val smaller = NumericLiteral.optimalInteger(constIdx, arrayIndexedExpression.indexer.position)
-            val idxDt = arrayIndexedExpression.indexer.indexExpr.inferType(program).getOr(DataType.UNDEFINED)
-            if(idxDt.largerThan(smaller.type)) {
+            val idxDt = arrayIndexedExpression.indexer.indexExpr.inferType(program).getOrUndef()
+            if(idxDt.dt.largerSizeThan(smaller.type)) {
                 val newIdx = ArrayIndex(smaller, smaller.position)
                 val newIndexer = ArrayIndexedExpression(arrayIndexedExpression.arrayvar, newIdx, arrayIndexedExpression.position)
                 return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, newIndexer, parent))

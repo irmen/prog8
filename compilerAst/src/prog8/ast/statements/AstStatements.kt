@@ -236,7 +236,7 @@ class VarDecl(val type: VarDeclType,
 
         fun fromParameter(param: SubroutineParameter): VarDecl {
             val dt = if(param.type.isArray) DataType.forDt(BaseDataType.UWORD) else param.type
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, ZeropageWish.DONTCARE, null, param.name, emptyList(), null,
+            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, null, param.name, emptyList(), null,
                 sharedWithAsm = false,
                 splitArray = false,
                 position = param.position
