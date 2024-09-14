@@ -33,6 +33,14 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
     }
 
     override fun after(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> {
+
+        if(numLiteral.type==DataType.LONG) {
+            // see if LONG values may be reduced to something smaller
+            val smaller = NumericLiteral.optimalInteger(numLiteral.number.toInt(), numLiteral.position)
+            if(smaller.type!=DataType.LONG)
+                return listOf(IAstModification.ReplaceNode(numLiteral, smaller, parent))
+        }
+
         if(parent is Assignment) {
             val iDt = parent.target.inferType(program)
             if(iDt.isKnown && !iDt.isBool && !iDt.istype(numLiteral.type)) {
@@ -164,13 +172,13 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if(leftconst==null && rightconst!=null && rightconst.number<0.0) {
             if (expr.operator == "-") {
                 // X - -1 ---> X + 1
-                val posNumber = NumericLiteral.optimalNumeric(-rightconst.number, rightconst.position)
+                val posNumber = NumericLiteral.optimalNumeric(rightconst.type, null, -rightconst.number, rightconst.position)
                 val plusExpr = BinaryExpression(expr.left, "+", posNumber, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, plusExpr, parent))
             }
             else if (expr.operator == "+") {
                 // X + -1 ---> X - 1
-                val posNumber = NumericLiteral.optimalNumeric(-rightconst.number, rightconst.position)
+                val posNumber = NumericLiteral.optimalNumeric(rightconst.type, null, -rightconst.number, rightconst.position)
                 val plusExpr = BinaryExpression(expr.left, "-", posNumber, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, plusExpr, parent))
             }
@@ -384,12 +392,13 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         val numval = decl.value as? NumericLiteral
         if(decl.type== VarDeclType.CONST && numval!=null) {
             val valueDt = numval.inferType(program)
+            if(valueDt istype DataType.LONG) {
+                return noModifications  // this is handled in the numericalvalue case
+            }
             if(valueDt isnot decl.datatype) {
-                if(decl.datatype!=DataType.BOOL || valueDt.isnot(DataType.UBYTE)) {
-                    val cast = numval.cast(decl.datatype, true)
-                    if (cast.isValid)
-                        return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
-                }
+                val cast = numval.cast(decl.datatype, true)
+                if (cast.isValid)
+                    return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
             }
         }
         return noModifications

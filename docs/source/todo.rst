@@ -1,8 +1,10 @@
 TODO
 ====
 
-wrong answer if cast as uword is not done in:
-  const uword W=320;   uword x1 = ((WIDTH-256)/2 as uword) + math.sin8u(i)
+Should give type error, but seems to make num a word !?:
+    const uword screenwidth = txt.DEFAULT_WIDTH
+    const ubyte num = (screenwidth-1) / 2
+
 
 callgraph issue? : if a sub contains another sub and it calls that, the outer sub is never removed even if it doesn't get called?
 

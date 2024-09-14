@@ -15,6 +15,9 @@
 ;
 ; NOTE: the bitmap screen data is positioned in vram at $0:0000
 ;
+; NOTE: In the future, these routines might be split out to separate modules, 1 for each screen mode,
+;       so they can be optimized a lot better.  There's already a "gfx_lores" module with a few routines for lores 256C mode.
+;
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
 ;   mode 1 = bitmap 320 x 240 x 256c (8 bpp)

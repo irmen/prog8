@@ -6,8 +6,8 @@
 ; Note: this program can be compiled for multiple target systems.
 
 main {
-    const uword width = 30
-    const uword height = 20
+    const ubyte width = 30
+    const ubyte height = 20
     const ubyte max_iter = 16
 
     sub start()  {

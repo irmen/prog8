@@ -33,9 +33,9 @@ main {
         }
 
         if fastserial
-            diskio.fastmode(3)
+            void diskio.fastmode(3)
         else
-            diskio.fastmode(0)
+            void diskio.fastmode(0)
 
         test_save()
         test_save_blocks()

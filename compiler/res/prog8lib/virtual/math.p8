@@ -233,7 +233,7 @@ math {
     sub direction(ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte {
         ; From a pair of positive coordinates, calculate discrete direction between 0 and 23 into A.
         ; This adjusts the atan() result  so that the direction N is centered on the angle=N instead of having it as a boundary
-        ubyte angle = atan2(x1, y1, x2, y2) - 256/48
+        ubyte angle = atan2(x1, y1, x2, y2) - (256/48 as ubyte)
         return 23-lsb(mkword(angle,0) / 2730)
     }
 

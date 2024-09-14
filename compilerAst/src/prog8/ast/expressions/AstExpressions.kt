@@ -498,6 +498,24 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         fun fromBoolean(bool: Boolean, position: Position) =
                 NumericLiteral(DataType.BOOL, if(bool) 1.0 else 0.0, position)
 
+        fun optimalNumeric(origType1: DataType, origType2: DataType?, value: Number, position: Position) : NumericLiteral {
+            val optimal = optimalNumeric(value, position)
+            val largestOrig = if(origType2==null) origType1 else if(origType1.largerThan(origType2)) origType1 else origType2
+            if(largestOrig.largerThan(optimal.type))
+                return NumericLiteral(largestOrig, optimal.number, position)
+            else
+                return optimal
+        }
+
+        fun optimalInteger(origType1: DataType, origType2: DataType?, value: Int, position: Position): NumericLiteral {
+            val optimal = optimalInteger(value, position)
+            val largestOrig = if(origType2==null) origType1 else if(origType1.largerThan(origType2)) origType1 else origType2
+            if(largestOrig.largerThan(optimal.type))
+                return NumericLiteral(largestOrig, optimal.number, position)
+            else
+                return optimal
+        }
+
         fun optimalNumeric(value: Number, position: Position): NumericLiteral {
             val digits = floor(value.toDouble()) - value.toDouble()
             return if(value is Double && digits!=0.0) {
@@ -1090,7 +1108,16 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         } else if(vardecl.type!= VarDeclType.CONST) {
             return null
         }
-        return vardecl.value?.constValue(program)
+
+        // the value of a variable can (temporarily) be a different type as the vardecl itself.
+        // don't return the value if the types don't match yet!
+        val value = vardecl.value?.constValue(program)
+        if(value==null || value.type==vardecl.datatype)
+            return value
+        val optimal = NumericLiteral.optimalNumeric(value.number, value.position)
+        if(optimal.type==vardecl.datatype)
+            return optimal
+        return null
     }
 
     override fun toString(): String {

@@ -3,8 +3,8 @@
 %zeropage basicsafe
 
 main {
-    const uword width = 60
-    const uword height = 50
+    const ubyte width = 60
+    const ubyte height = 50
     const ubyte max_iter = 16
 
     sub start()  {

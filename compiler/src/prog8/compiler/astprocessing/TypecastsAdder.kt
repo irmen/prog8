@@ -190,21 +190,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                     val cvalue = assignment.value.constValue(program)
                     if(cvalue!=null) {
-                        val number = cvalue.number
-                        // more complex comparisons if the type is different, but the constant value is compatible
-                        if (valuetype == DataType.BYTE && targettype == DataType.UBYTE) {
-                            if(number>0)
-                                return castLiteral(cvalue)
-                        } else if (valuetype == DataType.WORD && targettype == DataType.UWORD) {
-                            if(number>0)
-                                return castLiteral(cvalue)
-                        } else if (valuetype == DataType.UBYTE && targettype == DataType.BYTE) {
-                            if(number<0x80)
-                                return castLiteral(cvalue)
-                        } else if (valuetype == DataType.UWORD && targettype == DataType.WORD) {
-                            if(number<0x8000)
-                                return castLiteral(cvalue)
-                        }
+                        return castLiteral(cvalue)
                     }
                 }
             }
@@ -357,13 +343,70 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
+        val fromConst = range.from.constValue(program)
+        val toConst = range.to.constValue(program)
+
+        if(fromConst!=null) {
+            val smaller = NumericLiteral.optimalInteger(fromConst.number.toInt(), fromConst.position)
+            if(fromConst.type.largerThan(smaller.type)) {
+                val toType = range.to.inferType(program)
+                if(toType isnot smaller.type) {
+                    if(toConst!=null) {
+                        // can we make the to value into the same smaller type?
+                        val smallerTo = NumericLiteral.optimalInteger(toConst.number.toInt(), toConst.position)
+                        if(smaller.type==smallerTo.type) {
+                            val newRange = RangeExpression(smaller, smallerTo, range.step, range.position)
+                            return listOf(IAstModification.ReplaceNode(range, newRange, parent))
+                        }
+                    }
+                } else {
+                    val newRange = RangeExpression(smaller, range.to, range.step, range.position)
+                    return listOf(IAstModification.ReplaceNode(range, newRange, parent))
+                }
+            }
+        }
+        if(toConst!=null) {
+            val smaller = NumericLiteral.optimalInteger(toConst.number.toInt(), toConst.position)
+            if(toConst.type.largerThan(smaller.type)) {
+                val fromType = range.from.inferType(program)
+                if(fromType isnot smaller.type) {
+                    if(fromConst!=null) {
+                        // can we make the from value into the same smaller type?
+                        val smallerFrom = NumericLiteral.optimalInteger(fromConst.number.toInt(), fromConst.position)
+                        if(smaller.type==smallerFrom.type) {
+                            val newRange = RangeExpression(smallerFrom, smaller, range.step, range.position)
+                            return listOf(IAstModification.ReplaceNode(range, newRange, parent))
+                        }
+                    }
+                } else {
+                    val newRange = RangeExpression(range.from, smaller, range.step, range.position)
+                    return listOf(IAstModification.ReplaceNode(range, newRange, parent))
+                }
+            }
+        }
+
+        val modifications = mutableListOf<IAstModification>()
         val fromDt = range.from.inferType(program).getOr(DataType.UNDEFINED)
         val toDt = range.to.inferType(program).getOr(DataType.UNDEFINED)
-        val modifications = mutableListOf<IAstModification>()
         val (commonDt, toChange) = BinaryExpression.commonDatatype(fromDt, toDt, range.from, range.to)
         if(toChange!=null)
             addTypecastOrCastedValueModification(modifications, toChange, commonDt, range)
+
         return modifications
+    }
+
+    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        val constIdx = arrayIndexedExpression.indexer.constIndex()
+        if(constIdx!=null) {
+            val smaller = NumericLiteral.optimalInteger(constIdx, arrayIndexedExpression.indexer.position)
+            val idxDt = arrayIndexedExpression.indexer.indexExpr.inferType(program).getOr(DataType.UNDEFINED)
+            if(idxDt.largerThan(smaller.type)) {
+                val newIdx = ArrayIndex(smaller, smaller.position)
+                val newIndexer = ArrayIndexedExpression(arrayIndexedExpression.arrayvar, newIdx, arrayIndexedExpression.position)
+                return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, newIndexer, parent))
+            }
+        }
+        return noModifications
     }
 
     private fun addTypecastOrCastedValueModification(
