@@ -938,7 +938,7 @@ io_error:
     }
 
     sub read4hex() -> uword {
-        ubyte[5] hex = 0
+        str hex = "0000"
         hex[0] = cbm.CHRIN()
         hex[1] = cbm.CHRIN()
         hex[2] = cbm.CHRIN()

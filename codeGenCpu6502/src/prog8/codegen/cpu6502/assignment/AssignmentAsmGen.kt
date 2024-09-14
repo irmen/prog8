@@ -1886,7 +1886,7 @@ $endLabel""")
         }
 
         val symbol = asmgen.symbolTable.lookup(containment.haystackHeapVar!!.name)!!
-        val symbolName = asmgen.asmVariableName(symbol, containment.definingSub())
+        val symbolName = asmgen.asmVariableName(symbol, containment.definingISub())
         val (dt, numElements) = when(symbol) {
             is StStaticVariable  -> symbol.dt to symbol.length!!
             is StMemVar -> symbol.dt to symbol.length!!
