@@ -1691,7 +1691,7 @@ class IRCodeGen(
 
     private fun translate(parameters: List<PtSubroutineParameter>) =
         parameters.map {
-            val flattenedName = it.definingSub()!!.name + "." + it.name
+            val flattenedName = it.definingISub()!!.name + "." + it.name
             if(symbolTable.lookup(flattenedName)==null)
                 TODO("fix missing lookup for: $flattenedName   parameter")
             val orig = symbolTable.lookup(flattenedName) as StStaticVariable

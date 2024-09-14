@@ -2,33 +2,7 @@ TODO
 ====
 
 callgraph issue? : if a sub contains another sub and it calls that, the outer sub is never removed even if it doesn't get called?
-
-There's an odd case that keeps unused subroutines marked as used , they don't get removed. Has to do with declaring string var. ::
-it's a 64tass issue, caused by prog8 including full prefixed symbol name in the str case, and a local name in the array case....
-
-    %import conv
-    %option no_sysinit
-
-    main {
-        sub start() {
-            cx16.r0++
-        }
-    }
-
-    stuff {
-        asmsub shim() {
-            %asm {{
-                jmp  p8s_read4hex
-            }}
-        }
-
-        sub read4hex() -> uword {
-            ;ubyte[5] hex = 0
-            str hex = "0000"        ; TODO causes everything to be included , if declared as a byte array, nothing is included
-            return conv.hex2uword(hex)
-        }
-    }
-
+(diskio, when read4hex is placed back inside internal_f_tell() )
 
 
 Improve register load order in subroutine call args assignments:

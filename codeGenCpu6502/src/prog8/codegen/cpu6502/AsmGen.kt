@@ -374,7 +374,7 @@ class AsmGen6502Internal (
         val name = asmSymbolName(identifier.name)
 
         // see if we're inside a subroutine, if so, remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)
-        val subName = identifier.definingSub()?.scopedName
+        val subName = identifier.definingISub()?.scopedName
         return if (subName != null && name.length>subName.length && name.startsWith(subName) && name[subName.length] == '.')
             name.drop(subName.length + 1)
         else
@@ -385,14 +385,14 @@ class AsmGen6502Internal (
         val name = asmVariableName(identifier.name)
 
         // see if we're inside a subroutine, if so, remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)
-        val subName = identifier.definingSub()?.scopedName
+        val subName = identifier.definingISub()?.scopedName
         return if (subName != null && name.length>subName.length && name.startsWith(subName) && name[subName.length] == '.')
             name.drop(subName.length+1)
         else
             name
     }
 
-    fun asmVariableName(st: StNode, scope: PtSub?): String {
+    fun asmVariableName(st: StNode, scope: IPtSubroutine?): String {
         val name = asmVariableName(st.scopedName)
         if(scope==null)
             return name

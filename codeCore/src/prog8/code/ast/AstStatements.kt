@@ -5,6 +5,7 @@ import prog8.code.core.*
 
 sealed interface IPtSubroutine {
     val name: String
+    val scopedName: String
 }
 
 class PtAsmSub(

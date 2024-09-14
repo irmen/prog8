@@ -225,7 +225,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationSplitWordWithLiteralval(target.asmVarname, target.datatype, index, operator, value.number!!.number.toInt())
                             else -> {
                                 // TODO: more optimized code for VARIABLE, REGISTER, MEMORY, ARRAY, EXPRESSION in the case of split-word arrays
-                                val scope = target.origAstTarget?.definingSub()
+                                val scope = target.origAstTarget?.definingISub()
                                 val regTarget = AsmAssignTarget.fromRegisters(RegisterOrPair.R0, false, target.position, scope, asmgen)
                                 val assignToReg = AsmAssignment(value, regTarget, program.memsizer, target.position)
                                 assignmentAsmGen.translateNormalAssignment(assignToReg, scope)
