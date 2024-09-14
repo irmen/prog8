@@ -285,6 +285,9 @@ gfx2 {
     sub line(uword @zp x1, uword @zp y1, uword @zp x2, uword @zp y2, ubyte color) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
+
+        ; NOTE: if you are using lores 256c (mode 1), the line routine in the fastline module can be used and is MUCH faster than this one.
+
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
             cx16.r0 = x1
