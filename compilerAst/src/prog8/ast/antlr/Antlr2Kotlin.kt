@@ -189,7 +189,7 @@ private fun Asmsub_declContext.toAst(): AsmsubDecl {
     val params = asmsub_params()?.toAst() ?: emptyList()
     val returns = asmsub_returns()?.toAst() ?: emptyList()
     val clobbers = asmsub_clobbers()?.clobber()?.toAst() ?: emptySet()
-    val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.position) }
+    val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.zp, it.position) }
     val normalReturntypes = returns.map { it.type }
     val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
     val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
@@ -200,7 +200,7 @@ private class AsmSubroutineParameter(name: String,
                                      type: DataType,
                                      val registerOrPair: RegisterOrPair?,
                                      val statusflag: Statusflag?,
-                                     position: Position) : SubroutineParameter(name, type, position)
+                                     position: Position) : SubroutineParameter(name, type, ZeropageWish.DONTCARE, position)
 
 private class AsmSubroutineReturn(val type: DataType,
                                   val registerOrPair: RegisterOrPair?,
@@ -310,6 +310,8 @@ private fun SubroutineContext.toAst() : Subroutine {
 
 private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
         vardecl().map {
+            val options = it.decloptions()
+            val zp = getZpOption(options)
             var datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
             if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
                 datatype = ElementToArrayTypes.getValue(datatype)
@@ -318,8 +320,19 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
             val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].VOID()
-            SubroutineParameter(identifiername.text, datatype, it.toPosition())
+            SubroutineParameter(identifiername.text, datatype, zp, it.toPosition())
         }
+
+private fun getZpOption(options: DecloptionsContext?): ZeropageWish {
+    if(options==null)
+        return ZeropageWish.DONTCARE
+    return when {
+        options.ZEROPAGEREQUIRE().isNotEmpty() -> ZeropageWish.REQUIRE_ZEROPAGE
+        options.ZEROPAGE().isNotEmpty() -> ZeropageWish.PREFER_ZEROPAGE
+        options.ZEROPAGENOT().isNotEmpty() -> ZeropageWish.NOT_IN_ZEROPAGE
+        else -> ZeropageWish.DONTCARE
+    }
+}
 
 private fun Assign_targetContext.toAst() : AssignTarget {
     return when(this) {
@@ -671,12 +684,7 @@ private fun When_choiceContext.toAst(): WhenChoice {
 
 private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl {
     val options = decloptions()
-    val zp = when {
-        options.ZEROPAGEREQUIRE().isNotEmpty() -> ZeropageWish.REQUIRE_ZEROPAGE
-        options.ZEROPAGE().isNotEmpty() -> ZeropageWish.PREFER_ZEROPAGE
-        options.ZEROPAGENOT().isNotEmpty() -> ZeropageWish.NOT_IN_ZEROPAGE
-        else -> ZeropageWish.DONTCARE
-    }
+    val zp = getZpOption(options)
     val identifiers = identifier()
     val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].VOID()
     val name = if(identifiers.size==1) identifiername.text else "<multiple>"

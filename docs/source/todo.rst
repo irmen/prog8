@@ -1,10 +1,6 @@
 TODO
 ====
 
-@nozp for subroutine arguments doesn't work - still become zeropage vars
-@requirezp for subroutine arguments doesn't cause compiler error when zp is disabled "zeropage usage has been disabled by options"
-
-
 wrong answer if cast as uword is not done in:
   const uword W=320;   uword x1 = ((WIDTH-256)/2 as uword) + math.sin8u(i)
 

@@ -236,7 +236,7 @@ class VarDecl(val type: VarDeclType,
 
         fun fromParameter(param: SubroutineParameter): VarDecl {
             val dt = if(param.type in ArrayDatatypes) DataType.UWORD else param.type
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, ZeropageWish.DONTCARE, null, param.name, emptyList(), null,
+            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, null, param.name, emptyList(), null,
                 sharedWithAsm = false,
                 splitArray = false,
                 position = param.position
@@ -813,6 +813,7 @@ class Subroutine(override val name: String,
 
 open class SubroutineParameter(val name: String,
                                val type: DataType,
+                               val zp: ZeropageWish,
                                final override val position: Position) : Node {
     override lateinit var parent: Node
 
@@ -824,7 +825,7 @@ open class SubroutineParameter(val name: String,
         throw FatalAstException("can't replace anything in a subroutineparameter node")
     }
 
-    override fun copy() = SubroutineParameter(name, type, position)
+    override fun copy() = SubroutineParameter(name, type, zp, position)
     override fun toString() = "Param($type:$name)"
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = nameInSource.size==1 && name==nameInSource[0]
 }
