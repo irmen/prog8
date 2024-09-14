@@ -15,6 +15,9 @@
 ;
 ; NOTE: the bitmap screen data is positioned in vram at $0:0000
 ;
+; NOTE: In the future, these routines might be split out to separate modules, 1 for each screen mode,
+;       so they can be optimized a lot better.  There's already a "gfx_lores" module with a few routines for lores 256C mode.
+;
 ; SCREEN MODE LIST:
 ;   mode 0 = reset back to default text mode
 ;   mode 1 = bitmap 320 x 240 x 256c (8 bpp)
@@ -285,6 +288,9 @@ gfx2 {
     sub line(uword @zp x1, uword @zp y1, uword @zp x2, uword @zp y2, ubyte color) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
+
+        ; NOTE: if you are using lores 256c (mode 1), the line routine in the fastline module can be used and is MUCH faster than this one.
+
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
             cx16.r0 = x1

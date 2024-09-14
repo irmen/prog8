@@ -66,7 +66,7 @@ class ConstExprEvaluator {
 //            DataType.WORD -> result = result.toShort().toInt()
 //            else -> { /* keep as it is */ }
 //        }
-        return NumericLiteral.optimalNumeric(result.toDouble(), left.position)
+        return NumericLiteral.optimalNumeric(left.type, null, result.toDouble(), left.position)
     }
 
     private fun bitwiseXor(left: NumericLiteral, right: NumericLiteral): NumericLiteral {
@@ -134,7 +134,7 @@ class ConstExprEvaluator {
         val error = "cannot add $left and $right"
         return when {
             left.type.isInteger -> when {
-                right.type.isInteger -> NumericLiteral.optimalInteger(left.number.toInt() + right.number.toInt(), left.position)
+                right.type.isInteger -> NumericLiteral.optimalInteger(left.type, right.type, left.number.toInt() + right.number.toInt(), left.position)
                 right.type == BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, left.number.toInt() + right.number, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
@@ -151,7 +151,7 @@ class ConstExprEvaluator {
         val error = "cannot subtract $left and $right"
         return when {
             left.type.isInteger -> when {
-                right.type.isInteger -> NumericLiteral.optimalInteger(left.number.toInt() - right.number.toInt(), left.position)
+                right.type.isInteger -> NumericLiteral.optimalInteger(left.type, right.type, left.number.toInt() - right.number.toInt(), left.position)
                 right.type == BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, left.number.toInt() - right.number, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
@@ -168,7 +168,7 @@ class ConstExprEvaluator {
         val error = "cannot multiply ${left.type} and ${right.type}"
         return when {
             left.type.isInteger -> when {
-                right.type.isInteger -> NumericLiteral.optimalInteger(left.number.toInt() * right.number.toInt(), left.position)
+                right.type.isInteger -> NumericLiteral.optimalInteger(left.type, right.type, left.number.toInt() * right.number.toInt(), left.position)
                 right.type == BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, left.number.toInt() * right.number, left.position)
                 else -> throw ExpressionError(error, left.position)
             }
@@ -191,7 +191,7 @@ class ConstExprEvaluator {
                 right.type.isInteger -> {
                     if(right.number.toInt()==0) divideByZeroError(right.position)
                     val result: Int = left.number.toInt() / right.number.toInt()
-                    NumericLiteral.optimalInteger(result, left.position)
+                    NumericLiteral.optimalInteger(left.type, right.type, result, left.position)
                 }
                 right.type == BaseDataType.FLOAT -> {
                     if(right.number==0.0) divideByZeroError(right.position)
@@ -220,7 +220,7 @@ class ConstExprEvaluator {
             left.type.isInteger -> when {
                 right.type.isInteger -> {
                     if(right.number.toInt()==0) divideByZeroError(right.position)
-                    NumericLiteral.optimalNumeric(left.number.toInt().toDouble() % right.number.toInt().toDouble(), left.position)
+                    NumericLiteral.optimalNumeric(left.type, right.type, left.number.toInt().toDouble() % right.number.toInt().toDouble(), left.position)
                 }
                 right.type == BaseDataType.FLOAT -> {
                     if(right.number ==0.0) divideByZeroError(right.position)

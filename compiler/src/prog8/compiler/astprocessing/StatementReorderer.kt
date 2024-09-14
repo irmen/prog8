@@ -143,7 +143,7 @@ internal class StatementReorderer(
         // change 'str' and 'ubyte[]' parameters into 'uword' (just treat it as an address)
         val stringParams = subroutine.parameters.filter { it.type.isString || it.type.isUnsignedByteArray }
         val parameterChanges = stringParams.map {
-            val uwordParam = SubroutineParameter(it.name, DataType.forDt(BaseDataType.UWORD), it.position)
+            val uwordParam = SubroutineParameter(it.name, DataType.forDt(BaseDataType.UWORD), it.zp, it.position)
             IAstModification.ReplaceNode(it, uwordParam, subroutine)
         }
         // change 'str' and 'ubyte[]' return types into 'uword' (just treat it as an address)

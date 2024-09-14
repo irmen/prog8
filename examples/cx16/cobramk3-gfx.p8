@@ -1,6 +1,5 @@
 %import textio
 %import syslib
-%import test_stack
 %import conv
 %import math
 %import verafx
