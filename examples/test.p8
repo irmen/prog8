@@ -1,18 +1,19 @@
-%import conv
+%import monogfx
 %option no_sysinit
+%zeropage basicsafe
 
 main {
     sub start() {
-        read4hex()
-    }
+        monogfx.hires()
+        monogfx.circle(320, 240, 200, true)
+        sys.wait(60)
+        monogfx.drawmode(monogfx.MODE_STIPPLE)
+        monogfx.disc(320, 240, 200, true)
+        sys.wait(60)
+        monogfx.drawmode(monogfx.MODE_NORMAL)
+        monogfx.safe_disc(320, 240, 200, true)
 
-    sub read4hex() -> uword {
-        str hex = "0000"
-        hex[0] = cbm.CHRIN()
-        hex[1] = cbm.CHRIN()
-        hex[2] = cbm.CHRIN()
-        hex[3] = cbm.CHRIN()
-        return conv.hex2uword(hex)
+        repeat {
+        }
     }
-
 }

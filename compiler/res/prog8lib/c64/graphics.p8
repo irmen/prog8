@@ -288,17 +288,30 @@ hline_zero2
 
     sub disc(uword xcenter, ubyte ycenter, ubyte radius) {
         ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
-        ; Midpoint algorithm, filled
+        ; Midpoint algorithm, filled.
         if radius==0
             return
         ubyte @zp yy = 0
         word decisionOver2 = (1 as word)-radius
+        ubyte last_y3 = ycenter+radius
+        ubyte last_y4 = ycenter-radius
+        ubyte new_y3, new_y4
 
         while radius>=yy {
             horizontal_line(xcenter-radius, ycenter+yy, radius*2+1)
             horizontal_line(xcenter-radius, ycenter-yy, radius*2+1)
-            horizontal_line(xcenter-yy, ycenter+radius, yy*2+1)
-            horizontal_line(xcenter-yy, ycenter-radius, yy*2+1)
+
+            new_y3 = ycenter+radius
+            if new_y3 != last_y3 {
+                horizontal_line(xcenter-yy, last_y3, yy*2+1)
+                last_y3 = new_y3
+            }
+            new_y4 = ycenter-radius
+            if new_y4 != last_y4 {
+                horizontal_line(xcenter-yy, last_y4, yy*2+1)
+                last_y4 = new_y4
+            }
+
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -307,6 +320,10 @@ hline_zero2
             decisionOver2 += yy*$0002
             decisionOver2++
         }
+        ; draw the final two spans
+        yy--
+        horizontal_line(xcenter-yy, last_y3, yy*2+1)
+        horizontal_line(xcenter-yy, last_y4, yy*2+1)
     }
 
 
