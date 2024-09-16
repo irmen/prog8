@@ -1,10 +1,6 @@
 TODO
 ====
 
-callgraph issue? : if a sub contains another sub and it calls that, the outer sub is never removed even if it doesn't get called?
-(diskio, when read4hex is placed back inside internal_f_tell() )
-
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

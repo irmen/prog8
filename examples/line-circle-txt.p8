@@ -81,6 +81,8 @@ main {
 
         sub disc(ubyte cx, ubyte cy, ubyte radius) {
             ; Midpoint algorithm, filled
+            ; NOTE: because of the symmetry drawing, some horizontal spans will be drawn multiple times.
+            ;       because this is only a very low res (text tiles) disc, it's not worth optimizing that.
             ubyte x = radius
             ubyte y = 0
             byte decisionOver2 = 1-x as byte

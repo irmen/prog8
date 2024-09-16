@@ -1,29 +1,27 @@
-%import textio
-%zeropage basicsafe
 %option no_sysinit
+%zeropage basicsafe
 
 main {
     sub start() {
-        uword[2] array = [$1111,$eeee]
-        uword[2] @split sarray = [$1111,$eeee]
+        ; nothing!
+    }
+}
 
-        txt.print_uwhex(array[1], true)
-        txt.nl()
-        txt.print_uwhex(sarray[1], true)
-        txt.nl()
 
-        setmsb(array[1], $55)
-        setmsb(sarray[1], $55)
-        txt.print_uwhex(array[1], true)
-        txt.nl()
-        txt.print_uwhex(sarray[1], true)
-        txt.nl()
+derp {
+    asmsub f_tell() -> uword @R0, uword @R1, uword @R2, uword @R3 {
+        %asm {{
+            jmp  p8s_internal_f_tell
+        }}
+    }
 
-        setlsb(array[1], $44)
-        setlsb(sarray[1], $44)
-        txt.print_uwhex(array[1], true)
-        txt.nl()
-        txt.print_uwhex(sarray[1], true)
-        txt.nl()
+    sub internal_f_tell() {
+        cx16.r1 = read4hex()
+
+        sub read4hex() -> uword {
+            str @shared hex = "0000000000000000000000000000000000000000000"
+            cx16.r0++
+            return cx16.r0
+        }
     }
 }
