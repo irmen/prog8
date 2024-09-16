@@ -1,19 +1,27 @@
-%import monogfx
 %option no_sysinit
 %zeropage basicsafe
 
 main {
     sub start() {
-        monogfx.hires()
-        monogfx.circle(320, 240, 200, true)
-        sys.wait(60)
-        monogfx.drawmode(monogfx.MODE_STIPPLE)
-        monogfx.disc(320, 240, 200, true)
-        sys.wait(60)
-        monogfx.drawmode(monogfx.MODE_NORMAL)
-        monogfx.safe_disc(320, 240, 200, true)
+        ; nothing!
+    }
+}
 
-        repeat {
+
+derp {
+    asmsub f_tell() -> uword @R0, uword @R1, uword @R2, uword @R3 {
+        %asm {{
+            jmp  p8s_internal_f_tell
+        }}
+    }
+
+    sub internal_f_tell() {
+        cx16.r1 = read4hex()
+
+        sub read4hex() -> uword {
+            str @shared hex = "0000000000000000000000000000000000000000000"
+            cx16.r0++
+            return cx16.r0
         }
     }
 }

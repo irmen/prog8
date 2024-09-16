@@ -35,7 +35,7 @@ main {
 
 
 irq {
-    const ubyte BAR_Y_OFFSET = 6
+    const ubyte BAR_Y_OFFSET = 5
     uword next_irq_line = 0
     ubyte anim1 = 0
     ubyte av1 = 0
@@ -47,7 +47,7 @@ irq {
         next_irq_line += BAR_Y_OFFSET
         anim1 += 7
         anim2 += 4
-        if next_irq_line > 480-BAR_Y_OFFSET {
+        if next_irq_line > 480 {
             av1++
             av2 += 2
             anim1 = av1
@@ -55,6 +55,10 @@ irq {
             next_irq_line = 0
             ; erase the bars
             gfx2.horizontal_line(0, 0, 320, 3)
+;            gfx2.position(0, 0)
+;            repeat 10 {
+;                gfx2.next_pixels(pixels, len(pixels))
+;            }
         } else {
             ; add new bar on top
             gfx2.position(math.sin8u(anim1)/2 + math.cos8u(anim2)/2 + $0010, 0)
