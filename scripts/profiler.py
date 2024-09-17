@@ -1,25 +1,22 @@
 #!/usr/bin/env python
 
-"""
+program_description = """
 This is a simple run-time profiler tool for X16 assembly programs.
 It takes an assembly list file (as produced by 64tass/turbo assembler) and
-a memory access statistics dump file (produced by the emulator's -memorystats option)
+a memory access statistics dump file (produced by the X16 emulator's -memorystats option)
 and prints out what assembly lines and variables were read from and written to the most.
 These may indicate hot paths or even bottlenecks in your program,
 and what variables in system ram might be better placed in Zeropage.
-
-The -memorystats option in the emulator is work in progress at the time of writing.
 """
 
 
-import sys
 import argparse
 import operator
 from typing import Tuple
 
 
 class AsmList:
-    """parses a l64tass Turbo Assembler Macro listing file"""
+    """parses a 64tass Turbo Assembler Macro listing file"""
 
     def __init__(self, filename: str) -> None:
         self.lines = []
@@ -170,7 +167,7 @@ def profile(number_of_lines: int, asmlist: str, memstats: str) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="simple X16 assembly run time profiler")
+    parser = argparse.ArgumentParser(description=program_description)
     parser.add_argument("-n", dest="number", type=int, default=20, help="amount of reads and writes to print (default 20)")
     parser.add_argument("asmlistfile", type=str, help="the 64tass/turbo assembler listing file to read")
     parser.add_argument("memorystatsfile", type=str, help="the X16 emulator memstats dump file to read")

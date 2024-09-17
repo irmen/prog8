@@ -1,9 +1,30 @@
-; optimized graphics routines for just a single screen mode:  lores 320*240, 256c  (8bpp)
+; optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
 ; bitmap image needs to start at VRAM addres $00000.
 ; This is compatible with the CX16's screen mode 128.  (void cx16.set_screen_mode(128))
 
 
 gfx_lores {
+
+    sub set_screen_mode() {
+        cx16.VERA_CTRL=0
+        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
+        cx16.VERA_DC_HSCALE = 64
+        cx16.VERA_DC_VSCALE = 64
+        cx16.VERA_L1_CONFIG = %00000111
+        cx16.VERA_L1_MAPBASE = 0
+        cx16.VERA_L1_TILEBASE = 0
+        clear_screen(0)
+    }
+
+    sub clear_screen(ubyte color) {
+        cx16.VERA_CTRL=0
+        cx16.VERA_ADDR=0
+        cx16.VERA_ADDR_H = 1<<4    ; 1 pixel auto increment
+        repeat 240
+            cs_innerloop320(color)
+        cx16.VERA_ADDR=0
+        cx16.VERA_ADDR_H = 0
+    }
 
     sub line(uword x1, ubyte y1, uword x2, ubyte y2, ubyte color) {
         ; Bresenham algorithm.
@@ -141,7 +162,6 @@ times320_hi     .byte `times320
             }}
     }
 
-
     sub horizontal_line(uword xx, ubyte yy, uword length, ubyte color) {
         if length==0
             return
@@ -180,6 +200,26 @@ times320_hi     .byte `times320
             dey
             bne  -
 +
+        }}
+    }
+
+
+    asmsub cs_innerloop320(ubyte color @A) clobbers(Y) {
+        ; using verafx 32 bits writes here would make this faster but it's safer to
+        ; use verafx only explicitly when you know what you're doing.
+        %asm {{
+            ldy  #40
+-           sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            dey
+            bne  -
+            rts
         }}
     }
 

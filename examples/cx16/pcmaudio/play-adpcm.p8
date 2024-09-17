@@ -153,10 +153,10 @@ mono {
         repeat 252/2 {
             unroll 2 {
                 nibble = @(main.nibblesptr)
-                adpcm.decode_nibble(nibble & 15)     ; first word
+                adpcm.decode_nibble(nibble & 15)     ; first word  (note: upper nibble needs to be zero!)
                 cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
                 cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-                adpcm.decode_nibble(nibble>>4)       ; second word
+                adpcm.decode_nibble(nibble>>4)       ; second word  (note: upper nibble is zero, after the shifts.)
                 cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
                 cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
                 main.nibblesptr++
@@ -219,6 +219,7 @@ stereo {
 
     sub decode_nibbles_unrolled() {
         ; decode 4 left channel nibbles
+        ; note: when calling decode_nibble(), the upper nibble in the argument needs to be zero
         uword[8] left
         uword[8] right
         ubyte @requirezp nibble = @(main.nibblesptr)

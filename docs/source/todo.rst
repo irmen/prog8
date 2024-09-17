@@ -1,13 +1,13 @@
 TODO
 ====
 
+Regenerate skeletons in doc.
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
 Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
-
-
-Regenerate skeletons in doc.
 
 
 Future Things and Ideas
@@ -15,11 +15,13 @@ Future Things and Ideas
 Compiler:
 
 - Some facility to use add-with-carry and sub-with-carry (so we can chain additions/subtractions without clc/sec inserted every time)
+  Note: +/- 0  can't be optimized away anymore in this case!
+  Note2: may need to preserve carry flag during evaluation of the operands!
+  Note3: only available for bytes? (or does it work on words automatically?), and perhaps restrict operand to a simple expression?
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
 - IR: CMPI+BSTEQ --> new BEQ reg,value,label instruction (like BGT etc)
-- expand the kata encoding to somehow translate normal katana to half-widths?  (see comment in KatakanaEncoding)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.

@@ -304,6 +304,7 @@ _lp2        lda  $ffff,y
         repeat 252/2 {
             unroll 2 {
                 nibble = @(nibblesptr)
+                ; note: when calling decode_nibble(), the upper nibble in the argument needs to be zero
                 adpcm.decode_nibble(nibble & 15)     ; first word
                 cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
                 cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
@@ -330,6 +331,7 @@ _lp2        lda  $ffff,y
 
     sub decode_nibbles_unrolled() {
         ; decode 4 left channel nibbles
+        ; note: when calling decode_nibble(), the upper nibble in the argument needs to be zero
         uword[8] left
         uword[8] right
         ubyte @requirezp nibble = @(nibblesptr)
