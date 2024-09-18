@@ -1,5 +1,6 @@
 
-Prog8 compiler v10.4 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 2954f5f0 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -334,7 +335,7 @@ monogfx  {
     ubyte  mode 
     uword  width 
     circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
-    clear_screen  (ubyte color) 
+    clear_screen  (bool draw) 
     disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
     drawmode  (ubyte dm) 
     fill  (uword x, uword y, bool draw) 

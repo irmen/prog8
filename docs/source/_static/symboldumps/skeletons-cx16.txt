@@ -1,5 +1,6 @@
 
-Prog8 compiler v10.4 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 2954f5f0 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -86,7 +87,7 @@ diskio  {
     load_raw  (uword filenameptr, uword startaddress) -> uword 
     load_size  (ubyte startbank, uword startaddress, uword endaddress) -> uword 
     mkdir  (str name) 
-    relabel  (str name) 
+    relabel  (str name)
     rename  (uword oldfileptr, uword newfileptr) 
     reset_read_channel  () 
     reset_write_channel  () 
@@ -258,6 +259,7 @@ cx16  {
     const ubyte  EXTAPI_getlfs 
     const ubyte  EXTAPI_iso_cursor_char 
     const ubyte  EXTAPI_joystick_ps2_keycodes 
+    const ubyte  EXTAPI_kbd_leds 
     const ubyte  EXTAPI_led_update 
     const ubyte  EXTAPI_mouse_set_position 
     const ubyte  EXTAPI_mouse_sprite_offset 
@@ -566,6 +568,7 @@ cx16  {
     mouse_get  (ubyte zdataptr @X) -> ubyte @A, byte @X = $ff6b
     mouse_get_sprite_offset  () -> clobbers (A,X,Y) -> word @R0, word @R1 
     mouse_pos  () -> ubyte @A, uword @R0, uword @R1, byte @X 
+    mouse_present  () -> bool 
     mouse_scan  () -> clobbers (A,X,Y) = $ff71
     mouse_set_pos  (uword xpos @R0, uword ypos @R1) -> clobbers (X) 
     mouse_set_sprite_offset  (word xoffset @R0, word yoffset @R1) -> clobbers (A,X,Y) 
@@ -796,7 +799,9 @@ emudbg  {
     console_value1  (ubyte value) 
     console_value2  (ubyte value) 
     console_write  (str isoString) 
+    cpu_cycles  () -> uword @R0, uword @R1 
     is_emulator  () -> bool 
+    reset_cpu_cycles  () 
 }
 
 
@@ -945,9 +950,11 @@ graphics  {
     disable_bitmap_mode  () 
     disc  (uword xcenter, ubyte ycenter, ubyte radius) 
     enable_bitmap_mode  () 
+    filled_oval  (uword xcenter, ubyte ycenter, uword h_radius, ubyte v_radius) 
     fillrect  (uword xx, uword yy, uword width, uword height) 
     horizontal_line  (uword xx, uword yy, uword length) 
     line  (uword x1, ubyte y1, uword x2, ubyte y2) 
+    oval  (uword xcenter, ubyte ycenter, uword h_radius, ubyte v_radius) 
     plot  (uword plotx @R0, uword ploty @R1) -> clobbers (A,X,Y) 
     rect  (uword xx, uword yy, uword width, uword height) 
     vertical_line  (uword xx, uword yy, uword height) 
@@ -1002,8 +1009,8 @@ monogfx  {
     ubyte  mode 
     uword  width 
     circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
-    clear_screen  (ubyte color) 
-    cs_innerloop640  (ubyte color @A) -> clobbers (Y) 
+    clear_screen  (bool draw) 
+    cs_innerloop640  (bool draw @A) -> clobbers (Y) 
     disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
     drawmode  (ubyte dm) 
     fill  (uword x, uword y, bool draw) 
@@ -1104,6 +1111,8 @@ sprites  {
     set_palette_offset  (ubyte spritenum, ubyte offset) 
     setx  (ubyte spritenum, word xpos) 
     sety  (ubyte spritenum, word ypos) 
+    show  (ubyte spritenum) 
+    zdepth  (ubyte spritenum, ubyte depth) 
 }
 
 
