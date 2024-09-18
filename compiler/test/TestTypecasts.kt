@@ -839,4 +839,22 @@ main {
         compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("undefined symbol error instead of type cast error") {
+        val src="""
+main {
+    const ubyte foo = 0
+    ubyte bar = 0
+    sub start() {
+        when foo {
+            notdefined -> bar = 1
+            else -> bar = 2
+        }
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[1] shouldContain "undefined symbol"
+    }
 })

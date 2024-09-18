@@ -5,7 +5,6 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.ExpressionError
 import prog8.ast.base.FatalAstException
-import prog8.ast.base.UndefinedSymbolError
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
@@ -1100,7 +1099,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
                 if(sub.parameters.any { it.name==nameInSource.last() })
                     return null
             }
-            throw UndefinedSymbolError(this)
+            return null
         }
         val vardecl = node as? VarDecl
         if(vardecl==null) {
