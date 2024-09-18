@@ -5,6 +5,8 @@
 
 gfx_lores {
 
+    %option ignore_unused
+
     sub set_screen_mode() {
         cx16.VERA_CTRL=0
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
