@@ -104,7 +104,6 @@ asmsub  FREADUS32  () clobbers(A,X,Y)  {
 
 asmsub  FREADS24AXY  (ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A,X,Y)  {
 	; ---- fac1 = signed int24 (A/X/Y contain lo/mid/hi bytes)
-	;      note: there is no FREADU24AXY (unsigned), use FREADUS32 instead.
 	%asm {{
 		sty  $62
 		stx  $63
@@ -117,6 +116,21 @@ asmsub  FREADS24AXY  (ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A,X,Y)
 		ldx  #$98
 		jmp  $bc4f		; internal BASIC routine
 	}}
+}
+
+asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) -> float @FAC1 {
+        %asm{{
+                 FAC = $61
+                 sta FAC+3
+                 stx FAC+2
+                 sty FAC+1
+                 lda #$98
+                 sta FAC
+                 lda #$00
+                 sta FAC+4
+                 sta FAC+5
+                 rts
+       }}
 }
 
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
@@ -177,6 +191,13 @@ asmsub normalize(float value @FAC1) -> float @ FAC1 {
     }}
 }
 
+; get the jiffy clock as a float
+asmsub time() -> float @ FAC1 {
+    %asm {{
+        jsr cbm.RDTIM
+        jmp floats.FREADU24AXY
+    }}
+}
 
 %asminclude "library:c64/floats.asm"
 %asminclude "library:c64/floats_funcs.asm"

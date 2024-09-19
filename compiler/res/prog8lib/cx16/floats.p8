@@ -90,6 +90,20 @@ asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
     }}
 }
 
+asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) -> float @FAC1 {
+        %asm{{
+                 FAC = $c3
+                 sta FAC+3
+                 stx FAC+2
+                 sty FAC+1
+                 lda #$98
+                 sta FAC
+                 stz FAC+4
+                 stz FAC+5
+                 rts
+       }}
+}
+
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
@@ -157,6 +171,47 @@ _msg    .text 13,"?rom 47+ required for val1",13,0
     }}
 }
 
+; read A/X/Y as a 24-bit unsigned integer, lsb in A, msb in Y
+; useful in conjunction with RDTIM()
+asmsub FREADU24AXY() -> float @FAC1 {
+        %asm{{
+                cmp #$00
+                bne u24axy_nonzero
+                cpx #$00
+                bne u24axy_nonzero
+                cpy #$00
+                bne u24axy_nonzero
+
+                lda #$00
+                sta FAC
+                sta FAC+1
+                sta FAC+2
+                sta FAC+3
+                sta FAC+4
+                sta FAC+5
+                beq u24axy_done
+
+u24axy_nonzero: sta FAC+3
+                stx FAC+2
+                sty FAC+1
+                ldx #$98
+                sta FAC
+                bit FAC+1
+                bmi u24axy_done
+
+  u24axy_shift: dex
+                asl FAC+3
+                rol FAC+2
+                rol FAC+1
+                bpl u24axy_shift
+
+   u24axy_done: stx FAC
+                lda #$00
+                sta FAC+4
+                sta FAC+5
+                rts
+        }}
+}
 
 &uword AYINT_facmo = $c6      ; $c6/$c7 contain result of AYINT   (See "basic.sym" kernal symbol file)
 
@@ -170,6 +225,14 @@ sub rnd() -> float {
 asmsub normalize(float value @FAC1) -> float @ FAC1 {
     %asm {{
         jmp  floats.NORMAL
+    }}
+}
+
+; get the jiffy clock as a float
+asmsub time() -> float @ FAC1 {
+    %asm {{
+        jsr cbm.RDTIM
+        jmp floats.FREADU24AXY
     }}
 }
 
