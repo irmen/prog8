@@ -11,12 +11,8 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
-- Some facility to use add-with-carry and sub-with-carry (so we can chain additions/subtractions without clc/sec inserted every time)
-  Note: +/- 0  can't be optimized away anymore in this case!
-  Note2: may need to preserve carry flag during evaluation of the operands!
-  Note3: only available for bytes? (or does it work on words automatically?), and perhaps restrict operand to a simple expression?
 - Can we support signed % (remainder) somehow?
-- Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch?)
+- Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
 - IR: CMPI+BSTEQ --> new BEQ reg,value,label instruction (like BGT etc)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
@@ -52,8 +48,6 @@ Compiler:
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
-- Zig-like defer to execute a statement/anonymousscope when subroutine exits? (problem is, we have jump instructions and inline asm , where we lose track of when exactly the subroutine exits...)
-- generate WASM to eventually run prog8 on a browser canvas? Use binaryen toolkit and/or my binaryen kotlin library?
 
 
 Libraries:
@@ -68,9 +62,10 @@ Libraries:
 Optimizations:
 
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
-  for instance, vars used inside loops first, then loopvars, then uwords used as pointers, then the rest
+  for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
+
 
 STRUCTS?
 --------
