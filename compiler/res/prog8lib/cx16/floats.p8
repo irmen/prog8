@@ -92,12 +92,29 @@ asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
 
 asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) -> float @FAC1 {
         %asm{{
-                 FAC = $c3
-                 sta FAC+3
-                 stx FAC+2
+                 FAC = $C3
                  sty FAC+1
-                 lda #$98
-                 sta FAC
+                 stx FAC+2
+                 sta FAC+3
+
+                 cpy #$00
+                 bne +
+                 cpx #$00
+                 bne +
+                 cmp #$00
+                 beq ++
+
+              +  ldx #$98
+                 bit FAC+1
+                 bmi +
+
+              -  dex
+                 asl FAC+3
+                 rol FAC+2
+                 rol FAC+1
+                 bpl -
+
+               + stx FAC
                  stz FAC+4
                  stz FAC+5
                  rts

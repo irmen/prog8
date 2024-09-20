@@ -36,7 +36,7 @@ romsub $b1bf = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 100-101 
 ; there is also floats.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
 ; there is also floats.FREADS32  that reads from 98-101 ($62-$65) MSB FIRST
 ; there is also floats.FREADUS32  that reads from 98-101 ($62-$65) MSB FIRST
-; there is also floats.FREADS24AXY  that reads signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
+; there is also floats.FREAD{S,U}24AXY  that read (un)signed int24 into fac1 from A/X/Y (lo/mid/hi bytes)
 romsub $b391 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 
 romsub $b3a2 = FREADUY(ubyte value @ Y) clobbers(A,X,Y)     ; 8 bit unsigned Y -> float in fac1
@@ -121,11 +121,28 @@ asmsub  FREADS24AXY  (ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A,X,Y)
 asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) -> float @FAC1 {
         %asm{{
                  FAC = $61
-                 sta FAC+3
-                 stx FAC+2
                  sty FAC+1
-                 lda #$98
-                 sta FAC
+                 stx FAC+2
+                 sta FAC+3
+
+                 cpy #$00
+                 bne +
+                 cpx #$00
+                 bne +
+                 cmp #$00
+                 beq ++
+
+              +  ldx #$98
+                 bit FAC+1
+                 bmi +
+
+              -  dex
+                 asl FAC+3
+                 rol FAC+2
+                 rol FAC+1
+                 bpl -
+
+              +  stx FAC
                  lda #$00
                  sta FAC+4
                  sta FAC+5
