@@ -193,4 +193,48 @@ main {
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "statement"
     }
+
+    test("redefined variable name in single declaration is reported") {
+        val src="""
+main {
+    sub start() {
+        const ubyte count=11
+        cx16.r0++
+        ubyte count = 88        ; redefinition
+        cx16.r0 = count
+    }
+}"""
+        val errors=ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors=errors)  shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "name conflict"
+
+        errors.clear()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors)  shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "name conflict"
+    }
+
+    test("redefined variable name in multi declaration is reported") {
+        val src="""
+main {
+    sub start() {
+        ubyte i
+        i++
+        ubyte i, j              ; redefinition
+        i++
+        j++
+    }
+}
+"""
+        val errors=ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors=errors)  shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "name conflict"
+
+        errors.clear()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors)  shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "name conflict"
+    }
 })

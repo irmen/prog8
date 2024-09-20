@@ -48,20 +48,28 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         if(decl.name in BuiltinFunctions)
             errors.err("builtin function cannot be redefined", decl.position)
 
-        if(decl.names.size<2) {
-            val existingInSameScope = decl.definingScope.lookup(listOf(decl.name))
+        fun checkNameForErrors(name: String) {
+            val existingInSameScope = decl.definingScope.lookup(listOf(name))
             if (existingInSameScope != null && existingInSameScope !== decl)
-                nameError(decl.name, decl.position, existingInSameScope)
+                nameError(name, decl.position, existingInSameScope)
 
-            val existingOuter = decl.parent.definingScope.lookup(listOf(decl.name))
+            val existingOuter = decl.parent.definingScope.lookup(listOf(name))
             if (existingOuter != null && existingOuter !== decl) {
                 if (existingOuter is VarDecl) {
                     if (existingOuter.parent !== decl.parent)
-                        nameShadowWarning(decl.name, decl.position, existingOuter)
+                        nameShadowWarning(name, decl.position, existingOuter)
                     else
-                        nameError(decl.name, decl.position, existingOuter)
+                        nameError(name, decl.position, existingOuter)
                 }
             }
+        }
+
+        if(decl.names.size<2) {
+            checkNameForErrors(decl.name)
+        }
+        else {
+            for (name in decl.names)
+                checkNameForErrors(name)
         }
 
         if(decl.definingBlock.name==decl.name)
@@ -71,6 +79,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
 
         super.visit(decl)
     }
+
 
     override fun visit(subroutine: Subroutine) {
         if(subroutine.name in BuiltinFunctions) {
