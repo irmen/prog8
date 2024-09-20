@@ -1,6 +1,5 @@
 
-Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 2954f5f0 in branch master
+Prog8 compiler v10.4.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -835,6 +834,7 @@ floats  {
     FPWR  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe36
     FPWRT  () -> clobbers (A,X,Y) = $fe39
     FREADSA  (byte value @A) -> clobbers (A,X,Y) 
+    FREADU24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y) -> clobbers (A,X,Y) -> float @FAC1 
     FREADUY  (ubyte value @Y) 
     FSUB  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe12
     FSUBT  () -> clobbers (A,X,Y) = $fe15
@@ -893,6 +893,7 @@ floats  {
     secant  (float value) -> float 
     sin  (float angle) -> float 
     tan  (float value) -> float 
+    time  () -> float @FAC1 
     tostr  (float value @FAC1) -> clobbers (X) -> str @AY 
 }
 
