@@ -90,6 +90,37 @@ asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
     }}
 }
 
+asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) -> float @FAC1 {
+        %asm{{
+                 FAC = $C3
+                 sty FAC+1
+                 stx FAC+2
+                 sta FAC+3
+
+                 cpy #$00
+                 bne +
+                 cpx #$00
+                 bne +
+                 cmp #$00
+                 beq ++
+
+              +  ldx #$98
+                 bit FAC+1
+                 bmi +
+
+              -  dex
+                 asl FAC+3
+                 rol FAC+2
+                 rol FAC+1
+                 bpl -
+
+               + stx FAC
+                 stz FAC+4
+                 stz FAC+5
+                 rts
+       }}
+}
+
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
@@ -157,7 +188,6 @@ _msg    .text 13,"?rom 47+ required for val1",13,0
     }}
 }
 
-
 &uword AYINT_facmo = $c6      ; $c6/$c7 contain result of AYINT   (See "basic.sym" kernal symbol file)
 
 sub rnd() -> float {
@@ -170,6 +200,14 @@ sub rnd() -> float {
 asmsub normalize(float value @FAC1) -> float @ FAC1 {
     %asm {{
         jmp  floats.NORMAL
+    }}
+}
+
+; get the jiffy clock as a float
+asmsub time() -> float @ FAC1 {
+    %asm {{
+        jsr cbm.RDTIM
+        jmp floats.FREADU24AXY
     }}
 }
 
