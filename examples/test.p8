@@ -1,11 +1,22 @@
-%option no_sysinit
-%import gfx_lores
+%import floats
+%import textio
 %zeropage basicsafe
 
 main {
     sub start() {
-        gfx_lores.set_screen_mode()
-        gfx_lores.clear_screen(0)
-        gfx_lores.line(0,0,319,239,5)
+        cbm.SETTIM(0,0,0)
+        float xx = 1.234
+        floats.print(xx)
+        txt.nl()
+        xx= floats.time()
+        floats.print(xx)
+        txt.nl()
+        floats.print(floats.time())
+        txt.nl()
+
+        txt.print("waiting 333 jiffies... ")
+        sys.wait(333)
+        floats.print(floats.time())
+        txt.nl()
     }
 }

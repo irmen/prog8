@@ -91,6 +91,7 @@ asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
 }
 
 asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) -> float @FAC1 {
+    ; ---- fac1 = unsigned int24 (A/X/Y contain lo/mid/hi bytes)
         %asm{{
                  FAC = $C3
                  sty FAC+1
