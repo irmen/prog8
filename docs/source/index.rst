@@ -38,6 +38,15 @@ This is free software, as defined in the GNU GPL 3.0 (https://www.gnu.org/licens
 are excluded from this particular license: you can do with those *whatever you want*.
 This means, for instance, that you can use the Prog8 compiler to create commercial software as long as you only sell *the actual resulting program*.
 
+Community
+^^^^^^^^^
+Most of the development on Prog8 and the use of it is currently centered around
+the `Commander X16 <https://www.commanderx16.com/>`_ retro computer.
+However, the other compiler targets are also still worked on,  most notably the C64 target where it all started with!
+
+The X16 `Discord server <https://discord.gg/nS2PqEC>`_ contains a small channel
+dedicated to Prog8. Besides that, you can use the issue tracker on github for questions or problems or contributions.
+
 Want to buy me a coffee or a pizza perhaps?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This project was created over the last couple of years by dedicating thousands of hours of my free time to it, to make it the best I possibly can.
