@@ -152,9 +152,15 @@ The IRQ handler routine must return a boolean value (0 or 1) in the A register:
 
 **CommanderX16 specific notes**
 
+.. sidebar::
+    X16 specific routines
+
+    For the X16 there are also some specialized IRQ handling routines, see  :ref:`x16-specific-irq` below.
+
 Note that for the CommanderX16 the set_rasterirq() will disable VSYNC irqs and never call the system IRQ handler regardless
 of the return value of the user handler routine. This also means the default sys.wait() routine won't work anymore,
 when using this handler.
+
 
 These two helper routines are not particularly suited to handle multiple IRQ sources on the Commander X16.
 It's possible but it requires correct fiddling with IRQ enable bits, acknowledging the IRQs, and properly calling
@@ -191,6 +197,8 @@ will corrupt any Vera operations that were going on in the main program. The rou
     in the interrupted main program. These memory locations should be backed up
     and restored at the end of the handler, further increasing its execution time...
 
+
+.. _x16-specific-irq:
 
 Commander X16 specific IRQ handling
 ===================================

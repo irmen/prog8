@@ -1,6 +1,14 @@
 TODO
 ====
 
+Can we move the asm init code that is injected into the start() subroutine, to init_system_phase2 instead?
+
+Doc improvements: some short overview for people coming from other programming languages like C:
+  tell something about prog8 not having function overloading, max 16 bit (u)word integer as native type (and floats sometimes),
+  static variable allocations, no dynamic memory allocation in the language itself (although possible via user written libraries),
+  etc ...
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

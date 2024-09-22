@@ -92,15 +92,18 @@ main {
         for y in 0 to 24 {
             ubyte @zp @shared yvalue = ybuf[y]
             for x in 0 to 39 {
-                ; @(screen+x) = xbuf[x] + yvalue
-; max optimized asm is this: (achieving ~21 fps on the C64):
-                %asm {{
-                     lda  p8v_yvalue
-                     ldy  p8v_x
-                     clc
-                     adc  p8v_xbuf,y
-                     sta  (p8v_screen),y
-                 }}
+                @(screen+x) = xbuf[x] + yvalue
+
+; optimized asm for the line above is this:
+; (achieving ~23 fps on the C64, about 1 or 2 fps more than with the pure prog8 code):
+;                %asm {{
+;                     lda  p8v_yvalue
+;                     ldy  p8v_x
+;                     clc
+;                     adc  p8v_xbuf,y
+;                     sta  (p8v_screen),y
+;                 }}
+
             }
             screen += 40
         }

@@ -57,8 +57,9 @@ irq {
             uword @zp x = math.sin8u(angle1-spri*16) as uword + 50
             ubyte @zp y = math.sin8u(angle2-spri*16) / 2 + 70
             c64.SPXYW[spri] = mkword(y, lsb(x))
-            c64.MSIGX <<= 1
-            if msb(x)!=0 c64.MSIGX++
+            if msb(x)!=0
+                sys.set_carry()
+            rol(c64.MSIGX)
         }
         c64.EXTCOL-=8
         return true
