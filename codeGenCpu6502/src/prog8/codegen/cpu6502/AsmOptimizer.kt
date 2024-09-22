@@ -516,34 +516,35 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
         val first = lines[0].value
         val second = lines[1].value
         val third = lines[2].value
-        if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
-            mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
-            mods += Modification(lines[1].index, true, null)
-        }
-        else if (" rts" in first || "\trts" in first) {
-            if (" jmp" in second || "\tjmp" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" bra" in second || "\tbra" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" bcc" in second || "\tbcc" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" bcs" in second || "\tbcs" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" beq" in second || "\tbeq" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" bne" in second || "\tbne" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" bmi" in second || "\tbmi" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" bpl" in second || "\tbpl" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" bvs" in second || "\tbvs" in second)
-                mods += Modification(lines[1].index, true, null)
-            else if (" bvc" in second || "\tbvc" in second)
-                mods += Modification(lines[1].index, true, null)
-        }
 
-        if (!haslabel(second)) {
+        if(!haslabel(second)) {
+            if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
+                mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
+                mods += Modification(lines[1].index, true, null)
+            }
+            else if (" rts" in first || "\trts" in first) {
+                if (" jmp" in second || "\tjmp" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" bra" in second || "\tbra" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" bcc" in second || "\tbcc" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" bcs" in second || "\tbcs" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" beq" in second || "\tbeq" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" bne" in second || "\tbne" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" bmi" in second || "\tbmi" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" bpl" in second || "\tbpl" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" bvs" in second || "\tbvs" in second)
+                    mods += Modification(lines[1].index, true, null)
+                else if (" bvc" in second || "\tbvc" in second)
+                    mods += Modification(lines[1].index, true, null)
+            }
+
             if ((" lda" in first || "\tlda" in first) && (" cmp  #0" in second || "\tcmp  #0" in second) ||
                 (" ldx" in first || "\tldx" in first) && (" cpx  #0" in second || "\tcpx  #0" in second) ||
                 (" ldy" in first || "\tldy" in first) && (" cpy  #0" in second || "\tcpy  #0" in second)

@@ -469,9 +469,6 @@ cx16  {
 }
 
 
-LIBRARY MODULE NAME: shared_cbm_textio_functions
-------------------------------------------------
-
 LIBRARY MODULE NAME: diskio
 ---------------------------
 diskio  {
@@ -549,9 +546,6 @@ string  {
     upperchar  (ubyte character @A) -> ubyte @A 
 }
 
-
-LIBRARY MODULE NAME: shared_string_functions
---------------------------------------------
 
 LIBRARY MODULE NAME: floats
 ---------------------------
@@ -711,6 +705,4 @@ LIBRARY MODULE NAME: test_stack
 test_stack  {
     test  () 
 }
-
-
 
