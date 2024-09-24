@@ -1,5 +1,6 @@
 .idea/workspace.xml
 .idea/discord.xml
+.idea/developer-tools.xml
 build/
 dist/
 output/
