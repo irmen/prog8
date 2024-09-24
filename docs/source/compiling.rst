@@ -382,14 +382,6 @@ Also avoid using 64tass' built-in function or type names as symbols in your inli
 The 64tass manual contains `a list of those <https://tass64.sourceforge.net/#functions>`_.
 
 
-Community
----------
-Most of the development on Prog8 and the use of it is currently centered around
-the `Commander X16 <https://www.commanderx16.com/>`_ retro computer.
-Their `Discord server <https://discord.gg/nS2PqEC>`_ contains a small channel
-dedicated to Prog8. Other than that, use the issue tracker on github.
-
-
 Examples
 --------
 

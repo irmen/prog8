@@ -903,7 +903,7 @@ to see what's in there.
 gfx2  (cx16 only)
 -----------------
 Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
-Same interface as monogfx, but for color screens. For 1 bpp monochrome screens, use monogfx.
+Same interface as monogfx, but for color screens. For 1 bpp monochrome screens: use monogfx.
 
 - multiple full-screen bitmap color resolutions
 - clearing screen, switching screen mode, also back to text mode
@@ -913,6 +913,15 @@ Same interface as monogfx, but for color screens. For 1 bpp monochrome screens, 
 - drawing text inside the bitmap
 
 Read the `gfx2 source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx2.p8>`_
+to see what's in there.
+
+
+gfx_lores  (cx16 only)
+----------------------
+Heavily optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
+This is screen mode 1 from the gfx2 module (and also compatible with X16's basic screen mode 128).
+
+Read the `gfx_lores source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_lores.p8>`_
 to see what's in there.
 
 

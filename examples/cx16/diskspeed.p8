@@ -121,7 +121,7 @@ main {
         }
 
         sub test_load_hiram() {
-            txt.print("\n\x12diskio.load()\x92 reading 512kb into hiram (2*256)")
+            txt.print("\n\x12diskio.load()\x92 reading 256kb into hiram")
             cbm.SETTIM(0,0,0)
             cx16.rambank(HIRAM_START_BANK)
             uword result = diskio.load_raw("benchmark256.dat", $a000)
@@ -186,7 +186,6 @@ main {
 
         sub test_vload() {
             txt.print("\npreparing 64kb test file")
-            bool success = false
             if diskio.f_open_w("@:benchmark64.dat") {
                 if not diskio.f_write(large, 20000)
                     or not diskio.f_write(large, 20000)

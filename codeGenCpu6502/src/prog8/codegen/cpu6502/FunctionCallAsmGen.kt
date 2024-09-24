@@ -82,7 +82,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             is PtAddressOf -> false
             is PtIdentifier -> false
             is PtIrRegister -> false
-            is PtMemoryByte -> true     // TODO might not actually need extra registers if the value has to end up in A
+            is PtMemoryByte -> arg.address !is PtNumber && arg.address !is PtIdentifier
             is PtNumber -> false
             is PtBool -> false
             else -> true

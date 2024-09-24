@@ -65,10 +65,10 @@ adpcm {
     }
 
     sub decode_nibble(ubyte @zp nibble) {
-        ; Decoder for nibbles for the first channel.
-        ; this is the hotspot of the decoder algorithm!
+        ; Decoder for a single nibble for the first channel. (value of 'nibble' needs to be strictly 0-15 !)
+        ; This is the hotspot of the decoder algorithm!
         ; Note that the generated assembly from this is pretty efficient,
-        ; rewriting it by hand in asm seems to improve it only 5-10%
+        ; rewriting it by hand in asm seems to improve it only ~10%.
         cx16.r0s = 0                ; difference
         if nibble & %0100 !=0
             cx16.r0s += pstep

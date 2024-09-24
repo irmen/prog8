@@ -32,7 +32,7 @@ monogfx {
         width = 320
         height = 240
         mode = MODE_NORMAL
-        clear_screen(0)
+        clear_screen(false)
     }
 
     sub hires() {
@@ -47,7 +47,7 @@ monogfx {
         width = 640
         height = 480
         mode = MODE_NORMAL
-        clear_screen(0)
+        clear_screen(false)
     }
 
     sub textmode() {
@@ -61,16 +61,16 @@ monogfx {
         mode = dm
     }
 
-    sub clear_screen(ubyte color) {
+    sub clear_screen(bool draw) {
         position(0, 0)
         when width {
             320 -> {
                 repeat 240/2/8
-                    cs_innerloop640(color)
+                    cs_innerloop640(draw)
             }
             640 -> {
                 repeat 480/8
-                    cs_innerloop640(color)
+                    cs_innerloop640(draw)
             }
         }
         position(0, 0)
@@ -90,8 +90,8 @@ monogfx {
     }
 
     sub fillrect(uword xx, uword yy, uword rwidth, uword rheight, bool draw) {
-        ; Draw a filled rectangle of the given size and color.
-        ; To fill the whole screen, use clear_screen(color) instead - it is much faster.
+        ; Draw a filled rectangle of the given size.
+        ; To fill the whole screen, use clear_screen(draw) instead - it is much faster.
         if rwidth==0
             return
         repeat rheight {
@@ -1000,7 +1000,7 @@ cdraw_mod2              ora  cx16.VERA_DATA1
         }
     }
 
-    asmsub cs_innerloop640(ubyte color @A) clobbers(Y) {
+    asmsub cs_innerloop640(bool draw @A) clobbers(Y) {
         ; using verafx 32 bits writes here would make this faster but it's safer to
         ; use verafx only explicitly when you know what you're doing.
         %asm {{

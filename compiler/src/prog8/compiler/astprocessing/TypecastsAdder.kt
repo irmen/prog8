@@ -330,7 +330,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val values = whenChoice.values
             values?.toTypedArray()?.withIndex()?.forEach { (index, value) ->
                 val valueDt = value.inferType(program)
-                if(valueDt!=conditionDt) {
+                if(valueDt.isKnown && valueDt!=conditionDt) {
                     val castedValue = value.typecastTo(conditionDt.getOrUndef().dt, valueDt.getOrUndef(), true)
                     if(castedValue.first) {
                         castedValue.second.linkParents(whenChoice)
