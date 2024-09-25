@@ -1,11 +1,14 @@
 TODO
 ====
 
+Textelite main.start() -> no error when a return value is added but no return statement
+
 Can we move the asm init code that is injected into the start() subroutine, to init_system_phase2 instead?
 
 Doc improvements: some short overview for people coming from other programming languages like C:
   tell something about prog8 not having function overloading, max 16 bit (u)word integer as native type (and floats sometimes),
   static variable allocations, no dynamic memory allocation in the language itself (although possible via user written libraries),
+  no complex expresssion optimizations so avoid repeating costly terms like in: if board[i]==col or board[i]-i==col-row or board[i]+i==col+row {...} -> store board[i] in a (@zp) variable first and reuse that in the expression
   etc ...
 
 
