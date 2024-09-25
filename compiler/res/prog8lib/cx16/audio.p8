@@ -1,5 +1,11 @@
 %import syslib
 
+; Stubs for the audio routines in rom bank 10
+; They use JSRFAR to select the correct bank, so user code doesn't have to bother.
+;
+; The stubs here still use the romsub definitions of the routines from syslib, but those are
+; just the jump addresses and are unaware of the kernal bank. Wrapping in JSRFAR fixes this.
+
 audio {
     const ubyte rom_bank = $0a
     asmsub audio_init() clobbers(A,X,Y) -> bool @Pc { ; (re)initialize both vera PSG and YM audio chips
