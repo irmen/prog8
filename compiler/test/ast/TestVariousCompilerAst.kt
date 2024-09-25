@@ -638,5 +638,53 @@ main {
         errors.errors[1] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
         errors.errors[2] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
     }
+
+    test("missing return value is a syntax error") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0 = runit1()
+        cx16.r1 = runit2()
+    }
+
+    sub runit1() -> uword {
+        repeat {
+            cx16.r0++
+            goto runit1
+        }
+    }
+
+    sub runit2() -> uword {
+        cx16.r0++
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "has result value"
+        errors.errors[1] shouldContain "has result value"
+    }
+
+    test("missing return value is not a syntax error if there's an external goto") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0 = runit1()
+        runit2()
+    }
+
+    sub runit1() -> uword {
+        repeat {
+            cx16.r0++
+            goto runit2
+        }
+    }
+
+    sub runit2() {
+        cx16.r0++
+    }
+}"""
+        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
 })
 

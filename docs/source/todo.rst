@@ -1,8 +1,6 @@
 TODO
 ====
 
-Textelite main.start() -> no error when a return value is added but no return statement
-
 Can we move the asm init code that is injected into the start() subroutine, to init_system_phase2 instead?
 
 Doc improvements: some short overview for people coming from other programming languages like C:

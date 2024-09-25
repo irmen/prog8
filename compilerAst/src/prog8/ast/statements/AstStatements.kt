@@ -642,7 +642,6 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
 class Jump(var address: UInt?,
            val identifier: IdentifierReference?,
-           val generatedLabel: String?,             // can be used in code generation scenarios
            override val position: Position) : Statement() {
     override lateinit var parent: Node
 
@@ -658,13 +657,13 @@ class Jump(var address: UInt?,
         else
             throw FatalAstException("can't replace $node")
     }
-    override fun copy() = Jump(address, identifier?.copy(), generatedLabel, position)
+    override fun copy() = Jump(address, identifier?.copy(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = identifier?.referencesIdentifier(nameInSource)==true
 
     override fun toString() =
-        "Jump(addr: $address, identifier: $identifier, label: $generatedLabel;  pos=$position)"
+        "Jump(addr: $address, identifier: $identifier, pos=$position)"
 }
 
 class FunctionCallStatement(override var target: IdentifierReference,

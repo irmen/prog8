@@ -158,6 +158,6 @@ class Program(val name: String,
 
     fun jumpLabel(label: Label): Jump {
         val ident = IdentifierReference(listOf(label.name), label.position)
-        return Jump(null, ident, null, label.position)
+        return Jump(null, ident, label.position)
     }
 }

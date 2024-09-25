@@ -322,7 +322,7 @@ internal class AstChecker(private val program: Program,
         checkLongType(numLiteral)
     }
 
-    private fun hasReturnOrJumpOrRts(scope: IStatementContainer): Boolean {
+    private fun hasReturnOrExternalJumpOrRts(scope: IStatementContainer): Boolean {
         class Searcher: IAstVisitor
         {
             var count=0
@@ -331,7 +331,14 @@ internal class AstChecker(private val program: Program,
                 count++
             }
             override fun visit(jump: Jump) {
-                count++
+                val jumpTarget = jump.identifier?.targetStatement(program)
+                if(jumpTarget!=null) {
+                    val sub = jump.definingSubroutine
+                    val targetSub = if(jumpTarget is Subroutine) jumpTarget else jumpTarget.definingSubroutine
+                    if(sub !== targetSub)
+                        count++
+                }
+                else count++
             }
 
             override fun visit(inlineAssembly: InlineAssembly) {
@@ -374,11 +381,11 @@ internal class AstChecker(private val program: Program,
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp' or 'bra')
-        if(!hasReturnOrJumpOrRts(subroutine)) {
+        if(!hasReturnOrExternalJumpOrRts(subroutine)) {
             if (subroutine.returntypes.isNotEmpty()) {
                 // for asm subroutines with an address, no statement check is possible.
                 if (subroutine.asmAddress == null && !subroutine.inline)
-                    err("non-inline subroutine has result value(s) and thus must have at least one 'return' or 'goto' in it (or the assembler equivalent in case of %asm)")
+                    err("non-inline subroutine has result value(s) and thus must have at least one 'return' or external 'goto' in it (or the assembler equivalent in case of %asm)")
             }
         }
 
