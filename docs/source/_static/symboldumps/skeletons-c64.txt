@@ -1,9 +1,52 @@
 
-Prog8 compiler v10.4.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.4.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 5675d751 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
 Compiler target: c64
+
+LIBRARY MODULE NAME: import-all-c64
+-----------------------------------
+
+LIBRARY MODULE NAME: anyall
+---------------------------
+anyall  {
+    all  (uword arrayptr, uword num_elements) -> bool 
+    allw  (uword arrayptr, uword num_elements) -> bool 
+    any  (uword arrayptr, uword num_elements) -> bool 
+    anyw  (uword arrayptr, uword num_elements) -> bool 
+}
+
+
+LIBRARY MODULE NAME: buffers
+----------------------------
+smallringbuffer  {
+    ubyte[]  buffer 
+    ubyte  fill 
+    ubyte  head 
+    ubyte  tail 
+    get  () -> ubyte 
+    getw  () -> uword 
+    init  () 
+    put  (ubyte value) -> bool 
+    putw  (uword value) -> bool 
+}
+
+ringbuffer  {
+    uword  buffer_ptr 
+    uword  fill 
+    uword  head 
+    uword  tail 
+    get  () -> ubyte 
+    getw  () -> uword 
+    inc_head  () 
+    inc_tail  () 
+    init  () 
+    put  (ubyte value) -> bool 
+    putw  (uword value) -> bool 
+}
+
 
 LIBRARY MODULE NAME: conv
 -------------------------
@@ -469,6 +512,9 @@ cx16  {
 }
 
 
+LIBRARY MODULE NAME: shared_cbm_textio_functions
+------------------------------------------------
+
 LIBRARY MODULE NAME: diskio
 ---------------------------
 diskio  {
@@ -546,6 +592,9 @@ string  {
     upperchar  (ubyte character @A) -> ubyte @A 
 }
 
+
+LIBRARY MODULE NAME: shared_string_functions
+--------------------------------------------
 
 LIBRARY MODULE NAME: floats
 ---------------------------
@@ -640,6 +689,9 @@ floats  {
 }
 
 
+LIBRARY MODULE NAME: shared_floats_functions
+--------------------------------------------
+
 LIBRARY MODULE NAME: graphics
 -----------------------------
 graphics  {
@@ -700,9 +752,14 @@ math  {
 }
 
 
+LIBRARY MODULE NAME: prog8_lib
+------------------------------
+
 LIBRARY MODULE NAME: test_stack
 -------------------------------
 test_stack  {
     test  () 
 }
+
+
 

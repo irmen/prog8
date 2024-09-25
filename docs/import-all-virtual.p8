@@ -1,5 +1,7 @@
 ; all library modules for the virtual compiler target
 
+%import anyall
+%import buffers
 %import conv
 %import cx16logo
 %import diskio

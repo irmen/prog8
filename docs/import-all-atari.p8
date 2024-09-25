@@ -1,5 +1,7 @@
 ; all library modules for the atari compiler target
 
+%import anyall
+%import buffers
 %import conv
 %import cx16logo
 %import diskio

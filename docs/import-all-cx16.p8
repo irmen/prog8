@@ -1,5 +1,8 @@
 ; all library modules for the cx16 compiler target
 
+%import audio
+%import anyall
+%import buffers
 %import bmx
 %import conv
 %import cx16logo
