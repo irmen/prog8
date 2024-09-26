@@ -12,6 +12,7 @@
       <module fileurl="file://$PROJECT_DIR$/compilerAst/compilerAst.iml" filepath="$PROJECT_DIR$/compilerAst/compilerAst.iml" />
       <module fileurl="file://$PROJECT_DIR$/docs/docs.iml" filepath="$PROJECT_DIR$/docs/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />
+      <module fileurl="file://$PROJECT_DIR$/benchmark-program/benchmark-program.iml" filepath="$PROJECT_DIR$/benchmark-program/benchmark-program.iml" />
       <module fileurl="file://$PROJECT_DIR$/intermediate/intermediate.iml" filepath="$PROJECT_DIR$/intermediate/intermediate.iml" />
       <module fileurl="file://$PROJECT_DIR$/parser/parser.iml" filepath="$PROJECT_DIR$/parser/parser.iml" />
       <module fileurl="file://$PROJECT_DIR$/virtualmachine/virtualmachine.iml" filepath="$PROJECT_DIR$/virtualmachine/virtualmachine.iml" />
