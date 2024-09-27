@@ -982,15 +982,22 @@ the emulators already support it).
 ``available``
     Returns true if Vera FX is available, false if not (that would be an older Vera chip)
 
-``mult`` , ``muls``
-    The hardware 16*16 multiplier is exposed via ``mult`` and ``muls`` routines (unsigned and signed respectively).
-    They are about 4 to 5 times faster as the default 6502 cpu routine for word multiplication.
-    But they depend on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
+``muls``
+    The VeraFX signed word 16*16 to 32 multiplier is accessible via the ``muls`` routine.
+    It is about 4 to 5 times faster than the default 6502 cpu routine for word multiplication.
+    But it depends on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
     Note: there is a block level %option "verafxmuls" that automatically replaces all word multiplications in that block
-    by calls to verafx.muls/mult, but be careful with it because it may interfere with other Vera operations or IRQs.
+    by calls to verafx, but be careful with it because it may interfere with other Vera operations or IRQs.
+    The full 32 bits result value is returned in two result values: lower word, upper word.
 
-    Note: the lower 16 bits of the 32 bits result is returned as the normal subroutine's returnvalue,
-    but the upper 16 bits is returned in cx16.r0 so you can still access those separately.
+``mult16``
+    VeraFX hardware multiplication of two unsigned words.
+    NOTE: it only returns the lower 16 bits of the full 32 bits result, because the upper 16 bits are not valid for unsigned word multiplications here
+    (the signed word multiplier ``muls`` does return the full 32 bits result).
+    It is about 4 to 5 times faster than the default 6502 cpu routine for word multiplication.
+    But it depends on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
+    Note: there is a block level %option "verafxmuls" that automatically replaces all word multiplications in that block
+    by calls to verafx, but be careful with it because it may interfere with other Vera operations or IRQs.
 
 ``clear``
     Very quickly clear a piece of vram to a given byte value (it writes 4 bytes at a time).

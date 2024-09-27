@@ -1,16 +1,20 @@
 %import textio
-%zeropage dontuse
-
-%output raw
-%launcher none
-%address $2000
+%import verafx
+%zeropage basicsafe
+%option no_sysinit
 
 main {
-    uword @shared variable
+
+    word @shared w1 = -30
+    word @shared w2 = -40
+    uword @shared uw1 = 9999
+    uword @shared uw2 = 4
+
     sub start() {
-        txt.print("hello!\n")
-        txt.print_uw(variable)
+        cx16.r0 = 12345
+        txt.print_uw(verafx.mult16(uw1, uw2))
+        txt.spc()
+        txt.print_uw(uw1 * uw2)
         txt.nl()
-        sys.exit3(1,2,3,false)
     }
 }
