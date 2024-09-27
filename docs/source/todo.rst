@@ -1,7 +1,7 @@
 TODO
 ====
 
-Can we move the asm init code that is injected into the start() subroutine, to init_system_phase2 instead?
+Shouldn't RAW output target have some initialization logic too? Does it even clear the variables/bss etc?
 
 Doc improvements: some short overview for people coming from other programming languages like C:
   tell something about prog8 not having function overloading, max 16 bit (u)word integer as native type (and floats sometimes),

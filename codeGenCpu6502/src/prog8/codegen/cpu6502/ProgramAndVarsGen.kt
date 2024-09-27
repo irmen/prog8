@@ -103,6 +103,9 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
                         asmgen.out("+\t.word  0")
                         asmgen.out("prog8_entrypoint\t; assembly code starts here")
+                        asmgen.out("  cld")
+                        asmgen.out("  tsx  ; save stackpointer for sys.exit()")
+                        asmgen.out("  stx  prog8_lib.orig_stackpointer")
                         if(!options.noSysInit)
                             asmgen.out("  jsr  sys.init_system")
                         asmgen.out("  jsr  sys.init_system_phase2")
@@ -110,6 +113,9 @@ internal class ProgramAndVarsGen(
                     CbmPrgLauncherType.NONE -> {
                         asmgen.out("; ---- program without basic sys call ----")
                         asmgen.out("* = ${options.loadAddress.toHex()}")
+                        asmgen.out("  cld")
+                        asmgen.out("  tsx  ; save stackpointer for sys.exit()")
+                        asmgen.out("  stx  prog8_lib.orig_stackpointer")
                         if(!options.noSysInit)
                             asmgen.out("  jsr  sys.init_system")
                         asmgen.out("  jsr  sys.init_system_phase2")
@@ -119,6 +125,9 @@ internal class ProgramAndVarsGen(
             OutputType.XEX -> {
                 asmgen.out("; ---- atari xex program ----")
                 asmgen.out("* = ${options.loadAddress.toHex()}")
+                asmgen.out("  cld")
+                asmgen.out("  tsx  ; save stackpointer for sys.exit()")
+                asmgen.out("  stx  prog8_lib.orig_stackpointer")
                 if(!options.noSysInit)
                     asmgen.out("  jsr  sys.init_system")
                 asmgen.out("  jsr  sys.init_system_phase2")
@@ -149,7 +158,10 @@ internal class ProgramAndVarsGen(
                 asmgen.out("  jsr  p8b_main.p8s_start |  lda  #0 |  sta ${"$"}ff00")
                 asmgen.out("  jmp  sys.cleanup_at_exit")
             }
-            else -> asmgen.jmp("p8b_main.p8s_start")
+            else -> {
+                asmgen.out("  jsr  p8b_main.p8s_start")
+                asmgen.out("  jmp  sys.cleanup_at_exit")
+            }
         }
     }
 
@@ -451,22 +463,7 @@ internal class ProgramAndVarsGen(
     }
 
     private fun entrypointInitialization() {
-        asmgen.out("; program startup initialization")
-        asmgen.out("  cld |  tsx |  stx  prog8_lib.orig_stackpointer    ; required for sys.exit()")
-        // set full BSS area to zero
-        asmgen.out("""
-    .if  prog8_bss_section_size>0
-    ; reset all variables in BSS section to zero
-	lda  #<prog8_bss_section_start
-	ldy  #>prog8_bss_section_start
-	sta  P8ZP_SCRATCH_W1
-	sty  P8ZP_SCRATCH_W1+1
-	ldx  #<prog8_bss_section_size
-	ldy  #>prog8_bss_section_size
-	lda  #0
-	jsr  prog8_lib.memset
-    .endif""")
-
+        // initialize block-level (global) variables at program start
         blockVariableInitializers.forEach {
             if (it.value.isNotEmpty())
                 asmgen.out("  jsr  ${it.key.name}.prog8_init_vars")
@@ -517,9 +514,8 @@ internal class ProgramAndVarsGen(
             arrayVariable2asm(varname, it.alloc.dt, it.value, null)
         }
 
-        asmgen.out("""+        
-                    clv
-                    clc""")
+        // zero out the BSS area
+        asmgen.out("+    jsr  prog8_lib.program_startup_clear_bss")
     }
 
     private class ZpStringWithInitial(

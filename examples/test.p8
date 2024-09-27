@@ -1,16 +1,13 @@
 %import textio
-%import floats
-%zeropage basicsafe
+%zeropage dontuse
+%option no_sysinit
 
 main {
+    uword @shared variable
     sub start() {
-        float fl = 5.23
-        fl = floats.ceil(fl)
-        floats.print(fl)
+        txt.print("hello!\n")
+        txt.print_uw(variable)
         txt.nl()
-        fl = 5.23
-        fl = floats.floor(fl)
-        floats.print(fl)
-        txt.nl()
+        sys.exit3(1,2,3,false)
     }
 }

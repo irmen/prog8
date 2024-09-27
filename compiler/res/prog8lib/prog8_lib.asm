@@ -5,6 +5,26 @@
 orig_stackpointer	.byte  0	; stores the Stack pointer register at program start
 
 
+program_startup_clear_bss    .proc
+	; this is always ran first thing from the start routine to clear out the BSS area
+	.if  prog8_bss_section_size>0
+		; reset all variables in BSS section to zero
+		lda  #<prog8_bss_section_start
+		ldy  #>prog8_bss_section_start
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldx  #<prog8_bss_section_size
+		ldy  #>prog8_bss_section_size
+		lda  #0
+		jsr  prog8_lib.memset
+	.endif
+		clv
+		clc
+		rts
+		.pend
+
+
+
 read_byte_from_address_in_AY_into_A	.proc
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
