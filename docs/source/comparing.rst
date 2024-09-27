@@ -13,7 +13,12 @@ The language
 - Prog8 is a structured imperative programming language. It looks like a mix of Python and C.
 - It is meant to sit well above low level assembly code, but still allows that low level access to the system it runs on.
   Via language features, or even simply by using inline hand-written assembly code.
+- Prog8 is targeting very CPU and memory constrained 8-bit systems, this reflects many design choices to work within those limitations
+  (single digit Megaherz cpu clock speeds, and memory capacity counted in Kilobytes)
 - Identifiers and string literals can contain non-ASCII characters so for example ``knäckebröd`` and ``見せしめ`` are valid identifiers.
+- There's usually a single statement per line. There is no statement separator.
+- Semicolon ``;`` is used to start a line comment.  Multi-line comments are also possible by enclosing it all in ``/*`` and ``*/``.
+
 
 No linker
 ---------
@@ -24,7 +29,7 @@ No linker
 
 Data types
 ----------
-- There are byte, word (16 bits) and float datatypes for numbers). There are no bigger integer types natively available.
+- There are byte, word (16 bits) and float datatypes for numbers. There are no bigger integer types natively available.
 - There is no automatic type enlargement: calculations remain within the data type of the operands. Any overflow silently wraps or truncates.
   You'll have to add explicit casts to increase the size of the value if required.
   For example when adding two byte variables having values 100 and 200, the result won't be 300, because that doesn't fit in a byte. It will be 44.
@@ -55,15 +60,21 @@ Subroutines
 Pointers
 --------
 - There is no specific pointer datatype.
-  There *are* pointers however, in the form of the `uword` datatype. This can be used to point to one of the possible 65536 memory locations,
-  so the value it points to is always a single byte. You have to reinterpret it manually if the object it points to is something different.
+  However, variables of the ``uword`` datatype can be used as a pointer to one of the possible 65536 memory locations,
+  so the value it points to is always a single byte. This is similar to ``uint8_t*`` from C.
+  You have to deal with the uword manually if the object it points to is something different.
+- Note that there is the ``peekw`` builtin function that *does* allow you to directy obtain the *word* value at the given memory location.
+  So if you use this, you can use uword pointers as pointers to word values without much hassle.
+- "dereferencing" a uword pointer is done via array indexing (where index value can be 0-65535!) or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
+- Pointers don't have to be a variable, you can immediately access the value of a given memory location using ``@($d020)`` for instance.
+  Reading is done by assigning it to a variable, writing is done by just assigning the new value to it.
 
 
 Strings and Arrays
 ------------------
 - these are allocated once, statically, and never resized.
 - they are mutable: you can change their contents, but always keep the original storage size in mind to avoid overwriting memory outside of the buffer.
-
+- Maximum size is 256 bytes (512 for split word arrays)
 
 Foreign function interface (external/ROM calls)
 -----------------------------------------------
@@ -85,4 +96,9 @@ Optimizations
         ...do something...
     }
 
-  In this example, consider storing ``board[i+1]`` in a variable first and reuse that in the expression instead.
+    ; more efficiently written as:
+
+    ubyte boardvalue = board[i+1]
+    if boardvalue==col or boardvalue-j==col-row or boardvalue+j==col+row {
+        ...do something...
+    }
