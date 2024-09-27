@@ -28,6 +28,10 @@ You can compile programs for various machines:
 * Commodore PET (limited support)
 * Atari 800 XL (limited support)
 
+Some language features are mentioned below, and you can also read :ref:`comparingprog8` if you
+want to quickly read about how Prog8 compares to well-known other languages.
+
+
 Open source Software License
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Full source code is on github: https://github.com/irmen/prog8.git
@@ -184,31 +188,14 @@ when the exact same program is compiled for the Commander X16 target, and run on
     :alt: result when run on CX16 emulator
 
 
-Getting the compiler
+Getting the software
 --------------------
 
-Usually you just download a fat jar of an official released version, but you can also build
-it yourself from source.
+Usually you just download a fat jar of an official released compiler version, but you can also build it yourself from source.
 Detailed instructions on how to obtain a version of the compiler are in :ref:`building_compiler`.
+You can also read there what extra tools you need to get going.
 
-
-.. _requirements:
-
-Required additional tools
--------------------------
-
-`64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this program somewhere on your shell's search path.
-It's easy to compile yourself, but a recent precompiled .exe (only for Windows) can be obtained from
-`the files section <https://sourceforge.net/projects/tass64/files/binaries/>`_ in the official project on sourceforge.
-*You need at least version 1.58.0 of this assembler.*
-If you are on Linux, there's probably a "64tass" package in the repositories, but check if it is a recent enough version.
-
-A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
-If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
-Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases/?version=11>`_ .
-For MacOS you can also use the Homebrew system to install a recent version of OpenJDK.
-
-Finally: an **emulator** (or a real machine of course) to test and run your programs on.
+You may look for an **emulator** (or a real machine of course) to test and run your programs on.
 For the PET, C64 and C128 targets, the compiler assumes the presence of the `VICE emulator <http://vice-emu.sourceforge.net/>`_.
 If you're targeting the Commander X16 instead,
 download a recent emulator version for the CommanderX16, such as `x16emu <https://cx16forum.com/forum/viewforum.php?f=30>`_
@@ -221,11 +208,11 @@ If multiple options are listed above, you can select which one you want to launc
 Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-files>`_ directory in the github repository to find them.
 
 
-
 .. toctree::
     :maxdepth: 2
     :caption: Contents of this manual:
 
+    comparing.rst
     compiling.rst
     programming.rst
     syntaxreference.rst

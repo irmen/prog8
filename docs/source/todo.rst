@@ -1,13 +1,6 @@
 TODO
 ====
 
-Doc improvements: some short overview for people coming from other programming languages like C:
-  tell something about prog8 not having function overloading, max 16 bit (u)word integer as native type (and floats sometimes),
-  static variable allocations, no dynamic memory allocation in the language itself (although possible via user written libraries),
-  no complex expresssion optimizations so avoid repeating costly terms like in: if board[i]==col or board[i]-i==col-row or board[i]+i==col+row {...} -> store board[i] in a (@zp) variable first and reuse that in the expression
-  etc ...
-
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
