@@ -111,15 +111,17 @@ verafx {
 
     ; unsigned multiplication just passes the values as signed to muls
     ; if you do this yourself in your call to muls, it will save a few instructions.
-    inline asmsub mult(uword value1 @R0, uword value2 @R1) clobbers(X) -> uword @AY, uword @R0 {
-        ; Returns the 32 bits unsigned result in AY and R0  (lower word, upper word).
-        %asm {{
-            jsr  verafx.muls
-        }}
-    }
+    ; TODO fix this: verafx.muls doesn't support unsigned values like this
+;    inline asmsub mult(uword value1 @R0, uword value2 @R1) clobbers(X) -> uword @AY, uword @R0 {
+;        ; Returns the 32 bits unsigned result in AY and R0  (lower word, upper word).
+;        %asm {{
+;            jsr  verafx.muls
+;        }}
+;    }
 
     asmsub muls(word value1 @R0, word value2 @R1) clobbers(X) -> word @AY, word @R0 {
         ; Returns the 32 bits signed result in AY and R0  (lower word, upper word).
+        ; Vera Fx multiplication support only works on signed values!
         %asm {{
             lda  #(2 << 1)
             sta  cx16.VERA_CTRL        ; $9F25

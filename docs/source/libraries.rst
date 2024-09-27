@@ -787,6 +787,10 @@ but perhaps the provided ones can be of service too.
     It does not work for the verafx multiplication routines on the Commander X16!
     These have a different way to obtain the upper 16 bits of the result: just read cx16.r0.
 
+    **NOTE:** the result is only valid if the multiplication was done with uword arguments (or two positive word arguments).
+    As soon as a single negative word value (or both) was used in the multiplication, these upper 16 bits are not valid!
+    Suggestion (if you are on the Commander X16): use ``verafx.muls()`` to get a hardware accelerated 32 bit signed multiplication.
+
 ``crc16 (uword data, uword length) -> uword``
     Returns a CRC-16 (XMODEM) checksum over the given data buffer.
     Note: on the Commander X16, there is a CRC-16 routine in the kernal: cx16.memory_crc().

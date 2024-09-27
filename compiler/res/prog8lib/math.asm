@@ -55,13 +55,14 @@ _multiplier      = P8ZP_SCRATCH_REG
 
 
 multiply_words	.proc
-	; -- multiply two 16-bit words into a 32-bit result  (signed and unsigned)
+	; -- multiply two 16-bit words into a 32-bit result  (UNSIGNED)
 	;      input: A/Y = first 16-bit number, multiply_words.multiplier = second 16-bit number
 	;      output: multiply_words.result, 4-bytes/32-bits product, LSB order (low-to-high)  low 16 bits also in AY.
+	;      you can retrieve the upper 16 bits via math.mul16_last_upper()
 
-	; NOTE: the result (which includes the multiplier parameter on entry) is a 4-byte array.
-	;       this routine could be faster if we could stick that into zeropage,
-	;       but there currently is no way to use 4 consecutive bytes in ZP (without disabling irq and saving/restoring them)...
+	; NOTE FOR NEGATIVE VALUES:
+	;      The routine also works for NEGATIVE (signed) word values, but ONLY the lower 16 bits of the result are correct then!
+	;      Prog8 only uses those so that's not an issue, but math.mul16_last_upper() no longer gives the correct result here.
 
 ; mult62.a
 ; from: https://github.com/TobyLobster/multiply_test/blob/main/tests/mult62.a
@@ -179,7 +180,7 @@ _inner_loop2
     ldy  result+1
     rts
 
-result		.byte  0,0,0,0
+result		.byte  0,0,0,0       ; routine could be faster if this were in Zeropage...
 
 		.pend
 
