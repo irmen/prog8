@@ -1,6 +1,9 @@
 %import textio
 %zeropage dontuse
-%option no_sysinit
+
+%output raw
+%launcher none
+%address $2000
 
 main {
     uword @shared variable

@@ -89,6 +89,12 @@ internal class ProgramAndVarsGen(
             OutputType.RAW -> {
                 asmgen.out("; ---- raw assembler program ----")
                 asmgen.out("* = ${options.loadAddress.toHex()}")
+                asmgen.out("  cld")
+                asmgen.out("  tsx  ; save stackpointer for sys.exit()")
+                asmgen.out("  stx  prog8_lib.orig_stackpointer")
+                if(!options.noSysInit)
+                    asmgen.out("  jsr  sys.init_system")
+                asmgen.out("  jsr  sys.init_system_phase2")
             }
             OutputType.PRG -> {
                 when(options.launcher) {
@@ -111,6 +117,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  jsr  sys.init_system_phase2")
                     }
                     CbmPrgLauncherType.NONE -> {
+                        // this is the same as RAW
                         asmgen.out("; ---- program without basic sys call ----")
                         asmgen.out("* = ${options.loadAddress.toHex()}")
                         asmgen.out("  cld")
@@ -575,7 +582,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("")
         val (varsNoInit, varsWithInit) = variables.partition { it.uninitialized }
         if(varsNoInit.isNotEmpty()) {
-            asmgen.out("; non-zeropage variables without initialization value")
+            asmgen.out("; non-zeropage variables")
             asmgen.out("  .section BSS")
             varsNoInit.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
                 uninitializedVariable2asm(it)
@@ -584,7 +591,7 @@ internal class ProgramAndVarsGen(
         }
 
         if(varsWithInit.isNotEmpty()) {
-            asmgen.out("; non-zeropage variables")
+            asmgen.out("; non-zeropage variables with init value")
             val (stringvars, othervars) = varsWithInit.sortedBy { it.name }.partition { it.dt == DataType.STR }
             stringvars.forEach {
                 outputStringvar(

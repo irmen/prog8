@@ -1,8 +1,6 @@
 TODO
 ====
 
-Shouldn't RAW output target have some initialization logic too? Does it even clear the variables/bss etc?
-
 Doc improvements: some short overview for people coming from other programming languages like C:
   tell something about prog8 not having function overloading, max 16 bit (u)word integer as native type (and floats sometimes),
   static variable allocations, no dynamic memory allocation in the language itself (although possible via user written libraries),
