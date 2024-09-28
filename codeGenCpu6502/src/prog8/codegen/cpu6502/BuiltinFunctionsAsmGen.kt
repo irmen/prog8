@@ -275,6 +275,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
               sta  (+)+1
               sty  (+)+2
 +             jsr  0       ; modified""")
+            // TODO: avoid using modifying code here by pushing return address on the stack manually and use JMP (INDIRECT) ?  And if it's just a variable, simply JMP (variable) !
+            // TODO: also do this for CallFar below!
         }
 
         // note: the routine can return a word value (in AY)

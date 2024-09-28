@@ -5,6 +5,8 @@
 %import verafx
 
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
+; TODO fix the camera normal calculation for the hidden surface removal
+; TODO embed pre calculated surface normals???
 
 main {
     sub start()  {

@@ -2,30 +2,53 @@ package prog8.ast
 
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.DataType
-import prog8.code.core.ZeropageWish
-import prog8.code.core.toHex
+import prog8.code.core.*
+import java.io.PrintStream
 
 
 fun printSymbols(program: Program) {
     println()
-    val printer = SymbolPrinter(::print, program, false)
-    printer.visit(program)
+    val symbols = SymbolDumper(false)
+    symbols.visit(program)
+    symbols.write(System.out)
     println()
 }
 
 
-class SymbolPrinter(val output: (text: String) -> Unit, val program: Program, val skipLibraries: Boolean): IAstVisitor {
-    private fun outputln(text: String) = output(text + "\n")
+private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
+    private val moduleOutputs = mutableMapOf<Module, MutableList<String>>()
+
+    private var currentModule = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated("dummy"))
+    private fun output(line: String) {
+        var lines = moduleOutputs[currentModule]
+        if(lines == null) {
+            lines = mutableListOf()
+            moduleOutputs[currentModule] = lines
+        }
+        lines.add(line)
+    }
+    private fun outputln(line: String) = output(line + '\n')
+
+    fun write(out: PrintStream) {
+        for((module, lines) in moduleOutputs.toSortedMap(compareBy { it.name })) {
+            if(lines.any()) {
+                val moduleName = "LIBRARY MODULE NAME: ${module.source.name}"
+                out.println()
+                out.println(moduleName)
+                out.println("-".repeat(moduleName.length))
+                out.println()
+                for (line in lines) {
+                    out.print(line)
+                }
+            }
+        }
+    }
 
     override fun visit(module: Module) {
         if(!module.isLibrary || !skipLibraries) {
             if(module.source.isFromFilesystem || module.source.isFromResources) {
-                val moduleName = "LIBRARY MODULE NAME: ${module.source.name}"
-                outputln(moduleName)
-                outputln("-".repeat(moduleName.length))
+                currentModule = module
                 super.visit(module)
-                output("\n")
             }
         }
     }

@@ -42,6 +42,7 @@ Variables
   (but user written libraries are possible that provide that indirectly).
 - Variables can be declared everywhere inside the code but all variable declarations in a subroutine
   are moved to the top of the subroutine. A for loop, or if/else blocks do not introduce a new scope.
+  A subroutine (also nested ones) *do* introduce a new scope.
 - All variables are initialized at the start of the program. There is no random garbage in them: they are zero or any other initialization value you provide.
 - This als means you can run a Prog8 program multiple times without having to reload it from disk, unlike programs produced by most other compilers targeting these 8 bit platforms.
 

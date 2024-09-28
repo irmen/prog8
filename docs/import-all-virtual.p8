@@ -2,6 +2,7 @@
 
 %import anyall
 %import buffers
+%import compression
 %import conv
 %import cx16logo
 %import diskio

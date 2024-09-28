@@ -186,6 +186,7 @@ memory (name, size, alignment)
 call (address) -> uword
     Calls a subroutine given by its memory address. You cannot pass arguments directly,
     although it is ofcourse possible to do this via the global ``cx16.r0...`` registers for example.
+    It is *not* possible to use cpu registers to pass arguments, because these are clobbered while performing the call!
     It is assumed the subroutine returns a word value (in AY), if it does not, just add void to the call to ignore the result value.
     This function effectively creates an "indirect JSR" if you use it on a ``uword`` pointer variable.
     But because it doesn't handle bank switching etcetera by itself,
