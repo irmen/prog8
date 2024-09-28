@@ -3,12 +3,12 @@
 %option no_sysinit
 
 main {
-    ubyte @shared @nozp value1 = 99
-    ubyte @shared @requirezp value2 = 42
     sub start() {
-        txt.print_ub(value1)
-        txt.nl()
-        txt.print_ub(value2)
-        txt.nl()
+        uword @shared address = $C09F
+        ubyte @shared bank = 10
+        uword @shared argument = $1234
+
+        void callfar(bank, address, argument)
+        void callfar(10, $C09F, argument)
     }
 }

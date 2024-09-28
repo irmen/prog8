@@ -483,7 +483,7 @@ romsub $C006 = x16edit_loadfile_options(ubyte firstbank @X, ubyte lastbank @Y, s
                 uword filenameLengthAndOptions @R1, uword tabstopAndWordwrap @R2,
                 uword disknumberAndColors @R3, uword headerAndStatusColors @R4) clobbers(A,X,Y)
 
-; Audio (rom bank 10 - you have to activate this bank manually first! Or use callfar/JSRFAR.)
+; Audio (rom bank 10 - you have to activate this bank manually first! Or use the stubs in the audio module. Or use callfar/JSRFAR manually.)
 romsub $C09F = audio_init() clobbers(A,X,Y) -> bool @Pc     ; (re)initialize both vera PSG and YM audio chips
 romsub $C000 = bas_fmfreq(ubyte channel @A, uword freq @XY, bool noretrigger @Pc) clobbers(A,X,Y) -> bool @Pc
 romsub $C003 = bas_fmnote(ubyte channel @A, ubyte note @X, ubyte fracsemitone @Y, bool noretrigger @Pc) clobbers(A,X,Y) -> bool @Pc
@@ -1397,6 +1397,7 @@ asmsub  init_system()  {
         lda  #PROG8_VARSHIGH_RAMBANK
         sta  $00    ; select ram bank
         lda  #0
+        sta  $01    ; set ROM bank to kernal bank to speed up kernal calls
         tax
         tay
         cli
@@ -1413,6 +1414,7 @@ asmsub  init_system_phase2()  {
         sta  restore_irq._orig_irqvec+1
         lda  #PROG8_VARSHIGH_RAMBANK
         sta  $00    ; select ram bank
+        stz  $01    ; set ROM bank to kernal bank to speed up kernal calls
         cli
         cld
         clc

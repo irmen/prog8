@@ -1,9 +1,6 @@
 TODO
 ====
 
-Commit "tweak program start initialization and fix cleanup at exit for atari and pet compiler targets #04cb684f"  causing programs to crash (assem, rockrunner)
-
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
