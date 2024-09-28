@@ -179,6 +179,7 @@ verafx {
             ldx  cx16.VERA_DATA0
             stx  cx16.r0s+1
             stz  cx16.VERA_FX_CTRL    ; Cache write disable
+            stz  cx16.VERA_FX_MULT    ; $9F2C  reset multiply bit
             stz  cx16.VERA_CTRL       ; reset DCSEL
             rts
         }}

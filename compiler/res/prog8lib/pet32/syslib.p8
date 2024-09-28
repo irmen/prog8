@@ -104,13 +104,10 @@ asmsub  init_system()  {
     ; Uppercase charset is activated.
     %asm {{
         sei
-        cld
         lda  #142
         jsr  cbm.CHROUT     ; uppercase
         lda  #147
         jsr  cbm.CHROUT     ; clear screen
-        clc
-        clv
         cli
         rts
     }}
@@ -118,7 +115,10 @@ asmsub  init_system()  {
 
 asmsub  init_system_phase2()  {
     %asm {{
-        rts     ; no phase 2 steps on the PET
+        cld
+        clc
+        clv
+        rts
     }}
 }
 

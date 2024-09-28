@@ -29,10 +29,7 @@ sys {
         ; TODO
         %asm {{
             sei
-            cld
-            clc
             ; TODO reset screen mode etc etc
-            clv
             cli
             rts
         }}
@@ -40,7 +37,10 @@ sys {
 
     asmsub  init_system_phase2()  {
         %asm {{
-            rts     ; no phase 2 steps on the Atari
+            cld
+            clc
+            clv
+            rts
         }}
     }
 

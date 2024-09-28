@@ -470,6 +470,9 @@ internal class ProgramAndVarsGen(
     }
 
     private fun entrypointInitialization() {
+        // zero out the BSS area first, before setting the variable init values
+        asmgen.out("  jsr  prog8_lib.program_startup_clear_bss")
+
         // initialize block-level (global) variables at program start
         blockVariableInitializers.forEach {
             if (it.value.isNotEmpty())
@@ -521,8 +524,7 @@ internal class ProgramAndVarsGen(
             arrayVariable2asm(varname, it.alloc.dt, it.value, null)
         }
 
-        // zero out the BSS area
-        asmgen.out("+    jsr  prog8_lib.program_startup_clear_bss")
+        asmgen.out("+")
     }
 
     private class ZpStringWithInitial(

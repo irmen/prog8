@@ -357,7 +357,6 @@ asmsub  init_system()  {
     ; Uppercase charset is activated.
     %asm {{
         sei
-        cld
         lda  #%00101111
         sta  $00
         lda  #%00100111
@@ -372,8 +371,6 @@ asmsub  init_system()  {
         lda  #0
         sta  c64.BGCOL0
         jsr  disable_runstop_and_charsetswitch
-        clc
-        clv
         cli
         rts
     }}
@@ -381,7 +378,10 @@ asmsub  init_system()  {
 
 asmsub  init_system_phase2()  {
     %asm {{
-        rts     ; no phase 2 steps on the C64
+        cld
+        clc
+        clv
+        rts
     }}
 }
 

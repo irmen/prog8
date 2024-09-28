@@ -1370,7 +1370,6 @@ asmsub  init_system()  {
         tax
         tay
         jsr  cx16.mouse_config  ; disable mouse
-        cld
         lda  cx16.VERA_DC_VIDEO
         and  #%00000111 ; retain chroma + output mode
         sta  P8ZP_SCRATCH_REG
@@ -1400,8 +1399,6 @@ asmsub  init_system()  {
         lda  #0
         tax
         tay
-        clc
-        clv
         cli
         rts
     }}
@@ -1417,6 +1414,9 @@ asmsub  init_system_phase2()  {
         lda  #PROG8_VARSHIGH_RAMBANK
         sta  $00    ; select ram bank
         cli
+        cld
+        clc
+        clv
         rts
     }}
 }

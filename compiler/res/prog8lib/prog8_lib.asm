@@ -18,8 +18,6 @@ program_startup_clear_bss    .proc
 		lda  #0
 		jsr  prog8_lib.memset
 	.endif
-		clv
-		clc
 		rts
 		.pend
 
