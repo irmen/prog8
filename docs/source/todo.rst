@@ -5,9 +5,8 @@ Regenerate skeleton doc files.
 
 "invalid number of arguments" -> print the list of missing arguments
 
-call() asm gen in funcCall() could be improved by not using modifying code , see the TODO.
+callfar() should allow setting an argument in the X register as well? + similar optimizations that call() got.
 
-callfar() should allow setting an argument in the X register as well?
 
 Add a new SublimeText syntax file for prog8, and also install this for bat: https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 
@@ -21,6 +20,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 Compiler:
 
+- AST weirdness: why is call(...) a normal FunctionCallStatement and not a BuiltinFunctionCall?  What does ror() produce for instance?
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)

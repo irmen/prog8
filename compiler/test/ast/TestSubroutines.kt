@@ -92,8 +92,11 @@ main {
 main {
     sub start() {
         uword func = 12345
+        uword[] pointers = [1234,6789]
         void call(func)        ; ok
         void call(12345)       ; ok
+        void call(pointers[1]) ; ok
+        void call(cx16.r0+10)  ; ok
         cx16.r0 = call(func)   ; ok
         void call(&start)      ; error
         void call(start)       ; error

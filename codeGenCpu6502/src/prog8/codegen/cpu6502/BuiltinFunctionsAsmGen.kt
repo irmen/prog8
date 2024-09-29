@@ -266,23 +266,40 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcCall(fcall: PtBuiltinFunctionCall) {
+        // note: the routine can return a word value (in AY)
         val constAddr = fcall.args[0].asConstInteger()
         if(constAddr!=null) {
             asmgen.out("  jsr  ${constAddr.toHex()}")
-        } else {
-            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)     // jump address
-            asmgen.out("""
-              sta  (+)+1
-              sty  (+)+2
-+             jsr  0       ; modified""")
-            // TODO: avoid using modifying code here by pushing return address on the stack manually and use JMP (INDIRECT) ?  And if it's just a variable, simply JMP (variable) !
-            // TODO: also do this for CallFar below!
+            return
         }
 
-        // note: the routine can return a word value (in AY)
+        val identifier = fcall.args[0] as? PtIdentifier
+        if(identifier!=null) {
+            asmgen.out("""
+                ; push a return address so the jmp becomes indirect jsr
+                lda  #>((+)-1)
+                pha
+                lda  #<((+)-1)
+                pha
+                jmp  (${asmgen.asmSymbolName(identifier)})
++""")
+            return
+        }
+
+        asmgen.assignExpressionToVariable(fcall.args[0], asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD)     // jump address
+        asmgen.out("""
+                ; push a return address so the jmp becomes indirect jsr
+                lda  #>((+)-1)
+                pha
+                lda  #<((+)-1)
+                pha
+                jmp  (P8ZP_SCRATCH_W2)
++""")
     }
 
     private fun funcCallFar(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        // TODO apply same optimizations here as used on call() codegen above
+
         if(asmgen.options.compTarget.name != "cx16")
             throw AssemblyError("callfar only works on cx16 target at this time")
 
