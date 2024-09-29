@@ -3,24 +3,27 @@
 ; be preserved across recursive calls, as opposed to queens.p8 where the
 ; recursive function only modifies global state.
 ;
-; can be compiled for multiple platforms
-%import graphics
+; Note: this program can be compiled for multiple target systems.
 %import floats
+%import graphics
 %zeropage basicsafe
 
 main {
      ; Adjust these parameters to change the appearance of the tree:
      ; 1. the angle of each branch away from its parent (left and right)
-     const float delta_theta   = floats.π / 6 
+     const float delta_theta   = floats.π / 6
 
      ; 2. the size of each branch relative to its parent
      const float shrink_factor = 2.0 / 3.0
 
+     ; 3. the size of the smallest branch (in pixels)
+     const float minimum_branch = 1.0
+
      ; These stacks hold copies of the parameters during recursive calls
-     uword[51] x
-     ubyte[51] y
-     float[51] theta
-     float[51] length
+     uword[11] x
+     ubyte[11] y
+     float[11] theta
+     float[11] length
 
      ; This points to the current level of stack in use
      ubyte stack_pointer
@@ -33,7 +36,7 @@ main {
          ubyte y2 = (y1 as float - len1 * floats.sin(th1)) as ubyte
          graphics.line(x1, y1, x2, y2)
 
-         if len1 > 2 {
+         if len1 >= minimum_branch {
              ; push parameters onto stacks
              x[stack_pointer] = x1
              y[stack_pointer] = y1
@@ -61,9 +64,11 @@ main {
 
      sub start() {
          graphics.enable_bitmap_mode()
+
          draw_branch(graphics.WIDTH / 2, graphics.HEIGHT - 1,
                      floats.π / 2,
                      graphics.HEIGHT / 2 * shrink_factor)
+
 
          ; done rendering; wait for a key before exiting
          do {
