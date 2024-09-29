@@ -8,34 +8,40 @@
 main {
     sub start() {
         test_stack.test()
-        example(function1, 42)
-        example(function1, 99)
-        example(function2, 42)
-        example(function2, 99)
+
+        txt.print_uwhex(cbm.CHROUT, true)
+        txt.print_uwhex(&cbm.CHROUT, true)
+        txt.nl()
+
+        cx16.r0 = &function1
+        callfar(0, $ffd2, $0031)
+        callfar(0, cbm.CHROUT, $000d)
+        callfar(0, function1, $6660)
+        callfar(0, cx16.r0, $ffff)
+        cx16.r0 -=10
+        callfar(0, cx16.r0+10, $eeee)
+
+        cx16.r0 = &function2
+        callfar(0, $ffd2, $0032)
+        callfar(0, cbm.CHROUT, $000d)
+        callfar(0, function2, $6660)
+        callfar(0, cx16.r0, $ffff)
+        cx16.r0 -=10
+        callfar(0, cx16.r0+10, $eeee)
+
         test_stack.test()
         cx16.r0++
 
-        sub function1(ubyte arg) {
+        sub function1(uword arg) {
             txt.print("function 1 arg=")
-            txt.print_ub(arg)
+            txt.print_uwhex(arg, false)
             txt.nl()
         }
 
-        sub function2(ubyte arg) {
+        sub function2(uword arg) {
             txt.print("function 2 arg=")
-            txt.print_ub(arg)
+            txt.print_uwhex(arg, false)
             txt.nl()
-        }
-
-        sub example(uword function, ubyte value) {
-
-            %asm {{
-                lda  p8v_value
-            }}
-
-            call(function)
-            cx16.r1 = function+10
-            call(cx16.r1-10)
         }
     }
 }

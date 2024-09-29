@@ -419,24 +419,30 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
 
     override fun copy() = AddressOf(identifier.copy(), arrayIndex?.copy(), position)
     override fun constValue(program: Program): NumericLiteral? {
-        val target = this.identifier.targetStatement(program) as? VarDecl
-        if(target?.type==VarDeclType.MEMORY || target?.type==VarDeclType.CONST) {
-            var address = target.value?.constValue(program)?.number
-            if(address!=null) {
-                if(arrayIndex!=null) {
-                    val index = arrayIndex?.constIndex()
-                    if (index != null) {
-                        address += when (target.datatype) {
-                            DataType.UWORD -> index
-                            in ArrayDatatypes -> program.memsizer.memorySize(target.datatype, index)
-                            else -> throw FatalAstException("need array or uword ptr")
-                        }
+        val target = this.identifier.targetStatement(program)
+        val targetVar = target as? VarDecl
+        if(targetVar!=null) {
+            if (targetVar.type == VarDeclType.MEMORY || targetVar.type == VarDeclType.CONST) {
+                var address = targetVar.value?.constValue(program)?.number
+                if (address != null) {
+                    if (arrayIndex != null) {
+                        val index = arrayIndex?.constIndex()
+                        if (index != null) {
+                            address += when (targetVar.datatype) {
+                                DataType.UWORD -> index
+                                in ArrayDatatypes -> program.memsizer.memorySize(targetVar.datatype, index)
+                                else -> throw FatalAstException("need array or uword ptr")
+                            }
+                        } else
+                            return null
                     }
-                    else
-                        return null
+                    return NumericLiteral(DataType.UWORD, address, position)
                 }
-                return NumericLiteral(DataType.UWORD, address, position)
             }
+        }
+        val targetSub = target as? Subroutine
+        if(targetSub?.asmAddress!=null) {
+            return NumericLiteral(DataType.UWORD, targetSub.asmAddress.toDouble(), position)
         }
         return null
     }
