@@ -1,7 +1,9 @@
 ; Draw a fractal tree recursively
-; example of doing recursion with local per-call state that has to be
-; preserved across recursive calls, as opposed to queens.p8 where the recursive
-; function only modifies global state.
+; This is an example of doing recursion with local per-call state that has to
+; be preserved across recursive calls, as opposed to queens.p8 where the
+; recursive function only modifies global state.
+;
+; can be compiled for multiple platforms
 %import graphics
 %import floats
 %zeropage basicsafe
