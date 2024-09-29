@@ -585,12 +585,20 @@ internal class AstChecker(private val program: Program,
             checkMultiAssignment(assignment, fcall, fcallTarget)
         } else if(fcallTarget!=null) {
             if(fcallTarget.returntypes.size!=1) {
-                errors.err("number of assignment targets doesn't match number of return values from the subroutine", fcall.position)
-                return
+                return numberOfReturnValuesError(1, fcallTarget.returntypes, fcall.position)
             }
         }
 
         super.visit(assignment)
+    }
+
+    private fun numberOfReturnValuesError(actual: Int, expectedTypes: List<DataType>, position: Position) {
+        if(actual<expectedTypes.size) {
+            val missing = expectedTypes.drop(actual).joinToString(", ")
+            errors.err("some return values are not assigned: expected ${expectedTypes.size} got $actual, missing assignments for: $missing", position)
+        }
+        else
+            errors.err("too many return values are assigned: expected ${expectedTypes.size} got $actual", position)
     }
 
     private fun checkMultiAssignment(assignment: Assignment, fcall: IFunctionCall?, fcallTarget: Subroutine?) {
@@ -602,8 +610,7 @@ internal class AstChecker(private val program: Program,
         }
         val targets = assignment.target.multi!!
         if(fcallTarget.returntypes.size!=targets.size) {
-            errors.err("number of assignment targets doesn't match number of return values from the subroutine", fcall.position)
-            return
+            return numberOfReturnValuesError(targets.size, fcallTarget.returntypes, fcall.position)
         }
         fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
             val (returnType, target) = p

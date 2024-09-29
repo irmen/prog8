@@ -27,6 +27,15 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         errors.warn("name '$name' shadows the definition at ${existing.position.file} line ${existing.position.line}", position)
     }
 
+    private fun invalidNumberOfArgsError(pos: Position, numArgs: Int, params: List<String>) {
+        if(numArgs<params.size) {
+            val missing = params.drop(numArgs).joinToString(", ")
+            errors.err("invalid number of arguments: expected ${params.size} got $numArgs, missing: $missing", pos)
+        }
+        else
+            errors.err("invalid number of arguments: expected ${params.size} got $numArgs", pos)
+    }
+
     override fun visit(block: Block) {
         val existing = blocks[block.name]
         if(existing!=null) {
@@ -166,7 +175,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 val expectedNumberOfArgs: Int = target.parameters.size
                 if(call.args.size != expectedNumberOfArgs) {
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                    errors.err("invalid number of arguments", pos)
+                    invalidNumberOfArgsError(pos, call.args.size, target.parameters.map { it.name })
                 }
             }
             is BuiltinFunctionPlaceholder -> {
@@ -174,7 +183,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 val expectedNumberOfArgs: Int = func.parameters.size
                 if(call.args.size != expectedNumberOfArgs) {
                     val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                    errors.err("invalid number of arguments", pos)
+                    invalidNumberOfArgsError(pos, call.args.size, func.parameters.map {it.name })
                 }
                 if(target.name=="memory") {
                     val name = call.args[0] as? StringLiteral
