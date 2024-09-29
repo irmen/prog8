@@ -4,6 +4,7 @@
 %import anyall
 %import buffers
 %import bmx
+%import compression
 %import conv
 %import cx16logo
 %import diskio

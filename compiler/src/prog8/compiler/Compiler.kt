@@ -248,7 +248,7 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
     }
 
     if(loadAddress==null) {
-        errors.err("load address must be specified with these output options", program.toplevelModule.position)
+        errors.err("load address must be specified with the specifid output/launcher options", program.toplevelModule.position)
         return
     }
 

@@ -266,33 +266,63 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcCall(fcall: PtBuiltinFunctionCall) {
+        // note: the routine can return a word value (in AY)
         val constAddr = fcall.args[0].asConstInteger()
         if(constAddr!=null) {
             asmgen.out("  jsr  ${constAddr.toHex()}")
-        } else {
-            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)     // jump address
-            asmgen.out("""
-              sta  (+)+1
-              sty  (+)+2
-+             jsr  0       ; modified""")
+            return
         }
 
-        // note: the routine can return a word value (in AY)
+        val identifier = fcall.args[0] as? PtIdentifier
+        if(identifier!=null) {
+            asmgen.out("""
+                ; push a return address so the jmp becomes indirect jsr
+                lda  #>((+)-1)
+                pha
+                lda  #<((+)-1)
+                pha
+                jmp  (${asmgen.asmSymbolName(identifier)})
++""")
+            return
+        }
+
+        asmgen.assignExpressionToVariable(fcall.args[0], asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.forDt(BaseDataType.UWORD))     // jump address
+        asmgen.out("""
+                ; push a return address so the jmp becomes indirect jsr
+                lda  #>((+)-1)
+                pha
+                lda  #<((+)-1)
+                pha
+                jmp  (P8ZP_SCRATCH_W2)
++""")
     }
 
     private fun funcCallFar(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        // TODO apply same optimizations here as used on call() codegen above
+
         if(asmgen.options.compTarget.name != "cx16")
             throw AssemblyError("callfar only works on cx16 target at this time")
 
-        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
-        asmgen.out("  sta  (++)+0")
-        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)     // jump address
-        asmgen.out("  sta  (+)+0 |  sty  (+)+1")
-        asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.AY)     // uword argument
-        asmgen.out("""
-            jsr  cx16.JSRFAR
-+           .word  0
-+           .byte  0""")
+        val constBank = fcall.args[0].asConstInteger()
+        val constAddress = fcall.args[1].asConstInteger()
+        if(constBank!=null && constAddress!=null) {
+            asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.AY)     // uword argument
+            asmgen.out("""
+                jsr  cx16.JSRFAR
+                .word  ${constAddress.toHex()}
+                .byte  $constBank""")
+        } else {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
+            asmgen.out("  sta  (++)+0")
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)     // jump address
+            asmgen.out("  sta  (+)+0 |  sty  (+)+1")
+            asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.AY)     // uword argument
+            asmgen.out("""
+                jsr  cx16.JSRFAR
++               .word  0
++               .byte  0""")
+        }
+
         // note that by convention the values in A+Y registers are now the return value of the call.
         if(resultRegister!=null)  {
             assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), RegisterOrPair.AY)

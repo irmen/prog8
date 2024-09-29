@@ -293,6 +293,8 @@ math {
         ;     for instance, simply printing a number may already result in new multiplication calls being performed
         ;   - not all multiplications in the source code result in an actual multiplication call:
         ;     some simpler multiplications will be optimized away into faster routines. These will not set the upper 16 bits at all!
+        ;   - THE RESULT IS ONLY VALID IF THE MULTIPLICATION WAS DONE WITH UWORD ARGUMENTS (or two positive WORD arguments)
+        ;     as soon as a negative word value (or 2) was used in the multiplication, these upper 16 bits are not valid!!
         %ir {{
             syscall 33 (): r0.w
             returnr.w r0

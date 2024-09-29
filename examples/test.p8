@@ -1,16 +1,10 @@
 %import textio
-%import floats
 %zeropage basicsafe
+%option no_sysinit
 
 main {
     sub start() {
-        float fl = 5.23
-        fl = floats.ceil(fl)
-        floats.print(fl)
-        txt.nl()
-        fl = 5.23
-        fl = floats.floor(fl)
-        floats.print(fl)
-        txt.nl()
+        txt.print("hello")
     }
 }
+

@@ -186,6 +186,7 @@ memory (name, size, alignment)
 call (address) -> uword
     Calls a subroutine given by its memory address. You cannot pass arguments directly,
     although it is ofcourse possible to do this via the global ``cx16.r0...`` registers for example.
+    It is *not* possible to use cpu registers to pass arguments, because these are clobbered while performing the call!
     It is assumed the subroutine returns a word value (in AY), if it does not, just add void to the call to ignore the result value.
     This function effectively creates an "indirect JSR" if you use it on a ``uword`` pointer variable.
     But because it doesn't handle bank switching etcetera by itself,
@@ -787,6 +788,10 @@ but perhaps the provided ones can be of service too.
     It does not work for the verafx multiplication routines on the Commander X16!
     These have a different way to obtain the upper 16 bits of the result: just read cx16.r0.
 
+    **NOTE:** the result is only valid if the multiplication was done with uword arguments (or two positive word arguments).
+    As soon as a single negative word value (or both) was used in the multiplication, these upper 16 bits are not valid!
+    Suggestion (if you are on the Commander X16): use ``verafx.muls()`` to get a hardware accelerated 32 bit signed multiplication.
+
 ``crc16 (uword data, uword length) -> uword``
     Returns a CRC-16 (XMODEM) checksum over the given data buffer.
     Note: on the Commander X16, there is a CRC-16 routine in the kernal: cx16.memory_crc().
@@ -978,15 +983,22 @@ the emulators already support it).
 ``available``
     Returns true if Vera FX is available, false if not (that would be an older Vera chip)
 
-``mult`` , ``muls``
-    The hardware 16*16 multiplier is exposed via ``mult`` and ``muls`` routines (unsigned and signed respectively).
-    They are about 4 to 5 times faster as the default 6502 cpu routine for word multiplication.
-    But they depend on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
+``muls``
+    The VeraFX signed word 16*16 to 32 multiplier is accessible via the ``muls`` routine.
+    It is about 4 to 5 times faster than the default 6502 cpu routine for word multiplication.
+    But it depends on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
     Note: there is a block level %option "verafxmuls" that automatically replaces all word multiplications in that block
-    by calls to verafx.muls/mult, but be careful with it because it may interfere with other Vera operations or IRQs.
+    by calls to verafx, but be careful with it because it may interfere with other Vera operations or IRQs.
+    The full 32 bits result value is returned in two result values: lower word, upper word.
 
-    Note: the lower 16 bits of the 32 bits result is returned as the normal subroutine's returnvalue,
-    but the upper 16 bits is returned in cx16.r0 so you can still access those separately.
+``mult16``
+    VeraFX hardware multiplication of two unsigned words.
+    NOTE: it only returns the lower 16 bits of the full 32 bits result, because the upper 16 bits are not valid for unsigned word multiplications here
+    (the signed word multiplier ``muls`` does return the full 32 bits result).
+    It is about 4 to 5 times faster than the default 6502 cpu routine for word multiplication.
+    But it depends on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
+    Note: there is a block level %option "verafxmuls" that automatically replaces all word multiplications in that block
+    by calls to verafx, but be careful with it because it may interfere with other Vera operations or IRQs.
 
 ``clear``
     Very quickly clear a piece of vram to a given byte value (it writes 4 bytes at a time).

@@ -168,6 +168,9 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         ;     for instance, simply printing a number may already result in new multiplication calls being performed
         ;   - not all multiplications in the source code result in an actual multiplication call:
         ;     some simpler multiplications will be optimized away into faster routines. These will not set the upper 16 bits at all!
+        ;   - THE RESULT IS ONLY VALID IF THE MULTIPLICATION WAS DONE WITH UWORD ARGUMENTS (or two positive WORD arguments)
+        ;     as soon as a negative word value (or 2) was used in the multiplication, these upper 16 bits are not valid!!
+        ;     Suggestion (if you are on the Commander X16): use verafx.muls() to get a hardware accelerated 32 bit signed multplication.
         %asm {{
             lda  multiply_words.result+2
             ldy  multiply_words.result+3

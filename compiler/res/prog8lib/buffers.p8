@@ -1,4 +1,4 @@
-; experimental buffer data structures
+; **experimental** buffer data structures, API subject to change!!
 
 %option no_symbol_prefixing, ignore_unused
 

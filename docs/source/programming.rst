@@ -1,8 +1,6 @@
-.. _programstructure:
-
-==========================
-What makes a Prog8 program
-==========================
+====================
+Programming in Prog8
+====================
 
 This chapter describes a high level overview of the elements that make up a program.
 Details about the syntax can be found in the :ref:`syntaxreference` chapter.

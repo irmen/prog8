@@ -1,14 +1,7 @@
 TODO
 ====
 
-Can we move the asm init code that is injected into the start() subroutine, to init_system_phase2 instead?
-
-Doc improvements: some short overview for people coming from other programming languages like C:
-  tell something about prog8 not having function overloading, max 16 bit (u)word integer as native type (and floats sometimes),
-  static variable allocations, no dynamic memory allocation in the language itself (although possible via user written libraries),
-  no complex expresssion optimizations so avoid repeating costly terms like in: if board[i]==col or board[i]-i==col-row or board[i]+i==col+row {...} -> store board[i] in a (@zp) variable first and reuse that in the expression
-  etc ...
-
+Regenerate skeleton doc files.
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
@@ -18,12 +11,13 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-Compiler:
 
+- Add a new SublimeText syntax file for prog8, and also install this for bat: https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
+- callfar() should allow setting an argument in the X register as well?
+- AST weirdness: why is call(...) a normal FunctionCallStatement and not a BuiltinFunctionCall?  What does ror() produce for instance?
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
-- IR: CMPI+BSTEQ --> new BEQ reg,value,label instruction (like BGT etc)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.

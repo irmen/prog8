@@ -360,7 +360,6 @@ asmsub  init_system()  {
     ; Uppercase charset is activated.
     %asm {{
         sei
-        cld
         lda  #0
         sta  $ff00      ; select default bank 15
         jsr  cbm.IOINIT
@@ -373,8 +372,6 @@ asmsub  init_system()  {
         lda  #0
         sta  c64.BGCOL0
         jsr  disable_runstop_and_charsetswitch
-        clc
-        clv
         cli
         rts
     }}
@@ -382,7 +379,10 @@ asmsub  init_system()  {
 
 asmsub  init_system_phase2()  {
     %asm {{
-        rts     ; no phase 2 steps on the C128
+        cld
+        clc
+        clv
+        rts
     }}
 }
 

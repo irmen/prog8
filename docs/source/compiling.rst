@@ -8,7 +8,7 @@ First, getting a working compiler
 ---------------------------------
 
 Before you can compile Prog8 programs, you'll have to download or build the compiler itself.
-First make sure you have installed the :ref:`requirements`.
+Then make sure you have installed the :ref:`requirements`.
 Then you can choose a few ways to get a compiler:
 
 **Download an official release version from Github:**
@@ -82,25 +82,26 @@ For normal use, the ``installDist`` task should suffice and after succesful comp
     .. image:: _static/antlrparser.png
        :alt: Generating the Antlr4 parser files
 
+.. _requirements:
 
-What is a Prog8 "Program" anyway?
----------------------------------
+Required additional tools
+-------------------------
 
-A "complete runnable program" is a compiled, assembled, and linked together single unit.
-It contains all of the program's code and data and has a certain file format that
-allows it to be loaded directly on the target system.   Prog8 currently has no built-in
-support for programs that exceed 64 Kb of memory, nor for multi-part loaders.
+`64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this program somewhere on your shell's search path.
+It's easy to compile yourself, but a recent precompiled .exe (only for Windows) can be obtained from
+`the files section <https://sourceforge.net/projects/tass64/files/binaries/>`_ in the official project on sourceforge.
+*You need at least version 1.58.0 of this assembler.*
+If you are on Linux, there's probably a "64tass" package in the repositories, but check if it is a recent enough version.
 
-For the Commodore 64, most programs will have a tiny BASIC launcher that does a SYS into the generated machine code.
-This way the user can load it as any other program and simply RUN it to start. (This is a regular ".prg" program).
-Prog8 can create those, but it is also possible to output plain binary programs
-that can be loaded into memory anywhere.
+A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
+If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
+Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases/?version=11>`_ .
+For MacOS you can also use the Homebrew system to install a recent version of OpenJDK.
+
 
 
 Running the compiler
 --------------------
-
-Make sure you have installed the :ref:`requirements`.
 
 You run the Prog8 compiler on a main source code module file.
 Other modules that this code needs will be loaded and processed via imports from within that file.
@@ -113,7 +114,7 @@ For normal use the compiler can be invoked with the command:
 
     (Use the appropriate name and version of the jar file downloaded from one of the Git releases.
     Other ways to invoke the compiler are also available: see the introduction page about how
-    to build and run the compiler yourself. The -target option is required, in this case we
+    to build and run the compiler yourself. The ``-target`` option is always required, in this case we
     tell it to compile a program for the Commander X16)
 
 
@@ -188,7 +189,7 @@ One or more .p8 module files
     Generate an assembler listing file as well.
 
 ``-check``
-    Quickly check the program for errors. No output will be produced.
+    Quickly check the program for errors. No actual compilation will be performed.
 
 ``-breakinstr <instruction>``
     Also output the specified CPU instruction for a ``%breakpoint``, as well as the entry in the vice monitor list file.
