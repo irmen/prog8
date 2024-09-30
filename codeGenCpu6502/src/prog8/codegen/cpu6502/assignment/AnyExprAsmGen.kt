@@ -175,17 +175,14 @@ internal class AnyExprAsmGen(
     private fun assignFloatOperandsToFACandARG(left: PtExpression, right: PtExpression) {
         when(asmgen.options.compTarget.name) {
             C64Target.NAME -> {
-                // c64 has a quirk: always make sure FAC2 is loaded last (done using CONUPK)  otherwise the result will be corrupt on C64
-                // this requires some more forced copying around of float values in certain cases
-                if (right.isSimple()) {
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
-                    asmgen.assignExpressionToRegister(right, RegisterOrPair.FAC2, true)
-                } else {
-                    asmgen.assignExpressionToRegister(right, RegisterOrPair.FAC1, true)
-                    asmgen.pushFAC1()
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
-                    asmgen.popFAC2()
-                }
+                // C64 math library has a quirk: you have always make sure FAC2/ARG is loaded last (done using CONUPK)
+                // otherwise the result of certain floating point operations such as FDIVT will be wrong.
+                // see https://www.c64-wiki.com/wiki/CONUPK
+                // Unfortunately this means we have to push and pop an intermediary floating point value to and from memory.
+                asmgen.assignExpressionToRegister(right, RegisterOrPair.FAC1, true)
+                asmgen.pushFAC1()
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)
+                asmgen.popFAC2()
             }
             Cx16Target.NAME -> {
                 asmgen.assignExpressionToRegister(left, RegisterOrPair.FAC1, true)

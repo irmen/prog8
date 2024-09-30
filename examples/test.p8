@@ -1,19 +1,22 @@
 %import textio
+%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        cx16.r0L = returns3()
-        cx16.r0L, cx16.r1L, cx16.r2L, cx16.r3L = returns3()
-        txt.print_uwhex()
-        txt.print_uwhex(1, true, 2, 3)
-    }
+        word x1 = -118
+        floats.print(x1 as float)
+        txt.nl()
+        floats.print(x1 as float/1.9)
+        txt.nl()
+        xf1 = x1/1.9
+        floats.print(xf1)
+        txt.nl()
 
-    asmsub returns3() -> ubyte @A, ubyte @X, bool @Pc {
-        %asm {{
-            rts
-        }}
+        float @shared xf1 = -118
+        floats.print(xf1/1.9)
+        txt.nl()
     }
 }
 
