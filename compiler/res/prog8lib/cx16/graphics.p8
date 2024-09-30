@@ -1,5 +1,4 @@
 %import syslib
-%import textio
 
 ; Bitmap pixel graphics module for the CommanderX16
 ; Wraps the graphics functions that are in ROM.
@@ -35,7 +34,7 @@ graphics {
     sub disable_bitmap_mode() {
         ; enables text mode, erase the text screen, color white
         void cx16.screen_mode(0, false)
-        txt.clear_screen()
+        cbm.CHROUT(147)
     }
 
 

@@ -168,6 +168,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "cube3d-gfx",
             "dirlist",
             "fibonacci",
+            "fractal-tree",
             "line-circle-gfx",
             "line-circle-txt",
             "maze",

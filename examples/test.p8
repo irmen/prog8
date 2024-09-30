@@ -5,7 +5,7 @@
 
 main {
     sub start() {
-        word x1 = -118
+        word @shared x1 = -118
         floats.print(x1 as float)
         txt.nl()
         floats.print(x1 as float/1.9)

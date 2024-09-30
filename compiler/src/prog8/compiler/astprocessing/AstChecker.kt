@@ -1272,11 +1272,15 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(bfc: BuiltinFunctionCall) {
+        // most function calls, even to builtin functions, are still regular FunctionCall nodes here.
+        // they get converted to the more specialized node type in BeforeAsmTypecastCleaner
         checkLongType(bfc)
         super.visit(bfc)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
+        // most function calls, even to builtin functions, are still regular FunctionCall nodes here.
+        // they get converted to the more specialized node type in BeforeAsmTypecastCleaner
         val targetStatement = functionCallStatement.target.checkFunctionOrLabelExists(program, functionCallStatement, errors)
         if(targetStatement!=null) {
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
