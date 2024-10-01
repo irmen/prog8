@@ -2,6 +2,8 @@
 ; bitmap image needs to start at VRAM addres $00000.
 ; This is compatible with the CX16's screen mode 128.  (void cx16.set_screen_mode(128))
 
+%import verafx
+
 
 gfx_lores {
 
@@ -19,13 +21,45 @@ gfx_lores {
     }
 
     sub clear_screen(ubyte color) {
+        if verafx.available() {
+            verafx.clear(0, 0, color, 320*240/4)
+            return
+        }
+        ; fallback to cpu clear
         cx16.VERA_CTRL=0
         cx16.VERA_ADDR=0
         cx16.VERA_ADDR_H = 1<<4    ; 1 pixel auto increment
-        repeat 240
-            cs_innerloop320(color)
+        repeat 240 {
+            %asm {{
+                lda  p8v_color
+                ldy  #320/8
+-               .rept 8
+                sta  cx16.VERA_DATA0
+                .endrept
+                dey
+                bne  -
+            }}
+        }
         cx16.VERA_ADDR=0
         cx16.VERA_ADDR_H = 0
+    }
+
+    asmsub plot(uword x @AX, ubyte y @Y, ubyte color @R0) {
+        ; x in r0,  y in r1,   color.
+        %asm {{
+            clc
+            adc  times320_lo,y
+            sta  cx16.VERA_ADDR_L
+            txa
+            adc  times320_mid,y
+            sta  cx16.VERA_ADDR_M
+            lda  #0
+            adc  times320_hi,y
+            sta  cx16.VERA_ADDR_H
+            lda  cx16.r0L
+            sta  cx16.VERA_DATA0
+            rts
+        }}
     }
 
     sub line(uword x1, ubyte y1, uword x2, ubyte y2, ubyte color) {
@@ -133,7 +167,7 @@ gfx_lores {
         }
 
         asmsub plot() {
-            ; x in r0,  y in r1,   color.
+            ; internal plot routine for the line algorithm: x in r0,  y in r1,  color in variable.
             %asm {{
                 ldy  cx16.r1L
                 clc
@@ -151,23 +185,12 @@ gfx_lores {
                 rts
             }}
         }
-
-        %asm {{
-
-; multiplication by 320 lookup table
-times320 := 320*range(240)
-
-times320_lo     .byte <times320
-times320_mid    .byte >times320
-times320_hi     .byte `times320
-
-            }}
     }
 
     sub horizontal_line(uword xx, ubyte yy, uword length, ubyte color) {
         if length==0
             return
-        vera_setaddr(xx, yy)
+        plot(xx, yy, color)  ; set starting position by reusing plot routine
         ; set vera auto-increment to 1 pixel
         cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (1<<4)
 
@@ -191,45 +214,28 @@ times320_hi     .byte `times320
     }
 
     sub vertical_line(uword xx, ubyte yy, ubyte lheight, ubyte color) {
-        vera_setaddr(xx,yy)
+        if lheight==0
+            return
+        plot(xx, yy, color)  ; set starting position by reusing plot routine
         ; set vera auto-increment to 320 pixel increment (=next line)
         cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (14<<4)
         %asm {{
             ldy  p8v_lheight
-            beq  +
             lda  p8v_color
 -           sta  cx16.VERA_DATA0
             dey
             bne  -
-+
         }}
     }
 
 
-    asmsub cs_innerloop320(ubyte color @A) clobbers(Y) {
-        ; using verafx 32 bits writes here would make this faster but it's safer to
-        ; use verafx only explicitly when you know what you're doing.
-        %asm {{
-            ldy  #40
--           sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            dey
-            bne  -
-            rts
-        }}
-    }
+    %asm {{
+; multiplication by 320 lookup table
+times320 := 320*range(240)
 
-    inline asmsub vera_setaddr(uword xx @R0, ubyte yy @R1) {
-        ; set the correct vera start address (no auto increment yet!)
-        %asm {{
-            jsr  p8s_line.p8s_plot
-        }}
-    }
+times320_lo     .byte <times320
+times320_mid    .byte >times320
+times320_hi     .byte `times320
+    }}
 }
 
