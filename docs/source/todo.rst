@@ -1,10 +1,12 @@
 TODO
 ====
 
+fix the  ubyte[<space>] parser error.
+
+crash:   speeds[star] = msb(r[star])    speeds and r are uword arrays
+
 word starw
 for starw in 50 downto 0        -> compiler error word loop variable can only loop over bytes or words
-
-fix the  ubyte[<space>] parser error.
 
 Regenerate skeleton doc files.
 

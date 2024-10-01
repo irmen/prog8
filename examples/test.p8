@@ -1,22 +1,15 @@
 %import textio
-%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        word @shared x1 = -118
-        floats.print(x1 as float)
-        txt.nl()
-        floats.print(x1 as float/1.9)
-        txt.nl()
-        xf1 = x1/1.9
-        floats.print(xf1)
-        txt.nl()
-
-        float @shared xf1 = -118
-        floats.print(xf1/1.9)
-        txt.nl()
+        ubyte[] stuff1=[1,2,3]
+        ubyte [] stuff2=[1,2,3]
+        ubyte[ ] stuff3=[1,2,3]     ; TODO fix parse error
+        stuff1[1]++
+        stuff2[1]++
+        stuff3[1]++
     }
 }
 
