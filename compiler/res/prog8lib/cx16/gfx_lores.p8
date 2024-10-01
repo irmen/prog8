@@ -22,7 +22,34 @@ gfx_lores {
 
     sub clear_screen(ubyte color) {
         if verafx.available() {
-            verafx.clear(0, 0, color, 320*240/4)
+            ; use verafx cache writes to quicly clear the screen
+            const ubyte vbank = 0
+            const uword vaddr = 0
+            cx16.VERA_CTRL = 0
+            cx16.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
+            cx16.VERA_ADDR_M = msb(vaddr)
+            cx16.VERA_ADDR_L = lsb(vaddr)
+            cx16.VERA_CTRL = 6<<1       ; dcsel = 6, fill the 32 bits cache
+            cx16.VERA_FX_CACHE_L = color
+            cx16.VERA_FX_CACHE_M = color
+            cx16.VERA_FX_CACHE_H = color
+            cx16.VERA_FX_CACHE_U = color
+            cx16.VERA_CTRL = 2<<1       ; dcsel = 2
+            cx16.VERA_FX_MULT = 0
+            cx16.VERA_FX_CTRL = %01000000    ; cache write enable
+            repeat 320/4/4 {
+                %asm {{
+                    ldy  #240
+-                   stz  cx16.VERA_DATA0
+                    stz  cx16.VERA_DATA0
+                    stz  cx16.VERA_DATA0
+                    stz  cx16.VERA_DATA0
+                    dey
+                    bne  -
+                }}
+            }
+            cx16.VERA_FX_CTRL = 0       ; cache write disable
+            cx16.VERA_CTRL = 0
             return
         }
         ; fallback to cpu clear
