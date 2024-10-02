@@ -8,17 +8,18 @@ verafx {
 
     sub available() -> bool {
         ; returns true if Vera FX is available (Vera V0.3.1 or later), false if not.
-        cx16.r1L = 0
         cx16.r0L = cx16.VERA_CTRL
+        cx16.r0H = 0
         cx16.VERA_CTRL = $7e
         if cx16.VERA_DC_VER0 == $56 {
-            ; Vera version number is valid.
-            ; Vera fx is available on Vera version 0.3.1 and later,
-            ; so no need to even check VERA_DC_VER1, which contains 0 (or higher)
-            cx16.r1L = mkword(cx16.VERA_DC_VER2, cx16.VERA_DC_VER3) >= $0301 as ubyte
+            ; Vera version number is valid. Vera fx is available on Vera version 0.3.1 and later.
+            if cx16.VERA_DC_VER1>0
+                cx16.r0H = 1
+            else
+                cx16.r0H = mkword(cx16.VERA_DC_VER2, cx16.VERA_DC_VER3) >= $0301 as ubyte
         }
         cx16.VERA_CTRL = cx16.r0L
-        return cx16.r1L as bool
+        return cx16.r0H as bool
     }
 
     sub clear(ubyte vbank, uword vaddr, ubyte data, uword num_longwords) {

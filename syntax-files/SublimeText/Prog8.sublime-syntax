@@ -1,0 +1,161 @@
+%YAML 1.2
+---
+# http://www.sublimetext.com/docs/syntax.html
+name: prog8
+file_extensions:
+  - p8
+  - prog8
+scope: source.prog8
+contexts:
+  main:
+    - include: comment
+    - include: meta
+    - match: '(^\s*\w+\s*)(\{)'
+      captures:
+        1: entity.name.namespace.prog8
+        2: punctuation.prog8
+      push:
+        - match: '(\})'
+          captures:
+            1: punctuation.prog8
+          pop: true
+        - include: main__1
+    - match: '(^\s*\w+\s*)(\$[\da-fA-F]+\s*)(\{)'
+      captures:
+        1: entity.name.namespace.prog8
+        2: constant.numeric.integer.hexadecimal.prog8
+        3: punctuation.prog8
+      push:
+        - match: '(\})'
+          captures:
+            1: punctuation.prog8
+          pop: true
+        - include: main__2
+  comment:
+    - match: (\;)(.+)
+      captures:
+        1: comment.line.prog8
+        2: comment.line.prog8
+  assembler:
+    - match: (\b(adc|and|asl|bcc|bcs|beq|bit|bmi|bne|bpl|brk|bvc|bvs|clc|cld|cli|clv|cmp|cpx|cpy|dec|dex|dey|eor|inc|inx|iny|jmp|jsr|lda|ldx|ldy|lsr|nop|ora|pha|php|pla|plp|rol|ror|rti|rts|sbc|sec|sed|sei|sta|stx|sty|tax|tay|tsx|txa|txs|tya|bra|brl|cop|jml|jsl|mvn|mvp|pea|pei|per|phb|phd|phk|phx|phy|plb|pld|plx|ply|rep|rtl|sep|stp|stz|tcd|tcs|tdc|trb|tsb|tsc|txy|tyx|wai|wdm|xba|xce|ADC|AND|ASL|BCC|BCS|BEQ|BIT|BMI|BNE|BPL|BRK|BVC|BVS|CLC|CLD|CLI|CLV|CMP|CPX|CPY|DEC|DEX|DEY|EOR|INC|INX|INY|JMP|JSR|LDA|LDX|LDY|LSR|NOP|ORA|PHA|PHP|PLA|PLP|ROL|ROR|RTI|RTS|SBC|SEC|SED|SEI|STA|STX|STY|TAX|TAY|TSX|TXA|TXS|TYA|BRA|BRL|COP|JML|JSL|MVN|MVP|PEA|PEI|PER|PHB|PHD|PHK|PHX|PHY|PLB|PLD|PLX|PLY|REP|RTL|SEP|STP|STZ|TCD|TCS|TDC|TRB|TSB|TSC|TXY|TYX|WAI|WDM|XBA|XCE)\b)
+      scope: support.function.prog8
+  constant:
+    - match: (\btrue|false|void\b)
+      scope: constant.language.prog8
+  general:
+    - match: '(^\s*)(\%asm)(\s*{{)'
+      captures:
+        1: punctuation.prog8
+        2: keyword.control.directive.prog8
+        3: punctuation.prog8
+      push:
+        - match: '(}})'
+          captures:
+            1: punctuation.prog8
+          pop: true
+        - include: general__1
+    - match: '(\{)'
+      captures:
+        1: punctuation.prog8
+      push:
+        - match: '(\})'
+          captures:
+            1: punctuation.prog8
+          pop: true
+        - include: general__2
+    - match: (\")
+      captures:
+        1: punctuation.prog8
+      push:
+        - meta_content_scope: text.prog8
+        - match: (\")
+          captures:
+            1: punctuation.prog8
+          pop: true
+    - match: (\()
+      captures:
+        1: punctuation.prog8
+      push:
+        - match: (\))
+          captures:
+            1: punctuation.prog8
+          pop: true
+        - include: general__4
+    - include: comment
+    - include: numeric
+    - include: keywords
+    - include: storage
+    - include: constant
+    - include: support
+    - include: label
+    - include: meta
+    - match: (\w+)(\s*)(\()
+      captures:
+        1: entity.name.function.prog8
+        2: punctuation.prog8
+        3: punctuation.prog8
+      push:
+        - match: (\))
+          captures:
+            1: punctuation.prog8
+          pop: true
+        - include: general__5
+    - include: section
+    - include: variable
+  general__1:
+    - include: assembler
+    - include: comment
+    - include: numeric
+    - include: label
+    - include: section
+    - include: variable
+  general__2:
+    - include: general
+  general__3: []
+  general__4:
+    - include: general
+  general__5:
+    - include: general
+  keywords:
+    - match: (\b(sub|if|if_cs|if_cc|if_eq|if_ne|if_pl|if_mi|if_vs|if_vc|if_z|if_nz|if_pos|if_neg|for|in|to|step|do|while|until|repeat|else|when|return|break|as|goto|asmsub|clobbers)\b)
+      scope: keyword.control.prog8
+    - match: (\b(and|or)\b)
+      scope: keyword.operator.prog8
+  label:
+    - match: (^\s*\w+\:)
+      scope: entity.name.label.prog8
+  main__1:
+    - include: general
+  main__2:
+    - include: general
+  meta:
+    - match: '(^\s*)(%)([a-zA-Z]+)'
+      captures:
+        1: punctuation.prog8
+        2: meta.directive.prog8
+        3: keyword.control.directive.prog8
+  numeric:
+    - match: (\b\d+)
+      scope: constant.numeric.integer.prog8
+    - match: (\-?\d+\.\d+e?\d+)
+      scope: constant.numeric.float.prog8
+    - match: '(\$[\da-fA-F]+)'
+      scope: constant.numeric.integer.hexadecimal.prog8
+    - match: '(\%[0-1]+)'
+      scope: constant.numeric.integer.binary.prog8
+    - match: (\'.\')
+      scope: constant.numeric.integer.prog8
+  section:
+    - match: (\b\w+\.)
+      scope: entity.name.namespace.prog8
+  storage:
+    - match: (\b(ubyte|byte|word|uword|float|str)\b)
+      scope: storage.type.prog8
+    - match: (\b(const)\b)
+      scope: storage.modifier.prog8
+  support:
+    - match: (\b(abs|atan|ceil|cos|cos8u|cos8|cos16u|cos16|deg|floor|ln|log2|rad|round|sin|sgn|sin8u|sin8|sin16u|sin16|sqrt16|sqrt|tan|any|all|len|max|min|reverse|sum|sort|memcopy|memset|memsetw|leftstr|rightstr|strlen|strcmp|substr|exit|lsb|msb|mkword|rnd|rndw|rndf|rol|rol2|ror|ror2|rsave|rrestore|read_flags|sizeof|set_carry|clear_carry|set_irqd|clear_irqd|swap)\b)
+      scope: support.function.prog8
+  variable:
+    - match: (\b\w+\b)
+      scope: variable.other.prog8
