@@ -503,8 +503,16 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
     if(scoped_identifier()!=null)
         return scoped_identifier().toAst()
 
-    if(bop!=null)
-        return BinaryExpression(left.toAst(), bop.text.trim(), right.toAst(), toPosition(), insideParentheses=insideParentheses)
+    if(bop!=null) {
+        val operator = bop.text.trim().replace("\\s+".toRegex(), " ")
+        return BinaryExpression(
+            left.toAst(),
+            operator,
+            right.toAst(),
+            toPosition(),
+            insideParentheses = insideParentheses
+        )
+    }
 
     if(prefix!=null)
         return PrefixExpression(prefix.text, expression(0).toAst(), toPosition())

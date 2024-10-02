@@ -884,7 +884,7 @@ class TestProg8Parser: FunSpec( {
             main {
                 sub start() {
                     str string = "hello"
-                    ubyte[] array = [1,2,3,4]
+                    ubyte[  ] array = [1,2,3,4]
                     
                     bool bb
                     ubyte cc
@@ -915,7 +915,7 @@ class TestProg8Parser: FunSpec( {
             main {
                 sub start() {
                     bool @shared cc
-                    ubyte[] array = [1,2,3]
+                    ubyte [  ] array = [1,2,3]
                     cc = 99 in 12345
                     cc = 9999 in array
                 }

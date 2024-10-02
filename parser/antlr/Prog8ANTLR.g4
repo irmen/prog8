@@ -63,9 +63,9 @@ SHARED : '@shared' ;
 
 SPLIT: '@split' ;
 
-ARRAYSIG :
-    '[]'
-    ;
+ARRAYSIG : '[' [ \t]* ']' ;
+
+NOT_IN: 'not' [ \t]+ 'in' [ \t] ;
 
 
 // A module (file) consists of zero or more directives or blocks, in any order.
@@ -184,7 +184,7 @@ expression :
 	| left = expression EOL? bop = ('==' | '!=') EOL? right = expression
 	| rangefrom = expression rto = ('to'|'downto') rangeto = expression ('step' rangestep = expression)?	// can't create separate rule due to mutual left-recursion
 	| left = expression EOL? bop = 'in' EOL? right = expression
-	| left = expression EOL? bop = ('not in ' | 'not in\t' | 'not in\n' | 'not in\r') EOL? right = expression
+	| left = expression EOL? bop = NOT_IN EOL? right = expression
 	| prefix = 'not' expression
 	| left = expression EOL? bop = 'and' EOL? right = expression
 	| left = expression EOL? bop = 'or' EOL? right = expression
