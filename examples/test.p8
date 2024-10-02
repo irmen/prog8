@@ -4,22 +4,42 @@
 
 main {
     sub start() {
-        uword uw
-        for uw in 50 downto 10 {
-            cx16.r0++
-        }
+        bool[256] cells
         word starw
+        byte bb
+        uword uw
+        ubyte ub
+
         for starw in 50 downto 10  {        ; TODO fix compiler error + add unit test for this
             cx16.r0++
         }
+        for starw in cx16.r0L downto 10  {        ; TODO fix compiler error + add unit test for this
+            cx16.r0++
+        }
+
+        for ub in 0 to len(cells)-1 {
+            cx16.r0++
+        }
+        for ub in cx16.r0L to len(cells)-1 {
+            cx16.r0++
+        }
+        for bb in 50 downto 10  {
+            cx16.r0++
+        }
+        for bb in cx16.r0sL downto 10  {
+            cx16.r0++
+        }
 
 
-        ubyte[] stuff1=[1,2,3]
-        ubyte [] stuff2=[1,2,3]
-        ubyte[ ] stuff3=[1,2,3]
-        stuff1[1]++
-        stuff2[1]++
-        stuff3[1]++
+;        for starw in 500 downto 10  {
+;            cx16.r0++
+;        }
+;        for uw in 50 downto 10 {
+;            cx16.r0++
+;        }
+;        for uw in 500 downto 10 {
+;            cx16.r0++
+;        }
     }
 }
 

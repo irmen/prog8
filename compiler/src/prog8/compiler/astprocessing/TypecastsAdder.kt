@@ -341,14 +341,33 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         }
         return noModifications
     }
-
     override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
+        val fromDt = range.from.inferType(program).getOr(DataType.UNDEFINED)
+        val toDt = range.to.inferType(program).getOr(DataType.UNDEFINED)
         val fromConst = range.from.constValue(program)
         val toConst = range.to.constValue(program)
+        val varDt = if (parent is ContainmentCheck)
+                parent.element.inferType(program)
+            else if (parent is ForLoop)
+                parent.loopVarDt(program)
+            else
+                InferredTypes.InferredType.unknown()
+        return adjustRangeDts(range, fromConst, fromDt, toConst, toDt, varDt.getOr(DataType.UNDEFINED), parent)
+    }
+
+    private fun adjustRangeDts(
+        range: RangeExpression,
+        fromConst: NumericLiteral?,
+        fromDt: DataType,
+        toConst: NumericLiteral?,
+        toDt: DataType,
+        varDt: DataType,
+        parent: Node
+    ): List<IAstModification> {
 
         if(fromConst!=null) {
             val smaller = NumericLiteral.optimalInteger(fromConst.number.toInt(), fromConst.position)
-            if(fromConst.type.largerThan(smaller.type)) {
+            if(fromDt.largerThan(smaller.type)) {
                 val toType = range.to.inferType(program)
                 if(toType isnot smaller.type) {
                     if(toConst!=null) {
@@ -367,7 +386,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         }
         if(toConst!=null) {
             val smaller = NumericLiteral.optimalInteger(toConst.number.toInt(), toConst.position)
-            if(toConst.type.largerThan(smaller.type)) {
+            if(toDt.largerThan(smaller.type)) {
                 val fromType = range.from.inferType(program)
                 if(fromType isnot smaller.type) {
                     if(fromConst!=null) {
@@ -386,8 +405,6 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         }
 
         val modifications = mutableListOf<IAstModification>()
-        val fromDt = range.from.inferType(program).getOr(DataType.UNDEFINED)
-        val toDt = range.to.inferType(program).getOr(DataType.UNDEFINED)
         val (commonDt, toChange) = BinaryExpression.commonDatatype(fromDt, toDt, range.from, range.to)
         if(toChange!=null)
             addTypecastOrCastedValueModification(modifications, toChange, commonDt, range)
