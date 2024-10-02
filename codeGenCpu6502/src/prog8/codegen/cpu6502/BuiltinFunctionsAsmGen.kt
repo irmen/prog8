@@ -1152,7 +1152,44 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            when(resultRegister) {
+            if(arg is PtArrayIndexer && resultRegister in setOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
+                // just read the msb byte out of the word array
+                if(arg.splitWords) {
+                    val arrayVar = asmgen.asmVariableName(arg.variable)+"_msb"
+                    when(resultRegister) {
+                        null, RegisterOrPair.A -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  lda  $arrayVar,y")
+                        }
+                        RegisterOrPair.Y -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.X)
+                            asmgen.out("  ldy  $arrayVar,x")
+                        }
+                        RegisterOrPair.X -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  ldx  $arrayVar,y")
+                        }
+                        else -> throw AssemblyError("invalid reg")
+                    }
+                } else {
+                    val arrayVar = asmgen.asmVariableName(arg.variable)
+                    when(resultRegister) {
+                        null, RegisterOrPair.A -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  lda  $arrayVar+1,y")
+                        }
+                        RegisterOrPair.Y -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.X)
+                            asmgen.out("  ldy  $arrayVar+1,x")
+                        }
+                        RegisterOrPair.X -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  ldx  $arrayVar+1,y")
+                        }
+                        else -> throw AssemblyError("invalid reg")
+                    }
+                }
+            } else when(resultRegister) {
                 null, RegisterOrPair.A -> {
                     asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     asmgen.out("  tya")
@@ -1166,6 +1203,23 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.out("  pha")
                     asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     asmgen.out("  pla")
+                }
+                RegisterOrPair.AY -> {
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
+                    asmgen.out("  tya |  ldy  #0 |  cmp  #0")
+                }
+                RegisterOrPair.AX -> {
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AX)
+                    asmgen.out("  txa |  ldx  #0 |  cmp  #0")
+                }
+                RegisterOrPair.XY -> {
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.XY)
+                    asmgen.out("  tya |  tax |  ldy  #0 |  cpx  #0")
+                }
+                in Cx16VirtualRegisters -> {
+                    val reg = "cx16.${resultRegister.toString().lowercase()}"
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
+                    asmgen.out("  sty  ${reg}L |  lda  #0 |  sta  ${reg}H |  lda  ${reg}L")
                 }
                 else -> throw AssemblyError("invalid reg")
             }
@@ -1208,7 +1262,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                     RegisterOrPair.Y -> {
                         asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.X)
-                        asmgen.out("  lda  $arrayVar,x")
+                        asmgen.out("  ldy  $arrayVar,x")
                     }
                     RegisterOrPair.X -> {
                         asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
@@ -1246,11 +1300,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.out("  ldy  #0 |  cpx  #0")
                 }
                 in Cx16VirtualRegisters -> {
-                    asmgen.assignExpressionToRegister(arg, resultRegister)
-                    val zero = PtNumber(DataType.UBYTE, 0.0, Position.DUMMY)
-                    zero.parent=fcall
-                    assignAsmGen.assignExpressionToVariable(zero, "cx16.${resultRegister.toString().lowercase()}H", DataType.UBYTE)
-                    asmgen.out("  lda  cx16.r0L")
+                    val reg = "cx16.${resultRegister.toString().lowercase()}"
+                    asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
+                    asmgen.out("  sta  ${reg}L |  ldy  #0 |  sty  ${reg}H |  cmp  #0")
                 }
                 else -> throw AssemblyError("invalid reg")
             }
