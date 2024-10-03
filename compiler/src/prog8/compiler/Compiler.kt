@@ -107,13 +107,13 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 )
             }
 
+            determineProgramLoadAddress(program, compilationOptions, args.errors)
+            args.errors.report()
             postprocessAst(program, args.errors, compilationOptions)
+            args.errors.report()
 
 //            println("*********** COMPILER AST BEFORE ASSEMBLYGEN *************")
 //            printProgram(program)
-
-            determineProgramLoadAddress(program, compilationOptions, args.errors)
-            args.errors.report()
 
             if (args.writeAssembly) {
 

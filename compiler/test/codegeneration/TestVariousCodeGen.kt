@@ -384,6 +384,32 @@ main {
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
+    test("block start address must be greater than program load address") {
+        val src = """
+%output raw
+%launcher none
+%address ${'$'}2000
+
+main $2000 {
+    sub start() {
+        sys.clear_carry()
+    }
+}
+
+otherblock ${'$'}2013 {
+    %option force_output
+}
+
+thirdblock ${'$'}2014 {
+    %option force_output
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "6:1: block address must be at least program load address + 20"
+        errors.errors[1] shouldContain "12:1: block address must be at least program load address + 20"
+    }
+
     test("for loops with just 1 iteration") {
         val src="""
 main {

@@ -1238,11 +1238,10 @@ sub search_x16edit() -> ubyte {
     str @shared signature = petscii:"x16edit"
     for cx16.r1L in 31 downto 0  {
         cx16.rombank(cx16.r1L)
-        cx16.r2 = $fff0
         %asm {{
             ldy  #0
 -           lda  signature,y
-            cmp  (cx16.r2),y
+            cmp  $fff0,y
             bne  +
             iny
             cpy #7

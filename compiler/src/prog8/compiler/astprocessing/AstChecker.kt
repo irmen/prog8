@@ -280,8 +280,13 @@ internal class AstChecker(private val program: Program,
             errors.err("identifiers cannot start with an underscore", block.position)
 
         val addr = block.address
-        if(addr!=null && addr>65535u) {
-            errors.err("block memory address must be valid integer 0..\$ffff", block.position)
+        if (addr!=null) {
+            if (addr > 65535u)
+                errors.err("block address must be valid integer 0..\$ffff", block.position)
+            if(compilerOptions.loadAddress!=0u) {
+                if (addr < compilerOptions.loadAddress + 20u)
+                    errors.err("block address must be at least program load address + 20 (to allow for startup logic)", block.position)
+            }
         }
 
         for (statement in block.statements) {
