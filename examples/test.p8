@@ -1,19 +1,25 @@
-%import textio
 %zeropage basicsafe
 %option no_sysinit
 
 main {
+    sub func() -> ubyte {
+        cx16.r0++
+        return cx16.r0L
+    }
+
     sub start() {
-        bool[256] cells
+        bool[256] @shared cells
         word starw
         byte bb
         uword uw
         ubyte ub
 
-        for starw in 50 downto 10  {        ; TODO fix compiler error + add unit test for this
+        starw = (240-64 as word) + func()
+
+        for starw in 50 downto 10  {
             cx16.r0++
         }
-        for starw in cx16.r0L downto 10  {        ; TODO fix compiler error + add unit test for this
+        for starw in cx16.r0L downto 10  {
             cx16.r0++
         }
 
@@ -30,16 +36,15 @@ main {
             cx16.r0++
         }
 
-
-;        for starw in 500 downto 10  {
-;            cx16.r0++
-;        }
-;        for uw in 50 downto 10 {
-;            cx16.r0++
-;        }
-;        for uw in 500 downto 10 {
-;            cx16.r0++
-;        }
+        for starw in 500 downto 10  {
+            cx16.r0++
+        }
+        for uw in 50 downto 10 {
+            cx16.r0++
+        }
+        for uw in 500 downto 10 {
+            cx16.r0++
+        }
     }
 }
 

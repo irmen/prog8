@@ -341,6 +341,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         }
         return noModifications
     }
+
     override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         val fromDt = range.from.inferType(program).getOr(DataType.UNDEFINED)
         val toDt = range.to.inferType(program).getOr(DataType.UNDEFINED)
@@ -364,6 +365,14 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         varDt: DataType,
         parent: Node
     ): List<IAstModification> {
+
+        if(varDt!=DataType.UNDEFINED) {
+            if(fromDt==varDt && toDt==varDt) {
+                return noModifications
+            } else if(fromDt==toDt && fromDt.isAssignableTo(varDt)) {
+                return noModifications
+            }
+        }
 
         if(fromConst!=null) {
             val smaller = NumericLiteral.optimalInteger(fromConst.number.toInt(), fromConst.position)

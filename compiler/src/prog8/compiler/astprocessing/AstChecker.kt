@@ -222,8 +222,8 @@ internal class AstChecker(private val program: Program,
                     }
                     DataType.WORD -> {
                         if(iterableDt!= DataType.BYTE && iterableDt!= DataType.WORD &&
-                                iterableDt != DataType.ARRAY_B && iterableDt!= DataType.ARRAY_W &&
-                                iterableDt != DataType.ARRAY_W_SPLIT)
+                                iterableDt != DataType.ARRAY_B && iterableDt != DataType.ARRAY_UB &&
+                                iterableDt != DataType.ARRAY_W && iterableDt != DataType.ARRAY_W_SPLIT)
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }
                     DataType.FLOAT -> {
@@ -242,7 +242,7 @@ internal class AstChecker(private val program: Program,
                         val to = range.to as? NumericLiteral
                         if(from != null)
                             checkValueTypeAndRange(loopvar.datatype, from)
-                        else if(range.from.inferType(program) isnot loopvar.datatype)
+                        else if(range.from.inferType(program).isNotAssignableTo(loopvar.datatype))
                             errors.err("range start value is incompatible with loop variable type", range.position)
                         if(to != null)
                             checkValueTypeAndRange(loopvar.datatype, to)

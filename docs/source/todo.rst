@@ -1,8 +1,6 @@
 TODO
 ====
 
-word starw;   for starw in 50 downto 0        -> compiler error word loop variable can only loop over bytes or words  FIX in adjustRangeDts() most likely
-
 Regenerate skeleton doc files.
 
 Improve register load order in subroutine call args assignments:
