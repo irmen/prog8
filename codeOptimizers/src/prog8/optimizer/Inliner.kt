@@ -224,8 +224,11 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                             noModifications
                     }
                     else -> {
-                        sub.hasBeenInlined=true
-                        listOf(IAstModification.ReplaceNode(origNode, toInline.copy(), parent))
+                        if(origNode !== toInline) {
+                            sub.hasBeenInlined = true
+                            listOf(IAstModification.ReplaceNode(origNode, toInline.copy(), parent))
+                        } else
+                            noModifications
                     }
                 }
             }
@@ -255,7 +258,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     is Return -> {
                         // is an expression, so we have to have a Return here in the inlined sub
                         // note that we don't have to process any args, because we online inline parameterless subroutines.
-                        if(toInline.value!=null) {
+                        if(toInline.value!=null && functionCallExpr!==toInline.value) {
                             sub.hasBeenInlined=true
                             listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.value!!.copy(), parent))
                         }

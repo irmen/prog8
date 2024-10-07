@@ -434,7 +434,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     }
 
     removeUnusedCode(program, errors,compilerOptions)
-    while (true) {
+    for(num_cycles in 0..10000) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
@@ -444,8 +444,13 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
             errors.report()
             break
         }
-        if (optsDone1 + optsDone2 + optsDone3 == 0)
+        val numOpts = optsDone1 + optsDone2 + optsDone3
+        if (numOpts == 0)
             break
+
+        if(num_cycles==10000) {
+            throw InternalCompilerException("optimizeAst() is looping endlessly, numOpts = $numOpts")
+        }
     }
     removeUnusedCode(program, errors, compilerOptions)
     if(errors.noErrors()) {
