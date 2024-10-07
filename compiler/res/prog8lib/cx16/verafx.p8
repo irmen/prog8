@@ -1,4 +1,8 @@
-; Somewhat experimental Vera FX support.
+; Partial Vera FX support:
+; - fast 32 bit cached writes (clear, copy)
+; - transparent write setting
+; - hardware 16 bits multiplications
+;
 ; Docs:
 ; https://github.com/X16Community/x16-docs/blob/fb63156cca2d6de98be0577aacbe4ddef458f896/X16%20Reference%20-%2010%20-%20VERA%20FX%20Reference.md
 ; https://docs.google.com/document/d/1q34uWOiM3Be2pnaHRVgSdHySI-qsiQWPTo_gfE54PTg
@@ -110,19 +114,11 @@ verafx {
         cx16.VERA_CTRL = 0
     }
 
-    ; unsigned multiplication just passes the values as signed to muls
-    ; if you do this yourself in your call to muls, it will save a few instructions.
-    ; TODO fix this: verafx.muls doesn't support unsigned values like this for full 32 bit result
-;    inline asmsub mult(uword value1 @R0, uword value2 @R1) clobbers(X) -> uword @AY, uword @R0 {
-;        ; Returns the 32 bits unsigned result in AY and R0  (lower word, upper word).
-;        %asm {{
-;            jsr  verafx.muls
-;        }}
-;    }
 
     asmsub mult16(uword value1 @R0, uword value2 @R1) clobbers(X) -> uword @AY {
         ; Returns the 16 bits unsigned result of R0*R1 in AY.
         ; Note: only the lower 16 bits!   (the upper 16 bits are not valid for unsigned word multiplications, only for signed)
+        ; Verafx doesn't support unsigned values like this for full 32 bit result.
         %asm {{
             lda  cx16.r0
             sta  P8ZP_SCRATCH_W1
