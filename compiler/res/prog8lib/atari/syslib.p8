@@ -23,8 +23,11 @@ sys {
 
     const ubyte target = 8         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 8 = atari800XL
 
+    const ubyte sizeof_bool = 1
     const ubyte sizeof_byte = 1
+    const ubyte sizeof_ubyte = 1
     const ubyte sizeof_word = 2
+    const ubyte sizeof_uword = 2
     const ubyte sizeof_float = 0    ; undefined, no float support
 
     asmsub  init_system()  {
