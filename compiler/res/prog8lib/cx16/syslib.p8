@@ -1360,6 +1360,10 @@ sys {
 
     const ubyte target = 16         ;  compilation target specifier.  64 = C64,  128 = C128,  16 = CommanderX16.
 
+    const ubyte sizeof_byte = 1
+    const ubyte sizeof_word = 2
+    const ubyte sizeof_float = 5
+
 asmsub  init_system()  {
     ; Initializes the machine to a sane starting state.
     ; Called automatically by the loader program logic.

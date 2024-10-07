@@ -98,6 +98,11 @@ sys {
 
     const ubyte target = 32         ;  compilation target specifier.  64 = C64, 128 = C128,  16 = CommanderX16, 32=PET
 
+    const ubyte sizeof_byte = 1
+    const ubyte sizeof_word = 2
+    const ubyte sizeof_float = 0    ; undefined, no floats supported
+
+
 asmsub  init_system()  {
     ; Initializes the machine to a sane starting state.
     ; Called automatically by the loader program logic.

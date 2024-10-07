@@ -1,6 +1,8 @@
 TODO
 ====
 
+see github for issues
+
 Regenerate skeleton doc files.
 
 Improve register load order in subroutine call args assignments:
