@@ -64,6 +64,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "rrestore" -> funcRrestore()
             "cmp" -> funcCmp(fcall)
             "callfar" -> funcCallFar(fcall, resultRegister)
+            "callfar2" -> funcCallFar2(fcall, resultRegister)
             "call" -> funcCall(fcall)
             "prog8_ifelse_bittest_set" -> throw AssemblyError("prog8_ifelse_bittest_set() should have been translated as part of an ifElse statement")
             "prog8_ifelse_bittest_notset" -> throw AssemblyError("prog8_ifelse_bittest_notset() should have been translated as part of an ifElse statement")
@@ -298,8 +299,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcCallFar(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
-        // TODO apply same optimizations here as used on call() codegen above
-
         if(asmgen.options.compTarget.name != "cx16")
             throw AssemblyError("callfar only works on cx16 target at this time")
 
@@ -317,6 +316,55 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)     // jump address
             asmgen.out("  sta  (+)+0 |  sty  (+)+1")
             asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.AY)     // uword argument
+            asmgen.out("""
+                jsr  cx16.JSRFAR
++               .word  0
++               .byte  0""")
+        }
+
+        // note that by convention the values in A+Y registers are now the return value of the call.
+        if(resultRegister!=null)  {
+            assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), RegisterOrPair.AY)
+        }
+    }
+
+    private fun funcCallFar2(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        if(asmgen.options.compTarget.name != "cx16")
+            throw AssemblyError("callfar2 only works on cx16 target at this time")
+
+        fun assignArgs() {
+            fun assign(value: PtExpression, register: Char) {
+                when(value) {
+                    is PtBool -> asmgen.out("  ld$register  #${value.asInt()}")
+                    is PtNumber -> asmgen.out("  ld$register  #${value.number.toInt()}")
+                    is PtIdentifier -> asmgen.out("  ld$register  ${asmgen.asmVariableName(value)}")
+                    else -> TODO("callfar2: support non-simple expressions for arguments")
+                }
+            }
+            assign(fcall.args[2], 'a')
+            assign(fcall.args[3], 'x')
+            assign(fcall.args[4], 'y')
+            val carry = fcall.args[5].asConstInteger()
+            if(carry!=null)
+                asmgen.out(if(carry==0) "  clc" else "  sec")
+            else
+                TODO("callfar2: support non-const argument values")
+        }
+
+        val constBank = fcall.args[0].asConstInteger()
+        val constAddress = fcall.args[1].asConstInteger()
+        if(constBank!=null && constAddress!=null) {
+            assignArgs()
+            asmgen.out("""
+                jsr  cx16.JSRFAR
+                .word  ${constAddress.toHex()}
+                .byte  $constBank""")
+        } else {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
+            asmgen.out("  sta  (++)+0")
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)     // jump address
+            asmgen.out("  sta  (+)+0 |  sty  (+)+1")
+            assignArgs()
             asmgen.out("""
                 jsr  cx16.JSRFAR
 +               .word  0

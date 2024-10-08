@@ -200,6 +200,10 @@ callfar (bank, address, argumentword) -> uword     ; NOTE: specific to cx16 targ
     NOTE: this routine is very inefficient, so don't use it to call often. Set the bank yourself
     or even write a custom tailored trampoline routine if you need to. Or use ``call`` if you can.
 
+callfar2 (bank, address, argA, argX, argY, argCarry) -> uword     ; NOTE: specific to cx16 target for now
+    Identical to ``callfar``, except here you can give arguments not only for AY,
+    but for each of the A, X and Y registers (each an ubyte) and the Carry status bit as well (a boolean).
+
 syscall (callnr), syscall1 (callnr, arg), syscall2 (callnr, arg1, arg2), syscall3 (callnr, arg1, arg2, arg3)
     Functions for doing a system call on targets that support this. Currently no actual target
     uses this though except, possibly, the experimental code generation target!

@@ -17,6 +17,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "divmod__uword" -> funcDivmod(call, IRDataType.WORD)
             "rsave", "rrestore" -> ExpressionCodeResult.EMPTY  // vm doesn't have registers to save/restore
             "callfar" -> funcCallfar(call)
+            "callfar2" -> funcCallfar2(call)
             "call" -> funcCall(call)
             "msb" -> funcMsb(call)
             "lsb" -> funcLsb(call)
@@ -147,6 +148,29 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         addToResult(result, argumentwordTr, argumentwordTr.resultReg, -1)
         result += codeGen.makeSyscall(IMSyscall.CALLFAR, listOf(IRDataType.BYTE to bankTr.resultReg, IRDataType.WORD to addressTr.resultReg, IRDataType.WORD to argumentwordTr.resultReg), IRDataType.WORD to argumentwordTr.resultReg)
         return ExpressionCodeResult(result, IRDataType.WORD, argumentwordTr.resultReg, -1)
+    }
+
+    private fun funcCallfar2(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
+        val bankTr = exprGen.translateExpression(call.args[0])
+        val addressTr = exprGen.translateExpression(call.args[1])
+        val argumentA = exprGen.translateExpression(call.args[2])
+        val argumentX = exprGen.translateExpression(call.args[3])
+        val argumentY = exprGen.translateExpression(call.args[4])
+        val argumentCarry = exprGen.translateExpression(call.args[5])
+        addToResult(result, bankTr, bankTr.resultReg, -1)
+        addToResult(result, addressTr, addressTr.resultReg, -1)
+        addToResult(result, argumentA, argumentA.resultReg, -1)
+        addToResult(result, argumentX, argumentX.resultReg, -1)
+        addToResult(result, argumentY, argumentY.resultReg, -1)
+        addToResult(result, argumentCarry, argumentCarry.resultReg, -1)
+        result += codeGen.makeSyscall(IMSyscall.CALLFAR2, listOf(IRDataType.BYTE to bankTr.resultReg, IRDataType.WORD to addressTr.resultReg,
+            IRDataType.BYTE to argumentA.resultReg,
+            IRDataType.BYTE to argumentX.resultReg,
+            IRDataType.BYTE to argumentY.resultReg,
+            IRDataType.BYTE to argumentCarry.resultReg), IRDataType.WORD to addressTr.resultReg)
+        return ExpressionCodeResult(result, IRDataType.WORD, addressTr.resultReg, -1)
     }
 
     private fun funcDivmod(call: PtBuiltinFunctionCall, type: IRDataType): ExpressionCodeResult {
