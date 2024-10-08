@@ -286,8 +286,7 @@ Arrays
 ^^^^^^
 Array types are also supported. They can be formed from a list of booleans, bytes, words, floats, or addresses of other variables
 (such as explicit address-of expressions, strings, or other array variables) - values in an array literal
-always have to be constants. Putting variables inside an array has to be done on a value-by-value basis.
-Here are some examples of arrays::
+always have to be constants. Here are some examples of arrays::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
@@ -300,6 +299,7 @@ Here are some examples of arrays::
     value = array[3]            ; the fourth value in the array (index is 0-based)
     char = string[4]            ; the fifth character (=byte) in the string
     char = string[-2]           ; the second-to-last character in the string (Python-style indexing from the end)
+    flags = [false, true]       ; reset all flags in the array
 
 .. note::
     Right now, the array should be small enough to be indexable by a single byte index.
@@ -312,9 +312,8 @@ Note that the various keywords for the data type and variable type (``byte``, ``
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
 
-
-It's possible to assign a new array to another array, this will overwrite all elements in the original
-array with those in the value array. The number and types of elements have to match.
+It's possible to assign an array to another array; this will overwrite all elements in the target
+array with those in the source array. The number and types of elements have to match for this to work!
 For large arrays this is a slow operation because every element is copied over. It should probably be avoided.
 
 Using the ``in`` operator you can easily check if a value is present in an array,
@@ -649,10 +648,6 @@ Assignments
 Assignment statements assign a single value to a target variable or memory location.
 Augmented assignments (such as ``aa += xx``) are also available, but these are just shorthands
 for normal assignments (``aa = aa + xx``).
-
-Only variables of type byte, word and float can be assigned a new value.
-It's not possible to set a new value to string or array variables etc, because they get allocated
-a fixed amount of memory which will not change.  (You *can* change the value of elements in a string or array though).
 
 It is possible to "chain" assignments: ``x = y = z = 42``, this is just a shorthand
 for the three individual assignments with the same value 42.

@@ -213,15 +213,11 @@ internal class StatementReorderer(
         val targetType = assignment.target.inferType(program)
 
         if(targetType.isArray && valueType.isArray) {
-            if (assignment.value is ArrayLiteral) {
-                errors.err("cannot assign array literal here, use separate assignment per element", assignment.position)
-            } else {
-                return copyArrayValue(assignment)
-            }
+            checkCopyArrayValue(assignment)
         }
 
         if(!assignment.isAugmentable) {
-            if (valueType.isString && (targetType issimpletype BaseDataType.STR || targetType.isByteArray)) {
+            if (valueType issimpletype BaseDataType.STR && targetType issimpletype BaseDataType.STR) {
                 // replace string assignment by a call to stringcopy
                 return copyStringValue(assignment)
             }
@@ -250,18 +246,22 @@ internal class StatementReorderer(
         return noModifications
     }
 
-    private fun copyArrayValue(assign: Assignment): List<IAstModification> {
+    private fun checkCopyArrayValue(assign: Assignment) {
         val identifier = assign.target.identifier!!
         val targetVar = identifier.targetVarDecl(program)!!
 
         if(targetVar.arraysize==null) {
             errors.err("array has no defined size", assign.position)
-            return noModifications
+            return
+        }
+
+        if(assign.value is ArrayLiteral) {
+            return  // invalid assignment of literals will be reported elsewhere
         }
 
         if(assign.value !is IdentifierReference) {
             errors.err("invalid array value to assign to other array", assign.value.position)
-            return noModifications
+            return
         }
         val sourceIdent = assign.value as IdentifierReference
         val sourceVar = sourceIdent.targetVarDecl(program)!!
@@ -276,7 +276,6 @@ internal class StatementReorderer(
                 errors.err("element size mismatch", assign.position)
             }
         }
-        return noModifications
     }
 
     private fun copyStringValue(assign: Assignment): List<IAstModification> {
