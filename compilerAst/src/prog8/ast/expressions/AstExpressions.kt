@@ -612,6 +612,9 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
     }
 
     private fun internalCast(targettype: DataType, implicit: Boolean): ValueAfterCast {
+
+        // NOTE: this MAY convert a value into another when switching from singed to unsigned!!!
+
         if(type==targettype)
             return ValueAfterCast(true, null, this)
         if (implicit) {
@@ -735,6 +738,49 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
             }
         }
         return ValueAfterCast(false, "no cast available from $type to $targettype", null)
+    }
+
+    fun convertTypeKeepValue(targetDt: DataType): ValueAfterCast {
+        if(type==targetDt)
+            return ValueAfterCast(true, null, this)
+
+        when(type) {
+            DataType.UBYTE -> {
+                when(targetDt) {
+                    DataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
+                    DataType.UWORD, DataType.WORD, DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+                    else -> {}
+                }
+            }
+            DataType.BYTE -> {
+                when(targetDt) {
+                    DataType.UBYTE, DataType.UWORD -> if(number>=0.0) return cast(targetDt, false)
+                    DataType.WORD, DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+                    else -> {}
+                }
+            }
+            DataType.UWORD -> {
+                when(targetDt) {
+                    DataType.UBYTE -> if(number<=255.0) return cast(targetDt, false)
+                    DataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
+                    DataType.WORD -> if(number<=32767.0) return cast(targetDt, false)
+                    DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+                    else -> {}
+                }
+            }
+            DataType.WORD -> {
+                when(targetDt) {
+                    DataType.UBYTE -> if(number in 0.0..255.0) return cast(targetDt, false)
+                    DataType.BYTE -> if(number in -128.0..127.0) return cast(targetDt, false)
+                    DataType.UWORD -> if(number in 0.0..32767.0) return cast(targetDt, false)
+                    DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+                    else -> {}
+                }
+            }
+            DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+            else -> {}
+        }
+        return ValueAfterCast(false, "no type conversion possible from $type to $targetDt", null)
     }
 }
 

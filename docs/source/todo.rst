@@ -1,10 +1,6 @@
 TODO
 ====
 
-Don't allow assigning str to array!
-Don't allow assigning array to str!
-Don't allow assigning a word to an array or string!
-
 Put palette fade to white / black in.
 
 Regenerate skeleton doc files.

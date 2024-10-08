@@ -857,4 +857,34 @@ main {
         errors.errors.size shouldBe 2
         errors.errors[1] shouldContain "undefined symbol"
     }
+
+    test("return unsigned values for signed results ok if value fits") {
+        val src = """
+main {
+    sub start() {
+        void foo()
+        void bar()
+        void overflow1()
+        void overflow2()
+    }
+
+    sub foo() -> byte {
+        return 42
+    }
+    sub bar() -> word {
+        return 12345
+    }
+    sub overflow1() -> byte {
+        return 200
+    }
+    sub overflow2() -> word {
+        return 44444
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "17:16: type UBYTE of return value doesn't match subroutine's return type BYTE"
+        errors.errors[1] shouldContain "20:16: type UWORD of return value doesn't match subroutine's return type WORD"
+    }
 })

@@ -308,6 +308,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if(subroutine.returntypes.size==1) {
                 val subReturnType = subroutine.returntypes.first()
                 val returnDt = returnValue.inferType(program)
+                if(returnDt isnot subReturnType && returnValue is NumericLiteral) {
+                    // see if we might change the returnvalue into the expected type
+                    val castedValue = returnValue.convertTypeKeepValue(subReturnType)
+                    if(castedValue.isValid) {
+                        return listOf(IAstModification.ReplaceNode(returnValue, castedValue.valueOrZero(), returnStmt))
+                    }
+                }
                 if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
                     return noModifications
                 if (returnValue is NumericLiteral) {
