@@ -550,10 +550,8 @@ internal class AstChecker(private val program: Program,
         fun checkType(target: AssignTarget, value: Expression, augmentable: Boolean) {
             val targetDt = target.inferType(program)
             val valueDt = value.inferType(program)
-            if(valueDt.isKnown && !(valueDt isAssignableTo targetDt)) {
-                if(targetDt.isIterable)
-                    errors.err("cannot assign value to string or array", value.position)
-                else if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD)) {
+            if(valueDt.isKnown && !(valueDt isAssignableTo targetDt) && !targetDt.isIterable) {
+                if(!(valueDt istype DataType.STR && targetDt istype DataType.UWORD)) {
                     if(targetDt.isUnknown) {
                         if(target.identifier?.targetStatement(program)!=null)
                             errors.err("target datatype is unknown", target.position)
@@ -1843,6 +1841,12 @@ internal class AstChecker(private val program: Program,
         }
         else if(targetDatatype==DataType.BOOL && sourceDatatype!=DataType.BOOL) {
             errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
+        }
+        else if(targetDatatype==DataType.STR) {
+            if(sourceDatatype==DataType.UWORD)
+                errors.err("can't assign UWORD to STR. If the source is a string and you actually want to overwrite the target string, use an explicit string.copy(src,tgt) instead.", position)
+            else
+                errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }
         else {
             errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)

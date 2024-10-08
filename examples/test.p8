@@ -1,46 +1,30 @@
 %import textio
+%import string
 %zeropage basicsafe
 
 main {
     sub start() {
-        routine(11,22,33)
-        txt.nl()
-        cx16.r0 = callfar2(0, &routine, 11, 22, 33, true)
-        txt.nl()
-        txt.print_uwhex(cx16.r0, true)
-        txt.nl()
-        cx16.r0 = callfar(0, &routine, 11*256 + 22)
-        txt.nl()
-        txt.print_uwhex(cx16.r0, true)
-        txt.nl()
-    }
+        str name1 = "irmen"
+        str name2 = "other"
+        bool[2] flags = [true, false]
 
-    asmsub routine(ubyte v1 @A, ubyte v2 @X, ubyte v3 @Y) -> uword @AY {
-        %asm {{
-            sta  cx16.r8L
-            stx  cx16.r9L
-            sty  cx16.r10L
-            lda  #0
-            rol  a
-            sta  cx16.r11L
+        txt.print(name1)
+        txt.nl()
+        name1 = name2
+        txt.print(name1)
+        txt.nl()
+        flags = [false, true]
 
-            lda  cx16.r8L
-            jsr  txt.print_ub
-            lda  #' '
-            jsr  txt.chrout
-            lda  cx16.r9L
-            jsr  txt.print_ub
-            lda  #' '
-            jsr  txt.chrout
-            lda  cx16.r10L
-            jsr  txt.print_ub
-            lda  #' '
-            jsr  txt.chrout
-            lda  cx16.r11L
-            jsr  txt.print_ub
-            lda  #$31
-            ldy  #$ea
-            rts
-        }}
+        ubyte[10] array
+        ubyte[10] array2
+
+        void string.copy(name2, name1)
+        array = array2
+        name2 = "zzz"
+        array = [1,2,3,4,5,6,7,8,9,10]
+        ;; array = cx16.r0
+        ;; array = name1
+        ;; name1 = array
+        ;; name1 = cx16.r0
     }
 }

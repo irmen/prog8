@@ -1,6 +1,12 @@
 TODO
 ====
 
+Don't allow assigning str to array!
+Don't allow assigning array to str!
+Don't allow assigning a word to an array or string!
+
+Put palette fade to white / black in.
+
 Regenerate skeleton doc files.
 
 Improve register load order in subroutine call args assignments:
@@ -12,6 +18,7 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- The string assignment footgun should be removed in favor of just calling string.copy explicitly.   Get rid of sys.internal_stringcopy asm routine.  Fix docs too.
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)

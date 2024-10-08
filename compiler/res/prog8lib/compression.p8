@@ -2,6 +2,8 @@
 
 compression {
 
+    %option no_symbol_prefixing, ignore_unused
+
     sub encode_rle_outfunc(uword data, uword size, uword output_function, bool is_last_block) {
         ; -- Compress the given data block using ByteRun1 aka PackBits RLE encoding.
         ;    output_function = address of a routine that gets a byte arg in A,
