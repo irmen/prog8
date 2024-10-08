@@ -1,8 +1,6 @@
 TODO
 ====
 
-word starw;   for starw in 50 downto 0        -> compiler error word loop variable can only loop over bytes or words  FIX in adjustRangeDts() most likely
-
 Regenerate skeleton doc files.
 
 Improve register load order in subroutine call args assignments:
@@ -14,8 +12,7 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Add a new SublimeText syntax file for prog8, and also install this for bat: https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
-- callfar() should allow setting an argument in the X register as well?
+- Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)

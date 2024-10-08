@@ -1238,11 +1238,10 @@ sub search_x16edit() -> ubyte {
     str @shared signature = petscii:"x16edit"
     for cx16.r1L in 31 downto 0  {
         cx16.rombank(cx16.r1L)
-        cx16.r2 = $fff0
         %asm {{
             ldy  #0
 -           lda  signature,y
-            cmp  (cx16.r2),y
+            cmp  $fff0,y
             bne  +
             iny
             cpy #7
@@ -1360,6 +1359,13 @@ sys {
     ; ------- lowlevel system routines --------
 
     const ubyte target = 16         ;  compilation target specifier.  64 = C64,  128 = C128,  16 = CommanderX16.
+
+    const ubyte sizeof_bool = 1
+    const ubyte sizeof_byte = 1
+    const ubyte sizeof_ubyte = 1
+    const ubyte sizeof_word = 2
+    const ubyte sizeof_uword = 2
+    const ubyte sizeof_float = 5
 
 asmsub  init_system()  {
     ; Initializes the machine to a sane starting state.

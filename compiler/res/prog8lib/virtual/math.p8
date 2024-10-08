@@ -199,7 +199,7 @@ math {
         %ir {{
             loadm.w r65534,math.rndseed.seed1
             loadm.w r65535,math.rndseed.seed2
-            syscall 19 (r65534.w, r65535.w)
+            syscall 18 (r65534.w, r65535.w)
             return
         }}
     }

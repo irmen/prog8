@@ -162,20 +162,22 @@ class CallGraph(private val program: Program) : IAstVisitor {
     fun unused(sub: Subroutine): Boolean {
         if(sub in usedSubroutines)
             return false
-        val asm = nameInAssemblyCode(sub.name, listOf("p8s_", ""))
-        if(asm!=null) {
+        val asms = nameInAssemblyCode(sub.name, listOf("p8s_", ""))
+        if(asms.isEmpty())
+            return true
+        val allUnused = asms.all { asm->
             // check that the asm block that calls us, is inside a subroutine that is unused or not
             val containingSub = asm.definingSubroutine
-            return if(containingSub != null && containingSub !== sub)
+            if(containingSub != null && containingSub !== sub)
                 unused(containingSub)
             else
                 false
         }
-        return true
+        return allUnused
     }
 
     fun unused(block: Block): Boolean {
-        return block !in usedBlocks && nameInAssemblyCode(block.name, listOf("p8b_", ""))==null
+        return block !in usedBlocks && nameInAssemblyCode(block.name, listOf("p8b_", "")).isEmpty()
     }
 
     fun unused(decl: VarDecl): Boolean {
@@ -198,13 +200,13 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     private val prefixes = listOf("p8b_", "p8v_", "p8s_", "p8c_", "p8l_", "p8_", "")
-    private fun nameInAssemblyCode(name: String, knownAsmPrefixes: List<String> = emptyList()): InlineAssembly? {
+    private fun nameInAssemblyCode(name: String, knownAsmPrefixes: List<String> = emptyList()): List<InlineAssembly> {
         if(knownAsmPrefixes.isNotEmpty())
-            return allAssemblyNodes.firstOrNull {
+            return allAssemblyNodes.filter {
                 knownAsmPrefixes.any { prefix -> prefix+name in it.names }
             }
 
-        return allAssemblyNodes.firstOrNull {
+        return allAssemblyNodes.filter {
             prefixes.any { prefix -> prefix+name in it.names }
         }
     }
