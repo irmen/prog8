@@ -1,16 +1,25 @@
 
-Prog8 compiler v10.4.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 5675d751 in branch master
+Prog8 compiler v10.4.2 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
 Compiler target: cx16
 
-LIBRARY MODULE NAME: import-all-cx16
-------------------------------------
+
+LIBRARY MODULE NAME: anyall
+---------------------------
+
+anyall  {
+    all  (uword arrayptr, uword num_elements) -> bool 
+    allw  (uword arrayptr, uword num_elements) -> bool 
+    any  (uword arrayptr, uword num_elements) -> bool 
+    anyw  (uword arrayptr, uword num_elements) -> bool 
+}
+
 
 LIBRARY MODULE NAME: audio
 --------------------------
+
 audio  {
     const ubyte  rom_bank 
     audio_init  () -> clobbers (A,X,Y) -> bool @Pc 
@@ -72,8 +81,586 @@ audio  {
 }
 
 
+LIBRARY MODULE NAME: bmx
+------------------------
+
+bmx  {
+    str  FILEID 
+    ubyte  bitsperpixel 
+    ubyte  border 
+    ubyte  compression 
+    uword  error_message 
+    ubyte[]  header 
+    uword  height 
+    ubyte  old_drivenumber 
+    uword @shared  palette_buffer_ptr 
+    uword  palette_entries 
+    ubyte  palette_start 
+    ubyte  vera_colordepth 
+    uword  width 
+    build_header  () 
+    bytes_per_scanline  (uword w) -> uword 
+    close  () 
+    continue_load  (ubyte vbank, uword vaddr) -> bool 
+    continue_load_only_palette  () -> bool 
+    continue_load_stamp  (ubyte vbank, uword vaddr, uword screenwidth) -> bool 
+    open  (ubyte drivenumber, str filename) -> bool 
+    parse_header  () -> bool 
+    read_bitmap  (ubyte vbank, uword vaddr) -> bool 
+    read_bitmap_padded  (ubyte vbank, uword vaddr, uword screenwidth) -> bool 
+    read_header  () -> bool 
+    read_palette  () -> bool 
+    read_scanline  (uword size) 
+    save  (ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool 
+    set_bpp  (ubyte bpp) 
+    set_vera_colordepth  (ubyte depth) 
+    write_bitmap  (ubyte vbank, uword vaddr, uword screenwidth) -> bool 
+    write_header  () -> bool 
+    write_palette  () -> bool 
+}
+
+
+LIBRARY MODULE NAME: buffers
+----------------------------
+
+smallringbuffer  {
+    ubyte[]  buffer 
+    ubyte  fill 
+    ubyte  head 
+    ubyte  tail 
+    get  () -> ubyte 
+    getw  () -> uword 
+    init  () 
+    put  (ubyte value) -> bool 
+    putw  (uword value) -> bool 
+}
+
+ringbuffer  {
+    uword  buffer_ptr 
+    uword  fill 
+    uword  head 
+    uword  tail 
+    get  () -> ubyte 
+    getw  () -> uword 
+    inc_head  () 
+    inc_tail  () 
+    init  () 
+    put  (ubyte value) -> bool 
+    putw  (uword value) -> bool 
+}
+
+
+LIBRARY MODULE NAME: compression
+--------------------------------
+
+compression  {
+    decode_rle  (uword compressed @AY, uword target @R0, uword maxsize @R1) -> clobbers (X) -> uword @AY 
+    decode_rle_srcfunc  (uword source_function @AY, uword target @R0, uword maxsize @R1) -> clobbers (X) -> uword @AY 
+    encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword 
+    encode_rle_outfunc  (uword data, uword size, uword output_function, bool is_last_block) 
+}
+
+
+LIBRARY MODULE NAME: conv
+-------------------------
+
+conv  {
+    str @shared  string_out 
+    any2uword  (str string @AY) -> clobbers (Y) -> ubyte @A 
+    bin2uword  (str string @AY) -> uword @AY 
+    hex2uword  (str string @AY) -> uword @AY 
+    internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X 
+    internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A 
+    internal_ubyte2hex  (ubyte value @A) -> clobbers (X) -> ubyte @A, ubyte @Y 
+    internal_uword2decimal  (uword value @AY) -> ubyte @Y, ubyte @A, ubyte @X 
+    internal_uword2hex  (uword value @AY) -> clobbers (A,Y) 
+    str2byte  (str string @AY) -> clobbers (Y) -> byte @A 
+    str2ubyte  (str string @AY) -> clobbers (Y) -> ubyte @A 
+    str2uword  (str string @AY) -> uword @AY 
+    str2word  (str string @AY) -> word @AY 
+    str_b  (byte value @A) -> clobbers (X) -> str @AY 
+    str_ub  (ubyte value @A) -> clobbers (X) -> str @AY 
+    str_ub0  (ubyte value @A) -> clobbers (X) -> str @AY 
+    str_ubbin  (ubyte value @A) -> clobbers (X) -> str @AY 
+    str_ubhex  (ubyte value @A) -> clobbers (X) -> str @AY 
+    str_uw  (uword value @AY) -> clobbers (X) -> str @AY 
+    str_uw0  (uword value @AY) -> clobbers (X) -> str @AY 
+    str_uwbin  (uword value @AY) -> clobbers (X) -> str @AY 
+    str_uwhex  (uword value @AY) -> str @AY 
+    str_w  (word value @AY) -> clobbers (X) -> str @AY 
+}
+
+
+LIBRARY MODULE NAME: cx16logo
+-----------------------------
+
+cx16logo  {
+    uword[]  logo_lines 
+    logo  () 
+    logo_at  (ubyte column, ubyte row) 
+}
+
+
+LIBRARY MODULE NAME: diskio
+---------------------------
+
+diskio  {
+    const ubyte  READ_IO_CHANNEL 
+    const ubyte  WRITE_IO_CHANNEL 
+    ubyte @shared  drivenumber 
+    bool  iteration_in_progress 
+    uword  list_blocks 
+    str  list_filename 
+    str  list_filetype 
+    uword  list_pattern 
+    bool  list_skip_disk_name 
+    chdir  (str path) 
+    curdir  () -> uword 
+    delete  (uword filenameptr) 
+    directory  () -> bool 
+    diskname  () -> uword 
+    f_close  () 
+    f_close_w  () 
+    f_open  (str filenameptr) -> bool 
+    f_open_w  (str filename) -> bool 
+    f_open_w_seek  (str filename) -> bool 
+    f_read  (uword bufferpointer, uword num_bytes) -> uword 
+    f_read_all  (uword bufferpointer) -> uword 
+    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
+    f_seek  (uword pos_hiword, uword pos_loword) 
+    f_seek_w  (uword pos_hiword, uword pos_loword) 
+    f_tell  () -> uword @R0, uword @R1, uword @R2, uword @R3 
+    f_write  (uword bufferpointer, uword num_bytes) -> bool 
+    fastmode  (ubyte mode) -> bool 
+    internal_f_open_w  (str filename, bool open_for_seeks) -> bool 
+    internal_f_tell  () 
+    internal_load_routine  (uword filenameptr, uword address_override, bool headerless) -> uword 
+    internal_save_routine  (uword filenameptr, uword startaddress, uword savesize, bool headerless) -> bool 
+    lf_end_list  () 
+    lf_next_entry  () -> bool 
+    lf_start_list  (uword pattern_ptr) -> bool 
+    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
+    load  (uword filenameptr, uword address_override) -> uword 
+    load_raw  (uword filenameptr, uword startaddress) -> uword 
+    load_size  (ubyte startbank, uword startaddress, uword endaddress) -> uword 
+    mkdir  (str name) 
+    read4hex  () -> uword 
+    relabel  (str name) 
+    rename  (uword oldfileptr, uword newfileptr) 
+    reset_read_channel  () 
+    reset_write_channel  () 
+    rmdir  (str name) 
+    save  (uword filenameptr, uword startaddress, uword savesize) -> bool 
+    save_raw  (uword filenameptr, uword startaddress, uword savesize) -> bool 
+    send_command  (uword commandptr) 
+    status  () -> uword 
+    status_code  () -> ubyte 
+    vload  (str name @R0, ubyte bank @A, uword startaddress @R1) -> clobbers (X,Y) -> bool @A 
+    vload_raw  (str name @R0, ubyte bank @A, uword startaddress @R1) -> clobbers (X,Y) -> bool @A 
+}
+
+
+LIBRARY MODULE NAME: emudbg
+---------------------------
+
+emudbg  {
+    const uword  EMU_BASE 
+    &ubyte  EMU_CHROUT 
+    &ubyte  EMU_CMDKEYS_DISABLED 
+    &ubyte  EMU_CPUCLK_H 
+    &ubyte  EMU_CPUCLK_L 
+    &ubyte  EMU_CPUCLK_M 
+    &ubyte  EMU_CPUCLK_RESET 
+    &ubyte  EMU_CPUCLK_U 
+    &ubyte  EMU_DBGOUT1 
+    &ubyte  EMU_DBGOUT2 
+    &ubyte  EMU_DBG_HOTKEY_ENABLED 
+    &ubyte  EMU_ECHO_MODE 
+    &ubyte  EMU_EMU_DETECT1 
+    &ubyte  EMU_EMU_DETECT2 
+    &ubyte  EMU_KEYMAP 
+    &ubyte  EMU_LOG_KEYBOARD 
+    &ubyte  EMU_LOG_VIDEO 
+    &ubyte  EMU_RECORD_GIF 
+    &ubyte  EMU_RECORD_WAV 
+    &ubyte  EMU_SAVE_ON_EXIT 
+    console_chrout  (ubyte char) 
+    console_value1  (ubyte value) 
+    console_value2  (ubyte value) 
+    console_write  (str isoString) 
+    cpu_cycles  () -> uword @R0, uword @R1 
+    is_emulator  () -> bool 
+    reset_cpu_cycles  () 
+}
+
+
+LIBRARY MODULE NAME: floats
+---------------------------
+
+floats  {
+    &uword  AYINT_facmo 
+    const float  PI 
+    const float  TWOPI 
+    const float  π 
+    ABS  () -> clobbers (A,X,Y) = $fe4e
+    ATN  () -> clobbers (A,X,Y) = $fe48
+    AYINT  () -> clobbers (A,X,Y) = $fe00
+    CONUPK  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe5a
+    COS  () -> clobbers (A,X,Y) = $fe3f
+    DIV10  () -> clobbers (A,X,Y) = $fe7e
+    EXP  () -> clobbers (A,X,Y) = $fe3c
+    FADD  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe18
+    FADDH  () -> clobbers (A,X,Y) = $fe6f
+    FADDT  () -> clobbers (A,X,Y) = $fe1b
+    FCOMP  (uword mflpt @AY) -> clobbers (X,Y) -> ubyte @A = $fe54
+    FDIV  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe24
+    FDIVT  () -> clobbers (A,X,Y) = $fe27
+    FINLOG  (byte value @A) -> clobbers (A,X,Y) = $fe90
+    FLOAT  () -> clobbers (A,X,Y) = $fe87
+    FLOATC  () -> clobbers (A,X,Y) = $fe0f
+    FLOATS  () -> clobbers (A,X,Y) = $fe8a
+    FMULT  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe1e
+    FMULTT  () -> clobbers (A,X,Y) = $fe21
+    FOUT  () -> clobbers (X) -> uword @AY = $fe06
+    FPWR  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe36
+    FPWRT  () -> clobbers (A,X,Y) = $fe39
+    FREADSA  (byte value @A) -> clobbers (A,X,Y) 
+    FREADU24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y) -> clobbers (A,X,Y) -> float @FAC1 
+    FREADUY  (ubyte value @Y) 
+    FSUB  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe12
+    FSUBT  () -> clobbers (A,X,Y) = $fe15
+    GETADR  () -> clobbers (X) -> ubyte @Y, ubyte @A = $fe0c
+    GETADRAY  () -> clobbers (X) -> uword @AY 
+    GIVAYF  (ubyte lo @Y, ubyte hi @A) -> clobbers (A,X,Y) = $fe03
+    GIVAYFAY  (uword value @AY) -> clobbers (A,X,Y) 
+    GIVUAYFAY  (uword value @AY) -> clobbers (A,X,Y) 
+    INT  () -> clobbers (A,X,Y) = $fe2d
+    LOG  () -> clobbers (A,X,Y) = $fe2a
+    MOVAF  () -> clobbers (A,X) = $fe6c
+    MOVEF  () -> clobbers (A,X) = $fe81
+    MOVFA  () -> clobbers (A,X) = $fe69
+    MOVFM  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe63
+    MOVFRM  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe60
+    MOVMF  (uword mflpt @XY) -> clobbers (A,X,Y) = $fe66
+    MUL10  () -> clobbers (A,X,Y) = $fe7b
+    NEGFAC  () -> clobbers (A) = $fe78
+    NEGOP  () -> clobbers (A) = $fe33
+    NORMAL  () -> clobbers (A,X,Y) = $fe75
+    QINT  () -> clobbers (A,X,Y) = $fe8d
+    RND  () -> clobbers (A,X,Y) = $fe57
+    RND_0  () -> clobbers (A,X,Y) = $fe57
+    ROMUPK  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe5d
+    ROUND  () -> clobbers (A,X,Y) = $fe4b
+    SGN  () -> clobbers (A,X,Y) = $fe84
+    SIGN  () -> clobbers (X,Y) -> ubyte @A = $fe51
+    SIN  () -> clobbers (A,X,Y) = $fe42
+    SQR  () -> clobbers (A,X,Y) = $fe30
+    TAN  () -> clobbers (A,X,Y) = $fe45
+    VAL_1  (uword string @XY, ubyte length @A) -> clobbers (A,X,Y) -> float @FAC1 = $fe09
+    ZEROFC  () -> clobbers (A,X,Y) = $fe72
+    atan  (float value) -> float 
+    atan2  (float y, float x) -> float 
+    ceil  (float value) -> float 
+    clampf  (float value, float minimum, float maximum) -> float 
+    cos  (float angle) -> float 
+    cot  (float value) -> float 
+    csc  (float value) -> float 
+    deg  (float angle) -> float 
+    floor  (float value) -> float 
+    ln  (float value) -> float 
+    log2  (float value) -> float 
+    maxf  (float f1, float f2) -> float 
+    minf  (float f1, float f2) -> float 
+    normalize  (float value @FAC1) -> float @FAC1 
+    parse  (str value @AY) -> float @FAC1 
+    pop  () -> float @FAC1 
+    pow  (float value, float power) -> float 
+    print  (float value @FAC1) -> clobbers (A,X,Y) 
+    push  (float value @FAC1) 
+    rad  (float angle) -> float 
+    rnd  () -> float 
+    rndseed  (float seed) 
+    round  (float value) -> float 
+    secant  (float value) -> float 
+    sin  (float angle) -> float 
+    tan  (float value) -> float 
+    time  () -> float @FAC1 
+    tostr  (float value @FAC1) -> clobbers (X) -> str @AY 
+}
+
+
+LIBRARY MODULE NAME: gfx2
+-------------------------
+
+gfx2  {
+    ubyte  active_mode 
+    ubyte  bpp 
+    const uword  charset_addr 
+    const ubyte  charset_bank 
+    uword  height 
+    uword  width 
+    addr_mul_24_for_highres_4c  (uword yy @R2, uword xx @R3) -> clobbers (A,Y) -> uword @R0, uword @R1 
+    addr_mul_24_for_lores_256c  (uword yy @R0, uword xx @AY) -> clobbers (A) -> uword @R0, ubyte @R1 
+    circle  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
+    clear_screen  (ubyte color) 
+    cs_innerloop640  (ubyte color @A) -> clobbers (Y) 
+    disc  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
+    fill  (uword x, uword y, ubyte new_color) 
+    fillrect  (uword xx, uword yy, uword rwidth, uword rheight, ubyte color) 
+    horizontal_line  (uword xx, uword yy, uword length, ubyte color) 
+    init_mode  (ubyte mode) 
+    line  (uword x1, uword y1, uword x2, uword y2, ubyte color) 
+    next_pixel  (ubyte color @A) 
+    next_pixels  (uword pixels @AY, uword amount @R0) -> clobbers (A,X,Y) 
+    pget  (uword xx, uword yy) -> ubyte 
+    plot  (uword xx, uword yy, ubyte color) 
+    position  (uword xx, uword yy) 
+    position2  (uword xx, uword yy, bool also_port_1) 
+    rect  (uword xx, uword yy, uword rwidth, uword rheight, ubyte color) 
+    safe_circle  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
+    safe_disc  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
+    safe_horizontal_line  (uword xx, uword yy, uword length, ubyte color) 
+    safe_plot  (uword xx, uword yy, ubyte color) 
+    screen_mode  (ubyte mode) 
+    set_8_pixels_from_bits  (ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) -> clobbers (X) 
+    text  (uword xx, uword yy, ubyte color, uword sctextptr) 
+    text_charset  (ubyte charset) 
+    vertical_line  (uword xx, uword yy, uword lheight, ubyte color) 
+}
+
+
+LIBRARY MODULE NAME: graphics
+-----------------------------
+
+graphics  {
+    const ubyte  HEIGHT 
+    const uword  WIDTH 
+    ubyte  background_color 
+    ubyte  stroke_color 
+    FB_cursor_position2  () -> clobbers (A,X,Y) = $feff
+    circle  (uword xcenter, ubyte ycenter, ubyte radius) 
+    clear_screen  (ubyte pixelcolor, ubyte bgcolor) 
+    colors  (ubyte stroke, ubyte fill) 
+    disable_bitmap_mode  () 
+    disc  (uword xcenter, ubyte ycenter, ubyte radius) 
+    enable_bitmap_mode  () 
+    filled_oval  (uword xcenter, ubyte ycenter, uword h_radius, ubyte v_radius) 
+    fillrect  (uword xx, uword yy, uword width, uword height) 
+    horizontal_line  (uword xx, uword yy, uword length) 
+    line  (uword x1, ubyte y1, uword x2, ubyte y2) 
+    oval  (uword xcenter, ubyte ycenter, uword h_radius, ubyte v_radius) 
+    plot  (uword plotx @R0, uword ploty @R1) -> clobbers (A,X,Y) 
+    rect  (uword xx, uword yy, uword width, uword height) 
+    vertical_line  (uword xx, uword yy, uword height) 
+}
+
+
+LIBRARY MODULE NAME: math
+-------------------------
+
+math  {
+    atan2  (ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A 
+    cos8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
+    cos8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
+    cosr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
+    cosr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
+    crc16  (uword data, uword length) -> uword 
+    crc16_end  () -> uword 
+    crc16_start  () 
+    crc16_update  (ubyte value @A) 
+    crc32  (uword data, uword length) 
+    crc32_end  () 
+    crc32_start  () 
+    crc32_update  (ubyte value @A) 
+    diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 
+    diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY 
+    direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
+    direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
+    direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    log2  (ubyte value @A) -> ubyte @Y 
+    log2w  (uword value @AY) -> ubyte @Y 
+    mul16_last_upper  () -> uword @AY 
+    randrange  (ubyte n) -> ubyte 
+    randrangew  (uword n) -> uword 
+    rnd  () -> clobbers (Y) -> ubyte @A 
+    rndseed  (uword seed1 @AY, uword seed2 @R0) -> clobbers (A,Y) 
+    rndw  () -> uword @AY 
+    sin8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
+    sin8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
+    sinr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
+    sinr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
+}
+
+
+LIBRARY MODULE NAME: monogfx
+----------------------------
+
+monogfx  {
+    const ubyte  MODE_INVERT 
+    const ubyte  MODE_NORMAL 
+    const ubyte  MODE_STIPPLE 
+    const uword  charset_addr 
+    const ubyte  charset_bank 
+    uword  height 
+    ubyte  mode 
+    uword  width 
+    circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
+    clear_screen  (bool draw) 
+    cs_innerloop640  (bool draw @A) -> clobbers (Y) 
+    disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
+    drawmode  (ubyte dm) 
+    fill  (uword x, uword y, bool draw) 
+    fillrect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
+    hires  () 
+    horizontal_line  (uword xx, uword yy, uword length, bool draw) 
+    line  (uword x1, uword y1, uword x2, uword y2, bool draw) 
+    lores  () 
+    pget  (uword xx, uword yy) -> bool 
+    plot  (uword xx, uword yy, bool draw) 
+    position  (uword xx, uword yy) 
+    position2  (uword xx, uword yy, bool also_port_1) 
+    rect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
+    safe_circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
+    safe_disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
+    safe_horizontal_line  (uword xx, uword yy, uword length, bool draw) 
+    safe_plot  (uword xx, uword yy, bool draw) 
+    text  (uword xx, uword yy, bool draw, str sctextptr) 
+    text_charset  (ubyte charset) 
+    textmode  () 
+    vertical_line  (uword xx, uword yy, uword lheight, bool draw) 
+}
+
+
+LIBRARY MODULE NAME: palette
+----------------------------
+
+palette  {
+    uword  vera_palette_ptr 
+    channel8to4  (ubyte channelvalue) -> ubyte 
+    color8to4  (uword colorpointer) -> uword 
+    fade_step  (ubyte index, uword target_rgb) -> bool 
+    fade_step_colors  (ubyte startindex, ubyte endindex, uword target_colors) -> bool 
+    fade_step_multi  (ubyte startindex, ubyte endindex, uword target_rgb) -> bool 
+    get_color  (ubyte index) -> uword 
+    set_all_black  () 
+    set_all_white  () 
+    set_c64ntsc  () 
+    set_c64pepto  () 
+    set_color  (ubyte index, uword color) 
+    set_default16  () 
+    set_grayscale  () 
+    set_monochrome  (uword screencolorRGB, uword drawcolorRGB) 
+    set_rgb  (uword palette_words_ptr, uword num_colors) 
+    set_rgb8  (uword palette_bytes_ptr, uword num_colors) 
+    set_rgb_be  (uword palette_ptr, uword num_colors) 
+}
+
+
+LIBRARY MODULE NAME: psg
+------------------------
+
+psg  {
+    const ubyte  LEFT 
+    const ubyte  NOISE 
+    const ubyte  PULSE 
+    const ubyte  RIGHT 
+    const ubyte  SAWTOOTH 
+    const ubyte  TRIANGLE 
+    ubyte[]  envelope_attacks 
+    ubyte[]  envelope_maxvolumes 
+    ubyte[]  envelope_releases 
+    ubyte[]  envelope_states 
+    ubyte[]  envelope_sustains 
+    @split uword[]  envelope_volumes 
+    envelope  (ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release) 
+    envelopes_irq  () -> bool 
+    freq  (ubyte voice_num, uword vera_freq) 
+    pulse_width  (ubyte voice_num, ubyte pw) 
+    silent  () 
+    voice  (ubyte voice_num, ubyte channel, ubyte vol, ubyte waveform, ubyte pulsewidth) 
+    volume  (ubyte voice_num, ubyte vol) 
+}
+
+
+LIBRARY MODULE NAME: sprites
+----------------------------
+
+sprites  {
+    const ubyte  COLORS_16 
+    const ubyte  COLORS_256 
+    const ubyte  SIZE_16 
+    const ubyte  SIZE_32 
+    const ubyte  SIZE_64 
+    const ubyte  SIZE_8 
+    const uword  VERA_SPRITEREGS 
+    uword @zp  sprite_reg 
+    data  (ubyte spritenum, ubyte bank, uword addr) 
+    flipx  (ubyte spritenum, bool flipped) 
+    flipy  (ubyte spritenum, bool flipped) 
+    get_data_ptr  (ubyte spritenum @A) -> ubyte @R1, uword @R0 
+    get_data_ptr_internal  (ubyte spritenum) 
+    getx  (ubyte spritenum) -> word 
+    gety  (ubyte spritenum) -> word 
+    hide  (ubyte spritenum) 
+    init  (ubyte spritenum, ubyte databank, uword dataaddr, ubyte width_flag, ubyte height_flag, ubyte colors_flag, ubyte palette_offset) 
+    move  (ubyte spritenum, word dx, word dy) 
+    movex  (ubyte spritenum, word dx) 
+    movey  (ubyte spritenum, word dy) 
+    pos  (ubyte spritenum, word xpos, word ypos) 
+    pos_batch  (ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr) 
+    set_mousepointer_hand  () 
+    set_mousepointer_image  (uword data, bool compressed) 
+    set_palette_offset  (ubyte spritenum, ubyte offset) 
+    setx  (ubyte spritenum, word xpos) 
+    sety  (ubyte spritenum, word ypos) 
+    show  (ubyte spritenum) 
+    zdepth  (ubyte spritenum, ubyte depth) 
+}
+
+
+LIBRARY MODULE NAME: string
+---------------------------
+
+string  {
+    append  (uword target @R0, uword suffix @R1) -> clobbers (Y) -> ubyte @A 
+    compare  (uword string1 @R0, uword string2 @AY) -> clobbers (Y) -> byte @A 
+    contains  (uword string @AY, ubyte character @X) -> bool @Pc 
+    copy  (uword source @R0, uword target @AY) -> clobbers (A) -> ubyte @Y 
+    endswith  (str st, str suffix) -> bool 
+    find  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
+    findstr  (str haystack, str needle) -> ubyte 
+    hash  (str string @R0) -> ubyte @A 
+    isdigit  (ubyte petsciichar @A) -> bool @Pc 
+    isletter  (ubyte petsciichar @A) -> bool @Pc 
+    islower  (ubyte petsciichar @A) -> bool @Pc 
+    isprint  (ubyte petsciichar @A) -> bool @Pc 
+    isspace  (ubyte petsciichar @A) -> bool @Pc 
+    isupper  (ubyte petsciichar @A) -> bool @Pc 
+    left  (uword source @AX, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
+    length  (uword string @AY) -> clobbers (A) -> ubyte @Y 
+    lower  (uword st @AY) -> ubyte @Y 
+    lowerchar  (ubyte character @A) -> ubyte @A 
+    lstrip  (str s) 
+    lstripped  (str s) -> str 
+    ltrim  (str s) 
+    ltrimmed  (str s) -> str 
+    pattern_match  (str string @AY, str pattern @R0) -> clobbers (Y) -> bool @A 
+    rfind  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
+    right  (uword source @AY, ubyte length @X, uword target @R1) -> clobbers (A,Y) 
+    rstrip  (str s) 
+    rtrim  (str s) 
+    slice  (uword source @R0, ubyte start @A, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
+    startswith  (str st, str prefix) -> bool 
+    strip  (str s) 
+    trim  (str s) 
+    upper  (uword st @AY) -> ubyte @Y 
+    upperchar  (ubyte character @A) -> ubyte @A 
+}
+
+
 LIBRARY MODULE NAME: syslib
 ---------------------------
+
 cbm  {
     &uword  CBINV 
     &uword  CINV 
@@ -560,6 +1147,12 @@ cx16  {
 }
 
 sys  {
+    const ubyte  sizeof_bool 
+    const ubyte  sizeof_byte 
+    const ubyte  sizeof_float 
+    const ubyte  sizeof_ubyte 
+    const ubyte  sizeof_uword 
+    const ubyte  sizeof_word 
     const ubyte  target 
     cleanup_at_exit  () 
     clear_carry  () 
@@ -598,143 +1191,17 @@ sys  {
 }
 
 
-LIBRARY MODULE NAME: anyall
----------------------------
-anyall  {
-    all  (uword arrayptr, uword num_elements) -> bool 
-    allw  (uword arrayptr, uword num_elements) -> bool 
-    any  (uword arrayptr, uword num_elements) -> bool 
-    anyw  (uword arrayptr, uword num_elements) -> bool 
-}
+LIBRARY MODULE NAME: test_stack
+-------------------------------
 
-
-LIBRARY MODULE NAME: buffers
-----------------------------
-smallringbuffer  {
-    ubyte[]  buffer 
-    ubyte  fill 
-    ubyte  head 
-    ubyte  tail 
-    get  () -> ubyte 
-    getw  () -> uword 
-    init  () 
-    put  (ubyte value) -> bool 
-    putw  (uword value) -> bool 
-}
-
-ringbuffer  {
-    uword  buffer_ptr 
-    uword  fill 
-    uword  head 
-    uword  tail 
-    get  () -> ubyte 
-    getw  () -> uword 
-    inc_head  () 
-    inc_tail  () 
-    init  () 
-    put  (ubyte value) -> bool 
-    putw  (uword value) -> bool 
-}
-
-
-LIBRARY MODULE NAME: bmx
-------------------------
-bmx  {
-    str  FILEID 
-    ubyte  bitsperpixel 
-    ubyte  border 
-    ubyte  compression 
-    uword  error_message 
-    ubyte[]  header 
-    uword  height 
-    ubyte  old_drivenumber 
-    uword @shared  palette_buffer_ptr 
-    uword  palette_entries 
-    ubyte  palette_start 
-    ubyte  vera_colordepth 
-    uword  width 
-    build_header  () 
-    bytes_per_scanline  (uword w) -> uword 
-    close  () 
-    continue_load  (ubyte vbank, uword vaddr) -> bool 
-    continue_load_only_palette  () -> bool 
-    continue_load_stamp  (ubyte vbank, uword vaddr, uword screenwidth) -> bool 
-    open  (ubyte drivenumber, str filename) -> bool 
-    parse_header  () -> bool 
-    read_bitmap  (ubyte vbank, uword vaddr) -> bool 
-    read_bitmap_padded  (ubyte vbank, uword vaddr, uword screenwidth) -> bool 
-    read_header  () -> bool 
-    read_palette  () -> bool 
-    read_scanline  (uword size) 
-    save  (ubyte drivenumber, str filename, ubyte vbank, uword vaddr, uword screenwidth) -> bool 
-    set_bpp  (ubyte bpp) 
-    set_vera_colordepth  (ubyte depth) 
-    write_bitmap  (ubyte vbank, uword vaddr, uword screenwidth) -> bool 
-    write_header  () -> bool 
-    write_palette  () -> bool 
-}
-
-
-LIBRARY MODULE NAME: diskio
----------------------------
-diskio  {
-    const ubyte  READ_IO_CHANNEL 
-    const ubyte  WRITE_IO_CHANNEL 
-    ubyte @shared  drivenumber 
-    bool  iteration_in_progress 
-    uword  list_blocks 
-    str  list_filename 
-    str  list_filetype 
-    uword  list_pattern 
-    bool  list_skip_disk_name 
-    chdir  (str path) 
-    curdir  () -> uword 
-    delete  (uword filenameptr) 
-    directory  () -> bool 
-    diskname  () -> uword 
-    f_close  () 
-    f_close_w  () 
-    f_open  (str filenameptr) -> bool 
-    f_open_w  (str filename) -> bool 
-    f_open_w_seek  (str filename) -> bool 
-    f_read  (uword bufferpointer, uword num_bytes) -> uword 
-    f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
-    f_seek  (uword pos_hiword, uword pos_loword) 
-    f_seek_w  (uword pos_hiword, uword pos_loword) 
-    f_tell  () -> uword @R0, uword @R1, uword @R2, uword @R3 
-    f_write  (uword bufferpointer, uword num_bytes) -> bool 
-    fastmode  (ubyte mode) -> bool 
-    internal_f_open_w  (str filename, bool open_for_seeks) -> bool 
-    internal_f_tell  () 
-    internal_load_routine  (uword filenameptr, uword address_override, bool headerless) -> uword 
-    internal_save_routine  (uword filenameptr, uword startaddress, uword savesize, bool headerless) -> bool 
-    lf_end_list  () 
-    lf_next_entry  () -> bool 
-    lf_start_list  (uword pattern_ptr) -> bool 
-    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
-    load  (uword filenameptr, uword address_override) -> uword 
-    load_raw  (uword filenameptr, uword startaddress) -> uword 
-    load_size  (ubyte startbank, uword startaddress, uword endaddress) -> uword 
-    mkdir  (str name) 
-    read4hex  () -> uword 
-    relabel  (str name) 
-    rename  (uword oldfileptr, uword newfileptr) 
-    reset_read_channel  () 
-    reset_write_channel  () 
-    rmdir  (str name) 
-    save  (uword filenameptr, uword startaddress, uword savesize) -> bool 
-    save_raw  (uword filenameptr, uword startaddress, uword savesize) -> bool 
-    send_command  (uword commandptr) 
-    status  () -> uword 
-    status_code  () -> ubyte 
-    vload  (str name @R0, ubyte bank @A, uword startaddress @R1) -> clobbers (X,Y) -> bool @A 
-    vload_raw  (str name @R0, ubyte bank @A, uword startaddress @R1) -> clobbers (X,Y) -> bool @A 
+test_stack  {
+    test  () 
 }
 
 
 LIBRARY MODULE NAME: textio
 ---------------------------
+
 txt  {
     const ubyte  DEFAULT_HEIGHT 
     const ubyte  DEFAULT_WIDTH 
@@ -800,458 +1267,16 @@ txt  {
 }
 
 
-LIBRARY MODULE NAME: conv
--------------------------
-conv  {
-    str @shared  string_out 
-    any2uword  (str string @AY) -> clobbers (Y) -> ubyte @A 
-    bin2uword  (str string @AY) -> uword @AY 
-    hex2uword  (str string @AY) -> uword @AY 
-    internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X 
-    internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A 
-    internal_ubyte2hex  (ubyte value @A) -> clobbers (X) -> ubyte @A, ubyte @Y 
-    internal_uword2decimal  (uword value @AY) -> ubyte @Y, ubyte @A, ubyte @X 
-    internal_uword2hex  (uword value @AY) -> clobbers (A,Y) 
-    str2byte  (str string @AY) -> clobbers (Y) -> byte @A 
-    str2ubyte  (str string @AY) -> clobbers (Y) -> ubyte @A 
-    str2uword  (str string @AY) -> uword @AY 
-    str2word  (str string @AY) -> word @AY 
-    str_b  (byte value @A) -> clobbers (X) -> str @AY 
-    str_ub  (ubyte value @A) -> clobbers (X) -> str @AY 
-    str_ub0  (ubyte value @A) -> clobbers (X) -> str @AY 
-    str_ubbin  (ubyte value @A) -> clobbers (X) -> str @AY 
-    str_ubhex  (ubyte value @A) -> clobbers (X) -> str @AY 
-    str_uw  (uword value @AY) -> clobbers (X) -> str @AY 
-    str_uw0  (uword value @AY) -> clobbers (X) -> str @AY 
-    str_uwbin  (uword value @AY) -> clobbers (X) -> str @AY 
-    str_uwhex  (uword value @AY) -> str @AY 
-    str_w  (word value @AY) -> clobbers (X) -> str @AY 
-}
-
-
-LIBRARY MODULE NAME: shared_cbm_textio_functions
-------------------------------------------------
-
-LIBRARY MODULE NAME: string
----------------------------
-string  {
-    append  (uword target @R0, uword suffix @R1) -> clobbers (Y) -> ubyte @A 
-    compare  (uword string1 @R0, uword string2 @AY) -> clobbers (Y) -> byte @A 
-    contains  (uword string @AY, ubyte character @X) -> bool @Pc 
-    copy  (uword source @R0, uword target @AY) -> clobbers (A) -> ubyte @Y 
-    endswith  (str st, str suffix) -> bool 
-    find  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
-    findstr  (str haystack, str needle) -> ubyte 
-    hash  (str string @R0) -> ubyte @A 
-    isdigit  (ubyte petsciichar @A) -> bool @Pc 
-    isletter  (ubyte petsciichar @A) -> bool @Pc 
-    islower  (ubyte petsciichar @A) -> bool @Pc 
-    isprint  (ubyte petsciichar @A) -> bool @Pc 
-    isspace  (ubyte petsciichar @A) -> bool @Pc 
-    isupper  (ubyte petsciichar @A) -> bool @Pc 
-    left  (uword source @AX, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
-    length  (uword string @AY) -> clobbers (A) -> ubyte @Y 
-    lower  (uword st @AY) -> ubyte @Y 
-    lowerchar  (ubyte character @A) -> ubyte @A 
-    lstrip  (str s) 
-    lstripped  (str s) -> str 
-    ltrim  (str s) 
-    ltrimmed  (str s) -> str 
-    pattern_match  (str string @AY, str pattern @R0) -> clobbers (Y) -> bool @A 
-    rfind  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
-    right  (uword source @AY, ubyte length @X, uword target @R1) -> clobbers (A,Y) 
-    rstrip  (str s) 
-    rtrim  (str s) 
-    slice  (uword source @R0, ubyte start @A, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
-    startswith  (str st, str prefix) -> bool 
-    strip  (str s) 
-    trim  (str s) 
-    upper  (uword st @AY) -> ubyte @Y 
-    upperchar  (ubyte character @A) -> ubyte @A 
-}
-
-
-LIBRARY MODULE NAME: shared_string_functions
---------------------------------------------
-
-LIBRARY MODULE NAME: cx16logo
------------------------------
-cx16logo  {
-    uword[]  logo_lines 
-    logo  () 
-    logo_at  (ubyte column, ubyte row) 
-}
-
-
-LIBRARY MODULE NAME: emudbg
----------------------------
-emudbg  {
-    const uword  EMU_BASE 
-    &ubyte  EMU_CHROUT 
-    &ubyte  EMU_CMDKEYS_DISABLED 
-    &ubyte  EMU_CPUCLK_H 
-    &ubyte  EMU_CPUCLK_L 
-    &ubyte  EMU_CPUCLK_M 
-    &ubyte  EMU_CPUCLK_RESET 
-    &ubyte  EMU_CPUCLK_U 
-    &ubyte  EMU_DBGOUT1 
-    &ubyte  EMU_DBGOUT2 
-    &ubyte  EMU_DBG_HOTKEY_ENABLED 
-    &ubyte  EMU_ECHO_MODE 
-    &ubyte  EMU_EMU_DETECT1 
-    &ubyte  EMU_EMU_DETECT2 
-    &ubyte  EMU_KEYMAP 
-    &ubyte  EMU_LOG_KEYBOARD 
-    &ubyte  EMU_LOG_VIDEO 
-    &ubyte  EMU_RECORD_GIF 
-    &ubyte  EMU_RECORD_WAV 
-    &ubyte  EMU_SAVE_ON_EXIT 
-    console_chrout  (ubyte char) 
-    console_value1  (ubyte value) 
-    console_value2  (ubyte value) 
-    console_write  (str isoString) 
-    cpu_cycles  () -> uword @R0, uword @R1 
-    is_emulator  () -> bool 
-    reset_cpu_cycles  () 
-}
-
-
-LIBRARY MODULE NAME: floats
----------------------------
-floats  {
-    &uword  AYINT_facmo 
-    const float  PI 
-    const float  TWOPI 
-    const float  π 
-    ABS  () -> clobbers (A,X,Y) = $fe4e
-    ATN  () -> clobbers (A,X,Y) = $fe48
-    AYINT  () -> clobbers (A,X,Y) = $fe00
-    CONUPK  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe5a
-    COS  () -> clobbers (A,X,Y) = $fe3f
-    DIV10  () -> clobbers (A,X,Y) = $fe7e
-    EXP  () -> clobbers (A,X,Y) = $fe3c
-    FADD  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe18
-    FADDH  () -> clobbers (A,X,Y) = $fe6f
-    FADDT  () -> clobbers (A,X,Y) = $fe1b
-    FCOMP  (uword mflpt @AY) -> clobbers (X,Y) -> ubyte @A = $fe54
-    FDIV  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe24
-    FDIVT  () -> clobbers (A,X,Y) = $fe27
-    FINLOG  (byte value @A) -> clobbers (A,X,Y) = $fe90
-    FLOAT  () -> clobbers (A,X,Y) = $fe87
-    FLOATC  () -> clobbers (A,X,Y) = $fe0f
-    FLOATS  () -> clobbers (A,X,Y) = $fe8a
-    FMULT  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe1e
-    FMULTT  () -> clobbers (A,X,Y) = $fe21
-    FOUT  () -> clobbers (X) -> uword @AY = $fe06
-    FPWR  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe36
-    FPWRT  () -> clobbers (A,X,Y) = $fe39
-    FREADSA  (byte value @A) -> clobbers (A,X,Y) 
-    FREADU24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y) -> clobbers (A,X,Y) -> float @FAC1 
-    FREADUY  (ubyte value @Y) 
-    FSUB  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe12
-    FSUBT  () -> clobbers (A,X,Y) = $fe15
-    GETADR  () -> clobbers (X) -> ubyte @Y, ubyte @A = $fe0c
-    GETADRAY  () -> clobbers (X) -> uword @AY 
-    GIVAYF  (ubyte lo @Y, ubyte hi @A) -> clobbers (A,X,Y) = $fe03
-    GIVAYFAY  (uword value @AY) -> clobbers (A,X,Y) 
-    GIVUAYFAY  (uword value @AY) -> clobbers (A,X,Y) 
-    INT  () -> clobbers (A,X,Y) = $fe2d
-    LOG  () -> clobbers (A,X,Y) = $fe2a
-    MOVAF  () -> clobbers (A,X) = $fe6c
-    MOVEF  () -> clobbers (A,X) = $fe81
-    MOVFA  () -> clobbers (A,X) = $fe69
-    MOVFM  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe63
-    MOVFRM  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe60
-    MOVMF  (uword mflpt @XY) -> clobbers (A,X,Y) = $fe66
-    MUL10  () -> clobbers (A,X,Y) = $fe7b
-    NEGFAC  () -> clobbers (A) = $fe78
-    NEGOP  () -> clobbers (A) = $fe33
-    NORMAL  () -> clobbers (A,X,Y) = $fe75
-    QINT  () -> clobbers (A,X,Y) = $fe8d
-    RND  () -> clobbers (A,X,Y) = $fe57
-    RND_0  () -> clobbers (A,X,Y) = $fe57
-    ROMUPK  (uword mflpt @AY) -> clobbers (A,X,Y) = $fe5d
-    ROUND  () -> clobbers (A,X,Y) = $fe4b
-    SGN  () -> clobbers (A,X,Y) = $fe84
-    SIGN  () -> clobbers (X,Y) -> ubyte @A = $fe51
-    SIN  () -> clobbers (A,X,Y) = $fe42
-    SQR  () -> clobbers (A,X,Y) = $fe30
-    TAN  () -> clobbers (A,X,Y) = $fe45
-    VAL_1  (uword string @XY, ubyte length @A) -> clobbers (A,X,Y) -> float @FAC1 = $fe09
-    ZEROFC  () -> clobbers (A,X,Y) = $fe72
-    atan  (float value) -> float 
-    atan2  (float y, float x) -> float 
-    ceil  (float value) -> float 
-    clampf  (float value, float minimum, float maximum) -> float 
-    cos  (float angle) -> float 
-    cot  (float value) -> float 
-    csc  (float value) -> float 
-    deg  (float angle) -> float 
-    floor  (float value) -> float 
-    ln  (float value) -> float 
-    log2  (float value) -> float 
-    maxf  (float f1, float f2) -> float 
-    minf  (float f1, float f2) -> float 
-    normalize  (float value @FAC1) -> float @FAC1 
-    parse  (str value @AY) -> float @FAC1 
-    pop  () -> float @FAC1 
-    pow  (float value, float power) -> float 
-    print  (float value @FAC1) -> clobbers (A,X,Y) 
-    push  (float value @FAC1) 
-    rad  (float angle) -> float 
-    rnd  () -> float 
-    rndseed  (float seed) 
-    round  (float value) -> float 
-    secant  (float value) -> float 
-    sin  (float angle) -> float 
-    tan  (float value) -> float 
-    time  () -> float @FAC1 
-    tostr  (float value @FAC1) -> clobbers (X) -> str @AY 
-}
-
-
-LIBRARY MODULE NAME: shared_floats_functions
---------------------------------------------
-
-LIBRARY MODULE NAME: gfx2
--------------------------
-gfx2  {
-    ubyte  active_mode 
-    ubyte  bpp 
-    const uword  charset_addr 
-    const ubyte  charset_bank 
-    uword  height 
-    uword  width 
-    addr_mul_24_for_highres_4c  (uword yy @R2, uword xx @R3) -> clobbers (A,Y) -> uword @R0, uword @R1 
-    addr_mul_24_for_lores_256c  (uword yy @R0, uword xx @AY) -> clobbers (A) -> uword @R0, ubyte @R1 
-    circle  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
-    clear_screen  (ubyte color) 
-    cs_innerloop640  (ubyte color @A) -> clobbers (Y) 
-    disc  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
-    fill  (uword x, uword y, ubyte new_color) 
-    fillrect  (uword xx, uword yy, uword rwidth, uword rheight, ubyte color) 
-    horizontal_line  (uword xx, uword yy, uword length, ubyte color) 
-    init_mode  (ubyte mode) 
-    line  (uword x1, uword y1, uword x2, uword y2, ubyte color) 
-    next_pixel  (ubyte color @A) 
-    next_pixels  (uword pixels @AY, uword amount @R0) -> clobbers (A,X,Y) 
-    pget  (uword xx, uword yy) -> ubyte 
-    plot  (uword xx, uword yy, ubyte color) 
-    position  (uword xx, uword yy) 
-    position2  (uword xx, uword yy, bool also_port_1) 
-    rect  (uword xx, uword yy, uword rwidth, uword rheight, ubyte color) 
-    safe_circle  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
-    safe_disc  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
-    safe_horizontal_line  (uword xx, uword yy, uword length, ubyte color) 
-    safe_plot  (uword xx, uword yy, ubyte color) 
-    screen_mode  (ubyte mode) 
-    set_8_pixels_from_bits  (ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) -> clobbers (X) 
-    text  (uword xx, uword yy, ubyte color, uword sctextptr) 
-    text_charset  (ubyte charset) 
-    vertical_line  (uword xx, uword yy, uword lheight, ubyte color) 
-}
-
-
-LIBRARY MODULE NAME: graphics
------------------------------
-graphics  {
-    const ubyte  HEIGHT 
-    const uword  WIDTH 
-    ubyte  background_color 
-    ubyte  stroke_color 
-    FB_cursor_position2  () -> clobbers (A,X,Y) = $feff
-    circle  (uword xcenter, ubyte ycenter, ubyte radius) 
-    clear_screen  (ubyte pixelcolor, ubyte bgcolor) 
-    colors  (ubyte stroke, ubyte fill) 
-    disable_bitmap_mode  () 
-    disc  (uword xcenter, ubyte ycenter, ubyte radius) 
-    enable_bitmap_mode  () 
-    filled_oval  (uword xcenter, ubyte ycenter, uword h_radius, ubyte v_radius) 
-    fillrect  (uword xx, uword yy, uword width, uword height) 
-    horizontal_line  (uword xx, uword yy, uword length) 
-    line  (uword x1, ubyte y1, uword x2, ubyte y2) 
-    oval  (uword xcenter, ubyte ycenter, uword h_radius, ubyte v_radius) 
-    plot  (uword plotx @R0, uword ploty @R1) -> clobbers (A,X,Y) 
-    rect  (uword xx, uword yy, uword width, uword height) 
-    vertical_line  (uword xx, uword yy, uword height) 
-}
-
-
-LIBRARY MODULE NAME: math
--------------------------
-math  {
-    atan2  (ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A 
-    cos8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
-    cos8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
-    cosr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
-    cosr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
-    crc16  (uword data, uword length) -> uword 
-    crc16_end  () -> uword 
-    crc16_start  () 
-    crc16_update  (ubyte value @A) 
-    crc32  (uword data, uword length) 
-    crc32_end  () 
-    crc32_start  () 
-    crc32_update  (ubyte value @A) 
-    diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 
-    diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY 
-    direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
-    direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
-    direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
-    log2  (ubyte value @A) -> ubyte @Y 
-    log2w  (uword value @AY) -> ubyte @Y 
-    mul16_last_upper  () -> uword @AY 
-    randrange  (ubyte n) -> ubyte 
-    randrangew  (uword n) -> uword 
-    rnd  () -> clobbers (Y) -> ubyte @A 
-    rndseed  (uword seed1 @AY, uword seed2 @R0) -> clobbers (A,Y) 
-    rndw  () -> uword @AY 
-    sin8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
-    sin8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
-    sinr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
-    sinr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
-}
-
-
-LIBRARY MODULE NAME: monogfx
-----------------------------
-monogfx  {
-    const ubyte  MODE_INVERT 
-    const ubyte  MODE_NORMAL 
-    const ubyte  MODE_STIPPLE 
-    const uword  charset_addr 
-    const ubyte  charset_bank 
-    uword  height 
-    ubyte  mode 
-    uword  width 
-    circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
-    clear_screen  (bool draw) 
-    cs_innerloop640  (bool draw @A) -> clobbers (Y) 
-    disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
-    drawmode  (ubyte dm) 
-    fill  (uword x, uword y, bool draw) 
-    fillrect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
-    hires  () 
-    horizontal_line  (uword xx, uword yy, uword length, bool draw) 
-    line  (uword x1, uword y1, uword x2, uword y2, bool draw) 
-    lores  () 
-    pget  (uword xx, uword yy) -> bool 
-    plot  (uword xx, uword yy, bool draw) 
-    position  (uword xx, uword yy) 
-    position2  (uword xx, uword yy, bool also_port_1) 
-    rect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
-    safe_circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
-    safe_disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
-    safe_horizontal_line  (uword xx, uword yy, uword length, bool draw) 
-    safe_plot  (uword xx, uword yy, bool draw) 
-    text  (uword xx, uword yy, bool draw, str sctextptr) 
-    text_charset  (ubyte charset) 
-    textmode  () 
-    vertical_line  (uword xx, uword yy, uword lheight, bool draw) 
-}
-
-
-LIBRARY MODULE NAME: palette
-----------------------------
-palette  {
-    uword  vera_palette_ptr 
-    channel8to4  (ubyte channelvalue) -> ubyte 
-    color8to4  (uword colorpointer) -> uword 
-    get_color  (ubyte index) -> uword 
-    set_all_black  () 
-    set_all_white  () 
-    set_c64ntsc  () 
-    set_c64pepto  () 
-    set_color  (ubyte index, uword color) 
-    set_default16  () 
-    set_grayscale  () 
-    set_monochrome  (uword screencolorRGB, uword drawcolorRGB) 
-    set_rgb  (uword palette_words_ptr, uword num_colors) 
-    set_rgb8  (uword palette_bytes_ptr, uword num_colors) 
-    set_rgb_be  (uword palette_ptr, uword num_colors) 
-}
-
-
-LIBRARY MODULE NAME: prog8_lib
-------------------------------
-
-LIBRARY MODULE NAME: psg
-------------------------
-psg  {
-    const ubyte  LEFT 
-    const ubyte  NOISE 
-    const ubyte  PULSE 
-    const ubyte  RIGHT 
-    const ubyte  SAWTOOTH 
-    const ubyte  TRIANGLE 
-    ubyte[]  envelope_attacks 
-    ubyte[]  envelope_maxvolumes 
-    ubyte[]  envelope_releases 
-    ubyte[]  envelope_states 
-    ubyte[]  envelope_sustains 
-    @split uword[]  envelope_volumes 
-    envelope  (ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release) 
-    envelopes_irq  () -> bool 
-    freq  (ubyte voice_num, uword vera_freq) 
-    pulse_width  (ubyte voice_num, ubyte pw) 
-    silent  () 
-    voice  (ubyte voice_num, ubyte channel, ubyte vol, ubyte waveform, ubyte pulsewidth) 
-    volume  (ubyte voice_num, ubyte vol) 
-}
-
-
-LIBRARY MODULE NAME: sprites
-----------------------------
-sprites  {
-    const ubyte  COLORS_16 
-    const ubyte  COLORS_256 
-    const ubyte  SIZE_16 
-    const ubyte  SIZE_32 
-    const ubyte  SIZE_64 
-    const ubyte  SIZE_8 
-    const uword  VERA_SPRITEREGS 
-    uword @zp  sprite_reg 
-    data  (ubyte spritenum, ubyte bank, uword addr) 
-    flipx  (ubyte spritenum, bool flipped) 
-    flipy  (ubyte spritenum, bool flipped) 
-    get_data_ptr  (ubyte spritenum @A) -> ubyte @R1, uword @R0 
-    get_data_ptr_internal  (ubyte spritenum) 
-    getx  (ubyte spritenum) -> word 
-    gety  (ubyte spritenum) -> word 
-    hide  (ubyte spritenum) 
-    init  (ubyte spritenum, ubyte databank, uword dataaddr, ubyte width_flag, ubyte height_flag, ubyte colors_flag, ubyte palette_offset) 
-    move  (ubyte spritenum, word dx, word dy) 
-    movex  (ubyte spritenum, word dx) 
-    movey  (ubyte spritenum, word dy) 
-    pos  (ubyte spritenum, word xpos, word ypos) 
-    pos_batch  (ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr) 
-    set_mousepointer_hand  () 
-    set_mousepointer_image  (uword data, bool compressed) 
-    set_palette_offset  (ubyte spritenum, ubyte offset) 
-    setx  (ubyte spritenum, word xpos) 
-    sety  (ubyte spritenum, word ypos) 
-    show  (ubyte spritenum) 
-    zdepth  (ubyte spritenum, ubyte depth) 
-}
-
-
-LIBRARY MODULE NAME: test_stack
--------------------------------
-test_stack  {
-    test  () 
-}
-
-
 LIBRARY MODULE NAME: verafx
 ---------------------------
+
 verafx  {
     available  () -> bool 
     clear  (ubyte vbank, uword vaddr, ubyte data, uword num_longwords) 
     copy  (ubyte srcbank, uword srcaddr, ubyte tgtbank, uword tgtaddr, uword num_longwords) 
     muls  (word value1 @R0, word value2 @R1) -> clobbers (X) -> word @AY, word @R0 
-    mult  (uword value1 @R0, uword value2 @R1) -> clobbers (X) -> uword @AY, uword @R0 
+    mult16  (uword value1 @R0, uword value2 @R1) -> clobbers (X) -> uword @AY 
     transparency  (bool enable) 
 }
-
 
 

@@ -1,16 +1,14 @@
 
-Prog8 compiler v10.4.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 5675d751 in branch master
+Prog8 compiler v10.4.2 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
 Compiler target: pet32
 
-LIBRARY MODULE NAME: import-all-pet32
--------------------------------------
 
 LIBRARY MODULE NAME: anyall
 ---------------------------
+
 anyall  {
     all  (uword arrayptr, uword num_elements) -> bool 
     allw  (uword arrayptr, uword num_elements) -> bool 
@@ -21,6 +19,7 @@ anyall  {
 
 LIBRARY MODULE NAME: buffers
 ----------------------------
+
 smallringbuffer  {
     ubyte[]  buffer 
     ubyte  fill 
@@ -48,8 +47,20 @@ ringbuffer  {
 }
 
 
+LIBRARY MODULE NAME: compression
+--------------------------------
+
+compression  {
+    decode_rle  (uword compressed @AY, uword target @R0, uword maxsize @R1) -> clobbers (X) -> uword @AY 
+    decode_rle_srcfunc  (uword source_function @AY, uword target @R0, uword maxsize @R1) -> clobbers (X) -> uword @AY 
+    encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword 
+    encode_rle_outfunc  (uword data, uword size, uword output_function, bool is_last_block) 
+}
+
+
 LIBRARY MODULE NAME: conv
 -------------------------
+
 conv  {
     str @shared  string_out 
     any2uword  (str string @AY) -> clobbers (Y) -> ubyte @A 
@@ -79,6 +90,7 @@ conv  {
 
 LIBRARY MODULE NAME: cx16logo
 -----------------------------
+
 cx16logo  {
     uword[]  logo_lines 
     logo  () 
@@ -86,56 +98,126 @@ cx16logo  {
 }
 
 
-LIBRARY MODULE NAME: textio
+LIBRARY MODULE NAME: diskio
 ---------------------------
-txt  {
-    const ubyte  DEFAULT_HEIGHT 
-    const ubyte  DEFAULT_WIDTH 
-    bell  () 
-    chrout  (ubyte character @A) = $ffd2
-    clear_screen  () 
-    clear_screenchars  (ubyte character @A) -> clobbers (Y) 
-    clear_screencolors  (ubyte color) 
-    cls  () 
-    color  (ubyte txtcol) 
-    fill_screen  (ubyte character @A, ubyte color @Y) -> clobbers (A) 
-    getchr  (ubyte col @A, ubyte row @Y) -> clobbers (Y) -> ubyte @A 
-    height  () -> clobbers (X,Y) -> ubyte @A 
-    home  () 
-    input_chars  (uword buffer @AY) -> clobbers (A) -> ubyte @Y 
-    lowercase  () 
-    nl  () 
-    petscii2scr  (ubyte petscii_char @A) -> ubyte @A 
-    petscii2scr_str  (str petscii_string @AY) 
-    plot  (ubyte col @Y, ubyte row @X) 
-    print  (str text @AY) -> clobbers (A,Y) 
-    print_b  (byte value @A) -> clobbers (A,X,Y) 
-    print_bool  (bool value) 
-    print_ub  (ubyte value @A) -> clobbers (A,X,Y) 
-    print_ub0  (ubyte value @A) -> clobbers (A,X,Y) 
-    print_ubbin  (ubyte value @A, bool prefix @Pc) -> clobbers (A,X,Y) 
-    print_ubhex  (ubyte value @A, bool prefix @Pc) -> clobbers (A,X,Y) 
-    print_uw  (uword value @AY) -> clobbers (A,X,Y) 
-    print_uw0  (uword value @AY) -> clobbers (A,X,Y) 
-    print_uwbin  (uword value @AY, bool prefix @Pc) -> clobbers (A,X,Y) 
-    print_uwhex  (uword value @AY, bool prefix @Pc) -> clobbers (A,X,Y) 
-    print_w  (word value @AY) -> clobbers (A,X,Y) 
-    scroll_down  () -> clobbers (A,X) 
-    scroll_left  () -> clobbers (A,X,Y) 
-    scroll_right  () -> clobbers (A,X) 
-    scroll_up  () -> clobbers (A,X) 
-    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor) 
-    setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) -> clobbers (A,Y) 
-    setclr  (ubyte col, ubyte row, ubyte color) 
-    spc  () 
-    uppercase  () 
-    waitkey  () -> ubyte @A 
-    width  () -> clobbers (X,Y) -> ubyte @A 
+
+diskio  {
+    const ubyte  READ_IO_CHANNEL 
+    const ubyte  WRITE_IO_CHANNEL 
+    ubyte @shared  drivenumber 
+    bool  iteration_in_progress 
+    uword  list_blocks 
+    str  list_filename 
+    str  list_filetype 
+    uword  list_pattern 
+    bool  list_skip_disk_name 
+    delete  (uword filenameptr) 
+    directory  () -> bool 
+    diskname  () -> uword 
+    f_close  () 
+    f_close_w  () 
+    f_open  (uword filenameptr) -> bool 
+    f_open_w  (uword filenameptr) -> bool 
+    f_read  (uword bufferpointer, uword num_bytes) -> uword 
+    f_read_all  (uword bufferpointer) -> uword 
+    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
+    f_write  (uword bufferpointer, uword num_bytes) -> bool 
+    lf_end_list  () 
+    lf_next_entry  () -> bool 
+    lf_start_list  (uword pattern_ptr) -> bool 
+    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
+    load  (uword filenameptr, uword address_override) -> uword 
+    load_raw  (uword filenameptr, uword start_address) -> uword 
+    rename  (uword oldfileptr, uword newfileptr) 
+    reset_read_channel  () 
+    reset_write_channel  () 
+    save  (uword filenameptr, uword start_address, uword savesize) -> bool 
+    send_command  (uword commandptr) 
+    status  () -> uword 
+    status_code  () -> ubyte 
+}
+
+
+LIBRARY MODULE NAME: math
+-------------------------
+
+math  {
+    atan2  (ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A 
+    cos8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
+    cos8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
+    cosr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
+    cosr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
+    crc16  (uword data, uword length) -> uword 
+    crc16_end  () -> uword 
+    crc16_start  () 
+    crc16_update  (ubyte value @A) 
+    crc32  (uword data, uword length) 
+    crc32_end  () 
+    crc32_start  () 
+    crc32_update  (ubyte value @A) 
+    diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 
+    diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY 
+    direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
+    direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
+    direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    log2  (ubyte value @A) -> ubyte @Y 
+    log2w  (uword value @AY) -> ubyte @Y 
+    mul16_last_upper  () -> uword @AY 
+    randrange  (ubyte n) -> ubyte 
+    randrangew  (uword n) -> uword 
+    rnd  () -> clobbers (Y) -> ubyte @A 
+    rndseed  (uword seed1 @AY, uword seed2 @R0) -> clobbers (A,Y) 
+    rndw  () -> uword @AY 
+    sin8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
+    sin8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
+    sinr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
+    sinr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
+}
+
+
+LIBRARY MODULE NAME: string
+---------------------------
+
+string  {
+    append  (uword target @R0, uword suffix @R1) -> clobbers (Y) -> ubyte @A 
+    compare  (uword string1 @R0, uword string2 @AY) -> clobbers (Y) -> byte @A 
+    contains  (uword string @AY, ubyte character @X) -> bool @Pc 
+    copy  (uword source @R0, uword target @AY) -> clobbers (A) -> ubyte @Y 
+    endswith  (str st, str suffix) -> bool 
+    find  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
+    findstr  (str haystack, str needle) -> ubyte 
+    hash  (str string @R0) -> ubyte @A 
+    isdigit  (ubyte petsciichar @A) -> bool @Pc 
+    isletter  (ubyte petsciichar @A) -> bool @Pc 
+    islower  (ubyte petsciichar @A) -> bool @Pc 
+    isprint  (ubyte petsciichar @A) -> bool @Pc 
+    isspace  (ubyte petsciichar @A) -> bool @Pc 
+    isupper  (ubyte petsciichar @A) -> bool @Pc 
+    left  (uword source @AX, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
+    length  (uword string @AY) -> clobbers (A) -> ubyte @Y 
+    lower  (uword st @AY) -> ubyte @Y 
+    lowerchar  (ubyte character @A) -> ubyte @A 
+    lstrip  (str s) 
+    lstripped  (str s) -> str 
+    ltrim  (str s) 
+    ltrimmed  (str s) -> str 
+    pattern_match  (str string @AY, str pattern @R0) -> clobbers (Y) -> bool @A 
+    rfind  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
+    right  (uword source @AY, ubyte length @X, uword target @R1) -> clobbers (A,Y) 
+    rstrip  (str s) 
+    rtrim  (str s) 
+    slice  (uword source @R0, ubyte start @A, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
+    startswith  (str st, str prefix) -> bool 
+    strip  (str s) 
+    trim  (str s) 
+    upper  (uword st @AY) -> ubyte @Y 
+    upperchar  (ubyte character @A) -> ubyte @A 
 }
 
 
 LIBRARY MODULE NAME: syslib
 ---------------------------
+
 cbm  {
     &uword  CBINV 
     &uword  CINV 
@@ -166,6 +248,12 @@ cbm  {
 }
 
 sys  {
+    const ubyte  sizeof_bool 
+    const ubyte  sizeof_byte 
+    const ubyte  sizeof_float 
+    const ubyte  sizeof_ubyte 
+    const ubyte  sizeof_uword 
+    const ubyte  sizeof_word 
     const ubyte  target 
     cleanup_at_exit  () 
     clear_carry  () 
@@ -301,134 +389,60 @@ cx16  {
 }
 
 
-LIBRARY MODULE NAME: shared_cbm_textio_functions
-------------------------------------------------
-
-LIBRARY MODULE NAME: diskio
----------------------------
-diskio  {
-    const ubyte  READ_IO_CHANNEL 
-    const ubyte  WRITE_IO_CHANNEL 
-    ubyte @shared  drivenumber 
-    bool  iteration_in_progress 
-    uword  list_blocks 
-    str  list_filename 
-    str  list_filetype 
-    uword  list_pattern 
-    bool  list_skip_disk_name 
-    delete  (uword filenameptr) 
-    directory  () -> bool 
-    diskname  () -> uword 
-    f_close  () 
-    f_close_w  () 
-    f_open  (uword filenameptr) -> bool 
-    f_open_w  (uword filenameptr) -> bool 
-    f_read  (uword bufferpointer, uword num_bytes) -> uword 
-    f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
-    f_write  (uword bufferpointer, uword num_bytes) -> bool 
-    lf_end_list  () 
-    lf_next_entry  () -> bool 
-    lf_start_list  (uword pattern_ptr) -> bool 
-    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
-    load  (uword filenameptr, uword address_override) -> uword 
-    load_raw  (uword filenameptr, uword start_address) -> uword 
-    rename  (uword oldfileptr, uword newfileptr) 
-    reset_read_channel  () 
-    reset_write_channel  () 
-    save  (uword filenameptr, uword start_address, uword savesize) -> bool 
-    send_command  (uword commandptr) 
-    status  () -> uword 
-    status_code  () -> ubyte 
-}
-
-
-LIBRARY MODULE NAME: string
----------------------------
-string  {
-    append  (uword target @R0, uword suffix @R1) -> clobbers (Y) -> ubyte @A 
-    compare  (uword string1 @R0, uword string2 @AY) -> clobbers (Y) -> byte @A 
-    contains  (uword string @AY, ubyte character @X) -> bool @Pc 
-    copy  (uword source @R0, uword target @AY) -> clobbers (A) -> ubyte @Y 
-    endswith  (str st, str suffix) -> bool 
-    find  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
-    findstr  (str haystack, str needle) -> ubyte 
-    hash  (str string @R0) -> ubyte @A 
-    isdigit  (ubyte petsciichar @A) -> bool @Pc 
-    isletter  (ubyte petsciichar @A) -> bool @Pc 
-    islower  (ubyte petsciichar @A) -> bool @Pc 
-    isprint  (ubyte petsciichar @A) -> bool @Pc 
-    isspace  (ubyte petsciichar @A) -> bool @Pc 
-    isupper  (ubyte petsciichar @A) -> bool @Pc 
-    left  (uword source @AX, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
-    length  (uword string @AY) -> clobbers (A) -> ubyte @Y 
-    lower  (uword st @AY) -> ubyte @Y 
-    lowerchar  (ubyte character @A) -> ubyte @A 
-    lstrip  (str s) 
-    lstripped  (str s) -> str 
-    ltrim  (str s) 
-    ltrimmed  (str s) -> str 
-    pattern_match  (str string @AY, str pattern @R0) -> clobbers (Y) -> bool @A 
-    rfind  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
-    right  (uword source @AY, ubyte length @X, uword target @R1) -> clobbers (A,Y) 
-    rstrip  (str s) 
-    rtrim  (str s) 
-    slice  (uword source @R0, ubyte start @A, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
-    startswith  (str st, str prefix) -> bool 
-    strip  (str s) 
-    trim  (str s) 
-    upper  (uword st @AY) -> ubyte @Y 
-    upperchar  (ubyte character @A) -> ubyte @A 
-}
-
-
-LIBRARY MODULE NAME: shared_string_functions
---------------------------------------------
-
-LIBRARY MODULE NAME: math
--------------------------
-math  {
-    atan2  (ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A 
-    cos8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
-    cos8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
-    cosr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
-    cosr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
-    crc16  (uword data, uword length) -> uword 
-    crc16_end  () -> uword 
-    crc16_start  () 
-    crc16_update  (ubyte value @A) 
-    crc32  (uword data, uword length) 
-    crc32_end  () 
-    crc32_start  () 
-    crc32_update  (ubyte value @A) 
-    diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 
-    diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY 
-    direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
-    direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
-    direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
-    log2  (ubyte value @A) -> ubyte @Y 
-    log2w  (uword value @AY) -> ubyte @Y 
-    mul16_last_upper  () -> uword @AY 
-    randrange  (ubyte n) -> ubyte 
-    randrangew  (uword n) -> uword 
-    rnd  () -> clobbers (Y) -> ubyte @A 
-    rndseed  (uword seed1 @AY, uword seed2 @R0) -> clobbers (A,Y) 
-    rndw  () -> uword @AY 
-    sin8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
-    sin8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
-    sinr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
-    sinr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
-}
-
-
-LIBRARY MODULE NAME: prog8_lib
-------------------------------
-
 LIBRARY MODULE NAME: test_stack
 -------------------------------
+
 test_stack  {
     test  () 
 }
 
+
+LIBRARY MODULE NAME: textio
+---------------------------
+
+txt  {
+    const ubyte  DEFAULT_HEIGHT 
+    const ubyte  DEFAULT_WIDTH 
+    bell  () 
+    chrout  (ubyte character @A) = $ffd2
+    clear_screen  () 
+    clear_screenchars  (ubyte character @A) -> clobbers (Y) 
+    clear_screencolors  (ubyte color) 
+    cls  () 
+    color  (ubyte txtcol) 
+    fill_screen  (ubyte character @A, ubyte color @Y) -> clobbers (A) 
+    getchr  (ubyte col @A, ubyte row @Y) -> clobbers (Y) -> ubyte @A 
+    height  () -> clobbers (X,Y) -> ubyte @A 
+    home  () 
+    input_chars  (uword buffer @AY) -> clobbers (A) -> ubyte @Y 
+    lowercase  () 
+    nl  () 
+    petscii2scr  (ubyte petscii_char @A) -> ubyte @A 
+    petscii2scr_str  (str petscii_string @AY) 
+    plot  (ubyte col @Y, ubyte row @X) 
+    print  (str text @AY) -> clobbers (A,Y) 
+    print_b  (byte value @A) -> clobbers (A,X,Y) 
+    print_bool  (bool value) 
+    print_ub  (ubyte value @A) -> clobbers (A,X,Y) 
+    print_ub0  (ubyte value @A) -> clobbers (A,X,Y) 
+    print_ubbin  (ubyte value @A, bool prefix @Pc) -> clobbers (A,X,Y) 
+    print_ubhex  (ubyte value @A, bool prefix @Pc) -> clobbers (A,X,Y) 
+    print_uw  (uword value @AY) -> clobbers (A,X,Y) 
+    print_uw0  (uword value @AY) -> clobbers (A,X,Y) 
+    print_uwbin  (uword value @AY, bool prefix @Pc) -> clobbers (A,X,Y) 
+    print_uwhex  (uword value @AY, bool prefix @Pc) -> clobbers (A,X,Y) 
+    print_w  (word value @AY) -> clobbers (A,X,Y) 
+    scroll_down  () -> clobbers (A,X) 
+    scroll_left  () -> clobbers (A,X,Y) 
+    scroll_right  () -> clobbers (A,X) 
+    scroll_up  () -> clobbers (A,X) 
+    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor) 
+    setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) -> clobbers (A,Y) 
+    setclr  (ubyte col, ubyte row, ubyte color) 
+    spc  () 
+    uppercase  () 
+    waitkey  () -> ubyte @A 
+    width  () -> clobbers (X,Y) -> ubyte @A 
+}
 
 
