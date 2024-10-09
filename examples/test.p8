@@ -1,30 +1,37 @@
+%import palette
 %import textio
-%import string
-%zeropage basicsafe
+%option no_sysinit
 
 main {
     sub start() {
-        str name1 = "irmen"
-        str name2 = "other"
-        bool[2] flags = [true, false]
+        repeat 4 {
+            for cx16.r0L in 0 to 15 {
+                txt.color2(cx16.r0L, cx16.r0L)
+                txt.spc()
+                txt.spc()
+                txt.spc()
+                txt.spc()
+            }
+            txt.nl()
+        }
+        bool changed
+        uword[] colors = [
+            $f00, $800, $200, $000,
+            $f0f, $80f, $20f, $00f
+        ]
+        do {
+            sys.waitvsync()
+            sys.waitvsync()
+            changed = palette.fade_step_colors(0, 8, colors)
+        } until not changed
 
-        txt.print(name1)
-        txt.nl()
-        name1 = name2
-        txt.print(name1)
-        txt.nl()
-        flags = [false, true]
-
-        ubyte[10] array
-        ubyte[10] array2
-
-        void string.copy(name2, name1)
-        array = array2
-        name2 = "zzz"
-        array = [1,2,3,4,5,6,7,8,9,10]
-        ;; array = cx16.r0
-        ;; array = name1
-        ;; name1 = array
-        ;; name1 = cx16.r0
+        sys.wait(60)
+        changed = false
+        do {
+            sys.waitvsync()
+            sys.waitvsync()
+            changed = palette.fade_step_multi(0, 8, $fff)
+        } until not changed
+        sys.wait(60)
     }
 }

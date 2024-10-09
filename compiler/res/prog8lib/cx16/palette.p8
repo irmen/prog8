@@ -106,6 +106,90 @@ palette {
         }
     }
 
+    sub fade_step_multi(ubyte startindex, ubyte endindex, uword target_rgb) -> bool {
+        ; Perform one color fade step for multiple consecutive palette entries.
+        ;   startindex = palette index of first color to fade
+        ;   endindex = palette index of last color to fade
+        ;   target_rgb = $RGB color value to fade towards
+        ; Returns true if one or more colors were changed, false if no fade steps were done anymore.
+        ; So you usually keep calling this until it returns false.
+        bool changed = false
+        while startindex <= endindex {
+            if fade_step(startindex, target_rgb)
+                changed=true
+            startindex++
+            if_z
+                break
+        }
+        return changed
+    }
+
+    sub fade_step_colors(ubyte startindex, ubyte endindex, uword target_colors) -> bool {
+        ; Perform one color fade step for multiple consecutive palette entries, to different target colors.
+        ;   startindex = palette index of first color to fade
+        ;   endindex = palette index of last color to fade
+        ;   target_colors = address of uword $RGB array of colors to fade towards
+        ; Returns true if one or more colors were changed, false if no fade steps were done anymore.
+        ; So you usually keep calling this until it returns false.
+        bool changed = false
+        ubyte target_index = 0
+        while startindex <= endindex {
+            if fade_step(startindex, peekw(target_colors+target_index))
+                changed=true
+            target_index += 2
+            startindex++
+            if_z
+                break
+        }
+        return changed
+    }
+
+    sub fade_step(ubyte index, uword target_rgb) -> bool {
+        ; Perform one color fade step for a single palette entry.
+        ;   index = palette index of the color to fade
+        ;   target_rgb = $RGB color value to fade towards
+        ; Returns true if the color was changed, false if no fade step was done anymore.
+        ; So you usually keep calling this until it returns false.
+        uword color = palette.get_color(index)
+        cx16.r0L = msb(color)            ; r
+        cx16.r1L = lsb(color) >> 4       ; g
+        cx16.r2L = lsb(color) & 15       ; b
+        cx16.r0H = msb(target_rgb) & 15  ; r2
+        cx16.r1H = lsb(target_rgb) >> 4  ; g2
+        cx16.r2H = lsb(target_rgb) & 15  ; b2
+
+        ubyte changed
+
+        ; use cmp() + status bits branches, to avoid multiple compares that could be done just once
+        cmp(cx16.r0L, cx16.r0H)
+        if_ne {
+            if_cc
+                cx16.r0L++
+            else
+                cx16.r0L--
+            changed++
+        }
+        cmp(cx16.r1L, cx16.r1H)
+        if_ne {
+            if_cc
+                cx16.r1L++
+            else
+                cx16.r1L--
+            changed++
+        }
+        cmp(cx16.r2L, cx16.r2H)
+        if_ne {
+            if_cc
+                cx16.r2L++
+            else
+                cx16.r2L--
+            changed++
+        }
+
+        palette.set_color(index, mkword(cx16.r0L, cx16.r1L<<4 | cx16.r2L))
+        return changed!=0
+    }
+
     sub set_c64pepto() {
         ; set first 16 colors to the "Pepto" PAL commodore-64 palette  http://www.pepto.de/projects/colorvic/
         uword[] colors = [

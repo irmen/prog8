@@ -1,8 +1,6 @@
 TODO
 ====
 
-Put palette fade to white / black in.
-
 Regenerate skeleton doc files.
 
 Improve register load order in subroutine call args assignments:

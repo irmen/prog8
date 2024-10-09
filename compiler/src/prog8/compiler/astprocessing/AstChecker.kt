@@ -1008,6 +1008,11 @@ internal class AstChecker(private val program: Program,
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)
         }
 
+        if(array.parent is Assignment) {
+            val assignTarget = (array.parent as Assignment).target
+            if(!assignTarget.inferType(program).isArray)
+                errors.err("cannot assign array to a non-array variable", assignTarget.position)
+        }
         super.visit(array)
     }
 
