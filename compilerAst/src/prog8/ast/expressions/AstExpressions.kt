@@ -628,6 +628,9 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
     }
 
     private fun internalCast(targettype: BaseDataType, implicit: Boolean): ValueAfterCast {
+
+        // NOTE: this MAY convert a value into another when switching from singed to unsigned!!!
+
         if(type==targettype)
             return ValueAfterCast(true, null, this)
         if (implicit) {
@@ -751,6 +754,49 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
             }
         }
         return ValueAfterCast(false, "no cast available from $type to $targettype", null)
+    }
+
+    fun convertTypeKeepValue(targetDt: BaseDataType): ValueAfterCast {
+        if(type==targetDt)
+            return ValueAfterCast(true, null, this)
+
+        when(type) {
+            BaseDataType.UBYTE -> {
+                when(targetDt) {
+                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
+                    BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    else -> {}
+                }
+            }
+            BaseDataType.BYTE -> {
+                when(targetDt) {
+                    BaseDataType.UBYTE, BaseDataType.UWORD -> if(number>=0.0) return cast(targetDt, false)
+                    BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    else -> {}
+                }
+            }
+            BaseDataType.UWORD -> {
+                when(targetDt) {
+                    BaseDataType.UBYTE -> if(number<=255.0) return cast(targetDt, false)
+                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
+                    BaseDataType.WORD -> if(number<=32767.0) return cast(targetDt, false)
+                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    else -> {}
+                }
+            }
+            BaseDataType.WORD -> {
+                when(targetDt) {
+                    BaseDataType.UBYTE -> if(number in 0.0..255.0) return cast(targetDt, false)
+                    BaseDataType.BYTE -> if(number in -128.0..127.0) return cast(targetDt, false)
+                    BaseDataType.UWORD -> if(number in 0.0..32767.0) return cast(targetDt, false)
+                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    else -> {}
+                }
+            }
+            BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+            else -> {}
+        }
+        return ValueAfterCast(false, "no type conversion possible from $type to $targetDt", null)
     }
 }
 

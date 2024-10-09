@@ -10,6 +10,7 @@ import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.StringLiteral
+import prog8.ast.statements.AnonymousScope
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
@@ -183,5 +184,42 @@ class TestNumericLiteral: FunSpec({
         NumericLiteral.optimalNumeric(1234.0, Position.DUMMY).number shouldBe 1234.0
         NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).type shouldBe BaseDataType.WORD
         NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).number shouldBe -1234.0
+    }
+
+    test("cast can change value") {
+        fun num(dt: BaseDataType, num: Double): NumericLiteral {
+            val n = NumericLiteral(dt, num, Position.DUMMY)
+            n.linkParents(AnonymousScope(mutableListOf(), Position.DUMMY))
+            return n
+        }
+        val cast1 = num(BaseDataType.UBYTE, 200.0).cast(BaseDataType.BYTE, false)
+        cast1.isValid shouldBe true
+        cast1.valueOrZero().number shouldBe -56.0
+        val cast2 = num(BaseDataType.BYTE, -50.0).cast(BaseDataType.UBYTE, false)
+        cast2.isValid shouldBe true
+        cast2.valueOrZero().number shouldBe 206.0
+        val cast3 = num(BaseDataType.UWORD, 55555.0).cast(BaseDataType.WORD, false)
+        cast3.isValid shouldBe true
+        cast3.valueOrZero().number shouldBe -9981.0
+        val cast4 = num(BaseDataType.WORD, -3333.0).cast(BaseDataType.UWORD, false)
+        cast4.isValid shouldBe true
+        cast4.valueOrZero().number shouldBe 62203.0
+    }
+
+    test("convert cannot change value") {
+        fun num(dt: BaseDataType, num: Double): NumericLiteral {
+            val n = NumericLiteral(dt, num, Position.DUMMY)
+            n.linkParents(AnonymousScope(mutableListOf(), Position.DUMMY))
+            return n
+        }
+        num(BaseDataType.UBYTE, 200.0).convertTypeKeepValue(BaseDataType.BYTE).isValid shouldBe false
+        num(BaseDataType.BYTE, -50.0).convertTypeKeepValue(BaseDataType.UBYTE).isValid shouldBe false
+        num(BaseDataType.UWORD, 55555.0).convertTypeKeepValue(BaseDataType.WORD).isValid shouldBe false
+        num(BaseDataType.WORD, -3333.0).convertTypeKeepValue(BaseDataType.UWORD).isValid shouldBe false
+
+        num(BaseDataType.UBYTE, 42.0).convertTypeKeepValue(BaseDataType.BYTE).isValid shouldBe true
+        num(BaseDataType.BYTE, 42.0).convertTypeKeepValue(BaseDataType.UBYTE).isValid shouldBe true
+        num(BaseDataType.UWORD, 12345.0).convertTypeKeepValue(BaseDataType.WORD).isValid shouldBe true
+        num(BaseDataType.WORD, 12345.0).convertTypeKeepValue(BaseDataType.UWORD).isValid shouldBe true
     }
 })
