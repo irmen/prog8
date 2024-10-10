@@ -135,7 +135,9 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 }
 
                 if(isMultiComparisonRecurse(leftBinExpr1)) {
-                    val elementType = needle.inferType(program).getOrElse { throw FatalAstException("invalid needle dt") }
+                    val elementIType = needle.inferType(program)
+                    if(elementIType.isUnknown) return noModifications
+                    val elementType = elementIType.getOrElse { DataType.UNDEFINED }
                     if(values.size==2 || values.size==3 && (elementType==DataType.UBYTE || elementType==DataType.UWORD)) {
                         val numbers = values.map{it.number}.toSet()
                         if(numbers == setOf(0.0, 1.0)) {
