@@ -34,8 +34,6 @@ main {
             anglex += 317
             angley -= 505
             anglez += 452
-
-            ; test_stack.test()
         }
     }
 

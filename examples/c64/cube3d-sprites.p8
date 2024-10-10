@@ -1,7 +1,6 @@
 %import syslib
 %import textio
 %import math
-%import test_stack
 
 
 spritedata $2000 {
@@ -97,8 +96,6 @@ main {
             txt.print(" jiffies/fr = ")
             txt.print_ub(60/cbm.TIME_LO)
             txt.print(" fps")
-
-            ; test_stack.test()
         }
     }
 

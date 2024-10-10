@@ -1,5 +1,4 @@
 %import syslib
-%import test_stack
 %import textio
 %import math
 
@@ -35,8 +34,6 @@ main {
             txt.print_ub(60/cbm.TIME_LO)
             txt.print(" fps")
             cbm.TIME_LO=0
-
-            ; test_stack.test()
         }
     }
 

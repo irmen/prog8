@@ -1,6 +1,5 @@
 %import textio
 %import floats
-%import test_stack
 %zeropage basicsafe
 
 ; Note: this program can be compiled for multiple target systems.
@@ -45,7 +44,5 @@ main {
         txt.print("finished in ")
         floats.print(duration)
         txt.print(" seconds!\n")
-
-        ; test_stack.test()
     }
 }

@@ -1,6 +1,5 @@
 %import graphics
 %import floats
-%import test_stack
 %zeropage floatsafe
 
 ; Draw a mandelbrot in graphics mode (the image will be 256 x 200 pixels).
@@ -44,9 +43,6 @@ main {
                     graphics.plot(pixelx, pixely)
             }
         }
-
-        ; graphics.disable_bitmap_mode()
-        ; test_stack.test()
 
         repeat {
         }
