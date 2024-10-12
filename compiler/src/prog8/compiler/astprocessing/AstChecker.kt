@@ -1835,7 +1835,7 @@ internal class AstChecker(private val program: Program,
                 if(targetDatatype in ArrayDatatypes && sourceValue is ArrayLiteral)
                     true  // assigning array literal to an array variable is allowed, size and type are checked elsewhere
                 else {
-                    errors.err("cannot assign new value to variable of type $targetDatatype", position)
+                    errors.err("cannot assign this value to variable of type $targetDatatype", position)
                     false
                 }
             }
