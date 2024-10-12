@@ -1,8 +1,9 @@
 %import syslib
 %import textio
 %import math
-%zeropage basicsafe
 
+; C64 version of a balloon sprites flying over a mountain landscape.
+; There is also a X16 version of this in the examples.
 
 main {
 
@@ -37,11 +38,16 @@ main {
                 upwards = false
             } else {
                 ; determine new height for next mountain
-                target_height = 9 + math.rnd() % 15
-                if upwards
+                ubyte old_height = target_height
+                if upwards {
                     mountain = 233
-                else
+                    while target_height >= old_height
+                        target_height = 9 + math.rnd() % 15
+                } else {
                     mountain = 223
+                    while target_height <= old_height
+                        target_height = 9 + math.rnd() % 15
+                }
             }
 
             while not do_char_scroll {

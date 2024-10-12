@@ -11,7 +11,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 - remove support for array variable initialization with a single value, just require explicitly creating the value array   [42] * 10   (which is what the compiler now does for you implicitly)
-- should the array-to-array assignment support be removed and instead require an explicit copy function call? What prog8_lib_arraycopy() now does.
+- should the array-to-array assignment support be removed and instead require an explicit copy function call? What prog8_lib_arraycopy() now does. Or just use memcopy.
 - should we add a cleararray builtin function that can efficiently set every element in the array to the given value
 
 - improve detection that a variable is not read before being written so that initializing it to zero can be omitted  (only happens now if a vardecl is immediately followed by a for loop for instance)
