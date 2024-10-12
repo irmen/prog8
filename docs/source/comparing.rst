@@ -34,9 +34,10 @@ Data types
   You'll have to add explicit casts to increase the size of the value if required.
   For example when adding two byte variables having values 100 and 200, the result won't be 300, because that doesn't fit in a byte. It will be 44.
   You'll have to cast one or both of the *operands* to a word type first if you want to accomodate the actual result value of 300.
-- Arrays and strings have a limited size and the allocated size never changes
-- Arrays and strings are mutable
-
+- strings and arrays are allocated once, statically, and never resized.
+- strings and arrays are mutable: you can change their contents, but always keep the original storage size in mind to avoid overwriting memory outside of the buffer.
+- maximum string length is 255 characters + a trailing 0 byte.
+- maximum storage size for arrays is 256 bytes (512 for split word arrays) , the maximum number of elements in the array depends on the size of a single element value.
 
 Variables
 ---------
@@ -72,12 +73,6 @@ Pointers
 - Pointers don't have to be a variable, you can immediately access the value of a given memory location using ``@($d020)`` for instance.
   Reading is done by assigning it to a variable, writing is done by just assigning the new value to it.
 
-
-Strings and Arrays
-------------------
-- these are allocated once, statically, and never resized.
-- they are mutable: you can change their contents, but always keep the original storage size in mind to avoid overwriting memory outside of the buffer.
-- Maximum size is 256 bytes (512 for split word arrays)
 
 Foreign function interface (external/ROM calls)
 -----------------------------------------------
