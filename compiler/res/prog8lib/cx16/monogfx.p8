@@ -819,31 +819,14 @@ invert:
         while cx16.r12L!=0 {
             pop_stack()
             xx = x1
-            while xx >= 0 {
-                if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
-                    break
-                xx--
-            }
-            if x1!=xx
-                horizontal_line(xx as uword+1, yy as uword, x1-xx as uword, cx16.r10L as bool)
-            else
-                goto skip
-
+            if fill_scanline_left() goto skip
             left = xx + 1
             if left < x1
                 push_stack(left, x1 - 1, yy, -dy)
             xx = x1 + 1
 
             do {
-                cx16.r9s = xx
-                while xx <= width-1 {
-                    if pget(xx as uword, yy as uword) as ubyte != cx16.r11L
-                        break
-                    xx++
-                }
-                if cx16.r9s!=xx
-                    horizontal_line(cx16.r9, yy as uword, xx-cx16.r9s as uword, cx16.r10L as bool)
-
+                fill_scanline_right()
                 push_stack(left, xx - 1, yy, dy)
                 if xx > x2 + 1
                     push_stack(x2 + 1, xx - 1, yy, -dy)
@@ -856,6 +839,70 @@ skip:
                 }
                 left = xx
             } until xx>x2
+        }
+
+        sub fill_scanline_left() -> bool {
+            ; TODO maybe this could use vera auto decrement, but that would require some clever masking calculations
+            cx16.r9s = xx
+            while xx >= 0 {
+                if pgetset()
+                    break
+                xx--
+            }
+            return xx==cx16.r9s
+        }
+
+        sub fill_scanline_right() {
+             ; TODO maybe this could use vera auto increment, but that would require some clever masking calculations
+             cx16.r9s = xx
+            while xx <= width-1 {
+                if pgetset()
+                    break
+                xx++
+            }
+        }
+
+        sub pgetset() -> bool {
+            ; test and optionally set a pixel
+            word @zp xpos = xx
+            %asm {{
+                lda  p8v_xpos
+                and  #7
+                pha     ; xbits
+            }}
+            xpos /= 8
+            if width==320
+                xpos += yy*(320/8) as uword
+            else
+                xpos += yy*(640/8) as uword
+
+            %asm {{
+                stz  cx16.VERA_CTRL
+                stz  cx16.VERA_ADDR_H
+                lda  p8v_xpos+1
+                sta  cx16.VERA_ADDR_M
+                lda  p8v_xpos
+                sta  cx16.VERA_ADDR_L
+                ply         ; xbits
+                lda  p8s_plot.p8v_maskbits,y
+                and  cx16.VERA_DATA0
+                beq  +
+                lda  #1
++
+                ; cx16.r11L = seed color to check against
+                eor  cx16.r11L
+                beq  +
+                rts
++               ; cx16.r10L = new color to set
+                lda  p8s_plot.p8v_maskbits,y
+                ldx  cx16.r10L
+                beq  +
+                tsb  cx16.VERA_DATA0
+                bra  ++
++               trb  cx16.VERA_DATA0
++               lda  #0
+                rts
+            }}
         }
     }
 

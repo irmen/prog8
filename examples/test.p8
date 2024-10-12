@@ -1,25 +1,42 @@
-%option no_sysinit, enable_floats
+%import monogfx
+%import textio
+%import math
+
+%option no_sysinit
 %zeropage basicsafe
 
-main {
-    sub start() {
-        ubyte[] array = [1,2,3]
-        ubyte[3] array2
-        float[] flarray = [1.1, 2.2, 3.3]
-        float[3] flarray2
-        word[] warray = [-2222,42,3333]
-        word[3] warray2
-        str[] names = ["apple", "banana", "tomato"]
-        str[3] names2
 
-        ; 8 array assignments -> 8 arraycopies:
-        array = [8,7,6]
-        array = array2
-        flarray = [99.9, 88.8, 77.7]
-        flarray = flarray2
-        warray = [4444,5555,6666]
-        warray = warray2
-        names = ["x1", "x2", "x3"]
-        names = names2
+main {
+
+    sub start() {
+        monogfx.lores()
+        demofill()
+    }
+
+    sub demofill() {
+        const uword offsetx = 0
+        const uword offsety = 0
+
+        monogfx.circle(offsetx+160, offsety+120, 110, true)
+        monogfx.rect(offsetx+180, offsety+5, 25, 190, true)
+        monogfx.line(offsetx+100, offsety+150, offsetx+240, offsety+10, true)
+        monogfx.line(offsetx+101, offsety+150, offsetx+241, offsety+10, true)
+        monogfx.rect(offsetx+150, offsety+130, 10, 100, true)
+
+        sys.wait(30)
+
+        cbm.SETTIM(0,0,0)
+        monogfx.fill(offsetx+100,offsety+100,true)
+        monogfx.fill(offsetx+100,offsety+100,false)
+        uword duration = cbm.RDTIM16()
+        sys.wait(30)
+
+        monogfx.textmode()
+        txt.nl()
+        txt.print_uw(duration)
+        txt.print(" jiffies\n")
+
+        ; before optimizations: ~166 jiffies
+
     }
 }
