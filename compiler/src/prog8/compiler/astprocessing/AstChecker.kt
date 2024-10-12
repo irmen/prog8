@@ -16,7 +16,7 @@ import kotlin.io.path.Path
 import kotlin.math.floor
 
 /**
- * Semantic analysis.
+ * Semantic analysis and error reporting.
  */
 internal class AstChecker(private val program: Program,
                           private val errors: IErrorReporter,
@@ -666,7 +666,7 @@ internal class AstChecker(private val program: Program,
                     if (assignment.value !is BinaryExpression && assignment.value !is PrefixExpression && assignment.value !is ContainmentCheck)
                         errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
                 } else {
-                    checkAssignmentCompatible(targetDatatype.getOrUndef(),
+                    checkAssignmentCompatible(assignTarget, targetDatatype.getOrUndef(),
                             sourceDatatype.getOrUndef(), assignment.value)
                 }
             }
@@ -697,6 +697,7 @@ internal class AstChecker(private val program: Program,
         }
 
         fun err(msg: String) = errors.err(msg, decl.position)
+        fun valueerr(msg: String) = errors.err(msg, decl.value?.position ?: decl.position)
 
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true)
@@ -717,11 +718,11 @@ internal class AstChecker(private val program: Program,
             if(decl.type== VarDeclType.MEMORY)
                 err("memory mapped array must have a size specification")
             if(decl.value==null) {
-                err("array variable is missing a size specification or an initialization value")
+                valueerr("array variable is missing a size specification or an initialization value")
                 return
             }
             if(decl.value is NumericLiteral) {
-                err("unsized array declaration cannot use a single literal initialization value")
+                valueerr("unsized array declaration cannot use a single literal initialization value")
                 return
             }
             if(decl.value is RangeExpression)
@@ -747,7 +748,7 @@ internal class AstChecker(private val program: Program,
                     }
                     else -> {
                         if(decl.type==VarDeclType.CONST) {
-                            err("const declaration needs a compile-time constant initializer value")
+                            valueerr("const declaration needs a compile-time constant initializer value")
                             super.visit(decl)
                             return
                         }
@@ -778,10 +779,10 @@ internal class AstChecker(private val program: Program,
                 val numvalue = decl.value as? NumericLiteral
                 if(numvalue!=null) {
                     if (!numvalue.type.isInteger || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
-                        err("memory address must be valid integer 0..\$ffff")
+                        valueerr("memory address must be valid integer 0..\$ffff")
                     }
                 } else {
-                    err("value of memory mapped variable can only be a constant, maybe use an address pointer type instead?")
+                    valueerr("value of memory mapped variable can only be a constant, maybe use an address pointer type instead?")
                 }
             }
         }
@@ -793,10 +794,10 @@ internal class AstChecker(private val program: Program,
                 if(decl.isArray) {
                     val eltDt = decl.datatype.elementType()
                     if(!(iDt istype eltDt))
-                        err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                        valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 } else {
                     if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool))
-                        err("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                        valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 }
             }
         }
@@ -845,7 +846,7 @@ internal class AstChecker(private val program: Program,
                 if(decl.type==VarDeclType.MEMORY)
                     err("strings can't be memory mapped")
                 else
-                    err("string var must be initialized with a string literal")
+                    valueerr("string var must be initialized with a string literal")
             }
         }
 
@@ -1008,9 +1009,11 @@ internal class AstChecker(private val program: Program,
         }
 
         if(array.parent is Assignment) {
+            val arraydt = array.inferType(program)
             val assignTarget = (array.parent as Assignment).target
-            if(!assignTarget.inferType(program).isArray)
-                errors.err("cannot assign array to a non-array variable", assignTarget.position)
+            val targetDt = assignTarget.inferType(program)
+            if(arraydt!=targetDt)
+                errors.err("value has incompatible type ($arraydt) for the variable ($targetDt)", array.position)
         }
         super.visit(array)
     }
@@ -1624,7 +1627,7 @@ internal class AstChecker(private val program: Program,
                             return err("boolean array length must be 1-256")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
                     return err("invalid boolean array size, must be 1-256")
@@ -1643,7 +1646,7 @@ internal class AstChecker(private val program: Program,
                             return err("byte array length must be 1-256")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
                     return err("invalid byte array size, must be 1-256")
@@ -1663,7 +1666,7 @@ internal class AstChecker(private val program: Program,
                             return err("array length must be 1-$maxLength")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                         return true
                     }
                     return err("invalid array size, must be 1-$maxLength")
@@ -1682,7 +1685,7 @@ internal class AstChecker(private val program: Program,
                             return err("float array length must be 1-51")
                         val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
                         if (arraySize != expectedSize)
-                            return err("initializer array size mismatch (expecting $expectedSize, got $arraySize)")
+                            return err("array size mismatch (expecting $expectedSize, got $arraySize)")
                     } else
                         return err("invalid float array size, must be 1-51")
 
@@ -1751,7 +1754,7 @@ internal class AstChecker(private val program: Program,
         return true
     }
 
-    private fun checkArrayValues(value: ArrayLiteral, type: DataType): Boolean {
+    private fun checkArrayValues(value: ArrayLiteral, targetDt: DataType): Boolean {
         val array = value.value.map {
             when (it) {
                 is NumericLiteral -> it.number.toInt()
@@ -1763,40 +1766,51 @@ internal class AstChecker(private val program: Program,
                     if(cast==null || !cast.isValid)
                         -9999999
                     else
-                        cast.valueOrZero().number.toInt()
+                        cast.valueOrZero().number
                 }
                 else -> -9999999
             }
         }
         val correct: Boolean
         when {
-            type.isUnsignedByteArray -> {
+            targetDt.isUnsignedByteArray -> {
                 correct = array.all { it in 0..255 }
             }
-            type.isSignedByteArray -> {
+            targetDt.isSignedByteArray -> {
                 correct = array.all { it in -128..127 }
             }
-            type.isUnsignedWordArray || type.isSplitUnsignedWordArray -> {
+            targetDt.isUnsignedWordArray || targetDt.isSplitUnsignedWordArray -> {
                 correct = array.all { (it in 0..65535) }
             }
-            type.isSignedWordArray || type.isSplitSignedWordArray -> {
+            targetDt.isSignedWordArray || targetDt.isSplitSignedWordArray -> {
                 correct = array.all { it in -32768..32767 }
             }
-            type.isBoolArray -> {
+            targetDt.isBoolArray -> {
                 correct = array.all { it==0 || it==1 }
             }
-            type.isFloatArray -> correct = true
-            else -> throw FatalAstException("invalid array type $type")
+            targetDt.isFloatArray -> correct = true
+            else -> throw FatalAstException("invalid type $targetDt")
         }
         if (!correct)
-            errors.err("array value out of range for type $type", value.position)
+            errors.err("array element out of range for type $targetDt", value.position)
         return correct
     }
 
-    private fun checkAssignmentCompatible(targetDatatype: DataType,
+    private fun checkAssignmentCompatible(target: AssignTarget,
+                                          targetDatatype: DataType,
                                           sourceDatatype: DataType,
                                           sourceValue: Expression) : Boolean {
         val position = sourceValue.position
+
+        if(sourceValue is ArrayLiteral && targetDatatype.isArray) {
+            val vardecl=target.identifier?.targetVarDecl(program)
+            val targetSize = vardecl?.arraysize?.constIndex()
+            if(targetSize!=null) {
+                if(sourceValue.value.size != targetSize) {
+                    errors.err("array size mismatch (expecting $targetSize, got ${sourceValue.value.size})", sourceValue.position)
+                }
+            }
+        }
 
         if(sourceValue is RangeExpression) {
             errors.err("can't assign a range value to something else", position)
@@ -1817,8 +1831,12 @@ internal class AstChecker(private val program: Program,
             targetDatatype.isFloat -> sourceDatatype.isNumeric
             targetDatatype.isString -> sourceDatatype.isString
             else -> {
-                errors.err("cannot assign new value to variable of type $targetDatatype", position)
-                false
+                if(targetDatatype.isArray && sourceValue is ArrayLiteral)
+                    true  // assigning array literal to an array variable is allowed, size and type are checked elsewhere
+                else {
+                    errors.err("cannot assign this value to variable of type $targetDatatype", position)
+                    false
+                }
             }
         }
 
@@ -1838,6 +1856,9 @@ internal class AstChecker(private val program: Program,
         }
         else if(targetDatatype.isUnsignedWord && sourceDatatype.isPassByRef) {
             // this is allowed: a pass-by-reference datatype into a uword (pointer value).
+        }
+        else if(sourceDatatype.isArray && targetDatatype.isArray) {
+            // this is allowed (assigning array to array)
         }
         else if(sourceDatatype.isBool && !targetDatatype.isBool) {
             errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)

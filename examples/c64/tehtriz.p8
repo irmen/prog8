@@ -11,7 +11,6 @@
 %import syslib
 %import textio
 %import math
-%import test_stack
 
 
 main {
@@ -68,9 +67,6 @@ waitkey:
             }
 
             drawScore()
-
-            ; txt.plot(0,0)
-            ; test_stack.test()
         }
 
         ubyte key

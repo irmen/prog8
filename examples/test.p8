@@ -1,37 +1,25 @@
-%import palette
-%import textio
-%option no_sysinit
+%option no_sysinit, enable_floats
+%zeropage basicsafe
 
 main {
     sub start() {
-        repeat 4 {
-            for cx16.r0L in 0 to 15 {
-                txt.color2(cx16.r0L, cx16.r0L)
-                txt.spc()
-                txt.spc()
-                txt.spc()
-                txt.spc()
-            }
-            txt.nl()
-        }
-        bool changed
-        uword[] colors = [
-            $f00, $800, $200, $000,
-            $f0f, $80f, $20f, $00f
-        ]
-        do {
-            sys.waitvsync()
-            sys.waitvsync()
-            changed = palette.fade_step_colors(0, 8, colors)
-        } until not changed
+        ubyte[] array = [1,2,3]
+        ubyte[3] array2
+        float[] flarray = [1.1, 2.2, 3.3]
+        float[3] flarray2
+        word[] warray = [-2222,42,3333]
+        word[3] warray2
+        str[] names = ["apple", "banana", "tomato"]
+        str[3] names2
 
-        sys.wait(60)
-        changed = false
-        do {
-            sys.waitvsync()
-            sys.waitvsync()
-            changed = palette.fade_step_multi(0, 8, $fff)
-        } until not changed
-        sys.wait(60)
+        ; 8 array assignments -> 8 arraycopies:
+        array = [8,7,6]
+        array = array2
+        flarray = [99.9, 88.8, 77.7]
+        flarray = flarray2
+        warray = [4444,5555,6666]
+        warray = warray2
+        names = ["x1", "x2", "x3"]
+        names = names2
     }
 }

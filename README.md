@@ -54,27 +54,23 @@ What does Prog8 provide?
 ------------------------
 
 - all advantages of a higher level language over having to write assembly code manually
-- programs run very fast because compilation to native machine code
+- programs run very fast because it's compiled to native machine code
 - code often is smaller and faster than equivalent C code compiled with CC65 or even LLVM-MOS
-- modularity, symbol scoping, subroutines
+- modularity, symbol scoping, subroutines. No need for forward declarations.
 - various data types other than just bytes (16-bit words, floats, strings)
-- floating point math is supported if the target system provides floating point library routines (C64 and Cx16 both do)
+- floating point math is supported on certain targets
 - strings can contain escaped characters but also many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \, {, } and | are also accepted and converted to the closest petscii equivalents.
 - automatic static variable allocations, automatic string and array variables and string sharing
-- subroutines with input parameters and result values
 - high-level program optimizations
-- no need for forward declarations
-- small program boilerplate/compilersupport overhead
 - programs can be run multiple times without reloading because of automatic variable (re)initializations.
-- conditional branches
+- conditional branches that map 1:1 to cpu status flags
 - ``when`` statement to provide a concise jump table alternative to if/elseif chains
 - ``in`` expression for concise and efficient multi-value/containment check 
 - several specialized built-in functions such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
 - various powerful built-in libraries to do I/O, number conversions, graphics and more  
-- convenience abstractions for low level aspects such as ZeroPage handling, program startup, explicit memory addresses
 - inline assembly allows you to have full control when every cycle or byte matters
-- supports the sixteen 'virtual' 16-bit registers R0 - R15 from the Commander X16, and provides them also on the C64.
-- encode strings and characters into petscii or screencodes or even other encodings, as desired (C64/Cx16)
+- supports the sixteen 'virtual' 16-bit registers R0 - R15 from the Commander X16 (also available on other targets)
+- encode strings and characters into petscii or screencodes or even other encodings
 
 *Rapid edit-compile-run-debug cycle:*
 

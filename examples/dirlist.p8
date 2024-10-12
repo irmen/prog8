@@ -1,7 +1,6 @@
 %import textio
 %import diskio
 %zeropage basicsafe
-%import test_stack
 %option no_sysinit
 
 ; Note: this program can be compiled for multiple target systems.
@@ -53,7 +52,5 @@ main {
         } else {
             txt.print("error\n")
         }
-
-        ; test_stack.test()
     }
 }

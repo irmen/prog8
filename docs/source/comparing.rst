@@ -34,6 +34,8 @@ Data types
   You'll have to add explicit casts to increase the size of the value if required.
   For example when adding two byte variables having values 100 and 200, the result won't be 300, because that doesn't fit in a byte. It will be 44.
   You'll have to cast one or both of the *operands* to a word type first if you want to accomodate the actual result value of 300.
+- Arrays and strings have a limited size and the allocated size never changes
+- Arrays and strings are mutable
 
 
 Variables
@@ -85,10 +87,10 @@ Foreign function interface (external/ROM calls)
 
 Optimizations
 -------------
-- Prog8 contains many compiler optimizations to generate efficent code, but also lacks many optimizations that modern compilers do have.
+- Prog8 contains many compiler optimizations to generate efficient code, but also lacks many optimizations that modern compilers do have.
   While empirical evidence shows that Prog8 generates more efficent code than some C compilers that also target the same 8 bit systems,
-  it still is limited in how sophisticated the optimizations are that it performs on your code.
-- For time critical code, it may be worth it to inspect the generated assembly code to see if you could write things differently
+  the optimizations it makes on your code aren't super sophisticated.
+- For time critical code, it may be worth it to inspect the generated assembly code to see if you can write things differently
   to help the compiler generate more efficient code (or even replace it with hand written inline assembly altogether).
   For example, if you repeat an expression multiple times it will be evaluated every time, so maybe you should store it
   in a variable instead and reuse that variable::

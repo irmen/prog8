@@ -757,6 +757,11 @@ internal_vload:
         }}
     }
 
+    ; note: There is no vsave_raw() routine because the Kernal doesn't have a VSAVE routine.
+    ;       You'll have to write your own loop that reads vram data and use
+    ;       cbm.CHROUT or cx16.MCIOUT to write it to an open output file.
+
+
     sub chdir(str path) {
         ; -- change current directory.
         list_filename[0] = 'c'

@@ -1,6 +1,5 @@
 %import floats
 %import textio
-%import test_stack
 %zeropage basicsafe
 
 ; Note: this program can be compiled for multiple target systems.
@@ -37,8 +36,6 @@ main {
             txt.print(" jiffies/fr = ")
             txt.print_ub(60/jiffies)
             txt.print(" fps")
-
-            ;test_stack.test()
         }
     }
 
