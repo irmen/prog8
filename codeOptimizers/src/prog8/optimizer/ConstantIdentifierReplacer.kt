@@ -392,10 +392,34 @@ internal class ConstantIdentifierReplacer(
         return noModifications
     }
 
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        // convert a range expression that is assigned to an array, to an array literal instead.
+        val range = assignment.value as? RangeExpression
+        if(range!=null) {
+            val targetDatatype = assignment.target.inferType(program)
+            if(targetDatatype.isArray) {
+                val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, targetDatatype.getOr(DataType.UNDEFINED),
+                    ZeropageWish.DONTCARE, null, "dummy", emptyList(),
+                    assignment.value, false, false, Position.DUMMY)
+                val replaceValue = createConstArrayInitializerValue(decl)
+                if(replaceValue!=null) {
+                    return listOf(IAstModification.ReplaceNode(assignment.value, replaceValue, assignment))
+                }
+            }
+        }
+        return noModifications
+    }
+
     private fun createConstArrayInitializerValue(decl: VarDecl): ArrayLiteral? {
 
         if(decl.type==VarDeclType.MEMORY)
             return null     // memory mapped arrays can never have an initializer value other than the address where they're mapped.
+
+        val rangeSize=(decl.value as? RangeExpression)?.size()
+        if(rangeSize!=null && rangeSize>65535) {
+            errors.err("range size overflow", decl.value!!.position)
+            return null
+        }
 
         // convert the initializer range expression from a range or int, to an actual array.
         when(decl.datatype) {

@@ -110,8 +110,8 @@ class TestVariables: FunSpec({
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "initialisation value has incompatible type"
-        errors.errors[1] shouldContain "initialisation value has incompatible type"
+        errors.errors[0] shouldContain "value has incompatible type"
+        errors.errors[1] shouldContain "value has incompatible type"
     }
 
     test("initialization of boolean array with single value") {

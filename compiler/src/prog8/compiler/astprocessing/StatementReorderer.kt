@@ -255,18 +255,17 @@ internal class StatementReorderer(
         if(assign.value is ArrayLiteral) {
             return  // invalid assignment of literals will be reported elsewhere
         }
-
         if(assign.value !is IdentifierReference) {
-            errors.err("invalid array value to assign to other array", assign.value.position)
-            return
+            return  // invalid assignment value will be reported elsewhere
         }
+
         val sourceIdent = assign.value as IdentifierReference
         val sourceVar = sourceIdent.targetVarDecl(program)!!
         if(!sourceVar.isArray) {
             errors.err("value must be an array", sourceIdent.position)
         } else {
             if (sourceVar.arraysize!!.constIndex() != targetVar.arraysize!!.constIndex())
-                errors.err("element count mismatch", assign.position)
+                errors.err("array size mismatch (expecting ${targetVar.arraysize!!.constIndex()}, got ${sourceVar.arraysize!!.constIndex()})", assign.value.position)
             val sourceEltDt = ArrayToElementTypes.getValue(sourceVar.datatype)
             val targetEltDt = ArrayToElementTypes.getValue(targetVar.datatype)
             if (!sourceEltDt.equalsSize(targetEltDt)) {

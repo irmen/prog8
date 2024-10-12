@@ -88,30 +88,28 @@ Features
 - provides a convenient and fast edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to this emulator.
 - the language looks like a mix of Python and C so should be quite easy to learn
-- Modular programming, scoping via modules, code blocks, and subroutines. No need for forward declarations.
-- Provide high level programming constructs but at the same time stay close to the metal;
+- Modular programming, scoping via module source files, code blocks, and subroutines. No need for forward declarations.
+- Provides high level programming constructs but at the same time stay close to the metal;
   still able to directly use memory addresses and ROM subroutines,
   and inline assembly to have full control when every register, cycle or byte matters
-- Subroutines with parameters and return values of various types
-- Complex nested expressions are possible
-- Variables are all allocated statically, no memory allocator overhead
+- Variables are all allocated statically, no memory allocation overhead
 - Conditional branches for status flags that map 1:1 to processor branch instructions for optimal efficiency
 - ``when`` statement to avoid if-else chains
 - ``in`` expression for concise and efficient multi-value/containment test
 - Several specialized built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
 - Various powerful built-in libraries to do I/O, number conversions, graphics and more
-- Floating point math is supported on select compiler targets.
+- Floating point math is supported on certain compiler targets.
 - Easy and highly efficient integration with external subroutines and ROM routines on the target systems.
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
 - Encode strings and characters into petscii or screencodes or even other encodings, as desired (C64/Cx16)
 - Identifiers can contain Unicode Letters, so ``knäckebröd``, ``приблизительно``, ``見せしめ`` and ``π`` are all valid identifiers.
 - Advanced code optimizations to make the resulting program smaller and faster
 - Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.
-- Supports the sixteen 'virtual' 16-bit registers R0 to R15 as defined on the Commander X16. These are also available on the other compilation targets!
+- Supports the sixteen 'virtual' 16-bit registers R0 to R15 as defined on the Commander X16. You can look at them as general purpose global variables. These are also available on the other compilation targets!
 - On the Commander X16: Support for low level system features such as Vera Fx, which includes 16x16 bits multiplication in hardware and fast memory copy and fill.
 - Many library routines are available across compiler targets. This means that as long as you only use standard Kernal
-  and core prog8 library routines, it is sometimes possible to compile the *exact same program* for different machines (just change the compilation target flag).
+  and core prog8 library routines, it is sometimes possible to compile the *exact same program* for different machines by just changing the compilation target flag.
 
 
 Code example

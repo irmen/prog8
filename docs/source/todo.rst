@@ -10,6 +10,7 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- improve detection that a variable is not read before being written so that initializing it to zero can be omitted  (only happens now if a vardecl is immediately followed by a for loop for instance)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)

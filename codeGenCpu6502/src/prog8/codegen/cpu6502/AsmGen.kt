@@ -104,7 +104,7 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                 is PtIdentifier -> parent.children[index] = node.prefix(parent, st)
                 is PtFunctionCall ->  throw AssemblyError("PtFunctionCall should be processed in their own list, last")
                 is PtJump -> parent.children[index] = node.prefix(parent, st)
-                is PtVariable -> parent.children[index] = node.prefix(st)
+                is PtVariable -> parent.children[index] = node.prefix(parent, st)
                 else -> throw AssemblyError("weird node to prefix $node")
             }
         }
@@ -135,7 +135,7 @@ private fun prefixScopedName(name: String, type: Char): String {
     return prefixed.joinToString(".")
 }
 
-private fun PtVariable.prefix(st: SymbolTable): PtVariable {
+private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
     name = prefixScopedName(name, 'v')
     if(value==null)
         return this
@@ -163,7 +163,9 @@ private fun PtVariable.prefix(st: SymbolTable): PtVariable {
                 else -> throw AssemblyError("weird array value element $elt")
             }
         }
-        PtVariable(name, type, zeropage, newValue, arraySize, position)
+        val result = PtVariable(name, type, zeropage, newValue, arraySize, position)
+        result.parent = parent
+        result
     }
     else this
 }

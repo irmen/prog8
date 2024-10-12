@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import prog8.code.ast.PtBuiltinFunctionCall
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
@@ -326,6 +327,81 @@ main {
         errors.errors[0] shouldContain "out of bounds"
         errors.errors[1] shouldContain "out of bounds"
         errors.errors[2] shouldContain "out of bounds"
+    }
+
+    test("array assignments should check for number of elements and element type correctness") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        ubyte[] array = 1 to 4
+        ubyte[] array2 = [1,2,3,4]
+        str[] names = ["apple", "banana", "tomato"]
+
+        array = [10,11,12,13]         ; ok!
+        array = 20 to 23              ; ok!
+        names = ["x1", "x2", "x3"]    ; ok!
+
+        ubyte[] array3 = [1,2,3,4000]       ; error: element type
+        array = 10 to 15                    ; error: array size
+        array = 1000 to 1003                ; error: element type
+        names = ["x1", "x2", "x3", "x4"]    ; error: array size
+        names = [1.1, 2.2, 3.3, 4.4]        ; error: array size AND element type
+        names = [1.1, 2.2, 999999.9]        ; error: element type
+        names = [1.1, 2.2, 9.9]             ; error: element type
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = true, errors = errors) shouldBe null
+        errors.errors.size shouldBe 8
+        errors.errors[0] shouldContain "incompatible type"
+        errors.errors[1] shouldContain "array size mismatch"
+        errors.errors[2] shouldContain "array element out of range"
+        errors.errors[3] shouldContain "array size mismatch"
+        errors.errors[4] shouldContain "array size mismatch"
+        errors.errors[5] shouldContain "value has incompatible type"
+        errors.errors[6] shouldContain "value has incompatible type"
+        errors.errors[7] shouldContain "value has incompatible type"
+    }
+
+    test("array assignments should work via array copy call") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        ubyte[] array = [1,2,3]
+        ubyte[3] array2
+        float[] flarray = [1.1, 2.2, 3.3]
+        float[3] flarray2
+        word[] warray = [-2222,42,3333]
+        word[3] warray2
+        str[] names = ["apple", "banana", "tomato"]
+        str[3] names2
+
+        ; 8 array assignments -> 8 arraycopies:
+        array = [8,7,6]
+        array = array2
+        flarray = [99.9, 88.8, 77.7]
+        flarray = flarray2
+        warray = [4444,5555,6666]
+        warray = warray2
+        names = ["x1", "x2", "x3"]
+        names = names2
+    }
+}"""
+        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val x = result.codegenAst!!.entrypoint()!!
+        (x.children[12] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
+        (x.children[13] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
+        (x.children[14] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
+        (x.children[15] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
+        (x.children[16] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
+        (x.children[17] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
+        (x.children[18] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
+        (x.children[19] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
     }
 })
 

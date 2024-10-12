@@ -312,9 +312,9 @@ Note that the various keywords for the data type and variable type (``byte``, ``
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
 
-It's possible to assign an array to another array; this will overwrite all elements in the target
-array with those in the source array. The number and types of elements have to match for this to work!
-For large arrays this is a slow operation because every element is copied over. It should probably be avoided.
+It is possible to assign an array (variable or array literal) to another array; this will overwrite all elements in the target
+array with those in the source array. The number of elements in the arrays and the data types have to match.
+For large arrays this is a slow operation because all values are copied over.
 
 Using the ``in`` operator you can easily check if a value is present in an array,
 example: ``if choice in [1,2,3,4] {....}``

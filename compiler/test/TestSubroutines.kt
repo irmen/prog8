@@ -33,7 +33,7 @@ class TestSubroutines: FunSpec({
         compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "type mismatch, was: STR expected: UBYTE"
-        errors.errors[1] shouldContain "initialisation value has incompatible type"
+        errors.errors[1] shouldContain "value has incompatible type"
     }
 
     test("stringParameter") {
