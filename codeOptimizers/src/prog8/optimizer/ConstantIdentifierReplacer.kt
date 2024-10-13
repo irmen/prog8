@@ -269,7 +269,6 @@ class VarConstantValueTypeAdjuster(
 
 
 // Replace all constant identifiers with their actual value,
-// and the array var initializer values and sizes.
 // This is needed because further constant optimizations depend on those.
 internal class ConstantIdentifierReplacer(
     private val program: Program,
@@ -422,107 +421,43 @@ internal class ConstantIdentifierReplacer(
             return null
         }
 
-        // convert the initializer range expression from a range or int, to an actual array.
-        // this is to allow initialization of arrays with a single value like  ubyte[10] array = 42
+        val rangeExpr = decl.value as? RangeExpression ?: return null
+
+        // convert the initializer range expression from a range, to an actual array literal.
+        val declArraySize = decl.arraysize?.constIndex()
+        val constRange = rangeExpr.toConstantIntegerRange()
+        if(constRange?.isEmpty()==true) {
+            if(constRange.first>constRange.last && constRange.step>=0)
+                errors.err("descending range with positive step", decl.value?.position!!)
+            else if(constRange.first<constRange.last && constRange.step<=0)
+                errors.err("ascending range with negative step", decl.value?.position!!)
+        }
         val dt = decl.datatype
         when {
             dt.isUnsignedByteArray || dt.isSignedByteArray || dt.isUnsignedWordArray || dt.isSignedWordArray -> {
-                val rangeExpr = decl.value as? RangeExpression
-                if(rangeExpr!=null) {
-                    val constRange = rangeExpr.toConstantIntegerRange()
-                    if(constRange?.isEmpty()==true) {
-                        if(constRange.first>constRange.last && constRange.step>=0)
-                            errors.err("descending range with positive step", decl.value?.position!!)
-                        else if(constRange.first<constRange.last && constRange.step<=0)
-                            errors.err("ascending range with negative step", decl.value?.position!!)
-                    }
-                    val declArraySize = decl.arraysize?.constIndex()
-                    if(declArraySize!=null && declArraySize!=rangeExpr.size())
-                        errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
-                    if(constRange!=null) {
-                        val rangeType = rangeExpr.inferType(program).getOr(DataType.forDt(BaseDataType.UBYTE))
-                        return if(rangeType.isByte) {
-                            ArrayLiteral(InferredTypes.InferredType.known(dt),
-                                constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
-                                position = decl.value!!.position)
-                        } else {
-                            require(rangeType.sub!=null)
-                            ArrayLiteral(InferredTypes.InferredType.known(dt),
-                                constRange.map { NumericLiteral(rangeType.sub!!.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
-                                position = decl.value!!.position)
-                        }
-                    }
-                }
-                val numericLv = decl.value as? NumericLiteral
-                if(numericLv!=null && numericLv.type == BaseDataType.FLOAT)
-                    errors.err("arraysize requires only integers here", numericLv.position)
-                val size = decl.arraysize?.constIndex() ?: return null
-                if (rangeExpr==null && numericLv!=null) {
-                    // arraysize initializer is empty or a single int, and we know the size; create the arraysize.
-                    val fillvalue = numericLv.number.toInt()
-                    when {
-                        dt.isUnsignedByteArray -> {
-                            if(fillvalue !in 0..255)
-                                errors.err("ubyte value overflow", numericLv.position)
-                        }
-                        dt.isSignedByteArray -> {
-                            if(fillvalue !in -128..127)
-                                errors.err("byte value overflow", numericLv.position)
-                        }
-                        dt.isUnsignedWordArray -> {
-                            if(fillvalue !in 0..65535)
-                                errors.err("uword value overflow", numericLv.position)
-                        }
-                        dt.isSignedWordArray -> {
-                            if(fillvalue !in -32768..32767)
-                                errors.err("word value overflow", numericLv.position)
-                        }
-                        else -> {}
-                    }
-                    // create the array itself, filled with the fillvalue.
-                    val array = Array(size) {fillvalue}.map { NumericLiteral(dt.elementType().dt, it.toDouble(), numericLv.position) }.toTypedArray<Expression>()
-                    return ArrayLiteral(InferredTypes.InferredType.known(dt), array, position = numericLv.position)
-                }
-            }
-            dt.isFloatArray -> {
-                val rangeExpr = decl.value as? RangeExpression
-                if(rangeExpr!=null) {
-                    // convert the initializer range expression to an actual array of floats
-                    val declArraySize = decl.arraysize?.constIndex()
-                    if(declArraySize!=null && declArraySize!=rangeExpr.size())
-                        errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
-                    val constRange = rangeExpr.toConstantIntegerRange()
-                    if(constRange!=null) {
-                        return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT)),
-                            constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                if(declArraySize!=null && declArraySize!=rangeExpr.size())
+                    errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
+                if(constRange!=null) {
+                    val rangeType = rangeExpr.inferType(program).getOr(DataType.forDt(BaseDataType.UBYTE))
+                    return if(rangeType in ByteDatatypes) {
+                        ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
+                            constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                            position = decl.value!!.position)
+                    } else {
+                        require(rangeType.sub!=null)
+                        ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
+                            constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     }
                 }
-
-                val numericLv = decl.value as? NumericLiteral
-                val size = decl.arraysize?.constIndex() ?: return null
-                if(rangeExpr==null && numericLv!=null) {
-                    // arraysize initializer is a single int, and we know the array size.
-                    val fillvalue = numericLv.number
-                    if (fillvalue < options.compTarget.machine.FLOAT_MAX_NEGATIVE || fillvalue > options.compTarget.machine.FLOAT_MAX_POSITIVE)
-                        errors.err("float value overflow", numericLv.position)
-                    else {
-                        val array = Array(size) {fillvalue}.map { NumericLiteral(BaseDataType.FLOAT, it, numericLv.position) }.toTypedArray<Expression>()
-                        return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT)), array, position = numericLv.position)
-                    }
-                }
             }
-            dt.isBoolArray -> {
-                val size = decl.arraysize?.constIndex() ?: return null
-                val numericLv = decl.value as? NumericLiteral
-                if(numericLv!=null) {
-                    // arraysize initializer is a single value, and we know the array size.
-                    if(numericLv.type!=BaseDataType.BOOL) {
-                        errors.err("initializer value is not a boolean", numericLv.position)
-                        return null
-                    }
-                    val array = Array(size) {numericLv.number}.map { NumericLiteral(BaseDataType.BOOL, it, numericLv.position) }.toTypedArray<Expression>()
-                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.BOOL)), array, position = numericLv.position)
+            dt.isFloatArray -> {
+                if(declArraySize!=null && declArraySize!=rangeExpr.size())
+                    errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
+                if(constRange!=null) {
+                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_F),
+                        constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                        position = decl.value!!.position)
                 }
             }
             else -> return null

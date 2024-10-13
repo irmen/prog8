@@ -116,6 +116,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "amiga",
             "audioroutines",
             "automatons",
+            "balloonflight",
             "bdmusic",
             "bobs",
             "bubbleuniverse",

@@ -4,7 +4,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.code.ast.PtBuiltinFunctionCall
+import io.kotest.matchers.types.instanceOf
+import prog8.code.ast.*
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
@@ -147,25 +148,6 @@ main {
         lda  p8v_sw_msb
     }}
   }
-}"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
-    }
-
-    test("split array assignments") {
-        val text = """
-main {
-    sub start() {
-        str name1 = "name1"
-        str name2 = "name2"
-        uword[] @split names = [name1, name2, "name3"]
-        uword[] @split names2 = [name1, name2, "name3"]
-        uword[] addresses = [0,0,0]
-        names = [1111,2222,3333]
-        addresses = names
-        names = addresses
-        names2 = names
-    } 
 }"""
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
@@ -329,79 +311,94 @@ main {
         errors.errors[2] shouldContain "out of bounds"
     }
 
-    test("array assignments should check for number of elements and element type correctness") {
+    test("array and string initializer with multiplication") {
         val src="""
 %option enable_floats
 
 main {
     sub start() {
-        ubyte[] array = 1 to 4
-        ubyte[] array2 = [1,2,3,4]
-        str[] names = ["apple", "banana", "tomato"]
+        str name = "xyz" * 3
+        bool[3] boolarray   = [true] * 3
+        ubyte[3] bytearray  = [42] * 3
+        uword[3] wordarray  = [5555] * 3
+        float[3] floatarray = [123.45] * 3
+    }
+}"""
+        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val x = result.codegenAst!!.entrypoint()!!
+        x.children.size shouldBe 6
+        ((x.children[0] as PtVariable).value as PtString).value shouldBe "xyzxyzxyz"
+        val array1 = (x.children[1] as PtVariable).value as PtArray
+        val array2 = (x.children[2] as PtVariable).value as PtArray
+        val array3 = (x.children[3] as PtVariable).value as PtArray
+        val array4 = (x.children[4] as PtVariable).value as PtArray
+        array1.children.map { (it as PtBool).value } shouldBe listOf(true, true, true)
+        array2.children.map { (it as PtNumber).number } shouldBe listOf(42, 42, 42)
+        array3.children.map { (it as PtNumber).number } shouldBe listOf(5555, 5555, 5555)
+        array4.children.map { (it as PtNumber).number } shouldBe listOf(123.45, 123.45, 123.45)
+    }
 
-        array = [10,11,12,13]         ; ok!
-        array = 20 to 23              ; ok!
-        names = ["x1", "x2", "x3"]    ; ok!
+    test("array initializer with range") {
+        val src="""
+%option enable_floats
 
-        ubyte[] array3 = [1,2,3,4000]       ; error: element type
-        array = 10 to 15                    ; error: array size
-        array = 1000 to 1003                ; error: element type
-        names = ["x1", "x2", "x3", "x4"]    ; error: array size
-        names = [1.1, 2.2, 3.3, 4.4]        ; error: array size AND element type
-        names = [1.1, 2.2, 999999.9]        ; error: element type
-        names = [1.1, 2.2, 9.9]             ; error: element type
+main {
+    sub start() {
+        ubyte[3] bytearray2 = 10 to 12
+        uword[3] wordarray2 = 5000 to 5002
+        float[3] floatarray2 = 100 to 102
+    }
+}"""
+        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val x = result.codegenAst!!.entrypoint()!!
+        x.children.size shouldBe 4
+        val array1 = (x.children[0] as PtVariable).value as PtArray
+        val array2 = (x.children[1] as PtVariable).value as PtArray
+        val array3 = (x.children[2] as PtVariable).value as PtArray
+        array1.children.map { (it as PtNumber).number } shouldBe listOf(10, 11, 12)
+        array2.children.map { (it as PtNumber).number } shouldBe listOf(5000, 5001, 5002)
+        array3.children.map { (it as PtNumber).number } shouldBe listOf(100, 101, 102)
+    }
+
+    test("identifiers in array literals getting implicit address-of") {
+        val src="""
+main {
+    sub start() {
+label:
+        str @shared name = "name"
+        uword[] @shared array1 = [name, label, start, main]
+        uword[] @shared array2 = [&name, &label, &start, &main]
+    }
+}"""
+        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val x = result.codegenAst!!.entrypoint()!!
+        x.children.size shouldBe 5
+        val array1 = (x.children[1] as PtVariable).value as PtArray
+        val array2 = (x.children[2] as PtVariable).value as PtArray
+        array1.children.forEach {
+            it shouldBe instanceOf<PtAddressOf>()
+        }
+        array2.children.forEach {
+            it shouldBe instanceOf<PtAddressOf>()
+        }
+    }
+
+    test("variable identifiers in array literals not getting implicit address-of") {
+        val src="""
+main {
+    sub start() {
+label:
+        str @shared name = "name"
+        ubyte @shared bytevar
+        uword[] @shared array1 = [cx16.r0]  ; error, is variables
+        uword[] @shared array2 = [bytevar]  ; error, is variables
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = true, errors = errors) shouldBe null
-        errors.errors.size shouldBe 8
-        errors.errors[0] shouldContain "incompatible type"
-        errors.errors[1] shouldContain "array size mismatch"
-        errors.errors[2] shouldContain "array element out of range"
-        errors.errors[3] shouldContain "array size mismatch"
-        errors.errors[4] shouldContain "array size mismatch"
-        errors.errors[5] shouldContain "value has incompatible type"
-        errors.errors[6] shouldContain "value has incompatible type"
-        errors.errors[7] shouldContain "value has incompatible type"
-    }
-
-    test("array assignments should work via array copy call") {
-        val src="""
-%option enable_floats
-
-main {
-    sub start() {
-        ubyte[] array = [1,2,3]
-        ubyte[3] array2
-        float[] flarray = [1.1, 2.2, 3.3]
-        float[3] flarray2
-        word[] warray = [-2222,42,3333]
-        word[3] warray2
-        str[] names = ["apple", "banana", "tomato"]
-        str[3] names2
-
-        ; 8 array assignments -> 8 arraycopies:
-        array = [8,7,6]
-        array = array2
-        flarray = [99.9, 88.8, 77.7]
-        flarray = flarray2
-        warray = [4444,5555,6666]
-        warray = warray2
-        names = ["x1", "x2", "x3"]
-        names = names2
-    }
-}"""
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
-        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
-        val x = result.codegenAst!!.entrypoint()!!
-        (x.children[12] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
-        (x.children[13] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
-        (x.children[14] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
-        (x.children[15] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
-        (x.children[16] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
-        (x.children[17] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
-        (x.children[18] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
-        (x.children[19] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
+        compileText(C64Target(), false, src, writeAssembly = true, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "contains non-constant"
+        errors.errors[1] shouldContain "contains non-constant"
     }
 })
 

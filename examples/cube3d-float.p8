@@ -12,9 +12,9 @@ main {
     float[] zcoor = [ -1.0,  1.0, -1.0,  1.0, -1.0,  1.0, -1.0, 1.0 ]
 
     ; storage for rotated coordinates
-    float[len(xcoor)] rotatedx=0.0
-    float[len(ycoor)] rotatedy=0.0
-    float[len(zcoor)] rotatedz=-1.0
+    float[len(xcoor)] rotatedx
+    float[len(ycoor)] rotatedy
+    float[len(zcoor)] rotatedz
 
     sub start()  {
         float time=0.0
