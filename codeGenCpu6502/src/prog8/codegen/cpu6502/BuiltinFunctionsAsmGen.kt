@@ -1,7 +1,5 @@
 package prog8.codegen.cpu6502
 
-import prog8.code.StMemVar
-import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
@@ -71,99 +69,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
             "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE, resultRegister)
             "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD, resultRegister)
-            "prog8_lib_arraycopy" -> funcArrayCopy(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
-    }
-
-    private fun funcArrayCopy(fcall: PtBuiltinFunctionCall) {
-        val source = fcall.args[0] as PtIdentifier
-        val target = fcall.args[1] as PtIdentifier
-
-        val numElements = when(val sourceSymbol = asmgen.symbolTable.lookup(source.name)) {
-            is StStaticVariable -> sourceSymbol.length!!
-            is StMemVar -> sourceSymbol.length!!
-            else -> 0
-        }
-        val sourceAsm = asmgen.asmVariableName(source)
-        val targetAsm = asmgen.asmVariableName(target)
-
-        if(source.type in SplitWordArrayTypes && target.type in SplitWordArrayTypes) {
-            // split -> split words (copy lsb and msb arrays separately)
-            asmgen.out("""
-                lda  #<${sourceAsm}_lsb
-                ldy  #>${sourceAsm}_lsb
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1
-                lda  #<${targetAsm}_lsb
-                ldy  #>${targetAsm}_lsb
-                sta  P8ZP_SCRATCH_W2
-                sty  P8ZP_SCRATCH_W2+1
-                ldy  #${numElements and 255}
-                jsr  prog8_lib.memcopy_small
-                lda  #<${sourceAsm}_msb
-                ldy  #>${sourceAsm}_msb
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1
-                lda  #<${targetAsm}_msb
-                ldy  #>${targetAsm}_msb
-                sta  P8ZP_SCRATCH_W2
-                sty  P8ZP_SCRATCH_W2+1
-                ldy  #${numElements and 255}
-                jsr  prog8_lib.memcopy_small""")
-        }
-        else if(source.type in SplitWordArrayTypes) {
-            // split word array to normal word array (copy lsb and msb arrays separately)
-            require(target.type==DataType.ARRAY_UW || target.type==DataType.ARRAY_W)
-            asmgen.out("""
-                lda  #<${sourceAsm}_lsb
-                ldy  #>${sourceAsm}_lsb
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1
-                lda  #<${sourceAsm}_msb
-                ldy  #>${sourceAsm}_msb
-                sta  P8ZP_SCRATCH_W2
-                sty  P8ZP_SCRATCH_W2+1
-                lda  #<${targetAsm}
-                ldy  #>${targetAsm}
-                ldx  #${numElements and 255}
-                jsr  prog8_lib.arraycopy_split_to_normal_words""")
-        }
-        else if(target.type in SplitWordArrayTypes) {
-            // normal word array to split array
-            require(source.type==DataType.ARRAY_UW || source.type==DataType.ARRAY_W)
-            asmgen.out("""
-                lda  #<${targetAsm}_lsb
-                ldy  #>${targetAsm}_lsb
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1
-                lda  #<${targetAsm}_msb
-                ldy  #>${targetAsm}_msb
-                sta  P8ZP_SCRATCH_W2
-                sty  P8ZP_SCRATCH_W2+1
-                lda  #<${sourceAsm}
-                ldy  #>${sourceAsm}
-                ldx  #${numElements and 255}
-                jsr  prog8_lib.arraycopy_normal_to_split_words""")
-        }
-        else {
-            // normal array to array copy, various element types
-            val eltsize = asmgen.options.compTarget.memorySize(ArrayToElementTypes.getValue(source.type))
-            val numBytes = numElements * eltsize
-            asmgen.out("""
-                lda  #<${sourceAsm}
-                ldy  #>${sourceAsm}
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1
-                lda  #<${targetAsm}
-                ldy  #>${targetAsm}
-                sta  P8ZP_SCRATCH_W2
-                sty  P8ZP_SCRATCH_W2+1
-                ldy  #${numBytes and 255}
-                jsr  prog8_lib.memcopy_small""")
-        }
     }
 
     private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataType, resultRegister: RegisterOrPair?) {
@@ -1355,22 +1264,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         }
-    }
-
-    private fun outputAddressAndLengthOfArray(arg: PtIdentifier) {
-        // address goes in P8ZP_SCRATCH_W1,  number of elements in A
-        val numElements = when(val symbol = asmgen.symbolTable.lookup(arg.name)) {
-            is StStaticVariable -> symbol.length!!
-            is StMemVar -> symbol.length!!
-            else -> 0
-        }
-        val identifierName = asmgen.asmVariableName(arg)
-        asmgen.out("""
-                    lda  #<$identifierName
-                    ldy  #>$identifierName
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #${numElements and 255}""")
     }
 
     private fun translateArguments(call: PtBuiltinFunctionCall, scope: IPtSubroutine?) {

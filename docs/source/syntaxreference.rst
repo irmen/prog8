@@ -511,8 +511,6 @@ the downto variant to avoid having to specify the step as well::
     xx = 10
     aa to xx                 ; range of 5, 6, 7, 8, 9, 10
 
-    byte[] array = 10 to 13  ; sets the array to [10, 11, 12, 13]
-
     for  i  in  0 to 127  {
         ; i loops 0, 1, 2, ... 127
     }

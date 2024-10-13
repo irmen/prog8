@@ -25,7 +25,7 @@ main {
         for y in 32 to 199+32 {
             cx16.FB_cursor_position((320-len(cells))/2,y)
             cx16.FB_set_pixels(cells, len(cells))
-            cells_previous = cells
+            sys.memcopy(cells, cells_previous, sizeof(cells))
             ubyte @zp x
             for x in 0 to len(cells)-1 {
                 cells[x] = generate(x)         ; next generation

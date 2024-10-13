@@ -1813,14 +1813,9 @@ internal class AstChecker(private val program: Program,
                                           sourceValue: Expression) : Boolean {
         val position = sourceValue.position
 
-        if(sourceValue is ArrayLiteral && targetDatatype in ArrayDatatypes) {
-            val vardecl=target.identifier?.targetVarDecl(program)
-            val targetSize = vardecl?.arraysize?.constIndex()
-            if(targetSize!=null) {
-                if(sourceValue.value.size != targetSize) {
-                    errors.err("array size mismatch (expecting $targetSize, got ${sourceValue.value.size})", sourceValue.position)
-                }
-            }
+        if(sourceValue is ArrayLiteral || targetDatatype in ArrayDatatypes) {
+            errors.err("cannot assign arrays directly. Maybe use sys.memcopy(src, tgt, sizeof(tgt)) instead.", target.position)
+            return false
         }
 
         if(sourceValue is RangeExpression) {
@@ -1841,7 +1836,7 @@ internal class AstChecker(private val program: Program,
             DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype == DataType.STR
-            else -> targetDatatype in ArrayDatatypes && sourceValue is ArrayLiteral
+            else -> false
         }
 
         if(result)

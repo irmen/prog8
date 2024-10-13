@@ -1,9 +1,7 @@
 TODO
 ====
 
-- should the array-to-array assignment support be removed and instead require an explicit copy function call? What prog8_lib_arraycopy() now does. Or just use memcopy.
-- should we add a cleararray builtin function that can efficiently set every element in the array to the given value
-
+- fixup syscall list UNUSED_SYSCALL_1 and 2 (numbers shift!)
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
