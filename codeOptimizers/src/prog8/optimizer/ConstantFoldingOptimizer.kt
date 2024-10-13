@@ -122,7 +122,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                         errors.warn("resulting array has length zero", part.position)
                     val tmp = mutableListOf<Expression>()
                     repeat(rightconst.number.toInt()) {
-                        tmp += part.value
+                        part.value.forEach { tmp += it.copy() }
                     }
                     val newArray = ArrayLiteral(part.type, tmp.toTypedArray(), part.position)
                     return listOf(IAstModification.ReplaceNode(expr, newArray, parent))

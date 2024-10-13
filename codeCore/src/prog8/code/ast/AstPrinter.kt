@@ -24,6 +24,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtArray -> {
                 val valuelist = node.children.map {
                     when (it) {
+                        is PtBool -> it.toString()
                         is PtNumber -> it.number.toString()
                         is PtIdentifier -> it.name
                         else -> "?"

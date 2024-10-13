@@ -1,7 +1,6 @@
 TODO
 ====
 
-- word arrays (after ast processing) should no longer contain identifiers, these should have been replaced by &identifier.
 - should the array-to-array assignment support be removed and instead require an explicit copy function call? What prog8_lib_arraycopy() now does. Or just use memcopy.
 - should we add a cleararray builtin function that can efficiently set every element in the array to the given value
 
@@ -14,6 +13,7 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- keep boolean array intact in IR so that it might be represented as a bitmask in the resulting code (8 times storage improvement)
 - improve detection that a variable is not read before being written so that initializing it to zero can be omitted  (only happens now if a vardecl is immediately followed by a for loop for instance)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Can we support signed % (remainder) somehow?

@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.types.instanceOf
 import prog8.code.StStaticVariable
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
@@ -456,6 +457,46 @@ main {
         array3.children.map { (it as PtNumber).number } shouldBe listOf(100, 101, 102)
     }
 
+    test("identifiers in array literals getting implicit address-of") {
+        val src="""
+main {
+    sub start() {
+label:
+        str @shared name = "name"
+        uword[] @shared array1 = [name, label, start, main]
+        uword[] @shared array2 = [&name, &label, &start, &main]
+    }
+}"""
+        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val x = result.codegenAst!!.entrypoint()!!
+        x.children.size shouldBe 5
+        val array1 = (x.children[1] as PtVariable).value as PtArray
+        val array2 = (x.children[2] as PtVariable).value as PtArray
+        array1.children.forEach {
+            it shouldBe instanceOf<PtAddressOf>()
+        }
+        array2.children.forEach {
+            it shouldBe instanceOf<PtAddressOf>()
+        }
+    }
+
+    test("variable identifiers in array literals not getting implicit address-of") {
+        val src="""
+main {
+    sub start() {
+label:
+        str @shared name = "name"
+        ubyte @shared bytevar
+        uword[] @shared array1 = [cx16.r0]  ; error, is variables
+        uword[] @shared array2 = [bytevar]  ; error, is variables
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = true, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "contains non-constant"
+        errors.errors[1] shouldContain "contains non-constant"
+    }
 
     fun getTestOptions(): CompilationOptions {
         val target = VMTarget()

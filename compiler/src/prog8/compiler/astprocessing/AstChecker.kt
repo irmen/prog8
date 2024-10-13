@@ -1010,19 +1010,8 @@ internal class AstChecker(private val program: Program,
             checkValueTypeAndRangeArray(array.type.getOr(DataType.UNDEFINED), arrayspec, array)
         }
 
-        fun isPassByReferenceElement(e: Expression): Boolean {
-            if(e is IdentifierReference) {
-                val decl = e.targetVarDecl(program)
-                return if(decl!=null)
-                    decl.datatype in PassByReferenceDatatypes
-                else
-                    true     // is probably a symbol that needs addr-of
-            }
-            return e is StringLiteral
-        }
-
         if(array.parent is VarDecl) {
-            if (!array.value.all { it is NumericLiteral || it is AddressOf || isPassByReferenceElement(it) })
+            if (!array.value.all { it is NumericLiteral || it is AddressOf })
                 errors.err("array literal for variable initialization contains non-constant elements", array.position)
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
@@ -1036,6 +1025,7 @@ internal class AstChecker(private val program: Program,
             if(arraydt!=targetDt)
                 errors.err("value has incompatible type ($arraydt) for the variable ($targetDt)", array.position)
         }
+
         super.visit(array)
     }
 
