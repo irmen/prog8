@@ -1,10 +1,9 @@
 TODO
 ====
 
-- remove support for array variable initialization with a single value, just require explicitly creating the value array   [42] * 10   (which is what the compiler now does for you implicitly)
+- word arrays (after ast processing) should no longer contain identifiers, these should have been replaced by &identifier.
 - should the array-to-array assignment support be removed and instead require an explicit copy function call? What prog8_lib_arraycopy() now does. Or just use memcopy.
 - should we add a cleararray builtin function that can efficiently set every element in the array to the given value
-
 
 
 Improve register load order in subroutine call args assignments:

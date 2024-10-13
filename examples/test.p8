@@ -6,22 +6,13 @@
 
 main {
 
-    str name = "xyz" * 3
-    bool[3] boolarray   = true
-    ubyte[3] bytearray  = 52
-    uword[3] wordarray  = 5544
-    float[3] floatarray = 123.45
+    sub arrayinit_with_multiplier() {
+        str name = "xyz" * 3
+        bool[3] boolarray   = [true] * 3
+        ubyte[3] bytearray  = [42] * 3
+        uword[3] wordarray  = [5555] * 3
+        float[3] floatarray = [123.45] * 3
 
-    ubyte[3] bytearray2 = 10 to 12
-    uword[3] wordarray2 = 5540 to 5542
-    float[3] floatarray2 = 123 to 125
-
-    bool[3] boolarray3
-    ubyte[3] bytearray3
-    uword[3] wordarray3
-    float[3] floatarray3
-
-    sub start() {
         txt.print(name)
         txt.nl()
         for cx16.r1L in 0 to 2 {
@@ -36,6 +27,12 @@ main {
         }
         txt.nl()
         txt.nl()
+    }
+
+    sub arrayinit_with_range() {
+        ubyte[3] bytearray2 = 10 to 12
+        uword[3] wordarray2 = 5000 to 5002
+        float[3] floatarray2 = 100 to 102
 
         for cx16.r1L in 0 to 2 {
             txt.print_ub(bytearray2[cx16.r1L])
@@ -47,6 +44,20 @@ main {
         }
         txt.nl()
         txt.nl()
+    }
+
+    sub arrayassign() {
+        bool[4] boolarray3
+        ubyte[4] bytearray3
+        uword[4] wordarray3
+        float[4] floatarray3
+
+        boolarray3 = [true] *4
+        bytearray3 = [42]*4
+        wordarray3 = [999]*4
+        wordarray3 = [&bytearray3]*4
+        wordarray3 = [bytearray3]*4
+        floatarray3 = [99.77]*4
 
         for cx16.r1L in 0 to 2 {
             txt.print_bool(boolarray3[cx16.r1L])
@@ -59,5 +70,11 @@ main {
             txt.nl()
         }
         txt.nl()
+    }
+
+    sub start() {
+        arrayinit_with_multiplier()
+        arrayinit_with_range()
+        arrayassign()
     }
 }

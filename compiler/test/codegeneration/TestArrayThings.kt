@@ -4,7 +4,10 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.code.ast.PtBuiltinFunctionCall
+import prog8.code.StStaticVariable
+import prog8.code.SymbolTableMaker
+import prog8.code.ast.*
+import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
@@ -403,5 +406,139 @@ main {
         (x.children[18] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
         (x.children[19] as PtBuiltinFunctionCall).name shouldBe "prog8_lib_arraycopy"
     }
+
+    test("array and string initializer with multiplication") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        str name = "xyz" * 3
+        bool[3] boolarray   = [true] * 3
+        ubyte[3] bytearray  = [42] * 3
+        uword[3] wordarray  = [5555] * 3
+        float[3] floatarray = [123.45] * 3
+    }
+}"""
+        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val x = result.codegenAst!!.entrypoint()!!
+        x.children.size shouldBe 6
+        ((x.children[0] as PtVariable).value as PtString).value shouldBe "xyzxyzxyz"
+        val array1 = (x.children[1] as PtVariable).value as PtArray
+        val array2 = (x.children[2] as PtVariable).value as PtArray
+        val array3 = (x.children[3] as PtVariable).value as PtArray
+        val array4 = (x.children[4] as PtVariable).value as PtArray
+        array1.children.map { (it as PtBool).value } shouldBe listOf(true, true, true)
+        array2.children.map { (it as PtNumber).number } shouldBe listOf(42, 42, 42)
+        array3.children.map { (it as PtNumber).number } shouldBe listOf(5555, 5555, 5555)
+        array4.children.map { (it as PtNumber).number } shouldBe listOf(123.45, 123.45, 123.45)
+    }
+
+    test("array initializer with range") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        ubyte[3] bytearray2 = 10 to 12
+        uword[3] wordarray2 = 5000 to 5002
+        float[3] floatarray2 = 100 to 102
+    }
+}"""
+        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val x = result.codegenAst!!.entrypoint()!!
+        x.children.size shouldBe 4
+        val array1 = (x.children[0] as PtVariable).value as PtArray
+        val array2 = (x.children[1] as PtVariable).value as PtArray
+        val array3 = (x.children[2] as PtVariable).value as PtArray
+        array1.children.map { (it as PtNumber).number } shouldBe listOf(10, 11, 12)
+        array2.children.map { (it as PtNumber).number } shouldBe listOf(5000, 5001, 5002)
+        array3.children.map { (it as PtNumber).number } shouldBe listOf(100, 101, 102)
+    }
+
+
+    fun getTestOptions(): CompilationOptions {
+        val target = VMTarget()
+        return CompilationOptions(
+            OutputType.RAW,
+            CbmPrgLauncherType.NONE,
+            ZeropageType.DONTUSE,
+            zpReserved = emptyList(),
+            zpAllowed = CompilationOptions.AllZeropageAllowed,
+            floats = true,
+            noSysInit = false,
+            compTarget = target,
+            loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
+        )
+    }
+
+
+    test("array assignments with ranges and multiplications") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        bool[4] boolarray3
+        ubyte[4] bytearray3
+        uword[4] wordarray3
+        float[4] floatarray3
+
+        boolarray3 = [true] *4
+        bytearray3 = [42]*4
+        wordarray3 = [999]*4
+        wordarray3 = [&bytearray3]*4
+        wordarray3 = [bytearray3]*4
+        floatarray3 = [99.77]*4
+        
+        bytearray3 = 10 to 13
+        wordarray3 = 5000 to 5003
+        floatarray3 = 100 to 103
+    }
+}"""
+        val ast = compileText(C64Target(), false, src, writeAssembly = true)!!.codegenAst!!
+        val x = ast.entrypoint()!!
+        x.children.size shouldBe 23
+        val assign1value = (x.children[13] as PtBuiltinFunctionCall).args[1]
+        val assign2value = (x.children[14] as PtBuiltinFunctionCall).args[1]
+        val assign3value = (x.children[15] as PtBuiltinFunctionCall).args[1]
+        val assign4value = (x.children[16] as PtBuiltinFunctionCall).args[1]
+        val assign5value = (x.children[17] as PtBuiltinFunctionCall).args[1]
+        val assign6value = (x.children[18] as PtBuiltinFunctionCall).args[1]
+        val assign7value = (x.children[19] as PtBuiltinFunctionCall).args[1]
+        val assign8value = (x.children[20] as PtBuiltinFunctionCall).args[1]
+        val assign9value = (x.children[21] as PtBuiltinFunctionCall).args[1]
+        val options = getTestOptions()
+        val st = SymbolTableMaker(ast, options).make()
+
+        val heapvar1 = st.lookup((assign1value as PtIdentifier).name) as StStaticVariable
+        val heapvar2 = st.lookup((assign2value as PtIdentifier).name) as StStaticVariable
+        val heapvar3 = st.lookup((assign3value as PtIdentifier).name) as StStaticVariable
+        val heapvar4 = st.lookup((assign4value as PtIdentifier).name) as StStaticVariable
+        val heapvar5 = st.lookup((assign5value as PtIdentifier).name) as StStaticVariable
+        val heapvar6 = st.lookup((assign6value as PtIdentifier).name) as StStaticVariable
+        val heapvar7 = st.lookup((assign7value as PtIdentifier).name) as StStaticVariable
+        val heapvar8 = st.lookup((assign8value as PtIdentifier).name) as StStaticVariable
+        val heapvar9 = st.lookup((assign9value as PtIdentifier).name) as StStaticVariable
+        heapvar1.length shouldBe 4
+        heapvar2.length shouldBe 4
+        heapvar3.length shouldBe 4
+        heapvar4.length shouldBe 4
+        heapvar5.length shouldBe 4
+        heapvar6.length shouldBe 4
+        heapvar7.length shouldBe 4
+        heapvar8.length shouldBe 4
+        heapvar9.length shouldBe 4
+        heapvar1.dt shouldBe DataType.ARRAY_BOOL
+        heapvar2.dt shouldBe DataType.ARRAY_UB
+        heapvar3.dt shouldBe DataType.ARRAY_UW
+        heapvar4.dt shouldBe DataType.ARRAY_UW
+        heapvar5.dt shouldBe DataType.ARRAY_UW
+        heapvar6.dt shouldBe DataType.ARRAY_F
+        heapvar7.dt shouldBe DataType.ARRAY_UB
+        heapvar8.dt shouldBe DataType.ARRAY_UW
+        heapvar9.dt shouldBe DataType.ARRAY_F
+    }
+
 })
 

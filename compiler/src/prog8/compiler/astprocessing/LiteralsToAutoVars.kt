@@ -60,17 +60,19 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
                 return noModifications
             }
             if(arrayDt.isKnown) {
-                val parentAssign = parent as? Assignment
-                val targetDt = parentAssign?.target?.inferType(program) ?: arrayDt
-                // turn the array literal it into an identifier reference
-                val litval2 = array.cast(targetDt.getOr(DataType.UNDEFINED))
-                if(litval2!=null) {
-                    val vardecl2 = VarDecl.createAuto(litval2, targetDt.getOr(DataType.UNDEFINED) in SplitWordArrayTypes)
-                    val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
-                    return listOf(
-                        IAstModification.ReplaceNode(array, identifier, parent),
-                        IAstModification.InsertFirst(vardecl2, array.definingScope)
-                    )
+                if((array.parent as? BinaryExpression)?.operator!="*") {
+                    val parentAssign = parent as? Assignment
+                    val targetDt = parentAssign?.target?.inferType(program) ?: arrayDt
+                    // turn the array literal it into an identifier reference
+                    val litval2 = array.cast(targetDt.getOr(DataType.UNDEFINED))
+                    if (litval2 != null) {
+                        val vardecl2 = VarDecl.createAuto(litval2, targetDt.getOr(DataType.UNDEFINED) in SplitWordArrayTypes)
+                        val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
+                        return listOf(
+                            IAstModification.ReplaceNode(array, identifier, parent),
+                            IAstModification.InsertFirst(vardecl2, array.definingScope)
+                        )
+                    }
                 }
             }
         }
