@@ -21,7 +21,16 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 else
                     "&"
             }
-            is PtArray -> "array len=${node.children.size} ${type(node.type)}"
+            is PtArray -> {
+                val valuelist = node.children.map {
+                    when (it) {
+                        is PtNumber -> it.number.toString()
+                        is PtIdentifier -> it.name
+                        else -> "?"
+                    }
+                }.joinToString(", ")
+                "array len=${node.children.size} ${type(node.type)} [ $valuelist ]"
+            }
             is PtArrayIndexer -> "<arrayindexer> ${type(node.type)} ${if(node.splitWords) "[splitwords]" else ""}"
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
             is PtBuiltinFunctionCall -> {

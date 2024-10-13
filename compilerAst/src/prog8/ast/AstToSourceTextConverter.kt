@@ -315,16 +315,16 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(array: ArrayLiteral) {
-        outputListMembers(array.value.asSequence())
+        outputListMembers(array.value)
     }
 
-    private fun outputListMembers(array: Sequence<Expression>) {
+    private fun outputListMembers(array: Array<Expression>) {
         var counter = 0
         output("[")
         scopelevel++
-        for (v in array) {
+        for ((idx, v) in array.withIndex()) {
             v.accept(this)
-            if (v !== array.last())
+            if (idx != array.size-1)
                 output(", ")
             counter++
             if (counter > 16) {
