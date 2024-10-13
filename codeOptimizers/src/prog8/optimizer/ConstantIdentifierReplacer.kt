@@ -439,14 +439,14 @@ internal class ConstantIdentifierReplacer(
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
                     val rangeType = rangeExpr.inferType(program).getOr(DataType.forDt(BaseDataType.UBYTE))
-                    return if(rangeType in ByteDatatypes) {
+                    return if(rangeType.isByte) {
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
                             constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     } else {
                         require(rangeType.sub!=null)
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                            constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                            constRange.map { NumericLiteral(rangeType.sub!!.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     }
                 }
@@ -455,7 +455,7 @@ internal class ConstantIdentifierReplacer(
                 if(declArraySize!=null && declArraySize!=rangeExpr.size())
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
-                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_F),
+                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT)),
                         constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                         position = decl.value!!.position)
                 }

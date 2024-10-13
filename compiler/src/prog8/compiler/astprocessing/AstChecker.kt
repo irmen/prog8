@@ -809,10 +809,10 @@ internal class AstChecker(private val program: Program,
                     val arraysize = decl.arraysize?.constIndex()
                     val numericvalue = decl.value?.constValue(program)
                     if (numericvalue != null && arraysize != null) {
-                        when (numericvalue.type) {
-                            in IntegerDatatypes -> suggestion = "[${numericvalue.number.toInt()}] * $arraysize"
-                            DataType.FLOAT -> suggestion = "[${numericvalue.number}] * $arraysize"
-                            DataType.BOOL -> suggestion = "[${numericvalue.asBooleanValue}] * $arraysize"
+                        when {
+                            numericvalue.type.isInteger -> suggestion = "[${numericvalue.number.toInt()}] * $arraysize"
+                            numericvalue.type == BaseDataType.FLOAT -> suggestion = "[${numericvalue.number}] * $arraysize"
+                            numericvalue.type == BaseDataType.BOOL -> suggestion = "[${numericvalue.asBooleanValue}] * $arraysize"
                             else -> {}
                         }
                     }

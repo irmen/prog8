@@ -372,7 +372,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if (elt is IdentifierReference) {
                 val eltType = elt.inferType(program)
                 val tgt = elt.targetStatement(program)
-                if(eltType.isPassByReference || tgt is Subroutine || tgt is Label || tgt is Block)  {
+                if(eltType.isIterable || tgt is Subroutine || tgt is Label || tgt is Block)  {
                     val addressof = AddressOf(elt, null, elt.position)
                     addressof.linkParents(array)
                     array.value[index] = addressof
