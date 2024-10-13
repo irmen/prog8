@@ -290,7 +290,7 @@ always have to be constants. Here are some examples of arrays::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
-    ubyte[99] array = 255             ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
+    ubyte[99] array = [255]*99        ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
     str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to array of uwords)
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
@@ -306,7 +306,8 @@ always have to be constants. Here are some examples of arrays::
     This means byte arrays should be <= 256 elements, word arrays <= 128 elements (256 if
     it's a split array - see below), and float arrays <= 51 elements.
 
-You can write out an array initializer list over several lines if you want to improve readability.
+Arrays can be initialized with a range expression or an array literal value.
+You can write out such an initializer value over several lines if you want to improve readability.
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``

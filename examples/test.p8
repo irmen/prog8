@@ -1,42 +1,63 @@
-%import monogfx
+%import floats
 %import textio
-%import math
 
 %option no_sysinit
 %zeropage basicsafe
 
-
 main {
 
+    str name = "xyz" * 3
+    bool[3] boolarray   = true
+    ubyte[3] bytearray  = 52
+    uword[3] wordarray  = 5544
+    float[3] floatarray = 123.45
+
+    ubyte[3] bytearray2 = 10 to 12
+    uword[3] wordarray2 = 5540 to 5542
+    float[3] floatarray2 = 123 to 125
+
+    bool[3] boolarray3
+    ubyte[3] bytearray3
+    uword[3] wordarray3
+    float[3] floatarray3
+
     sub start() {
-        monogfx.lores()
-        demofill()
-    }
-
-    sub demofill() {
-        const uword offsetx = 0
-        const uword offsety = 0
-
-        monogfx.circle(offsetx+160, offsety+120, 110, true)
-        monogfx.rect(offsetx+180, offsety+5, 25, 190, true)
-        monogfx.line(offsetx+100, offsety+150, offsetx+240, offsety+10, true)
-        monogfx.line(offsetx+101, offsety+150, offsetx+241, offsety+10, true)
-        monogfx.rect(offsetx+150, offsety+130, 10, 100, true)
-
-        sys.wait(30)
-
-        cbm.SETTIM(0,0,0)
-        monogfx.fill(offsetx+100,offsety+100,true)
-        monogfx.fill(offsetx+100,offsety+100,false)
-        uword duration = cbm.RDTIM16()
-        sys.wait(30)
-
-        monogfx.textmode()
+        txt.print(name)
         txt.nl()
-        txt.print_uw(duration)
-        txt.print(" jiffies\n")
+        for cx16.r1L in 0 to 2 {
+            txt.print_bool(boolarray[cx16.r1L])
+            txt.spc()
+            txt.print_ub(bytearray[cx16.r1L])
+            txt.spc()
+            txt.print_uw(wordarray[cx16.r1L])
+            txt.spc()
+            floats.print(floatarray[cx16.r1L])
+            txt.nl()
+        }
+        txt.nl()
+        txt.nl()
 
-        ; before optimizations: ~166 jiffies
+        for cx16.r1L in 0 to 2 {
+            txt.print_ub(bytearray2[cx16.r1L])
+            txt.spc()
+            txt.print_uw(wordarray2[cx16.r1L])
+            txt.spc()
+            floats.print(floatarray2[cx16.r1L])
+            txt.nl()
+        }
+        txt.nl()
+        txt.nl()
 
+        for cx16.r1L in 0 to 2 {
+            txt.print_bool(boolarray3[cx16.r1L])
+            txt.spc()
+            txt.print_ub(bytearray3[cx16.r1L])
+            txt.spc()
+            txt.print_uw(wordarray3[cx16.r1L])
+            txt.spc()
+            floats.print(floatarray3[cx16.r1L])
+            txt.nl()
+        }
+        txt.nl()
     }
 }

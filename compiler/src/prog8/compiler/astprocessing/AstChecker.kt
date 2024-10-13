@@ -716,12 +716,8 @@ internal class AstChecker(private val program: Program,
         if(decl.isArray && decl.arraysize==null) {
             if(decl.type== VarDeclType.MEMORY)
                 err("memory mapped array must have a size specification")
-            if(decl.value==null) {
-                valueerr("array variable is missing a size specification or an initialization value")
-                return
-            }
-            if(decl.value is NumericLiteral) {
-                valueerr("unsized array declaration cannot use a single literal initialization value")
+            if(decl.value==null || decl.value is NumericLiteral) {
+                err("array variable is missing a size specification")
                 return
             }
             if(decl.value is RangeExpression)
@@ -802,6 +798,30 @@ internal class AstChecker(private val program: Program,
 
         // array length limits and constant lenghts
         if(decl.isArray) {
+
+            if(decl.type!=VarDeclType.MEMORY) {
+                // memory-mapped arrays are initialized with their address, but any other array needs a range or array literal value.
+
+                if (decl.value!=null && decl.value !is ArrayLiteral && decl.value !is RangeExpression) {
+                    var suggestion: String? = null
+                    val arraysize = decl.arraysize?.constIndex()
+                    val numericvalue = decl.value?.constValue(program)
+                    if (numericvalue != null && arraysize != null) {
+                        when (numericvalue.type) {
+                            in IntegerDatatypes -> suggestion = "[${numericvalue.number.toInt()}] * $arraysize"
+                            DataType.FLOAT -> suggestion = "[${numericvalue.number}] * $arraysize"
+                            DataType.BOOL -> suggestion = "[${numericvalue.asBooleanValue}] * $arraysize"
+                            else -> {}
+                        }
+                    }
+
+                    if (suggestion != null)
+                        valueerr("array initialization value must be a range value or an array literal (suggestion: use '$suggestion' here)")
+                    else
+                        valueerr("array initialization value must be a range value or an array literal")
+                }
+            }
+
             val length = decl.arraysize?.constIndex()
             if(length==null)
                 err("array length must be known at compile-time")
@@ -1831,14 +1851,7 @@ internal class AstChecker(private val program: Program,
             DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype == DataType.STR
-            else -> {
-                if(targetDatatype in ArrayDatatypes && sourceValue is ArrayLiteral)
-                    true  // assigning array literal to an array variable is allowed, size and type are checked elsewhere
-                else {
-                    errors.err("cannot assign this value to variable of type $targetDatatype", position)
-                    false
-                }
-            }
+            else -> targetDatatype in ArrayDatatypes && sourceValue is ArrayLiteral
         }
 
         if(result)

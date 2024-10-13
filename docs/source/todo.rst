@@ -1,6 +1,12 @@
 TODO
 ====
 
+- remove support for array variable initialization with a single value, just require explicitly creating the value array   [42] * 10   (which is what the compiler now does for you implicitly)
+- should the array-to-array assignment support be removed and instead require an explicit copy function call? What prog8_lib_arraycopy() now does. Or just use memcopy.
+- should we add a cleararray builtin function that can efficiently set every element in the array to the given value
+
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
@@ -9,11 +15,6 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-
-- remove support for array variable initialization with a single value, just require explicitly creating the value array   [42] * 10   (which is what the compiler now does for you implicitly)
-- should the array-to-array assignment support be removed and instead require an explicit copy function call? What prog8_lib_arraycopy() now does. Or just use memcopy.
-- should we add a cleararray builtin function that can efficiently set every element in the array to the given value
-
 - improve detection that a variable is not read before being written so that initializing it to zero can be omitted  (only happens now if a vardecl is immediately followed by a for loop for instance)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Can we support signed % (remainder) somehow?
