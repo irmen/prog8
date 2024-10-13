@@ -49,6 +49,8 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
             }
         } else {
             val arrayDt = array.guessDatatype(program)
+            if(arrayDt.isUnknown)
+                return noModifications
             val elementDt = ArrayToElementTypes.getValue(arrayDt.getOr(DataType.UNDEFINED))
             val maxSize = when(elementDt) {
                 in ByteDatatypesWithBoolean -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE
