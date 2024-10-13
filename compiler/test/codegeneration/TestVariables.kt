@@ -5,7 +5,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.target.C64Target
-import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -41,23 +40,6 @@ class TestVariables: FunSpec({
         """
         compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
     }
-
-    test("array initialization with array var assignment") {
-        val text = """
-            main {
-                sub start() {
-                    ubyte[3] @shared arrayvar=main.values1
-                    arrayvar = main.values2
-                }
-            
-                ubyte[] values1 = [1,2,3]
-                ubyte[] values2 = [1,2,3]
-            }
-        """
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-    }
-
 
     test("pipe character in string literal") {
         val text = """
@@ -112,33 +94,5 @@ class TestVariables: FunSpec({
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "value has incompatible type"
         errors.errors[1] shouldContain "value has incompatible type"
-    }
-
-    test("initialization of boolean array with single value") {
-        val text = """
-            main {
-                sub start() {
-                    bool[10] sieve0 = false
-                    bool[10] sieve1 = true
-                    sieve0[0] = true
-                    sieve1[0] = true
-                }
-            }
-        """
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-    }
-
-    test("initialization of boolean array with single value of wrong type fails") {
-        val text = """
-            main {
-                sub start() {
-                    bool[10] sieve2 = 42
-                }
-            }
-        """
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "initializer value is not a boolean"
     }
 })

@@ -79,7 +79,6 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     // cmp returns a status in the carry flag, but not a proper return value
     "cmp"       to FSignature(false, listOf(FParam("value1", IntegerDatatypes), FParam("value2", NumericDatatypes)), null),
     "prog8_lib_stringcompare"     to FSignature(true, listOf(FParam("str1", arrayOf(DataType.STR)), FParam("str2", arrayOf(DataType.STR))), DataType.BYTE),
-    "prog8_lib_arraycopy"         to FSignature(false, listOf(FParam("source", ArrayDatatypes), FParam("target", ArrayDatatypes)), null),
     "prog8_lib_square_byte"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.BYTE, DataType.UBYTE))), DataType.UBYTE),
     "prog8_lib_square_word"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.WORD, DataType.UWORD))), DataType.UWORD),
     "prog8_ifelse_bittest_set"    to FSignature(true, listOf(FParam("variable", ByteDatatypes), FParam("bitnumber", arrayOf(DataType.UBYTE))), DataType.BOOL),

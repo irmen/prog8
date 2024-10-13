@@ -2,6 +2,7 @@ package prog8.optimizer
 
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.*
@@ -109,6 +110,28 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                     errors.warn("resulting string has length zero", part.position)
                 val newStr = StringLiteral.create(part.value.repeat(rightconst.number.toInt()), part.encoding, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, newStr, parent))
+            }
+        }
+
+        if(expr.left.inferType(program).isArray) {
+            if (expr.operator=="*" && rightconst!=null) {
+                if (expr.left is ArrayLiteral) {
+                    // concatenate array literal.
+                    val part = expr.left as ArrayLiteral
+                    if(part.value.isEmpty())
+                        errors.warn("resulting array has length zero", part.position)
+                    val tmp = mutableListOf<Expression>()
+                    repeat(rightconst.number.toInt()) {
+                        part.value.forEach { tmp += it.copy() }
+                    }
+                    val newArray = ArrayLiteral(part.type, tmp.toTypedArray(), part.position)
+                    return listOf(IAstModification.ReplaceNode(expr, newArray, parent))
+                }
+                else {
+                    val leftTarget = (expr.left as? IdentifierReference)?.targetVarDecl(program)
+                    if(leftTarget!=null && leftTarget.origin==VarDeclOrigin.ARRAYLITERAL)
+                        throw FatalAstException("shouldn't see an array literal converted to an autovar here")
+                }
             }
         }
 

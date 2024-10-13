@@ -1,42 +1,30 @@
-%import monogfx
+%import floats
 %import textio
-%import math
-
 %option no_sysinit
 %zeropage basicsafe
-
 
 main {
 
     sub start() {
-        monogfx.lores()
-        demofill()
-    }
+        uword[4] words1 = [1,2,3,4]
+        uword[4] words2 = [99,88,77,66]
 
-    sub demofill() {
-        const uword offsetx = 0
-        const uword offsety = 0
-
-        monogfx.circle(offsetx+160, offsety+120, 110, true)
-        monogfx.rect(offsetx+180, offsety+5, 25, 190, true)
-        monogfx.line(offsetx+100, offsety+150, offsetx+240, offsety+10, true)
-        monogfx.line(offsetx+101, offsety+150, offsetx+241, offsety+10, true)
-        monogfx.rect(offsetx+150, offsety+130, 10, 100, true)
-
-        sys.wait(30)
-
-        cbm.SETTIM(0,0,0)
-        monogfx.fill(offsetx+100,offsety+100,true)
-        monogfx.fill(offsetx+100,offsety+100,false)
-        uword duration = cbm.RDTIM16()
-        sys.wait(30)
-
-        monogfx.textmode()
+        for cx16.r0 in words1 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
         txt.nl()
-        txt.print_uw(duration)
-        txt.print(" jiffies\n")
-
-        ; before optimizations: ~166 jiffies
-
+        sys.memcopy(words2, words1, sizeof(words1))
+        for cx16.r0 in words1 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+        sys.memcopy([2222,3333,4444,5555], words1, sizeof(words1))
+        for cx16.r0 in words1 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
     }
 }

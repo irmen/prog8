@@ -566,8 +566,11 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcArr: ArrayLiteral): PtArray {
         val arr = PtArray(srcArr.inferType(program).getOrElse { throw FatalAstException("array must know its type") }, srcArr.position)
-        for (elt in srcArr.value)
-            arr.add(transformExpression(elt))
+        for (elt in srcArr.value) {
+            val child = transformExpression(elt)
+            require(child is PtAddressOf || child is PtBool || child is PtNumber) { "array element invalid type $child" }
+            arr.add(child)
+        }
         return arr
     }
 

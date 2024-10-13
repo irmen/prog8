@@ -1,6 +1,7 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.IFunctionCall
+import prog8.ast.INameScope
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
@@ -361,6 +362,25 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             else
                 InferredTypes.InferredType.unknown()
         return adjustRangeDts(range, fromConst, fromDt, toConst, toDt, varDt.getOr(DataType.UNDEFINED), parent)
+    }
+
+    override fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> {
+        // Arrays can contain booleans, numbers, or address-ofs.
+        // if there is an identifier here (that is of a pass-by-reference type), take its address explicitly.
+
+        for((index, elt) in array.value.withIndex()) {
+            if (elt is IdentifierReference) {
+                val eltType = elt.inferType(program)
+                val tgt = elt.targetStatement(program)
+                if(eltType.isPassByReference || tgt is Subroutine || tgt is Label || tgt is Block)  {
+                    val addressof = AddressOf(elt, null, elt.position)
+                    addressof.linkParents(array)
+                    array.value[index] = addressof
+                }
+            }
+        }
+
+        return noModifications
     }
 
     private fun adjustRangeDts(

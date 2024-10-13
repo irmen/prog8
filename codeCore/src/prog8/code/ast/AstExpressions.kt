@@ -163,6 +163,7 @@ class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(el
 
 
 class PtArray(type: DataType, position: Position): PtExpression(type, position) {
+    // children are always one of 3 types: PtBool, PtNumber or PtAddressOf.
     override fun hashCode(): Int = Objects.hash(children, type)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is PtArray)

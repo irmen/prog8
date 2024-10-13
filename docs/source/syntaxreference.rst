@@ -363,7 +363,7 @@ Various examples::
     bool        flag    = true
     byte[]      values  = [11, 22, 33, 44, 55]
     byte[5]     values                  ; array of 5 bytes, initially set to zero
-    byte[5]     values  = 255           ; initialize with five 255 bytes
+    byte[5]     values  = [255]*5       ; initialize with five 255 bytes
 
     word  @zp         zpword = 9999     ; prioritize this when selecting vars for zeropage storage
     uword @requirezp  zpaddr = $3000    ; we require this variable in zeropage
@@ -403,8 +403,11 @@ type identifier  type                     storage size       example var declara
                                                              implicitly terminated by a 0-byte
 ===============  =======================  =================  =========================================
 
-**arrays:** you can split an array initializer list over several lines if you want. When an initialization
-value is given, the array size in the declaration can be omitted.
+**arrays:**
+Arrays can be initialized with a range expression or an array literal value.
+You can write out such an initializer value over several lines if you want to improve readability.
+When an initialization value is given, you are allowed to omit the array size in the declaration,
+because it can be inferred from the initialization value.
 
 **numbers:** unless prefixed for hex or binary as described below, all numbers are decimal numbers. There is no octal notation.
 
@@ -508,8 +511,6 @@ the downto variant to avoid having to specify the step as well::
     xx = 10
     aa to xx                 ; range of 5, 6, 7, 8, 9, 10
 
-    byte[] array = 10 to 13  ; sets the array to [10, 11, 12, 13]
-
     for  i  in  0 to 127  {
         ; i loops 0, 1, 2, ... 127
     }
@@ -542,9 +543,10 @@ memory at the given index (and allows index values of word size). See :ref:`poin
 String
 ^^^^^^
 A string literal can occur with or without an encoding prefix (encoding followed by ':' followed by the string itself).
+String length is limited to 255 characters.
+You can use '+' and '*' to concatenate or repeat string fragments to build up a larger string literal.
 When this is omitted, the string is stored in the machine's default character encoding (which is PETSCII on the CBM machines).
 You can choose to store the string in other encodings such as ``sc`` (screencodes) or ``iso`` (iso-8859-15).
-String length is limited to 255 characters.
 Here are examples of the various encodings:
 
     - ``"hello"``   a string translated into the default character encoding (PETSCII on the CBM machines)

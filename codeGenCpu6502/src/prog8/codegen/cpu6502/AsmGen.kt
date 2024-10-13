@@ -145,7 +145,6 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
         val newValue = PtArray(arrayValue.type, arrayValue.position)
         arrayValue.children.forEach { elt ->
             when(elt) {
-                is PtIdentifier -> newValue.add(elt.prefix(arrayValue, st))
                 is PtBool -> newValue.add(elt)
                 is PtNumber -> newValue.add(elt)
                 is PtAddressOf -> {

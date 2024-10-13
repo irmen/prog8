@@ -290,7 +290,7 @@ always have to be constants. Here are some examples of arrays::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
-    ubyte[99] array = 255             ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
+    ubyte[99] array = [255]*99        ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
     byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
     str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to array of uwords)
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
@@ -299,22 +299,24 @@ always have to be constants. Here are some examples of arrays::
     value = array[3]            ; the fourth value in the array (index is 0-based)
     char = string[4]            ; the fifth character (=byte) in the string
     char = string[-2]           ; the second-to-last character in the string (Python-style indexing from the end)
-    flags = [false, true]       ; reset all flags in the array
 
 .. note::
     Right now, the array should be small enough to be indexable by a single byte index.
     This means byte arrays should be <= 256 elements, word arrays <= 128 elements (256 if
     it's a split array - see below), and float arrays <= 51 elements.
 
-You can write out an array initializer list over several lines if you want to improve readability.
+Arrays can be initialized with a range expression or an array literal value.
+You can write out such an initializer value over several lines if you want to improve readability.
+
+You can assign a new value to an element in the array, but you can't assign a whole
+new array to another array at once. This is usually a costly operation. If you really
+need this you have to write it out depending on the use case: you can copy the memory using
+``sys.memcopy(sourcearray, targetarray, sizeof(targetarray))``. Or perhaps use ``sys.memset`` instead to
+set it all to the same value, or maybe even simply assign the individual elements.
 
 Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
 can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
 for instance.
-
-It is possible to assign an array (variable or array literal) to another array; this will overwrite all elements in the target
-array with those in the source array. The number of elements in the arrays and the data types have to match.
-For large arrays this is a slow operation because all values are copied over.
 
 Using the ``in`` operator you can easily check if a value is present in an array,
 example: ``if choice in [1,2,3,4] {....}``
@@ -377,8 +379,8 @@ You can concatenate two string literals using '+', which can be useful to
 split long strings over separate lines. But remember that the length
 of the total string still cannot exceed 255 characters.
 A string literal can also be repeated a given number of times using '*', where the repeat number must be a constant value.
-And a new string value can be assigned to another string, but no bounds check is done
-so be sure the destination string is large enough to contain the new value (it is overwritten in memory)::
+And a new string value can be assigned to another string, but no bounds check is done!
+So be sure the destination string is large enough to contain the new value (it is overwritten in memory)::
 
     str string1 = "first part" + "second part"
     str string2 = "hello!" * 10
