@@ -1813,16 +1813,21 @@ internal class AstChecker(private val program: Program,
                                           sourceValue: Expression) : Boolean {
         val position = sourceValue.position
 
-        if(sourceValue is ArrayLiteral || targetDatatype in ArrayDatatypes) {
-            errors.err("cannot assign arrays directly. Maybe use sys.memcopy(src, tgt, sizeof(tgt)) instead.", target.position)
+        if (targetDatatype in ArrayDatatypes) {
+            if(sourceValue.inferType(program).isArray)
+                errors.err("cannot assign arrays directly. Maybe use sys.memcopy instead.", target.position)
+            else
+                errors.err("cannot assign value to array. Maybe use sys.memset/memsetw instead.", target.position)
             return false
         }
-
+        if (sourceValue is ArrayLiteral) {
+            errors.err("cannot assign array", target.position)
+            return false
+        }
         if(sourceValue is RangeExpression) {
             errors.err("can't assign a range value to something else", position)
             return false
         }
-
         if(sourceDatatype==DataType.UNDEFINED) {
             errors.err("assignment right hand side doesn't result in a value", position)
             return false

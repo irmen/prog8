@@ -14,7 +14,8 @@ main {
             txt.spc()
         }
         txt.nl()
-        sys.memcopy(words2, words1, sizeof(words1))
+        cx16.r0L = words2
+        sys.memsetw(words1, len(words1), 99)
         for cx16.r0 in words1 {
             txt.print_uw(cx16.r0)
             txt.spc()
