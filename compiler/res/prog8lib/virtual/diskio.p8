@@ -11,7 +11,7 @@ diskio {
         %ir {{
             loadm.w r65534,diskio.load.filenameptr
             loadm.w r65535,diskio.load.address_override
-            syscall 48 (): r0.b
+            syscall 45 (): r0.b
             returnr.b r0
         }}
     }
@@ -159,7 +159,7 @@ diskio {
             loadm.w r65533,diskio.save.filenameptr
             loadm.w r65534,diskio.save.start_address
             loadm.w r65535,diskio.save.savesize
-            syscall 45 (r65532.b, r65533.w, r65534.w, r65535.w): r0.b
+            syscall 42 (r65532.b, r65533.w, r65534.w, r65535.w): r0.b
             returnr.b r0
         }}
     }
@@ -171,7 +171,7 @@ diskio {
             loadm.w r65533,diskio.save.filenameptr
             loadm.w r65534,diskio.save.start_address
             loadm.w r65535,diskio.save.savesize
-            syscall 45 (r65532.b, r65533.w, r65534.w, r65535.w): r0.b
+            syscall 42 (r65532.b, r65533.w, r65534.w, r65535.w): r0.b
             returnr.b r0
         }}
     }
@@ -186,7 +186,7 @@ diskio {
         %ir {{
             loadm.w r65534,diskio.load.filenameptr
             loadm.w r65535,diskio.load.address_override
-            syscall 43 (r65534.w, r65535.w): r0.w
+            syscall 40 (r65534.w, r65535.w): r0.w
             returnr.w r0
         }}
     }
@@ -198,7 +198,7 @@ diskio {
         %ir {{
             loadm.w r65534,diskio.load_raw.filenameptr
             loadm.w r65535,diskio.load_raw.start_address
-            syscall 44 (r65534.w, r65535.w): r0.w
+            syscall 41 (r65534.w, r65535.w): r0.w
             returnr.w r0
         }}
     }
@@ -207,7 +207,7 @@ diskio {
         ; -- delete a file on the drive
         %ir {{
             loadm.w r65535,diskio.delete.filenameptr
-            syscall 46 (r65535.w)
+            syscall 43 (r65535.w)
         }}
     }
 
@@ -216,7 +216,7 @@ diskio {
         %ir {{
             loadm.w r65534,diskio.rename.oldfileptr
             loadm.w r65535,diskio.rename.newfileptr
-            syscall 47 (r65534.w, r65535.w)
+            syscall 44 (r65534.w, r65535.w)
         }}
     }
 }

@@ -116,7 +116,6 @@ class VmProgramLoader {
                         IMSyscall.CALLFAR.number -> throw IRParseException("vm doesn't support the callfar() syscall")
                         IMSyscall.CALLFAR2.number -> throw IRParseException("vm doesn't support the callfar2() syscall")
                         IMSyscall.MEMCOPY.number -> Syscall.MEMCOPY
-                        IMSyscall.MEMCOPY_SMALL.number -> Syscall.MEMCOPY_SMALL
                         else -> null
                     }
 
