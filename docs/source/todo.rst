@@ -9,7 +9,7 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- keep boolean array intact in IR so that it might be represented as a bitmask in the resulting code (8 times storage improvement)
+- ir: there are vars in INITGLOBALS that are initialized with code where they simpley have a static numerical initializer value, and could just as well be in VARIABLESWITHINIT . Why are their StVar's not initialized!?
 - improve detection that a variable is not read before being written so that initializing it to zero can be omitted  (only happens now if a vardecl is immediately followed by a for loop for instance)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Can we support signed % (remainder) somehow?

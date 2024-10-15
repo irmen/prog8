@@ -202,15 +202,19 @@ class IRFileReader {
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
                 when(dt) {
-                    DataType.BOOL -> initNumeric = if(value.lowercase()=="false") 0.0 else 1.0
-                    in NumericDatatypes -> initNumeric = parseIRValue(value)
+                    in NumericDatatypesWithBoolean -> initNumeric = parseIRValue(value)
+                    DataType.ARRAY_BOOL -> {
+                        initArray = value.split(',').map {
+                            val boolean = parseIRValue(it) != 0.0
+                            StArrayElement(null, null, boolean)
+                        }
+                    }
                     in ArrayDatatypes -> {
                         initArray = value.split(',').map {
                             if (it.startsWith('@'))
                                 StArrayElement(null, it.drop(1), null)
                             else
                                 StArrayElement(parseIRValue(it), null, null)
-                            // TODO Boolean IR value?
                         }
                     }
                     DataType.STR -> throw IRParseException("STR should have been converted to byte array")
@@ -489,7 +493,7 @@ class IRFileReader {
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
             return when(type) {
-                // note: there are no BOOLEANS arrays anymore in the IR. Only UBYTE.
+                "bool" -> DataType.ARRAY_BOOL
                 "byte" -> DataType.ARRAY_B
                 "ubyte", "str" -> DataType.ARRAY_UB
                 "word" -> DataType.ARRAY_W

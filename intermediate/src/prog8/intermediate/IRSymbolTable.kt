@@ -72,7 +72,7 @@ class IRSymbolTable {
                 array.forEach {
                     if(it.addressOfSymbol!=null) {
                         val target = variable.lookup(it.addressOfSymbol!!)!!
-                        newArray.add(IRStArrayElement(null, target.scopedName))
+                        newArray.add(IRStArrayElement(null, null, target.scopedName))
                     } else {
                         newArray.add(IRStArrayElement.from(it))
                     }
@@ -80,13 +80,8 @@ class IRSymbolTable {
                 return newArray
             }
             scopedName = variable.scopedName
-            val dt = when(variable.dt) {
-                DataType.BOOL -> DataType.UBYTE
-                DataType.ARRAY_BOOL -> DataType.ARRAY_UB
-                else -> variable.dt
-            }
             varToadd = IRStStaticVariable(scopedName,
-                dt,
+                variable.dt,
                 variable.onetimeInitializationNumericValue,
                 variable.onetimeInitializationStringValue,
                 fixupAddressOfInArray(variable.onetimeInitializationArrayValue),
@@ -215,27 +210,25 @@ class IRStStaticVariable(name: String,
         }
     }
 
-    init {
-        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
-    }
-
     val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null
 
     val typeString: String = dt.typeString(length)
 }
 
-class IRStArrayElement(val number: Double?, val addressOfSymbol: String?) {
+class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSymbol: String?) {
     companion object {
         fun from(elt: StArrayElement): IRStArrayElement {
             return if(elt.boolean!=null)
-                IRStArrayElement(if(elt.boolean==true) 1.0 else 0.0, elt.addressOfSymbol)
+                IRStArrayElement(elt.boolean, null, elt.addressOfSymbol)
             else
-                IRStArrayElement(elt.number, elt.addressOfSymbol)
+                IRStArrayElement(null, elt.number, elt.addressOfSymbol)
         }
     }
 
     init {
-        require(number!=null || addressOfSymbol!=null)
+        if(bool!=null) require(number==null && addressOfSymbol==null)
+        if(number!=null) require(bool==null && addressOfSymbol==null)
+        if(addressOfSymbol!=null) require(number==null || bool==null)
     }
 }
 

@@ -9,7 +9,7 @@ import prog8.code.right
 fun DataType.typeString(length: Int?): String {
     val lengthStr = if(length==0) "" else length.toString()
     return when (this) {
-        DataType.BOOL -> "ubyte"                // in IR , a boolean is represented by an ubyte.
+        DataType.BOOL -> "bool"                // in IR , a boolean is represented by an ubyte.
         DataType.UBYTE -> "ubyte"
         DataType.BYTE -> "byte"
         DataType.UWORD -> "uword"
@@ -17,7 +17,7 @@ fun DataType.typeString(length: Int?): String {
         DataType.LONG -> "long"
         DataType.FLOAT -> "float"
         DataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a seperate datatype anymore
-        DataType.ARRAY_BOOL -> "ubyte[$lengthStr]"      // in IR , a boolean is represented by an ubyte.
+        DataType.ARRAY_BOOL -> "bool[$lengthStr]"      // in IR , a boolean is represented by an ubyte.
         DataType.ARRAY_UB -> "ubyte[$lengthStr]"
         DataType.ARRAY_B -> "byte[$lengthStr]"
         DataType.ARRAY_UW -> "uword[$lengthStr]"

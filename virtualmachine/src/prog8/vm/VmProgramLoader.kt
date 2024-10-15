@@ -1,9 +1,12 @@
 package prog8.vm
 
+import prog8.code.Either
 import prog8.code.core.ArrayDatatypes
 import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.SplitWordArrayTypes
+import prog8.code.left
+import prog8.code.right
 import prog8.intermediate.*
 
 class VmProgramLoader {
@@ -227,7 +230,7 @@ class VmProgramLoader {
 
             variable.onetimeInitializationNumericValue?.let {
                 when(variable.dt) {
-                    DataType.UBYTE -> memory.setUB(addr, it.toInt().toUByte())
+                    DataType.UBYTE, DataType.BOOL -> memory.setUB(addr, it.toInt().toUByte())
                     DataType.BYTE -> memory.setSB(addr, it.toInt().toByte())
                     DataType.UWORD -> memory.setUW(addr, it.toInt().toUShort())
                     DataType.WORD -> memory.setSW(addr, it.toInt().toShort())
@@ -236,19 +239,8 @@ class VmProgramLoader {
                 }
             }
             variable.onetimeInitializationArrayValue?.let { iElts ->
-                require(variable.length==iElts.size || iElts.size==1 || iElts.isEmpty())
-                if(iElts.isEmpty() || iElts.size==1) {
-                    val iElt = if(iElts.isEmpty()) {
-                        require(variable.uninitialized)
-                        IRStArrayElement(0.0, null)
-                    } else {
-                        require(!variable.uninitialized)
-                        iElts[0]
-                    }
-                    initializeWithOneValue(variable, iElt, addr, symbolAddresses, memory, program)
-                } else {
-                    initializeWithValues(variable, iElts, addr, symbolAddresses, memory, program)
-                }
+                require(variable.length==iElts.size)
+                initializeWithValues(variable, iElts, addr, symbolAddresses, memory, program)
             }
             require(variable.onetimeInitializationStringValue==null) { "in vm/ir, strings should have been converted into bytearrays." }
         }
@@ -264,43 +256,71 @@ class VmProgramLoader {
     ) {
         var address = startAddress
         when (variable.dt) {
+            DataType.ARRAY_BOOL -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
+                    value.fold(
+                        { throw IRParseException("didn't expect float") },
+                        { b -> memory.setUB(address, if(b) 1u else 0u) }
+                    )
+                    address++
+                }
+            }
             DataType.STR, DataType.ARRAY_UB -> {
                 for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toUByte()
-                    memory.setUB(address, value)
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
+                    value.fold(
+                        { memory.setUB(address, it.toInt().toUByte()) },
+                        { throw IRParseException("didn't expect bool") }
+                    )
                     address++
                 }
             }
 
             DataType.ARRAY_B -> {
                 for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toByte()
-                    memory.setSB(address, value)
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
+                    value.fold(
+                        { memory.setSB(address, it.toInt().toByte()) },
+                        { throw IRParseException("didn't expect bool") }
+                    )
                     address++
                 }
             }
 
             DataType.ARRAY_UW -> {
                 for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toUShort()
-                    memory.setUW(address, value)
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
+                    value.fold(
+                        { memory.setUW(address, it.toInt().toUShort()) },
+                        { throw IRParseException("didn't expect bool") }
+                    )
                     address += 2
                 }
             }
 
             DataType.ARRAY_W -> {
                 for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toInt().toShort()
-                    memory.setSW(address, value)
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
+                    value.fold(
+                        { memory.setSW(address, it.toInt().toShort()) },
+                        { throw IRParseException("didn't expect bool") }
+                    )
                     address += 2
                 }
             }
 
             in SplitWordArrayTypes -> {
                 for (elt in iElts) {
-                    val value = getInitializerValue(variable.dt, elt, symbolAddresses).toUInt()
-                    memory.setUB(address, (value and 255u).toUByte())
-                    memory.setUB(address + variable.length!!, (value shr 8).toUByte())
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
+                    value.fold(
+                        {
+                            val integer = it.toUInt()
+                            memory.setUB(address, (integer and 255u).toUByte())
+                            memory.setUB(address + variable.length!!, (integer shr 8).toUByte())
+                        },
+                        { throw IRParseException("didn't expect bool") }
+                    )
                     address++
                 }
             }
@@ -308,7 +328,10 @@ class VmProgramLoader {
             DataType.ARRAY_F -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)
-                    memory.setFloat(address, value)
+                    value.fold(
+                        { memory.setFloat(address, it) },
+                        { throw IRParseException("didn't expect bool") }
+                    )
                     address += program.options.compTarget.machine.FLOAT_MEM_SIZE
                 }
             }
@@ -328,61 +351,96 @@ class VmProgramLoader {
         var address = startAddress
         when (variable.dt) {
             DataType.STR, DataType.ARRAY_UB -> {
-                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toUByte()
-                repeat(variable.length!!) {
-                    memory.setUB(address, value)
-                    address++
-                }
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
+                value.fold(
+                    {
+                        val integer = it.toInt().toUByte()
+                        repeat(variable.length!!) {
+                            memory.setUB(address, integer)
+                            address++
+                        }
+                    },
+                    { throw IRParseException("didn't expect bool") }
+                )
             }
 
             DataType.ARRAY_B -> {
-                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toByte()
-                repeat(variable.length!!) {
-                    memory.setSB(address, value)
-                    address++
-                }
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
+                value.fold(
+                    {
+                        val integer = it.toInt().toByte()
+                        repeat(variable.length!!) {
+                            memory.setSB(address, integer)
+                            address++
+                        }
+                    },
+                    { throw IRParseException("didn't expect bool") },
+                )
             }
 
             DataType.ARRAY_UW -> {
-                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toUShort()
-                repeat(variable.length!!) {
-                    memory.setUW(address, value)
-                    address += 2
-                }
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
+                value.fold(
+                    {
+                        val integer = it.toInt().toUShort()
+                        repeat(variable.length!!) {
+                            memory.setUW(address, integer)
+                            address += 2
+                        }
+                    },
+                    { throw IRParseException("didn't expect bool") }
+                )
             }
 
             DataType.ARRAY_W -> {
-                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toInt().toShort()
-                repeat(variable.length!!) {
-                    memory.setSW(address, value)
-                    address += 2
-                }
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
+                value.fold(
+                    {
+                        val integer = it.toInt().toShort()
+                        repeat(variable.length!!) {
+                            memory.setSW(address, integer)
+                            address += 2
+                        }
+                    },
+                    { throw IRParseException("didn't expect bool") }
+                )
             }
 
             in SplitWordArrayTypes -> {
-                val value = getInitializerValue(variable.dt, iElt, symbolAddresses).toUInt()
-                val lsb = (value and 255u).toUByte()
-                val msb = (value shr 8).toUByte()
-                repeat(variable.length!!) {
-                    memory.setUB(address, lsb)
-                    memory.setUB(address + variable.length!!, msb)
-                    address++
-                }
+                val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
+                value.fold(
+                    {
+                        val integer = it.toUInt()
+                        val lsb = (integer and 255u).toUByte()
+                        val msb = (integer shr 8).toUByte()
+                        repeat(variable.length!!) {
+                            memory.setUB(address, lsb)
+                            memory.setUB(address + variable.length!!, msb)
+                            address++
+                        }
+                    },
+                    { throw IRParseException("didn't expect bool") }
+                )
             }
 
             DataType.ARRAY_F -> {
                 val value = getInitializerValue(variable.dt, iElt, symbolAddresses)
-                repeat(variable.length!!) {
-                    memory.setFloat(address, value)
-                    address += program.options.compTarget.machine.FLOAT_MEM_SIZE
-                }
+                value.fold(
+                    { d ->
+                        repeat(variable.length!!) {
+                            memory.setFloat(address, d)
+                            address += program.options.compTarget.machine.FLOAT_MEM_SIZE
+                        }
+                    },
+                    { throw IRParseException("didn't expect bool") }
+                )
             }
 
             else -> throw IRParseException("invalid dt")
         }
     }
 
-    private fun getInitializerValue(arrayDt: DataType, elt: IRStArrayElement, symbolAddresses: MutableMap<String, Int>): Double {
+    private fun getInitializerValue(arrayDt: DataType, elt: IRStArrayElement, symbolAddresses: MutableMap<String, Int>): Either<Double, Boolean> {
         if(elt.addressOfSymbol!=null) {
             when(arrayDt) {
                 DataType.ARRAY_UB, DataType.STR, DataType.ARRAY_B, DataType.ARRAY_BOOL -> {
@@ -395,17 +453,18 @@ class VmProgramLoader {
                             ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
                     } else
                         throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
-                    return symbolAddress.toDouble()
+                    return left(symbolAddress.toDouble())
                 }
                 else -> {
                     val name = elt.addressOfSymbol!!
                     val symbolAddress = symbolAddresses[name]
                         ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
-                    return symbolAddress.toDouble()
+                    return left(symbolAddress.toDouble())
                 }
             }
-        } else {
-            return elt.number!!
-        }
+        } else if (elt.number!=null) {
+            return left(elt.number!!)
+        } else
+            return right(elt.bool!!)
     }
 }

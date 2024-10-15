@@ -250,7 +250,13 @@ class StRomSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType)
 class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?)
+class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?) {
+    init {
+        if(number!=null) require(addressOfSymbol==null && boolean==null)
+        if(addressOfSymbol!=null) require(number==null && boolean==null)
+        if(boolean!=null) require(addressOfSymbol==null && number==null)
+    }
+}
 
 typealias StString = Pair<String, Encoding>
 typealias StArray = List<StArrayElement>
