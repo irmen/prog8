@@ -4,9 +4,9 @@
 
 all:
 	gradle installdist installshadowdist
-	@echo "compiler launch script can be found here: compiler/build/install/compiler-shadow/bin/p8compile"
+	@echo "compiler launch script can be found here: compiler/build/install/compiler-shadow/bin/prog8c"
 
 test:
 	gradle build
-	@echo "compiler launch script can be found here: compiler/build/install/compiler-shadow/bin/p8compile"
+	@echo "compiler launch script can be found here: compiler/build/install/compiler-shadow/bin/prog8c"
 

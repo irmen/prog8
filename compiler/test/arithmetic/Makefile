@@ -6,7 +6,7 @@ clean:
 	rm -f *.prg *.asm *.vice-*
 
 test: clean
-	p8compile -target cx16 *.p8 >/dev/null
+	prog8c -target cx16 *.p8 >/dev/null
 	for program in *.prg; do \
 		echo "RUNNING:" $$program ; \
 		x16emu -run -prg $$program >/dev/null ; \

@@ -13,8 +13,8 @@ Then you can choose a few ways to get a compiler:
 
 **Download an official release version from Github:**
 
-#. download a recent "fat-jar" (called something like "prog8compiler-all.jar") from `the releases on Github <https://github.com/irmen/prog8/releases>`_
-#. run the compiler with "java -jar prog8compiler.jar" to see how you can use it (use the correct name and version of the jar file you've downloaded).
+#. download a recent "fat-jar" (called something like "prog8c-all.jar") from `the releases on Github <https://github.com/irmen/prog8/releases>`_
+#. run the compiler with "java -jar prog8c.jar" to see how you can use it (use the correct name and version of the jar file you've downloaded).
 
 **Or, install via a Package Manager:**
 
@@ -22,7 +22,7 @@ Currently, it's only available on `AUR <https://wiki.archlinux.org/title/Arch_Us
 The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_.
 
 This package, alongside the compiler itself, also globally installs syntax highlighting for ``vim`` and ``nano``.
-In order to run compiler, you can type either ``p8compile`` or ``prog8c``. The usage of those commands is exactly the same as with the ``java -jar`` method.
+In order to run compiler, you can type ``prog8c``. The usage of those commands is exactly the same as with the ``java -jar`` method.
 
 In case you prefer to install AUR packages in a traditional manner, make sure to install `"tass64" package <https://aur.archlinux.org/packages/tass64>`_
 before installing prog8, as `makepkg <https://wiki.archlinux.org/title/Makepkg>`_ itself doesn't fetch AUR dependencies.
@@ -31,7 +31,7 @@ before installing prog8, as `makepkg <https://wiki.archlinux.org/title/Makepkg>`
 
 #. find the latest CI build on  `the actions page on Github <https://github.com/irmen/prog8/actions>`_
 #. download the zipped jar artifact from that build, and unzip it.
-#. run the compiler with "java -jar prog8compiler.jar"  (use the correct name and version of the jar file you've downloaded).
+#. run the compiler with "java -jar prog8c.jar"  (use the correct name and version of the jar file you've downloaded).
 
 **Or, use the Gradle build system to build it yourself from source:**
 
@@ -45,7 +45,7 @@ The most interesting gradle commands to run are probably the ones listed below.
         Read below at those tasks for where the resulting compiler jar file gets written.
     ``./gradlew installDist``
         Builds the compiler and installs it with scripts to run it, in the directory
-        ``./compiler/build/install/p8compile``
+        ``./compiler/build/install/prog8c``
     ``./gradlew installShadowDist``
         Creates a 'fat-jar' that contains the compiler and all dependencies, in a single
         executable .jar file, and includes few start scripts to run it.
@@ -56,7 +56,7 @@ The most interesting gradle commands to run are probably the ones listed below.
 
 For normal use, the ``installDist`` task should suffice and after succesful completion, you can start the compiler with:
 
-    ``./compiler/build/install/p8compile/bin/p8compile <options> <sourcefile>``
+    ``./compiler/build/install/prog8c/bin/prog8c <options> <sourcefile>``
 
 (You should probably make an alias or link...)
 
@@ -110,7 +110,7 @@ The compiler will link everything together into one output program at the end.
 If you start the compiler without arguments, it will print a short usage text.
 For normal use the compiler can be invoked with the command:
 
-    ``$ java -jar prog8compiler.jar -target cx16 sourcefile.p8``
+    ``$ java -jar prog8c.jar -target cx16 sourcefile.p8``
 
     (Use the appropriate name and version of the jar file downloaded from one of the Git releases.
     Other ways to invoke the compiler are also available: see the introduction page about how
@@ -391,9 +391,9 @@ There are cross-platform examples that can be compiled for various systems unalt
 and there are also examples specific to certain computers (C64, X16, etcetera).
 So for instance, to compile and run the Commodore 64 rasterbars example program, use this command::
 
-    $ java -jar prog8compiler.jar -target c64 -emu examples/c64/rasterbars.p8
+    $ java -jar prog8c.jar -target c64 -emu examples/c64/rasterbars.p8
 
 or::
 
-    $ /path/to/p8compile -target c64 -emu examples/c64/rasterbars.p8
+    $ /path/to/prog8c -target c64 -emu examples/c64/rasterbars.p8
 
