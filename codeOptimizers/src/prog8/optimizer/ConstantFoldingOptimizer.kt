@@ -321,6 +321,31 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         return noModifications
     }
 
+    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        if(parent is VarDecl && parent.parent is Block) {
+            // only block level (global) initializers are considered here, because they're run just once at program startup
+
+            val const = arrayIndexedExpression.constValue(program)
+            if (const != null)
+                return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, const, parent))
+
+            val constIndex = arrayIndexedExpression.indexer.constIndex()
+            if (constIndex != null) {
+                val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
+                if(arrayVar!=null) {
+                    val array =arrayVar.value as? ArrayLiteral
+                    if(array!=null) {
+                        val value = array.value[constIndex].constValue(program)
+                        if(value!=null) {
+                            return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, value, parent))
+                        }
+                    }
+                }
+            }
+        }
+        return noModifications
+    }
+
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         val constvalue = functionCallExpr.constValue(program)
         return if(constvalue!=null)
