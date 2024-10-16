@@ -103,9 +103,6 @@ enum class Syscall {
     MEMSET,
     MEMSETW,
     STRINGCOPY,
-    UNUSED_SYSCALL_1,       // TODO fixup
-    UNUSED_SYSCALL_2,       // TODO fixup
-    MEMCOPY_SMALL,
     LOAD,
     LOAD_RAW,
     SAVE,
@@ -408,16 +405,6 @@ object SysCalls {
                     vm.memory.setUB(to+offset, vm.memory.getUB(from+offset))
                 }
             }
-            Syscall.MEMCOPY_SMALL -> {
-                val (fromA, toA, countA) = getArgValues(callspec.arguments, vm)
-                val from = (fromA as UShort).toInt()
-                val to = (toA as UShort).toInt()
-                val countV = (countA as UByte).toInt()
-                val count = if(countV==0) 256 else countV
-                for(offset in 0..<count) {
-                    vm.memory.setUB(to+offset, vm.memory.getUB(from+offset))
-                }
-            }
             Syscall.MEMSET -> {
                 val (memA, numbytesA, valueA) = getArgValues(callspec.arguments, vm)
                 val mem = (memA as UShort).toInt()
@@ -549,9 +536,6 @@ object SysCalls {
                 }
                 return returnValue(callspec.returns.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30
             }
-
-            Syscall.UNUSED_SYSCALL_1 -> TODO("remove this")
-            Syscall.UNUSED_SYSCALL_2 -> TODO("remove this")
         }
     }
 }

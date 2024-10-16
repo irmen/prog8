@@ -178,31 +178,43 @@ open class StNode(val name: String,
 
 class StStaticVariable(name: String,
                        val dt: DataType,
-                       val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
-                       val onetimeInitializationStringValue: StString?,
-                       val onetimeInitializationArrayValue: StArray?,
+                       val initializationStringValue: StString?,
+                       val initializationArrayValue: StArray?,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
                        astNode: PtNode) : StNode(name, StNodeType.STATICVAR, astNode) {
 
-    val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null
+    var initializationNumericValue: Double? = null
+        private set
+
+    fun setOnetimeInitNumeric(number: Double) {
+        // In certain cases the init value of an existing var should be updated,
+        // so we can't ask this as a constructor parameter.
+        // This has to do with the way Prog8 does the (re)initialization of such variables: via code assignment statements.
+        // Certain codegens might want to put them back into the variable directly.
+        // For strings and arrays this doesn't occur - these are always already specced at creation time.
+        initializationNumericValue = number
+    }
+
+    val uninitialized: Boolean
+        get() = initializationArrayValue==null && initializationStringValue==null && initializationNumericValue==null
 
     init {
         if(length!=null) {
-            require(onetimeInitializationNumericValue == null)
-            if(onetimeInitializationArrayValue!=null)
-                require(onetimeInitializationArrayValue.isEmpty() ||onetimeInitializationArrayValue.size==length)
+            require(initializationNumericValue == null)
+            if(initializationArrayValue!=null)
+                require(initializationArrayValue.isEmpty() ||initializationArrayValue.size==length)
         }
-        if(onetimeInitializationNumericValue!=null) {
+        if(initializationNumericValue!=null) {
             require(dt.isNumericOrBool)
         }
-        if(onetimeInitializationArrayValue!=null) {
+        if(initializationArrayValue!=null) {
             require(dt.isArray)
-            require(length==onetimeInitializationArrayValue.size)
+            require(length == initializationArrayValue.size)
         }
-        if(onetimeInitializationStringValue!=null) {
+        if(initializationStringValue!=null) {
             require(dt.isString)
-            require(length == onetimeInitializationStringValue.first.length+1)
+            require(length == initializationStringValue.first.length + 1)
         }
     }
 }
@@ -250,7 +262,13 @@ class StRomSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType)
 class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?)
+class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?) {
+    init {
+        if(number!=null) require(addressOfSymbol==null && boolean==null)
+        if(addressOfSymbol!=null) require(number==null && boolean==null)
+        if(boolean!=null) require(addressOfSymbol==null && number==null)
+    }
+}
 
 typealias StString = Pair<String, Encoding>
 typealias StArray = List<StArrayElement>

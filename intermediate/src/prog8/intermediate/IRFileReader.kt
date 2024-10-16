@@ -169,7 +169,7 @@ class IRFileReader {
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
-                val newVar = StStaticVariable(name, dt, null, null, null, arraysize, zp, dummyNode)
+                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, dummyNode)
                 variables.add(newVar)
             }
             return variables
@@ -202,15 +202,19 @@ class IRFileReader {
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
                 when {
-                    dt.isBool -> initNumeric = if(value.lowercase()=="false") 0.0 else 1.0
-                    dt.isNumeric -> initNumeric = parseIRValue(value)
+                    dt.isNumericOrBool -> initNumeric = parseIRValue(value)
+                    dt.isBoolArray -> {
+                        initArray = value.split(',').map {
+                            val boolean = parseIRValue(it) != 0.0
+                            StArrayElement(null, null, boolean)
+                        }
+                    }
                     dt.isArray -> {
                         initArray = value.split(',').map {
                             if (it.startsWith('@'))
                                 StArrayElement(null, it.drop(1), null)
                             else
                                 StArrayElement(parseIRValue(it), null, null)
-                            // TODO Boolean IR value?
                         }
                     }
                     dt.isString -> throw IRParseException("STR should have been converted to byte array")
@@ -220,7 +224,10 @@ class IRFileReader {
                 if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
-                variables.add(StStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, dummyNode))
+                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, dummyNode)
+                if(initNumeric!=null)
+                    stVar.setOnetimeInitNumeric(initNumeric)
+                variables.add(stVar)
             }
             return variables
         }
@@ -489,7 +496,7 @@ class IRFileReader {
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
             return when(type) {
-                // note: there are no BOOLEANS arrays anymore in the IR. Only UBYTE.
+                "bool" -> DataType.arrayFor(BaseDataType.BOOL)
                 "byte" -> DataType.arrayFor(BaseDataType.BYTE)
                 "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE)
                 "word" -> DataType.arrayFor(BaseDataType.WORD)

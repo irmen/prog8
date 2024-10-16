@@ -7,14 +7,14 @@ txt {
 
 sub width() -> ubyte {
     %ir {{
-        syscall 49 (): r0.w
+        syscall 46 (): r0.w
         returnr.b r0
     }}
 }
 
 sub height() -> ubyte {
     %ir {{
-        syscall 49 (): r0.w
+        syscall 46 (): r0.w
         msig.b r1,r0
         returnr.b r1
     }}

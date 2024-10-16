@@ -1,8 +1,6 @@
 TODO
 ====
 
-- fixup syscall list UNUSED_SYSCALL_1 and 2 (numbers shift!)
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
@@ -11,8 +9,8 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- keep boolean array intact in IR so that it might be represented as a bitmask in the resulting code (8 times storage improvement)
-- improve detection that a variable is not read before being written so that initializing it to zero can be omitted  (only happens now if a vardecl is immediately followed by a for loop for instance)
+- improve detection that a variable is not read before being written so that initializing it to zero can be omitted
+  (only happens now if a vardecl is immediately followed by a for loop for instance) BUT this may break stuff if the variable is read from a function call for instance in between?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)

@@ -80,11 +80,11 @@ startScripts.enabled = true
 
 application {
     mainClass = 'prog8.CompilerMainKt'
-    applicationName = 'p8compile'
+    applicationName = 'prog8c'
 }
 
 shadowJar {
-    archiveBaseName = 'prog8compiler'
+    archiveBaseName = 'prog8c'
     archiveVersion = version
     // minimize()
 }

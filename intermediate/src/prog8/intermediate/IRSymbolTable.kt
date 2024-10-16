@@ -69,7 +69,7 @@ class IRSymbolTable {
                 array.forEach {
                     if(it.addressOfSymbol!=null) {
                         val target = variable.lookup(it.addressOfSymbol!!)!!
-                        newArray.add(IRStArrayElement(null, target.scopedName))
+                        newArray.add(IRStArrayElement(null, null, target.scopedName))
                     } else {
                         newArray.add(IRStArrayElement.from(it))
                     }
@@ -77,19 +77,11 @@ class IRSymbolTable {
                 return newArray
             }
             scopedName = variable.scopedName
-
-            // convert booleans to ubytes
-            val dt = when {
-                variable.dt.isBool -> DataType.forDt(BaseDataType.UBYTE)
-                variable.dt.isBoolArray -> DataType.arrayFor(BaseDataType.UBYTE)
-                else -> variable.dt
-            }
-
             varToadd = IRStStaticVariable(scopedName,
-                dt,
-                variable.onetimeInitializationNumericValue,
-                variable.onetimeInitializationStringValue,
-                fixupAddressOfInArray(variable.onetimeInitializationArrayValue),
+                variable.dt,
+                variable.initializationNumericValue,
+                variable.initializationStringValue,
+                fixupAddressOfInArray(variable.initializationArrayValue),
                 variable.length,
                 variable.zpwish
             )
@@ -207,16 +199,12 @@ class IRStStaticVariable(name: String,
         fun from(variable: StStaticVariable): IRStStaticVariable {
             return IRStStaticVariable(variable.name,
                 variable.dt,
-                variable.onetimeInitializationNumericValue,
-                variable.onetimeInitializationStringValue,
-                variable.onetimeInitializationArrayValue?.map { IRStArrayElement.from(it) },
+                variable.initializationNumericValue,
+                variable.initializationStringValue,
+                variable.initializationArrayValue?.map { IRStArrayElement.from(it) },
                 variable.length,
                 variable.zpwish)
         }
-    }
-
-    init {
-        require(!dt.isBool && !dt.isBoolArray)
     }
 
     val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null
@@ -224,18 +212,20 @@ class IRStStaticVariable(name: String,
     val typeString: String = dt.typeString(length)
 }
 
-class IRStArrayElement(val number: Double?, val addressOfSymbol: String?) {
+class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSymbol: String?) {
     companion object {
         fun from(elt: StArrayElement): IRStArrayElement {
             return if(elt.boolean!=null)
-                IRStArrayElement(if(elt.boolean==true) 1.0 else 0.0, elt.addressOfSymbol)
+                IRStArrayElement(elt.boolean, null, elt.addressOfSymbol)
             else
-                IRStArrayElement(elt.number, elt.addressOfSymbol)
+                IRStArrayElement(null, elt.number, elt.addressOfSymbol)
         }
     }
 
     init {
-        require(number!=null || addressOfSymbol!=null)
+        if(bool!=null) require(number==null && addressOfSymbol==null)
+        if(number!=null) require(bool==null && addressOfSymbol==null)
+        if(addressOfSymbol!=null) require(number==null || bool==null)
     }
 }
 

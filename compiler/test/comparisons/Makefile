@@ -12,7 +12,7 @@ generate:
 	python make_eq_tests_splitw.py
 	python make_cmp_tests.py
 	python make_cmp_tests_splitw.py
-	p8compile -target cx16 -sourcelines *.p8 >/dev/null
+	prog8c -target cx16 -sourcelines *.p8 >/dev/null
 
 test_prgs:
 	x16emu -run -prg ifelse.prg

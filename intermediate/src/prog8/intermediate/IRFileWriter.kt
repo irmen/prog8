@@ -268,7 +268,11 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     dt.isArray -> {
                         if(variable.onetimeInitializationArrayValue!==null) {
                             variable.onetimeInitializationArrayValue.joinToString(",") {
-                                if(it.number!=null)
+                                if(it.bool==true)
+                                    "1"
+                                else if(it.bool==false)
+                                    "0"
+                                else if(it.number!=null)
                                     it.number.toInt().toHex()
                                 else
                                     "@${it.addressOfSymbol}"
