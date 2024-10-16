@@ -169,7 +169,7 @@ class IRFileReader {
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
-                val newVar = StStaticVariable(name, dt, null, null, null, arraysize, zp, dummyNode)
+                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, dummyNode)
                 variables.add(newVar)
             }
             return variables
@@ -224,7 +224,10 @@ class IRFileReader {
                 if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
-                variables.add(StStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, dummyNode))
+                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, dummyNode)
+                if(initNumeric!=null)
+                    stVar.setOnetimeInitNumeric(initNumeric)
+                variables.add(stVar)
             }
             return variables
         }

@@ -7,6 +7,7 @@ main {
     bool[] barray =  [true, false, true, false]
     uword[] warray = [&value1, &barray, &value5, 4242]
 
+    ubyte @shared integer = 99
     bool @shared value1
     bool @shared value2 = barray[2]         ; should be const!
     bool @shared value3 = true
@@ -16,6 +17,12 @@ main {
     uword @shared value7 = warray[2]        ; cannot be const
 
     sub start() {
+        txt.print_ub(integer)
+        integer++
+        txt.spc()
+        txt.print_ub(integer)
+        txt.nl()
+
         txt.print_bool(value1)
         txt.spc()
         txt.print_bool(value2)

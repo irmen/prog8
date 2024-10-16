@@ -82,9 +82,9 @@ class IRSymbolTable {
             scopedName = variable.scopedName
             varToadd = IRStStaticVariable(scopedName,
                 variable.dt,
-                variable.onetimeInitializationNumericValue,
-                variable.onetimeInitializationStringValue,
-                fixupAddressOfInArray(variable.onetimeInitializationArrayValue),
+                variable.initializationNumericValue,
+                variable.initializationStringValue,
+                fixupAddressOfInArray(variable.initializationArrayValue),
                 variable.length,
                 variable.zpwish
             )
@@ -202,9 +202,9 @@ class IRStStaticVariable(name: String,
         fun from(variable: StStaticVariable): IRStStaticVariable {
             return IRStStaticVariable(variable.name,
                 variable.dt,
-                variable.onetimeInitializationNumericValue,
-                variable.onetimeInitializationStringValue,
-                variable.onetimeInitializationArrayValue?.map { IRStArrayElement.from(it) },
+                variable.initializationNumericValue,
+                variable.initializationStringValue,
+                variable.initializationArrayValue?.map { IRStArrayElement.from(it) },
                 variable.length,
                 variable.zpwish)
         }

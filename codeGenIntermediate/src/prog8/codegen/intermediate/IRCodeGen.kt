@@ -23,6 +23,7 @@ class IRCodeGen(
         makeAllNodenamesScoped(program)
         moveAllNestedSubroutinesToBlockScope(program)
         verifyNameScoping(program, symbolTable)
+        changeGlobalVarInits(symbolTable)
 
         val irSymbolTable = IRSymbolTable.fromStDuringCodegen(symbolTable)
         val irProg = IRProgram(program.name, irSymbolTable, options, program.encoding)
@@ -52,6 +53,40 @@ class IRCodeGen(
         irProg.validate()
 
         return irProg
+    }
+
+    private fun changeGlobalVarInits(symbolTable: SymbolTable) {
+        // Normally, block level (global) variables that have a numeric initialization value
+        // are initialized via an assignment statement.
+        val initsToRemove = mutableListOf<Pair<PtBlock, PtAssignment>>()
+
+        symbolTable.allVariables.forEach { variable ->
+            if(variable.uninitialized && variable.parent.type==StNodeType.BLOCK) {
+                val block = variable.parent.astNode as PtBlock
+                val initialization = (block.children.firstOrNull {
+                    it is PtAssignment && it.target.identifier?.name==variable.scopedName
+                } as PtAssignment?)
+                val initValue = initialization?.value
+                when(initValue){
+                    is PtBool -> {
+                        variable.setOnetimeInitNumeric(initValue.asInt().toDouble())
+                        initsToRemove += block to initialization
+                        println("${variable.name} = bool ${initValue.value}")
+                    }
+                    is PtNumber -> {
+                        variable.setOnetimeInitNumeric(initValue.number)
+                        initsToRemove += block to initialization
+                        println("${variable.name} = number ${initValue.number}")
+                    }
+                    is PtArray, is PtString -> throw AssemblyError("array or string initialization values should already be part of the vardecl, not a separate assignment")
+                    else -> {}
+                }
+            }
+        }
+
+        for((block, assign) in initsToRemove) {
+            block.children.remove(assign)
+        }
     }
 
     private fun verifyNameScoping(program: PtProgram, symbolTable: SymbolTable) {

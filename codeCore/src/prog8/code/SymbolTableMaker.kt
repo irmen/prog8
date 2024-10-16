@@ -95,7 +95,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
 //                if(node.type in SplitWordArrayTypes) {
 //                    ... split array also add _lsb and _msb to symboltable?
 //                }
-                StStaticVariable(node.name, node.type, initialNumeric, initialString, initialArray, numElements, node.zeropage, node)
+                val stVar = StStaticVariable(node.name, node.type, initialString, initialArray, numElements, node.zeropage, node)
+                if(initialNumeric!=null)
+                    stVar.setOnetimeInitNumeric(initialNumeric)
+                stVar
             }
             is PtBuiltinFunctionCall -> {
                 if(node.name=="memory") {
