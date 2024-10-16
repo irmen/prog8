@@ -6,8 +6,13 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
+import prog8.ast.IStatementContainer
+import prog8.ast.Program
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.AssignmentOrigin
+import prog8.ast.statements.VarDecl
 import prog8.ast.statements.VarDeclType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
@@ -21,6 +26,13 @@ import prog8tests.helpers.compileText
  * from source file loading all the way through to running 64tass.
  */
 class TestCompilerOnCharLit: FunSpec({
+
+    fun findInitializer(vardecl: VarDecl, program: Program): Assignment? =
+        (vardecl.parent as IStatementContainer).statements
+            .asSequence()
+            .filterIsInstance<Assignment>()
+            .singleOrNull { it.origin== AssignmentOrigin.VARINIT && it.target.identifier?.targetVarDecl(program) === vardecl }
+
 
     test("testCharLitAsRomsubArg") {
         val platform = Cx16Target()
@@ -70,7 +82,7 @@ class TestCompilerOnCharLit: FunSpec({
         withClue("initializer value should have been moved to separate assignment"){
             decl.value shouldBe null
         }
-        val assignInitialValue = decl.findInitializer(program)!!
+        val assignInitialValue = findInitializer(decl, program)!!
         assignInitialValue.target.identifier!!.nameInSource shouldBe listOf("ch")
         withClue("char literal should have been replaced by ubyte literal") {
             assignInitialValue.value shouldBe instanceOf<NumericLiteral>()

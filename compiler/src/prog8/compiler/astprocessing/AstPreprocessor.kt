@@ -172,7 +172,7 @@ class AstPreprocessor(val program: Program,
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val nextAssignment = decl.nextSibling() as? Assignment
         if(nextAssignment!=null && nextAssignment.origin!=AssignmentOrigin.VARINIT) {
-            // check if it's a proper initializer assignment for the variable
+            // check if the following assignment initializes the variable
             if(decl.value==null && nextAssignment.target.identifier?.targetVarDecl(program)===decl) {
                 if(!nextAssignment.value.referencesIdentifier(nextAssignment.target.identifier!!.nameInSource))
                     nextAssignment.origin = AssignmentOrigin.VARINIT

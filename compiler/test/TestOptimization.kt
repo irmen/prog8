@@ -504,9 +504,9 @@ main {
         xx += 6
          */
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 7
+        stmts.size shouldBe 6
         stmts.filterIsInstance<VarDecl>().size shouldBe 3
-        stmts.filterIsInstance<Assignment>().size shouldBe 4
+        stmts.filterIsInstance<Assignment>().size shouldBe 3
     }
 
     test("only substitue assignments with 0 after a =0 initializer if it is the same variable") {

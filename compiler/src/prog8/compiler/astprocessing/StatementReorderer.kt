@@ -52,11 +52,8 @@ internal class StatementReorderer(
                             // This allows you to restart the program and have the same starting values of the variables
                             // So basically consider 'ubyte xx' as a short form for 'ubyte xx; xx=0'
                             decl.value = null
-                            if(decl.findInitializer(program)!=null)
-                                return noModifications   // an initializer assignment for a vardecl is already here
-                            val nextFor = decl.nextSibling() as? ForLoop
-                            val hasNextForWithThisLoopvar = nextFor?.loopVar?.nameInSource==listOf(decl.name)
-                            if (!hasNextForWithThisLoopvar) {
+                            val canskip = canSkipInitializationWith0(decl)
+                            if (!canskip) {
                                 // Add assignment to initialize with zero
                                 // Note: for block-level vars, this will introduce assignments in the block scope. These have to be dealt with correctly later.
                                 val identifier = IdentifierReference(listOf(decl.name), decl.position)
@@ -104,6 +101,62 @@ internal class StatementReorderer(
         }
 
         return noModifications
+    }
+
+    private fun canSkipInitializationWith0(decl: VarDecl): Boolean {
+        // if there is an assignment to the variable below it (regular assign, or For loop),
+        // and there is nothing important in between,
+        // we can skip the initialization.
+        val statements = (decl.parent as? IStatementContainer)?.statements ?: return false
+        val following = statements.asSequence().dropWhile { it!==decl }.drop(1)
+        for(stmt in following) {
+            when(stmt) {
+                is Assignment -> {
+                    if (!stmt.isAugmentable) {
+                        val assignTgt = stmt.target.identifier?.targetVarDecl(program)
+                        if (assignTgt == decl)
+                            return true
+                    }
+                    return false
+                }
+
+                is ChainedAssignment -> {
+                    var chained: ChainedAssignment? = stmt
+                    while(chained!=null) {
+                        val assignTgt = chained.target.identifier?.targetVarDecl(program)
+                        if (assignTgt == decl)
+                            return true
+                        if(chained.nested is Assignment) {
+                            if ((chained.nested as Assignment).target.identifier?.targetVarDecl(program) == decl)
+                                return true
+                        }
+                        chained = chained.nested as? ChainedAssignment
+                    }
+                }
+
+                is ForLoop -> return stmt.loopVar.nameInSource == listOf(decl.name)
+
+                is IFunctionCall,
+                is Jump,
+                is Break,
+                is BuiltinFunctionPlaceholder,
+                is ConditionalBranch,
+                is Continue,
+                is Return,
+                is Subroutine,
+                is InlineAssembly,
+                is Block,
+                is AnonymousScope,
+                is IfElse,
+                is RepeatLoop,
+                is UnrollLoop,
+                is UntilLoop,
+                is When,
+                is WhileLoop -> return false
+                else -> {}
+            }
+        }
+        return false
     }
 
     private fun directivesToTheTop(statements: MutableList<Statement>) {

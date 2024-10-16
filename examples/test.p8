@@ -3,37 +3,14 @@
 %zeropage basicsafe
 
 main {
-
-    bool[] barray =  [true, false, true, false]
-    uword[] warray = [&value1, &barray, &value5, 4242]
-
-    ubyte @shared integer = 99
-    bool @shared value1
-    bool @shared value2 = barray[2]         ; should be const!
-    bool @shared value3 = true
-    bool @shared value4 = false
-    bool @shared value5 = barray[cx16.r0L]      ; cannot be const
-    uword @shared value6 = warray[3]        ; should be const!
-    uword @shared value7 = warray[2]        ; cannot be const
-
     sub start() {
-        txt.print_ub(integer)
-        integer++
-        txt.spc()
-        txt.print_ub(integer)
-        txt.nl()
-
-        txt.print_bool(value1)
-        txt.spc()
-        txt.print_bool(value2)
-        txt.spc()
-        txt.print_bool(value3)
-        txt.spc()
-        txt.print_bool(value4)
-        txt.spc()
-        txt.print_bool(value5)
-        txt.spc()
-        txt.print_uw(value6)
-        txt.nl()
+        ubyte v0
+        ubyte v1
+        ubyte v2
+        ubyte v3
+        v0 = v1 = v2 = 99
+        for v3 in 10 to 20 {
+            cx16.r0L++
+        }
     }
 }

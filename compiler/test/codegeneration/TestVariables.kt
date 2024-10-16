@@ -4,9 +4,11 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.types.instanceOf
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.AssignmentOrigin
-import prog8.code.ast.PtAssignment
+import prog8.ast.statements.ForLoop
+import prog8.ast.statements.VarDecl
 import prog8.code.target.C64Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -188,5 +190,36 @@ main {
         assigns[4].value.constValue(result) shouldBe null
         assigns[5].value.constValue(result) shouldBe null
         assigns[6].value.constValue(result) shouldBe null
+    }
+
+    test("not inserting redundant 0-initializations") {
+        val src="""
+main {
+    sub start() {
+        ubyte v0
+        ubyte v1
+        ubyte v2
+        ubyte v3
+        v0 = v1 = v2 = 99
+        for v3 in 10 to 20 {
+            cx16.r0L++
+        }
+    }
+}"""
+        val result = compileText(C64Target(), false, src, writeAssembly = false)!!.compilerAst
+        val st = result.entrypoint.statements
+        st.size shouldBe 8
+        st[0] shouldBe instanceOf<VarDecl>()
+        st[1] shouldBe instanceOf<VarDecl>()
+        st[2] shouldBe instanceOf<VarDecl>()
+        st[3] shouldBe instanceOf<VarDecl>()
+        st[4] shouldBe instanceOf<Assignment>()
+        st[5] shouldBe instanceOf<Assignment>()
+        st[6] shouldBe instanceOf<Assignment>()
+        st[7] shouldBe instanceOf<ForLoop>()
+
+        (st[4] as Assignment).target.identifier?.nameInSource shouldBe listOf("v2")
+        (st[5] as Assignment).target.identifier?.nameInSource shouldBe listOf("v1")
+        (st[6] as Assignment).target.identifier?.nameInSource shouldBe listOf("v0")
     }
 })

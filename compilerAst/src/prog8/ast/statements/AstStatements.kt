@@ -290,12 +290,6 @@ class VarDecl(val type: VarDeclType,
         return copy
     }
 
-    fun findInitializer(program: Program): Assignment? =
-        (parent as IStatementContainer).statements
-        .asSequence()
-        .filterIsInstance<Assignment>()
-        .singleOrNull { it.origin==AssignmentOrigin.VARINIT && it.target.identifier?.targetVarDecl(program) === this }
-
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         value?.referencesIdentifier(nameInSource)==true ||
                 this.arraysize?.referencesIdentifier(nameInSource)==true
