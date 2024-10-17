@@ -179,3 +179,6 @@ class PtWhenChoice(val isElse: Boolean, position: Position) : PtNode(position) {
     val statements: PtNodeGroup
         get() = children[1] as PtNodeGroup
 }
+
+
+class PtDefer(position: Position): PtNode(position), IPtStatementContainer

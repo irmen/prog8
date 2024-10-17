@@ -130,6 +130,7 @@ abstract class AstWalker {
     open fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(defer: Defer, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(string: StringLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
@@ -174,6 +175,7 @@ abstract class AstWalker {
     open fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(defer: Defer, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
@@ -440,6 +442,12 @@ abstract class AstWalker {
         track(before(scope, parent), scope, parent)
         scope.statements.forEach { it.accept(this, scope) }
         track(after(scope, parent), scope, parent)
+    }
+
+    fun visit(defer: Defer, parent: Node) {
+        track(before(defer, parent), defer, parent)
+        defer.scope.accept(this, defer)
+        track(after(defer, parent), defer, parent)
     }
 
     fun visit(typecast: TypecastExpression, parent: Node) {

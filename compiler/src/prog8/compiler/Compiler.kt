@@ -131,6 +131,10 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 val intermediateAst = IntermediateAstMaker(program, args.errors).transform()
                 val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
                 val symbolTable = stMaker.make()
+
+                postprocessIntermediateAst(intermediateAst, symbolTable, args.errors)
+                args.errors.report()
+
                 if(compilationOptions.optimize) {
                     optimizeIntermediateAst(intermediateAst, compilationOptions, symbolTable, args.errors)
                     args.errors.report()

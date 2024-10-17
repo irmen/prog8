@@ -154,6 +154,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 else
                     "->"
             }
+            is PtDefer -> "<defer>"
         }
     }
 

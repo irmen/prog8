@@ -1,6 +1,11 @@
 TODO
 ====
 
+- fix defer that a return <expression> is evaluated first (and saved), then the defer is called, then a simple return <value> is done
+- unit test for defer
+- describe defer in the manual
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
@@ -46,7 +51,6 @@ Future Things and Ideas
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
-- Zig-like defer to clean up stuff when leaving the scope. But as we don't have closures, it's more limited. Still useful?
 
 
 Libraries:

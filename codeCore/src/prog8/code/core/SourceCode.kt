@@ -9,6 +9,7 @@ import kotlin.io.path.readText
 
 
 const val internedStringsModuleName = "prog8_interned_strings"
+const val deferLabel = "prog8_defer_statements"
 
 
 /**

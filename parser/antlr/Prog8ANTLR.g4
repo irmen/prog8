@@ -109,6 +109,7 @@ statement :
 	| breakstmt
 	| continuestmt
 	| labeldef
+	| defer
 	;
 
 
@@ -126,6 +127,7 @@ subroutinedeclaration :
 	| romsubroutine
     ;
 
+defer: 'defer' (statement | statement_block) ;
 
 labeldef :  identifier ':'  ;
 

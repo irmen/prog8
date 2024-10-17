@@ -44,8 +44,17 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_stringcompare" -> funcStringCompare(call)
             "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
             "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)
+            "invoke_defer" -> funcInvokeDefer(call)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
+    }
+
+    private fun funcInvokeDefer(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val sub = call.definingSub()!!
+        val result = mutableListOf<IRCodeChunkBase>()
+        addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = "${sub.name}.$deferLabel",
+            fcallArgs = FunctionCallArgs(emptyList(), emptyList())), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
     private fun funcSquare(call: PtBuiltinFunctionCall, resultType: IRDataType): ExpressionCodeResult {

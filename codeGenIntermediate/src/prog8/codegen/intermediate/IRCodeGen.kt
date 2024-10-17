@@ -237,6 +237,7 @@ class IRCodeGen(
                 listOf(chunk)
             }
             is PtConditionalBranch -> translate(node)
+            is PtDefer -> translate(node)
             is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, null))
             is PtIncludeBinary -> listOf(IRInlineBinaryChunk(null, readBinaryData(node), null))
             is PtAddressOf,
@@ -272,6 +273,16 @@ class IRCodeGen(
             .drop(node.offset?.toInt() ?: 0)
             .take(node.length?.toInt() ?: Int.MAX_VALUE)
             .map { it.toUByte() }
+    }
+
+    private fun translate(defer: PtDefer): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        for(stmt in defer.children) {
+            result += translateNode(stmt)
+        }
+        addInstr(result, IRInstruction(Opcode.RETURN), null)
+        val sub = defer.definingSub()!!
+        return labelFirstChunk(result, "${sub.name}.$deferLabel")
     }
 
     private fun translate(branch: PtConditionalBranch): IRCodeChunks {

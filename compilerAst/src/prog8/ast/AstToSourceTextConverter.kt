@@ -430,6 +430,14 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         outputi("}")
     }
 
+    override fun visit(defer: Defer) {
+        outputln("defer {")
+        scopelevel++
+        outputStatements(defer.scope.statements)
+        scopelevel--
+        outputi("}")
+    }
+
     override fun visit(typecast: TypecastExpression) {
         output("(")
         typecast.expression.accept(this)

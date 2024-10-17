@@ -4,13 +4,38 @@
 
 main {
     sub start() {
-        ubyte v0
-        ubyte v1
-        ubyte v2
-        ubyte v3
-        v0 = v1 = v2 = 99
-        for v3 in 10 to 20 {
-            cx16.r0L++
+        ubyte x = testdefer()
+        txt.print("result from call=")
+        txt.print_ub(x)
+        txt.nl()
+    }
+
+    sub testdefer() -> ubyte {
+        ubyte var = 22
+
+        defer txt.print("defer1\n")
+        defer {
+            txt.print("defer2, var=")
+            txt.print_ub(var)
+            txt.nl()
         }
+
+        if var==22 {
+            var = 88
+            return var
+        }
+        else {
+            var++
+            txt.print("var=")
+            txt.print_ub(var)
+            txt.nl()
+            return 255
+        }
+
+
+    }
+
+    sub other() {
+        cx16.r0++
     }
 }

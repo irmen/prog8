@@ -159,6 +159,10 @@ interface IAstVisitor {
         scope.statements.forEach { it.accept(this) }
     }
 
+    fun visit(defer: Defer) {
+        defer.scope.accept(this)
+    }
+
     fun visit(typecast: TypecastExpression) {
         typecast.expression.accept(this)
     }

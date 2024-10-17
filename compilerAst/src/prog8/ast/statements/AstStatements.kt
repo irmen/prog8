@@ -731,6 +731,24 @@ class InlineAssembly(val assembly: String, val isIR: Boolean, override val posit
     }
 }
 
+class Defer(val scope: AnonymousScope, override val position: Position): Statement() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        scope.linkParents(this)
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        TODO("Not yet implemented")
+    }
+
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = scope.referencesIdentifier(nameInSource)
+    override fun copy() = Defer(scope.copy(), position)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+}
+
 class AnonymousScope(override var statements: MutableList<Statement>,
                      override val position: Position) : IStatementContainer, Statement() {
     override lateinit var parent: Node

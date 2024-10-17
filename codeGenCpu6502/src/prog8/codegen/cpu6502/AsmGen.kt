@@ -607,6 +607,7 @@ class AsmGen6502Internal (
             is PtVariable, is PtConstant, is PtMemMapped -> { /* do nothing; variables are handled elsewhere */ }
             is PtBlock -> throw AssemblyError("block should have been handled elsewhere")
             is PtNodeGroup -> stmt.children.forEach { translate(it) }
+            is PtDefer -> translate(stmt)
             is PtNop -> {}
             else -> throw AssemblyError("missing asm translation for $stmt")
         }
@@ -1090,6 +1091,15 @@ $repeatLabel""")
         if(options.breakpointCpuInstruction!=null) {
             out("  ${options.breakpointCpuInstruction}")
         }
+    }
+
+    private fun translate(defer: PtDefer) {
+        val sub = defer.definingSub()!!
+        out("${sub.name}.$deferLabel")
+        for(stmt in defer.children) {
+            translate(stmt)
+        }
+        out("  rts")
     }
 
     internal fun signExtendAYlsb(valueDt: DataType) {
