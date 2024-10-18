@@ -1,7 +1,8 @@
 TODO
 ====
 
-- fix defer that a return <expression> is evaluated first (and saved), then the defer is called, then a simple return <value> is done
+- check defer stmt/block to not contain a return or jump statement!
+- run defer also before sys.exit/exit2/exit3
 - unit test for defer
 - describe defer in the manual
 
