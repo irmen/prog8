@@ -85,7 +85,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
 
     fun isSimple(): Boolean {
         return when(this) {
-            is PtAddressOf -> true
+            is PtAddressOf -> this.arrayIndexExpr!=null || this.arrayIndexExpr?.isSimple()==true
             is PtArray -> true
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
             is PtBinaryExpression -> false

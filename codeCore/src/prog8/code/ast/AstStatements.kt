@@ -131,7 +131,8 @@ class PtRepeatLoop(position: Position) : PtNode(position) {
 
 
 class PtReturn(position: Position) : PtNode(position) {
-    val hasValue = children.any()
+    val hasValue: Boolean
+        get() = children.any()
     val value: PtExpression?
         get() {
             return if(children.any())

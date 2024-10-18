@@ -71,12 +71,10 @@ class IRCodeGen(
                     is PtBool -> {
                         variable.setOnetimeInitNumeric(initValue.asInt().toDouble())
                         initsToRemove += block to initialization
-                        println("${variable.name} = bool ${initValue.value}")
                     }
                     is PtNumber -> {
                         variable.setOnetimeInitNumeric(initValue.number)
                         initsToRemove += block to initialization
-                        println("${variable.name} = number ${initValue.number}")
                     }
                     is PtArray, is PtString -> throw AssemblyError("array or string initialization values should already be part of the vardecl, not a separate assignment")
                     else -> {}

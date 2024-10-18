@@ -492,7 +492,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
         val callTarget = codeGen.symbolTable.flat.getValue(fcall.name)
 
-        if(callTarget.scopedName in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw")) {
+        if(callTarget.scopedName in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw", "floats.push", "floats.pop")) {
             // special case, these should be inlined, or even use specialized instructions. Instead of doing a normal subroutine call.
             return translateStackFunctions(fcall, callTarget)
         }
@@ -686,6 +686,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val popReg = codeGen.registers.nextFree()
                 addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.WORD, reg1=popReg), null)
                 return ExpressionCodeResult(chunk, IRDataType.WORD, popReg, -1)
+            }
+            "floats.push" -> {
+                // push float
+                val tr = translateExpression(fcall.args.single())
+                chunk += tr.chunks
+                addInstr(chunk, IRInstruction(Opcode.PUSH, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
+                return ExpressionCodeResult(chunk, IRDataType.FLOAT, -1, -1)
+            }
+            "floats.pop" -> {
+                // pop float
+                val popReg = codeGen.registers.nextFreeFloat()
+                addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.FLOAT, fpReg1 = popReg), null)
+                return ExpressionCodeResult(chunk, IRDataType.FLOAT, -1, resultFpReg = popReg)
             }
             else -> throw AssemblyError("unknown stack subroutine called")
         }
