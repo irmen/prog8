@@ -71,61 +71,85 @@ private fun integrateDefers(program: PtProgram, st: SymbolTable) {
             node.parent.add(idx, invokedefer)
         }
     }
+    fun notComplex(value: PtExpression): Boolean = when(value) {
+        is PtAddressOf -> value.arrayIndexExpr == null || notComplex(value.arrayIndexExpr!!)
+        is PtBuiltinFunctionCall -> {
+            when (value.name) {
+                in arrayOf("msb", "lsb", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> value.args.all { notComplex(it) }
+                else -> false
+            }
+        }
+        is PtMemoryByte -> value.address is PtNumber
+        is PtPrefix -> notComplex(value.value)
+        is PtTypeCast -> notComplex(value.value)
+        is PtArray,
+        is PtIrRegister,
+        is PtBool,
+        is PtNumber,
+        is PtRange,
+        is PtString -> true
+        else -> false
+    }
 
+    // jump exits
     for(exit in jumpsToAugment) {
         invokedeferbefore(exit)
     }
 
+    // return exits
     for(ret in returnsToAugment) {
         val defer = ret.definingSub()!!.children.singleOrNull { it is PtDefer }
         if(defer == null)
             continue
         if(ret.children.size>1)
             TODO("support defer on multi return values")
-        if(!ret.hasValue || ret.value!!.isSimple()) {
+        val value = ret.value
+        if(value==null || notComplex(value)) {
             invokedeferbefore(ret)
-        } else {
-            val value = ret.value!!
-            var typecast: DataType? = null
-            var pushWord = false
-            var pushFloat = false
-
-            when(value.type) {
-                DataType.BOOL -> typecast = DataType.BOOL
-                DataType.BYTE -> typecast = DataType.BYTE
-                DataType.WORD -> {
-                    pushWord = true
-                    typecast = DataType.WORD
-                }
-                DataType.UBYTE -> {}
-                DataType.UWORD, in PassByReferenceDatatypes -> pushWord = true
-                DataType.FLOAT -> pushFloat = true
-                else -> throw FatalAstException("unsupported return value type ${value.type} with defer")
-            }
-
-            val pushFunc = if(pushFloat) "floats.push" else if(pushWord) "sys.pushw" else "sys.push"
-            val popFunc = if(pushFloat) "floats.pop" else if(pushWord) "sys.popw" else "sys.pop"
-            val pushCall = PtFunctionCall(pushFunc, true, value.type, value.position)
-            pushCall.add(value)
-            val popCall = if(typecast!=null) {
-                PtTypeCast(typecast, value.position).also {
-                    it.add(PtFunctionCall(popFunc, false, value.type, value.position))
-                }
-            } else
-                PtFunctionCall(popFunc, false, value.type, value.position)
-
-            val newRet = PtReturn(ret.position)
-            newRet.add(popCall)
-            val group = PtNodeGroup()
-            group.add(pushCall)
-            group.add(PtBuiltinFunctionCall("invoke_defer", true, false, DataType.UNDEFINED, ret.position))
-            group.add(newRet)
-            group.parent = ret.parent
-            val idx = ret.parent.children.indexOf(ret)
-            ret.parent.children[idx] = group
+            continue
         }
+
+        // complex return value, need to store it before calling the defer block
+        var typecast: DataType? = null
+        var pushWord = false
+        var pushFloat = false
+
+        when(value.type) {
+            DataType.BOOL -> typecast = DataType.BOOL
+            DataType.BYTE -> typecast = DataType.BYTE
+            DataType.WORD -> {
+                pushWord = true
+                typecast = DataType.WORD
+            }
+            DataType.UBYTE -> {}
+            DataType.UWORD, in PassByReferenceDatatypes -> pushWord = true
+            DataType.FLOAT -> pushFloat = true
+            else -> throw FatalAstException("unsupported return value type ${value.type} with defer")
+        }
+
+        val pushFunc = if(pushFloat) "floats.push" else if(pushWord) "sys.pushw" else "sys.push"
+        val popFunc = if(pushFloat) "floats.pop" else if(pushWord) "sys.popw" else "sys.pop"
+        val pushCall = PtFunctionCall(pushFunc, true, value.type, value.position)
+        pushCall.add(value)
+        val popCall = if(typecast!=null) {
+            PtTypeCast(typecast, value.position).also {
+                it.add(PtFunctionCall(popFunc, false, value.type, value.position))
+            }
+        } else
+            PtFunctionCall(popFunc, false, value.type, value.position)
+
+        val newRet = PtReturn(ret.position)
+        newRet.add(popCall)
+        val group = PtNodeGroup()
+        group.add(pushCall)
+        group.add(PtBuiltinFunctionCall("invoke_defer", true, false, DataType.UNDEFINED, ret.position))
+        group.add(newRet)
+        group.parent = ret.parent
+        val idx = ret.parent.children.indexOf(ret)
+        ret.parent.children[idx] = group
     }
 
+    // subroutine ends
     for(sub in subEndsToAugment) {
         val defer = sub.children.singleOrNull { it is PtDefer }
         if(defer != null) {
@@ -138,3 +162,4 @@ private fun integrateDefers(program: PtProgram, st: SymbolTable) {
     }
 
 }
+

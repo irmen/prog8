@@ -31,18 +31,19 @@ main {
     }
 
     sub testdefer() -> ubyte {
-        ubyte var = 22
+        ubyte @shared var = 22
 
         defer txt.print("defer1\n")
         defer {
             txt.print("defer2, var=")
             txt.print_ub(var)
             txt.nl()
+            var=33
         }
 
         if var==22 {
             var = 88
-            return var + other()
+            return var ; + other()
         }
         else {
             var++

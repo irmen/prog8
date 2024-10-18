@@ -1054,6 +1054,14 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(expr: PrefixExpression) {
+
+        if(expr.expression is IFunctionCall) {
+            val targetStatement = (expr.expression as IFunctionCall).target.targetSubroutine(program)
+            if(targetStatement?.returntypes?.isEmpty()==true) {
+                errors.err("subroutine doesn't return a value", expr.expression.position)
+            }
+        }
+
         checkLongType(expr)
         val dt = expr.expression.inferType(program).getOr(DataType.UNDEFINED)
         if(dt==DataType.UNDEFINED)
