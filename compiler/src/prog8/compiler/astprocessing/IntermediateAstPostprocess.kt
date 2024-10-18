@@ -5,7 +5,8 @@ import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 
-internal fun postprocessIntermediateAst(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
+
+internal fun postprocessIntermediateAst(program: PtProgram, st: SymbolTable) {
     coalesceDefers(program)
     integrateDefers(program, st)
 }
@@ -42,9 +43,14 @@ private fun integrateDefers(program: PtProgram, st: SymbolTable) {
     val jumpsToAugment = mutableListOf<PtJump>()
     val returnsToAugment = mutableListOf<PtReturn>()
     val subEndsToAugment = mutableListOf<PtSub>()
+    val callsToAugment = mutableListOf<PtFunctionCall>()
 
     walkAst(program) { node, _ ->
         when(node) {
+            is PtFunctionCall -> {
+                if(node.name.startsWith("sys.exit"))
+                    callsToAugment.add(node)
+            }
             is PtJump -> {
                 if(node.identifier!=null) {
                     val stNode = st.lookup(node.identifier!!.name)!!
@@ -89,6 +95,11 @@ private fun integrateDefers(program: PtProgram, st: SymbolTable) {
         is PtRange,
         is PtString -> true
         else -> false
+    }
+
+    // calls (sys.exit) exits
+    for(call in callsToAugment) {
+        invokedeferbefore(call)
     }
 
     // jump exits

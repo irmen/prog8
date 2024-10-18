@@ -3,61 +3,94 @@
 %option no_sysinit
 %zeropage basicsafe
 
+
+
 main {
     sub start() {
-        ubyte x = testdefer()
-        txt.print("result from call=")
-        txt.print_ub(x)
-        txt.nl()
-        float f = testdeferf()
-        txt.print("result from fcall=")
-        floats.print(f)
-        txt.nl()
-
-        floats.push(f)
-        txt.print("pushed f")
-        f = floats.pop()
-        floats.print(f)
-        txt.nl()
+        for cx16.r0L in 0 to 10 {
+            defer txt.print("end!!\n")
+        }
+        txt.print("old way:\n")
+        void oldway()
+        txt.print("\nnew way:\n")
+        void newway()
     }
 
-    sub testdeferf() -> float {
+    sub oldway() -> bool {
+        uword res1 = allocate(111)
+        if res1==0
+            return false
+
+        uword res2 = allocate(222)
+        if res2==0 {
+            deallocate(res1)
+            return false
+        }
+
+        if not process1(res1, res2) {
+            deallocate(res1)
+            deallocate(res2)
+            return false
+        }
+        if not process2(res1, res2) {
+            deallocate(res1)
+            deallocate(res2)
+            return false
+        }
+
+        deallocate(res1)
+        deallocate(res2)
+        return true
+    }
+
+    sub newway() -> bool {
+        uword res1 = allocate(111)
+        if res1==0
+            return false
         defer {
-            txt.print("defer in floats\n")
+            deallocate(res1)
         }
-        float @shared zz = 111.111
-        cx16.r0++
-        return 123.456 + zz
-    }
 
-    sub testdefer() -> ubyte {
-        ubyte @shared var = 22
-
-        defer txt.print("defer1\n")
+        uword res2 = allocate(222)
+        if res2==0
+            return false
         defer {
-            txt.print("defer2, var=")
-            txt.print_ub(var)
-            txt.nl()
-            var=33
+            deallocate(res2)
         }
 
-        if var==22 {
-            var = 88
-            return var ; + other()
-        }
-        else {
-            var++
-            txt.print("var=")
-            txt.print_ub(var)
-            txt.nl()
-            return 255
-        }
+        if not process1(res1, res2)
+            return false
+        if not process2(res1, res2)
+            return false
 
-
+        return true
     }
 
-    sub other() -> ubyte {
-        txt.print("other()\n")
-        return 11
+    sub allocate(uword arg) -> uword {
+        return 4000+arg
+    }
+
+    sub deallocate(uword arg) {
+        txt.print("dealloc ")
+        txt.print_uw(arg)
+        txt.nl()
+    }
+
+    sub process1(uword arg1, uword arg2) -> bool {
+        txt.print("process1 ")
+        txt.print_uw(arg1)
+        txt.spc()
+        txt.print_uw(arg2)
+        txt.nl()
+        return true
+    }
+
+    sub process2(uword arg1, uword arg2) -> bool {
+        txt.print("process2 ")
+        txt.print_uw(arg1)
+        txt.spc()
+        txt.print_uw(arg2)
+        txt.nl()
+        return true
     }
 }

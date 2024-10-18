@@ -1,8 +1,7 @@
 TODO
 ====
 
-- check defer stmt/block to not contain a return or jump statement!
-- run defer also before sys.exit/exit2/exit3
+- what if you use defer in a loop! (zig: defer in a loop is executed at the end of each iteration) -> now: wrong code is generated if the error msg is removed
 - unit test for defer
 - describe defer in the manual
 
