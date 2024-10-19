@@ -1,12 +1,11 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.base.FatalAstException
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 
 
-internal fun postprocessIntermediateAst(program: PtProgram, st: SymbolTable) {
+internal fun postprocessIntermediateAst(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
     coalesceDefers(program)
     integrateDefers(program, st)
 }
@@ -112,8 +111,6 @@ private fun integrateDefers(program: PtProgram, st: SymbolTable) {
         val defer = ret.definingSub()!!.children.singleOrNull { it is PtDefer }
         if(defer == null)
             continue
-        if(ret.children.size>1)
-            TODO("support defer on multi return values")
         val value = ret.value
         if(value==null || notComplex(value)) {
             invokedeferbefore(ret)
@@ -121,34 +118,7 @@ private fun integrateDefers(program: PtProgram, st: SymbolTable) {
         }
 
         // complex return value, need to store it before calling the defer block
-        var typecast: DataType? = null
-        var pushWord = false
-        var pushFloat = false
-
-        when(value.type) {
-            DataType.BOOL -> typecast = DataType.BOOL
-            DataType.BYTE -> typecast = DataType.BYTE
-            DataType.WORD -> {
-                pushWord = true
-                typecast = DataType.WORD
-            }
-            DataType.UBYTE -> {}
-            DataType.UWORD, in PassByReferenceDatatypes -> pushWord = true
-            DataType.FLOAT -> pushFloat = true
-            else -> throw FatalAstException("unsupported return value type ${value.type} with defer")
-        }
-
-        val pushFunc = if(pushFloat) "floats.push" else if(pushWord) "sys.pushw" else "sys.push"
-        val popFunc = if(pushFloat) "floats.pop" else if(pushWord) "sys.popw" else "sys.pop"
-        val pushCall = PtFunctionCall(pushFunc, true, value.type, value.position)
-        pushCall.add(value)
-        val popCall = if(typecast!=null) {
-            PtTypeCast(typecast, value.position).also {
-                it.add(PtFunctionCall(popFunc, false, value.type, value.position))
-            }
-        } else
-            PtFunctionCall(popFunc, false, value.type, value.position)
-
+        val (pushCall, popCall) = makePushPopFunctionCalls(value)
         val newRet = PtReturn(ret.position)
         newRet.add(popCall)
         val group = PtNodeGroup()
@@ -174,3 +144,46 @@ private fun integrateDefers(program: PtProgram, st: SymbolTable) {
 
 }
 
+
+/*  start of new defer implementation:
+
+private fun integrateDefers(program: PtProgram, errors: IErrorReporter) {
+    val defersPerSub = mutableMapOf<PtSub, MutableList<PtDefer>>().withDefault { mutableListOf() }
+
+    walkAst(program) { node, _ ->
+        if(node is PtDefer) {
+            val scope = node.definingSub()!!
+            val defers = defersPerSub.getValue(scope)
+            defers.add(node)
+            defersPerSub[scope] = defers
+        }
+    }
+
+    val maskVarName = "prog8_defers_mask"
+
+    for((sub, defers) in defersPerSub) {
+
+        if(defers.isEmpty())
+            continue
+        if (defers.size > 8) {
+            errors.err("can have no more than 8 defers per subroutine", sub.position)
+            return
+        }
+
+        val deferVariable = PtVariable(maskVarName, DataType.UBYTE, ZeropageWish.NOT_IN_ZEROPAGE, null, null, sub.position)
+        sub.add(0, deferVariable)
+
+        for((deferIndex, defer) in defers.withIndex()) {
+            val idx = defer.parent.children.indexOf(defer)
+            val enableDefer = PtAugmentedAssign("|=", defer.position)
+            val target = PtAssignTarget(true, defer.position)
+            target.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, defer.position))
+            enableDefer.add(target)
+            enableDefer.add(PtNumber(DataType.UBYTE, (1 shl deferIndex).toDouble(), defer.position))
+            sub.add(idx, enableDefer)
+        }
+    }
+}
+
+
+ */

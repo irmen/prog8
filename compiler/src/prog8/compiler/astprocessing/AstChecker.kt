@@ -1130,7 +1130,7 @@ internal class AstChecker(private val program: Program,
             errors.err("defer cannot contain jumps or returns", defer.position)
 
         if(defer.parent !is Subroutine)
-            errors.err("currently defer is only supported in subroutine scope, not in nested scopes", defer.position)       // TODO fix this
+            errors.err("currently defer is only supported in subroutine scope, not in nested scopes", defer.position)
     }
 
     override fun visit(expr: BinaryExpression) {

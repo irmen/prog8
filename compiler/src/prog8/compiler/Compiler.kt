@@ -132,7 +132,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
                 val symbolTable = stMaker.make()
 
-                postprocessIntermediateAst(intermediateAst, symbolTable)
+                postprocessIntermediateAst(intermediateAst, symbolTable, args.errors)
                 args.errors.report()
 
                 if(compilationOptions.optimize) {
