@@ -70,7 +70,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                             // x==0 and y==0   ->  (x | y)==0
                             // the 'or' case cannot be easily optimized with a binary and like this!
                             val inner = BinaryExpression(leftC.left, "|", rightC.left, expr.position)
-                            val compare = BinaryExpression(inner, "==", NumericLiteral(leftDt.dt, 0.0, expr.position), expr.position)
+                            val compare = BinaryExpression(inner, "==", NumericLiteral(leftDt.base, 0.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
                     }
@@ -155,7 +155,7 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                 val x = (expr.expression as PrefixExpression).expression
                 val dt = x.inferType(program).getOrElse { throw FatalAstException("invalid dt ${x.position}") }
                 require(dt.isNumeric)
-                val notZero = BinaryExpression(x, "!=", NumericLiteral(dt.dt, 0.0, expr.position), expr.position)
+                val notZero = BinaryExpression(x, "!=", NumericLiteral(dt.base, 0.0, expr.position), expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, notZero, parent))
             }
             val subBinExpr = expr.expression as? BinaryExpression

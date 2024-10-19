@@ -199,7 +199,7 @@ internal class AssignmentAsmGen(
                 // simple case: assign a constant boolean (0 or 1)
                 require(assign.target.datatype.isNumericOrBool)
                 val num = assign.source.boolean!!.asInt()
-                when (assign.target.datatype.dt) {
+                when (assign.target.datatype.base) {
                     BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> assignConstantByte(assign.target, num)
                     BaseDataType.UWORD, BaseDataType.WORD -> assignConstantWord(assign.target, num)
                     BaseDataType.FLOAT -> assignConstantFloat(assign.target, num.toDouble())
@@ -210,7 +210,7 @@ internal class AssignmentAsmGen(
                 // simple case: assign a constant number
                 require(assign.target.datatype.isNumericOrBool)
                 val num = assign.source.number!!.number
-                when (assign.target.datatype.dt) {
+                when (assign.target.datatype.base) {
                     BaseDataType.BOOL -> assignConstantByte(assign.target, if(num==0.0) 0 else 1)
                     BaseDataType.UBYTE, BaseDataType.BYTE -> assignConstantByte(assign.target, num.toInt())
                     BaseDataType.UWORD, BaseDataType.WORD -> assignConstantWord(assign.target, num.toInt())
@@ -2087,15 +2087,15 @@ $endLabel""")
                 }
                 valueDt.isByte -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, valueDt.isSigned)
-                    assignTypeCastedRegisters(target.asmVarname, targetDt.dt, RegisterOrPair.A, valueDt.dt)
+                    assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.A, valueDt.base)
                 }
                 valueDt.isWord -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, valueDt.isSigned)
-                    assignTypeCastedRegisters(target.asmVarname, targetDt.dt, RegisterOrPair.AY, valueDt.dt)
+                    assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.AY, valueDt.base)
                 }
                 valueDt.isFloat -> {
                     assignExpressionToRegister(value, RegisterOrPair.FAC1, true)
-                    assignTypeCastedFloatFAC1(target.asmVarname, targetDt.dt)
+                    assignTypeCastedFloatFAC1(target.asmVarname, targetDt.base)
                 }
                 valueDt.isPassByRef -> {
                     // str/array value cast (most likely to UWORD, take address-of)
@@ -2160,7 +2160,7 @@ $endLabel""")
             if(valueDt.isFloat && !target.datatype.isFloat) {
                 // have to typecast the float number on the fly down to an integer
                 assignExpressionToRegister(value, RegisterOrPair.FAC1, targetDt.isSigned)
-                assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", targetDt.dt)
+                assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", targetDt.base)
                 assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, targetDt.isSigned, origTypeCastExpression.definingISub(), target.position)
                 return
             } else {
@@ -2292,7 +2292,7 @@ $endLabel""")
         // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)
         when {
             sourceDt.isUnsignedByte || sourceDt.isBool -> {
-                when(targetDt.dt) {
+                when(targetDt.base) {
                     BaseDataType.BOOL -> {
                         asmgen.out("""
                         lda  $sourceAsmVarName
@@ -2322,7 +2322,7 @@ $endLabel""")
                 }
             }
             sourceDt.isSignedByte -> {
-                when(targetDt.dt) {
+                when(targetDt.base) {
                     BaseDataType.UBYTE, BaseDataType.BOOL -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
@@ -2349,7 +2349,7 @@ $endLabel""")
                 }
             }
             sourceDt.isUnsignedWord -> {
-                when(targetDt.dt) {
+                when(targetDt.base) {
                     BaseDataType.BOOL -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName
@@ -2378,7 +2378,7 @@ $endLabel""")
                 }
             }
             sourceDt.isSignedWord -> {
-                when(targetDt.dt) {
+                when(targetDt.base) {
                     BaseDataType.BOOL -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName
@@ -2408,7 +2408,7 @@ $endLabel""")
             }
             sourceDt.isFloat -> {
                 asmgen.out("  lda  #<$sourceAsmVarName |  ldy  #>$sourceAsmVarName")
-                when(targetDt.dt) {
+                when(targetDt.base) {
                     BaseDataType.BOOL -> asmgen.out("  jsr  floats.cast_as_bool_into_a |  sta  $targetAsmVarName")
                     BaseDataType.UBYTE -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName")
                     BaseDataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")

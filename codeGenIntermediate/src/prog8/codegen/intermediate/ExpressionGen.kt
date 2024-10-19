@@ -382,7 +382,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         var actualResultReg2 = -1
         var actualResultFpReg2 = -1
         val valueDt = cast.value.type
-        when(cast.type.dt) {
+        when(cast.type.base) {
             BaseDataType.BOOL -> {
                 when {
                     valueDt.isByte -> {
@@ -404,7 +404,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             BaseDataType.UBYTE -> {
-                when(valueDt.dt) {
+                when(valueDt.base) {
                     BaseDataType.BOOL, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD -> {
                         actualResultReg2 = tr.resultReg  // just keep the LSB as it is
                     }
@@ -416,7 +416,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             BaseDataType.BYTE -> {
-                when(valueDt.dt) {
+                when(valueDt.base) {
                     BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.UWORD, BaseDataType.WORD -> {
                         actualResultReg2 = tr.resultReg  // just keep the LSB as it is
                     }
@@ -428,7 +428,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             BaseDataType.UWORD -> {
-                when(valueDt.dt) {
+                when(valueDt.base) {
                     BaseDataType.BYTE -> {
                         // byte -> uword:   sign extend
                         actualResultReg2 = codeGen.registers.nextFree()
@@ -450,7 +450,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
             BaseDataType.WORD -> {
-                when(valueDt.dt) {
+                when(valueDt.base) {
                     BaseDataType.BYTE -> {
                         // byte -> word:   sign extend
                         actualResultReg2 = codeGen.registers.nextFree()
@@ -473,7 +473,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             BaseDataType.FLOAT -> {
                 actualResultFpReg2 = codeGen.registers.nextFreeFloat()
-                when(valueDt.dt) {
+                when(valueDt.base) {
                     BaseDataType.BOOL, BaseDataType.UBYTE -> {
                         addInstr(result, IRInstruction(Opcode.FFROMUB, IRDataType.FLOAT, reg1=tr.resultReg, fpReg1 = actualResultFpReg2), null)
                     }

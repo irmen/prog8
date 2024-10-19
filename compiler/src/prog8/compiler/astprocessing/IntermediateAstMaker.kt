@@ -527,7 +527,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                             errors.info("converting uninitialized array to explicit zeros because of block alignment option", srcVar.position)
                             val zeros = PtArray(srcVar.datatype, srcVar.position)
                             repeat(srcVar.arraysize!!.constIndex()!!) {
-                                zeros.children.add(PtNumber(srcVar.datatype.elementType().dt, 0.0, srcVar.position))
+                                zeros.children.add(PtNumber(srcVar.datatype.elementType().base, 0.0, srcVar.position))
                             }
                             return PtVariable(srcVar.name, srcVar.datatype, srcVar.zeropage, zeros, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
                         }

@@ -70,7 +70,7 @@ sealed class Expression: Node {
 
     fun typecastTo(targetDt: BaseDataType, sourceDt: DataType, implicit: Boolean=false): Pair<Boolean, Expression> {
         require(!sourceDt.isUndefined && targetDt!=BaseDataType.UNDEFINED)
-        if(sourceDt.dt==targetDt && sourceDt.sub==null)
+        if(sourceDt.base==targetDt && sourceDt.sub==null)
             return Pair(false, this)
         if(this is TypecastExpression) {
             this.type = targetDt
@@ -247,7 +247,7 @@ class BinaryExpression(
             // word + word -> word
             // a combination with a float will be float (but give a warning about this!)
 
-            return when (leftDt.dt) {
+            return when (leftDt.base) {
                 BaseDataType.BOOL -> {
                     if(rightDt.isBool)
                         return Pair(DataType.forDt(BaseDataType.BOOL), null)
@@ -255,7 +255,7 @@ class BinaryExpression(
                         return Pair(DataType.forDt(BaseDataType.BOOL), right)
                 }
                 BaseDataType.UBYTE -> {
-                    when (rightDt.dt) {
+                    when (rightDt.base) {
                         BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.UBYTE), null)
                         BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.BYTE), left)
                         BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.UWORD), left)
@@ -265,7 +265,7 @@ class BinaryExpression(
                     }
                 }
                 BaseDataType.BYTE -> {
-                    when (rightDt.dt) {
+                    when (rightDt.base) {
                         BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.BYTE), right)
                         BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.BYTE), null)
                         BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
@@ -275,7 +275,7 @@ class BinaryExpression(
                     }
                 }
                 BaseDataType.UWORD -> {
-                    when (rightDt.dt) {
+                    when (rightDt.base) {
                         BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.UWORD), right)
                         BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
                         BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.UWORD), null)
@@ -285,7 +285,7 @@ class BinaryExpression(
                     }
                 }
                 BaseDataType.WORD -> {
-                    when (rightDt.dt) {
+                    when (rightDt.base) {
                         BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
                         BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
                         BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.WORD), right)
@@ -995,7 +995,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 } else {
                     require(elementType.isNumericOrBool)
                     value.map {
-                        val cast = (it as NumericLiteral).cast(elementType.dt, true)
+                        val cast = (it as NumericLiteral).cast(elementType.base, true)
                         if(cast.isValid)
                             cast.valueOrZero()
                         else
@@ -1010,7 +1010,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                         is AddressOf -> it
                         is IdentifierReference -> it
                         is NumericLiteral -> {
-                            val numcast = it.cast(elementType.dt, true)
+                            val numcast = it.cast(elementType.base, true)
                             if(numcast.isValid)
                                 numcast.valueOrZero()
                             else
@@ -1176,10 +1176,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         // the value of a variable can (temporarily) be a different type as the vardecl itself.
         // don't return the value if the types don't match yet!
         val value = vardecl.value?.constValue(program)
-        if(value==null || value.type==vardecl.datatype.dt)
+        if(value==null || value.type==vardecl.datatype.base)
             return value
         val optimal = NumericLiteral.optimalNumeric(value.number, value.position)
-        if(optimal.type==vardecl.datatype.dt)
+        if(optimal.type==vardecl.datatype.base)
             return optimal
         return null
     }

@@ -10,7 +10,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.AssociativeOperators
 import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
 import prog8.code.core.IErrorReporter
 import kotlin.math.floor
 
@@ -46,7 +45,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if(parent is Assignment) {
             val iDt = parent.target.inferType(program)
             if(iDt.isKnown && !iDt.isBool && !(iDt issimpletype numLiteral.type)) {
-                val casted = numLiteral.cast(iDt.getOrUndef().dt, true)
+                val casted = numLiteral.cast(iDt.getOrUndef().base, true)
                 if(casted.isValid) {
                     return listOf(IAstModification.ReplaceNode(numLiteral, casted.valueOrZero(), parent))
                 }
@@ -399,7 +398,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
         val stepLiteral = iterableRange.step as? NumericLiteral
         require(loopvar.datatype.sub == null)
-        val loopvarSimpleDt = loopvar.datatype.dt
+        val loopvarSimpleDt = loopvar.datatype.base
         when(loopvarSimpleDt) {
             BaseDataType.UBYTE -> {
                 if(rangeFrom.type != BaseDataType.UBYTE) {
@@ -447,7 +446,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 return noModifications  // this is handled in the numericalvalue case
             }
             if(!(valueDt istype decl.datatype)) {
-                val cast = numval.cast(decl.datatype.dt, true)
+                val cast = numval.cast(decl.datatype.base, true)
                 if (cast.isValid)
                     return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
             }

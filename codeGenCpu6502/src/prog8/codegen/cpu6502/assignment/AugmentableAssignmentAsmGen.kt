@@ -399,7 +399,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     if(!inplacemodificationRegisterAXwithVariable(
                                             operator,
                                             value.asmVarname,
-                                            value.datatype.dt
+                                            value.datatype.base
                                         )) {
                                         asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
                                         inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype, block)
@@ -411,7 +411,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     if(!inplacemodificationRegisterAXwithVariable(
                                             operator,
                                             regName(value),
-                                            value.datatype.dt
+                                            value.datatype.base
                                         )) {
                                         asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
                                         inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype, block)
@@ -2290,7 +2290,7 @@ $shortcutLabel:""")
                                     asmgen.out("  lda  #0 |  sta  cx16.r1+1")
                             } else {
                                 asmgen.out("  lda  $otherName")
-                                asmgen.signExtendAYlsb(valueDt.dt)
+                                asmgen.signExtendAYlsb(valueDt.base)
                                 asmgen.out("  sta  cx16.r1 |  sty  cx16.r1+1")
                             }
                             asmgen.out("""
@@ -2310,7 +2310,7 @@ $shortcutLabel:""")
                                     asmgen.out("  lda  #0 |  sta  math.multiply_words.multiplier+1")
                             } else {
                                 asmgen.out("  lda  $otherName")
-                                asmgen.signExtendAYlsb(valueDt.dt)
+                                asmgen.signExtendAYlsb(valueDt.base)
                                 asmgen.out("  sta  math.multiply_words.multiplier |  sty  math.multiply_words.multiplier+1")
                             }
                             asmgen.out("""
@@ -2771,21 +2771,21 @@ $shortcutLabel:""")
                         // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word * byte multiplication routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                        asmgen.signExtendAYlsb(valueDt.dt)
+                        asmgen.signExtendAYlsb(valueDt.base)
                         multiplyVarByWordInAY()
                     }
                     "/" -> {
                         // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word / byte divmod routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                        asmgen.signExtendAYlsb(valueDt.dt)
+                        asmgen.signExtendAYlsb(valueDt.base)
                         divideVarByWordInAY()
                     }
                     "%" -> {
                         // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word / byte divmod routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                        asmgen.signExtendAYlsb(valueDt.dt)
+                        asmgen.signExtendAYlsb(valueDt.base)
                         remainderVarByWordInAY()
                     }
                     "<<" -> {

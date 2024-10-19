@@ -80,15 +80,15 @@ internal data object SubBool: SubType(BaseDataType.BOOL)
 internal data object SubFloat: SubType(BaseDataType.FLOAT)
 
 
-class DataType private constructor(val dt: BaseDataType, val sub: SubType?) {
+class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
 
     init {
-        if(dt.isArray) {
+        if(base.isArray) {
             require(sub != null)
-            if(dt.isSplitWordArray)
+            if(base.isSplitWordArray)
                 require(sub.dt == BaseDataType.UWORD || sub.dt == BaseDataType.WORD)
         }
-        else if(dt==BaseDataType.STR)
+        else if(base==BaseDataType.STR)
             require(sub?.dt==BaseDataType.UBYTE) { "STR subtype should be ubyte" }
         else
             require(sub == null)
@@ -97,10 +97,10 @@ class DataType private constructor(val dt: BaseDataType, val sub: SubType?) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DataType) return false
-        return dt == other.dt && sub == other.sub
+        return base == other.base && sub == other.sub
     }
 
-    override fun hashCode(): Int = Objects.hash(dt, sub)
+    override fun hashCode(): Int = Objects.hash(base, sub)
 
     companion object {
         private val simpletypes = mapOf(
@@ -127,23 +127,23 @@ class DataType private constructor(val dt: BaseDataType, val sub: SubType?) {
 
     fun elementToArray(split: Boolean = false): DataType {
         if(split) {
-            return when(dt) {
+            return when(base) {
                 BaseDataType.UWORD -> DataType(BaseDataType.ARRAY_SPLITW, SubUnsignedWord)
                 BaseDataType.WORD -> DataType(BaseDataType.ARRAY_SPLITW, SubSignedWord)
                 BaseDataType.STR -> DataType(BaseDataType.ARRAY_SPLITW, SubUnsignedWord)
                 else -> throw IllegalArgumentException("invalid array elt dt")
             }
         }
-        return arrayFor(dt)
+        return arrayFor(base)
     }
 
     fun elementType(): DataType =
-        if(dt.isArray || dt==BaseDataType.STR)
+        if(base.isArray || base==BaseDataType.STR)
             forDt(sub!!.dt)
         else
             throw IllegalArgumentException("not an array")
 
-    override fun toString(): String = when(dt) {
+    override fun toString(): String = when(base) {
         BaseDataType.ARRAY -> {
             when(sub) {
                 SubBool -> "bool[]"
@@ -162,10 +162,10 @@ class DataType private constructor(val dt: BaseDataType, val sub: SubType?) {
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
-        else -> dt.name.lowercase()
+        else -> base.name.lowercase()
     }
 
-    fun sourceString(): String = when (dt) {
+    fun sourceString(): String = when (base) {
         BaseDataType.BOOL -> "bool"
         BaseDataType.UBYTE -> "ubyte"
         BaseDataType.BYTE -> "byte"
@@ -197,56 +197,56 @@ class DataType private constructor(val dt: BaseDataType, val sub: SubType?) {
 
     // is the type assignable to the given other type (perhaps via a typecast) without loss of precision?
     infix fun isAssignableTo(targetType: DataType) =
-        when(dt) {
-            BaseDataType.BOOL -> targetType.dt == BaseDataType.BOOL
-            BaseDataType.UBYTE -> targetType.dt in arrayOf(BaseDataType.UBYTE, BaseDataType.WORD, BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.BYTE -> targetType.dt in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.UWORD -> targetType.dt in arrayOf(BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.WORD -> targetType.dt in arrayOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.LONG -> targetType.dt in arrayOf(BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.FLOAT -> targetType.dt in arrayOf(BaseDataType.FLOAT)
-            BaseDataType.STR -> targetType.dt in arrayOf(BaseDataType.STR, BaseDataType.UWORD)
-            BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.dt in arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
+        when(base) {
+            BaseDataType.BOOL -> targetType.base == BaseDataType.BOOL
+            BaseDataType.UBYTE -> targetType.base in arrayOf(BaseDataType.UBYTE, BaseDataType.WORD, BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.BYTE -> targetType.base in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.UWORD -> targetType.base in arrayOf(BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.WORD -> targetType.base in arrayOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.LONG -> targetType.base in arrayOf(BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
+            BaseDataType.STR -> targetType.base in arrayOf(BaseDataType.STR, BaseDataType.UWORD)
+            BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
             BaseDataType.UNDEFINED -> false
         }
 
-    fun largerSizeThan(other: DataType) = dt.largerSizeThan(other.dt)
-    fun equalsSize(other: DataType) = dt.equalsSize(other.dt)
+    fun largerSizeThan(other: DataType) = base.largerSizeThan(other.base)
+    fun equalsSize(other: DataType) = base.equalsSize(other.base)
 
-    val isUndefined = dt == BaseDataType.UNDEFINED
-    val isByte = dt.isByte
-    val isUnsignedByte = dt == BaseDataType.UBYTE
-    val isSignedByte = dt == BaseDataType.BYTE
-    val isByteOrBool = dt.isByteOrBool
-    val isWord = dt.isWord
-    val isUnsignedWord =  dt == BaseDataType.UWORD
-    val isSignedWord =  dt == BaseDataType.WORD
-    val isInteger = dt.isInteger
-    val isIntegerOrBool = dt.isIntegerOrBool
-    val isNumeric = dt.isNumeric
-    val isNumericOrBool = dt.isNumericOrBool
-    val isSigned = dt.isSigned
-    val isUnsigned = !dt.isSigned
-    val isArray = dt.isArray
-    val isBoolArray = dt.isArray && sub?.dt == BaseDataType.BOOL
-    val isByteArray = dt.isArray && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE)
-    val isUnsignedByteArray = dt.isArray && sub?.dt == BaseDataType.UBYTE
-    val isSignedByteArray = dt.isArray && sub?.dt == BaseDataType.BYTE
-    val isWordArray = dt.isArray && (sub?.dt == BaseDataType.UWORD || sub?.dt == BaseDataType.WORD)
-    val isUnsignedWordArray = dt.isArray && sub?.dt == BaseDataType.UWORD
-    val isSignedWordArray = dt.isArray && sub?.dt == BaseDataType.WORD
-    val isFloatArray = dt.isArray && sub?.dt == BaseDataType.FLOAT
-    val isString = dt == BaseDataType.STR
-    val isBool = dt == BaseDataType.BOOL
-    val isFloat = dt == BaseDataType.FLOAT
-    val isLong = dt == BaseDataType.LONG
-    val isStringly = dt == BaseDataType.STR || dt == BaseDataType.UWORD || (dt == BaseDataType.ARRAY && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE))
-    val isSplitWordArray = dt.isSplitWordArray
-    val isSplitUnsignedWordArray = dt.isSplitWordArray && sub?.dt == BaseDataType.UWORD
-    val isSplitSignedWordArray = dt.isSplitWordArray && sub?.dt == BaseDataType.WORD
-    val isIterable =  dt.isIterable
-    val isPassByRef = dt.isPassByRef
-    val isPassByValue = dt.isPassByValue
+    val isUndefined = base == BaseDataType.UNDEFINED
+    val isByte = base.isByte
+    val isUnsignedByte = base == BaseDataType.UBYTE
+    val isSignedByte = base == BaseDataType.BYTE
+    val isByteOrBool = base.isByteOrBool
+    val isWord = base.isWord
+    val isUnsignedWord =  base == BaseDataType.UWORD
+    val isSignedWord =  base == BaseDataType.WORD
+    val isInteger = base.isInteger
+    val isIntegerOrBool = base.isIntegerOrBool
+    val isNumeric = base.isNumeric
+    val isNumericOrBool = base.isNumericOrBool
+    val isSigned = base.isSigned
+    val isUnsigned = !base.isSigned
+    val isArray = base.isArray
+    val isBoolArray = base.isArray && sub?.dt == BaseDataType.BOOL
+    val isByteArray = base.isArray && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE)
+    val isUnsignedByteArray = base.isArray && sub?.dt == BaseDataType.UBYTE
+    val isSignedByteArray = base.isArray && sub?.dt == BaseDataType.BYTE
+    val isWordArray = base.isArray && (sub?.dt == BaseDataType.UWORD || sub?.dt == BaseDataType.WORD)
+    val isUnsignedWordArray = base.isArray && sub?.dt == BaseDataType.UWORD
+    val isSignedWordArray = base.isArray && sub?.dt == BaseDataType.WORD
+    val isFloatArray = base.isArray && sub?.dt == BaseDataType.FLOAT
+    val isString = base == BaseDataType.STR
+    val isBool = base == BaseDataType.BOOL
+    val isFloat = base == BaseDataType.FLOAT
+    val isLong = base == BaseDataType.LONG
+    val isStringly = base == BaseDataType.STR || base == BaseDataType.UWORD || (base == BaseDataType.ARRAY && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE))
+    val isSplitWordArray = base.isSplitWordArray
+    val isSplitUnsignedWordArray = base.isSplitWordArray && sub?.dt == BaseDataType.UWORD
+    val isSplitSignedWordArray = base.isSplitWordArray && sub?.dt == BaseDataType.WORD
+    val isIterable =  base.isIterable
+    val isPassByRef = base.isPassByRef
+    val isPassByValue = base.isPassByValue
 }
 
 

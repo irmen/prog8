@@ -39,7 +39,7 @@ class VarConstantValueTypeAdjuster(
                 } else if(!decl.datatype.isBool) {
                     // cast the numeric literal to the appropriate datatype of the variable if it's not boolean
                     declConstValue.linkParents(decl)
-                    val cast = declConstValue.cast(decl.datatype.dt, true)
+                    val cast = declConstValue.cast(decl.datatype.base, true)
                     if (cast.isValid)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
                 }
@@ -441,7 +441,7 @@ internal class ConstantIdentifierReplacer(
                     val rangeType = rangeExpr.inferType(program).getOr(DataType.forDt(BaseDataType.UBYTE))
                     return if(rangeType.isByte) {
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                            constRange.map { NumericLiteral(rangeType.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                            constRange.map { NumericLiteral(rangeType.base, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     } else {
                         require(rangeType.sub!=null)

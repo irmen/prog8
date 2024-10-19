@@ -8,7 +8,7 @@ import prog8.code.right
 
 fun DataType.typeString(length: Int?): String {
     val lengthStr = if(length==0) "" else length.toString()
-    return when (this.dt) {
+    return when (this.base) {
         BaseDataType.BOOL -> "bool"
         BaseDataType.UBYTE -> "ubyte"
         BaseDataType.BYTE -> "byte"
@@ -342,10 +342,10 @@ internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag
 
 
 fun irType(type: DataType): IRDataType {
-    if(type.dt.isPassByRef)
+    if(type.base.isPassByRef)
         return IRDataType.WORD
 
-    return when(type.dt) {
+    return when(type.base) {
         BaseDataType.BOOL,
         BaseDataType.UBYTE,
         BaseDataType.BYTE -> IRDataType.BYTE

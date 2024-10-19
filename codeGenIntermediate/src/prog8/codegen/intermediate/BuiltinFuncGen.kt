@@ -183,7 +183,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
         val tr = exprGen.translateExpression(call.args[0])
         addToResult(result, tr, tr.resultReg, -1)
-        when (sourceDt.dt) {
+        when (sourceDt.base) {
             BaseDataType.BYTE -> {
                 val notNegativeLabel = codeGen.createLabelName()
                 val compareReg = codeGen.registers.nextFree()
@@ -238,7 +238,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args.single())
         val dt = call.args[0].type
-        when(dt.dt) {
+        when(dt.base) {
             BaseDataType.UBYTE -> {
                 addToResult(result, tr, tr.resultReg, -1)
                 val resultReg = codeGen.registers.nextFree()
@@ -305,7 +305,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             )
             return ExpressionCodeResult(result, type, -1, valueTr.resultFpReg)
         } else {
-            val syscall = when(call.type.dt) {
+            val syscall = when(call.type.base) {
                 BaseDataType.UBYTE -> IMSyscall.CLAMP_UBYTE
                 BaseDataType.BYTE -> IMSyscall.CLAMP_BYTE
                 BaseDataType.UWORD -> IMSyscall.CLAMP_UWORD

@@ -274,7 +274,7 @@ class VarDecl(val type: VarDeclType,
     fun zeroElementValue(): NumericLiteral {
         if(allowInitializeWithZero) {
             return if(datatype.isArray) defaultZero(datatype.sub!!, position)
-                else defaultZero(datatype.dt, position)
+                else defaultZero(datatype.base, position)
         }
         else
             throw IllegalArgumentException("attempt to get zero value for vardecl that shouldn't get it")

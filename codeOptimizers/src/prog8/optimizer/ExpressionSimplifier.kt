@@ -145,7 +145,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
                     if (y != null) {
-                        val yPlus1 = BinaryExpression(y, "+", NumericLiteral(leftDt.dt, 1.0, y.position), y.position)
+                        val yPlus1 = BinaryExpression(y, "+", NumericLiteral(leftDt.base, 1.0, y.position), y.position)
                         val replacement = BinaryExpression(x, "*", yPlus1, x.position)
                         return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
                     }
@@ -155,7 +155,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val x = expr.right
                     val y = determineY(x, leftBinExpr)
                     if (y != null) {
-                        val yMinus1 = BinaryExpression(y, "-", NumericLiteral(leftDt.dt, 1.0, y.position), y.position)
+                        val yMinus1 = BinaryExpression(y, "-", NumericLiteral(leftDt.base, 1.0, y.position), y.position)
                         val replacement = BinaryExpression(x, "*", yMinus1, x.position)
                         return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
                     }
@@ -199,10 +199,10 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if(leftDt.isSigned && !leftDt.isFloat && rightVal?.number==-1.0) {
             if(expr.operator=="<=") {
                 expr.operator = "<"
-                return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral(rightDt.dt, 0.0, expr.right.position), expr))
+                return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral(rightDt.base, 0.0, expr.right.position), expr))
             } else if(expr.operator==">") {
                 expr.operator = ">="
-                return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral(rightDt.dt, 0.0, expr.right.position), expr))
+                return listOf(IAstModification.ReplaceNode(expr.right, NumericLiteral(rightDt.base, 0.0, expr.right.position), expr))
             }
         }
 
@@ -247,13 +247,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             if (rightVal?.number == 1.0) {
                 if (rightDt != leftDt) {
-                    val right = NumericLiteral(leftDt.dt, rightVal.number, rightVal.position)
+                    val right = NumericLiteral(leftDt.base, rightVal.number, rightVal.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
             else if (rightVal?.number == 0.0) {
                 if (rightDt != leftDt) {
-                    val right = NumericLiteral(leftDt.dt, rightVal.number, rightVal.position)
+                    val right = NumericLiteral(leftDt.base, rightVal.number, rightVal.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
@@ -270,13 +270,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             if (rightVal?.number == 1.0) {
                 if(rightDt!=leftDt) {
-                    val right = NumericLiteral(leftDt.dt, rightVal.number, rightVal.position)
+                    val right = NumericLiteral(leftDt.base, rightVal.number, rightVal.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
             else if (rightVal?.number == 0.0) {
                 if(rightDt!=leftDt) {
-                    val right = NumericLiteral(leftDt.dt, rightVal.number, rightVal.position)
+                    val right = NumericLiteral(leftDt.base, rightVal.number, rightVal.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
@@ -539,7 +539,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     // useless msb() of byte value that was typecasted to word, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCallExpr,
-                            NumericLiteral(valueDt.getOr(DataType.forDt(BaseDataType.UBYTE)).dt, 0.0, arg.expression.position),
+                            NumericLiteral(valueDt.getOr(DataType.forDt(BaseDataType.UBYTE)).base, 0.0, arg.expression.position),
                             parent))
                 }
             } else {
@@ -554,7 +554,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     // useless msb() of byte value, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCallExpr,
-                            NumericLiteral(argDt.getOr(DataType.forDt(BaseDataType.UBYTE)).dt, 0.0, arg.position),
+                            NumericLiteral(argDt.getOr(DataType.forDt(BaseDataType.UBYTE)).base, 0.0, arg.position),
                             parent))
                 }
             }
@@ -672,7 +672,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val idt = expr.inferType(program)
                     if(!idt.isKnown)
                         throw FatalAstException("unknown dt")
-                    return NumericLiteral(idt.getOrUndef().dt, 0.0, expr.position)
+                    return NumericLiteral(idt.getOrUndef().base, 0.0, expr.position)
                 } else if (cv in powersOfTwoFloat) {
                     expr.operator = "&"
                     expr.right = NumericLiteral.optimalInteger(cv!!.toInt()-1, expr.position)
@@ -712,7 +712,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     }
                 }
                 256.0 -> {
-                    when(leftDt.dt) {
+                    when(leftDt.base) {
                         BaseDataType.UBYTE -> return NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)
                         BaseDataType.BYTE -> return null        // is either 0 or -1 we cannot tell here
                         BaseDataType.UWORD, BaseDataType.WORD -> {
@@ -814,7 +814,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val targetIDt = expr.left.inferType(program)
         if(!targetIDt.isKnown)
             throw FatalAstException("unknown dt")
-        when (val targetDt = targetIDt.getOrUndef().dt) {
+        when (val targetDt = targetIDt.getOrUndef().base) {
             BaseDataType.UBYTE, BaseDataType.BYTE -> {
                 if (amount >= 8) {
                     errors.warn("shift always results in 0", expr.position)
@@ -874,7 +874,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         val idt = expr.left.inferType(program)
         if(!idt.isKnown)
             throw FatalAstException("unknown dt")
-        when (idt.getOrUndef().dt) {
+        when (idt.getOrUndef().base) {
             BaseDataType.UBYTE -> {
                 if (amount >= 8) {
                     errors.warn("shift always results in 0", expr.position)

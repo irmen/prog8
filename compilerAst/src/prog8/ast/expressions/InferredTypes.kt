@@ -19,9 +19,9 @@ object InferredTypes {
         infix fun istype(type: DataType): Boolean = if(isUnknown || isVoid) false else this.datatype==type     // strict equality if known
         infix fun issimpletype(type: BaseDataType): Boolean = if (isUnknown || isVoid)
                 false
-            else if(type==BaseDataType.STR && this.datatype?.dt==BaseDataType.STR)
+            else if(type==BaseDataType.STR && this.datatype?.base==BaseDataType.STR)
                 true
-            else (this.datatype?.dt == type && this.datatype?.sub == null)     // strict equality if known
+            else (this.datatype?.base == type && this.datatype?.sub == null)     // strict equality if known
 
         companion object {
             fun unknown() = InferredType(isUnknown = true, isVoid = false, datatype = null)

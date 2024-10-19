@@ -124,6 +124,6 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             }
         }
         collect(st)
-        return vars.sortedBy { it.dt.dt }
+        return vars.sortedBy { it.dt.base }
     }
 }

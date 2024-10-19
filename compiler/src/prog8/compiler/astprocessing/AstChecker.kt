@@ -200,7 +200,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("for loop requires a variable to loop with", forLoop.position)
             } else {
                 require(loopvar.datatype.isNumericOrBool)
-                when (loopvar.datatype.dt) {
+                when (loopvar.datatype.base) {
                     BaseDataType.UBYTE -> {
                         if(!iterableDt.isUnsignedByte && !iterableDt.isUnsignedByteArray && !iterableDt.isString)      // TODO remove ubyte check?
                             errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
@@ -1213,12 +1213,12 @@ internal class AstChecker(private val program: Program,
         } else {
             if(expr.left is TypecastExpression && expr.right is NumericLiteral && !(expr.right.inferType(program) issimpletype BaseDataType.FLOAT)) {
                 val origLeftDt = (expr.left as TypecastExpression).expression.inferType(program).getOrUndef()
-                if(rightDt.largerSizeThan(origLeftDt) && !(expr.right as NumericLiteral).cast(origLeftDt.dt, true).isValid)
+                if(rightDt.largerSizeThan(origLeftDt) && !(expr.right as NumericLiteral).cast(origLeftDt.base, true).isValid)
                     errors.err("operands are not the same type", expr.right.position)
             }
             if(expr.right is TypecastExpression && expr.left is NumericLiteral && !(expr.left.inferType(program) issimpletype BaseDataType.FLOAT)) {
                 val origRightDt = (expr.right as TypecastExpression).expression.inferType(program).getOrUndef()
-                if(leftDt.largerSizeThan(origRightDt) && !(expr.left as NumericLiteral).cast(origRightDt.dt, true).isValid)
+                if(leftDt.largerSizeThan(origRightDt) && !(expr.left as NumericLiteral).cast(origRightDt.base, true).isValid)
                     errors.err("operands are not the same type", expr.right.position)
             }
         }

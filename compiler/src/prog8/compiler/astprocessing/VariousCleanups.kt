@@ -142,12 +142,12 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         val numbers = values.map{it.number}.toSet()
                         if(numbers == setOf(0.0, 1.0)) {
                             // we can replace unsigned  x==0 or x==1 with x<2
-                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.dt, 2.0, expr.position), expr.position)
+                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.base, 2.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
                         if(numbers == setOf(0.0, 1.0, 2.0)) {
                             // we can replace unsigned  x==0 or x==1 or x==2 with x<3
-                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.dt, 3.0, expr.position), expr.position)
+                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.base, 3.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
                     }
@@ -156,7 +156,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
                     // replace x==1 or x==2 or x==3  with a containment check  x in [1,2,3]
                     val valueCopies = values.sortedBy { it.number }.map { it.copy() }
-                    val arrayType = DataType.arrayFor(elementType.dt)
+                    val arrayType = DataType.arrayFor(elementType.base)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
                     val containment = ContainmentCheck(needle, valuesArray, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, containment, parent))

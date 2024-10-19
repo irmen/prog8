@@ -378,7 +378,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
-        when(fcall.args[0].type.dt) {
+        when(fcall.args[0].type.base) {
             BaseDataType.UBYTE -> {
                 asmgen.out("  ldy  #0 |  jsr  prog8_lib.func_sqrt16_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
@@ -397,7 +397,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcRor2(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
-        when (what.type.dt) {
+        when (what.type.base) {
             BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
@@ -444,7 +444,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcRor(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
-        when (what.type.dt) {
+        when (what.type.base) {
             BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
@@ -513,7 +513,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcRol2(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
-        when (what.type.dt) {
+        when (what.type.base) {
             BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
@@ -560,7 +560,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcRol(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
-        when (what.type.dt) {
+        when (what.type.base) {
             BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
@@ -647,7 +647,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(msb) {
                     val address = PtBinaryExpression("+", DataType.forDt(BaseDataType.UWORD), fcall.args[0].position)
                     address.add(fcall.args[0])
-                    address.add(PtNumber(address.type.dt, 1.0, fcall.args[0].position))
+                    address.add(PtNumber(address.type.base, 1.0, fcall.args[0].position))
                     mem.add(address)
                 } else {
                     mem.add(fcall.args[0])
@@ -672,7 +672,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 // double the index because of word array (if not split), add one if msb (if not split)
                 val constIndexNum = (indexer.index as? PtNumber)?.number
                 if(constIndexNum!=null) {
-                    indexer.children[1] = PtNumber(indexer.index.type.dt, constIndexNum*elementSize + msbAdd, indexer.position)
+                    indexer.children[1] = PtNumber(indexer.index.type.base, constIndexNum*elementSize + msbAdd, indexer.position)
                     indexer.children[1].parent = indexer
                 } else {
                     val multipliedIndex: PtExpression
@@ -709,7 +709,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcSgn(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
-        when (val dt = fcall.args.single().type.dt) {
+        when (val dt = fcall.args.single().type.base) {
             BaseDataType.UBYTE -> asmgen.out("  jsr  prog8_lib.func_sign_ub_into_A")
             BaseDataType.BYTE -> asmgen.out("  jsr  prog8_lib.func_sign_b_into_A")
             BaseDataType.UWORD -> asmgen.out("  jsr  prog8_lib.func_sign_uw_into_A")
@@ -722,7 +722,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcAbs(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
-        val dt = fcall.args.single().type.dt
+        val dt = fcall.args.single().type.base
         when (dt) {
             BaseDataType.BYTE -> {
                 asmgen.out("  jsr  prog8_lib.abs_b_into_A")
@@ -1276,7 +1276,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val signature = BuiltinFunctions.getValue(call.name)
         val callConv = signature.callConvention(call.args.map {
             require(it.type.isNumericOrBool)
-            it.type.dt
+            it.type.base
         })
 
         fun getSourceForFloat(value: PtExpression): AsmAssignSource {

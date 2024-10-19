@@ -586,7 +586,7 @@ internal class ProgramAndVarsGen(
         if(varsNoInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables")
             asmgen.out("  .section BSS")
-            varsNoInit.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt.dt }).forEach {
+            varsNoInit.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt.base }).forEach {
                 uninitializedVariable2asm(it)
             }
             asmgen.out("  .send BSS")

@@ -30,7 +30,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             }
         }
 
-        if(typecast.type==sourceDt.dt)
+        if(typecast.type==sourceDt.base)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(sourceDt.isPassByRef) {

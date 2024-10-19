@@ -364,4 +364,4 @@ fun defaultZero(dt: BaseDataType, position: Position) = when(dt) {
 
 fun defaultZero(dt: SubType, position: Position) = defaultZero(dt.dt, position)
 
-fun defaultZero(idt: InferredTypes.InferredType, position: Position) = defaultZero(idt.getOrUndef().dt, position)
+fun defaultZero(idt: InferredTypes.InferredType, position: Position) = defaultZero(idt.getOrUndef().base, position)

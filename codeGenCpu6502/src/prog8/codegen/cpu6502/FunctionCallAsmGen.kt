@@ -190,7 +190,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             if(requiredDt.largerSizeThan(value.type)) {
                 // we need to sign extend the source, do this via temporary word variable
                 asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.forDt(BaseDataType.UBYTE))
-                asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type.dt)
+                asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type.base)
                 asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, Position.DUMMY)
             } else {
                 val scope = value.definingISub()
