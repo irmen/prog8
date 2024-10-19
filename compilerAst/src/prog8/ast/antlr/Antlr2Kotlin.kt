@@ -548,6 +548,12 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
             AddressOf(array.scoped_identifier().toAst(), array.arrayindex().toAst(), toPosition())
     }
 
+    if(if_expression()!=null) {
+        val ifex = if_expression()
+        val (condition, truevalue, falsevalue) = ifex.expression()
+        return IfExpression(condition.toAst(), truevalue.toAst(), falsevalue.toAst(), toPosition())
+    }
+
     throw FatalAstException(text)
 }
 

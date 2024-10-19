@@ -7,63 +7,33 @@
 
 main {
     sub start() {
-        for cx16.r0L in 0 to 10 {
-            defer txt.print("end!!\n")
-        }
-        txt.print("old way:\n")
-        void oldway()
-        txt.print("\nnew way:\n")
-        void newway()
-    }
 
-    sub oldway() -> bool {
+        ubyte @shared c=99
+        if c>100
+            cx16.r0L++
+        cx16.r0L = if (c>100)  2 else (3)
+        txt.print_ub(if (c>100)  2 else 3)
+        txt.nl()
+        txt.print_ub(if (c<100)  6 else 7)
+        txt.nl()
+
+        float @shared fl=99.99
+        floats.print(if (c>100)  2.22 else 3.33)
+        txt.nl()
+        floats.print(if (c<100)  6.66 else 7.77)
+        txt.nl()
+
         uword res1 = allocate(111)
-        if res1==0
-            return false
-
-        uword res2 = allocate(222)
-        if res2==0 {
-            deallocate(res1)
-            return false
-        }
-
-        if not process1(res1, res2) {
-            deallocate(res1)
-            deallocate(res2)
-            return false
-        }
-        if not process2(res1, res2) {
-            deallocate(res1)
-            deallocate(res2)
-            return false
-        }
-
-        deallocate(res1)
-        deallocate(res2)
-        return true
-    }
-
-    sub newway() -> bool {
-        uword res1 = allocate(111)
-        if res1==0
-            return false
-        defer {
-            deallocate(res1)
-        }
-
+        defer deallocate(res1)
         uword res2 = allocate(222)
         if res2==0
-            return false
-        defer {
-            deallocate(res2)
-        }
+            return
+        defer deallocate(res2)
 
         if not process1(res1, res2)
-            return false
+            return
         if not process2(res1, res2)
-            return false
-
-        return true
+            return
     }
 
     sub allocate(uword arg) -> uword {

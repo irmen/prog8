@@ -1382,6 +1382,49 @@ class BuiltinFunctionCall(override var target: IdentifierReference,
     override fun inferType(program: Program) = program.builtinFunctions.returnType(name)
 }
 
+class IfExpression(var condition: Expression, var truevalue: Expression, var falsevalue: Expression, override val position: Position) : Expression() {
+
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        condition.linkParents(this)
+        truevalue.linkParents(this)
+        falsevalue.linkParents(this)
+    }
+
+    override val isSimple: Boolean = condition.isSimple && truevalue.isSimple && falsevalue.isSimple
+
+    override fun toString() = "IfExpr(cond=$condition, true=$truevalue, false=$falsevalue, pos=$position)"
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = condition.referencesIdentifier(nameInSource) || truevalue.referencesIdentifier(nameInSource) || falsevalue.referencesIdentifier(nameInSource)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        val t1 = truevalue.inferType(program)
+        val t2 = falsevalue.inferType(program)
+        return if(t1==t2) t1 else InferredTypes.InferredType.unknown()
+    }
+
+    override fun copy(): Expression = IfExpression(condition.copy(), truevalue.copy(), falsevalue.copy(), position)
+
+    override fun constValue(program: Program): NumericLiteral? {
+        val cond = condition.constValue(program)
+        if(cond!=null) {
+            return if (cond.asBooleanValue) truevalue.constValue(program) else falsevalue.constValue(program)
+        }
+        return null
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(replacement !is Expression)
+            throw throw FatalAstException("invalid replace")
+        if(node===condition) condition=replacement
+        else if(node===truevalue) truevalue=replacement
+        else if(node===falsevalue) falsevalue=replacement
+        else throw FatalAstException("invalid replace")
+    }
+}
+
 fun invertCondition(cond: Expression, program: Program): Expression {
     if(cond is BinaryExpression) {
         val invertedOperator = invertedComparisonOperator(cond.operator)

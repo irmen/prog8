@@ -106,6 +106,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtRange -> true
             is PtString -> true
             is PtTypeCast -> value.isSimple()
+            is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
         }
     }
 
@@ -203,6 +204,16 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
         else
             require(type!=DataType.BOOL) { "no bool allowed for this operator $operator"}
     }
+}
+
+
+class PtIfExpression(type: DataType, position: Position): PtExpression(type, position) {
+    val condition: PtExpression
+        get() = children[0] as PtExpression
+    val truevalue: PtExpression
+        get() = children[1] as PtExpression
+    val falsevalue: PtExpression
+        get() = children[2] as PtExpression
 }
 
 

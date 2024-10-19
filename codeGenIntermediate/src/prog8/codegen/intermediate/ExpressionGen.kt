@@ -79,6 +79,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtPrefix -> translate(expr)
             is PtArrayIndexer -> translate(expr)
             is PtBinaryExpression -> translate(expr)
+            is PtIfExpression -> translate(expr)
             is PtBuiltinFunctionCall -> codeGen.translateBuiltinFunc(expr)
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
@@ -86,6 +87,36 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
             else -> throw AssemblyError("weird expression")
+        }
+    }
+
+    private fun translate(ifExpr: PtIfExpression): ExpressionCodeResult {
+        // TODO dont store condition as expression result but just use the flags, like a normal PtIfElse translation does
+        val condTr = translateExpression(ifExpr.condition)
+        val trueTr = translateExpression(ifExpr.truevalue)
+        val falseTr = translateExpression(ifExpr.falsevalue)
+        val irDt = irType(ifExpr.type)
+        val result = mutableListOf<IRCodeChunkBase>()
+        val falseLabel = codeGen.createLabelName()
+        val endLabel = codeGen.createLabelName()
+
+        addToResult(result, condTr, condTr.resultReg, -1)
+        addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = falseLabel), null)
+
+        if (irDt != IRDataType.FLOAT) {
+            addToResult(result, trueTr, trueTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+            result += IRCodeChunk(falseLabel, null)
+            addToResult(result, falseTr, trueTr.resultReg, -1)
+            result += IRCodeChunk(endLabel, null)
+            return ExpressionCodeResult(result, irDt, trueTr.resultReg, -1)
+        } else {
+            addToResult(result, trueTr, -1, trueTr.resultFpReg)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+            result += IRCodeChunk(falseLabel, null)
+            addToResult(result, falseTr, -1, trueTr.resultFpReg)
+            result += IRCodeChunk(endLabel, null)
+            return ExpressionCodeResult(result, irDt, -1, trueTr.resultFpReg)
         }
     }
 

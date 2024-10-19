@@ -86,7 +86,17 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             is RangeExpression -> transform(expr)
             is StringLiteral -> transform(expr)
             is TypecastExpression -> transform(expr)
+            is IfExpression -> transform(expr)
         }
+    }
+
+    private fun transform(ifExpr: IfExpression): PtIfExpression {
+        val type = ifExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val ifexpr = PtIfExpression(type, ifExpr.position)
+        ifexpr.add(transformExpression(ifExpr.condition))
+        ifexpr.add(transformExpression(ifExpr.truevalue))
+        ifexpr.add(transformExpression(ifExpr.falsevalue))
+        return ifexpr
     }
 
     private fun transform(srcDefer: Defer): PtDefer {

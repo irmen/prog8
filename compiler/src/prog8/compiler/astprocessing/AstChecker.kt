@@ -662,7 +662,7 @@ internal class AstChecker(private val program: Program,
             if (targetDatatype.isKnown) {
                 val sourceDatatype = assignment.value.inferType(program)
                 if (sourceDatatype.isUnknown) {
-                    if (assignment.value !is BinaryExpression && assignment.value !is PrefixExpression && assignment.value !is ContainmentCheck)
+                    if (assignment.value !is BinaryExpression && assignment.value !is PrefixExpression && assignment.value !is ContainmentCheck && assignment.value !is IfExpression)
                         errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
                 } else {
                     checkAssignmentCompatible(assignTarget, targetDatatype.getOr(DataType.UNDEFINED),
@@ -682,6 +682,20 @@ internal class AstChecker(private val program: Program,
                 errors.err("cannot take address of split word array",addressOf.position)
         }
         super.visit(addressOf)
+    }
+
+    override fun visit(ifExpr: IfExpression) {
+        if(!ifExpr.condition.inferType(program).isBool)
+            errors.err("condition should be a boolean", ifExpr.condition.position)
+
+        val trueDt = ifExpr.truevalue.inferType(program)
+        val falseDt = ifExpr.falsevalue.inferType(program)
+        if(trueDt.isUnknown || falseDt.isUnknown) {
+            errors.err("invalid value type(s)", ifExpr.position)
+        } else if(trueDt!=falseDt) {
+            errors.err("both values should be the same type", ifExpr.truevalue.position)
+        }
+        super.visit(ifExpr)
     }
 
     override fun visit(decl: VarDecl) {

@@ -87,6 +87,12 @@ interface IAstVisitor {
         range.step.accept(this)
     }
 
+    fun visit(ifExpr: IfExpression) {
+        ifExpr.condition.accept(this)
+        ifExpr.truevalue.accept(this)
+        ifExpr.falsevalue.accept(this)
+    }
+
     fun visit(label: Label) {
     }
 
