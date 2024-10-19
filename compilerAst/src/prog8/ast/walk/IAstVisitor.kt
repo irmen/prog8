@@ -87,6 +87,12 @@ interface IAstVisitor {
         range.step.accept(this)
     }
 
+    fun visit(ifExpr: IfExpression) {
+        ifExpr.condition.accept(this)
+        ifExpr.truevalue.accept(this)
+        ifExpr.falsevalue.accept(this)
+    }
+
     fun visit(label: Label) {
     }
 
@@ -157,6 +163,10 @@ interface IAstVisitor {
 
     fun visit(scope: AnonymousScope) {
         scope.statements.forEach { it.accept(this) }
+    }
+
+    fun visit(defer: Defer) {
+        defer.scope.accept(this)
     }
 
     fun visit(typecast: TypecastExpression) {

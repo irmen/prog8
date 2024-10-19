@@ -156,6 +156,9 @@ private fun StatementContext.toAst() : Statement {
     val unrollstmt = unrollloop()?.toAst()
     if(unrollstmt!=null) return unrollstmt
 
+    val deferstmt = defer()?.toAst()
+    if(deferstmt!=null) return deferstmt
+
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
@@ -551,6 +554,12 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
             AddressOf(array.scoped_identifier().toAst(), array.arrayindex().toAst(), toPosition())
     }
 
+    if(if_expression()!=null) {
+        val ifex = if_expression()
+        val (condition, truevalue, falsevalue) = ifex.expression()
+        return IfExpression(condition.toAst(), truevalue.toAst(), falsevalue.toAst(), toPosition())
+    }
+
     throw FatalAstException(text)
 }
 
@@ -647,6 +656,17 @@ private fun ForloopContext.toAst(): ForLoop {
 private fun BreakstmtContext.toAst() = Break(toPosition())
 
 private fun ContinuestmtContext.toAst() = Continue(toPosition())
+
+private fun DeferContext.toAst(): Defer {
+    val block = statement_block()?.toAst()
+    if(block!=null) {
+        val scope = AnonymousScope(block, statement_block()?.toPosition() ?: toPosition())
+        return Defer(scope, toPosition())
+    }
+    val singleStmt = statement()!!.toAst()
+    val scope = AnonymousScope(mutableListOf(singleStmt), statement().toPosition())
+    return Defer(scope, toPosition())
+}
 
 private fun WhileloopContext.toAst(): WhileLoop {
     val condition = expression().toAst()

@@ -83,7 +83,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
 
     fun isSimple(): Boolean {
         return when(this) {
-            is PtAddressOf -> true
+            is PtAddressOf -> this.arrayIndexExpr!=null || this.arrayIndexExpr?.isSimple()==true
             is PtArray -> true
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
             is PtBinaryExpression -> false
@@ -104,6 +104,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtRange -> true
             is PtString -> true
             is PtTypeCast -> value.isSimple()
+            is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
         }
     }
 
@@ -201,6 +202,16 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
         else
             require(!type.isBool) { "no bool allowed for this operator $operator"}
     }
+}
+
+
+class PtIfExpression(type: DataType, position: Position): PtExpression(type, position) {
+    val condition: PtExpression
+        get() = children[0] as PtExpression
+    val truevalue: PtExpression
+        get() = children[1] as PtExpression
+    val falsevalue: PtExpression
+        get() = children[2] as PtExpression
 }
 
 

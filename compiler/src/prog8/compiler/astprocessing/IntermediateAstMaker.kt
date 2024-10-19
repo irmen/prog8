@@ -37,6 +37,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transformStatement(statement: Statement): PtNode {
         return when (statement) {
             is AnonymousScope -> throw FatalAstException("AnonymousScopes should have been flattened")
+            is Defer -> transform(statement)
             is ChainedAssignment -> throw FatalAstException("ChainedAssignment should have been flattened")
             is Assignment -> transform(statement)
             is Block -> transform(statement)
@@ -85,7 +86,25 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             is RangeExpression -> transform(expr)
             is StringLiteral -> transform(expr)
             is TypecastExpression -> transform(expr)
+            is IfExpression -> transform(expr)
         }
+    }
+
+    private fun transform(ifExpr: IfExpression): PtIfExpression {
+        val type = ifExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val ifexpr = PtIfExpression(type, ifExpr.position)
+        ifexpr.add(transformExpression(ifExpr.condition))
+        ifexpr.add(transformExpression(ifExpr.truevalue))
+        ifexpr.add(transformExpression(ifExpr.falsevalue))
+        return ifexpr
+    }
+
+    private fun transform(srcDefer: Defer): PtDefer {
+        val defer = PtDefer(srcDefer.position)
+        srcDefer.scope.statements.forEach {
+            defer.add(transformStatement(it))
+        }
+        return defer
     }
 
     private fun transform(srcAssign: Assignment): PtNode {

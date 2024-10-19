@@ -192,7 +192,6 @@ sub push(float value) {
     %ir {{
         loadm.f  fr65535,floats.push.value
         push.f  fr65535
-        return
     }}
 }
 

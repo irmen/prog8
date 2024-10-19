@@ -1,39 +1,66 @@
 %import textio
+%import floats
 %option no_sysinit
 %zeropage basicsafe
 
+
+
 main {
-
-    bool[] barray =  [true, false, true, false]
-    uword[] warray = [&value1, &barray, &value5, 4242]
-
-    ubyte @shared integer = 99
-    bool @shared value1
-    bool @shared value2 = barray[2]         ; should be const!
-    bool @shared value3 = true
-    bool @shared value4 = false
-    bool @shared value5 = barray[cx16.r0L]      ; cannot be const
-    uword @shared value6 = warray[3]        ; should be const!
-    uword @shared value7 = warray[2]        ; cannot be const
-
     sub start() {
-        txt.print_ub(integer)
-        integer++
-        txt.spc()
-        txt.print_ub(integer)
+
+        ubyte @shared c=99
+        if c>100
+            cx16.r0L++
+        cx16.r0L = if (c>100)  2 else (3)
+        txt.print_ub(if (c>100)  2 else 3)
+        txt.nl()
+        txt.print_ub(if (c<100)  6 else 7)
         txt.nl()
 
-        txt.print_bool(value1)
-        txt.spc()
-        txt.print_bool(value2)
-        txt.spc()
-        txt.print_bool(value3)
-        txt.spc()
-        txt.print_bool(value4)
-        txt.spc()
-        txt.print_bool(value5)
-        txt.spc()
-        txt.print_uw(value6)
+        float @shared fl=99.99
+        floats.print(if (c>100)  2.22 else 3.33)
         txt.nl()
+        floats.print(if (c<100)  6.66 else 7.77)
+        txt.nl()
+
+        uword res1 = allocate(111)
+        defer deallocate(res1)
+        uword res2 = allocate(222)
+        if res2==0
+            return
+        defer deallocate(res2)
+
+        if not process1(res1, res2)
+            return
+        if not process2(res1, res2)
+            return
+    }
+
+    sub allocate(uword arg) -> uword {
+        return 4000+arg
+    }
+
+    sub deallocate(uword arg) {
+        txt.print("dealloc ")
+        txt.print_uw(arg)
+        txt.nl()
+    }
+
+    sub process1(uword arg1, uword arg2) -> bool {
+        txt.print("process1 ")
+        txt.print_uw(arg1)
+        txt.spc()
+        txt.print_uw(arg2)
+        txt.nl()
+        return true
+    }
+
+    sub process2(uword arg1, uword arg2) -> bool {
+        txt.print("process2 ")
+        txt.print_uw(arg1)
+        txt.spc()
+        txt.print_uw(arg2)
+        txt.nl()
+        return true
     }
 }

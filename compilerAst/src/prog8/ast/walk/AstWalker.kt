@@ -109,6 +109,7 @@ abstract class AstWalker {
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
@@ -130,6 +131,7 @@ abstract class AstWalker {
     open fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(defer: Defer, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(string: StringLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
@@ -153,6 +155,7 @@ abstract class AstWalker {
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
@@ -174,6 +177,7 @@ abstract class AstWalker {
     open fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(defer: Defer, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
@@ -442,6 +446,12 @@ abstract class AstWalker {
         track(after(scope, parent), scope, parent)
     }
 
+    fun visit(defer: Defer, parent: Node) {
+        track(before(defer, parent), defer, parent)
+        defer.scope.accept(this, defer)
+        track(after(defer, parent), defer, parent)
+    }
+
     fun visit(typecast: TypecastExpression, parent: Node) {
         track(before(typecast, parent), typecast, parent)
         typecast.expression.accept(this, typecast)
@@ -465,6 +475,14 @@ abstract class AstWalker {
         addressOf.identifier.accept(this, addressOf)
         addressOf.arrayIndex?.accept(this)
         track(after(addressOf, parent), addressOf, parent)
+    }
+
+    fun visit(ifExpr: IfExpression, parent: Node) {
+        track(before(ifExpr, parent), ifExpr, parent)
+        ifExpr.condition.accept(this, ifExpr)
+        ifExpr.truevalue.accept(this, ifExpr)
+        ifExpr.falsevalue.accept(this, ifExpr)
+        track(after(ifExpr, parent), ifExpr, parent)
     }
 
     fun visit(inlineAssembly: InlineAssembly, parent: Node) {

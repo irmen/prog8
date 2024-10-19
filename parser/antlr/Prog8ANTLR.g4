@@ -109,6 +109,7 @@ statement :
 	| breakstmt
 	| continuestmt
 	| labeldef
+	| defer
 	;
 
 
@@ -126,6 +127,7 @@ subroutinedeclaration :
 	| romsubroutine
     ;
 
+defer: 'defer' (statement | statement_block) ;
 
 labeldef :  identifier ':'  ;
 
@@ -195,6 +197,7 @@ expression :
 	| directmemory
 	| addressof
 	| expression typecast
+	| if_expression
 	;
 
 arrayindexed:
@@ -207,7 +210,6 @@ typecast : 'as' datatype;
 directmemory : '@' '(' expression ')';
 
 addressof : <assoc=right> ADDRESS_OF (scoped_identifier | arrayindexed) ;
-
 
 functioncall : scoped_identifier '(' expression_list? ')'  ;
 
@@ -297,6 +299,7 @@ if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ;
 
 else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later
 
+if_expression :  'if' expression EOL? expression EOL? 'else' EOL? expression ;
 
 branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? ;
 

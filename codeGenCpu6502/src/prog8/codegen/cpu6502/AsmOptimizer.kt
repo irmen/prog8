@@ -519,8 +519,10 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
 
         if(!haslabel(second)) {
             if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
-                mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
-                mods += Modification(lines[1].index, true, null)
+                if("floats.pushFAC" !in first && "floats.popFAC" !in first) {       // these 2 routines depend on being called with JSR!!
+                    mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
+                    mods += Modification(lines[1].index, true, null)
+                }
             }
             else if (" rts" in first || "\trts" in first) {
                 if (" jmp" in second || "\tjmp" in second)

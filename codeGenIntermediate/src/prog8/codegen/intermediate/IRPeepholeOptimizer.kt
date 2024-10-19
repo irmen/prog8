@@ -64,7 +64,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
     private fun replaceConcatZeroMsbWithExt(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
-            if (ins.opcode == Opcode.CONCAT) {
+            if (ins.opcode == Opcode.CONCAT && idx>0) {
                 // if the previous instruction loads a zero in the msb, this can be turned into EXT.B instead
                 val prev = indexedInstructions[idx-1].value
                 if(prev.opcode==Opcode.LOAD && prev.immediate==0 && prev.reg1==ins.reg2) {
@@ -449,7 +449,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
     private fun removeDoubleLoadsAndStores(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.forEach { (idx, ins) ->
-            if(ins.opcode==Opcode.STOREM) {
+            if(ins.opcode==Opcode.STOREM && idx>0) {
                 val prev = indexedInstructions[idx-1].value
                 if(prev.opcode==Opcode.LOADM) {
                     // loadm.X rX,something | storem.X rX,something ?? -> get rid of the store.

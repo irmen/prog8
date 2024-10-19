@@ -1,6 +1,15 @@
 TODO
 ====
 
+- defers that haven't been reached yet should not be executed (how will we do this? some kind of runtime support needed?  refcount or bitmask, not a boolean var per defer that would be wasteful)
+- unit test for defer
+- describe defer in the manual
+
+- unit test for ifexpression
+- describe ifexpression in the manual
+- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR)
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
@@ -9,15 +18,13 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- improve detection that a variable is not read before being written so that initializing it to zero can be omitted
-  (only happens now if a vardecl is immediately followed by a for loop for instance) BUT this may break stuff if the variable is read from a function call for instance in between?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Can we support signed % (remainder) somehow?
 - Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
-- Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays.
+- Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful if we have typed pointers.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
 

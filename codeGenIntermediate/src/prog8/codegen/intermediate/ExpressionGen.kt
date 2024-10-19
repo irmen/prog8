@@ -79,6 +79,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtPrefix -> translate(expr)
             is PtArrayIndexer -> translate(expr)
             is PtBinaryExpression -> translate(expr)
+            is PtIfExpression -> translate(expr)
             is PtBuiltinFunctionCall -> codeGen.translateBuiltinFunc(expr)
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
@@ -86,6 +87,36 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
             else -> throw AssemblyError("weird expression")
+        }
+    }
+
+    private fun translate(ifExpr: PtIfExpression): ExpressionCodeResult {
+        // TODO dont store condition as expression result but just use the flags, like a normal PtIfElse translation does
+        val condTr = translateExpression(ifExpr.condition)
+        val trueTr = translateExpression(ifExpr.truevalue)
+        val falseTr = translateExpression(ifExpr.falsevalue)
+        val irDt = irType(ifExpr.type)
+        val result = mutableListOf<IRCodeChunkBase>()
+        val falseLabel = codeGen.createLabelName()
+        val endLabel = codeGen.createLabelName()
+
+        addToResult(result, condTr, condTr.resultReg, -1)
+        addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = falseLabel), null)
+
+        if (irDt != IRDataType.FLOAT) {
+            addToResult(result, trueTr, trueTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+            result += IRCodeChunk(falseLabel, null)
+            addToResult(result, falseTr, trueTr.resultReg, -1)
+            result += IRCodeChunk(endLabel, null)
+            return ExpressionCodeResult(result, irDt, trueTr.resultReg, -1)
+        } else {
+            addToResult(result, trueTr, -1, trueTr.resultFpReg)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+            result += IRCodeChunk(falseLabel, null)
+            addToResult(result, falseTr, -1, trueTr.resultFpReg)
+            result += IRCodeChunk(endLabel, null)
+            return ExpressionCodeResult(result, irDt, -1, trueTr.resultFpReg)
         }
     }
 
@@ -493,7 +524,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
         val callTarget = codeGen.symbolTable.flat.getValue(fcall.name)
 
-        if(callTarget.scopedName in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw")) {
+        if(callTarget.scopedName in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw", "floats.push", "floats.pop")) {
             // special case, these should be inlined, or even use specialized instructions. Instead of doing a normal subroutine call.
             return translateStackFunctions(fcall, callTarget)
         }
@@ -687,6 +718,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val popReg = codeGen.registers.nextFree()
                 addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.WORD, reg1=popReg), null)
                 return ExpressionCodeResult(chunk, IRDataType.WORD, popReg, -1)
+            }
+            "floats.push" -> {
+                // push float
+                val tr = translateExpression(fcall.args.single())
+                chunk += tr.chunks
+                addInstr(chunk, IRInstruction(Opcode.PUSH, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
+                return ExpressionCodeResult(chunk, IRDataType.FLOAT, -1, -1)
+            }
+            "floats.pop" -> {
+                // pop float
+                val popReg = codeGen.registers.nextFreeFloat()
+                addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.FLOAT, fpReg1 = popReg), null)
+                return ExpressionCodeResult(chunk, IRDataType.FLOAT, -1, resultFpReg = popReg)
             }
             else -> throw AssemblyError("unknown stack subroutine called")
         }
