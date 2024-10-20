@@ -1,7 +1,11 @@
 TODO
 ====
 
-- defers that haven't been reached yet should not be executed (how will we do this? some kind of runtime support needed?  refcount or bitmask, not a boolean var per defer that would be wasteful)
+In ast2 allow PtVariable to still have a numeric initialization value in codegen.  (instead of only array and string)
+why is 0 as value stored as null in symboltablemaker?
+
+are variables initialized with 0 reset to 0 with an assignment? WHY is the BSS area then cleared with memset? shouldn't be necessary?
+
 - unit test for defer
 - describe defer in the manual
 

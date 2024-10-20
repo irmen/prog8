@@ -12,6 +12,7 @@ import prog8.ast.statements.Directive
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
 import prog8.code.ast.printAst
+import prog8.code.ast.verifyFinalAstBeforeAsmGen
 import prog8.code.core.*
 import prog8.code.optimize.optimizeIntermediateAst
 import prog8.code.target.AtariTarget
@@ -145,6 +146,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     printAst(intermediateAst, true, ::println)
                     println("*********** INTERMEDIATE AST END *************\n")
                 }
+
+                verifyFinalAstBeforeAsmGen(intermediateAst, compilationOptions, symbolTable, args.errors)
+                args.errors.report()
 
                 if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
                     System.err.println("Error in codegeneration or assembler")
