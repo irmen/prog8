@@ -238,6 +238,13 @@ class PtFunctionCall(val name: String,
                      position: Position) : PtExpression(type, position) {
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
+
+    init {
+        if(void) require(type==DataType.UNDEFINED) {
+            "void fcall should have undefined datatype"
+        }
+        // note: non-void calls can have UNDEFINED type: is if they return more than 1 value
+    }
 }
 
 

@@ -1,17 +1,11 @@
 package prog8tests.ast
 
-import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.instanceOf
-import prog8.code.ast.*
+import prog8.code.ast.PtBinaryExpression
+import prog8.code.ast.PtNumber
 import prog8.code.core.DataType
 import prog8.code.core.Position
-import prog8.code.target.C64Target
-import prog8.compiler.astprocessing.IntermediateAstMaker
-import prog8tests.helpers.ErrorReporterForTests
-import prog8tests.helpers.compileText
 
 class TestIntermediateAst: FunSpec({
 

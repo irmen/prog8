@@ -66,23 +66,26 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 val numElements: Int?
                 val value = node.value
                 if(value!=null) {
-                    val number = (value as? PtNumber)?.number
-                    initialNumeric = if(number==0.0) null else number       // 0 as init value -> just uninitialized
                     when (value) {
                         is PtString -> {
                             initialString = StString(value.value, value.encoding)
                             initialArray = null
+                            initialNumeric = null
                             numElements = value.value.length + 1   // include the terminating 0-byte
                         }
                         is PtArray -> {
                             initialArray = makeInitialArray(value)
                             initialString = null
+                            initialNumeric = null
                             numElements = initialArray.size
                             require(node.arraySize?.toInt()==numElements)
                         }
                         else -> {
+                            require(value is PtNumber)
                             initialString = null
                             initialArray = null
+                            val number = value.number
+                            initialNumeric = if(number==0.0) null else number       // 0 as init value -> just uninitialized   TODO weird?
                             numElements = node.arraySize?.toInt()
                         }
                     }

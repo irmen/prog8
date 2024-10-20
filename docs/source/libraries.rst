@@ -134,6 +134,7 @@ rol (x)
     (essentially, it is a 9-bit or 17-bit rotation)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can rol a memory location directly by using the direct memory access syntax, so like ``rol(@($5000))``
+    You can use ``if_cc`` or ``if_cs`` after a rol to act on the new carry bit, if required.
 
 rol2 (x)
     Like ``rol`` but now as 8-bit or 16-bit rotation.
@@ -148,6 +149,7 @@ ror (x)
     (essentially, it is a 9-bit or 17-bit rotation)
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror(@($5000))``
+    You can use ``if_cc`` or ``if_cs`` after a ror to act on the new carry bit, if required.
 
 ror2 (x)
     Like ``ror`` but now as 8-bit or 16-bit rotation.
