@@ -603,11 +603,11 @@ class AsmGen6502Internal (
             is PtRepeatLoop -> translate(stmt)
             is PtWhen -> translate(stmt)
             is PtIncludeBinary -> translate(stmt)
-            is PtBreakpoint -> translate(stmt)
+            is PtBreakpoint -> translateBrk()
             is PtVariable, is PtConstant, is PtMemMapped -> { /* do nothing; variables are handled elsewhere */ }
             is PtBlock -> throw AssemblyError("block should have been handled elsewhere")
+            is PtDefer -> throw AssemblyError("defer should have been transformed")
             is PtNodeGroup -> stmt.children.forEach { translate(it) }
-            is PtDefer -> translate(stmt)
             is PtNop -> {}
             else -> throw AssemblyError("missing asm translation for $stmt")
         }
@@ -1084,22 +1084,13 @@ $repeatLabel""")
         out("  .binary \"$pathForAssembler\" $offset $length")
     }
 
-    private fun translate(brk: PtBreakpoint) {
+    private fun translateBrk() {
         val label = "_prog8_breakpoint_${breakpointLabels.size+1}"
         breakpointLabels.add(label)
         out(label)
         if(options.breakpointCpuInstruction!=null) {
             out("  ${options.breakpointCpuInstruction}")
         }
-    }
-
-    private fun translate(defer: PtDefer) {
-        val sub = defer.definingSub()!!
-        out("${sub.name}.$deferLabel")
-        for(stmt in defer.children) {
-            translate(stmt)
-        }
-        out("  rts")
     }
 
     internal fun signExtendAYlsb(valueDt: DataType) {

@@ -69,16 +69,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
             "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE, resultRegister)
             "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD, resultRegister)
-            "invoke_defer" -> funcInvokeDefer(fcall)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
-    }
-
-    private fun funcInvokeDefer(call: PtBuiltinFunctionCall) {
-        val sub = call.definingSub()!!
-        asmgen.out("  jsr  ${sub.name}.$deferLabel")
     }
 
     private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataType, resultRegister: RegisterOrPair?) {

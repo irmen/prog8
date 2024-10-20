@@ -6,7 +6,6 @@ why is 0 as value stored as null in symboltablemaker?
 
 are variables initialized with 0 reset to 0 with an assignment? WHY is the BSS area then cleared with memset? shouldn't be necessary?
 
-- defers that haven't been reached yet should not be executed (how will we do this? some kind of runtime support needed?  refcount or bitmask, not a boolean var per defer that would be wasteful)
 - unit test for defer
 - describe defer in the manual
 
