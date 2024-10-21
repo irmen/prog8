@@ -36,7 +36,7 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
 
     val pushFunc = if(pushFloat) "floats.push" else if(pushWord) "sys.pushw" else "sys.push"
     val popFunc = if(pushFloat) "floats.pop" else if(pushWord) "sys.popw" else "sys.pop"
-    val pushCall = PtFunctionCall(pushFunc, true, value.type, value.position)
+    val pushCall = PtFunctionCall(pushFunc, true, DataType.UNDEFINED, value.position)
     if(pushTypecast!=null) {
         val typecast = PtTypeCast(pushTypecast, value.position).also {
             it.add(value)

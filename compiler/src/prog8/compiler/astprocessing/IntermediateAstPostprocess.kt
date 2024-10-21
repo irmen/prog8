@@ -144,7 +144,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         newRet.add(popCall)
         val group = PtNodeGroup()
         group.add(pushCall)
-        group.add(PtBuiltinFunctionCall(invokeDefersRoutineName, true, false, DataType.UNDEFINED, ret.position))
+        group.add(PtFunctionCall(ret.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true, DataType.UNDEFINED, ret.position))
         group.add(newRet)
         group.parent = ret.parent
         val idx = ret.parent.children.indexOf(ret)
@@ -158,7 +158,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
             val idx = sub.children.indexOfLast { it !is PtDefer }
             val ret = PtReturn(sub.position)
             sub.add(idx+1, ret)
-            val invokedefer = PtBuiltinFunctionCall(invokeDefersRoutineName, true, false, DataType.UNDEFINED, sub.position)
+            val invokedefer = PtFunctionCall(sub.scopedName+"."+invokeDefersRoutineName, true, DataType.UNDEFINED, sub.position)
             sub.add(idx+1, invokedefer)
         }
     }
