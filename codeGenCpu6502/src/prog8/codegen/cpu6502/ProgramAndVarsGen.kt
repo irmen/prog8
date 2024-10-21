@@ -471,6 +471,7 @@ internal class ProgramAndVarsGen(
 
     private fun entrypointInitialization() {
         // zero out the BSS area first, before setting the variable init values
+        // this is mainly to make sure the arrays are all zero'd out at program startup
         asmgen.out("  jsr  prog8_lib.program_startup_clear_bss")
 
         // initialize block-level (global) variables at program start

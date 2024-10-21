@@ -85,7 +85,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                             initialString = null
                             initialArray = null
                             val number = value.number
-                            initialNumeric = if(number==0.0) null else number       // 0 as init value -> just uninitialized   TODO weird?
+                            initialNumeric = number
                             numElements = node.arraySize?.toInt()
                         }
                     }
