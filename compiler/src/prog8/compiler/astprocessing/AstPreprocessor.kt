@@ -206,7 +206,7 @@ class AstPreprocessor(val program: Program,
         }
         val newDecl = VarDecl(
             decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name, emptyList(),
-            decl.value?.copy(), decl.sharedWithAsm, true, decl.alignment, decl.position
+            decl.value?.copy(), decl.sharedWithAsm, true, decl.alignment, false, decl.position
         )
         return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))
     }

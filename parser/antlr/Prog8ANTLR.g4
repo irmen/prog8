@@ -69,6 +69,8 @@ ALIGN64: '@align64' ;
 
 ALIGNPAGE: '@alignpage' ;
 
+INITONCE: '@initonce' ;
+
 ARRAYSIG : '[' [ \t]* ']' ;
 
 NOT_IN: 'not' [ \t]+ 'in' [ \t] ;
@@ -157,7 +159,7 @@ directivearg : stringliteral | identifier | integerliteral ;
 
 vardecl: datatype (arrayindex | ARRAYSIG)? decloptions identifier (',' identifier)* ;
 
-decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | SPLIT | ALIGNWORD | ALIGN64 | ALIGNPAGE)* ;
+decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | SPLIT | ALIGNWORD | ALIGN64 | ALIGNPAGE | INITONCE)* ;
 
 varinitializer : vardecl '=' expression ;
 

@@ -1,16 +1,9 @@
 TODO
 ====
 
-
-for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
-
-regenerate symbol dump files
-
-improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
-Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
-Add a -library $xxxx command line option to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
-Need to add some way to generate a stable jump table at a given address.
-Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
+- BUG: fix @initonce for variables that end up in zeropage.
+- add unit tests for @initonce variables
+- add docs about variables with @initonce initialization
 
 
 Improve register load order in subroutine call args assignments:
@@ -21,10 +14,9 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- remove 'extsub' as a recognised alternative for 'extsub'
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
-- Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
 - Can we support signed % (remainder) somehow?
+- Don't add "random" rts to %asm blocks but instead give a warning about it? (but this breaks existing behavior that others already depend on... command line switch? block directive?)
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
@@ -36,7 +28,7 @@ Future Things and Ideas
     - (What, how, isn't current BSS support enough?)
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
     - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
-    - maybe or may not needed: the variables can NOT have initializfation values, they will all be set to zero on startup (simple memset)
+    - maybe or may not needed: the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
       just initialize them yourself in start() if you need a non-zero value .
     - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
@@ -64,15 +56,15 @@ Future Things and Ideas
 
 Libraries:
 
+- gfx2: add EOR mode support like in monogfx and see PAINT for inspiration.  Self modifying code to keep it optimized?
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?
-- VM: implement the last diskio support (file listings)
+- VM: implement more diskio support
 
 
 Optimizations:
 
-- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
@@ -91,3 +83,13 @@ STRUCTS?
 - ARRAY remains the type for an array literal (so we can keep doing register-indexed addressing directly on it)
 - we probably need to have a STRBYREF and ARRAYBYREF if we deal with a pointer to a string / array (such as when passing it to a function)
   the subtype of those should include the declared element type and the declared length of the string / array
+
+
+Other language/syntax features to think about
+---------------------------------------------
+
+- add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
+  challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
+  How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
+  Maybe by having a %option rombank=4 rambank=22   to set that as fixed rombank/rambank for that subroutine/block (and pray the user doesn't change it themselves)
+  and then only do bank switching if the bank of the routine is different from the configured rombank/rambank.

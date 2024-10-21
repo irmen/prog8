@@ -1,20 +1,50 @@
 %import textio
-%import floats
 %option no_sysinit
-%zeropage basicsafe
+%zeropage dontuse
 
 main {
     sub start() {
-        float @shared fl1 = 4444.234
-        float @shared fl2 = -9999.111
-        float @shared fl3 = fl1+fl2
-        floats.print(fl1)
-        txt.spc()
-        floats.print(fl2)
-        txt.spc()
-        floats.print(fl3)
+        uword w0
+        uword @initonce w1
+        uword @initonce w2
+        uword @initonce w3
+        uword @initonce w4 = 12345
+        uword[4] wa
+        uword[] @shared wb = [1111,2222,3333,4444]
+
+        dump()
         txt.nl()
-        txt.print_w(fl3 as word)
+        w0++
+        w1++
+        w2++
+        w3++
+        w4++
+        wa[1]++
+        wa[2]++
+        wa[3]++
+        wb[0]++
+        dump()
         txt.nl()
+
+        sub dump() {
+            txt.print_uw(w0)
+            txt.spc()
+            txt.print_uw(w1)
+            txt.spc()
+            txt.print_uw(w2)
+            txt.spc()
+            txt.print_uw(w3)
+            txt.spc()
+            txt.print_uw(w4)
+            txt.spc()
+            txt.print_uw(wa[1])
+            txt.spc()
+            txt.print_uw(wa[2])
+            txt.spc()
+            txt.print_uw(wa[3])
+            txt.spc()
+            txt.print_uw(wb[0])
+            txt.nl()
+        }
     }
 }

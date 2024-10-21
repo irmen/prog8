@@ -48,6 +48,12 @@ internal class StatementReorderer(
                     declsProcessedWithInitAssignment.add(decl)
                     if (decl.value == null) {
                         if (decl.origin==VarDeclOrigin.USERCODE && decl.allowInitializeWithZero) {
+                            if(decl.initOnce) {
+                                val zerovalue = decl.zeroElementValue()
+                                decl.value = zerovalue
+                                zerovalue.linkParents(decl)
+                                return noModifications
+                            }
                             // A numeric vardecl without an initial value is initialized with zero,
                             // unless there's already an assignment below it, that initializes the value (or a for loop that uses it as loopvar).
                             // This allows you to restart the program and have the same starting values of the variables
@@ -66,6 +72,9 @@ internal class StatementReorderer(
                             }
                         }
                     } else {
+                        if(decl.initOnce) {
+                            return noModifications
+                        }
                         // Transform the vardecl with initvalue to a plain vardecl + assignment
                         // this allows for other optimizations to kick in.
                         // So basically consider 'ubyte xx=99' as a short form for 'ubyte xx; xx=99'
@@ -222,6 +231,7 @@ internal class StatementReorderer(
                                 it.sharedWithAsm,
                                 it.splitArray,
                                 it.alignment,
+                                it.initOnce,
                                 it.position
                             )
                             IAstModification.ReplaceNode(it, newvar, subroutine)

@@ -328,6 +328,8 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             val options = it.decloptions()
             if(options.ALIGNPAGE().isNotEmpty() || options.ALIGNWORD().isNotEmpty())
                 throw SyntaxError("cannot use alignments on parameters", it.toPosition())
+            if(options.INITONCE().isNotEmpty())
+                throw SyntaxError("cannot use @initonce on parameters", it.toPosition())
             val zp = getZpOption(options)
             var datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
             if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
@@ -769,6 +771,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             options.SHARED().isNotEmpty(),
             split,
             if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,
+            dt==DataType.STR || options.INITONCE().isNotEmpty(),
             toPosition()
     )
 }
