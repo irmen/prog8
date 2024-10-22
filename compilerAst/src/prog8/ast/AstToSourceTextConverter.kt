@@ -53,6 +53,26 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         outputln("}\n")
     }
 
+    override fun visit(ifExpr: IfExpression) {
+        output("if ")
+        ifExpr.condition.accept(this)
+        output(" ")
+        ifExpr.truevalue.accept(this)
+        output(" else ")
+        ifExpr.falsevalue.accept(this)
+    }
+
+    override fun visit(continueStmt: Continue) {
+        output("continue")
+    }
+
+    override fun visit(unrollLoop: UnrollLoop) {
+        output("unroll ")
+        unrollLoop.iterations.accept(this)
+        output(" ")
+        unrollLoop.body.accept(this)
+    }
+
     override fun visit(containment: ContainmentCheck) {
         containment.element.accept(this)
         output(" in ")

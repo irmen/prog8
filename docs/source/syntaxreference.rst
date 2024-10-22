@@ -648,6 +648,10 @@ address of:  ``&``
     This operator can also be used as a prefix to a variable's data type keyword to indicate that
     it is a memory mapped variable (for instance: ``&ubyte screencolor = $d021``)
 
+ternary:
+    Prog8 doesn't have a ternary operator to choose one of two values (``x? y : z`` in many other languages)
+    instead it provides this feature in the form of an *if expression*.  See below under "Conditional Execution".
+
 precedence grouping in expressions, or subroutine parameter list:  ``(`` *expression* ``)``
 	Parentheses are used to group parts of an expression to change the order of evaluation.
 	(the subexpression inside the parentheses will be evaluated first):
@@ -945,8 +949,8 @@ If you jump to an address variable (uword), it is doing an 'indirect' jump: the 
 to the address that's currently in the variable.
 
 
-if statements
-^^^^^^^^^^^^^
+if statement
+^^^^^^^^^^^^
 
 With the 'if' / 'else' statement you can execute code depending on the value of a condition::
 
@@ -991,6 +995,16 @@ It can also be one of the four aliases that are easier to read: ``if_z``, ``if_n
     This is not always the case after a function call or other operations!
     If in doubt, check the generated assembly code!
 
+if expression
+^^^^^^^^^^^^^
+Similar to the if statement, but this time selects one of two possible values as the outcome of the expression,
+depending on the condition. You write it as ``if <condition>  <value1> else <value2>`` and it can be
+used anywhere an expression is used to assign or pass a value.
+The first value will be used if the condition is true, otherwise the second value is used.
+Sometimes it may be more legible if you surround the condition expression with parentheses so it is better
+separated visually from the first value following it.
+You must always provide two alternatives to choose from, and they can only be values (expressions).
+
 
 when statement ('jump table')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1016,5 +1030,26 @@ case you have to use { } to enclose them::
             txt.print("ten or twenty or thirty")
         }
         else -> txt.print("don't know")
+    }
+
+
+Deferred code ("cleanups")
+--------------------------
+
+The ``defer`` keyword can be used to schedule a statement (or block of statements) to be executed
+just before exiting of the current subroutine. That can be via a return statement or a jump to somewhere else,
+or just the normal ending of the subroutine. This is often useful to "not forget" to clean up stuff,
+and if the subroutine has multiple ways or places where it can exit, it saves you from repeating
+the cleanup code at every exit spot. Multiple defers can be scheduled in a single subroutine (up to a maximum of 8).
+They are handled in reversed order. Return values are evaluated before any deferred code is executed.
+You write defers like so::
+
+    defer diskio.f_close()
+
+    ; or multiple statements:
+
+    defer {
+        diskio.f_close()
+        memory.deallocate()
     }
 

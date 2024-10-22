@@ -1,17 +1,7 @@
 TODO
 ====
 
-In ast2 allow PtVariable to still have a numeric initialization value in codegen.  (instead of only array and string)
-why is 0 as value stored as null in symboltablemaker?
-
-are variables initialized with 0 reset to 0 with an assignment? WHY is the BSS area then cleared with memset? shouldn't be necessary?
-
-- unit test for defer
-- describe defer in the manual
-
-- unit test for ifexpression
-- describe ifexpression in the manual
-- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR)
+- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) (assignIfExpression / translate(ifExpr: PtIfExpression))
 
 
 Improve register load order in subroutine call args assignments:

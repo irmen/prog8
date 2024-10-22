@@ -91,7 +91,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(ifExpr: PtIfExpression): ExpressionCodeResult {
-        // TODO dont store condition as expression result but just use the flags, like a normal PtIfElse translation does
+        // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
         val condTr = translateExpression(ifExpr.condition)
         val trueTr = translateExpression(ifExpr.truevalue)
         val falseTr = translateExpression(ifExpr.falsevalue)
