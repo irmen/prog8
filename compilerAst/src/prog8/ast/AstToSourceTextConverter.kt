@@ -53,6 +53,15 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         outputln("}\n")
     }
 
+    override fun visit(ifExpr: IfExpression) {
+        output("if ")
+        ifExpr.condition.accept(this)
+        output(" ")
+        ifExpr.truevalue.accept(this)
+        output(" else ")
+        ifExpr.falsevalue.accept(this)
+    }
+
     override fun visit(continueStmt: Continue) {
         output("continue")
     }
