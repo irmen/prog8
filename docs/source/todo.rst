@@ -1,7 +1,7 @@
 TODO
 ====
 
-- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR)
+- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) (assignIfExpression / translate(ifExpr: PtIfExpression))
 
 
 Improve register load order in subroutine call args assignments:

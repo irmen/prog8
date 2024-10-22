@@ -1,54 +1,24 @@
-%import textio
 %import floats
+%import textio
 %option no_sysinit
 %zeropage basicsafe
 
 
 main {
     sub start() {
-        uword res1 = allocate(111)
-        defer deallocate(res1)
-        uword res2 = allocate(222)
-        if res2==0
-            return
-        defer deallocate(res2)
+        ubyte[4] values
+        uword[4] wvalues
+        float[4] fvalues
+        cx16.r0L = 0
+        cx16.r1L = 3
+        values[cx16.r0L+2] = if cx16.r1L>2  99 else 111
+        wvalues[cx16.r0L+2] = if cx16.r1L>2  9999 else 1111
+        fvalues[cx16.r0L+2] = if cx16.r1L>2  9.99 else 1.111
 
-        if not process1(res1, res2)
-            return
-        if not process2(res1, res2)
-            return
-    }
-
-    sub allocate(uword arg) -> uword {
-;        if arg==222
-;            return 0
-        txt.print("allocate ")
-        txt.print_uw(4000+arg)
+        txt.print_ub(values[2])
         txt.nl()
-        return 4000+arg
-    }
-
-    sub deallocate(uword arg) {
-        txt.print("dealloc ")
-        txt.print_uw(arg)
+        txt.print_uw(wvalues[2])
         txt.nl()
-    }
-
-    sub process1(uword arg1, uword arg2) -> bool {
-        txt.print("process1 ")
-        txt.print_uw(arg1)
-        txt.spc()
-        txt.print_uw(arg2)
-        txt.nl()
-        return true
-    }
-
-    sub process2(uword arg1, uword arg2) -> bool {
-        txt.print("process2 ")
-        txt.print_uw(arg1)
-        txt.spc()
-        txt.print_uw(arg2)
-        txt.nl()
-        return true
+        floats.print(fvalues[2])
     }
 }

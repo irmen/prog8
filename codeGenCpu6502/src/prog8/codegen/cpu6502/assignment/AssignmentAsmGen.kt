@@ -645,7 +645,7 @@ internal class AssignmentAsmGen(
     }
 
     private fun assignIfExpression(target: AsmAssignTarget, expr: PtIfExpression) {
-        // TODO dont store condition as expression result but just use the flags, like a normal PtIfElse translation does
+        // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
         require(target.datatype==expr.type)
         val falseLabel = asmgen.makeLabel("ifexpr_false")
         val endLabel = asmgen.makeLabel("ifexpr_end")
@@ -654,32 +654,27 @@ internal class AssignmentAsmGen(
         when(expr.type) {
             in ByteDatatypesWithBoolean -> {
                 assignExpressionToRegister(expr.truevalue, RegisterOrPair.A, false)
-                assignRegisterByte(target, CpuRegister.A, false, false)
                 asmgen.jmp(endLabel)
                 asmgen.out(falseLabel)
                 assignExpressionToRegister(expr.falsevalue, RegisterOrPair.A, false)
-                assignRegisterByte(target, CpuRegister.A, false, false)
                 asmgen.out(endLabel)
+                assignRegisterByte(target, CpuRegister.A, false, false)
             }
             in WordDatatypes -> {
                 assignExpressionToRegister(expr.truevalue, RegisterOrPair.AY, false)
-                assignRegisterpairWord(target, RegisterOrPair.AY)
                 asmgen.jmp(endLabel)
                 asmgen.out(falseLabel)
                 assignExpressionToRegister(expr.falsevalue, RegisterOrPair.AY, false)
-                assignRegisterpairWord(target, RegisterOrPair.AY)
                 asmgen.out(endLabel)
+                assignRegisterpairWord(target, RegisterOrPair.AY)
             }
             DataType.FLOAT -> {
-                val trueSrc = AsmAssignSource.fromAstSource(expr.truevalue, program, asmgen)
-                val assignTrue = AsmAssignment(trueSrc, target, program.memsizer, expr.position)
-                translateNormalAssignment(assignTrue, expr.definingISub())
+                assignExpressionToRegister(expr.truevalue, RegisterOrPair.FAC1, true)
                 asmgen.jmp(endLabel)
                 asmgen.out(falseLabel)
-                val falseSrc = AsmAssignSource.fromAstSource(expr.falsevalue, program, asmgen)
-                val assignFalse = AsmAssignment(falseSrc, target, program.memsizer, expr.position)
-                translateNormalAssignment(assignFalse, expr.definingISub())
+                assignExpressionToRegister(expr.falsevalue, RegisterOrPair.FAC1, true)
                 asmgen.out(endLabel)
+                asmgen.assignRegister(RegisterOrPair.FAC1, target)
             }
             else -> throw AssemblyError("weird dt")
         }
