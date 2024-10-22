@@ -551,8 +551,8 @@ Only simple statements are allowed to be inside an unroll loop (assignments, fun
 Conditional Execution
 ---------------------
 
-if statements
-^^^^^^^^^^^^^
+if statement
+^^^^^^^^^^^^
 
 Conditional execution means that the flow of execution changes based on certain conditions,
 rather than having fixed gotos or subroutine calls::
@@ -618,6 +618,25 @@ So ``if_cc goto target`` will directly translate into the single CPU instruction
     the same scope the if statement itself is in.
     Maybe in the future this will be a separate nested scope, but for now, that is
     only possible when defining a subroutine.
+
+
+if expression
+^^^^^^^^^^^^^
+
+You can also use if..else as an *expression* instead of a statement. This expression selects one of two
+different values depending of the condition. Sometimes it may be more legible if you surround the condition expression with parentheses.
+An example, to select the number of cards to use depending on what game is played::
+
+    ubyte numcards = if game_is_piquet  32 else 52
+
+    ; it's more verbose with an if statement:
+    ubyte numcards
+    if game_is_piquet
+        numcards = 32
+    else
+        numcards = 52
+
+
 
 when statement ('jump table')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -796,6 +815,48 @@ Otherwise the compiler will issue a warning about discarding a result value.
     Also, subroutines used in the main program should not be used from an IRQ handler. This is because
     the subroutine may be interrupted, and will then call itself from the IRQ handler. Results are
     then undefined because the variables will get overwritten.
+
+
+Deferred ("cleanup") code
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Usually when a subroutine exits, it has to clean up things that it worked on. For example, it has to close
+a file that it opened before to read data from, or it has to free a piece of memory that it allocated via
+a dynamic memory allocation library, etc.
+Every spot where the subroutine exits (return statement, jump, or the end of the routine) you have to take care
+of doing the cleanups required.  This can get tedious, and the cleanup code is separated from the place where
+the resource allocation was done at the start.
+
+To help make this easier and less error prone, you can ``defer`` code to be executed automatically,
+immediately before any moment the subroutine exits. So for example to make sure a file is closed
+regardless of what happens later in the routine, you can write something along these lines::
+
+    sub example() -> bool {
+        ubyte file = open_file()
+        defer close_file(file)              ; "close it when we exit from here"
+
+        uword memory = allocate(1000)
+        if memory==0
+            return false
+        defer deallocate(memory)            ; "deallocate when we exit from here"
+
+        process(file, memory)
+        return true
+    }
+
+In this example, the two deferred statements are not immediately executed. Instead, they are executed when the
+subroutine exits at any point. So for example the ``return false`` after the memory check will automatically also close
+the file that was opened earlier because the close_file() call was scheduled there.
+At the bottom when the ``return true`` appears, *both* deferred cleanup calls are executed: first the deallocation of
+the memory, and then the file close. As you can see this saves you from duplicating the cleanup logic,
+and the logic is declared very close to the spot where the allocation of the resource happens, so it's easier to read and understand.
+
+It's possible to write a defer for a block of statements, but the advice is to keep such cleanup code as simple and short as possible.
+
+.. caution::
+    Defers only work for subroutines that are written as regular Prog8 code.
+    If a piece of inlined assembly somehow causes the routine to exit, the compiler cannot detect this.
+    Defers will not be handled in such cases.
 
 
 Library routines and builtin functions

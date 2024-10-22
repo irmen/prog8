@@ -9,6 +9,7 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -685,6 +686,46 @@ main {
     }
 }"""
         compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
+
+    test("defer syntactic sugaring") {
+        val src="""
+main {
+    sub start() {
+        void test()
+    }
+
+    sub test() -> uword {
+        defer {
+            cx16.r0++
+            cx16.r1++
+        }
+
+        if cx16.r0==0
+            return cx16.r0+cx16.r1
+        defer cx16.r2++
+    }
+}"""
+        val result = compileText(Cx16Target(), optimize=true, src, writeAssembly=true)!!
+        val main = result.codegenAst!!.allBlocks().single {it.name=="p8b_main"}
+        val sub = main.children[1] as PtSub
+        sub.scopedName shouldBe "p8b_main.p8s_test"
+
+        // check the desugaring of the defer statements
+        (sub.children[0] as PtVariable).name shouldBe "p8v_prog8_defers_mask"
+        val ifelse = sub.children[3] as PtIfElse
+        val ifscope = ifelse.ifScope.children[0] as PtNodeGroup
+        val ifscope_push = ifscope.children[0] as PtFunctionCall
+        val ifscope_defer = ifscope.children[1] as PtFunctionCall
+        val ifscope_return = ifscope.children[2] as PtReturn
+        ifscope_defer.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"
+        ifscope_push.name shouldBe "sys.pushw"
+        (ifscope_return.value as PtFunctionCall).name shouldBe "sys.popw"
+        val ending = sub.children[5] as PtFunctionCall
+        ending.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"
+        sub.children[6] shouldBe instanceOf<PtReturn>()
+        val handler = sub.children[7] as PtSub
+        handler.name shouldBe "p8s_prog8_invoke_defers"
     }
 })
 

@@ -1,11 +1,6 @@
 TODO
 ====
 
-- unit test for defer
-- describe defer in the manual
-
-- unit test for ifexpression
-- describe ifexpression in the manual
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR)
 
 
