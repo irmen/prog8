@@ -21,6 +21,31 @@ class UnusedCodeRemover(private val program: Program,
 ): AstWalker() {
 
     private lateinit var callgraph: CallGraph
+    private val neverRemoveSubroutines = mutableListOf<Subroutine>()
+
+    init {
+        neverRemoveSubroutines.add(program.entrypoint)
+
+        program.allBlocks.singleOrNull { it.name=="sys" } ?.let {
+            val subroutines = it.statements.filterIsInstance<Subroutine>()
+            val push = subroutines.single { it.name == "push" }
+            val pushw = subroutines.single { it.name == "pushw" }
+            val pop = subroutines.single { it.name == "pop" }
+            val popw = subroutines.single { it.name == "popw" }
+            neverRemoveSubroutines.add(push)
+            neverRemoveSubroutines.add(pushw)
+            neverRemoveSubroutines.add(pop)
+            neverRemoveSubroutines.add(popw)
+        }
+
+        program.allBlocks.singleOrNull { it.name=="floats" } ?.let {
+            val subroutines = it.statements.filterIsInstance<Subroutine>()
+            val push = subroutines.single { it.name == "push" }
+            val pop = subroutines.single { it.name == "pop" }
+            neverRemoveSubroutines.add(push)
+            neverRemoveSubroutines.add(pop)
+        }
+    }
 
     override fun before(program: Program): Iterable<IAstModification> {
         callgraph = CallGraph(program)
@@ -92,7 +117,7 @@ class UnusedCodeRemover(private val program: Program,
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         val forceOutput = "force_output" in subroutine.definingBlock.options()
-        if (subroutine !== program.entrypoint && !forceOutput && !subroutine.isAsmSubroutine) {
+        if (subroutine !in neverRemoveSubroutines && !forceOutput && !subroutine.isAsmSubroutine) {
             if(callgraph.unused(subroutine)) {
                 if(subroutine.containsNoCodeNorVars) {
                     if("ignore_unused" !in subroutine.definingBlock.options())
