@@ -639,44 +639,8 @@ internal class AssignmentAsmGen(
                     throw AssemblyError("Expression is too complex to translate into assembly. Split it up into several separate statements, introduce a temporary variable, or otherwise rewrite it. Location: $pos")
                 }
             }
-            is PtIfExpression -> assignIfExpression(assign.target, value)
+            is PtIfExpression -> asmgen.assignIfExpression(assign.target, value)
             else -> throw AssemblyError("weird assignment value type $value")
-        }
-    }
-
-    private fun assignIfExpression(target: AsmAssignTarget, expr: PtIfExpression) {
-        // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
-        require(target.datatype==expr.type)
-        val falseLabel = asmgen.makeLabel("ifexpr_false")
-        val endLabel = asmgen.makeLabel("ifexpr_end")
-        assignExpressionToRegister(expr.condition, RegisterOrPair.A, false)
-        asmgen.out("  beq  $falseLabel")
-        when(expr.type) {
-            in ByteDatatypesWithBoolean -> {
-                assignExpressionToRegister(expr.truevalue, RegisterOrPair.A, false)
-                asmgen.jmp(endLabel)
-                asmgen.out(falseLabel)
-                assignExpressionToRegister(expr.falsevalue, RegisterOrPair.A, false)
-                asmgen.out(endLabel)
-                assignRegisterByte(target, CpuRegister.A, false, false)
-            }
-            in WordDatatypes -> {
-                assignExpressionToRegister(expr.truevalue, RegisterOrPair.AY, false)
-                asmgen.jmp(endLabel)
-                asmgen.out(falseLabel)
-                assignExpressionToRegister(expr.falsevalue, RegisterOrPair.AY, false)
-                asmgen.out(endLabel)
-                assignRegisterpairWord(target, RegisterOrPair.AY)
-            }
-            DataType.FLOAT -> {
-                assignExpressionToRegister(expr.truevalue, RegisterOrPair.FAC1, true)
-                asmgen.jmp(endLabel)
-                asmgen.out(falseLabel)
-                assignExpressionToRegister(expr.falsevalue, RegisterOrPair.FAC1, true)
-                asmgen.out(endLabel)
-                asmgen.assignRegister(RegisterOrPair.FAC1, target)
-            }
-            else -> throw AssemblyError("weird dt")
         }
     }
 

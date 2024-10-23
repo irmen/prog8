@@ -78,38 +78,65 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
     if(options.compTarget.machine.cpu == CpuType.VIRTUAL)
         return 0        // the special bittest optimization is not yet valid for the IR
 
+    fun makeBittestCall(condition: PtBinaryExpression, and: PtBinaryExpression, variable: PtIdentifier, bitmask: Int): PtBuiltinFunctionCall {
+        require(bitmask==128 || bitmask==64)
+        val setOrNot = if(condition.operator=="!=") "set" else "notset"
+        val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataType.BOOL, condition.position)
+        bittestCall.add(variable)
+        if(bitmask==128)
+            bittestCall.add(PtNumber(DataType.UBYTE, 7.0, and.right.position))
+        else
+            bittestCall.add(PtNumber(DataType.UBYTE, 6.0, and.right.position))
+        return bittestCall
+    }
+
+    fun isAndByteCondition(condition: PtBinaryExpression?): Triple<PtBinaryExpression, PtIdentifier, Int>? {
+        if(condition!=null && (condition.operator=="==" || condition.operator=="!=")) {
+            if (condition.right.asConstInteger() == 0) {
+                val and = condition.left as? PtBinaryExpression
+                if (and != null && and.operator == "&" && and.type == DataType.UBYTE) {
+                    val variable = and.left as? PtIdentifier
+                    val bitmask = and.right.asConstInteger()
+                    if(variable!=null && variable.type in ByteDatatypes && (bitmask==128 || bitmask==64)) {
+                        return Triple(and, variable, bitmask)
+                    }
+                }
+            }
+        }
+        return null
+    }
+
     var changes = 0
     var recurse = true
     walkAst(program) { node: PtNode, depth: Int ->
         if(node is PtIfElse) {
             val condition = node.condition as? PtBinaryExpression
-            if(condition!=null && (condition.operator=="==" || condition.operator=="!=")) {
-                if(condition.right.asConstInteger()==0) {
-                    val and = condition.left as? PtBinaryExpression
-                    if(and != null && and.operator=="&" && and.type == DataType.UBYTE) {
-                        val variable = and.left as? PtIdentifier
-                        val bitmask = and.right.asConstInteger()
-                        if(variable!=null && variable.type in ByteDatatypes && (bitmask==128 || bitmask==64)) {
-                            val setOrNot = if(condition.operator=="!=") "set" else "notset"
-                            val index = node.parent.children.indexOf(node)
-                            val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataType.BOOL, node.condition.position)
-                            bittestCall.add(variable)
-                            if(bitmask==128)
-                                bittestCall.add(PtNumber(DataType.UBYTE, 7.0, and.right.position))
-                            else
-                                bittestCall.add(PtNumber(DataType.UBYTE, 6.0, and.right.position))
-                            val ifElse = PtIfElse(node.position)
-                            ifElse.add(bittestCall)
-                            ifElse.add(node.ifScope)
-                            if(node.hasElse())
-                                ifElse.add(node.elseScope)
-                            node.parent.children[index] = ifElse
-                            ifElse.parent = node.parent
-                            changes++
-                            recurse = false
-                        }
-                    }
-                }
+            val check = isAndByteCondition(condition)
+            if(check!=null) {
+                val (and, variable, bitmask) = check
+                val bittestCall = makeBittestCall(condition!!, and, variable, bitmask)
+                val ifElse = PtIfElse(node.position)
+                ifElse.add(bittestCall)
+                ifElse.add(node.ifScope)
+                if (node.hasElse())
+                    ifElse.add(node.elseScope)
+                val index = node.parent.children.indexOf(node)
+                node.parent.children[index] = ifElse
+                ifElse.parent = node.parent
+                changes++
+                recurse = false
+            }
+        }
+        if (node is PtIfExpression) {
+            val condition = node.condition as? PtBinaryExpression
+            val check = isAndByteCondition(condition)
+            if(check!=null) {
+                val (and, variable, bitmask) = check
+                val bittestCall = makeBittestCall(condition!!, and, variable, bitmask)
+                node.children[0] = bittestCall
+                bittestCall.parent = node
+                changes++
+                recurse = false
             }
         }
         recurse

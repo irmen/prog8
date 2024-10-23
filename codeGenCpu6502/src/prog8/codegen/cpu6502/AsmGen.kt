@@ -1381,6 +1381,10 @@ $repeatLabel""")
             pla
             jsr  floats.copy_float""")
     }
+
+    internal fun assignIfExpression(target: AsmAssignTarget, value: PtIfExpression) {
+        ifElseAsmgen.assignIfExpression(target, value)
+    }
 }
 
 /**

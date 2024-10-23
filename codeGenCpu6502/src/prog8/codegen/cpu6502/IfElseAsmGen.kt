@@ -54,6 +54,85 @@ internal class IfElseAsmGen(private val program: PtProgram,
         throw AssemblyError("weird non-boolean condition node type ${stmt.condition} at ${stmt.condition.position}")
     }
 
+    internal fun assignIfExpression(target: AsmAssignTarget, expr: PtIfExpression) {
+        // this is NOT for the if-else STATEMENT, but this is code for the IF-EXPRESSION.
+        require(target.datatype==expr.type)
+        val falseLabel = asmgen.makeLabel("ifexpr_false")
+        val endLabel = asmgen.makeLabel("ifexpr_end")
+        evalConditonAndBranchWhenFalse(expr.condition, falseLabel)
+        when(expr.type) {
+            in ByteDatatypesWithBoolean -> {
+                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.A, false)
+                asmgen.jmp(endLabel)
+                asmgen.out(falseLabel)
+                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.A, false)
+                asmgen.out(endLabel)
+                assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
+            }
+            in WordDatatypes -> {
+                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.AY, false)
+                asmgen.jmp(endLabel)
+                asmgen.out(falseLabel)
+                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.AY, false)
+                asmgen.out(endLabel)
+                assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
+            }
+            DataType.FLOAT -> {
+                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.FAC1, true)
+                asmgen.jmp(endLabel)
+                asmgen.out(falseLabel)
+                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.FAC1, true)
+                asmgen.out(endLabel)
+                asmgen.assignRegister(RegisterOrPair.FAC1, target)
+            }
+            else -> throw AssemblyError("weird dt")
+        }
+    }
+
+    private fun evalConditonAndBranchWhenFalse(condition: PtExpression, falseLabel: String) {
+        if (condition is PtBinaryExpression) {
+            return when(condition.right.type) {
+                in ByteDatatypesWithBoolean -> translateIfByteConditionBranch(condition, falseLabel)
+                in WordDatatypes -> translateIfWordConditionBranch(condition, falseLabel)
+                DataType.FLOAT -> translateFloatConditionBranch(condition, falseLabel)
+                else -> throw AssemblyError("weird dt")
+            }
+        }
+        else if(condition is PtPrefix && condition.operator=="not") {
+            assignConditionValueToRegisterAndTest(condition.value)
+            asmgen.out("  bne  $falseLabel")
+        } else {
+            // 'simple' condition, check if it is a byte bittest
+            val bittest = condition as? PtBuiltinFunctionCall
+            if(bittest!=null && bittest.name.startsWith("prog8_ifelse_bittest_")) {
+                val variable = bittest.args[0] as PtIdentifier
+                val bitnumber = (bittest.args[1] as PtNumber).number.toInt()
+                val testForBitSet = bittest.name.endsWith("_set")
+                when (bitnumber) {
+                    7 -> {
+                        // test via bit + N flag
+                        asmgen.out("  bit  ${variable.name}")
+                        if(testForBitSet) asmgen.out("  bpl  $falseLabel")
+                        else asmgen.out("  bmi  $falseLabel")
+                        return
+                    }
+                    6 -> {
+                        // test via bit + V flag
+                        asmgen.out("  bit  ${variable.name}")
+                        if(testForBitSet) asmgen.out("  bvc  $falseLabel")
+                        else asmgen.out("  bvs  $falseLabel")
+                        return
+                    }
+                    else -> throw AssemblyError("prog8_ifelse_bittest can only work on bits 7 and 6")
+                }
+            }
+
+            // the condition is "simple" enough to just assign its 0/1 value to a register and branch on that
+            assignConditionValueToRegisterAndTest(condition)
+            asmgen.out("  beq  $falseLabel")
+        }
+    }
+
     private fun checkNotRomsubReturnsStatusReg(condition: PtExpression) {
         val fcall = condition as? PtFunctionCall
         if(fcall!=null && fcall.type==DataType.BOOL) {
@@ -73,6 +152,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             is PtIrRegister,
             is PtArrayIndexer,
             is PtPrefix,
+            is PtIfExpression,
             is PtBinaryExpression -> { /* no cmp necessary the lda has been done just prior */ }
             is PtTypeCast -> {
                 if(condition.value.type !in ByteDatatypes && condition.value.type !in WordDatatypes)
@@ -273,6 +353,103 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 }
             }
             else -> throw AssemblyError("expected comparison or logical operator")
+        }
+    }
+
+    private fun translateIfByteConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
+        val signed = condition.left.type in SignedDatatypes
+        val constValue = condition.right.asConstInteger()
+        if(constValue==0) {
+            return translateIfCompareWithZeroByteBranch(condition, signed, falseLabel)
+        }
+
+        when(condition.operator) {
+            "==" -> {
+                // if X==value
+                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+                cmpAwithByteValue(condition.right, false)
+                asmgen.out("  bne  $falseLabel")
+            }
+            "!=" -> {
+                // if X!=value
+                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+                cmpAwithByteValue(condition.right, false)
+                asmgen.out("  beq  $falseLabel")
+            }
+            in LogicalOperators -> {
+                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, condition.definingISub(), condition.position, register=RegisterOrPair.A)
+                if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
+                    asmgen.out("  beq  $falseLabel")
+                } else {
+                    errors.warn("SLOW FALLBACK FOR 'IFEXPR' CODEGEN - ask for support", condition.position)      //  should not occur ;-)
+                    assignConditionValueToRegisterAndTest(condition)
+                    asmgen.out("  beq  $falseLabel")
+                }
+            }
+            else -> {
+                // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
+                // TODO: special cases for <, <=, >, >= above.
+                assignConditionValueToRegisterAndTest(condition)
+                asmgen.out("  beq  $falseLabel")
+            }
+        }
+    }
+
+    private fun translateIfWordConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
+        val signed = condition.left.type in SignedDatatypes
+        val constValue = condition.right.asConstInteger()
+        if(constValue==0) {
+
+            // TODO reuse more code from regular if statements. Need a shared routine like isWordExprZero() ?
+            when(condition.operator) {
+                "==" -> {
+                    // if w==0
+                    asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.AY, signed)
+                    asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  bne  $falseLabel")
+                    return
+                }
+                "!=" -> {
+                    // if w!=0
+                    asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.AY, signed)
+                    asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  beq  $falseLabel")
+                    return
+                }
+            }
+        }
+
+        // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
+        assignConditionValueToRegisterAndTest(condition)
+        asmgen.out("  beq  $falseLabel")
+    }
+
+    private fun translateIfCompareWithZeroByteBranch(condition: PtBinaryExpression, signed: Boolean, falseLabel: String) {
+        // optimized code for byte comparisons with 0
+        assignConditionValueToRegisterAndTest(condition.left)
+        when (condition.operator) {
+            "==" -> asmgen.out("  bne  $falseLabel")
+            "!=" -> asmgen.out("  beq  $falseLabel")
+            ">" -> {
+                if(signed) asmgen.out("  bmi  $falseLabel |  beq  $falseLabel")
+                else asmgen.out("  beq  $falseLabel")
+            }
+            ">=" -> {
+                if(signed) asmgen.out("  bmi  $falseLabel")
+                else { /* always true for unsigned */ }
+            }
+            "<" -> {
+                if(signed) asmgen.out("  bpl  $falseLabel")
+                else asmgen.jmp(falseLabel)
+            }
+            "<=" -> {
+                if(signed) {
+                    // inverted '>'
+                    asmgen.out("""
+                        beq  +
+                        bpl  $falseLabel
++""")
+                } else asmgen.out("  bne  $falseLabel")
+            }
+            else -> throw AssemblyError("expected comparison operator")
         }
     }
 
@@ -1736,6 +1913,51 @@ _jump                       jmp  ($asmLabel)
                     translateJumpElseBodies("beq", "bne", jumpAfterIf, stmt.elseScope)
                 else
                     translateIfElseBodies("bne", stmt)
+            }
+            else -> throw AssemblyError("expected comparison operator")
+        }
+    }
+
+    private fun translateFloatConditionBranch(condition: PtBinaryExpression, elseLabel: String) {
+        val constValue = (condition.right as? PtNumber)?.number
+        if(constValue==0.0) {
+            if (condition.operator == "==") {
+                // if FL==0.0
+                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.FAC1, true)
+                asmgen.out("  jsr  floats.SIGN |  cmp  #0 |  bne  $elseLabel")
+                return
+            } else if(condition.operator=="!=") {
+                // if FL!=0.0
+                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.FAC1, true)
+                asmgen.out("  jsr  floats.SIGN |  cmp  #0 |  beq  $elseLabel")
+                return
+            }
+        }
+
+        when(condition.operator) {
+            "==" -> {
+                translateFloatsEqualsConditionIntoA(condition.left, condition.right)
+                asmgen.out("  beq  $elseLabel")
+            }
+            "!=" -> {
+                translateFloatsEqualsConditionIntoA(condition.left, condition.right)
+                asmgen.out("  bne  $elseLabel")
+            }
+            "<" -> {
+                translateFloatsLessConditionIntoA(condition.left, condition.right, false)
+                asmgen.out("  beq  $elseLabel")
+            }
+            "<=" -> {
+                translateFloatsLessConditionIntoA(condition.left, condition.right, true)
+                asmgen.out("  beq  $elseLabel")
+            }
+            ">" -> {
+                translateFloatsLessConditionIntoA(condition.left, condition.right, true)
+                asmgen.out("  bne  $elseLabel")
+            }
+            ">=" -> {
+                translateFloatsLessConditionIntoA(condition.left, condition.right, false)
+                asmgen.out("  bne  $elseLabel")
             }
             else -> throw AssemblyError("expected comparison operator")
         }
