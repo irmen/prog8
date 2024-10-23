@@ -101,6 +101,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val endLabel = codeGen.createLabelName()
 
         addToResult(result, condTr, condTr.resultReg, -1)
+        addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=condTr.resultReg, immediate = 0), null)
         addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = falseLabel), null)
 
         if (irDt != IRDataType.FLOAT) {
