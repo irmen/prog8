@@ -95,10 +95,18 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
             if (condition.right.asConstInteger() == 0) {
                 val and = condition.left as? PtBinaryExpression
                 if (and != null && and.operator == "&" && and.type == DataType.UBYTE) {
-                    val variable = and.left as? PtIdentifier
                     val bitmask = and.right.asConstInteger()
-                    if(variable!=null && variable.type in ByteDatatypes && (bitmask==128 || bitmask==64)) {
-                        return Triple(and, variable, bitmask)
+                    if(bitmask==128 || bitmask==64) {
+                        val variable = and.left as? PtIdentifier
+                        if (variable != null && variable.type in ByteDatatypes) {
+                            return Triple(and, variable, bitmask)
+                        }
+                        val typecast = and.left as? PtTypeCast
+                        if (typecast != null && typecast.type == DataType.UBYTE) {
+                            val castedVariable = typecast.value as? PtIdentifier
+                            if(castedVariable!=null && castedVariable.type in ByteDatatypes)
+                                return Triple(and, castedVariable, bitmask)
+                        }
                     }
                 }
             }
