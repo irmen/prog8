@@ -5,21 +5,19 @@
 
 main {
     sub start() {
-        byte @shared ww = -99
-        ww++
-
-        if ww&1 ==0
-            txt.print("x ")
-
-        if ww&64 ==0
-            txt.print("a ")
-
-        if ww&128!=0
-            txt.print("neg ")
-
-        txt.print_ub(if ww & 64==0  111 else 222)
+        word @shared ww = 11111
+        txt.print_ub(if ww==11111  111 else 222)
         txt.spc()
-        txt.print_ub(if ww & 128!=0  111 else 222)
-        txt.spc()
+        txt.print_ub(if ww!=11111  111 else 222)
+        txt.nl()
+
+        if ww==11111
+            txt.print("one\n")
+        else
+            txt.print("two\n")
+        if ww!=11111
+            txt.print("one\n")
+        else
+            txt.print("two\n")
     }
 }

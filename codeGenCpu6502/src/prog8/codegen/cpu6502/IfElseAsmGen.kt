@@ -417,6 +417,33 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
+        if(constValue!=0) {
+            // TODO reuse more code from regular if statements. Need a shared routine like isWordExprEqualNumber() ?
+            when(condition.operator) {
+                "==" -> {
+                    // if w==number
+                    asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.AY, signed)
+                    asmgen.out("""
+                        cmp  #<$constValue
+                        bne  $falseLabel
+                        cpy  #>$constValue
+                        bne  $falseLabel""")
+                    return
+                }
+                "!=" -> {
+                    // if w!=number
+                    asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.AY, signed)
+                    asmgen.out("""
+                        cmp  #<$constValue
+                        bne  +
+                        cpy  #>$constValue
+                        beq  $falseLabel
++""")
+                    return
+                }
+            }
+        }
+
         // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
         assignConditionValueToRegisterAndTest(condition)
         asmgen.out("  beq  $falseLabel")

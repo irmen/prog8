@@ -1,4 +1,5 @@
 ; Routines to load and save "BMX" files (commander X16 bitmap format) Version 1.
+; Bitmap data is loaded directly into VRAM without intermediary buffering.
 ; Only uncompressed images are supported for now.
 ; BMX Specification: https://cx16forum.com/forum/viewtopic.php?t=6945
 
