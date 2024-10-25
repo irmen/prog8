@@ -157,6 +157,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output(" @zp")
         if(decl.sharedWithAsm)
             output(" @shared")
+        when(decl.alignment) {
+            VarAlignment.NONE -> {}
+            VarAlignment.WORD -> output(" @alignword")
+            VarAlignment.PAGE -> output(" @alignpage")
+        }
         if(decl.names.size>1)
             output(decl.names.joinToString(prefix=" "))
         else

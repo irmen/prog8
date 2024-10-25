@@ -220,6 +220,7 @@ internal class StatementReorderer(
                                 null,
                                 it.sharedWithAsm,
                                 it.splitArray,
+                                it.alignment,
                                 it.position
                             )
                             IAstModification.ReplaceNode(it, newvar, subroutine)

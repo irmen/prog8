@@ -76,7 +76,7 @@ class VarConstantValueTypeAdjuster(
                     if (declValue != null) {
                         // variable is never written to, so it can be replaced with a constant, IF the value is a constant
                         errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
-                        val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, declValue, decl.sharedWithAsm, decl.splitArray, decl.position)
+                        val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, declValue, decl.sharedWithAsm, decl.splitArray, decl.alignment, decl.position)
                         decl.value = null
                         return listOf(
                             IAstModification.ReplaceNode(decl, const, parent)
@@ -96,7 +96,7 @@ class VarConstantValueTypeAdjuster(
                     }
                     // variable only has a single write and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
                     errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
-                    val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.position)
+                    val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.alignment, decl.position)
                     return listOf(
                         IAstModification.ReplaceNode(decl, const, parent),
                         IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
@@ -271,7 +271,6 @@ class VarConstantValueTypeAdjuster(
 // This is needed because further constant optimizations depend on those.
 internal class ConstantIdentifierReplacer(
     private val program: Program,
-    private val options: CompilationOptions,
     private val errors: IErrorReporter
 ) : AstWalker() {
 
@@ -399,7 +398,7 @@ internal class ConstantIdentifierReplacer(
             if(targetDatatype.isArray) {
                 val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, targetDatatype.getOr(DataType.UNDEFINED),
                     ZeropageWish.DONTCARE, null, "dummy", emptyList(),
-                    assignment.value, false, false, Position.DUMMY)
+                    assignment.value, false, false, VarAlignment.NONE, Position.DUMMY)
                 val replaceValue = createConstArrayInitializerValue(decl)
                 if(replaceValue!=null) {
                     return listOf(IAstModification.ReplaceNode(assignment.value, replaceValue, assignment))

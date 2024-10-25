@@ -63,6 +63,10 @@ SHARED : '@shared' ;
 
 SPLIT: '@split' ;
 
+ALIGNWORD: '@alignword' ;
+
+ALIGNPAGE: '@alignpage' ;
+
 ARRAYSIG : '[' [ \t]* ']' ;
 
 NOT_IN: 'not' [ \t]+ 'in' [ \t] ;
@@ -143,7 +147,7 @@ directivearg : stringliteral | identifier | integerliteral ;
 
 vardecl: datatype (arrayindex | ARRAYSIG)? decloptions identifier (',' identifier)* ;
 
-decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | SPLIT)* ;
+decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | SPLIT | ALIGNWORD | ALIGNPAGE)* ;
 
 varinitializer : vardecl '=' expression ;
 

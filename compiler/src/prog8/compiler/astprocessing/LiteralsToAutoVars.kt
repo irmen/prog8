@@ -6,6 +6,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.VarAlignment
 import prog8.ast.statements.VarDecl
 import prog8.ast.statements.WhenChoice
 import prog8.ast.walk.AstWalker
@@ -94,6 +95,11 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
             // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
             if(decl.datatype !in NumericDatatypesWithBoolean)
                 errors.err("can only multi declare numeric and boolean variables", decl.position)
+            if(decl.alignment != VarAlignment.NONE) {
+                errors.err("only single variable declarations can have alignment", decl.position)
+                return noModifications
+            }
+
             if(errors.noErrors()) {
                 // desugar into individual vardecl per name.
                 return decl.desugarMultiDecl().map {

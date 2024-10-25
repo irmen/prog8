@@ -126,13 +126,18 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             }
             is PtVariable -> {
                 val split = if(node.type in SplitWordArrayTypes) "@split" else ""
+                val align = when(node.align) {
+                    PtVariable.Alignment.NONE -> ""
+                    PtVariable.Alignment.WORD -> "@alignword"
+                    PtVariable.Alignment.PAGE -> "@alignpage"
+                }
                 val str = if(node.arraySize!=null) {
                     val eltType = ArrayToElementTypes.getValue(node.type)
-                    "${eltType.name.lowercase()}[${node.arraySize}] $split ${node.name}"
+                    "${eltType.name.lowercase()}[${node.arraySize}] $split $align ${node.name}"
                 }
                 else if(node.type in ArrayDatatypes) {
                     val eltType = ArrayToElementTypes.getValue(node.type)
-                    "${eltType.name.lowercase()}[] $split ${node.name}"
+                    "${eltType.name.lowercase()}[] $split $align ${node.name}"
                 }
                 else
                     "${node.type.name.lowercase()} ${node.name}"

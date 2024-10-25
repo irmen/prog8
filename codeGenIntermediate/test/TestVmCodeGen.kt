@@ -44,10 +44,42 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        sub.add(PtVariable("pi", DataType.UBYTE, ZeropageWish.DONTCARE, PtNumber(DataType.UBYTE, 0.0, Position.DUMMY), null, Position.DUMMY))
-        sub.add(PtVariable("particleX", DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, 3u, Position.DUMMY))
-        sub.add(PtVariable("particleDX", DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, 3u, Position.DUMMY))
-        sub.add(PtVariable("xx", DataType.WORD, ZeropageWish.DONTCARE, PtNumber(DataType.WORD, 1.0, Position.DUMMY), null, Position.DUMMY))
+        sub.add(PtVariable(
+            "pi",
+            DataType.UBYTE,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            PtNumber(DataType.UBYTE, 0.0, Position.DUMMY),
+            null,
+            Position.DUMMY
+        ))
+        sub.add(PtVariable(
+            "particleX",
+            DataType.ARRAY_UB,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            null,
+            3u,
+            Position.DUMMY
+        ))
+        sub.add(PtVariable(
+            "particleDX",
+            DataType.ARRAY_UB,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            null,
+            3u,
+            Position.DUMMY
+        ))
+        sub.add(PtVariable(
+            "xx",
+            DataType.WORD,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            PtNumber(DataType.WORD, 1.0, Position.DUMMY),
+            null,
+            Position.DUMMY
+        ))
 
         val assign = PtAugmentedAssign("+=", Position.DUMMY)
         val target = PtAssignTarget(false, Position.DUMMY).also {
@@ -123,7 +155,15 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        sub.add(PtVariable("f1", DataType.FLOAT, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        sub.add(PtVariable(
+            "f1",
+            DataType.FLOAT,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            null,
+            null,
+            Position.DUMMY
+        ))
         val if1 = PtIfElse(Position.DUMMY)
         val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
         cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
@@ -186,7 +226,15 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        sub.add(PtVariable("f1", DataType.FLOAT, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        sub.add(PtVariable(
+            "f1",
+            DataType.FLOAT,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            null,
+            null,
+            Position.DUMMY
+        ))
         val if1 = PtIfElse(Position.DUMMY)
         val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
         cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
@@ -245,7 +293,15 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        sub.add(PtVariable("f1", DataType.FLOAT, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        sub.add(PtVariable(
+            "f1",
+            DataType.FLOAT,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            null,
+            null,
+            Position.DUMMY
+        ))
         val if1 = PtIfElse(Position.DUMMY)
         val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
         cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
@@ -292,7 +348,15 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        sub.add(PtVariable("sb1", DataType.BYTE, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        sub.add(PtVariable(
+            "sb1",
+            DataType.BYTE,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            null,
+            null,
+            Position.DUMMY
+        ))
         val if1 = PtIfElse(Position.DUMMY)
         val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
         cmp1.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
@@ -355,7 +419,15 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        sub.add(PtVariable("sb1", DataType.BYTE, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        sub.add(PtVariable(
+            "sb1",
+            DataType.BYTE,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            null,
+            null,
+            Position.DUMMY
+        ))
         val if1 = PtIfElse(Position.DUMMY)
         val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
         cmp1.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
@@ -414,7 +486,15 @@ class TestVmCodeGen: FunSpec({
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        sub.add(PtVariable("ub1", DataType.UBYTE, ZeropageWish.DONTCARE, null, null, Position.DUMMY))
+        sub.add(PtVariable(
+            "ub1",
+            DataType.UBYTE,
+            ZeropageWish.DONTCARE,
+            PtVariable.Alignment.NONE,
+            null,
+            null,
+            Position.DUMMY
+        ))
         val if1 = PtIfElse(Position.DUMMY)
         val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
         cmp1.add(PtIdentifier("main.start.ub1", DataType.UBYTE, Position.DUMMY))

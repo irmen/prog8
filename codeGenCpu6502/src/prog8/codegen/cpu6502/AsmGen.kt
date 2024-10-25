@@ -9,7 +9,6 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.target.Cx16Target
 import prog8.codegen.cpu6502.assignment.*
-import kotlin.collections.ArrayDeque
 import kotlin.io.path.Path
 import kotlin.io.path.writeLines
 
@@ -162,7 +161,7 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
                 else -> throw AssemblyError("weird array value element $elt")
             }
         }
-        val result = PtVariable(name, type, zeropage, newValue, arraySize, position)
+        val result = PtVariable(name, type, zeropage, align, newValue, arraySize, position)
         result.parent = parent
         result
     }

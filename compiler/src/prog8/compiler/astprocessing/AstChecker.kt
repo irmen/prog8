@@ -890,6 +890,19 @@ internal class AstChecker(private val program: Program,
                 errors.err("split can only be used on word arrays", decl.position)
             }
         }
+
+        if(decl.alignment!=VarAlignment.NONE) {
+            if(!decl.isArray && decl.datatype!=DataType.STR)
+                err("only string and array variables can have an alignment option")
+            else if(decl.type==VarDeclType.MEMORY)
+                err("only normal variables can have an alignment option")
+            else if (decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE || decl.zeropage == ZeropageWish.PREFER_ZEROPAGE) {
+                err("zeropage variables can't have alignment")
+            } else if(decl.alignment==VarAlignment.PAGE) {
+                errors.info("page-aligned variables might waste a lot of memory (check Gaps in assembler output)", decl.position)
+            }
+        }
+
         super.visit(decl)
     }
 

@@ -1,6 +1,13 @@
 TODO
 ====
 
+- are uninitialized (bss) variables correctly @aligned now?  (%option align docs say they're not, but maybe the new @align tag fixes this too)
+- aligned vars codegen: sort to do all word alignments first then the page alignments
+- what to use to align a label ? (%align $100 ?)  to support aligned asmincludes for example.
+
+- remove %option align_xxx  ?  (block level alignment, as we now have individual variable alignments)
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
@@ -29,8 +36,6 @@ Future Things and Ideas
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
 
-- do we need (array)variable alignment tag instead of block alignment tag? You want to align the data, not the code in the block?
-- ir: related to the one above: block alignment doesn't translate well to variables in the block (the actual stuff that needs to be aligned in memory)  but: need variable alignment tag instead of block alignment tag, really
 - ir: fix call() return value handling
 - ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)

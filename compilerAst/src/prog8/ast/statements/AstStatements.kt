@@ -216,6 +216,11 @@ enum class VarDeclType {
     MEMORY
 }
 
+enum class VarAlignment {
+    NONE,
+    WORD,
+    PAGE
+}
 
 class VarDecl(val type: VarDeclType,
               val origin: VarDeclOrigin,
@@ -227,6 +232,7 @@ class VarDecl(val type: VarDeclType,
               var value: Expression?,
               val sharedWithAsm: Boolean,
               val splitArray: Boolean,
+              val alignment: VarAlignment,
               override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
@@ -239,6 +245,7 @@ class VarDecl(val type: VarDeclType,
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, null, param.name, emptyList(), null,
                 sharedWithAsm = false,
                 splitArray = false,
+                alignment = VarAlignment.NONE,
                 position = param.position
             )
         }
@@ -248,7 +255,7 @@ class VarDecl(val type: VarDeclType,
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, emptyList(), array,
-                    sharedWithAsm = false, splitArray = splitArray, position = array.position)
+                    sharedWithAsm = false, splitArray = splitArray, alignment = VarAlignment.NONE, position = array.position)
         }
     }
 
@@ -285,7 +292,7 @@ class VarDecl(val type: VarDeclType,
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
         val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), name, names, value?.copy(),
-            sharedWithAsm, splitArray, position)
+            sharedWithAsm, splitArray, alignment, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
@@ -295,23 +302,24 @@ class VarDecl(val type: VarDeclType,
                 this.arraysize?.referencesIdentifier(nameInSource)==true
 
     fun desugarMultiDecl(): List<VarDecl> {
+        require(alignment==VarAlignment.NONE)
         if(value==null || value?.isSimple==true) {
-            // just copy the initialization value to a separata vardecl for each component
+            // just copy the initialization value to a separate vardecl for each component
             return names.map {
                 val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),
-                    sharedWithAsm, splitArray, position)
+                    sharedWithAsm, splitArray, alignment, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
         } else {
             // evaluate the value once in the vardecl for the first component, and set the other components to the first
             val first = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), names[0], emptyList(), value?.copy(),
-                sharedWithAsm, splitArray, position)
+                sharedWithAsm, splitArray, alignment, position)
             first.allowInitializeWithZero = this.allowInitializeWithZero
             val firstVar = firstVarAsValue(first)
             return listOf(first) + names.drop(1 ).map {
                 val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), firstVar.copy(),
-                    sharedWithAsm, splitArray, position)
+                    sharedWithAsm, splitArray, alignment, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }

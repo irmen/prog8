@@ -41,7 +41,15 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
         }
 
         // define the bitmask variable and set it to zero
-        val deferVariable = PtVariable(maskVarName, DataType.UBYTE, ZeropageWish.NOT_IN_ZEROPAGE, null, null, sub.position)
+        val deferVariable = PtVariable(
+            maskVarName,
+            DataType.UBYTE,
+            ZeropageWish.NOT_IN_ZEROPAGE,
+            PtVariable.Alignment.NONE,
+            null,
+            null,
+            sub.position
+        )
         val assignZero = PtAssignment(sub.position)
         assignZero.add(PtAssignTarget(false, sub.position).also {
             it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, sub.position))

@@ -11,9 +11,9 @@ import prog8.ast.statements.*
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.compiler.builtinFunctionReturnType
+import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
-import java.io.File
 
 
 /**
@@ -520,6 +520,11 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         when(srcVar.type) {
             VarDeclType.VAR -> {
                 val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
+                val align = when(srcVar.alignment) {
+                    VarAlignment.NONE -> PtVariable.Alignment.NONE
+                    VarAlignment.WORD -> PtVariable.Alignment.WORD
+                    VarAlignment.PAGE -> PtVariable.Alignment.PAGE
+                }
                 if(srcVar.isArray) {
                     if(value==null) {
                         val blockOptions = srcVar.definingBlock.options()
@@ -529,11 +534,27 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                             repeat(srcVar.arraysize!!.constIndex()!!) {
                                 zeros.children.add(PtNumber(ArrayToElementTypes.getValue(srcVar.datatype), 0.0, srcVar.position))
                             }
-                            return PtVariable(srcVar.name, srcVar.datatype, srcVar.zeropage, zeros, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
+                            return PtVariable(
+                                srcVar.name,
+                                srcVar.datatype,
+                                srcVar.zeropage,
+                                align,
+                                zeros,
+                                srcVar.arraysize?.constIndex()?.toUInt(),
+                                srcVar.position
+                            )
                         }
                     }
                 }
-                return PtVariable(srcVar.name, srcVar.datatype, srcVar.zeropage, value, srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
+                return PtVariable(
+                    srcVar.name,
+                    srcVar.datatype,
+                    srcVar.zeropage,
+                    align,
+                    value,
+                    srcVar.arraysize?.constIndex()?.toUInt(),
+                    srcVar.position
+                )
             }
             VarDeclType.CONST -> return PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, srcVar.position)
             VarDeclType.MEMORY -> return PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)

@@ -517,12 +517,12 @@ internal class ProgramAndVarsGen(
 
         stringVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.name)+"_init_value"
-            outputStringvar(varname, it.value.second, it.value.first)
+            outputStringvar(varname, PtVariable.Alignment.NONE, it.value.second, it.value.first)
         }
 
         arrayVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.name)+"_init_value"
-            arrayVariable2asm(varname, it.alloc.dt, it.value, null)
+            arrayVariable2asm(varname, it.alloc.dt, PtVariable.Alignment.NONE, it.value, null)
         }
 
         asmgen.out("+")
@@ -599,6 +599,7 @@ internal class ProgramAndVarsGen(
             stringvars.forEach {
                 outputStringvar(
                     it.name,
+                    it.align,
                     it.initializationStringValue!!.second,
                     it.initializationStringValue!!.first
                 )
@@ -617,17 +618,27 @@ internal class ProgramAndVarsGen(
             DataType.WORD -> asmgen.out("${variable.name}\t.sint  ?")
             DataType.FLOAT -> asmgen.out("${variable.name}\t.fill  ${compTarget.machine.FLOAT_MEM_SIZE}")
             in SplitWordArrayTypes -> {
+                alignVar(variable.align)
                 val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!) / 2
                 asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf")
                 asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf")
             }
             in ArrayDatatypes -> {
+                alignVar(variable.align)
                 val numbytes = compTarget.memorySize(variable.dt, variable.length!!)
                 asmgen.out("${variable.name}\t.fill  $numbytes")
             }
             else -> {
                 throw AssemblyError("weird dt")
             }
+        }
+    }
+
+    private fun alignVar(align: PtVariable.Alignment) {
+        when(align) {
+            PtVariable.Alignment.NONE -> {}
+            PtVariable.Alignment.WORD -> asmgen.out("\t.align 2")
+            PtVariable.Alignment.PAGE -> asmgen.out("\t.align $100")
         }
     }
 
@@ -656,14 +667,15 @@ internal class ProgramAndVarsGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(variable.name, variable.dt, variable.initializationArrayValue, variable.length)
+            in ArrayDatatypes -> arrayVariable2asm(variable.name, variable.dt, variable.align, variable.initializationArrayValue, variable.length)
             else -> {
                 throw AssemblyError("weird dt")
             }
         }
     }
 
-    private fun arrayVariable2asm(varname: String, dt: DataType, value: StArray?, orNumberOfZeros: Int?) {
+    private fun arrayVariable2asm(varname: String, dt: DataType, align: PtVariable.Alignment, value: StArray?, orNumberOfZeros: Int?) {
+        alignVar(align)
         when(dt) {
             DataType.ARRAY_UB, DataType.ARRAY_BOOL -> {
                 val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
@@ -759,7 +771,8 @@ internal class ProgramAndVarsGen(
             }
     }
 
-    private fun outputStringvar(varname: String, encoding: Encoding, value: String) {
+    private fun outputStringvar(varname: String, align: PtVariable.Alignment, encoding: Encoding, value: String) {
+        alignVar(align)
         asmgen.out("$varname\t; $encoding:\"${value.escape().replace("\u0000", "<NULL>")}\"", false)
         val bytes = compTarget.encodeString(value, encoding).plus(0.toUByte())
         val outputBytes = bytes.map { "$" + it.toString(16).padStart(2, '0') }

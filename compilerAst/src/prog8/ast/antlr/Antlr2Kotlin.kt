@@ -314,6 +314,8 @@ private fun SubroutineContext.toAst() : Subroutine {
 private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
         vardecl().map {
             val options = it.decloptions()
+            if(options.ALIGNPAGE().isNotEmpty() || options.ALIGNWORD().isNotEmpty())
+                throw SyntaxError("cannot use alignments on parameters", it.toPosition())
             val zp = getZpOption(options)
             var datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
             if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
@@ -718,6 +720,10 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val name = if(identifiers.size==1) identifiername.text else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val split = options.SPLIT().isNotEmpty()
+    val alignword = options.ALIGNWORD().isNotEmpty()
+    val alignpage = options.ALIGNPAGE().isNotEmpty()
+    if(alignpage && alignword)
+        throw SyntaxError("choose a single alignment option", toPosition())
     val origDt = datatype()?.toAst() ?: DataType.UNDEFINED
     val dt = if(isArray) {
         val arrayDt = ElementToArrayTypes.getValue(origDt)
@@ -743,6 +749,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             value,
             options.SHARED().isNotEmpty(),
             split,
+            if(alignword) VarAlignment.WORD else if(alignpage) VarAlignment.PAGE else VarAlignment.NONE,
             toPosition()
     )
 }

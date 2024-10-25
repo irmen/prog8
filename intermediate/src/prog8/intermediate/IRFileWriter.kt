@@ -210,10 +210,10 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         for (variable in variablesNoInit) {
             if(variable.dt in SplitWordArrayTypes) {
                 // split into 2 ubyte arrays lsb+msb
-                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish}\n")
-                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb zp=${variable.zpwish}\n")
+                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish} align=${variable.align}\n")
+                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb zp=${variable.zpwish} align=${variable.align}\n")
             } else {
-                xml.writeCharacters("${variable.typeString} ${variable.name} zp=${variable.zpwish}\n")
+                xml.writeCharacters("${variable.typeString} ${variable.name} zp=${variable.zpwish} align=${variable.align}\n")
             }
         }
 
@@ -243,8 +243,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             "@>${it.addressOfSymbol}"
                     }
                 }
-                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish}\n")
-                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish}\n")
+                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish} align=${variable.align}\n")
+                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish} align=${variable.align}\n")
             } else {
                 val value: String = when(variable.dt) {
                     DataType.BOOL -> variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: ""
@@ -279,7 +279,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     }
                     else -> throw InternalCompilerException("weird dt")
                 }
-                xml.writeCharacters("${variable.typeString} ${variable.name}=$value zp=${variable.zpwish}\n")
+                xml.writeCharacters("${variable.typeString} ${variable.name}=$value zp=${variable.zpwish} align=${variable.align}\n")
             }
         }
         xml.writeEndElement()

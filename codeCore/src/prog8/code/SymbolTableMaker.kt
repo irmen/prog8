@@ -3,7 +3,6 @@ package prog8.code
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.target.VMTarget
-import kotlin.collections.ArrayDeque
 
 
 class SymbolTableMaker(private val program: PtProgram, private val options: CompilationOptions) {
@@ -98,7 +97,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
 //                if(node.type in SplitWordArrayTypes) {
 //                    ... split array also add _lsb and _msb to symboltable?
 //                }
-                val stVar = StStaticVariable(node.name, node.type, initialString, initialArray, numElements, node.zeropage, node)
+                val stVar = StStaticVariable(node.name, node.type, initialString, initialArray, numElements, node.zeropage, node.align, node)
                 if(initialNumeric!=null)
                     stVar.setOnetimeInitNumeric(initialNumeric)
                 stVar

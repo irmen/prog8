@@ -157,19 +157,20 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val varPattern = Regex("(.+?)(\\[.+?\\])? (.+) (zp=(.+))?")
+            val varPattern = Regex("(.+?)(\\[.+?\\])? (.+) zp=(.+) align=(.+)")
             val variables = mutableListOf<StStaticVariable>()
             text.lineSequence().forEach { line ->
                 // example:  uword main.start.qq2 zp=DONTCARE
                 val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLESNOINIT $line")
-                val (type, arrayspec, name, _, zpwish) = match.destructured
+                val (type, arrayspec, name, zpwish, alignment) = match.destructured
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
-                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, dummyNode)
+                val align = if(alignment.isBlank()) PtVariable.Alignment.NONE else PtVariable.Alignment.valueOf(alignment)
+                val dummyNode = PtVariable(name, dt, zp, align, null, null, Position.DUMMY)
+                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, align, dummyNode)
                 variables.add(newVar)
             }
             return variables
@@ -186,19 +187,20 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val varPattern = Regex("(.+?)(\\[.+?\\])? (.+)=(.*?) (zp=(.+))?")
+            val varPattern = Regex("(.+?)(\\[.+?\\])? (.+)=(.*?) zp=(.+) align=(.+)")
             val variables = mutableListOf<StStaticVariable>()
             text.lineSequence().forEach { line ->
                 // examples:
                 // uword main.start.qq2=0 zp=REQUIRE_ZP
                 // ubyte[6] main.start.namestring=105,114,109,101,110,0
                 val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
-                val (type, arrayspec, name, value, _, zpwish) = match.destructured
+                val (type, arrayspec, name, value, zpwish, alignment) = match.destructured
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
+                val align = if(alignment.isBlank()) PtVariable.Alignment.NONE else PtVariable.Alignment.valueOf(alignment)
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
                 when(dt) {
@@ -220,11 +222,11 @@ class IRFileReader {
                     DataType.STR -> throw IRParseException("STR should have been converted to byte array")
                     else -> throw IRParseException("weird dt")
                 }
-                val dummyNode = PtVariable(name, dt, zp, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(name, dt, zp, align, null, null, Position.DUMMY)
                 if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
-                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, dummyNode)
+                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, align, dummyNode)
                 if(initNumeric!=null)
                     stVar.setOnetimeInitNumeric(initNumeric)
                 variables.add(stVar)
@@ -253,7 +255,15 @@ class IRFileReader {
                 val (type, arrayspec, name, address) = match.destructured
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
-                val dummyNode = PtVariable(name, dt, ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(
+                    name,
+                    dt,
+                    ZeropageWish.NOT_IN_ZEROPAGE,
+                    PtVariable.Alignment.NONE,
+                    null,
+                    null,
+                    Position.DUMMY
+                )
                 memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, dummyNode))
             }
             memvars
@@ -276,7 +286,15 @@ class IRFileReader {
                 // example: "slabname 4096 0"
                 val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid slab $line")
                 val (name, size, align) = match.destructured
-                val dummyNode = PtVariable(name, DataType.ARRAY_UB, ZeropageWish.NOT_IN_ZEROPAGE, null, null, Position.DUMMY)
+                val dummyNode = PtVariable(
+                    name,
+                    DataType.ARRAY_UB,
+                    ZeropageWish.NOT_IN_ZEROPAGE,
+                    PtVariable.Alignment.NONE,
+                    null,
+                    null,
+                    Position.DUMMY
+                )
                 slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), dummyNode))
             }
             slabs

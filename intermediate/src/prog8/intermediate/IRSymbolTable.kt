@@ -1,10 +1,8 @@
 package prog8.intermediate
 
 import prog8.code.*
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.ZeropageWish
-import prog8.code.core.internedStringsModuleName
+import prog8.code.ast.PtVariable
+import prog8.code.core.*
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -86,7 +84,8 @@ class IRSymbolTable {
                 variable.initializationStringValue,
                 fixupAddressOfInArray(variable.initializationArrayValue),
                 variable.length,
-                variable.zpwish
+                variable.zpwish,
+                IRStStaticVariable.mapAlign(variable.align)
             )
         }
         table[scopedName] = varToadd
@@ -196,7 +195,8 @@ class IRStStaticVariable(name: String,
                        val onetimeInitializationStringValue: IRStString?,
                        val onetimeInitializationArrayValue: IRStArray?,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
-                       val zpwish: ZeropageWish     // used in the variable allocator
+                       val zpwish: ZeropageWish,    // used in the variable allocator
+                       val align: Alignment,
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
     companion object {
         fun from(variable: StStaticVariable): IRStStaticVariable {
@@ -206,7 +206,29 @@ class IRStStaticVariable(name: String,
                 variable.initializationStringValue,
                 variable.initializationArrayValue?.map { IRStArrayElement.from(it) },
                 variable.length,
-                variable.zpwish)
+                variable.zpwish,
+                mapAlign(variable.align))
+        }
+
+        fun mapAlign(ptAlign: PtVariable.Alignment): Alignment {
+            return when(ptAlign) {
+                PtVariable.Alignment.NONE -> Alignment.NONE
+                PtVariable.Alignment.WORD -> Alignment.WORD
+                PtVariable.Alignment.PAGE -> Alignment.PAGE
+            }
+        }
+    }
+
+    enum class Alignment {
+        NONE,
+        WORD,
+        PAGE
+    }
+
+    init {
+        if(align!=Alignment.NONE) {
+            require(dt == DataType.STR || dt in ArrayDatatypes)
+            require(zpwish != ZeropageWish.REQUIRE_ZEROPAGE && zpwish != ZeropageWish.PREFER_ZEROPAGE)
         }
     }
 
