@@ -587,7 +587,16 @@ internal class ProgramAndVarsGen(
         if(varsNoInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables")
             asmgen.out("  .section BSS")
-            varsNoInit.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
+            val wordAligned = varsNoInit.filter { it.align==PtVariable.Alignment.WORD }
+            val pageAligned = varsNoInit.filter { it.align==PtVariable.Alignment.PAGE }
+            val notAligned = varsNoInit.filter { it.align==PtVariable.Alignment.NONE }
+            notAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
+                uninitializedVariable2asm(it)
+            }
+            wordAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
+                uninitializedVariable2asm(it)
+            }
+            pageAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
                 uninitializedVariable2asm(it)
             }
             asmgen.out("  .send BSS")
@@ -596,7 +605,11 @@ internal class ProgramAndVarsGen(
         if(varsWithInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables with init value")
             val (stringvars, othervars) = varsWithInit.sortedBy { it.name }.partition { it.dt == DataType.STR }
-            stringvars.forEach {
+
+            val stringsWordAligned = stringvars.filter { it.align==PtVariable.Alignment.WORD }
+            val stringsPageAligned = stringvars.filter { it.align==PtVariable.Alignment.PAGE }
+            val stringsNotAligned = stringvars.filter { it.align==PtVariable.Alignment.NONE }
+            stringsNotAligned.forEach {
                 outputStringvar(
                     it.name,
                     it.align,
@@ -604,7 +617,33 @@ internal class ProgramAndVarsGen(
                     it.initializationStringValue!!.first
                 )
             }
-            othervars.sortedBy { it.type }.forEach {
+            stringsWordAligned.forEach {
+                outputStringvar(
+                    it.name,
+                    it.align,
+                    it.initializationStringValue!!.second,
+                    it.initializationStringValue!!.first
+                )
+            }
+            stringsPageAligned.forEach {
+                outputStringvar(
+                    it.name,
+                    it.align,
+                    it.initializationStringValue!!.second,
+                    it.initializationStringValue!!.first
+                )
+            }
+
+            val wordAligned = othervars.filter { it.align==PtVariable.Alignment.WORD }
+            val pageAligned = othervars.filter { it.align==PtVariable.Alignment.PAGE }
+            val notAligned = othervars.filter { it.align==PtVariable.Alignment.NONE }
+            notAligned.sortedBy { it.type }.forEach {
+                staticVariable2asm(it)
+            }
+            wordAligned.sortedBy { it.type }.forEach {
+                staticVariable2asm(it)
+            }
+            pageAligned.sortedBy { it.type }.forEach {
                 staticVariable2asm(it)
             }
         }
@@ -667,7 +706,9 @@ internal class ProgramAndVarsGen(
             DataType.STR -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
-            in ArrayDatatypes -> arrayVariable2asm(variable.name, variable.dt, variable.align, variable.initializationArrayValue, variable.length)
+            in ArrayDatatypes -> {
+                arrayVariable2asm(variable.name, variable.dt, variable.align, variable.initializationArrayValue, variable.length)
+            }
             else -> {
                 throw AssemblyError("weird dt")
             }

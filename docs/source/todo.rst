@@ -1,8 +1,7 @@
 TODO
 ====
 
-- are uninitialized (bss) variables correctly @aligned now?  (%option align docs say they're not, but maybe the new @align tag fixes this too)
-- aligned vars codegen: sort to do all word alignments first then the page alignments
+- add docs for @align. Note: uninitialized (bss) variables are also correctly aligned (%option align docs say they're not, but that is fixed)
 - what to use to align a label ? (%align $100 ?)  to support aligned asmincludes for example.
 
 - remove %option align_xxx  ?  (block level alignment, as we now have individual variable alignments)
@@ -44,6 +43,7 @@ Future Things and Ideas
 - ir: add more optimizations in IRPeepholeOptimizer
 - ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
+- ir: split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
 - ir: getting it in shape for code generation...
 - ir: make optimizeBitTest work for IR too to use the BIT instruction?
 - ir: make sure that a 6502 codegen based off the IR, still generates BIT instructions when testing bit 7 or 6 of a byte var.

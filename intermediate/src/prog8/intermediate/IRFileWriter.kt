@@ -202,12 +202,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeVariables() {
-
-        val (variablesNoInit, variablesWithInit) = irProgram.st.allVariables().partition { it.uninitialized }
-
-        xml.writeStartElement("VARIABLESNOINIT")
-        xml.writeCharacters("\n")
-        for (variable in variablesNoInit) {
+        fun writeNoInitVar(variable: IRStStaticVariable) {
             if(variable.dt in SplitWordArrayTypes) {
                 // split into 2 ubyte arrays lsb+msb
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish} align=${variable.align}\n")
@@ -217,12 +212,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             }
         }
 
-        xml.writeEndElement()
-        xml.writeCharacters("\n")
-        xml.writeStartElement("VARIABLESWITHINIT")
-        xml.writeCharacters("\n")
-
-        for (variable in variablesWithInit) {
+        fun writeVarWithInit(variable: IRStStaticVariable) {
             if(variable.dt in SplitWordArrayTypes) {
                 val lsbValue: String
                 val msbValue: String
@@ -281,6 +271,41 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 }
                 xml.writeCharacters("${variable.typeString} ${variable.name}=$value zp=${variable.zpwish} align=${variable.align}\n")
             }
+        }
+
+        val (variablesNoInit, variablesWithInit) = irProgram.st.allVariables().partition { it.uninitialized }
+
+        xml.writeStartElement("VARIABLESNOINIT")
+        xml.writeCharacters("\n")
+        val noinitNotAligned = variablesNoInit.filter { it.align==IRStStaticVariable.Alignment.NONE }
+        val noinitWordAligned = variablesNoInit.filter { it.align==IRStStaticVariable.Alignment.WORD }
+        val noinitPageAligned = variablesNoInit.filter { it.align==IRStStaticVariable.Alignment.PAGE }
+        for (variable in noinitNotAligned) {
+            writeNoInitVar(variable)
+        }
+        for (variable in noinitWordAligned) {
+            writeNoInitVar(variable)
+        }
+        for (variable in noinitPageAligned) {
+            writeNoInitVar(variable)
+        }
+
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+        xml.writeStartElement("VARIABLESWITHINIT")
+        xml.writeCharacters("\n")
+
+        val initNotAligned = variablesWithInit.filter { it.align==IRStStaticVariable.Alignment.NONE }
+        val initWordAligned = variablesWithInit.filter { it.align==IRStStaticVariable.Alignment.WORD }
+        val initPageAligned = variablesWithInit.filter { it.align==IRStStaticVariable.Alignment.PAGE }
+        for (variable in initNotAligned) {
+            writeVarWithInit(variable)
+        }
+        for (variable in initWordAligned) {
+            writeVarWithInit(variable)
+        }
+        for (variable in initPageAligned) {
+            writeVarWithInit(variable)
         }
         xml.writeEndElement()
         xml.writeCharacters("\n")
