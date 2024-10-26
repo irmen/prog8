@@ -2,7 +2,6 @@ package prog8.code
 
 import prog8.code.ast.PtNode
 import prog8.code.ast.PtProgram
-import prog8.code.ast.PtVariable
 import prog8.code.core.*
 
 
@@ -183,7 +182,7 @@ class StStaticVariable(name: String,
                        val initializationArrayValue: StArray?,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
-                       val align: PtVariable.Alignment,
+                       val align: Int,
                        astNode: PtNode) : StNode(name, StNodeType.STATICVAR, astNode) {
 
     var initializationNumericValue: Double? = null
@@ -218,7 +217,7 @@ class StStaticVariable(name: String,
             require(dt == DataType.STR)
             require(length == initializationStringValue.first.length+1)
         }
-        if(align!=PtVariable.Alignment.NONE) {
+        if(align > 0) {
             require(dt == DataType.STR || dt in ArrayDatatypes)
             require(zpwish != ZeropageWish.REQUIRE_ZEROPAGE && zpwish != ZeropageWish.PREFER_ZEROPAGE)
         }

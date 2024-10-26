@@ -216,12 +216,6 @@ enum class VarDeclType {
     MEMORY
 }
 
-enum class VarAlignment {
-    NONE,
-    WORD,
-    PAGE
-}
-
 class VarDecl(val type: VarDeclType,
               val origin: VarDeclOrigin,
               val datatype: DataType,
@@ -232,7 +226,7 @@ class VarDecl(val type: VarDeclType,
               var value: Expression?,
               val sharedWithAsm: Boolean,
               val splitArray: Boolean,
-              val alignment: VarAlignment,
+              val alignment: UInt,
               override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
@@ -245,7 +239,7 @@ class VarDecl(val type: VarDeclType,
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, null, param.name, emptyList(), null,
                 sharedWithAsm = false,
                 splitArray = false,
-                alignment = VarAlignment.NONE,
+                alignment = 0u,
                 position = param.position
             )
         }
@@ -255,7 +249,7 @@ class VarDecl(val type: VarDeclType,
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, emptyList(), array,
-                    sharedWithAsm = false, splitArray = splitArray, alignment = VarAlignment.NONE, position = array.position)
+                    sharedWithAsm = false, splitArray = splitArray, alignment = 0u, position = array.position)
         }
     }
 
@@ -302,7 +296,7 @@ class VarDecl(val type: VarDeclType,
                 this.arraysize?.referencesIdentifier(nameInSource)==true
 
     fun desugarMultiDecl(): List<VarDecl> {
-        require(alignment==VarAlignment.NONE)
+        require(alignment==0u)
         if(value==null || value?.isSimple==true) {
             // just copy the initialization value to a separate vardecl for each component
             return names.map {

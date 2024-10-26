@@ -721,6 +721,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val split = options.SPLIT().isNotEmpty()
     val alignword = options.ALIGNWORD().isNotEmpty()
+    val align64 = options.ALIGN64().isNotEmpty()
     val alignpage = options.ALIGNPAGE().isNotEmpty()
     if(alignpage && alignword)
         throw SyntaxError("choose a single alignment option", toPosition())
@@ -749,7 +750,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             value,
             options.SHARED().isNotEmpty(),
             split,
-            if(alignword) VarAlignment.WORD else if(alignpage) VarAlignment.PAGE else VarAlignment.NONE,
+            if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,
             toPosition()
     )
 }

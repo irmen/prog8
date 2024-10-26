@@ -234,6 +234,7 @@ class IRCodeGen(
                 chunk += IRInstruction(Opcode.BREAKPOINT)
                 listOf(chunk)
             }
+            is PtAlign -> TODO("ir support for inline %align")
             is PtConditionalBranch -> translate(node)
             is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, null))
             is PtIncludeBinary -> listOf(IRInlineBinaryChunk(null, readBinaryData(node), null))
@@ -254,7 +255,7 @@ class IRCodeGen(
             is PtBool,
             is PtArray,
             is PtBlock,
-            is PtDefer -> throw AssemblyError("defer should have been transformed")
+            is PtDefer -> throw AssemblyError("should have been transformed")
             is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
             is PtSub -> throw AssemblyError("nested subroutines should have been flattened ${node.position}")
             else -> TODO("missing codegen for $node")
@@ -1675,6 +1676,7 @@ class IRCodeGen(
                 is PtNop -> { /* nothing */ }
                 is PtAssignment, is PtAugmentedAssign -> { /* global variable initialization is done elsewhere */ }
                 is PtVariable, is PtConstant, is PtMemMapped -> { /* vars should be looked up via symbol table */ }
+                is PtAlign -> TODO("ir support for inline %align")
                 is PtSub -> {
                     val sub = IRSubroutine(child.name, translate(child.parameters), child.returntype, child.position)
                     for (subchild in child.children) {

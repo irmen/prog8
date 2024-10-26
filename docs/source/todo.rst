@@ -1,10 +1,12 @@
 TODO
 ====
 
-- add docs for @align. Note: uninitialized (bss) variables are also correctly aligned (%option align docs say they're not, but that is fixed)
-- what to use to align a label ? (%align $100 ?)  to support aligned asmincludes for example.
+- rewrite c64 sprite examples to use the new @align64
+- remove %option align_xxx   (block level alignment, as we now have individual variable alignments)  if all uses can be replaced by the new ones
 
-- remove %option align_xxx  ?  (block level alignment, as we now have individual variable alignments)
+- add docs for @alignxxx. Note: uninitialized (bss) variables are also correctly aligned (%option align docs say they're not, but that is fixed)
+- add docs for %align.  Note: the directive doesn't modify variable declarations that may follow it!
+
 
 
 Improve register load order in subroutine call args assignments:
@@ -35,6 +37,7 @@ Future Things and Ideas
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
 
+- ir: support %align on code chunks
 - ir: fix call() return value handling
 - ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)

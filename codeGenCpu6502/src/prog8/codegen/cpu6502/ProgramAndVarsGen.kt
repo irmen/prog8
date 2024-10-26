@@ -517,12 +517,12 @@ internal class ProgramAndVarsGen(
 
         stringVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.name)+"_init_value"
-            outputStringvar(varname, PtVariable.Alignment.NONE, it.value.second, it.value.first)
+            outputStringvar(varname, 0, it.value.second, it.value.first)
         }
 
         arrayVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.name)+"_init_value"
-            arrayVariable2asm(varname, it.alloc.dt, PtVariable.Alignment.NONE, it.value, null)
+            arrayVariable2asm(varname, it.alloc.dt, 0, it.value, null)
         }
 
         asmgen.out("+")
@@ -587,16 +587,11 @@ internal class ProgramAndVarsGen(
         if(varsNoInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables")
             asmgen.out("  .section BSS")
-            val wordAligned = varsNoInit.filter { it.align==PtVariable.Alignment.WORD }
-            val pageAligned = varsNoInit.filter { it.align==PtVariable.Alignment.PAGE }
-            val notAligned = varsNoInit.filter { it.align==PtVariable.Alignment.NONE }
+            val (notAligned, aligned) = varsNoInit.partition { it.align==0 }
             notAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
                 uninitializedVariable2asm(it)
             }
-            wordAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
-                uninitializedVariable2asm(it)
-            }
-            pageAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt }).forEach {
+            aligned.sortedWith(compareBy<StStaticVariable> { it.align }.thenBy { it.name }.thenBy { it.dt }).forEach {
                 uninitializedVariable2asm(it)
             }
             asmgen.out("  .send BSS")
@@ -605,11 +600,9 @@ internal class ProgramAndVarsGen(
         if(varsWithInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables with init value")
             val (stringvars, othervars) = varsWithInit.sortedBy { it.name }.partition { it.dt == DataType.STR }
-
-            val stringsWordAligned = stringvars.filter { it.align==PtVariable.Alignment.WORD }
-            val stringsPageAligned = stringvars.filter { it.align==PtVariable.Alignment.PAGE }
-            val stringsNotAligned = stringvars.filter { it.align==PtVariable.Alignment.NONE }
-            stringsNotAligned.forEach {
+            val (notAlignedStrings, alignedStrings) = stringvars.partition { it.align==0 }
+            val (notAlignedOther, alignedOther) = othervars.partition { it.align==0 }
+            notAlignedStrings.forEach {
                 outputStringvar(
                     it.name,
                     it.align,
@@ -617,15 +610,7 @@ internal class ProgramAndVarsGen(
                     it.initializationStringValue!!.first
                 )
             }
-            stringsWordAligned.forEach {
-                outputStringvar(
-                    it.name,
-                    it.align,
-                    it.initializationStringValue!!.second,
-                    it.initializationStringValue!!.first
-                )
-            }
-            stringsPageAligned.forEach {
+            alignedStrings.sortedBy { it.align }.forEach {
                 outputStringvar(
                     it.name,
                     it.align,
@@ -634,16 +619,10 @@ internal class ProgramAndVarsGen(
                 )
             }
 
-            val wordAligned = othervars.filter { it.align==PtVariable.Alignment.WORD }
-            val pageAligned = othervars.filter { it.align==PtVariable.Alignment.PAGE }
-            val notAligned = othervars.filter { it.align==PtVariable.Alignment.NONE }
-            notAligned.sortedBy { it.type }.forEach {
+            notAlignedOther.sortedBy { it.type }.forEach {
                 staticVariable2asm(it)
             }
-            wordAligned.sortedBy { it.type }.forEach {
-                staticVariable2asm(it)
-            }
-            pageAligned.sortedBy { it.type }.forEach {
+            alignedOther.sortedBy { it.align }.sortedBy { it.type }.forEach {
                 staticVariable2asm(it)
             }
         }
@@ -673,12 +652,9 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun alignVar(align: PtVariable.Alignment) {
-        when(align) {
-            PtVariable.Alignment.NONE -> {}
-            PtVariable.Alignment.WORD -> asmgen.out("\t.align 2")
-            PtVariable.Alignment.PAGE -> asmgen.out("\t.align $100")
-        }
+    private fun alignVar(align: Int) {
+        if(align > 1)
+            asmgen.out("  .align  ${align.toHex()}")
     }
 
     private fun staticVariable2asm(variable: StStaticVariable) {
@@ -715,7 +691,7 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun arrayVariable2asm(varname: String, dt: DataType, align: PtVariable.Alignment, value: StArray?, orNumberOfZeros: Int?) {
+    private fun arrayVariable2asm(varname: String, dt: DataType, align: Int, value: StArray?, orNumberOfZeros: Int?) {
         alignVar(align)
         when(dt) {
             DataType.ARRAY_UB, DataType.ARRAY_BOOL -> {
@@ -812,7 +788,7 @@ internal class ProgramAndVarsGen(
             }
     }
 
-    private fun outputStringvar(varname: String, align: PtVariable.Alignment, encoding: Encoding, value: String) {
+    private fun outputStringvar(varname: String, align: Int, encoding: Encoding, value: String) {
         alignVar(align)
         asmgen.out("$varname\t; $encoding:\"${value.escape().replace("\u0000", "<NULL>")}\"", false)
         val bytes = compTarget.encodeString(value, encoding).plus(0.toUByte())

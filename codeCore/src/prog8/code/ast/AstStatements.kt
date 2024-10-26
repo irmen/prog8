@@ -153,19 +153,13 @@ class PtVariable(
     name: String,
     override val type: DataType,
     val zeropage: ZeropageWish,
-    val align: Alignment,
+    val align: UInt,
     val value: PtExpression?,
     val arraySize: UInt?,
     position: Position
 ) : PtNamedNode(name, position), IPtVariable {
     init {
         value?.let {it.parent=this}
-    }
-
-    enum class Alignment {
-        NONE,
-        WORD,
-        PAGE
     }
 }
 

@@ -109,6 +109,9 @@ class PtLabel(name: String, position: Position) : PtNamedNode(name, position)
 class PtBreakpoint(position: Position): PtNode(position)
 
 
+class PtAlign(val align: UInt, position: Position): PtNode(position)
+
+
 class PtIncludeBinary(val file: Path, val offset: UInt?, val length: UInt?, position: Position) : PtNode(position)
 
 

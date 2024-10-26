@@ -6,7 +6,6 @@ import prog8.code.StNode
 import prog8.code.StNodeType
 import prog8.code.StStaticVariable
 import prog8.code.SymbolTable
-import prog8.code.ast.PtVariable
 import prog8.code.core.*
 
 
@@ -50,7 +49,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         val varsRequiringZp = allVariables.filter { it.zpwish == ZeropageWish.REQUIRE_ZEROPAGE }
         val varsPreferringZp = allVariables.filter { it.zpwish == ZeropageWish.PREFER_ZEROPAGE }
         val varsNotZp = allVariables.filter { it.zpwish == ZeropageWish.NOT_IN_ZEROPAGE }
-        val (varsDontCareWithoutAlignment, varsDontCareWithAlignment) = allVariables.filter { it.zpwish == ZeropageWish.DONTCARE }.partition { it.align==PtVariable.Alignment.NONE }
+        val (varsDontCareWithoutAlignment, varsDontCareWithAlignment) = allVariables.filter { it.zpwish == ZeropageWish.DONTCARE }.partition { it.align == 0 }
         require(varsDontCareWithAlignment.size + varsDontCareWithoutAlignment.size + varsRequiringZp.size + varsPreferringZp.size + varsNotZp.size == numberOfAllocatableVariables)
 
         var numVariablesAllocatedInZP = 0

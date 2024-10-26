@@ -51,11 +51,11 @@ loadAddress=$0000
 </ASMSYMBOLS>
 
 <VARIABLESNOINIT>
-uword sys.bssvar zp=DONTCARE align=NONE
+uword sys.bssvar zp=DONTCARE align=0
 </VARIABLESNOINIT>
 <VARIABLESWITHINIT>
-uword sys.wait.jiffies=10 zp=DONTCARE align=NONE
-ubyte[3] sys.emptystring=0,0,0 zp=DONTCARE align=NONE
+uword sys.wait.jiffies=10 zp=DONTCARE align=0
+ubyte[3] sys.emptystring=0,0,0 zp=DONTCARE align=0
 </VARIABLESWITHINIT>
 
 <MEMORYMAPPEDVARIABLES>

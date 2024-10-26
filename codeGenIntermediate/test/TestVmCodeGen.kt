@@ -48,7 +48,7 @@ class TestVmCodeGen: FunSpec({
             "pi",
             DataType.UBYTE,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             PtNumber(DataType.UBYTE, 0.0, Position.DUMMY),
             null,
             Position.DUMMY
@@ -57,7 +57,7 @@ class TestVmCodeGen: FunSpec({
             "particleX",
             DataType.ARRAY_UB,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             null,
             3u,
             Position.DUMMY
@@ -66,7 +66,7 @@ class TestVmCodeGen: FunSpec({
             "particleDX",
             DataType.ARRAY_UB,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             null,
             3u,
             Position.DUMMY
@@ -75,7 +75,7 @@ class TestVmCodeGen: FunSpec({
             "xx",
             DataType.WORD,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             PtNumber(DataType.WORD, 1.0, Position.DUMMY),
             null,
             Position.DUMMY
@@ -159,7 +159,7 @@ class TestVmCodeGen: FunSpec({
             "f1",
             DataType.FLOAT,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             null,
             null,
             Position.DUMMY
@@ -230,7 +230,7 @@ class TestVmCodeGen: FunSpec({
             "f1",
             DataType.FLOAT,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             null,
             null,
             Position.DUMMY
@@ -297,7 +297,7 @@ class TestVmCodeGen: FunSpec({
             "f1",
             DataType.FLOAT,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             null,
             null,
             Position.DUMMY
@@ -352,7 +352,7 @@ class TestVmCodeGen: FunSpec({
             "sb1",
             DataType.BYTE,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             null,
             null,
             Position.DUMMY
@@ -423,7 +423,7 @@ class TestVmCodeGen: FunSpec({
             "sb1",
             DataType.BYTE,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             null,
             null,
             Position.DUMMY
@@ -490,7 +490,7 @@ class TestVmCodeGen: FunSpec({
             "ub1",
             DataType.UBYTE,
             ZeropageWish.DONTCARE,
-            PtVariable.Alignment.NONE,
+            0u,
             null,
             null,
             Position.DUMMY

@@ -580,6 +580,7 @@ class AsmGen6502Internal (
     internal fun translate(stmt: PtNode) {
         outputSourceLine(stmt)
         when(stmt) {
+            is PtAlign -> if(stmt.align > 1u) out("  .align  ${stmt.align.toHex()}")
             is PtReturn -> translate(stmt)
             is PtSub -> programGen.translateSubroutine(stmt)
             is PtAsmSub -> programGen.translateAsmSubroutine(stmt)

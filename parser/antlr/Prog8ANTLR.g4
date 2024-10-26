@@ -65,6 +65,8 @@ SPLIT: '@split' ;
 
 ALIGNWORD: '@alignword' ;
 
+ALIGN64: '@align64' ;
+
 ALIGNPAGE: '@alignpage' ;
 
 ARRAYSIG : '[' [ \t]* ']' ;
@@ -139,7 +141,7 @@ unconditionaljump :  'goto'  (integerliteral | scoped_identifier) ;
 
 directive :
 	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%import' |
-                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' )
+                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' | '%align' )
         (directivearg? | directivearg (',' directivearg)*)
         ;
 
@@ -147,7 +149,7 @@ directivearg : stringliteral | identifier | integerliteral ;
 
 vardecl: datatype (arrayindex | ARRAYSIG)? decloptions identifier (',' identifier)* ;
 
-decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | SPLIT | ALIGNWORD | ALIGNPAGE)* ;
+decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | SPLIT | ALIGNWORD | ALIGN64 | ALIGNPAGE)* ;
 
 varinitializer : vardecl '=' expression ;
 

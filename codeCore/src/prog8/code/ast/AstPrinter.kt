@@ -10,6 +10,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
     fun type(dt: DataType) = "!${dt.name.lowercase()}!"
     fun txt(node: PtNode): String {
         return when(node) {
+            is PtAlign -> "%align ${node.align}"
             is PtAssignTarget -> if(node.void) "<void>" else "<target>"
             is PtAssignment -> "<assign>"
             is PtAugmentedAssign -> "<inplace-assign> ${node.operator}"
@@ -127,9 +128,11 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtVariable -> {
                 val split = if(node.type in SplitWordArrayTypes) "@split" else ""
                 val align = when(node.align) {
-                    PtVariable.Alignment.NONE -> ""
-                    PtVariable.Alignment.WORD -> "@alignword"
-                    PtVariable.Alignment.PAGE -> "@alignpage"
+                    0u -> ""
+                    2u -> "@alignword"
+                    64u -> "@align64"
+                    256u -> "@alignpage"
+                    else -> throw IllegalArgumentException("invalid alignment size")
                 }
                 val str = if(node.arraySize!=null) {
                     val eltType = ArrayToElementTypes.getValue(node.type)

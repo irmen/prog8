@@ -168,9 +168,9 @@ class IRFileReader {
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                val align = if(alignment.isBlank()) PtVariable.Alignment.NONE else PtVariable.Alignment.valueOf(alignment)
+                val align = if(alignment.isBlank()) 0u else alignment.toUInt()
                 val dummyNode = PtVariable(name, dt, zp, align, null, null, Position.DUMMY)
-                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, align, dummyNode)
+                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, align.toInt(), dummyNode)
                 variables.add(newVar)
             }
             return variables
@@ -200,7 +200,7 @@ class IRFileReader {
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt: DataType = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                val align = if(alignment.isBlank()) PtVariable.Alignment.NONE else PtVariable.Alignment.valueOf(alignment)
+                val align = if(alignment.isBlank()) 0u else alignment.toUInt()
                 var initNumeric: Double? = null
                 var initArray: StArray? = null
                 when(dt) {
@@ -226,7 +226,7 @@ class IRFileReader {
                 if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
-                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, align, dummyNode)
+                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, align.toInt(), dummyNode)
                 if(initNumeric!=null)
                     stVar.setOnetimeInitNumeric(initNumeric)
                 variables.add(stVar)
@@ -259,7 +259,7 @@ class IRFileReader {
                     name,
                     dt,
                     ZeropageWish.NOT_IN_ZEROPAGE,
-                    PtVariable.Alignment.NONE,
+                    0u,
                     null,
                     null,
                     Position.DUMMY
@@ -290,7 +290,7 @@ class IRFileReader {
                     name,
                     DataType.ARRAY_UB,
                     ZeropageWish.NOT_IN_ZEROPAGE,
-                    PtVariable.Alignment.NONE,
+                    0u,
                     null,
                     null,
                     Position.DUMMY

@@ -249,6 +249,12 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transform(directive: Directive): PtNode {
         return when(directive.directive) {
             "%breakpoint" -> PtBreakpoint(directive.position)
+            "%align" -> {
+                val align = directive.args[0].int!!
+                if(align<2u || align>65536u)
+                    errors.err("invalid alignment size", directive.position)
+                PtAlign(align, directive.position)
+            }
             "%asmbinary" -> {
                 val filename = directive.args[0].str!!
                 val offset: UInt? = if(directive.args.size>=2) directive.args[1].int!! else null
@@ -520,11 +526,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         when(srcVar.type) {
             VarDeclType.VAR -> {
                 val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
-                val align = when(srcVar.alignment) {
-                    VarAlignment.NONE -> PtVariable.Alignment.NONE
-                    VarAlignment.WORD -> PtVariable.Alignment.WORD
-                    VarAlignment.PAGE -> PtVariable.Alignment.PAGE
-                }
                 if(srcVar.isArray) {
                     if(value==null) {
                         val blockOptions = srcVar.definingBlock.options()
@@ -538,7 +539,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                                 srcVar.name,
                                 srcVar.datatype,
                                 srcVar.zeropage,
-                                align,
+                                srcVar.alignment,
                                 zeros,
                                 srcVar.arraysize?.constIndex()?.toUInt(),
                                 srcVar.position
@@ -550,7 +551,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                     srcVar.name,
                     srcVar.datatype,
                     srcVar.zeropage,
-                    align,
+                    srcVar.alignment,
                     value,
                     srcVar.arraysize?.constIndex()?.toUInt(),
                     srcVar.position

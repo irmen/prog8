@@ -158,9 +158,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(decl.sharedWithAsm)
             output(" @shared")
         when(decl.alignment) {
-            VarAlignment.NONE -> {}
-            VarAlignment.WORD -> output(" @alignword")
-            VarAlignment.PAGE -> output(" @alignpage")
+            0u -> {}
+            2u -> output(" @alignword")
+            64u -> output(" @align64")
+            256u -> output(" @alignpage")
+            else -> throw IllegalArgumentException("invalid alignment size")
         }
         if(decl.names.size>1)
             output(decl.names.joinToString(prefix=" "))
