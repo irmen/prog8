@@ -185,7 +185,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     }
 
     private fun transform(srcBlock: Block): PtBlock {
-        var alignment = PtBlock.BlockAlignment.NONE
         var forceOutput = false
         var veraFxMuls = false
         var noSymbolPrefixing = false
@@ -194,8 +193,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         for (directive in directives.filter { it.directive == "%option" }) {
             for (arg in directive.args) {
                 when (arg.name) {
-                    "align_word" -> alignment = PtBlock.BlockAlignment.WORD
-                    "align_page" -> alignment = PtBlock.BlockAlignment.PAGE
                     "no_symbol_prefixing" -> noSymbolPrefixing = true
                     "ignore_unused" -> ignoreUnused = true
                     "force_output" -> forceOutput = true
@@ -208,7 +205,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
         val src = srcBlock.definingModule.source
         val block = PtBlock(srcBlock.name, srcBlock.isInLibrary, src,
-            PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, ignoreUnused, alignment),
+            PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, ignoreUnused),
             srcBlock.position)
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements)
@@ -526,27 +523,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         when(srcVar.type) {
             VarDeclType.VAR -> {
                 val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
-                if(srcVar.isArray) {
-                    if(value==null) {
-                        val blockOptions = srcVar.definingBlock.options()
-                        if("align_page" in blockOptions || "align_word" in blockOptions) {
-                            errors.info("converting uninitialized array to explicit zeros because of block alignment option", srcVar.position)
-                            val zeros = PtArray(srcVar.datatype, srcVar.position)
-                            repeat(srcVar.arraysize!!.constIndex()!!) {
-                                zeros.children.add(PtNumber(ArrayToElementTypes.getValue(srcVar.datatype), 0.0, srcVar.position))
-                            }
-                            return PtVariable(
-                                srcVar.name,
-                                srcVar.datatype,
-                                srcVar.zeropage,
-                                srcVar.alignment,
-                                zeros,
-                                srcVar.arraysize?.constIndex()?.toUInt(),
-                                srcVar.position
-                            )
-                        }
-                    }
-                }
                 return PtVariable(
                     srcVar.name,
                     srcVar.datatype,

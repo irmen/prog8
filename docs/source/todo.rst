@@ -2,7 +2,6 @@ TODO
 ====
 
 - rewrite c64 sprite examples to use the new @align64
-- remove %option align_xxx   (block level alignment, as we now have individual variable alignments)  if all uses can be replaced by the new ones
 
 - add docs for @alignxxx. Note: uninitialized (bss) variables are also correctly aligned (%option align docs say they're not, but that is fixed)
 - add docs for %align.  Note: the directive doesn't modify variable declarations that may follow it!

@@ -291,12 +291,6 @@ internal class ProgramAndVarsGen(
         asmgen.out("; ---- block: '${block.name}' ----")
         if(block.options.address!=null)
             asmgen.out("* = ${block.options.address!!.toHex()}")
-        else {
-            if(block.options.alignment==PtBlock.BlockAlignment.WORD)
-                asmgen.out("\t.align 2")
-            else if(block.options.alignment==PtBlock.BlockAlignment.PAGE)
-                asmgen.out("\t.align $100")
-        }
 
         asmgen.out("${block.name}\t" + (if(block.options.forceOutput) ".block" else ".proc"))
         asmgen.outputSourceLine(block)

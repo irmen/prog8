@@ -1668,8 +1668,7 @@ class IRCodeGen(
                 block.options.forceOutput,
                 block.options.noSymbolPrefixing,
                 block.options.veraFxMuls,
-                block.options.ignoreUnused,
-                translate(block.options.alignment)
+                block.options.ignoreUnused
             ), block.position)
         for (child in block.children) {
             when(child) {
@@ -1733,14 +1732,6 @@ class IRCodeGen(
             val orig = symbolTable.lookup(flattenedName) as StStaticVariable
             IRSubroutine.IRParam(flattenedName, orig.dt)
         }
-
-    private fun translate(alignment: PtBlock.BlockAlignment): IRBlock.BlockAlignment {
-        return when(alignment) {
-            PtBlock.BlockAlignment.NONE -> IRBlock.BlockAlignment.NONE
-            PtBlock.BlockAlignment.WORD -> IRBlock.BlockAlignment.WORD
-            PtBlock.BlockAlignment.PAGE -> IRBlock.BlockAlignment.PAGE
-        }
-    }
 
     private var labelSequenceNumber = 0
     internal fun createLabelName(): String {

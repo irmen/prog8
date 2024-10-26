@@ -80,18 +80,11 @@ class PtBlock(name: String,
               val options: Options,
               position: Position
 ) : PtNamedNode(name, position), IPtStatementContainer {
-    enum class BlockAlignment {
-        NONE,
-        WORD,
-        PAGE
-    }
-
     class Options(val address: UInt? = null,
                   val forceOutput: Boolean = false,
                   val noSymbolPrefixing: Boolean = false,
                   val veraFxMuls: Boolean = false,
-                  val ignoreUnused: Boolean = false,
-                  val alignment: BlockAlignment = BlockAlignment.NONE)
+                  val ignoreUnused: Boolean = false)
 }
 
 

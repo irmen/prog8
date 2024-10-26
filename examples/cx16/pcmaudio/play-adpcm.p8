@@ -315,7 +315,7 @@ stereo {
 }
 
 wavdata {
-    %option align_page
+
 wav_data:
     %asmbinary "small-adpcm-mono.wav"
 wav_data_end:

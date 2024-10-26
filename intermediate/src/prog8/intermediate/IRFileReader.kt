@@ -369,8 +369,7 @@ class IRFileReader {
                 attrs.getOrDefault("FORCEOUTPUT", "false").toBoolean(),
                 attrs.getOrDefault("NOPREFIXING", "false").toBoolean(),
                 attrs.getOrDefault("VERAFXMULS", "false").toBoolean(),
-                attrs.getOrDefault("IGNOREUNUSED", "false").toBoolean(),
-                IRBlock.BlockAlignment.valueOf(attrs.getValue("ALIGN"))
+                attrs.getOrDefault("IGNOREUNUSED", "false").toBoolean()
             ),
             parsePosition(attrs.getValue("POS")))
         skipText(reader)
