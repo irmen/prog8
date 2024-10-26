@@ -28,7 +28,7 @@ Comments
 Directive
     These are special instructions for the compiler, to change how it processes the code
     and what kind of program it creates. A directive is on its own line in the file, and
-    starts with ``%``, optionally followed by some arguments.
+    starts with ``%``, optionally followed by some arguments. See the syntax reference for all directives.
 
 Code block
     A block of actual program code. It has a starting address in memory,
@@ -202,7 +202,7 @@ Values will usually be part of an expression or assignment statement::
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
 
-*putting a variable in zeropage:*
+**putting a variable in zeropage:**
 If you add the ``@zp`` tag to the variable declaration, the compiler will prioritize this variable
 when selecting variables to put into zeropage (but no guarantees). If there are enough free locations in the zeropage,
 it will try to fill it with as much other variables as possible (before they will be put in regular memory pages).
@@ -217,7 +217,7 @@ Example::
     uword  @requirezp  zppointer = $4000
 
 
-*shared tag:*
+**shared variables:**
 If you add the ``@shared`` tag to the variable declaration, the compiler will know that this variable
 is a prog8 variable shared with some assembly code elsewhere. This means that the assembly code can
 refer to the variable even if it's otherwise not used in prog8 code itself.
@@ -225,6 +225,18 @@ refer to the variable even if it's otherwise not used in prog8 code itself.
 when assembling the rest of the code). Example::
 
     byte  @shared  assemblyVariable = 42
+
+
+**memory alignment:**
+A string or array variable can be aligned to a couple of possible interval sizes in memory.
+The use for this is very situational, but two examples are: sprite data for the C64 that needs
+to be on a 64 byte aligned memory address, or an array aligned on a full page boundary to avoid
+any possible extra page boundary clock cycles on certain instructions when accessing the array.
+You can align on word, 64 bytes, and page boundaries::
+
+    ubyte[] @alignword array = [1, 2, 3, 4, ...]
+    ubyte[] @align64 spritedata = [ %00000000, %11111111, ...]
+    ubyte[] @alignpage lookup = [11, 22, 33, 44, ...]
 
 
 Integers

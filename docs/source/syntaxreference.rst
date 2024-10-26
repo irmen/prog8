@@ -40,73 +40,6 @@ Examples::
 Directives
 -----------
 
-.. data:: %output <type>
-
-	Level: module.
-	Global setting, selects program output type. Default is ``prg``.
-
-	- type ``raw`` : no header at all, just the raw machine code data
-	- type ``prg`` : C64 program (with load address header)
-
-
-.. data:: %launcher <type>
-
-	Level: module.
-	Global setting, selects the program launcher stub to use.
-	Only relevant when using the ``prg`` output type. Defaults to ``basic``.
-
-	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
-	- type ``none`` : no launcher logic is added at all
-
-.. data:: %zeropage <style>
-
-    Level: module.
-    Global setting, select zeropage handling style. Defaults to ``kernalsafe``.
-
-    - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
-      and don't change anything else.  This allows full use of Kernal ROM routines (but not BASIC routines),
-      including default IRQs during normal system operation.
-      It's not possible to return cleanly to BASIC when the program exits. The only choice is
-      to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
-    - style ``floatsafe`` -- like the previous one but also reserves the addresses that
-      are required to perform floating point operations (from the BASIC Kernal). No clean exit is possible.
-    - style ``basicsafe`` -- the most restricted mode; only use the handful 'free' addresses in the ZP, and don't
-      touch change anything else. This allows full use of BASIC and Kernal ROM routines including default IRQs
-      during normal system operation.
-      When the program exits, it simply returns to the BASIC ready prompt.
-    - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
-      except for a few addresses that are used by the system's IRQ handler.
-      Even though that default IRQ handler is still active, it is impossible to use most BASIC and Kernal ROM routines.
-      This includes many floating point operations and several utility routines that do I/O, such as ``print``.
-      This option makes programs smaller and faster because even more variables can
-      be stored in the ZP (which allows for more efficient assembly code).
-      It's not possible to return cleanly to BASIC when the program exits. The only choice is
-      to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
-    - style ``dontuse`` -- don't use *any* location in the zeropage.
-
-.. note::
-    ``kernalsafe`` and ``full`` on the C64 leave enough room in the zeropage to reallocate the
-    16 virtual registers cx16.r0...cx16.r15 from the Commander X16 into the zeropage as well
-    (but not on the same locations). They are relocated automatically by the compiler.
-    The other options need those locations for other things so those virtual registers have
-    to be put into memory elsewhere (outside of the zeropage). Trying to use them as zeropage
-    variables or pointers etc. will be a lot slower in those cases!
-    On the Commander X16 the registers are always in zeropage. On other targets, for now, they
-    are always outside of the zeropage.
-
-.. data:: %zpreserved <fromaddress>,<toaddress>
-
-    Level: module.
-    Global setting, can occur multiple times. It allows you to reserve or 'block' a part of the zeropage so
-    that it will not be used by the compiler.
-
-.. data:: %zpallowed <fromaddress>,<toaddress>
-
-    Level: module.
-    Global setting, can occur multiple times. It allows you to designate a part of the zeropage that
-    the compiler is allowed to use (if other options don't prevent usage).
-
-
 .. data:: %address <address>
 
 	Level: module.
@@ -115,44 +48,39 @@ Directives
 	you don't use a CBM-BASIC launcher.
 
 
-.. data:: %import <name>
+.. data:: %align <interval>
 
-	Level: module.
-	This reads and compiles the named module source file as part of your current program.
-	Symbols from the imported module become available in your code,
-	without a module or filename prefix.
-	You can import modules one at a time, and importing a module more than once has no effect.
+    Level: not at module scope.
+    Tells the assembler to continue assembling on the given alignment interval. For example, ``%align $100``
+    will insert an assembler command to align on the next page boundary.
+    Note that this has no impact on variables following this directive! Prog8 reallocates all variables
+    using different rules. If you want to align a specific variable (array or string), you should use
+    one of the alignment tags for variable declarations instead.
+    Valid intervals are from 2 to 65536.
+    **Warning:** if you use this directive in between normal statements, it will disrupt the output
+    of the machine code instructions by making gaps between them, this will probably crash the program!
 
 
-.. data:: %option <option> [, <option> ...]
+.. data:: %asm {{ ... }}
 
-	Level: module, block.
-	Sets special compiler options.
+    Level: not at module scope.
+    Declares that a piece of *assembly code* is inside the curly braces.
+    This code will be copied as-is into the generated output assembly source file.
+    Note that the start and end markers are both *double curly braces* to minimize the chance
+    that the assembly code itself contains either of those. If it does contain a ``}}``,
+    it will confuse the parser.
 
-    - ``enable_floats`` (module level) tells the compiler
-      to deal with floating point numbers (by using various subroutines from the Kernal).
-      Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
-      importing the ``floats`` library is required anyway and that will enable it for you automatically.
-    - ``no_sysinit`` (module level) which cause the resulting program to *not* include
-      the system re-initialization logic of clearing the screen, resetting I/O config etc. You'll have to
-      take care of that yourself. The program will just start running from whatever state the machine is in when the
-      program was launched.
-    - ``force_output`` (in a block) will force the block to be outputted in the final program.
-      Can be useful to make sure some data is generated that would otherwise be discarded because the compiler thinks it's not referenced (such as sprite data)
-    - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name. Useful in library scenarios. Can result in a bunch of unused symbol warnings, this depends on the import order.
-    - ``splitarrays`` (block or module) makes all word-arrays in this scope lsb/msb split arrays (as if they all have the @split tag). See Arrays.
-    - ``no_symbol_prefixing`` (block or module) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
-      Only use this if you know what you're doing because it could result in invalid assembly code being generated.
-      This option can be useful when writing library modules that you don't want to be exposing prefixed assembly symbols.
-    - ``ignore_unused`` (block or module) suppress warnings about unused variables and subroutines. Instead, these will be silently stripped.
-      This option is useful in library modules that contain many more routines beside the ones that you actually use.
-    - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
+    If you use the correct scoping rules you can access symbols from the prog8 program from inside
+    the assembly code. Sometimes you'll have to declare a variable in prog8 with `@shared` if it
+    is only used in such assembly code.
 
-.. data:: %encoding <encodingname>
+    .. note::
+        64tass syntax is required for the assembly code. As such, mnemonics need to be written in lowercase.
 
-    Overrides, in the module file it occurs in,
-    the default text encoding to use for strings and characters that have no explicit encoding prefix.
-    You can use one of the recognised encoding names, see :ref:`encodings`.
+    .. caution::
+        Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
+        Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
+
 
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
 
@@ -229,25 +157,116 @@ Directives
     Level: not at module scope.
     Defines a debugging breakpoint at this location. See :ref:`debugging`
 
-.. data:: %asm {{ ... }}
 
-    Level: not at module scope.
-    Declares that a piece of *assembly code* is inside the curly braces.
-    This code will be copied as-is into the generated output assembly source file.
-    Note that the start and end markers are both *double curly braces* to minimize the chance
-    that the assembly code itself contains either of those. If it does contain a ``}}``,
-    it will confuse the parser.
+.. data:: %encoding <encodingname>
 
-    If you use the correct scoping rules you can access symbols from the prog8 program from inside
-    the assembly code. Sometimes you'll have to declare a variable in prog8 with `@shared` if it
-    is only used in such assembly code.
+    Overrides, in the module file it occurs in,
+    the default text encoding to use for strings and characters that have no explicit encoding prefix.
+    You can use one of the recognised encoding names, see :ref:`encodings`.
 
-    .. note::
-        64tass syntax is required for the assembly code. As such, mnemonics need to be written in lowercase.
 
-    .. caution::
-        Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
-        Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
+.. data:: %import <name>
+
+	Level: module.
+	This reads and compiles the named module source file as part of your current program.
+	Symbols from the imported module become available in your code,
+	without a module or filename prefix.
+	You can import modules one at a time, and importing a module more than once has no effect.
+
+
+.. data:: %launcher <type>
+
+	Level: module.
+	Global setting, selects the program launcher stub to use.
+	Only relevant when using the ``prg`` output type. Defaults to ``basic``.
+
+	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
+	- type ``none`` : no launcher logic is added at all
+
+
+.. data:: %option <option> [, <option> ...]
+
+	Level: module, block.
+	Sets special compiler options.
+
+    - ``enable_floats`` (module level) tells the compiler
+      to deal with floating point numbers (by using various subroutines from the Kernal).
+      Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
+      importing the ``floats`` library is required anyway and that will enable it for you automatically.
+    - ``no_sysinit`` (module level) which cause the resulting program to *not* include
+      the system re-initialization logic of clearing the screen, resetting I/O config etc. You'll have to
+      take care of that yourself. The program will just start running from whatever state the machine is in when the
+      program was launched.
+    - ``force_output`` (in a block) will force the block to be outputted in the final program.
+      Can be useful to make sure some data is generated that would otherwise be discarded because the compiler thinks it's not referenced (such as sprite data)
+    - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name. Useful in library scenarios. Can result in a bunch of unused symbol warnings, this depends on the import order.
+    - ``splitarrays`` (block or module) makes all word-arrays in this scope lsb/msb split arrays (as if they all have the @split tag). See Arrays.
+    - ``no_symbol_prefixing`` (block or module) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
+      Only use this if you know what you're doing because it could result in invalid assembly code being generated.
+      This option can be useful when writing library modules that you don't want to be exposing prefixed assembly symbols.
+    - ``ignore_unused`` (block or module) suppress warnings about unused variables and subroutines. Instead, these will be silently stripped.
+      This option is useful in library modules that contain many more routines beside the ones that you actually use.
+    - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
+
+
+.. data:: %output <type>
+
+	Level: module.
+	Global setting, selects program output type. Default is ``prg``.
+
+	- type ``raw`` : no header at all, just the raw machine code data
+	- type ``prg`` : C64 program (with load address header)
+
+
+.. data:: %zeropage <style>
+
+    Level: module.
+    Global setting, select zeropage handling style. Defaults to ``kernalsafe``.
+
+    - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
+      and don't change anything else.  This allows full use of Kernal ROM routines (but not BASIC routines),
+      including default IRQs during normal system operation.
+      It's not possible to return cleanly to BASIC when the program exits. The only choice is
+      to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
+    - style ``floatsafe`` -- like the previous one but also reserves the addresses that
+      are required to perform floating point operations (from the BASIC Kernal). No clean exit is possible.
+    - style ``basicsafe`` -- the most restricted mode; only use the handful 'free' addresses in the ZP, and don't
+      touch change anything else. This allows full use of BASIC and Kernal ROM routines including default IRQs
+      during normal system operation.
+      When the program exits, it simply returns to the BASIC ready prompt.
+    - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
+      except for a few addresses that are used by the system's IRQ handler.
+      Even though that default IRQ handler is still active, it is impossible to use most BASIC and Kernal ROM routines.
+      This includes many floating point operations and several utility routines that do I/O, such as ``print``.
+      This option makes programs smaller and faster because even more variables can
+      be stored in the ZP (which allows for more efficient assembly code).
+      It's not possible to return cleanly to BASIC when the program exits. The only choice is
+      to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
+    - style ``dontuse`` -- don't use *any* location in the zeropage.
+
+.. note::
+    ``kernalsafe`` and ``full`` on the C64 leave enough room in the zeropage to reallocate the
+    16 virtual registers cx16.r0...cx16.r15 from the Commander X16 into the zeropage as well
+    (but not on the same locations). They are relocated automatically by the compiler.
+    The other options need those locations for other things so those virtual registers have
+    to be put into memory elsewhere (outside of the zeropage). Trying to use them as zeropage
+    variables or pointers etc. will be a lot slower in those cases!
+    On the Commander X16 the registers are always in zeropage. On other targets, for now, they
+    are always outside of the zeropage.
+
+
+.. data:: %zpallowed <fromaddress>,<toaddress>
+
+    Level: module.
+    Global setting, can occur multiple times. It allows you to designate a part of the zeropage that
+    the compiler is allowed to use (if other options don't prevent usage).
+
+
+.. data:: %zpreserved <fromaddress>,<toaddress>
+
+    Level: module.
+    Global setting, can occur multiple times. It allows you to reserve or 'block' a part of the zeropage so
+    that it will not be used by the compiler.
 
 
 Identifiers
@@ -341,6 +360,9 @@ Tag         Effect
 @nozp       force the variable to normal system ram, never place it into zeropage.
 @shared     means the variable is shared with some assembly code and that it cannot be optimized away if not used elsewhere.
 @split      (only valid on (u)word arrays) Makes the array to be placed in memory as 2 separate byte arrays; one with the LSBs one with the MSBs of the word values. Usually improves performance and code size.
+@alignword  aligns string or array variable on an even memory address
+@align64    aligns string or array variable on a 64 byte address interval (example: for C64 sprite data)
+@alignpage  aligns string or array variable on a 256 byte address interval (example: to avoid page boundaries)
 ==========  ======
 
 

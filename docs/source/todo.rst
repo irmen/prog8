@@ -1,11 +1,6 @@
 TODO
 ====
 
-- add docs for @alignxxx. Note: uninitialized (bss) variables are also correctly aligned (%option align docs say they're not, but that is fixed)
-- add docs for %align.  Note: the directive doesn't modify variable declarations that may follow it!
-
-
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

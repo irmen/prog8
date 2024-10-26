@@ -35,7 +35,7 @@ syn keyword prog8Operator and or to downto as void
 
 syn match prog8Directive "\(^\|\s\)%\(output\|launcher\|zeropage\)\>"
 syn match prog8Directive "\(^\|\s\)%\(zpreserved\|zpallowed\|address\|encoding\|import\|option\)\>"
-syn match prog8Directive "\(^\|\s\)%\(asmbinary\|asminclude\|breakpoint\)\>"
+syn match prog8Directive "\(^\|\s\)%\(align\|asmbinary\|asminclude\|breakpoint\)\>"
 syn match prog8Directive "\(^\|\s\)%\(asm\|ir\)\>"
 
 syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\)\>"

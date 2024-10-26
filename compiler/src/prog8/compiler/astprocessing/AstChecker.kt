@@ -913,6 +913,17 @@ internal class AstChecker(private val program: Program,
             errors.err(msg, directive.position)
         }
         when(directive.directive) {
+            "%align" -> {
+                if(directive.parent !is INameScope || directive.parent is Module)
+                    err("this directive can't be used here")
+                if(directive.args.size!=1 || directive.args[0].int == null)
+                    err("missing correct alignment size")
+                if(directive.args[0].int!! >= 64u)
+                    errors.info("large alignment might waste a lot of memory (check Gaps in assembler output)", directive.position)
+                val prev = directive.previousSibling()
+                if (prev !=null && prev !is Block && prev !is Break && prev !is Continue && prev !is Jump && prev !is Return && prev !is Subroutine && prev !is VarDecl)
+                    errors.warn("dangerous location for %align, after a regular statement it will likely corrupt the program", directive.position)
+            }
             "%output" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
@@ -1006,14 +1017,6 @@ internal class AstChecker(private val program: Program,
                 val allowedEncodings = Encoding.entries.map {it.prefix}
                 if(directive.args.size!=1 || directive.args[0].name !in allowedEncodings)
                     err("invalid encoding directive, expected one of $allowedEncodings")
-            }
-            "%align" -> {
-                if(directive.parent !is INameScope || directive.parent is Module)
-                    err("this directive can't be used here")
-                if(directive.args.size!=1 || directive.args[0].int == null)
-                    err("missing correct alignment size")
-                if(directive.args[0].int!! >= 64u)
-                    errors.info("large alignment might waste a lot of memory (check Gaps in assembler output)", directive.position)
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }

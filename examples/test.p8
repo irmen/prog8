@@ -41,5 +41,9 @@ main {
         name2[2]++
         name3[2]++
         name4[2]++
+
+        %align 2
+        %align 3
+        %align 1000
     }
 }
