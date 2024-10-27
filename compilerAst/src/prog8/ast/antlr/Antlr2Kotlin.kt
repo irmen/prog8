@@ -249,7 +249,7 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
     val identifiers = vardecl.identifier()
     if(identifiers.size>1)
         throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].VOID()
+    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
     AsmSubroutineParameter(identifiername.text, datatype, registerorpair, statusregister, toPosition())
 }
 
@@ -324,7 +324,7 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             val identifiers = it.identifier()
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-            val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].VOID()
+            val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
             SubroutineParameter(identifiername.text, datatype, zp, it.toPosition())
         }
 
@@ -343,10 +343,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
     return when(this) {
         is IdentifierTargetContext -> {
             val identifier = scoped_identifier().toAst()
-            if(identifier.nameInSource==listOf("void"))
-                AssignTarget(null, null, null, null, true, scoped_identifier().toPosition())
-            else
-                AssignTarget(identifier, null, null, null, false, scoped_identifier().toPosition())
+            AssignTarget(identifier, null, null, null, false, scoped_identifier().toPosition())
         }
         is MemoryTargetContext ->
             AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()), null, false, toPosition())
@@ -356,6 +353,9 @@ private fun Assign_targetContext.toAst() : AssignTarget {
             val index = ax.arrayindex().toAst()
             val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
             AssignTarget(null, arrayindexed, null, null, false, toPosition())
+        }
+        is VoidTargetContext -> {
+            AssignTarget(null, null, null, null, true, void_().toPosition())
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
@@ -716,7 +716,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val options = decloptions()
     val zp = getZpOption(options)
     val identifiers = identifier()
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME() ?: identifiers[0].VOID()
+    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
     val name = if(identifiers.size==1) identifiername.text else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val split = options.SPLIT().isNotEmpty()
@@ -744,7 +744,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             arrayindex()?.toAst(),
             name,
             if(identifiers.size==1) emptyList() else identifiers.map {
-                val idname = it.NAME() ?: it.UNDERSCORENAME() ?: it.VOID()
+                val idname = it.NAME() ?: it.UNDERSCORENAME()
                 idname.text
             },
             value,

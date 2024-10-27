@@ -171,6 +171,7 @@ assign_target:
 	scoped_identifier               #IdentifierTarget
 	| arrayindexed                  #ArrayindexedTarget
 	| directmemory                  #MemoryTarget
+	| void                          #VoidTarget
 	;
 
 multi_assign_target:
@@ -211,6 +212,8 @@ arrayindexed:
     ;
 
 
+void : VOID ;
+
 typecast : 'as' datatype;
 
 directmemory : '@' '(' expression ')';
@@ -231,7 +234,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  NAME | UNDERSCORENAME | VOID;
+identifier :  NAME | UNDERSCORENAME ;
 
 scoped_identifier :  identifier ('.' identifier)* ;
 
