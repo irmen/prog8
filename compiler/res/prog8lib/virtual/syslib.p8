@@ -73,6 +73,18 @@ sys {
         }}
     }
 
+    sub memcmp(uword address1, uword address2, uword size) -> byte {
+        ; Compares two blocks of memory of up to 65535 bytes in size
+        ; Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
+        %ir {{
+            loadm.w r65533,sys.memcmp.address1
+            loadm.w r65534,sys.memcmp.address2
+            loadm.w r65535,sys.memcmp.size
+            syscall 47 (r65533.w, r65534.w, r65535.w) : r0.b
+            returnr.b r0
+        }}
+    }
+
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the A register
         %ir {{

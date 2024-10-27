@@ -3,6 +3,9 @@ TODO
 
 - check benchmark score vs previous version
 
+- writing a 'txt' block in user program suddenly spews out all textio unused reference warnings because of the %option merge promotion going on. Merging should probably be handled differently
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

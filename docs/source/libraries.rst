@@ -296,6 +296,10 @@ sys (part of syslib)
     Efficiently set a part of memory to the given (u)word value.
     But the most efficient will always be to write a specialized fill routine in assembly yourself!
 
+``memcmp (address1, address2, size)``
+    Compares two blocks of memory of up to 65535 bytes in size.
+    Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
+
 ``read_flags () -> ubyte``
     Returns the current value of the CPU status register.
 

@@ -725,6 +725,65 @@ _longcopy
         }}
     }
 
+    asmsub memcmp(uword address1 @R0, uword address2 @R1, uword size @AY) -> byte @A {
+        ; Compares two blocks of memory
+        ; Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
+        %asm {{
+            sta  P8ZP_SCRATCH_REG   ; lsb(size)
+            sty  P8ZP_SCRATCH_B1    ; msb(size)
+            lda  cx16.r0
+            ldy  cx16.r0+1
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  cx16.r1
+            ldy  cx16.r1+1
+            sta  P8ZP_SCRATCH_W2
+            sty  P8ZP_SCRATCH_W2+1
+
+            ldx  P8ZP_SCRATCH_B1
+            beq  _no_msb_size
+
+_loop_msb_size
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            cmp  (P8ZP_SCRATCH_W2),y
+            bcs  +
+            lda  #-1
+            rts
++           beq  +
+            lda  #1
+            rts
++           iny
+            bne  -
+            inc  P8ZP_SCRATCH_W1+1
+            inc  P8ZP_SCRATCH_W2+1
+            dec  P8ZP_SCRATCH_B1        ; msb(size) -= 1
+            dex
+            bne  _loop_msb_size
+
+_no_msb_size
+            lda  P8ZP_SCRATCH_REG       ; lsb(size)
+            bne  +
+            rts
+
++           ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            cmp  (P8ZP_SCRATCH_W2),y
+            bcs  +
+            lda  #-1
+            rts
++           beq  +
+            lda  #1
+            rts
++           iny
+            cpy  P8ZP_SCRATCH_REG       ; lsb(size)
+            bne  -
+
+            lda #0
+            rts
+        }}
+    }
+
     inline asmsub read_flags() -> ubyte @A {
         %asm {{
         php

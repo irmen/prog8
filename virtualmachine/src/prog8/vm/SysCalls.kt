@@ -50,16 +50,14 @@ SYSCALLS:
 37 = memset
 38 = memsetw
 39 = stringcopy
-40 = ...unused...
-41 = ...unused...
-42 = memcopy_small
-43 = load
-44 = load_raw
-45 = save
-46 = delete
-47 = rename
-48 = directory
-49 = getconsolesize
+40 = load
+41 = load_raw
+42 = save
+43 = delete
+44 = rename
+45 = directory
+46 = getconsolesize
+47 = memcmp
 */
 
 enum class Syscall {
@@ -109,7 +107,8 @@ enum class Syscall {
     DELETE,
     RENAME,
     DIRECTORY,
-    GETGONSOLESIZE
+    GETGONSOLESIZE,
+    MEMCMP
     ;
 
     companion object {
@@ -270,6 +269,23 @@ object SysCalls {
                     returnValue(callspec.returns.single(), -1, vm)
                 else
                     returnValue(callspec.returns.single(), 1, vm)
+            }
+            Syscall.MEMCMP -> {
+                val (firstV, secondV, sizeV) = getArgValues(callspec.arguments, vm)
+                var firstAddr = (firstV as UShort).toInt()
+                var secondAddr = (secondV as UShort).toInt()
+                var size = (sizeV as UShort).toInt()
+                while(size>0) {
+                    val comparison = vm.memory.getUB(firstAddr).compareTo(vm.memory.getUB(secondAddr))
+                    if(comparison<0)
+                        return returnValue(callspec.returns.single(), -1, vm)
+                    else if(comparison>0)
+                        return returnValue(callspec.returns.single(), 1, vm)
+                    firstAddr++
+                    secondAddr++
+                    size--
+                }
+                return returnValue(callspec.returns.single(), 0, vm)
             }
             Syscall.RNDFSEED -> {
                 val seed = getArgValues(callspec.arguments, vm).single() as Double
