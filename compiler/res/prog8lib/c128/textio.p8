@@ -314,6 +314,7 @@ _mod		sta  $ffff		; modified
 		rts
 
 _screenrows	.word  cbm.Screen + range(0, 1000, 40)
+        ; !notreached!
 	}}
 }
 
@@ -357,6 +358,7 @@ _mod		sta  $ffff		; modified
 		rts
 
 _colorrows	.word  $d800 + range(0, 1000, 40)
+        ; !notreached!
 	}}
 }
 

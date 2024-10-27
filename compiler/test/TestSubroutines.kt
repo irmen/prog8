@@ -104,6 +104,9 @@ class TestSubroutines: FunSpec({
                 }
                 
                 asmsub asmfunc(str thing @AY) {
+                    %asm {{
+                        rts
+                    }}
                 }
 
                 sub func(str thing) {
@@ -124,7 +127,7 @@ class TestSubroutines: FunSpec({
         asmfunc.isAsmSubroutine shouldBe true
         asmfunc.statements.single() shouldBe instanceOf<InlineAssembly>()
         (asmfunc.statements.single() as InlineAssembly).assembly.trim() shouldBe "rts"
-        asmfunc.hasRtsInAsm() shouldBe true
+        asmfunc.hasRtsInAsm(false) shouldBe true
         func.isAsmSubroutine shouldBe false
         withClue("str param should have been changed to uword") {
             asmfunc.parameters.single().type shouldBe DataType.UWORD

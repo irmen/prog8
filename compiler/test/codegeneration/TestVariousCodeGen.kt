@@ -1,6 +1,7 @@
 package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -465,5 +466,53 @@ main {
     }    
 }"""
         compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("missing rts in asmsub") {
+        val src="""
+main {
+    sub start() {
+        test()
+        test2()
+    }
+
+    asmsub test() {
+        %asm {{
+            nop
+            nop
+        }}
+    }
+
+    inline asmsub test2() {
+        %asm {{
+            nop
+            nop
+        }}
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = true, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "asmsub seems to never return"
+    }
+
+    test("missing rts in asmsub suppressed") {
+        val src="""
+main {
+    sub start() {
+        test()
+    }
+
+    asmsub test() {
+        %asm {{
+            nop
+            nop
+            ; !notreached!
+        }}
+    }
+}"""
+
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
     }
 })

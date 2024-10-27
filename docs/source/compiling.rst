@@ -182,6 +182,12 @@ One or more .p8 module files
     interpret certain instructions differently and produce unexpected opcodes (like LDA X getting
     turned into TXA, or not, depending on the symbol 'x' being defined in your own assembly code or not)
 
+``-addmissingrts``
+    Enables old compiler behavior that silently adds RTS to asmsubs that don't have one.
+    This was done to fix asmsubs so they return properly to the caller instead of crashing the program.
+    However the new compiler behavior is to not silently modify the code anymore and instead give an error message
+    that tells you how to fix the problem. This option may go away in future version.
+
 ``-quietasm``
     Don't print assembler output results.
 

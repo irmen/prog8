@@ -838,6 +838,7 @@ _large      ora  cx16.r2L
 +           lda  #0
             rts
 _strides_lsb    .byte   0,1,2,4,8,16,32,64,128,255,255,40,80,160,255,255
+            ; !notreached!
         }}
 }
 
@@ -955,6 +956,7 @@ asmsub save_virtual_registers() clobbers(A,Y) {
 _cx16_vreg_storage
         .word 0,0,0,0,0,0,0,0
         .word 0,0,0,0,0,0,0,0
+        ; !notreached!
     }}
 }
 
@@ -993,6 +995,7 @@ asmsub save_vera_context() clobbers(A) {
         sta  _vera_storage+6
         rts
 _vera_storage:  .byte 0,0,0,0,0,0,0,0
+        ; !notreached!
     }}
 }
 
@@ -1315,6 +1318,7 @@ _continue   iny
             bne  _continue
 +           pla
             sta  $00
+            rts
         }}
     }
 
@@ -1499,7 +1503,8 @@ asmsub  restore_irq() clobbers(A) {
 	    cli
 	    rts
 _orig_irqvec    .word  0
-        }}
+        ; !notreached!
+    }}
 }
 
 asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
@@ -1775,6 +1780,7 @@ save_SCRATCH_ZPB1	.byte  0
 save_SCRATCH_ZPREG	.byte  0
 save_SCRATCH_ZPWORD1	.word  0
 save_SCRATCH_ZPWORD2	.word  0
+            ; !notreached!
         }}
     }
 

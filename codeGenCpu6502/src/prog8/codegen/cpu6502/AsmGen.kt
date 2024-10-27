@@ -1040,7 +1040,7 @@ $repeatLabel""")
         }
     }
 
-    private fun translate(ret: PtReturn, withRts: Boolean=true) {
+    private fun translate(ret: PtReturn) {
         ret.value?.let { returnvalue ->
             val sub = ret.definingSub()!!
             val returnReg = sub.returnRegister()!!
@@ -1057,9 +1057,7 @@ $repeatLabel""")
                 }
             }
         }
-
-        if(withRts)
-            out("  rts")
+        out("  rts")
     }
 
     private fun translate(asm: PtInlineAssembly) {

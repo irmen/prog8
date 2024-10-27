@@ -171,6 +171,7 @@ _mod		sta  $ffff		; modified
 		rts
 
 _screenrows	.word  cbm.Screen + range(0, 1000, 40)
+        ; !notreached!
 	}}
 }
 

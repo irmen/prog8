@@ -71,7 +71,7 @@ interrupts {
         ; no other irqs in this example.
     }
 
-    asmsub wait() {
+    inline asmsub wait() {
         %asm {{
             wai
         }}

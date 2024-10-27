@@ -13,6 +13,7 @@ math {
 		lda  _sinecos8u,y
 		rts
 _sinecos8u	.byte  trunc(128.0 + 127.5 * sin(range(256+64) * rad(360.0/256.0)))
+        ; !notreached!
         }}
     }
 
@@ -30,6 +31,7 @@ _sinecos8u	.byte  trunc(128.0 + 127.5 * sin(range(256+64) * rad(360.0/256.0)))
 		lda  _sinecos8,y
 		rts
 _sinecos8	.char  trunc(127.0 * sin(range(256+64) * rad(360.0/256.0)))
+        ; !notreached!
         }}
     }
 
@@ -47,6 +49,7 @@ _sinecos8	.char  trunc(127.0 * sin(range(256+64) * rad(360.0/256.0)))
 		lda  _sinecosR8u,y
 		rts
 _sinecosR8u	.byte  trunc(128.0 + 127.5 * sin(range(180+45) * rad(360.0/180.0)))
+        ; !notreached!
         }}
     }
 
@@ -64,6 +67,7 @@ _sinecosR8u	.byte  trunc(128.0 + 127.5 * sin(range(180+45) * rad(360.0/180.0)))
 		lda  _sinecosR8,y
 		rts
 _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
+        ; !notreached!
         }}
     }
 
@@ -131,6 +135,7 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
             rts
 +           lsr  a
             bne  -
+            ; !notreached!
         }}
     }
 
@@ -331,7 +336,7 @@ _quadrant_region_to_direction:
   .byte  8, 4,16,20
   .byte  7, 5,17,19
   .byte  6, 6,18,18
-
+        ; !notreached!
     }}
 }
 
@@ -464,7 +469,7 @@ log2_tab
 		.byte $fb,$fb,$fb,$fc,$fc,$fc,$fc,$fc
 		.byte $fd,$fd,$fd,$fd,$fd,$fd,$fe,$fe
 		.byte $fe,$fe,$fe,$ff,$ff,$ff,$ff,$ff
-
+        ; !notreached!
     }}
 }
 

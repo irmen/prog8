@@ -56,6 +56,7 @@ main {
     asmsub baz() {
         %asm{{
             jsr p8s_foo
+            jmp blah
         }}
     }
     asmsub bar() {

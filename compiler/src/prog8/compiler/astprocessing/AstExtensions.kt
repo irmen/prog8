@@ -22,7 +22,7 @@ internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: Compila
 }
 
 internal fun Program.processAstBeforeAsmGeneration(compilerOptions: CompilationOptions, errors: IErrorReporter) {
-    val fixer = BeforeAsmAstChanger(this, compilerOptions)
+    val fixer = BeforeAsmAstChanger(this, compilerOptions, errors)
     fixer.visit(this)
     while (errors.noErrors() && fixer.applyModifications() > 0) {
         fixer.visit(this)
@@ -155,11 +155,29 @@ internal fun IdentifierReference.isSubroutineParameter(program: Program): Boolea
     return false
 }
 
-internal fun Subroutine.hasRtsInAsm(): Boolean {
-    return statements
+internal fun Subroutine.hasRtsInAsm(checkOnlyLastInstruction: Boolean): Boolean {
+    val asms = statements
         .asSequence()
         .filterIsInstance<InlineAssembly>()
-        .any { it.hasReturnOrRts() }
+    if(checkOnlyLastInstruction) {
+        val lastAsm = asms.lastOrNull() ?: return false
+        val lastLine = lastAsm.assembly.lineSequence().map { it.trim() }.last {
+            it.isNotBlank() && (!it.startsWith(';') || it.contains("!notreached!"))
+        }
+        if(lastLine.contains("!notreached!"))
+            return true
+        val inlineAsm = InlineAssembly("  $lastLine", lastAsm.isIR, lastAsm.position)
+        return inlineAsm.hasReturnOrRts()
+    } else {
+        val allAsms = asms.toList()
+        val lastAsm = allAsms.lastOrNull() ?: return false
+        val lastLine = lastAsm.assembly.lineSequence().map { it.trim() }.last {
+            it.isNotBlank() && (!it.startsWith(';') || it.contains("!notreached!"))
+        }
+        if(lastLine.contains("!notreached!"))
+            return true
+        return allAsms.any { it.hasReturnOrRts() }
+    }
 }
 
 internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, statement: Statement, errors: IErrorReporter): Statement? {

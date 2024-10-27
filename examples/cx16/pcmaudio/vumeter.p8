@@ -327,7 +327,7 @@ interrupts {
     bool aflow
     bool vsync
 
-    asmsub wait() {
+    inline asmsub wait() {
         %asm {{
             wai
         }}

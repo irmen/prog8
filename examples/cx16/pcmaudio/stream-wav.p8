@@ -161,7 +161,7 @@ interrupts {
 
     bool aflow
 
-    asmsub wait() {
+    inline asmsub wait() {
         %asm {{
             wai
         }}
@@ -285,6 +285,7 @@ _lp2        lda  $ffff,y
             inc  _lp2+2
             dex
             bne  _loop
+            ; !notreached!
         }}
 ; original prog8 code:
 ;        uword @requirezp ptr = main.start.buffer

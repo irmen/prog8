@@ -54,6 +54,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
     val warnSymbolShadowing by cli.option(ArgType.Boolean, fullName = "warnshadow", description="show assembler warnings about symbol shadowing")
+    val addMissingRts by cli.option(ArgType.Boolean, fullName = "addmissingrts", description="enable old behavior that silently adds RTS to asmsubs that don't have one (deprecated, may go away in future version)")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val includeSourcelines by cli.option(ArgType.Boolean, fullName = "sourcelines", description = "include original Prog8 source lines in generated asm code")
     val splitWordArrays by cli.option(ArgType.Boolean, fullName = "splitarrays", description = "treat all word arrays as tagged with @split to make them lsb/msb split in memory")
@@ -179,6 +180,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     slabsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
+                    addMissingRts == true,
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
@@ -259,6 +261,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     slabsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
+                    addMissingRts == true,
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,

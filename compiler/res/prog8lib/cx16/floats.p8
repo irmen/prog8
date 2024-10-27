@@ -186,6 +186,7 @@ _borked
 +       jmp  sys.exit
 
 _msg    .text 13,"?rom 47+ required for val1",13,0
+        ; !notreached!
     }}
 }
 

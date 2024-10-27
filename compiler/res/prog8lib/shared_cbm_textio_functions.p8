@@ -171,6 +171,7 @@ _allzero    lda  #'0'
             eor  P8ZP_SCRATCH_REG
             rts
 _offsets    .byte  128, 0, 64, 32, 64, 192, 128, 128
+            ; !notreached!
         }}
     }
 

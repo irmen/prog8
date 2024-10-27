@@ -52,6 +52,7 @@ class CompilerArguments(val filepath: Path,
                         val slabsGolden: Boolean,
                         val compilationTarget: String,
                         val splitWordArrays: Boolean,
+                        val addMissingRts: Boolean,
                         val breakpointCpuInstruction: String?,
                         val printAst1: Boolean,
                         val printAst2: Boolean,
@@ -89,6 +90,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 slabsHighBank = args.slabsHighBank
                 slabsGolden = args.slabsGolden
                 splitWordArrays = args.splitWordArrays
+                addMissingRts = args.addMissingRts
                 outputDir = args.outputDir.normalize()
                 symbolDefs = args.symbolDefs
             }

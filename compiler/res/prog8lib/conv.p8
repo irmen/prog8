@@ -200,6 +200,7 @@ _allzero    lda  #'0'
         sta  string_out,x
         inx
         bne  _end
+        ; !notreached!
 	}}
 }
 
@@ -402,6 +403,7 @@ _digit
 		bne  _parse
 		; never reached
 _negative	.byte  0
+        ; !notreached!
 	}}
 }
 
@@ -472,6 +474,7 @@ _try_iso
         bcs  _stop
         and  #63
         bne  _add_letter
+		; !notreached!
 	}}
 }
 
@@ -702,7 +705,7 @@ decHundreds		.byte  0
 decTens			.byte  0
 decOnes   		.byte  0
 			.byte  0		; zero-terminate the decimal output string
-
+		; !notreached!
     }}
 }
 
@@ -736,6 +739,7 @@ asmsub  internal_ubyte2hex  (ubyte value @A) clobbers(X) -> ubyte @A, ubyte @Y  
 		rts
 
 _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as well
+		; !notreached!
 	}}
 }
 
@@ -753,6 +757,7 @@ asmsub  internal_uword2hex  (uword value @AY) clobbers(A,Y)  {
 		sty  output+3
 		rts
 output		.text  "0000", $00      ; 0-terminated output buffer (to make printing easier)
+		; !notreached!
 	}}
 }
 

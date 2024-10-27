@@ -178,7 +178,7 @@ _found      tya
             rts
 
 _str    .word 0
-
+            ; !notreached!
         }}
     }
 

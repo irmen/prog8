@@ -248,6 +248,7 @@ save_SCRATCH_ZPB1	.byte  0
 save_SCRATCH_ZPREG	.byte  0
 save_SCRATCH_ZPWORD1	.word  0
 save_SCRATCH_ZPWORD2	.word  0
+            ; !notreached!
         }}
     }
 
@@ -461,6 +462,7 @@ cx16 {
     _cx16_vreg_storage
             .word 0,0,0,0,0,0,0,0
             .word 0,0,0,0,0,0,0,0
+            ; !notreached!
         }}
     }
 

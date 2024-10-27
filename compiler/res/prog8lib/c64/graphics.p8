@@ -386,6 +386,7 @@ _plot_y_values := p8c_BITMAP_ADDRESS + 320*(range(200)>>3) + (range(200) & 7)
 
 _y_lookup_lo    .byte  <_plot_y_values
 _y_lookup_hi    .byte  >_plot_y_values
+            ; !notreached!
 
         }}
     }

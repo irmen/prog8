@@ -40,6 +40,7 @@ internal fun compileFile(
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests(),
         splitWordArrays = false,
+        addMissingRts = false,
         breakpointCpuInstruction = null,
         printAst1 = false,
         printAst2 = false,
