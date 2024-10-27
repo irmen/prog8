@@ -26,6 +26,10 @@ interface IAstVisitor {
     fun visit(directive: Directive) {
     }
 
+    fun visit(alias: Alias) {
+        alias.target.accept(this)
+    }
+
     fun visit(containment: ContainmentCheck) {
         containment.element.accept(this)
         containment.iterable.accept(this)

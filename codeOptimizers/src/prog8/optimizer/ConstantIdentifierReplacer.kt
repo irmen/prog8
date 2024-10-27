@@ -285,7 +285,7 @@ internal class ConstantIdentifierReplacer(
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
         // replace identifiers that refer to const value, with the value itself
         // if it's a simple type and if it's not a left hand side variable
-        if(identifier.parent is AssignTarget)
+        if(identifier.parent is AssignTarget || identifier.parent is Alias)
             return noModifications
         var forloop = identifier.parent as? ForLoop
         if(forloop==null)

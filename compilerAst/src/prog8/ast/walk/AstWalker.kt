@@ -122,6 +122,7 @@ abstract class AstWalker {
     open fun before(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(jump: Jump, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(label: Label, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(alias: Alias, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(module: Module, parent: Node): Iterable<IAstModification> = noModifications
@@ -168,6 +169,7 @@ abstract class AstWalker {
     open fun after(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(jump: Jump, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(label: Label, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(alias: Alias, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(module: Module, parent: Node): Iterable<IAstModification> = noModifications
@@ -342,6 +344,12 @@ abstract class AstWalker {
     fun visit(label: Label, parent: Node) {
         track(before(label, parent), label, parent)
         track(after(label, parent), label, parent)
+    }
+
+    fun visit(alias: Alias, parent: Node) {
+        track(before(alias, parent), alias, parent)
+        alias.target.accept(this, alias)
+        track(after(alias, parent), alias, parent)
     }
 
     fun visit(numLiteral: NumericLiteral, parent: Node) {

@@ -23,6 +23,11 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - pointer[word] replaced by @(pointer+word)
     // - @(&var) and @(&var+1) replaced by lsb(var) and msb(var) if var is a word
     // - flatten chained assignments
+    // - remove alias nodes
+
+    override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
+        return listOf(IAstModification.Remove(alias, parent as IStatementContainer))
+    }
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {

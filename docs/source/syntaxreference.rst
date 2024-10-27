@@ -296,6 +296,15 @@ scoped names always need to be fully scoped (because they always start in the gl
     main.start              ; the entrypoint subroutine
     main.start.variable     ; a variable in the entrypoint subroutine
 
+**Aliases**
+
+The ``alias`` statement makes it easier to refer to symbols from other places, and they can save
+you from having to type the fully scoped name everytime you need to access that symbol.
+Aliases can be created in any scope except at the module level.
+An alias is created with ``alias <name> = <target>`` and then you can use ``<name>`` as if it were ``<target>``.
+It is possible to alias variables, labels and subroutines, but not whole blocks.
+The name has to be an unscoped identifier name, the target can be any symbol.
+
 
 Code blocks
 -----------

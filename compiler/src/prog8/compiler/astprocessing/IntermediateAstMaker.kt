@@ -41,6 +41,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             is ChainedAssignment -> throw FatalAstException("ChainedAssignment should have been flattened")
             is Assignment -> transform(statement)
             is Block -> transform(statement)
+            is Alias -> throw FatalAstException("alias should have been desugared")
             is Break -> throw FatalAstException("break should have been replaced by Goto")
             is Continue -> throw FatalAstException("continue should have been replaced by Goto")
             is BuiltinFunctionCallStatement -> transform(statement)

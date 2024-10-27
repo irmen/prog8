@@ -5,9 +5,7 @@ import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.VarDecl
-import prog8.ast.statements.WhenChoice
+import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.ast.PtContainmentCheck
@@ -106,6 +104,26 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
                 } + IAstModification.Remove(decl, parent as IStatementContainer)
             }
         }
+        return noModifications
+    }
+
+    override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
+        val target = identifier.targetStatement(program)
+        if(target is Alias) {
+            return listOf(IAstModification.ReplaceNode(identifier, target.target.copy(position = identifier.position), parent))
+        }
+
+// experimental code to be able to alias blocks too:
+//        if(target is INamedStatement) {
+//            if (identifier.nameInSource != target.scopedName) {
+//                val blockAlias = identifier.definingScope.lookup(identifier.nameInSource.take(1))
+//                if(blockAlias is Alias) {
+//                    val newname = mutableListOf(blockAlias.target.nameInSource.single())
+//                    newname.addAll(identifier.nameInSource.drop(1))
+//                    return listOf(IAstModification.ReplaceNode(identifier, IdentifierReference(newname, position = identifier.position), parent))
+//                }
+//            }
+//        }
         return noModifications
     }
 }

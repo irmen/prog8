@@ -145,6 +145,14 @@ to access a variable from a nested subroutine::
         }
     }
 
+**Aliases** make it easier to refer to symbols from other places. They save
+you from having to type the fully scoped name everytime you need to access that symbol.
+Aliases can be created in any scope except at the module level.
+You can create and use an alias with the ``alias`` statement like so::
+
+    alias  prn = txt.print_ub
+    ...
+    prn(score)
 
 
 .. important::

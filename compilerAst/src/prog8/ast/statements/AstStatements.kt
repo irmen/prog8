@@ -138,6 +138,22 @@ data class DirectiveArg(val str: String?, val name: String?, val int: UInt?, ove
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 }
 
+data class Alias(val alias: String, val target: IdentifierReference, override val position: Position) : Statement() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        target.parent = this
+    }
+
+    override fun copy(): Statement = Alias(alias, target.copy(), position)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = (nameInSource.size==1 && nameInSource[0]==alias) || target.referencesIdentifier(nameInSource)
+}
+
+
 data class Label(override val name: String, override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
 

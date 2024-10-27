@@ -89,6 +89,7 @@ block_statement:
 	| inlineasm
 	| inlineir
 	| labeldef
+	| alias
 	;
 
 
@@ -116,6 +117,7 @@ statement :
 	| continuestmt
 	| labeldef
 	| defer
+	| alias
 	;
 
 
@@ -132,6 +134,8 @@ subroutinedeclaration :
 	| asmsubroutine
 	| romsubroutine
     ;
+
+alias: 'alias' identifier '=' scoped_identifier ;
 
 defer: 'defer' (statement | statement_block) ;
 

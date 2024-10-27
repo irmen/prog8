@@ -126,6 +126,7 @@ interface IStatementContainer {
                             return found
                     }
                 }
+                is Alias -> if(stmt.alias==name) return stmt
                 else -> {
                     // NOTE: when other nodes containing AnonymousScope are introduced,
                     //       these should be added here as well to look into!
@@ -155,6 +156,19 @@ interface INameScope: IStatementContainer, INamedStatement {
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
         // a scoped name refers to a name in another namespace, and stars from the root.
+
+// experimental code to be able to alias blocks too:
+//        val stmt = this.lookup(listOf(scopedName[0])) ?: return null
+//        if(stmt is Alias) {
+//            val block = this.lookup(stmt.target.nameInSource) ?: return null
+//            var statement = block as Statement?
+//            for(name in scopedName.drop(1)) {
+//                statement = (statement as? IStatementContainer)?.searchSymbol(name)
+//                if(statement==null)
+//                    return null
+//            }
+//            return statement
+//        }
         for(module in (this as Node).definingModule.program.modules) {
             val block = module.searchSymbol(scopedName[0])
             if(block!=null) {

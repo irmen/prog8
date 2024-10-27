@@ -290,6 +290,7 @@ internal class AstChecker(private val program: Program,
 
         for (statement in block.statements) {
             val ok = when (statement) {
+                is Alias,
                 is Block,
                 is Directive,
                 is Label,

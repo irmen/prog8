@@ -727,5 +727,69 @@ main {
         val handler = sub.children[7] as PtSub
         handler.name shouldBe "p8s_prog8_invoke_defers"
     }
+
+    test("aliases ok") {
+        val src="""
+main {
+    alias print = txt.print
+    alias width = txt.DEFAULT_WIDTH
+
+    sub start() {
+        alias print2 = txt.print
+        alias width2 = txt.DEFAULT_WIDTH
+        print("one")
+        print2("two")
+        txt.print_ub(width)
+        txt.print_ub(width2)
+    }
+}
+
+txt {
+    const ubyte DEFAULT_WIDTH = 80
+    sub print_ub(ubyte value) {
+        ; nothing
+    }
+    sub print(str msg) {
+        ; nothing
+    }
+}
+
+"""
+        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
+
+    test("wrong alias gives correct error") {
+        val src="""
+main {
+    alias print = txt.print2222
+    alias width = txt.DEFAULT_WIDTH
+
+    sub start() {
+        alias print2 = txt.print
+        alias width2 = txt.DEFAULT_WIDTH_XXX
+        print("one")
+        print2("two")
+        txt.print_ub(width)
+        txt.print_ub(width2)
+    }
+}
+
+txt {
+    const ubyte DEFAULT_WIDTH = 80
+    sub print_ub(ubyte value) {
+        ; nothing
+    }
+    sub print(str msg) {
+        ; nothing
+    }
+}
+
+"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "undefined symbol: txt.print2222"
+        errors.errors[1] shouldContain "undefined symbol: txt.DEFAULT_WIDTH_XXX"
+    }
 })
 

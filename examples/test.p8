@@ -1,24 +1,18 @@
+%import textio
 %option no_sysinit
-%zeropage dontuse
-
+%zeropage basicsafe
 
 main {
     sub start() {
-        derp()
-        derp2()
-    }
+        alias  prn = txt.print_ub
+        alias  spc = txt.spc
+        alias  nl = txt.nl
 
-    asmsub derp() {
-        %asm {{
-            nop
-            nop
-        }}
-    }
-
-    inline asmsub derp2() {
-        %asm {{
-            nop
-            nop
-        }}
+        prn(10)
+        spc()
+        prn(20)
+        spc()
+        prn(30)
+        nl()
     }
 }

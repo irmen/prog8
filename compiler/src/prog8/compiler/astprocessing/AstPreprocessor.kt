@@ -249,6 +249,14 @@ class AstPreprocessor(val program: Program,
         return noModifications
     }
 
+    override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
+        val tgt = alias.target.targetStatement(program)
+        if(tgt is Block) {
+            errors.err("cannot alias blocks", alias.target.position)
+        }
+        return noModifications
+    }
+
     private fun checkStringParam(call: IFunctionCall, stmt: Statement) {
         val targetStatement = call.target.checkFunctionOrLabelExists(program, stmt, errors)
         if(targetStatement!=null) {

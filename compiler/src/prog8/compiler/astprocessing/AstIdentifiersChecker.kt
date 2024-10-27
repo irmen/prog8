@@ -36,6 +36,11 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             errors.err("invalid number of arguments: expected ${params.size} got $numArgs", pos)
     }
 
+    override fun visit(alias: Alias) {
+        if(alias.target.targetStatement(program)==null)
+            errors.err("undefined symbol: ${alias.target.nameInSource.joinToString(".") }", alias.target.position)
+    }
+
     override fun visit(block: Block) {
         val existing = blocks[block.name]
         if(existing!=null) {
@@ -210,6 +215,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 if(target.type!=VarDeclType.VAR || target.datatype!=DataType.UWORD)
                     errors.err("wrong address variable datatype, expected uword", call.target.position)
             }
+            is Alias -> {}
             null -> {}
             else -> errors.err("cannot call this as a subroutine or function", call.target.position)
         }

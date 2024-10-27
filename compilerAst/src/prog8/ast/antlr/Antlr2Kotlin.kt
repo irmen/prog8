@@ -42,6 +42,7 @@ internal fun BlockContext.toAst(isInLibrary: Boolean) : Block {
             it.inlineasm()!=null -> it.inlineasm().toAst()
             it.inlineir()!=null -> it.inlineir().toAst()
             it.labeldef()!=null -> it.labeldef().toAst()
+            it.alias()!=null -> it.alias().toAst()
             else -> throw FatalAstException("weird block node $it")
         }
     }
@@ -158,6 +159,9 @@ private fun StatementContext.toAst() : Statement {
 
     val deferstmt = defer()?.toAst()
     if(deferstmt!=null) return deferstmt
+
+    val aliasstmt = alias()?.toAst()
+    if(aliasstmt!=null) return aliasstmt
 
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
@@ -291,7 +295,10 @@ private fun UnconditionaljumpContext.toAst(): Jump {
 }
 
 private fun LabeldefContext.toAst(): Statement =
-        Label(children[0].text, toPosition())
+    Label(children[0].text, toPosition())
+
+private fun AliasContext.toAst(): Statement =
+    Alias(identifier().text, scoped_identifier().toAst(), toPosition())
 
 private fun SubroutineContext.toAst() : Subroutine {
     // non-asm subroutine
