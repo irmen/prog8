@@ -107,10 +107,22 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
         return noModifications
     }
 
+    override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
+        val target = alias.target.targetStatement(program)
+        if(target is Alias) {
+            val newAlias = Alias(alias.alias, target.target, alias.position)
+            return listOf(IAstModification.ReplaceNode(alias, newAlias, parent))
+        }
+        return noModifications
+    }
+
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
         val target = identifier.targetStatement(program)
-        if(target is Alias) {
-            return listOf(IAstModification.ReplaceNode(identifier, target.target.copy(position = identifier.position), parent))
+
+        // don't replace an identifier in an Alias or when the alias points to another alias (that will be resolved first elsewhere)
+        if(target is Alias && parent !is Alias) {
+            if(target.target.targetStatement(program) !is Alias)
+                return listOf(IAstModification.ReplaceNode(identifier, target.target.copy(position = identifier.position), parent))
         }
 
 // experimental code to be able to alias blocks too:

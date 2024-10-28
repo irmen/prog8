@@ -741,6 +741,10 @@ main {
         print2("two")
         txt.print_ub(width)
         txt.print_ub(width2)
+        
+        ; chained aliases
+        alias chained = print2
+        chained("chained")
     }
 }
 
