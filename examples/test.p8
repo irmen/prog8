@@ -5,7 +5,7 @@
 main {
 
     sub start() {
-        blah.test()
+        txt.print("sdfdsf")
     }
 }
 
@@ -13,22 +13,14 @@ txt {
     ; merges this block into the txt block coming from the textio library
     %option merge
 
-    sub schrijf(str arg) {
-        print(arg)
-    }
-}
-
-blah {
-    ; merges this block into the other 'blah' one
-    %option merge
-
-    sub test() {
-        printit("test merge")
-    }
-}
-
-blah {
-    sub printit(str arg) {
-        txt.schrijf(arg)
+    sub print(str text) {
+        repeat 4 chrout('@')
+        repeat {
+            cx16.r0L = @(text)
+            if_z break
+            chrout(cx16.r0L)
+            text++
+        }
+        repeat 4 chrout('@')
     }
 }

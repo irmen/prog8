@@ -6,6 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import java.util.*
 
 
 interface INamedStatement {
@@ -861,6 +862,14 @@ open class SubroutineParameter(val name: String,
     override fun copy() = SubroutineParameter(name, type, zp, position)
     override fun toString() = "Param($type:$name)"
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = nameInSource.size==1 && name==nameInSource[0]
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is SubroutineParameter) return false
+        return name == other.name && type == other.type && zp == other.zp
+    }
+
+    override fun hashCode(): Int = Objects.hash(name, type, zp)
 }
 
 class IfElse(var condition: Expression,

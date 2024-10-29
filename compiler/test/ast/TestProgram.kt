@@ -14,10 +14,8 @@ import prog8.code.core.Position
 import prog8.code.core.SourceCode
 import prog8.code.core.internedStringsModuleName
 import prog8.code.target.C64Target
-import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
-import prog8tests.helpers.compileText
+import prog8.code.target.VMTarget
+import prog8tests.helpers.*
 
 class TestProgram: FunSpec({
 
@@ -146,6 +144,55 @@ blah {
     }
 }"""
             compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        }
+
+        test("merge override existing subroutine") {
+            val src="""
+%import textio
+
+main {
+
+    sub start() {
+        txt.print("sdfdsf")
+    }
+}
+
+txt {
+    %option merge
+
+    sub print(str text) {
+        cx16.r0++
+        ; just some dummy implementation to replace existing print
+    }
+}"""
+
+            val result = compileText(VMTarget(), optimize=false, src, writeAssembly=false)
+            result shouldNotBe null
+        }
+
+        test("merge doesn't override existing subroutine if signature differs") {
+            val src="""
+%import textio
+
+main {
+
+    sub start() {
+        txt.print("sdfdsf")
+    }
+}
+
+txt {
+    %option merge
+
+    sub print(str anotherparamname) {
+        cx16.r0++
+        ; just some dummy implementation to replace existing print
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+            errors.errors.size shouldBe 1
+            errors.errors[0] shouldContain "name conflict"
         }
     }
 })

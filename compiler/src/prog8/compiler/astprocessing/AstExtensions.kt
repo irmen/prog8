@@ -105,7 +105,7 @@ internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter, options: Com
 }
 
 internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationOptions) {
-    val mergeBlocks = BlockMerger()
+    val mergeBlocks = BlockMerger(errors)
     mergeBlocks.visit(this)
     if(errors.noErrors()) {
         val transforms = AstPreprocessor(this, errors, options)
