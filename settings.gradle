@@ -8,5 +8,6 @@ include(
     ':codeGenIntermediate',
     ':codeGenCpu6502',
     ':codeGenExperimental',
-    ':compiler'
+    ':compiler',
+    ':beanshell'
 )
