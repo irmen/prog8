@@ -6,7 +6,12 @@ import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.intermediate.*
 import java.awt.Color
 import java.awt.Toolkit
-import kotlin.collections.ArrayDeque
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import kotlin.io.path.Path
+import kotlin.io.path.inputStream
+import kotlin.io.path.outputStream
 import kotlin.math.*
 import kotlin.random.Random
 
@@ -34,6 +39,9 @@ class BreakpointException(val pcChunk: IRCodeChunk, val pcIndex: Int): Exception
 @Suppress("FunctionName")
 class VirtualMachine(irProgram: IRProgram) {
     class CallSiteContext(val returnChunk: IRCodeChunk, val returnIndex: Int, val fcallSpec: FunctionCallArgs)
+
+    private var fileOutputStream: OutputStream? = null
+    private var fileInputStream: InputStream? = null
     val memory = Memory()
     val machinedef = VirtualMachineDefinition()
     val program: List<IRCodeChunk>
@@ -2488,6 +2496,62 @@ class VirtualMachine(irProgram: IRProgram) {
 
     fun randomSeedFloat(seed: Double) {
         randomGeneratorFloats = Random(seed.toBits())
+    }
+
+    fun open_file_read(name: String): Int {
+        try {
+            fileInputStream = Path(name).inputStream()
+        } catch (_: IOException) {
+            return 0
+        }
+        return 1
+    }
+
+    fun open_file_write(name: String): Int {
+        try {
+            fileOutputStream = Path(name).outputStream()
+        } catch (_: IOException) {
+            return 0
+        }
+        return 1
+    }
+
+    fun close_file_read() {
+        fileInputStream?.close()
+        fileInputStream=null
+    }
+
+    fun close_file_write() {
+        fileOutputStream?.flush()
+        fileOutputStream?.close()
+        fileOutputStream=null
+    }
+
+    fun read_file_byte(): Pair<Boolean, UByte> {
+        return if(fileInputStream==null)
+            false to 0u
+        else {
+            try {
+                val byte = fileInputStream!!.read()
+                if(byte>=0)
+                    true to byte.toUByte()
+                else
+                    false to 0u
+            } catch(_: IOException) {
+                false to 0u
+            }
+        }
+    }
+
+    fun write_file_byte(byte: UByte): Boolean {
+        if(fileOutputStream==null)
+            return false
+        try {
+            fileOutputStream!!.write(byte.toInt())
+            return true
+        } catch(_: IOException) {
+            return false
+        }
     }
 }
 

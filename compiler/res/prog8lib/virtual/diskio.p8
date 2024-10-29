@@ -1,4 +1,8 @@
-; file I/O routines. (partially implemented)
+; File I/O routines for the VM target
+;
+; NOTE: not all is implemented.
+; NOTE: some calls are slightly different from the "official" diskio library because for example,
+;       here we cannot deal with multiple return values.
 
 %import textio
 %import syslib
@@ -59,37 +63,86 @@ diskio {
         ;    NOTE: the default input isn't yet set to this logical file, you must use reset_read_channel() to do this,
         ;          if you're going to read from it yourself instead of using f_read()!
 
-        txt.print("@TODO: f_open\n")
-        return false
+        %ir {{
+            loadm.w r65535,diskio.f_open.filenameptr
+            syscall 52 (r65535.w): r0.b
+            returnr.b r0
+        }}
     }
 
     sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
-        txt.print("@TODO: f_read\n")
-        return 0
+        uword actual
+        repeat num_bytes {
+            %ir {{
+                syscall 54 (): r0.w
+                storem.w r0,$ff02
+            }}
+            if cx16.r0H==0
+                return actual
+            @(bufferpointer) = cx16.r0L
+            bufferpointer++
+            actual++
+        }
+        return actual
     }
 
     sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full contents of the file, returns number of bytes read.
         ;    It is assumed the file size is less than 64 K.
-        txt.print("@TODO: f_read_all\n")
-        return 0
+        uword actual
+        repeat {
+            %ir {{
+                syscall 54 (): r0.w
+                storem.w r0,$ff02
+            }}
+            if cx16.r0H==0
+                return actual
+            @(bufferpointer) = cx16.r0L
+            bufferpointer++
+            actual++
+        }
     }
 
     sub f_readline(uword bufptr) -> ubyte {
         ; Routine to read text lines from a text file. Lines must be less than 255 characters.
         ; Reads characters from the input file UNTIL a newline or return character (or EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
-        ; The length of the line is returned in Y. Note that an empty line is okay and is length 0!
-        ; This routine is not able here to return the status as well in a secondary return value, so you have to do that yourself.
-        txt.print("@TODO: f_readline\n")
-        return 0
+        ; The length of the line is returned. Note that an empty line is okay and is length 0!
+        ; The success status is returned in the Carry flag instead: C set = success, C clear = failure/endoffile
+        ubyte size
+        repeat {
+            %ir {{
+                syscall 54 (): r0.w
+                storem.w r0,$ff02
+            }}
+
+            if cx16.r0H==0 {
+                sys.clear_carry()
+                return size
+            } else {
+                if cx16.r0L == '\n' or cx16.r0L=='\r' {
+                    @(bufptr) = 0
+                    sys.set_carry()
+                    return size
+                }
+                @(bufptr) = cx16.r0L
+                bufptr++
+                size++
+                if_z {
+                    @(bufptr) = 0
+                    return 255
+                }
+            }
+        }
     }
 
     sub f_close() {
         ; -- end an iterative file loading session (close channels).
-        txt.print("@TODO: f_close\n")
+        %ir {{
+            syscall 56 ()
+        }}
     }
 
 
@@ -102,20 +155,35 @@ diskio {
         ;    (for example, if it already exists). This is different than f_open()!
         ;    To be 100% sure if this call was successful, you have to use status()
         ;    and check the drive's status message!
-        txt.print("@TODO: f_open_w\n")
-        return false
+        %ir {{
+            loadm.w r65535,diskio.f_open_w.filenameptr
+            syscall 53 (r65535.w): r0.b
+            returnr.b r0
+        }}
     }
 
     sub f_write(uword bufferpointer, uword num_bytes) -> bool {
         ; -- write the given number of bytes to the currently open file
         ;    you can call this multiple times to append more data
-        txt.print("@TODO: f_write\n")
-        return false
+        repeat num_bytes {
+            %ir {{
+                loadm.w r0,diskio.f_write.bufferpointer
+                loadi.b r1,r0
+                syscall 55 (r1.b): r0.b
+                storem.b r0,$ff02
+            }}
+            if cx16.r0L==0
+                return false
+            bufferpointer++
+        }
+        return true
     }
 
     sub f_close_w() {
         ; -- end an iterative file writing session (close channels).
-        txt.print("@TODO: f_close_w\n")
+        %ir {{
+            syscall 57 ()
+        }}
     }
 
 
@@ -123,23 +191,34 @@ diskio {
 
     sub chdir(str path) {
         ; -- change current directory.
-        txt.print("@TODO: chdir\n")
+        %ir {{
+            loadm.w r65535,diskio.chdir.path
+            syscall 50 (r65535.w)
+        }}
     }
 
     sub mkdir(str name) {
         ; -- make a new subdirectory.
-        txt.print("@TODO: mkdir\n")
+        %ir {{
+            loadm.w r65535,diskio.mkdir.name
+            syscall 49 (r65535.w)
+        }}
     }
 
     sub rmdir(str name) {
         ; -- remove a subdirectory.
-        txt.print("@TODO: rmdir\n")
+        %ir {{
+            loadm.w r65535,diskio.rmdir.name
+            syscall 51 (r65535.w)
+        }}
     }
 
     sub curdir() -> uword {
         ; return current directory name or 0 if error
-        txt.print("@TODO: curdir\n")
-        return 0
+        %ir {{
+            syscall 48 (): r0.w
+            returnr.w r0
+        }}
     }
 
     sub status() -> str {

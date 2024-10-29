@@ -3,12 +3,11 @@ package prog8.vm
 import prog8.intermediate.FunctionCallArgs
 import prog8.intermediate.IRDataType
 import java.io.File
-import kotlin.io.path.Path
-import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.*
 import kotlin.math.*
 
 /*
-SYSCALLS:
+SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 
 0 = reset ; resets system
 1 = exit ; stops program and returns statuscode from r0.w
@@ -58,6 +57,16 @@ SYSCALLS:
 45 = directory
 46 = getconsolesize
 47 = memcmp
+48 = CURDIR
+49 = MKDIR
+50 = CHDIR
+51 = RMDIR
+52 = OPEN_FILE
+53 = OPEN_FILE_WRITE
+54 = READ_FILE_BYTE
+55 = WRITE_FILE_BYTE
+56 = CLOSE_FILE
+57 = CLOSE_FILE_WRITE
 */
 
 enum class Syscall {
@@ -108,7 +117,17 @@ enum class Syscall {
     RENAME,
     DIRECTORY,
     GETGONSOLESIZE,
-    MEMCMP
+    MEMCMP,
+    CURDIR,
+    MKDIR,
+    CHDIR,
+    RMDIR,
+    OPEN_FILE,
+    OPEN_FILE_WRITE,
+    READ_FILE_BYTE,
+    WRITE_FILE_BYTE,
+    CLOSE_FILE,
+    CLOSE_FILE_WRITE,
     ;
 
     companion object {
@@ -517,7 +536,7 @@ object SysCalls {
             }
             Syscall.DIRECTORY -> {
                 // no arguments
-                val directory = Path(".")
+                val directory = Path("")
                 println("Directory listing for ${directory.toAbsolutePath().normalize()}")
                 directory.listDirectoryEntries().sorted().forEach {
                     println("${it.toFile().length()}\t${it.normalize()}")
@@ -552,6 +571,51 @@ object SysCalls {
                 }
                 return returnValue(callspec.returns.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30
             }
+
+            Syscall.CURDIR -> {
+                val curdir = Path("").toAbsolutePath().toString()
+                vm.memory.setString(0xfe00, curdir, true)
+                return returnValue(callspec.returns.single(), 0xfe00, vm)
+            }
+            Syscall.MKDIR -> {
+                val namePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val name = vm.memory.getString(namePtr.toInt())
+                Path(name).createDirectory()
+            }
+            Syscall.RMDIR -> {
+                val namePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val name = vm.memory.getString(namePtr.toInt())
+                Path(name).deleteIfExists()
+            }
+            Syscall.CHDIR -> throw NotImplementedError("chdir is not possible in java/kotlin")
+            Syscall.OPEN_FILE -> {
+                val namePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val name = vm.memory.getString(namePtr.toInt())
+                val success = vm.open_file_read(name)
+                return returnValue(callspec.returns.single(), success, vm)
+            }
+            Syscall.OPEN_FILE_WRITE -> {
+                val namePtr = getArgValues(callspec.arguments, vm).single() as UShort
+                val name = vm.memory.getString(namePtr.toInt())
+                val success = vm.open_file_write(name)
+                return returnValue(callspec.returns.single(), success, vm)
+            }
+            Syscall.READ_FILE_BYTE -> {
+                val (success, byte) = vm.read_file_byte()
+                if(success)
+                    return returnValue(callspec.returns.single(), 0x0100 or byte.toInt(), vm)
+                else
+                    return returnValue(callspec.returns.single(), 0x0000, vm)
+            }
+            Syscall.WRITE_FILE_BYTE -> {
+                val byte = getArgValues(callspec.arguments, vm).single() as UByte
+                if(vm.write_file_byte(byte))
+                    return returnValue(callspec.returns.single(), 1, vm)
+                else
+                    return returnValue(callspec.returns.single(), 0, vm)
+            }
+            Syscall.CLOSE_FILE -> vm.close_file_read()
+            Syscall.CLOSE_FILE_WRITE -> vm.close_file_write()
         }
     }
 }

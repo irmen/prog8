@@ -59,7 +59,7 @@ Libraries:
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?
-- VM: implement more diskio support
+- VM: implement the last diskio support (file listings)
 
 
 Optimizations:
