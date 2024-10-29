@@ -9,5 +9,5 @@ include(
     ':codeGenCpu6502',
     ':codeGenExperimental',
     ':compiler',
-    ':languageServer'
+    ':beanshell'
 )

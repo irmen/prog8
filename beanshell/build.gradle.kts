@@ -3,11 +3,8 @@ plugins {
     id("application")
 }
 
-val debugPort = 8000
-val debugArgs = "-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n,quiet=y"
-
 val serverMainClassName = "prog8lsp.MainKt"
-val applicationName = "prog8-language-server"
+val applicationName = "prog8-beanshell"
 
 application {
     mainClass.set(serverMainClassName)
@@ -31,8 +28,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.eclipse.lsp4j:org.eclipse.lsp4j:0.23.1")
-    implementation("org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.23.1")
+    implementation(files("lib/bsh-3.0.0-SNAPSHOT.jar"))
 }
 
 configurations.forEach { config ->
@@ -52,7 +48,7 @@ sourceSets.test {
 }
 
 tasks.startScripts {
-    applicationName = "prog8-language-server"
+    applicationName = "prog8-beanshell"
 }
 
 tasks.register<Exec>("fixFilePermissions") {
@@ -60,31 +56,7 @@ tasks.register<Exec>("fixFilePermissions") {
     // needs executable permissions to run.
 
     onlyIf { !System.getProperty("os.name").lowercase().contains("windows") }
-    commandLine("chmod", "+x", "${tasks.installDist.get().destinationDir}/bin/prog8-language-server")
-}
-
-tasks.register<JavaExec>("debugRun") {
-    mainClass.set(serverMainClassName)
-    classpath(sourceSets.main.get().runtimeClasspath)
-    standardInput = System.`in`
-
-    jvmArgs(debugArgs)
-    doLast {
-        println("Using debug port $debugPort")
-    }
-}
-
-tasks.register<CreateStartScripts>("debugStartScripts") {
-    applicationName = "prog8-language-server"
-    mainClass.set(serverMainClassName)
-    outputDir = tasks.installDist.get().destinationDir.toPath().resolve("bin").toFile()
-    classpath = tasks.startScripts.get().classpath
-    defaultJvmOpts = listOf(debugArgs)
-}
-
-tasks.register<Sync>("installDebugDist") {
-    dependsOn("installDist")
-    finalizedBy("debugStartScripts")
+    commandLine("chmod", "+x", "${tasks.installDist.get().destinationDir}/bin/prog8-beanshell")
 }
 
 tasks.withType<Test>() {
@@ -100,4 +72,12 @@ tasks.installDist {
 
 tasks.build {
     finalizedBy("installDist")
+}
+
+val javaVersion: String by project
+
+kotlin {
+    jvmToolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion.toInt())
+    }
 }
