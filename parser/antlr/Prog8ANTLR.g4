@@ -78,7 +78,11 @@ NOT_IN: 'not' [ \t]+ 'in' [ \t] ;
 // If there are more than one, then they must be separated by EOL (one or more newlines).
 // However, trailing EOL is NOT required.
 // Note: the parser may see *several* consecutive EOLs - this happens when EOL and comments are interleaved (see #47)
-module: EOL* ((directive | block) (EOL+ (directive | block))*)? EOL* EOF;
+module: EOL* (module_element (EOL+ module_element)*)? EOL* EOF;
+
+module_element:
+    directive | block ;
+
 
 block: identifier integerliteral? EOL? '{' EOL? (block_statement | EOL)* '}';
 

@@ -1,11 +1,9 @@
 package prog8.compiler
 
 import com.github.michaelbull.result.*
-import prog8.ast.IStatementContainer
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.SyntaxError
-import prog8.ast.statements.Block
 import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
 import prog8.code.core.IErrorReporter

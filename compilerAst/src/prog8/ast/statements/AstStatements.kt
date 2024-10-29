@@ -66,6 +66,8 @@ class BuiltinFunctionPlaceholder(override val name: String, override val positio
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = nameInSource.size==1 && name==nameInSource[0]
 }
 
+// note: a Block is not strictly a Statement (but a Module Element rather)
+//       however by making it a statement we can reuse the name lookup logic for them (a module *is* name scope that has to do lookups)
 class Block(override val name: String,
             val address: UInt?,
             override val statements: MutableList<Statement>,
@@ -95,6 +97,8 @@ class Block(override val name: String,
     fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.name!!}.toSet()
 }
 
+// note: a Directive is not strictly always Statement (in module scope, it's a Module Element rather)
+//       however by making it a statement we can reuse the name lookup logic for them (a module *is* name scope that has to do lookups)
 data class Directive(val directive: String, val args: List<DirectiveArg>, override val position: Position) : Statement() {
     override lateinit var parent: Node
 

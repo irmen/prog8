@@ -27,8 +27,12 @@ object Prog8Parser {
         val parseTree = parser.module()
         val module = ParsedModule(src)
 
-        parseTree.directive().forEach { module.add(it.toAst()) }
-        parseTree.block().forEach { module.add(it.toAst(module.isLibrary)) }
+        parseTree.module_element().forEach {
+            val block = it.block()?.toAst(module.isLibrary)
+            val directive = it.directive()?.toAst()
+            if(directive != null) module.add(directive)
+            if(block != null) module.add(block)
+        }
 
         return module
     }
