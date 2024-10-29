@@ -282,7 +282,7 @@ inline fun <reified T> findParentNode(node: Node): T? {
 }
 
 
-open class Module(final override var statements: MutableList<Statement>,
+open class Module(final override val statements: MutableList<Statement>,
                   final override val position: Position,
                   val source: SourceCode
 ) : Node, INameScope {
@@ -364,7 +364,7 @@ class GlobalNamespace(val modules: MutableList<Module>): Node, INameScope {
 
 internal object BuiltinFunctionScopePlaceholder : INameScope {
     override val name = "<<builtin-functions-scope-placeholder>>"
-    override var statements = mutableListOf<Statement>()
+    override val statements = mutableListOf<Statement>()
 }
 
 

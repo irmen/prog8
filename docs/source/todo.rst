@@ -1,8 +1,7 @@
 TODO
 ====
 
-- writing a 'txt' block in user program suddenly spews out all textio unused reference warnings because of the %option merge promotion going on. Merging should probably be handled differently
-
+Block node is not a Statement
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results

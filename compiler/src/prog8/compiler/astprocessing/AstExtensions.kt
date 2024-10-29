@@ -105,10 +105,14 @@ internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter, options: Com
 }
 
 internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationOptions) {
-    val transforms = AstPreprocessor(this, errors, options)
-    transforms.visit(this)
-    while(errors.noErrors() && transforms.applyModifications()>0)
+    val mergeBlocks = BlockMerger()
+    mergeBlocks.visit(this)
+    if(errors.noErrors()) {
+        val transforms = AstPreprocessor(this, errors, options)
         transforms.visit(this)
+        while (errors.noErrors() && transforms.applyModifications() > 0)
+            transforms.visit(this)
+    }
 }
 
 internal fun Program.checkIdentifiers(errors: IErrorReporter, options: CompilationOptions) {

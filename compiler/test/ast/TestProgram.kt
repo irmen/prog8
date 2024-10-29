@@ -5,6 +5,7 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.Module
@@ -12,9 +13,11 @@ import prog8.ast.Program
 import prog8.code.core.Position
 import prog8.code.core.SourceCode
 import prog8.code.core.internedStringsModuleName
+import prog8.code.target.C64Target
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
+import prog8tests.helpers.compileText
 
 class TestProgram: FunSpec({
 
@@ -104,6 +107,45 @@ class TestProgram: FunSpec({
             val ms1 = program.modules
             val ms2 = program.modules
             ms2 shouldBeSameInstanceAs ms1
+        }
+    }
+
+    context("block merge") {
+        test("merge works") {
+            val src = """
+%import textio
+
+main {
+
+    sub start() {
+        blah.test()
+    }
+}
+
+txt {
+    ; merges this block into the txt block coming from the textio library
+    %option merge
+
+    sub schrijf(str arg) {
+        print(arg)
+    }
+}
+
+blah {
+    ; merges this block into the other 'blah' one
+    %option merge
+
+    sub test() {
+        printit("test merge")
+    }
+}
+
+blah {
+    sub printit(str arg) {
+        txt.schrijf(arg)
+    }
+}"""
+            compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
         }
     }
 })

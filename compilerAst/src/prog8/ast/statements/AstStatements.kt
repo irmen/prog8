@@ -68,7 +68,7 @@ class BuiltinFunctionPlaceholder(override val name: String, override val positio
 
 class Block(override val name: String,
             val address: UInt?,
-            override var statements: MutableList<Statement>,
+            override val statements: MutableList<Statement>,
             val isInLibrary: Boolean,
             override val position: Position) : Statement(), INameScope {
     override lateinit var parent: Node
@@ -767,7 +767,7 @@ class Defer(val scope: AnonymousScope, override val position: Position): Stateme
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-class AnonymousScope(override var statements: MutableList<Statement>,
+class AnonymousScope(override val statements: MutableList<Statement>,
                      override val position: Position) : IStatementContainer, Statement() {
     override lateinit var parent: Node
 
@@ -802,7 +802,7 @@ class Subroutine(override val name: String,
                  val isAsmSubroutine: Boolean,
                  var inline: Boolean,
                  var hasBeenInlined: Boolean=false,
-                 override var statements: MutableList<Statement>,
+                 override val statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 
     override lateinit var parent: Node

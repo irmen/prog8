@@ -1,6 +1,7 @@
 package prog8.compiler
 
 import com.github.michaelbull.result.*
+import prog8.ast.IStatementContainer
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.base.SyntaxError
@@ -60,7 +61,8 @@ class ModuleImporter(private val program: Program,
                 .mapIndexed { i, it -> i to it }
                 .filter { (it.second as? Directive)?.directive == "%import" }
                 .forEach { executeImportDirective(it.second as Directive, moduleAst) }
-            moduleAst.statements = lines
+            moduleAst.statements.clear()
+            moduleAst.statements.addAll(lines)
             return moduleAst
         } catch (x: Exception) {
             // in case of error, make sure the module we're importing is no longer in the Ast
@@ -105,29 +107,6 @@ class ModuleImporter(private val program: Program,
             )
 
         removeDirectivesFromImportedModule(importedModule)
-
-        // modules can contain blocks with "merge" option.
-        // their content has to be merged into already existing other block with the same name.
-        val blocks = importedModule.statements.filterIsInstance<Block>()
-        for(block in blocks) {
-            val blockHasMergeOption = "merge" in block.options()
-            val existingBlock = program.allBlocks.firstOrNull { it.name==block.name && it !== block}
-            if(existingBlock!=null) {
-                val existingBlockHasMergeOption = "merge" in existingBlock.options()
-                if (blockHasMergeOption || existingBlockHasMergeOption) {
-                    // transplant the contents
-                    existingBlock.statements.addAll(block.statements.filter { it !is Directive })
-                    importedModule.statements.remove(block)
-
-                    if(blockHasMergeOption && !existingBlockHasMergeOption) {
-                        val directive = Directive("%option", listOf(DirectiveArg(null, "merge", null, block.position)), block.position)
-                        existingBlock.statements.add(0, directive)
-                        directive.linkParents(existingBlock)
-                    }
-                }
-            }
-        }
-
         return importedModule
     }
 

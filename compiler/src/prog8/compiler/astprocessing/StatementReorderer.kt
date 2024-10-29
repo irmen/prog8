@@ -26,7 +26,8 @@ internal class StatementReorderer(
 
     override fun after(module: Module, parent: Node): Iterable<IAstModification> {
         val (blocks, other) = module.statements.partition { it is Block }
-        module.statements = other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: UInt.MAX_VALUE }).toMutableList()
+        module.statements.clear()
+        module.statements.addAll(other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: UInt.MAX_VALUE }))
 
         val mainBlock = module.statements.asSequence().filterIsInstance<Block>().firstOrNull { it.name=="main" }
         if(mainBlock!=null && mainBlock.address==null) {

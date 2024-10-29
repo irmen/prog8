@@ -199,7 +199,7 @@ Directives
       program was launched.
     - ``force_output`` (in a block) will force the block to be outputted in the final program.
       Can be useful to make sure some data is generated that would otherwise be discarded because the compiler thinks it's not referenced (such as sprite data)
-    - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name. Useful in library scenarios. Can result in a bunch of unused symbol warnings, this depends on the import order.
+    - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name. Can be used to add subroutines to an existing library block, for instance.
     - ``splitarrays`` (block or module) makes all word-arrays in this scope lsb/msb split arrays (as if they all have the @split tag). See Arrays.
     - ``no_symbol_prefixing`` (block or module) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
       Only use this if you know what you're doing because it could result in invalid assembly code being generated.
