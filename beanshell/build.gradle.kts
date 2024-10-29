@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     kotlin("jvm")
     id("application")
@@ -5,6 +7,7 @@ plugins {
 
 val serverMainClassName = "prog8lsp.MainKt"
 val applicationName = "prog8-beanshell"
+val javaVersion: String by project
 
 application {
     mainClass.set(serverMainClassName)
@@ -74,10 +77,15 @@ tasks.build {
     finalizedBy("installDist")
 }
 
-val javaVersion: String by project
+java {
+    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_11
+}
 
 kotlin {
-    jvmToolchain {
-        languageVersion = JavaLanguageVersion.of(javaVersion.toInt())
-    }
+    compilerOptions.jvmTarget = JvmTarget.JVM_11
+//    jvmToolchain {
+//        languageVersion = JavaLanguageVersion.of(javaVersion.toInt())
+//    }
 }
+
