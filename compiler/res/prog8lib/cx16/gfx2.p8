@@ -128,11 +128,51 @@ gfx2 {
         vertical_line(xx+rwidth-1, yy+1, rheight-2, color)
     }
 
+    sub safe_rect(uword xx, uword yy, uword rwidth, uword rheight, ubyte color) {
+        ; does bounds checking and clipping
+        safe_horizontal_line(xx, yy, rwidth, color)
+        if rheight==1
+            return
+        safe_horizontal_line(xx, yy+rheight-1, rwidth, color)
+        safe_vertical_line(xx, yy+1, rheight-2, color)
+        if rwidth==1
+            return
+        safe_vertical_line(xx+rwidth-1, yy+1, rheight-2, color)
+    }
+
     sub fillrect(uword xx, uword yy, uword rwidth, uword rheight, ubyte color) {
         ; Draw a filled rectangle of the given size and color.
         ; To fill the whole screen, use clear_screen(color) instead - it is much faster.
         if rwidth==0
             return
+        repeat rheight {
+            horizontal_line(xx, yy, rwidth, color)
+            yy++
+        }
+    }
+
+    sub safe_fillrect(uword xx, uword yy, uword rwidth, uword rheight, ubyte color) {
+        ; Draw a filled rectangle of the given size and color.
+        ; To fill the whole screen, use clear_screen(color) instead - it is much faster.
+        ; This safe version does bounds checking and clipping.
+        if xx>=width or yy>=width
+            return
+        if msb(xx)&$80!=0 {
+            rwidth += xx
+            xx = 0
+        }
+        if xx>=width
+            return
+        if xx+rwidth>width
+            rwidth = width-xx
+        if rwidth>width
+            return
+
+        if yy + rheight > height
+            rheight = height-yy
+        if rheight>height
+            return
+
         repeat rheight {
             horizontal_line(xx, yy, rwidth, color)
             yy++
@@ -283,6 +323,24 @@ gfx2 {
             cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | stride
         }
 
+    }
+
+    sub safe_vertical_line(uword xx, uword yy, uword lheight, ubyte color) {
+        ; does bounds checking and clipping
+        if msb(yy)&$80!=0 or yy>=height
+            return
+        if msb(xx)&$80!=0 or xx>=width
+            return
+        if msb(yy)&$80!=0 {
+            lheight += yy
+            yy = 0
+        }
+        if yy+lheight>height
+            lheight = height-yy
+        if lheight>height
+            return
+
+        vertical_line(xx, yy, lheight, color)
     }
 
     sub line(uword @zp x1, uword @zp y1, uword @zp x2, uword @zp y2, ubyte color) {
