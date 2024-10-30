@@ -737,6 +737,8 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
         ; -- setup the VERA's data address register 0 or 1
         ;    with optional auto increment or decrement of 1.
         ;    Note that the vaddr_autoincr() and vaddr_autodecr() routines allow to set all possible strides, not just 1.
+        ;    Note also that the actually selected Vera port is reset to 0 on exit, even if you set port #1's address!
+        ;    (you'll have to set ADDRSEL to 1 manually again to use that port)
         %asm {{
             pha
             lda  cx16.r1
@@ -752,9 +754,11 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
             beq  +
             ora  #%00010000
 +           sta  cx16.VERA_ADDR_H
+            stz  cx16.VERA_CTRL
             rts
 +           ora  #%00011000
             sta  cx16.VERA_ADDR_H
+            stz  cx16.VERA_CTRL
             rts
         }}
 }
@@ -774,7 +778,7 @@ asmsub vaddr_clone(ubyte port @A) clobbers (A,X,Y) {
         ply
         sty  VERA_ADDR_H
         eor  #1
-        sta  VERA_CTRL
+        stz  VERA_CTRL
         rts
     }}
 }
@@ -791,6 +795,7 @@ asmsub vaddr_autoincr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword
             jsr  _determine_incr_bits
 +           ora  P8ZP_SCRATCH_REG
             sta  cx16.VERA_ADDR_H
+            stz  cx16.VERA_CTRL
             rts
 
 _setup      sta  P8ZP_SCRATCH_REG
@@ -855,6 +860,7 @@ asmsub vaddr_autodecr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword
             ora  #%00001000         ; autodecrement
 +           ora  P8ZP_SCRATCH_REG
             sta  cx16.VERA_ADDR_H
+            stz  cx16.VERA_CTRL
             rts
         }}
 }
