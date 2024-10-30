@@ -687,7 +687,7 @@ Bitmap graphics routines:
 
 This library is available both on the C64 and the cx16.
 It uses the ROM based graphics routines on the latter, and it is a very small library because of that.
-On the cx16 there's also the ``gfx2`` library if you want more features and different screen modes. See below for that one.
+On the cx16 there's also various other graphics modules if you want more features and different screen modes. See below for those.
 
 Read the `graphics source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/c64/graphics.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)
@@ -899,9 +899,9 @@ Information about the exposed debug registers is in the `emulator's documentatio
 monogfx  (cx16 and virtual)
 ---------------------------
 Full-screen lores or hires monochrome bitmap graphics routines, available on the Cx16 machine only.
-Same interface as gfx2, but is optimized for monochrome (1 bpp) screens.
 
-- lores 320*240 or hires 640*480 bitmap mode, monochrome
+- two resolutions: lores 320*240 or hires 640*480 bitmap mode
+- optimized routines for monochrome (2-color) graphics
 - clearing screen, switching screen mode, also back to text mode
 - drawing and reading individual pixels
 - drawing lines, rectangles, filled rectangles, circles, discs
@@ -913,29 +913,24 @@ Read the `monogfx source code <https://github.com/irmen/prog8/tree/master/compil
 to see what's in there.
 
 
-gfx2  (cx16 only)
------------------
+gfx_lores and gfx_hires (cx16 only)
+-----------------------------------
 Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
-Same interface as monogfx, but for color screens. For 1 bpp monochrome screens: use monogfx.
 
-- multiple full-screen bitmap color resolutions
-- clearing screen, switching screen mode, also back to text mode
+- gfx_lores: optimized routines for 320x240  256 color bitmap graphics mode. Compatible with X16 screen mode 128.
+- gfx_hires4: optimized routines for 640x480  4 color bitmap graphics mode
+- bitmap mode
+- enable bitmap graphics mode, also back to text mode
 - drawing and reading individual pixels
 - drawing lines, rectangles, filled rectangles, circles, discs
 - flood fill
 - drawing text inside the bitmap
 
-Read the `gfx2 source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx2.p8>`_
-to see what's in there.
-
-
-gfx_lores  (cx16 only)
-----------------------
-Heavily optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
-This is screen mode 1 from the gfx2 module (and also compatible with X16's basic screen mode 128).
-
 Read the `gfx_lores source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_lores.p8>`_
+or `gfx_hires4 source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_hires4.p8>`_
 to see what's in there.
+
+They share the same routines.
 
 
 palette  (cx16 only)

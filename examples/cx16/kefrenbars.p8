@@ -1,6 +1,6 @@
 %import palette
 %import math
-%import gfx2
+%import gfx_lores
 %option no_sysinit
 
 ; Vertical rasterbars a.k.a. "Kefren bars"
@@ -22,7 +22,7 @@ main {
         ]
 
         palette.set_rgb(&colors, len(colors))
-        gfx2.screen_mode(1)       ; lores 256 colors
+        gfx_lores.graphics_mode()       ; lores 256 colors
         cx16.VERA_DC_VSCALE = 0   ; display trick spoiler.......: stretch 1 line of display all the way to the bottom
         cx16.enable_irq_handlers(true)
         cx16.set_line_irq_handler(0, &irq.irqhandler)
@@ -54,15 +54,15 @@ irq {
             anim2 = av2
             next_irq_line = 0
             ; erase the bars
-            gfx2.horizontal_line(0, 0, 320, 3)
-;            gfx2.position(0, 0)
+            gfx_lores.horizontal_line(0, 0, 320, 3)
+;            gfx_lores.position(0, 0)
 ;            repeat 10 {
-;                gfx2.next_pixels(pixels, len(pixels))
+;                gfx_lores.next_pixels(pixels, len(pixels))
 ;            }
         } else {
             ; add new bar on top
-            gfx2.position(math.sin8u(anim1)/2 + math.cos8u(anim2)/2 + $0010, 0)
-            gfx2.next_pixels(pixels, len(pixels))
+            gfx_lores.position(math.sin8u(anim1)/2 + math.cos8u(anim2)/2 + $0010, 0)
+            gfx_lores.next_pixels(pixels, len(pixels))
         }
 
         sys.set_rasterline(next_irq_line)

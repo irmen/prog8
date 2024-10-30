@@ -1,8 +1,7 @@
 TODO
 ====
 
-Transform gfx2 into gfx_hires
-Add a eor mode to gfx_lores / gfx_hires
+Add a eor mode to gfx_lores / gfx_hires.  Once that's done in gfx_lores, convert Paint to use this module
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
@@ -53,7 +52,6 @@ Future Things and Ideas
 
 Libraries:
 
-- gfx2: add EOR mode support like in monogfx and see PAINT for inspiration.  Self modifying code to keep it optimized?
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - pet32 target: make syslib more complete (missing kernal routines)?

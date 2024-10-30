@@ -1,4 +1,4 @@
-%import gfx2
+%import gfx_lores
 %import math
 
 
@@ -12,11 +12,11 @@ main {
     ubyte background_color
 
     sub start() {
-        gfx2.screen_mode(1)
+        gfx_lores.graphics_mode()
 
         repeat {
             background_color = math.rnd()
-            gfx2.clear_screen(background_color)
+            gfx_lores.clear_screen(background_color)
             num_circles = 0
             draw_circles()
         }
@@ -28,8 +28,8 @@ main {
         ubyte @zp radius
 
         while num_circles<MAX_NUM_CIRCLES {
-            x = math.rndw() % gfx2.width
-            y = math.rndw() % gfx2.height
+            x = math.rndw() % gfx_lores.WIDTH
+            y = math.rndw() % gfx_lores.HEIGHT
             radius = GROWTH_RATE * 2        ; use a bit of a buffer between circles.
             if not_colliding() {
                 radius -= GROWTH_RATE
@@ -37,7 +37,7 @@ main {
                 while color==background_color
                     color = math.rnd()
                 while not_edge() and not_colliding() {
-                    gfx2.disc(x, y as ubyte, radius, color)
+                    gfx_lores.disc(x, y as ubyte, radius, color)
                     sys.waitvsync()
                     radius += GROWTH_RATE
                 }
@@ -70,11 +70,11 @@ main {
         sub not_edge() -> bool {
             if x as word - radius < 0
                 return false
-            if x + radius >= gfx2.width
+            if x + radius >= gfx_lores.WIDTH
                 return false
             if y as word - radius < 0
                 return false
-            if y + radius >= gfx2.height
+            if y + radius >= gfx_lores.HEIGHT
                 return false
             return true
         }
