@@ -25,7 +25,7 @@ main {
         uword[NUM_STARS] @split prev_x
         ubyte[NUM_STARS] prev_y
 
-        gfx_lores.set_screen_mode()
+        gfx_lores.graphics_mode()
 
         ; init the star positions
         ubyte star

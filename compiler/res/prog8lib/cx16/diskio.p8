@@ -703,7 +703,7 @@ io_error:
     ; CommanderX16 extensions over the basic C64/C128 diskio routines:
 
     ; For use directly after a load or load_raw call (don't mess with the ram bank yet):
-    ; Calculates the number of bytes loaded (files > 64Kb ar truncated to 16 bits)
+    ; Calculates the number of bytes loaded (files > 64Kb are truncated to 16 bits)
     sub load_size(ubyte startbank, uword startaddress, uword endaddress) -> uword {
         return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
     }

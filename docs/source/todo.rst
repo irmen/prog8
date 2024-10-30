@@ -1,7 +1,8 @@
 TODO
 ====
 
-Allow %merge to overwrite existing subs if the signature is identical?
+Transform gfx2 into gfx_hires
+Add a eor mode to gfx_lores / gfx_hires
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
