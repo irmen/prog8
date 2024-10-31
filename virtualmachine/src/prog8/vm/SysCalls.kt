@@ -156,6 +156,7 @@ object SysCalls {
             is Int -> value.toDouble()
             is Float -> value.toDouble()
             is Double -> value
+            is Boolean -> if(value) 1.0 else 0.0
             else -> (value as Number).toDouble()
         }
         when(returns.dt) {

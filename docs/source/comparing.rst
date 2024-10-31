@@ -24,7 +24,8 @@ The language
 No linker
 ---------
 - Even though your programs can consist of many separate module files, the compiler always outputs a single program file. There is no separate linker step.
-  Currently, it's not easily possible to integrate object files created elsewhere.
+  Currently, it's not easily possible to integrate object files created elsewhere. If the object file has a fixed load location and fixed entrypoints,
+  it can be loaded explicitly and accessed easily using romsub definitions though.
 - The prog8 compiler is self-contained in a single jar file. You do need 1 external tool namely 64tass, which performs the assembler step.
 
 

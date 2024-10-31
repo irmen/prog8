@@ -124,6 +124,7 @@ io_error:
     uword list_pattern
     uword list_blocks
     bool iteration_in_progress = false
+    bool write_iteration_in_progress = false
     str list_filetype = "???"       ; prg, seq, dir
     str list_filename = "?" * 50
 
@@ -377,6 +378,7 @@ _end        jsr  cbm.READST
 
     sub f_close() {
         ; -- end an iterative file loading session (close channels).
+        ;    it is safe to call this multiple times, or when no file is open for reading.
         if iteration_in_progress {
             cbm.CLRCHN()
             cbm.CLOSE(READ_IO_CHANNEL)
@@ -399,8 +401,12 @@ _end        jsr  cbm.READST
         cbm.SETNAM(string.length(filenameptr), filenameptr)
         cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, 1)
         void cbm.OPEN()             ; open 13,8,1,"filename"
-        if_cc
-            return cbm.READST()==0
+        if_cc {
+            if cbm.READST()==0 {
+                write_iteration_in_progress = true
+                return true
+            }
+        }
         cbm.CLOSE(WRITE_IO_CHANNEL)
         f_close_w()
         return false
@@ -422,8 +428,12 @@ _end        jsr  cbm.READST
 
     sub f_close_w() {
         ; -- end an iterative file writing session (close channels).
-        cbm.CLRCHN()
-        cbm.CLOSE(WRITE_IO_CHANNEL)
+        ;    it is safe to call this multiple times, or when no file is open for reading.
+        if write_iteration_in_progress {
+            cbm.CLRCHN()
+            cbm.CLOSE(WRITE_IO_CHANNEL)
+            write_iteration_in_progress = false
+        }
     }
 
 
@@ -588,6 +598,15 @@ io_error:
         void cbm.OPEN()
         cbm.CLRCHN()
         cbm.CLOSE(1)
+    }
+
+    sub exists(str filename) -> bool {
+        ; -- returns true if the given file exists on the disk, otherwise false
+        if f_open(filename) {
+            f_close()
+            return true
+        }
+        return false
     }
 
     sub send_command(uword commandptr) {

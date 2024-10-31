@@ -3,9 +3,12 @@
 %import conv
 %import math
 %import verafx
+; %import gfx_lores
 
-; TODO add all other Elite's ships, show their name, advance to next ship on keypress
+; TODO add FPS counter
+; TODO add double buffering
 ; TODO fix the camera normal calculation for the hidden surface removal
+; TODO add all other Elite's ships, show their name, advance to next ship on keypress
 ; TODO embed pre calculated surface normals???
 
 main {
@@ -23,10 +26,11 @@ main {
         repeat {
             matrix_math.rotate_vertices(msb(anglex), msb(angley), msb(anglez))
 
-            verafx.clear(0, 320*10, 0, 320*(220/4))
-            ; cx16.GRAPH_set_colors(0, 0, 0)
-            ; cx16.GRAPH_draw_rect(32, 10, 256, 220, 0, true)
+             verafx.clear(0, 320*10, 0, 320*(220/4))
+             ; cx16.GRAPH_set_colors(0, 0, 0)
+             ; cx16.GRAPH_draw_rect(32, 10, 256, 220, 0, true)
 
+            ; sys.waitvsync()
             cx16.GRAPH_set_colors(1, 0, 0)
             draw_lines_hiddenremoval()
             ; draw_lines()
@@ -81,6 +85,11 @@ main {
                 matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as uword,
                 matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
                 matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword)
+;            gfx_lores.line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
+;                matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as ubyte,
+;                matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
+;                matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as ubyte,
+;                1)
         }
     }
 
@@ -144,6 +153,11 @@ main {
             matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as uword,
             matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
             matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword)
+;        gfx_lores.line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
+;            matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as ubyte,
+;            matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
+;            matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as ubyte,
+;            1)
     }
 }
 

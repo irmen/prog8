@@ -140,6 +140,7 @@ diskio {
 
     sub f_close() {
         ; -- end an iterative file loading session (close channels).
+        ;    it is safe to call this multiple times, or when no file is open for reading.
         %ir {{
             syscall 56 ()
         }}
@@ -181,6 +182,7 @@ diskio {
 
     sub f_close_w() {
         ; -- end an iterative file writing session (close channels).
+        ;    it is safe to call this multiple times, or when no file is open for reading.
         %ir {{
             syscall 57 ()
         }}
@@ -298,4 +300,14 @@ diskio {
             syscall 44 (r65534.w, r65535.w)
         }}
     }
+
+    sub exists(str filename) -> bool {
+        ; -- returns true if the given file exists on the disk, otherwise false
+        if f_open(filename) {
+            f_close()
+            return true
+        }
+        return false
+    }
+
 }

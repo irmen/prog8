@@ -1,6 +1,11 @@
 TODO
 ====
 
+VM/IR: fix return value passing from %ir routines?  (diskio.exists routine always returns true)
+
+make better zsmkit example
+write a howto for integrating third party library code like zsmkit and vtui
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
@@ -10,6 +15,7 @@ Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEva
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
+- Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
 - Can we support signed % (remainder) somehow?
 - IR: implement missing operators in AssignmentGen  (array shifts etc)
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
