@@ -213,6 +213,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.SYSCALL -> InsSYSCALL(ins)
             Opcode.RETURN -> InsRETURN()
             Opcode.RETURNR -> InsRETURNR(ins)
+            Opcode.RETURNI -> InsRETURNI(ins)
             Opcode.BSTCC -> InsBSTCC(ins)
             Opcode.BSTCS -> InsBSTCS(ins)
             Opcode.BSTEQ -> InsBSTEQ(ins)
@@ -653,6 +654,46 @@ class VirtualMachine(irProgram: IRProgram) {
             pcChunk = context.returnChunk
             pcIndex = context.returnIndex
             // ignore any return values.
+        }
+    }
+
+    private fun InsRETURNI(i: IRInstruction) {
+        if(callStack.isEmpty())
+            exit(0)
+        else {
+            val context = callStack.removeLast()
+            val returns = context.fcallSpec.returns
+            when (i.type!!) {
+                IRDataType.BYTE -> {
+                    if(returns.isNotEmpty())
+                        registers.setUB(returns.single().registerNum, i.immediate!!.toUByte())
+                    else {
+                        val callInstr = context.returnChunk.instructions[context.returnIndex-1]
+                        if(callInstr.opcode!=Opcode.CALL)
+                            throw IllegalArgumentException("missing return value reg")
+                    }
+                }
+                IRDataType.WORD -> {
+                    if(returns.isNotEmpty())
+                        registers.setUW(returns.single().registerNum, i.immediate!!.toUShort())
+                    else {
+                        val callInstr = context.returnChunk.instructions[context.returnIndex-1]
+                        if(callInstr.opcode!=Opcode.CALL)
+                            throw IllegalArgumentException("missing return value reg")
+                    }
+                }
+                IRDataType.FLOAT -> {
+                    if(returns.isNotEmpty())
+                        registers.setFloat(returns.single().registerNum, i.immediateFp!!)
+                    else {
+                        val callInstr = context.returnChunk.instructions[context.returnIndex-1]
+                        if(callInstr.opcode!=Opcode.CALL)
+                            throw IllegalArgumentException("missing return value reg")
+                    }
+                }
+            }
+            pcChunk = context.returnChunk
+            pcIndex = context.returnIndex
         }
     }
 

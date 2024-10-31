@@ -1,9 +1,8 @@
 TODO
 ====
 
-VM/IR: fix return value passing from %ir routines?  (diskio.exists routine always returns true)
-
-make better zsmkit example
+replace zsound example by a zsmkit example
+contribute a short how-to to the zsmkit repo for building a suitable blob
 write a howto for integrating third party library code like zsmkit and vtui
 
 Improve register load order in subroutine call args assignments:

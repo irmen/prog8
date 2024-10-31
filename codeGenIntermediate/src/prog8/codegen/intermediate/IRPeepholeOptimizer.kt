@@ -299,7 +299,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             }
 
             // remove useless RETURN
-            if(idx>0 && (ins.opcode == Opcode.RETURN || ins.opcode==Opcode.RETURNR)) {
+            if(idx>0 && (ins.opcode == Opcode.RETURN || ins.opcode==Opcode.RETURNR || ins.opcode==Opcode.RETURNI)) {
                 val previous = chunk.instructions[idx-1]
                 if(previous.opcode in OpcodesThatJump) {
                     chunk.instructions.removeAt(idx)

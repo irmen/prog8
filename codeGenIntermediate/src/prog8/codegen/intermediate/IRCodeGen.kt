@@ -1395,12 +1395,14 @@ class IRCodeGen(
     private fun ifWithElse_IntegerCond(ifElse: PtIfElse): List<IRCodeChunkBase> {
         val result = mutableListOf<IRCodeChunkBase>()
 
-        fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode) {
+        fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode, addCmpiZero: Boolean) {
 
             if(condition is PtBuiltinFunctionCall && condition.name.startsWith("prog8_ifelse_bittest_"))
                 throw AssemblyError("IR codegen doesn't have special instructions for dedicated BIT tests and should just still use normal AND")
 
             val tr = expressionEval.translateExpression(condition)
+            if(addCmpiZero)
+                tr.chunks.last().instructions.add(IRInstruction(Opcode.CMPI, tr.dt, reg1 = tr.resultReg, immediate = 0))
             result += tr.chunks
             if(ifElse.hasElse()) {
                 val elseLabel = createLabelName()
@@ -1420,7 +1422,7 @@ class IRCodeGen(
 
         fun translateBinExpr(condition: PtBinaryExpression) {
             if(condition.operator in LogicalOperators)
-                return translateSimple(condition, Opcode.BSTEQ)
+                return translateSimple(condition, Opcode.BSTEQ, false)
 
             val signed = condition.left.type in SignedDatatypes
             val elseBranchFirstReg: Int
@@ -1559,18 +1561,21 @@ class IRCodeGen(
         when(val cond=ifElse.condition) {
             is PtBool -> {
                 // normally this will be optimized away, but not with -noopt
-                translateSimple(cond, Opcode.BSTEQ)
+                translateSimple(cond, Opcode.BSTEQ, false)
             }
             is PtTypeCast -> {
                 require(cond.type==DataType.BOOL && cond.value.type in NumericDatatypes)
-                translateSimple(cond, Opcode.BSTEQ)
+                translateSimple(cond, Opcode.BSTEQ, false)
             }
-            is PtIdentifier, is PtArrayIndexer, is PtBuiltinFunctionCall, is PtFunctionCall, is PtContainmentCheck -> {
-                translateSimple(cond, Opcode.BSTEQ)
+            is PtIdentifier, is PtArrayIndexer, is PtContainmentCheck -> {
+                translateSimple(cond, Opcode.BSTEQ, false)
+            }
+            is PtBuiltinFunctionCall, is PtFunctionCall -> {
+                translateSimple(cond, Opcode.BSTEQ, true)
             }
             is PtPrefix -> {
                 require(cond.operator=="not")
-                translateSimple(cond.value, Opcode.BSTNE)
+                translateSimple(cond.value, Opcode.BSTNE, false)
             }
             is PtBinaryExpression -> {
                 translateBinExpr(cond)
@@ -1648,14 +1653,22 @@ class IRCodeGen(
             addInstr(result, IRInstruction(Opcode.RETURN), null)
         } else {
             if(value.type==DataType.FLOAT) {
-                val tr = expressionEval.translateExpression(value)
-                addToResult(result, tr, -1, tr.resultFpReg)
-                addInstr(result, IRInstruction(Opcode.RETURNR, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
+                if(value is PtNumber) {
+                    addInstr(result, IRInstruction(Opcode.RETURNI, IRDataType.FLOAT, immediateFp = value.number), null)
+                } else {
+                    val tr = expressionEval.translateExpression(value)
+                    addToResult(result, tr, -1, tr.resultFpReg)
+                    addInstr(result, IRInstruction(Opcode.RETURNR, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
+                }
             }
             else {
-                val tr = expressionEval.translateExpression(value)
-                addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.RETURNR, irType(value.type) , reg1=tr.resultReg), null)
+                if(value.asConstInteger()!=null) {
+                    addInstr(result, IRInstruction(Opcode.RETURNI, irType(value.type), immediate = value.asConstInteger()), null)
+                } else {
+                    val tr = expressionEval.translateExpression(value)
+                    addToResult(result, tr, tr.resultReg, -1)
+                    addInstr(result, IRInstruction(Opcode.RETURNR, irType(value.type), reg1 = tr.resultReg), null)
+                }
             }
         }
         return result

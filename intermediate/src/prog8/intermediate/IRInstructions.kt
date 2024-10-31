@@ -82,6 +82,7 @@ syscall   number (argument register list) [: resultreg.type]
                                         Always preceded by parameter setup and preparecall instructions
 return                                - restore last saved instruction location and continue at that instruction. No return value.
 returnr     reg1                      - like return, but also returns the value in reg1 to the caller
+returni            number             - like return, but also returns the immediate value to the caller
 
 
 
@@ -289,6 +290,7 @@ enum class Opcode {
     SYSCALL,
     RETURN,
     RETURNR,
+    RETURNI,
 
     BSTCC,
     BSTCS,
@@ -428,7 +430,8 @@ val OpcodesThatJump = arrayOf(
     Opcode.JUMP,
     Opcode.JUMPI,
     Opcode.RETURN,
-    Opcode.RETURNR
+    Opcode.RETURNR,
+    Opcode.RETURNI
 )
 
 val OpcodesThatBranch = arrayOf(
@@ -436,6 +439,7 @@ val OpcodesThatBranch = arrayOf(
     Opcode.JUMPI,
     Opcode.RETURN,
     Opcode.RETURNR,
+    Opcode.RETURNI,
     Opcode.CALLI,
     Opcode.CALL,
     Opcode.SYSCALL,
@@ -647,7 +651,8 @@ val instructionFormats = mutableMapOf(
     Opcode.CALL       to InstructionFormat.from("N,call"),
     Opcode.SYSCALL    to InstructionFormat.from("N,syscall"),
     Opcode.RETURN     to InstructionFormat.from("N"),
-    Opcode.RETURNR    to InstructionFormat.from("BW,>r1        | F,>fr1"),
+    Opcode.RETURNR    to InstructionFormat.from("BW,<r1        | F,<fr1"),
+    Opcode.RETURNI    to InstructionFormat.from("BW,<i         | F,<i"),
     Opcode.BSTCC      to InstructionFormat.from("N,<a"),
     Opcode.BSTCS      to InstructionFormat.from("N,<a"),
     Opcode.BSTEQ      to InstructionFormat.from("N,<a"),

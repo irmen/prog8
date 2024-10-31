@@ -145,7 +145,7 @@ class IRProgram(val name: String,
 
             // link all jump and branching instructions to their target
             chunk.instructions.forEach {
-                if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.labelSymbol!=null) {
+                if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.opcode!=Opcode.RETURNI && it.labelSymbol!=null) {
                     if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
                         // it's a call to an address (romsub most likely)
                         requireNotNull(it.address)

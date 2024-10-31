@@ -1,30 +1,60 @@
-%import diskio
 %import textio
-;%import gfx_hires4
+%import diskio
 %option no_sysinit
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        txt.print_bool(diskio.exists("doesntexist.prg"))
+        txt.print_ub(exists_byte("test.prg"))
+        txt.spc()
+        txt.print_ub(exists_byte("doesntexist.xxx"))
         txt.nl()
-        txt.print_bool(diskio.exists("test.prg"))
+        txt.print_bool(exists_bool("test.prg"))
+        txt.spc()
+        txt.print_bool(exists_bool("doesntexist.xxx"))
         txt.nl()
+        txt.print_bool(exists1("test.prg"))
+        txt.spc()
+        txt.print_bool(exists1("doesntexist.xxx"))
+        txt.nl()
+        txt.print_bool(exists2("test.prg"))
+        txt.spc()
+        txt.print_bool(exists2("doesntexist.xxx"))
+        txt.nl()
+    }
 
-        diskio.f_open_w("dump.bin")
-        diskio.f_close_w()
-        diskio.f_close_w()
-        diskio.f_close_w()
-        diskio.f_close_w()
+    sub exists1(str filename) -> bool {
+        ; -- returns true if the given file exists on the disk, otherwise false
+        if exists_byte(filename)!=0 {
+            return true
+        }
+        return false
+    }
 
-;        gfx_hires4.graphics_mode()
-;        gfx_hires4.circle(300, 250, 200, 3)
-;        gfx_hires4.rect(320, 10, 20, 200, 3)
-;        gfx_hires4.fill(310, 310, 2)
-;
-;        repeat {
-;        }
+    sub exists2(str filename) -> bool {
+        ; -- returns true if the given file exists on the disk, otherwise false
+        if exists_bool(filename) {
+            return true
+        }
+        return false
+    }
+
+
+    sub exists_bool(str name) -> bool {
+        %ir {{
+            loadm.w r65535,main.exists_bool.name
+            syscall 52 (r65535.w): r0.b
+            returnr.b r0
+        }}
+    }
+
+    sub exists_byte(str name) -> ubyte {
+        %ir {{
+            loadm.w r65535,main.exists_byte.name
+            syscall 52 (r65535.w): r0.b
+            returnr.b r0
+        }}
     }
 }
 
