@@ -737,8 +737,7 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
         ; -- setup the VERA's data address register 0 or 1
         ;    with optional auto increment or decrement of 1.
         ;    Note that the vaddr_autoincr() and vaddr_autodecr() routines allow to set all possible strides, not just 1.
-        ;    Note also that the actually selected Vera port is reset to 0 on exit, even if you set port #1's address!
-        ;    (you'll have to set ADDRSEL to 1 manually again to use that port)
+        ;    Note also that Vera's addrset is reset to 0 on exit, even if you set port #1's address.
         %asm {{
             pha
             lda  cx16.r1

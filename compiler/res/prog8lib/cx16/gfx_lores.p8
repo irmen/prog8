@@ -22,6 +22,7 @@ gfx_lores {
         cx16.VERA_L1_MAPBASE = 0
         cx16.VERA_L1_TILEBASE = 0
         clear_screen(0)
+        drawmode_eor(false)
     }
 
     sub text_mode() {
@@ -30,6 +31,13 @@ gfx_lores {
         cbm.CINT()
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
     }
+
+    sub drawmode_eor(bool enabled) {
+        ; with EOR drawing mode you can have non destructive drawing (2*EOR=restore original)
+        eor_mode = enabled
+    }
+
+    bool eor_mode
 
     sub clear_screen(ubyte color) {
         if verafx.available() {
@@ -151,27 +159,50 @@ gfx_lores {
     sub horizontal_line(uword xx, ubyte yy, uword length, ubyte color) {
         if length==0
             return
-        plot(xx, yy, color)  ; set starting position by reusing plot routine
+        position(xx, yy)
         ; set vera auto-increment to 1 pixel
         cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (1<<4)
-
-        %asm {{
-            lda  p8v_color
-            ldx  p8v_length+1
-            beq  +
-            ldy  #0
--           sta  cx16.VERA_DATA0
-            iny
-            bne  -
-            dex
-            bne  -
-+           ldy  p8v_length     ; remaining
-            beq  +
--           sta  cx16.VERA_DATA0
-            dey
-            bne  -
+        if eor_mode {
+            cx16.vaddr_clone(0)      ; also setup port 1, for reading
+            %asm {{
+                ldx  p8v_length+1
+                beq  +
+                ldy  #0
+-               lda  p8v_color
+                eor  cx16.VERA_DATA1
+                sta  cx16.VERA_DATA0
+                iny
+                bne  -
+                dex
+                bne  -
++               ldy  p8v_length     ; remaining
+                beq  +
+-               lda  p8v_color
+                eor  cx16.VERA_DATA1
+                sta  cx16.VERA_DATA0
+                dey
+                bne  -
 +
-        }}
+            }}
+        } else {
+            %asm {{
+                lda  p8v_color
+                ldx  p8v_length+1
+                beq  +
+                ldy  #0
+-               sta  cx16.VERA_DATA0
+                iny
+                bne  -
+                dex
+                bne  -
++               ldy  p8v_length     ; remaining
+                beq  +
+-               sta  cx16.VERA_DATA0
+                dey
+                bne  -
++
+            }}
+        }
     }
 
     sub safe_horizontal_line(uword xx, ubyte yy, uword length, ubyte color) {
@@ -195,16 +226,30 @@ gfx_lores {
     sub vertical_line(uword xx, ubyte yy, ubyte lheight, ubyte color) {
         if lheight==0
             return
-        plot(xx, yy, color)  ; set starting position by reusing plot routine
+        position(xx, yy)
         ; set vera auto-increment to 320 pixel increment (=next line)
         cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & %00000111 | (14<<4)
-        %asm {{
-            ldy  p8v_lheight
-            lda  p8v_color
--           sta  cx16.VERA_DATA0
-            dey
-            bne  -
-        }}
+        if eor_mode {
+            cx16.vaddr_clone(0)      ; also setup port 1, for reading
+            %asm {{
+                ldy  p8v_lheight
+                beq  +
+-               lda  p8v_color
+                eor  cx16.VERA_DATA1
+                sta  cx16.VERA_DATA0
+                dey
+                bne  -
++
+            }}
+        } else {
+            %asm {{
+                ldy  p8v_lheight
+                lda  p8v_color
+-               sta  cx16.VERA_DATA0
+                dey
+                bne  -
+            }}
+        }
     }
 
     sub safe_vertical_line(uword xx, ubyte yy, ubyte lheight, ubyte color) {
@@ -339,7 +384,14 @@ gfx_lores {
                 lda  #0
                 adc  times320_hi,y
                 sta  cx16.VERA_ADDR_H
+
+                lda  p8v_eor_mode
+                bne  +
                 lda  p8v_color
+                sta  cx16.VERA_DATA0
+                rts
++               lda  p8v_color
+                eor  cx16.VERA_DATA0
                 sta  cx16.VERA_DATA0
                 rts
             }}
@@ -544,7 +596,14 @@ gfx_lores {
             lda  #0
             adc  times320_hi,y
             sta  cx16.VERA_ADDR_H
+
+            lda  p8v_eor_mode
+            bne  +
             lda  cx16.r0L
+            sta  cx16.VERA_DATA0
+            rts
++           lda  cx16.r0L
+            eor  cx16.VERA_DATA0
             sta  cx16.VERA_DATA0
             rts
         }}

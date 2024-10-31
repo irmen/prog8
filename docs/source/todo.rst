@@ -1,8 +1,6 @@
 TODO
 ====
 
-Add a eor mode to gfx_lores / gfx_hires.  Once that's done in gfx_lores, convert Paint to use this module
-
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
