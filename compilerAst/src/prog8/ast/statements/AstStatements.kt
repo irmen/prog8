@@ -767,10 +767,7 @@ class Defer(val scope: AnonymousScope, override val position: Position): Stateme
         scope.linkParents(this)
     }
 
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        TODO("Not yet implemented")
-    }
-
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = scope.referencesIdentifier(nameInSource)
     override fun copy() = Defer(scope.copy(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)

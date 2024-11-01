@@ -278,7 +278,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
             }
             "not" -> {
-                // TODO: in boolean branch, is 'not' handled ok like this?
                 val register = codeGen.registers.nextFree()
                 if(constIndex!=null) {
                     result += IRCodeChunk(null, null).also {
@@ -884,7 +883,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun operatorMultiplyInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): IRCodeChunks? {
-        return null //    TODO("inplace split word array *")
+        return null  // TODO("inplace split word array *")
     }
 
     private fun operatorMinusInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): IRCodeChunks? {
@@ -1371,7 +1370,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun createInplaceArrayComparison(array: PtArrayIndexer, value: PtExpression, comparisonOperator: String): IRCodeChunks? {
         if(array.type==DataType.FLOAT)
-            return null  // TODO("optimized in-place compare on float arrays"))   // TODO?
+            return null  // TODO("optimized in-place compare on float arrays"))
 
         val eltSize = codeGen.program.memsizer.memorySize(array.type)
         val result = mutableListOf<IRCodeChunkBase>()
@@ -1390,10 +1389,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     it += when(comparisonOperator) {
                         "==" -> IRInstruction(Opcode.SZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
                         "!=" -> IRInstruction(Opcode.SNZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
-                        "<" -> return null  // TODO("array <0 inplace")) // TODO?
-                        "<=" -> return null  // TODO("array <=0 inplace")) // TODO?
-                        ">" -> return null  // TODO("array >0 inplace")) // TODO?
-                        ">=" -> return null  // TODO("array >=0 inplace")) // TODO?
+                        "<" -> return null  // TODO("array <0 inplace"))
+                        "<=" -> return null  // TODO("array <=0 inplace"))
+                        ">" -> return null  // TODO("array >0 inplace"))
+                        ">=" -> return null  // TODO("array >=0 inplace"))
                         else -> throw AssemblyError("invalid operator")
                     }
                     it += IRInstruction(Opcode.STOREM, vmDt, reg1 = cmpResultReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
@@ -1413,10 +1412,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     it += when(comparisonOperator) {
                         "==" -> IRInstruction(Opcode.SZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
                         "!=" -> IRInstruction(Opcode.SNZ, vmDt, reg1=cmpResultReg, reg2=valueReg)
-                        "<" -> return null  // TODO("array <0 inplace")) // TODO?
-                        "<=" -> return null  // TODO("array <=0 inplace")) // TODO?
-                        ">" -> return null  // TODO("array >0 inplace")) // TODO?
-                        ">=" -> return null  // TODO("array >=0 inplace")) // TODO?
+                        "<" -> return null  // TODO("array <0 inplace"))
+                        "<=" -> return null  // TODO("array <=0 inplace"))
+                        ">" -> return null  // TODO("array >0 inplace"))
+                        ">=" -> return null  // TODO("array >=0 inplace"))
                         else -> throw AssemblyError("invalid operator")
                     }
                     it += IRInstruction(Opcode.STOREX, vmDt, reg1=valueReg, reg2=indexTr.resultReg, labelSymbol = array.variable.name)

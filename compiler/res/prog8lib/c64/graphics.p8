@@ -347,12 +347,11 @@ hline_zero2
 
     uword @zp internal_plotx     ; 0..319        ; separate 'parameter' for internal_plot()
 
-    asmsub  internal_plot(ubyte ploty @A) clobbers (A, X, Y) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
+    asmsub  internal_plot(ubyte ploty @Y) clobbers (A, X, Y) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
         %asm {{
-        tay
         lda  p8v_internal_plotx+1
         sta  P8ZP_SCRATCH_W2+1
-        lsr  a            ; 0
+        lsr  a      ; make a=0
         sta  P8ZP_SCRATCH_W2
         lda  p8v_internal_plotx
         pha
@@ -377,7 +376,7 @@ hline_zero2
 
 _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 
-; note: this can be even faster if we also have a 256 byte x-lookup table, but hey.
+; note: this can be even faster if we also have a 320 word x-lookup table, but hey, that's a lot of memory.
 ; see http://codebase64.org/doku.php?id=base:various_techniques_to_calculate_adresses_fast_common_screen_formats_for_pixel_graphics
 ; the y lookup tables encodes this formula:  BITMAP_ADDRESS + 320*(py>>3) + (py & 7)    (y from 0..199)
 ; We use the 64tass syntax for range expressions to calculate this table on assembly time.
