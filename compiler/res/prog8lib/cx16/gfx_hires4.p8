@@ -185,7 +185,7 @@ gfx_hires4 {
         position2(xx,yy,true)
         set_both_strides(13)    ; 160 increment = 1 line in 640 px 4c mode
         ;; color &= 3
-        ;; color <<= gfx2.plot.shift4c[lsb(xx) & 3]
+        ;; color <<= plot.shift4c[lsb(xx) & 3]
         cx16.r2L = lsb(xx) & 3
         when color & 3 {
             0 -> color = 0

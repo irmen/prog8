@@ -10,7 +10,8 @@
 %import diskio
 %import emudbg
 %import floats
-%import gfx2
+%import gfx_hires4
+%import gfx_lores
 %import graphics
 %import math
 %import monogfx

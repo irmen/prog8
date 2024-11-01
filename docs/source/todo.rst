@@ -1,20 +1,18 @@
 TODO
 ====
 
-remove all remaining 'gfx2' references in code and docs
-
-benchmark program is slightly slower than before. why
-
-paint and rockrunner are a couple of bytes bigger. why?
+-splitarrays option gets the compiler in an infinite loop sometimes (on examples/animals.p8 for example)
 
 merge problem: if 2 library modules both have merge, stuff breaks (math & prog8_math where prog8_math used to have math block.... didn't work)
 
-for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.
+for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
 replace zsound example by a zsmkit example
 contribute a short how-to to the zsmkit repo for building a suitable blob
 write a howto for integrating third party library code like zsmkit and vtui
 
+
+regenerate symbol dump files
 
 
 Improve register load order in subroutine call args assignments:

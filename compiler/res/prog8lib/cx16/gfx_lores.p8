@@ -269,7 +269,7 @@ gfx_lores {
     sub line(uword x1, ubyte y1, uword x2, ubyte y2, ubyte color) {
         ; Bresenham algorithm.
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
-        ; NOTE:  this is about twice as fast as the kernal routine GRAPH_draw_line, and ~3-4 times as fast as gfx2.line()
+        ; NOTE:  this is about twice as fast as the kernal routine GRAPH_draw_line
         ;        it trades memory for speed (uses inline plot routine and multiplication lookup tables)
         ;
         ; NOTE:  is currently still a regular 6502 routine, could likely be made much faster with the VeraFX line helper.
