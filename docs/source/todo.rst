@@ -5,11 +5,6 @@ merge problem: if 2 library modules both have merge, stuff breaks (math & prog8_
 
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
-replace zsound example by a zsmkit example
-contribute a short how-to to the zsmkit repo for building a suitable blob
-write a howto for integrating third party library code like zsmkit and vtui
-
-
 regenerate symbol dump files
 
 

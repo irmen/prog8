@@ -114,6 +114,8 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "pcmaudio/vumeter",
             "sprites/dragon",
             "sprites/dragons",
+            "zsmkit/demo1",
+            "zsmkit/demo2",
             "amiga",
             "audioroutines",
             "automatons",
