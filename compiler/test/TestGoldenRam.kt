@@ -20,7 +20,8 @@ class TestGoldenRam: FunSpec({
         floats = true,
         noSysInit = false,
         compTarget = VMTarget(),
-        loadAddress = 999u
+        loadAddress = 999u,
+        memtopAddress = 0xffffu
     )
 
     test("empty golden ram allocations") {

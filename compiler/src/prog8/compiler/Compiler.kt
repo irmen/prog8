@@ -263,6 +263,7 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
     }
 
     options.loadAddress = loadAddress
+    options.memtopAddress = program.toplevelModule.memtopAddress?.first ?: options.compTarget.machine.PROGRAM_TOP_ADDRESS
 }
 
 
@@ -398,7 +399,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
     return CompilationOptions(
         outputType, launcherType,
         zpType, zpReserved, zpAllowed, floatsEnabled, noSysInit,
-        compTarget, 0u
+        compTarget, 0u, 0xffffu
     )
 }
 

@@ -126,6 +126,7 @@ class IRFileReader {
             false,
             target,
             loadAddress,
+            0xffffu,
             outputDir = outputDir,
             optimize = optimize
         )

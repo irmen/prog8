@@ -14,6 +14,7 @@ class CompilationOptions(val output: OutputType,
                          val compTarget: ICompilationTarget,
                          // these are set later, based on command line arguments or options in the source code:
                          var loadAddress: UInt,
+                         var memtopAddress: UInt,
                          var warnSymbolShadowing: Boolean = false,
                          var optimize: Boolean = false,
                          var asmQuiet: Boolean = false,

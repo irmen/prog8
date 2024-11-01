@@ -148,7 +148,7 @@ labeldef :  identifier ':'  ;
 unconditionaljump :  'goto'  (integerliteral | scoped_identifier) ;
 
 directive :
-	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%import' |
+	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%memtop' | '%import' |
                        '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' | '%align' )
         (directivearg? | directivearg (',' directivearg)*)
         ;

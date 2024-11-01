@@ -23,6 +23,7 @@ class TestIRFileInOut: FunSpec({
             noSysInit = true,
             compTarget = target,
             loadAddress = target.machine.PROGRAM_LOAD_ADDRESS,
+            memtopAddress = 0xffffu,
             outputDir = tempdir
         )
         val program = IRProgram("unittest-irwriter", IRSymbolTable(), options, target)

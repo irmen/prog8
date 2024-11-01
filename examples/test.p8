@@ -1,6 +1,7 @@
 %import textio
 %option no_sysinit
 %zeropage basicsafe
+%memtop $0840
 
 main {
 

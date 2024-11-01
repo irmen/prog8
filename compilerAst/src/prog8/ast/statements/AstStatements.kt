@@ -106,6 +106,7 @@ data class Directive(val directive: String, val args: List<DirectiveArg>, overri
 //    init {
 //        require(directive in arrayOf(
 //            "%address",
+//            "%memtop",
 //            "%asmbinary",
 //            "%asminclude",
 //            "%breakpoint",

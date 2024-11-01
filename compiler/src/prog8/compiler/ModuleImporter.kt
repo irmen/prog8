@@ -110,7 +110,7 @@ class ModuleImporter(private val program: Program,
 
     private fun removeDirectivesFromImportedModule(importedModule: Module) {
         // Most global directives don't apply for imported modules, so remove them
-        val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address")
+        val moduleLevelDirectives = listOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop")
         var directives = importedModule.statements.filterIsInstance<Directive>()
         importedModule.statements.removeAll(directives.toSet())
         directives = directives.filter{ it.directive !in moduleLevelDirectives }

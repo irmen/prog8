@@ -284,6 +284,8 @@ internal class ProgramAndVarsGen(
                 asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many data for slabs_BSS section\"")
             }
         }
+        asmgen.out("  ; memtop check")
+        asmgen.out("  .cerror * > ${options.memtopAddress.toHex()}, \"Program too long by \", * - ${options.memtopAddress.toHex()}, \" bytes, memtop=${options.memtopAddress.toHex()}\"")
     }
 
     private fun block2asm(block: PtBlock) {

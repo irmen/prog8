@@ -57,7 +57,7 @@ internal class AstChecker(private val program: Program,
         val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
-                "%output", "%launcher", "%zeropage", "%address", "%encoding" ->
+                "%output", "%launcher", "%zeropage", "%address", "%memtop", "%encoding" ->
                     entry.value.forEach { errors.err("directive can just occur once", it.position) }
             }
         }
@@ -961,6 +961,12 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur at module level")
                 if(directive.args.size!=1 || directive.args[0].int == null)
                     err("invalid address directive, expected numeric address argument")
+            }
+            "%memtop" -> {
+                if(directive.parent !is Module)
+                    err("this directive may only occur at module level")
+                if(directive.args.size!=1 || directive.args[0].int == null)
+                    err("invalid memtop directive, expected numeric address argument")
             }
             "%import" -> {
                 if(directive.parent !is Module)

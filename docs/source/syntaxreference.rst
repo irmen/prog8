@@ -184,6 +184,17 @@ Directives
 	- type ``none`` : no launcher logic is added at all
 
 
+.. data:: %memtop <address>
+
+	Level: module.
+	Global setting, changes the program's top memory address. This is usually specified internally by the compiler target,
+	but with this you can change it to another value. This can be useful for example to 'reserve' a piece
+	of memory at the end of program space where other data such as external library files can be loaded into.
+	This memtop value is used for a check instruction for the assembler to see if the resulting program size
+	exceeds the given memtop address. This value is inclusive, so $9eff means that the program can use up to
+	and including the address $9eff and that $9f00 is the first address out of bounds.
+
+
 .. data:: %option <option> [, <option> ...]
 
 	Level: module, block.

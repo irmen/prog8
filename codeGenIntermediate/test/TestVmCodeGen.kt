@@ -23,7 +23,8 @@ class TestVmCodeGen: FunSpec({
             floats = true,
             noSysInit = false,
             compTarget = target,
-            loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
+            loadAddress = target.machine.PROGRAM_LOAD_ADDRESS,
+            memtopAddress = 0xffffu
         )
     }
 
