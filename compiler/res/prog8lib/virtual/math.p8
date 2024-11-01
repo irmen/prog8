@@ -398,4 +398,12 @@ math {
         cx16.r15 ^= $ffff
         cx16.r14 ^= $ffff
     }
+
+
+    sub lerp(ubyte v0, ubyte v1, ubyte t) -> ubyte {
+        ; Linear interpolation (LERP)
+        ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
+        ; guarantees v = v1 when t = 255
+        return v0 + msb(t as uword * (v1 - v0) + 255)
+    }
 }

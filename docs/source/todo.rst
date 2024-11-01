@@ -5,6 +5,9 @@ replace zsound example by a zsmkit example
 contribute a short how-to to the zsmkit repo for building a suitable blob
 write a howto for integrating third party library code like zsmkit and vtui
 
+can we make it so that math is not always included on 6502 target? (what does it need, move that to another library perhaps?)
+
+
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
 in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

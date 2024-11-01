@@ -256,4 +256,18 @@ inline asmsub pop() -> float @FAC1 {
     }}
 }
 
+sub lerp(float v0, float v1, float t) -> float {
+    ; Linear interpolation (LERP)
+    ; Precise method, which guarantees v = v1 when t = 1.
+    ; returns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0, 1]
+    return (1 - t) * v0 + t * v1
+}
+
+sub lerp_fast(float v0, float v1, float t) -> float {
+    ; Linear interpolation (LERP)
+    ; Imprecise (but slightly faster) method, which does not guarantee v = v1 when t = 1
+    ; returns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0, 1]
+    return v0 + t * (v1 - v0)
+}
+
 }
