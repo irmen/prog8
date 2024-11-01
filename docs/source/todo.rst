@@ -1,7 +1,8 @@
 TODO
 ====
 
--splitarrays option gets the compiler in an infinite loop sometimes (on examples/animals.p8 for example)
+"cannot take address of split word array"  -> don't make this a fatal error, make it a warning and turn the array into a regular array instead
+(benchmark program/textelite should then be compilable with -splitarrays)
 
 merge problem: if 2 library modules both have merge, stuff breaks (math & prog8_math where prog8_math used to have math block.... didn't work)
 

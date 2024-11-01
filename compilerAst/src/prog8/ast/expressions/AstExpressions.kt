@@ -892,7 +892,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         value.forEach {it.linkParents(this)}
     }
 
-    override fun copy() = throw NotImplementedError("no support for duplicating a ArrayLiteralValue")
+    override fun copy(): ArrayLiteral = ArrayLiteral(type, value.map { it.copy() }.toTypedArray(), position)
     override val isSimple = true
 
     override fun replaceChildNode(node: Node, replacement: Node) {

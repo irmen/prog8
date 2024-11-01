@@ -744,9 +744,15 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
         } else arrayDt
     } else origDt
 
+    val datatype = if(!split) dt else when(dt) {
+        DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> DataType.ARRAY_UW_SPLIT
+        DataType.ARRAY_W,DataType.ARRAY_W_SPLIT -> DataType.ARRAY_W_SPLIT
+        else -> dt
+    }
+
     return VarDecl(
             type, VarDeclOrigin.USERCODE,
-            dt,
+            datatype,
             zp,
             arrayindex()?.toAst(),
             name,

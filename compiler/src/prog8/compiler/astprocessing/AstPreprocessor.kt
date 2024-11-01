@@ -112,6 +112,8 @@ class AstPreprocessor(val program: Program,
             val replacements = mutableListOf<IAstModification>()
 
             for(decl in vars) {
+                if(shouldSplitArray(decl))
+                    continue  // splitting must be done first
                 if(decl.type != VarDeclType.VAR) {
                     movements.add(IAstModification.InsertFirst(decl, parentscope))
                     replacements.add(IAstModification.Remove(decl, scope))
@@ -179,9 +181,8 @@ class AstPreprocessor(val program: Program,
             }
         }
 
-        if(options.splitWordArrays && (decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW)) {
-            if(!decl.definingBlock.isInLibrary)
-                return makeSplitArray(decl)
+        if(shouldSplitArray(decl)) {
+            return makeSplitArray(decl)
         }
 
         if(decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW) {
@@ -194,10 +195,18 @@ class AstPreprocessor(val program: Program,
         return noModifications
     }
 
+    private fun shouldSplitArray(decl: VarDecl): Boolean =
+        options.splitWordArrays && (decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW) && !decl.definingBlock.isInLibrary
+
     private fun makeSplitArray(decl: VarDecl): Iterable<IAstModification> {
+        val splitDt = when(decl.datatype) {
+            DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> DataType.ARRAY_UW_SPLIT
+            DataType.ARRAY_W,DataType.ARRAY_W_SPLIT -> DataType.ARRAY_W_SPLIT
+            else -> throw FatalAstException("invalid dt")
+        }
         val newDecl = VarDecl(
-            decl.type, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, emptyList(),
-            decl.value, decl.sharedWithAsm, true, decl.alignment, decl.position
+            decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name, emptyList(),
+            decl.value?.copy(), decl.sharedWithAsm, true, decl.alignment, decl.position
         )
         return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))
     }

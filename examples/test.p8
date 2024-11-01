@@ -1,4 +1,3 @@
-%import math
 %import textio
 %option no_sysinit
 %zeropage basicsafe
@@ -6,15 +5,11 @@
 main {
 
     sub start() {
-        ubyte v1 = 100
-        ubyte v2 = 200
-
-        for cx16.r0L in 0 to 255 step 16 {
-            txt.print_ub(math.lerp(v1, v2, cx16.r0L))
+        if cx16.r0L==0 {
+            uword[] scores = [10, 25, 50, 100]      ; can never clear more than 4 lines at once
+            txt.print_uw(scores[1])
             txt.nl()
         }
-        txt.print_ub(math.lerp(v1, v2, 255))
-        txt.nl()
     }
 
 }

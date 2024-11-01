@@ -274,6 +274,11 @@ class VarDecl(val type: VarDeclType,
         }
     }
 
+    init {
+        if(datatype in SplitWordArrayTypes)
+            require(splitArray)
+    }
+
     val isArray: Boolean
         get() = datatype in ArrayDatatypes
 
