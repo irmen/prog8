@@ -795,5 +795,31 @@ txt {
         errors.errors[0] shouldContain "undefined symbol: txt.print2222"
         errors.errors[1] shouldContain "undefined symbol: txt.DEFAULT_WIDTH_XXX"
     }
+
+    test("split arrays back to normal when address is taken") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0L=0
+        if cx16.r0L==0 {
+            uword[] addresses = [scores2, start]
+            uword[] @split scores1 = [10, 25, 50, 100]
+            uword[] @split scores2 = [100, 250, 500, 1000]
+
+            cx16.r0 = &scores1
+            cx16.r1 = &scores2
+            cx16.r2 = &addresses
+        }
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 2
+        errors.warnings[0] shouldContain("address")
+        errors.warnings[1] shouldContain("address")
+        errors.warnings[0] shouldContain("split")
+        errors.warnings[1] shouldContain("split")
+    }
 })
 

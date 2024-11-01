@@ -1,9 +1,6 @@
 TODO
 ====
 
-"cannot take address of split word array"  -> don't make this a fatal error, make it a warning and turn the array into a regular array instead
-(benchmark program/textelite should then be compilable with -splitarrays)
-
 merge problem: if 2 library modules both have merge, stuff breaks (math & prog8_math where prog8_math used to have math block.... didn't work)
 
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.

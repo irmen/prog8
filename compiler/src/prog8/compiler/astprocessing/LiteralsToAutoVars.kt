@@ -4,6 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -76,6 +77,23 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
                 }
             }
         }
+
+        if(array.type.isArray) {
+            val mods = mutableListOf<IAstModification>()
+            for(elt in array.value.filterIsInstance<IdentifierReference>()) {
+                val decl = elt.targetVarDecl(program)
+                if(decl!=null && decl.splitArray) {
+                    // you can't take the adress of a split-word array.
+                    // instead of giving a fatal error, we remove the
+                    // instead of a fatal error, we give a warning and turn it back into a regular array.
+                    errors.warn("cannot take address of split word array - the array is turned back into a regular word array", decl.position)
+                    val normalArray = makeNormalArrayFromSplit(decl)
+                    mods.add(IAstModification.ReplaceNode(decl, normalArray, decl.parent))
+                }
+            }
+            return mods
+        }
+        
         return noModifications
     }
 
@@ -138,4 +156,32 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
 //        }
         return noModifications
     }
+
+    override fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
+        val variable=addressOf.identifier.targetVarDecl(program)
+        if (variable!=null) {
+            if (variable.splitArray) {
+                // you can't take the adress of a split-word array.
+                // instead of giving a fatal error, we remove the
+                // instead of a fatal error, we give a warning and turn it back into a regular array.
+                errors.warn("cannot take address of split word array - the array is turned back into a regular word array", addressOf.position)
+                val normalArray = makeNormalArrayFromSplit(variable)
+                return listOf(IAstModification.ReplaceNode(variable, normalArray, variable.parent))
+            }
+        }
+        return noModifications
+    }
+
+    private fun makeNormalArrayFromSplit(variable: VarDecl): VarDecl {
+        val normalDt = when(variable.datatype) {
+            DataType.ARRAY_UW_SPLIT -> DataType.ARRAY_UW
+            DataType.ARRAY_W_SPLIT -> DataType.ARRAY_W
+            else -> throw FatalAstException("invalid dt")
+        }
+        return VarDecl(
+            variable.type, variable.origin, normalDt, variable.zeropage, variable.arraysize, variable.name, emptyList(),
+            variable.value?.copy(), variable.sharedWithAsm, false, variable.alignment, variable.position
+        )
+    }
+
 }
