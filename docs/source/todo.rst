@@ -1,6 +1,10 @@
 TODO
 ====
 
+remove all remaining 'gfx2' references in code and docs
+
+benchmark program is slightly slower than before. why
+
 paint and rockrunner are a couple of bytes bigger. why?
 
 merge problem: if 2 library modules both have merge, stuff breaks (math & prog8_math where prog8_math used to have math block.... didn't work)

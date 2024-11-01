@@ -1,4 +1,4 @@
-%import gfx2
+%import gfx_lores
 %import math
 
 circles {
@@ -14,7 +14,7 @@ circles {
         if use_kernal
             void cx16.set_screen_mode(128)
         else
-            gfx2.screen_mode(1)
+            gfx_lores.graphics_mode()
 
         math.rndseed(12345,6789)
         cbm.SETTIM(0,0,0)
@@ -28,14 +28,14 @@ circles {
                 cx16.GRAPH_clear()
             }
             else
-                gfx2.clear_screen(0)
+                gfx_lores.clear_screen(0)
             total_num_circles += draw_circles(use_kernal, max_time)
         }
 
         if use_kernal
             void cx16.set_screen_mode(3)
         else {
-            gfx2.screen_mode(0)
+            gfx_lores.text_mode()
         }
 
         return total_num_circles
@@ -66,7 +66,7 @@ circles {
                         cx16.GRAPH_draw_oval(x-radius, y-radius, radius*2, radius*2, true)
                     }
                     else
-                        gfx2.disc(x, y as ubyte, radius, color)
+                        gfx_lores.disc(x, y as ubyte, radius, color)
                     circle_x[num_circles] = x
                     circle_y[num_circles] = y
                     circle_radius[num_circles] = radius

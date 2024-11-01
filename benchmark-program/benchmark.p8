@@ -62,7 +62,7 @@ main {
         benchmark_score[benchmark_number]  = adpcm.decode_benchmark(300)
         benchmark_number++
 
-        announce_benchmark("circles with gfx2")
+        announce_benchmark("circles with gfx_lores")
         benchmark_score[benchmark_number]  = circles.draw(false, 300)
         benchmark_number++
 
