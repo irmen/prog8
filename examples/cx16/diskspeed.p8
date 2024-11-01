@@ -1,3 +1,4 @@
+%import math
 %import diskio
 %import floats
 %zeropage basicsafe

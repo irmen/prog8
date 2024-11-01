@@ -80,14 +80,14 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         when (resultType) {
             DataType.UBYTE -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
-                asmgen.out("  tay  |  jsr  math.multiply_bytes")
+                asmgen.out("  tay  |  jsr  prog8_math.multiply_bytes")
                 if(resultRegister!=null)  {
                     assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), CpuRegister.A, false, false)
                 }
             }
             DataType.UWORD -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-                asmgen.out("  jsr  math.square")
+                asmgen.out("  jsr  prog8_math.square")
                 if(resultRegister!=null)  {
                     assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), RegisterOrPair.AY)
                 }
@@ -104,7 +104,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         assignAsmGen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.Y, false)
         asmgen.restoreRegisterStack(CpuRegister.A ,false)
         // math.divmod_ub_asm: -- divide A by Y, result quotient in Y, remainder in A   (unsigned)
-        asmgen.out("  jsr  math.divmod_ub_asm")
+        asmgen.out("  jsr  prog8_math.divmod_ub_asm")
         val var2name = asmgen.asmVariableName(fcall.args[2] as PtIdentifier)
         val var3name = asmgen.asmVariableName(fcall.args[3] as PtIdentifier)
         val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[2].position, var2name)
@@ -118,7 +118,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         // math.divmod_uw_asm: -- divide two unsigned words (16 bit each) into 16 bit results
         //    input:  P8ZP_SCRATCH_W1 in ZP: 16 bit number, A/Y: 16 bit divisor
         //    output: P8ZP_SCRATCH_W2 in ZP: 16 bit remainder, A/Y: 16 bit division result
-        asmgen.out("  jsr  math.divmod_uw_asm")
+        asmgen.out("  jsr  prog8_math.divmod_uw_asm")
         val var2name = asmgen.asmVariableName(fcall.args[2] as PtIdentifier)
         val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[2].position, var2name)
         val remainderVar = asmgen.asmVariableName(fcall.args[3] as PtIdentifier)

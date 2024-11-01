@@ -904,9 +904,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         when (operator) {
             "+" -> asmgen.out("  clc |  adc  $otherName")
             "-" -> asmgen.out("  sec |  sbc  $otherName")
-            "*" -> asmgen.out("  ldy  $otherName |  jsr  math.multiply_bytes")
-            "/" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm |  tya")
-            "%" -> asmgen.out("  ldy  $otherName |  jsr  math.divmod_ub_asm")
+            "*" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.multiply_bytes")
+            "/" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.divmod_ub_asm |  tya")
+            "%" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.divmod_ub_asm")
             "<<" -> {
                 asmgen.out("""
                         ldy  $otherName
@@ -981,23 +981,23 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "*" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value in asmgen.optimizedByteMultiplications)
-                    asmgen.out("  jsr  math.mul_byte_${value}")
+                    asmgen.out("  jsr  prog8_math.mul_byte_${value}")
                 else
-                    asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes")
+                    asmgen.out("  ldy  #$value |  jsr  prog8_math.multiply_bytes")
                 asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "/" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
-                asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm |  tya")
+                asmgen.out("  ldy  #$value |  jsr  prog8_math.divmod_ub_asm |  tya")
                 asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "%" -> {
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
-                asmgen.out("  ldy  #$value |  jsr  math.divmod_ub_asm")
+                asmgen.out("  ldy  #$value |  jsr  prog8_math.divmod_ub_asm")
                 asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "<<" -> {
@@ -1143,17 +1143,17 @@ $shortcutLabel:""")
         when (operator) {
             "+" -> asmgen.out("  clc |  adc  $variable")
             "-" -> asmgen.out("  sec |  sbc  $variable")
-            "*" -> asmgen.out("  ldy  $variable  |  jsr  math.multiply_bytes")
+            "*" -> asmgen.out("  ldy  $variable  |  jsr  prog8_math.multiply_bytes")
             "/" -> {
                 if(signed)
-                    asmgen.out("  ldy  $variable  |  jsr  math.divmod_b_asm |  tya")
+                    asmgen.out("  ldy  $variable  |  jsr  prog8_math.divmod_b_asm |  tya")
                 else
-                    asmgen.out("  ldy  $variable  |  jsr  math.divmod_ub_asm |  tya")
+                    asmgen.out("  ldy  $variable  |  jsr  prog8_math.divmod_ub_asm |  tya")
             }
             "%" -> {
                 if(signed)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-                asmgen.out("  ldy  $variable  |  jsr  math.divmod_ub_asm")
+                asmgen.out("  ldy  $variable  |  jsr  prog8_math.divmod_ub_asm")
             }
             "<<" -> {
                 asmgen.out("""
@@ -1318,14 +1318,14 @@ $shortcutLabel:""")
             }
             "/" -> {
                 if(signed)
-                    asmgen.out("  tay |  lda  $variable  |  jsr  math.divmod_b_asm |  tya")
+                    asmgen.out("  tay |  lda  $variable  |  jsr  prog8_math.divmod_b_asm |  tya")
                 else
-                    asmgen.out("  tay |  lda  $variable  |  jsr  math.divmod_ub_asm |  tya")
+                    asmgen.out("  tay |  lda  $variable  |  jsr  prog8_math.divmod_ub_asm |  tya")
             }
             "%" -> {
                 if(signed)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-                asmgen.out("  tay |  lda  $variable  |  jsr  math.divmod_ub_asm")
+                asmgen.out("  tay |  lda  $variable  |  jsr  prog8_math.divmod_ub_asm")
             }
             "<<" -> {
                 asmgen.out("""
@@ -1478,16 +1478,16 @@ $shortcutLabel:""")
             }
             "*" -> {
                 if(value in asmgen.optimizedByteMultiplications)
-                    asmgen.out("  lda  $name |  jsr  math.mul_byte_$value |  sta  $name")
+                    asmgen.out("  lda  $name |  jsr  prog8_math.mul_byte_$value |  sta  $name")
                 else
-                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.multiply_bytes |  sta  $name")
+                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  prog8_math.multiply_bytes |  sta  $name")
             }
             "/" -> {
                 // replacing division by shifting is done in an optimizer step.
                 if (dt == DataType.UBYTE)
-                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.divmod_ub_asm |  sty  $name")
+                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  prog8_math.divmod_ub_asm |  sty  $name")
                 else
-                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  math.divmod_b_asm |  sty  $name")
+                    asmgen.out("  lda  $name |  ldy  #$value |  jsr  prog8_math.divmod_b_asm |  sty  $name")
             }
             "%" -> {
                 if(dt==DataType.BYTE)
@@ -1495,7 +1495,7 @@ $shortcutLabel:""")
                 asmgen.out("""
                     lda  $name
                     ldy  #$value
-                    jsr  math.divmod_ub_asm
+                    jsr  prog8_math.divmod_ub_asm
                     sta  $name""")
             }
             "<<" -> {
@@ -1529,7 +1529,7 @@ $shortcutLabel:""")
                             value>3 -> asmgen.out("""
                                 lda  $name
                                 ldy  #$value
-                                jsr  math.lsr_byte_A
+                                jsr  prog8_math.lsr_byte_A
                                 sta  $name""")
                             else -> repeat(value) { asmgen.out("  lda  $name | asl  a |  ror  $name") }
                         }
@@ -1802,7 +1802,7 @@ $shortcutLabel:""")
             "*" -> {
                 // the mul code works for both signed and unsigned
                 if(value in asmgen.optimizedWordMultiplications) {
-                    asmgen.out("  lda  $lsb |  ldy  $msb |  jsr  math.mul_word_$value |  sta  $lsb |  sty  $msb")
+                    asmgen.out("  lda  $lsb |  ldy  $msb |  jsr  prog8_math.mul_word_$value |  sta  $lsb |  sty  $msb")
                 } else {
                     if(block?.options?.veraFxMuls==true)
                         // cx16 verafx hardware mul
@@ -1821,12 +1821,12 @@ $shortcutLabel:""")
                     else
                         asmgen.out("""
                             lda  $lsb
-                            sta  math.multiply_words.multiplier
+                            sta  prog8_math.multiply_words.multiplier
                             lda  $msb
-                            sta  math.multiply_words.multiplier+1
+                            sta  prog8_math.multiply_words.multiplier+1
                             lda  #<$value
                             ldy  #>$value
-                            jsr  math.multiply_words
+                            jsr  prog8_math.multiply_words
                             sta  $lsb
                             sty  $msb""")
                 }
@@ -1844,7 +1844,7 @@ $shortcutLabel:""")
                             sty  P8ZP_SCRATCH_W1+1
                             lda  #<$value
                             ldy  #>$value
-                            jsr  math.divmod_w_asm
+                            jsr  prog8_math.divmod_w_asm
                             sta  $lsb
                             sty  $msb
                         """)
@@ -1857,7 +1857,7 @@ $shortcutLabel:""")
                             sty  P8ZP_SCRATCH_W1+1
                             lda  #<$value
                             ldy  #>$value
-                            jsr  math.divmod_uw_asm
+                            jsr  prog8_math.divmod_uw_asm
                             sta  $lsb
                             sty  $msb
                         """)
@@ -1876,7 +1876,7 @@ $shortcutLabel:""")
                     sty  P8ZP_SCRATCH_W1+1
                     lda  #<$value
                     ldy  #>$value
-                    jsr  math.divmod_uw_asm
+                    jsr  prog8_math.divmod_uw_asm
                     lda  P8ZP_SCRATCH_W2
                     ldy  P8ZP_SCRATCH_W2+1
                     sta  $lsb
@@ -2297,20 +2297,20 @@ $shortcutLabel:""")
                                 sty  $name+1""")
                         } else {
                             if(valueDt==DataType.UBYTE) {
-                                asmgen.out("  lda  $otherName |  sta  math.multiply_words.multiplier")
+                                asmgen.out("  lda  $otherName |  sta  prog8_math.multiply_words.multiplier")
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                    asmgen.out("  stz  math.multiply_words.multiplier+1")
+                                    asmgen.out("  stz  prog8_math.multiply_words.multiplier+1")
                                 else
-                                    asmgen.out("  lda  #0 |  sta  math.multiply_words.multiplier+1")
+                                    asmgen.out("  lda  #0 |  sta  prog8_math.multiply_words.multiplier+1")
                             } else {
                                 asmgen.out("  lda  $otherName")
                                 asmgen.signExtendAYlsb(valueDt)
-                                asmgen.out("  sta  math.multiply_words.multiplier |  sty  math.multiply_words.multiplier+1")
+                                asmgen.out("  sta  prog8_math.multiply_words.multiplier |  sty  prog8_math.multiply_words.multiplier+1")
                             }
                             asmgen.out("""
                                     lda  $name
                                     ldy  $name+1
-                                    jsr  math.multiply_words
+                                    jsr  prog8_math.multiply_words
                                     sta  $name
                                     sty  $name+1""")
                         }
@@ -2324,7 +2324,7 @@ $shortcutLabel:""")
                                 sty  P8ZP_SCRATCH_W1+1
                                 lda  $otherName
                                 ldy  #0
-                                jsr  math.divmod_uw_asm
+                                jsr  prog8_math.divmod_uw_asm
                                 sta  $name
                                 sty  $name+1
                             """)
@@ -2336,7 +2336,7 @@ $shortcutLabel:""")
                                 sty  P8ZP_SCRATCH_W1+1
                                 lda  $otherName
                                 ldy  #0
-                                jsr  math.divmod_w_asm
+                                jsr  prog8_math.divmod_w_asm
                                 sta  $name
                                 sty  $name+1
                             """)
@@ -2352,7 +2352,7 @@ $shortcutLabel:""")
                             sty  P8ZP_SCRATCH_W1+1
                             lda  $otherName
                             ldy  #0
-                            jsr  math.divmod_uw_asm
+                            jsr  prog8_math.divmod_uw_asm
                             lda  P8ZP_SCRATCH_W2
                             sta  $name
                             lda  P8ZP_SCRATCH_W2+1
@@ -2460,11 +2460,11 @@ $shortcutLabel:""")
                             asmgen.out("""
                                 lda  $otherName
                                 ldy  $otherName+1
-                                sta  math.multiply_words.multiplier
-                                sty  math.multiply_words.multiplier+1
+                                sta  prog8_math.multiply_words.multiplier
+                                sty  prog8_math.multiply_words.multiplier+1
                                 lda  $name
                                 ldy  $name+1
-                                jsr  math.multiply_words
+                                jsr  prog8_math.multiply_words
                                 sta  $name
                                 sty  $name+1""")
                     }
@@ -2477,7 +2477,7 @@ $shortcutLabel:""")
                                 sty  P8ZP_SCRATCH_W1+1
                                 lda  $otherName
                                 ldy  $otherName+1
-                                jsr  math.divmod_w_asm
+                                jsr  prog8_math.divmod_w_asm
                                 sta  $name
                                 sty  $name+1""")
                         }
@@ -2489,7 +2489,7 @@ $shortcutLabel:""")
                                 sty  P8ZP_SCRATCH_W1+1
                                 lda  $otherName
                                 ldy  $otherName+1
-                                jsr  math.divmod_uw_asm
+                                jsr  prog8_math.divmod_uw_asm
                                 sta  $name
                                 sty  $name+1""")
                         }
@@ -2504,7 +2504,7 @@ $shortcutLabel:""")
                             sty  P8ZP_SCRATCH_W1+1
                             lda  $otherName
                             ldy  $otherName+1
-                            jsr  math.divmod_uw_asm
+                            jsr  prog8_math.divmod_uw_asm
                             lda  P8ZP_SCRATCH_W2
                             sta  $name
                             lda  P8ZP_SCRATCH_W2+1
@@ -2661,11 +2661,11 @@ $shortcutLabel:""")
                 """)
             else
                 asmgen.out("""
-                    sta  math.multiply_words.multiplier
-                    sty  math.multiply_words.multiplier+1
+                    sta  prog8_math.multiply_words.multiplier
+                    sty  prog8_math.multiply_words.multiplier+1
                     lda  $name
                     ldy  $name+1
-                    jsr  math.multiply_words
+                    jsr  prog8_math.multiply_words
                     sta  $name
                     sty  $name+1
                 """)
@@ -2680,9 +2680,9 @@ $shortcutLabel:""")
                     sta  P8ZP_SCRATCH_W1+1
                     txa""")
             if (dt == DataType.WORD)
-                asmgen.out("  jsr  math.divmod_w_asm")
+                asmgen.out("  jsr  prog8_math.divmod_w_asm")
             else
-                asmgen.out("  jsr  math.divmod_uw_asm")
+                asmgen.out("  jsr  prog8_math.divmod_uw_asm")
             asmgen.out("  sta  $name |  sty  $name+1")
         }
 
@@ -2696,7 +2696,7 @@ $shortcutLabel:""")
                 lda  $name+1
                 sta  P8ZP_SCRATCH_W1+1
                 txa
-                jsr  math.divmod_uw_asm
+                jsr  prog8_math.divmod_uw_asm
                 lda  P8ZP_SCRATCH_W2
                 ldy  P8ZP_SCRATCH_W2+1
                 sta  $name

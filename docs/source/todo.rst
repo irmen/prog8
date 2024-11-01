@@ -1,11 +1,16 @@
 TODO
 ====
 
+paint and rockrunner are a couple of bytes bigger. why?
+
+merge problem: if 2 library modules both have merge, stuff breaks (math & prog8_math where prog8_math used to have math block.... didn't work)
+
+for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.
+
 replace zsound example by a zsmkit example
 contribute a short how-to to the zsmkit repo for building a suitable blob
 write a howto for integrating third party library code like zsmkit and vtui
 
-can we make it so that math is not always included on 6502 target? (what does it need, move that to another library perhaps?)
 
 
 Improve register load order in subroutine call args assignments:

@@ -313,9 +313,7 @@ fun parseMainModule(filepath: Path,
 
     // import the default modules
     importer.importImplicitLibraryModule("syslib")
-    if(compilerOptions.compTarget.name!=VMTarget.NAME && !compilerOptions.experimentalCodegen) {
-        importer.importImplicitLibraryModule("math")
-    }
+    importer.importImplicitLibraryModule("prog8_math")
     importer.importImplicitLibraryModule("prog8_lib")
     if(program.allBlocks.any { it.options().any { option->option=="verafxmuls" } }) {
         if(compTarget.name==Cx16Target.NAME)

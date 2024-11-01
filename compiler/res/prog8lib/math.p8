@@ -5,8 +5,6 @@
 math {
     %option no_symbol_prefixing, ignore_unused
 
-	%asminclude "library:math.asm"
-
     asmsub sin8u(ubyte angle @A) clobbers(Y) -> ubyte @A {
         %asm {{
 		tay
@@ -81,13 +79,13 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
 
     asmsub rnd() clobbers(Y) -> ubyte @A {
         %asm {{
-            jmp  math.randbyte
+            jmp  prog8_math.randbyte
         }}
     }
 
     asmsub rndw() -> uword @AY {
         %asm {{
-            jmp  math.randword
+            jmp  prog8_math.randword
         }}
     }
 
@@ -112,12 +110,12 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
     asmsub rndseed(uword seed1 @AY, uword seed2 @R0) clobbers(A,Y) {
         ; -- set new pseudo RNG's seed values. Defaults are: $00c2, $1137
         %asm {{
-            sta  math.randword.x1
-            sty  math.randword.c1
+            sta  prog8_math.randword.x1
+            sty  prog8_math.randword.c1
             lda  cx16.r0L
-            sta  math.randword.a1
+            sta  prog8_math.randword.a1
             lda  cx16.r0H
-            sta  math.randword.b1
+            sta  prog8_math.randword.b1
             rts
         }}
     }

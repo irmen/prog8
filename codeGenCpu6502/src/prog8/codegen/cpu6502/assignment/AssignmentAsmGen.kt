@@ -936,7 +936,7 @@ internal class AssignmentAsmGen(
                 if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
                 if(!directIntoY(expr.right)) asmgen.out("  pla")
-                asmgen.out("  jsr  math.divmod_ub_asm")
+                asmgen.out("  jsr  prog8_math.divmod_ub_asm")
                 if(target.register==RegisterOrPair.A)
                     asmgen.out("  cmp  #0")     // fix the status register
                 else
@@ -945,7 +945,7 @@ internal class AssignmentAsmGen(
             }
             DataType.UWORD -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                asmgen.out("  jsr  math.divmod_uw_asm")
+                asmgen.out("  jsr  prog8_math.divmod_uw_asm")
                 assignVariableWord(target, "P8ZP_SCRATCH_W2", DataType.UWORD)
                 return true
             }
@@ -961,7 +961,7 @@ internal class AssignmentAsmGen(
                 if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
                 if(!directIntoY(expr.right)) asmgen.out("  pla")
-                asmgen.out("  jsr  math.divmod_ub_asm")
+                asmgen.out("  jsr  prog8_math.divmod_ub_asm")
                 assignRegisterByte(target, CpuRegister.Y, false, true)
                 return true
             }
@@ -970,19 +970,19 @@ internal class AssignmentAsmGen(
                 if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, true)
                 if(!directIntoY(expr.right)) asmgen.out("  pla")
-                asmgen.out("  jsr  math.divmod_b_asm")
+                asmgen.out("  jsr  prog8_math.divmod_b_asm")
                 assignRegisterByte(target, CpuRegister.Y, true, true)
                 return true
             }
             DataType.UWORD -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                asmgen.out("  jsr  math.divmod_uw_asm")
+                asmgen.out("  jsr  prog8_math.divmod_uw_asm")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return true
             }
             DataType.WORD -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
-                asmgen.out("  jsr  math.divmod_w_asm")
+                asmgen.out("  jsr  prog8_math.divmod_w_asm")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return true
             }
@@ -999,7 +999,7 @@ internal class AssignmentAsmGen(
                     if(!directIntoY(expr.right)) asmgen.out("  pha")
                     assignExpressionToRegister(expr.right, RegisterOrPair.Y, expr.type in SignedDatatypes)
                     if(!directIntoY(expr.right)) asmgen.out("  pla")
-                    asmgen.out("  jsr  math.multiply_bytes")
+                    asmgen.out("  jsr  prog8_math.multiply_bytes")
                     assignRegisterByte(target, CpuRegister.A, false, true)
                     return true
                 }
@@ -1022,8 +1022,8 @@ internal class AssignmentAsmGen(
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                         return true
                     } else {
-                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "math.multiply_words.multiplier")
-                        asmgen.out("  jsr  math.multiply_words")
+                        asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "prog8_math.multiply_words.multiplier")
+                        asmgen.out("  jsr  prog8_math.multiply_words")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                     }
                     return true
@@ -1035,16 +1035,16 @@ internal class AssignmentAsmGen(
                 in ByteDatatypes -> {
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type in SignedDatatypes)
                     if (value in asmgen.optimizedByteMultiplications)
-                        asmgen.out("  jsr  math.mul_byte_${value}")
+                        asmgen.out("  jsr  prog8_math.mul_byte_${value}")
                     else
-                        asmgen.out("  ldy  #$value |  jsr  math.multiply_bytes")
+                        asmgen.out("  ldy  #$value |  jsr  prog8_math.multiply_bytes")
                     assignRegisterByte(target, CpuRegister.A, false, true)
                     return true
                 }
                 in WordDatatypes -> {
                     if (value in asmgen.optimizedWordMultiplications) {
                         assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type in SignedDatatypes)
-                        asmgen.out("  jsr  math.mul_word_${value}")
+                        asmgen.out("  jsr  prog8_math.mul_word_${value}")
                     }
                     else {
                         if(expr.definingBlock()!!.options.veraFxMuls){
@@ -1055,8 +1055,8 @@ internal class AssignmentAsmGen(
                                 sty  cx16.r0+1
                                 jsr  verafx.muls""")
                         } else {
-                            asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "math.multiply_words.multiplier")
-                            asmgen.out("  jsr  math.multiply_words")
+                            asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "prog8_math.multiply_words.multiplier")
+                            asmgen.out("  jsr  prog8_math.multiply_words")
                         }
                     }
                     assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -1093,11 +1093,11 @@ internal class AssignmentAsmGen(
                 asmgen.restoreRegisterStack(CpuRegister.Y, true)
                 if(expr.operator==">>")
                     if(signed)
-                        asmgen.out("  jsr  math.lsr_byte_A")
+                        asmgen.out("  jsr  prog8_math.lsr_byte_A")
                     else
-                        asmgen.out("  jsr  math.lsr_ubyte_A")
+                        asmgen.out("  jsr  prog8_math.lsr_ubyte_A")
                 else
-                    asmgen.out("  jsr  math.asl_byte_A")
+                    asmgen.out("  jsr  prog8_math.asl_byte_A")
                 assignRegisterByte(target, CpuRegister.A, signed, true)
                 return true
             } else {
@@ -1105,11 +1105,11 @@ internal class AssignmentAsmGen(
                 asmgen.restoreRegisterStack(CpuRegister.X, true)
                 if(expr.operator==">>")
                     if(signed)
-                        asmgen.out("  jsr  math.lsr_word_AY")
+                        asmgen.out("  jsr  prog8_math.lsr_word_AY")
                     else
-                        asmgen.out("  jsr  math.lsr_uword_AY")
+                        asmgen.out("  jsr  prog8_math.lsr_uword_AY")
                 else
-                    asmgen.out("  jsr  math.asl_word_AY")
+                    asmgen.out("  jsr  prog8_math.asl_word_AY")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return true
             }
@@ -1129,7 +1129,7 @@ internal class AssignmentAsmGen(
                                 if(shifts==1)
                                     asmgen.out("  cmp  #$80 |  ror  a")
                                 else
-                                    asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
+                                    asmgen.out("  ldy  #$shifts |  jsr  prog8_math.lsr_byte_A")
                             } else {
                                 repeat(shifts) {
                                     asmgen.out("  lsr  a")
@@ -1141,7 +1141,7 @@ internal class AssignmentAsmGen(
                     }
                     else -> {
                         if(signed && expr.operator==">>") {
-                            asmgen.out("  ldy  #$shifts |  jsr  math.lsr_byte_A")
+                            asmgen.out("  ldy  #$shifts |  jsr  prog8_math.lsr_byte_A")
                         } else {
                             asmgen.out("  lda  #0")
                         }
@@ -1174,7 +1174,7 @@ internal class AssignmentAsmGen(
                                         ror  a""")
                                 }
                                 else
-                                    asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
+                                    asmgen.out("  ldx  #$shifts |  jsr  prog8_math.lsr_word_AY")
                             } else {
                                 if(shifts>0) {
                                     asmgen.out("  sty  P8ZP_SCRATCH_B1")
@@ -1198,16 +1198,16 @@ internal class AssignmentAsmGen(
                         } else {
                             asmgen.out("  ldx  #$shifts")
                             if(signed)
-                                asmgen.out("  jsr  math.lsr_word_AY")
+                                asmgen.out("  jsr  prog8_math.lsr_word_AY")
                             else
-                                asmgen.out("  jsr  math.lsr_uword_AY")
+                                asmgen.out("  jsr  prog8_math.lsr_uword_AY")
                         }
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                         return true
                     }
                     else -> {
                         if(signed && expr.operator==">>") {
-                            asmgen.out("  ldx  #$shifts |  jsr  math.lsr_word_AY")
+                            asmgen.out("  ldx  #$shifts |  jsr  prog8_math.lsr_word_AY")
                         } else {
                             asmgen.out("  lda  #0 |  ldy  #0")
                         }
