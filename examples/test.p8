@@ -1,21 +1,66 @@
 %import textio
 %option no_sysinit
 %zeropage basicsafe
-%memtop $0840
 
 main {
 
     sub start() {
-        cx16.r0L=0
-        if cx16.r0L==0 {
-            uword[] addresses = [scores2, start]
-            uword[] @split scores1 = [10, 25, 50, 100]      ; can never clear more than 4 lines at once
-            uword[] @split scores2 = [10, 25, 50, 100]      ; can never clear more than 4 lines at once
+        cx16.r0=0
 
-            cx16.r0 = &scores1
-            cx16.r1 = &scores2
-            cx16.r2 = &addresses
-        }
+        if cx16.r0==0
+            cx16.r1L=42
+        else
+            cx16.r1L=99
+
+        cx16.r2L = if cx16.r0==0 42 else 99
+
+        if cx16.r0==33
+            cx16.r1L=42
+        else
+            cx16.r1L=99
+
+        cx16.r2L = if cx16.r0==33 42 else 99
+
+        if cx16.r0!=3333
+            cx16.r1L=42
+        else
+            cx16.r1L=99
+
+        cx16.r2L = if cx16.r0!=3333 42 else 99
+
+        if cx16.r0!=0
+            cx16.r1L=42
+        else
+            cx16.r1L=99
+
+        cx16.r2L = if cx16.r0!=0 42 else 99
+
+        if cx16.r0!=33
+            cx16.r1L=42
+        else
+            cx16.r1L=99
+
+        cx16.r2L = if cx16.r0!=0 42 else 99
+
+        if cx16.r0==cx16.r9
+            cx16.r1L=42
+        else
+            cx16.r1L=99
+
+        cx16.r2L = if cx16.r0==cx16.r9 42 else 99
+
+        if cx16.r0!=cx16.r9
+            cx16.r1L=42
+        else
+            cx16.r1L=99
+
+        cx16.r2L = if cx16.r0!=cx16.r9 42 else 99
+
+        if cx16.r0>cx16.r1
+            cx16.r1L=42
+        else
+            cx16.r1L=99
+
+        cx16.r2L = if cx16.r0>cx16.r1 42 else 99
     }
-
 }

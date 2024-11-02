@@ -3,10 +3,8 @@ package prog8.compiler.astprocessing
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.base.FatalAstException
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.expressions.PrefixExpression
-import prog8.ast.expressions.invertCondition
+import prog8.ast.expressions.*
+import prog8.ast.statements.IfElse
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
@@ -97,7 +95,6 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
 
     override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
         if(expr.operator == "not") {
-
             // first check if we're already part of a "boolean" expression (i.e. comparing against 0 or 1)
             // if so, simplify THAT whole expression rather than making it more complicated
             if (parent is BinaryExpression) {
@@ -155,20 +152,47 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
                 val notZero = BinaryExpression(x, "!=", NumericLiteral(dt, 0.0, expr.position), expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, notZero, parent))
             }
+
+            // not  X <compare> Y  ->   X <invertedcompare> Y
             val subBinExpr = expr.expression as? BinaryExpression
-            if(subBinExpr?.operator=="==") {
-                if(subBinExpr.right.constValue(program)?.number==0.0) {
-                    // not(x==0) -> x!=0
-                    subBinExpr.operator = "!="
-                    return listOf(IAstModification.ReplaceNode(expr, subBinExpr, parent))
-                }
-            } else if(subBinExpr?.operator=="!=") {
-                if(subBinExpr.right.constValue(program)?.number==0.0) {
-                    // not(x!=0) -> x==0
-                    subBinExpr.operator = "=="
-                    return listOf(IAstModification.ReplaceNode(expr, subBinExpr, parent))
+            if(subBinExpr!=null) {
+                val invertedOperator = invertedComparisonOperator(subBinExpr.operator)
+                if(invertedOperator!=null) {
+                    val inverted = BinaryExpression(subBinExpr.left, invertedOperator, subBinExpr.right, subBinExpr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, inverted, parent))
                 }
             }
+        }
+
+        return noModifications
+    }
+
+    override fun before(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+        if(ifElse.elsepart.isNotEmpty()) {
+            val prefix = ifElse.condition as? PrefixExpression
+            if(prefix?.operator=="not") {
+                // if not x  a else b ->  if x  b else a
+                errors.info("invert condition and swap if/else blocks", ifElse.condition.position)
+                ifElse.condition = prefix.expression
+                ifElse.condition.parent = ifElse
+                val elsepart = ifElse.elsepart
+                ifElse.elsepart = ifElse.truepart
+                ifElse.truepart = elsepart
+            }
+        }
+        return noModifications
+    }
+
+    override fun before(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> {
+        val prefix = ifExpr.condition as? PrefixExpression
+        if(prefix?.operator=="not") {
+            // if not x  a else b ->  if x  b else a
+            errors.info("invert condition and swap values", ifExpr.condition.position)
+            ifExpr.condition = prefix.expression
+            ifExpr.condition.parent = ifExpr
+            val falsevalue = ifExpr.falsevalue
+            ifExpr.falsevalue = ifExpr.truevalue
+            ifExpr.truevalue = falsevalue
         }
 
         return noModifications

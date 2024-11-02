@@ -238,11 +238,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if(expr.operator=="==") {
             if(rightDt==DataType.BOOL && leftDt==DataType.BOOL) {
                 val rightConstBool = rightVal?.asBooleanValue
-                if(rightConstBool!=null) {
-                    return if(rightConstBool)
-                        listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
-                    else
-                        listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
+                if(rightConstBool==true) {
+                    return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
                 }
             }
             if (rightVal?.number == 1.0) {
@@ -261,11 +258,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if (expr.operator=="!=") {
             if(rightDt==DataType.BOOL && leftDt==DataType.BOOL) {
                 val rightConstBool = rightVal?.asBooleanValue
-                if(rightConstBool!=null) {
-                    return if (rightConstBool)
-                        listOf(IAstModification.ReplaceNode(expr, PrefixExpression("not", expr.left, expr.position), parent))
-                    else
-                        listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                if(rightConstBool==false) {
+                    listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
                 }
             }
             if (rightVal?.number == 1.0) {
@@ -413,21 +407,6 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
         }
 
-        return noModifications
-    }
-
-    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
-        if(expr.operator=="not") {
-            // not  X <compare> Y  ->   X <invertedcompare> Y
-            val binExpr = expr.expression as? BinaryExpression
-            if(binExpr!=null) {
-                val invertedOperator = invertedComparisonOperator(binExpr.operator)
-                if(invertedOperator!=null) {
-                    val inverted = BinaryExpression(binExpr.left, invertedOperator, binExpr.right, binExpr.position)
-                    return listOf(IAstModification.ReplaceNode(expr, inverted, parent))
-                }
-            }
-        }
         return noModifications
     }
 

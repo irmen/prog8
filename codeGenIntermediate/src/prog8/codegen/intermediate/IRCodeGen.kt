@@ -1330,6 +1330,9 @@ class IRCodeGen(
     }
 
     private fun translateIfElse(ifElse: PtIfElse): IRCodeChunks {
+        if((ifElse.condition as? PtPrefix)?.operator=="not")
+            throw AssemblyError("not prefix in ifelse should have been replaced by swapped if-else blocks")
+
         val condition = ifElse.condition as? PtBinaryExpression
         if(condition==null || condition.left.type != DataType.FLOAT) {
             return ifWithElse_IntegerCond(ifElse)

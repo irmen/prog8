@@ -91,6 +91,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(ifExpr: PtIfExpression): ExpressionCodeResult {
+
+        if((ifExpr.condition as? PtPrefix)?.operator=="not")
+            throw AssemblyError("not prefix in ifexpression should have been replaced by swapped values")
+
         // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
         val condTr = translateExpression(ifExpr.condition)
         val trueTr = translateExpression(ifExpr.truevalue)

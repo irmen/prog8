@@ -127,19 +127,6 @@ class StatementOptimizer(private val program: Program,
                     )
                 }
             }
-
-            // switch if/else around if the condition is a not
-            val prefixCond = ifElse.condition as? PrefixExpression
-            if(prefixCond?.operator=="not") {
-                errors.info("invert conditon and swap if/else blocks", ifElse.condition.position)
-                val newTruePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
-                val newElsePart = AnonymousScope(ifElse.truepart.statements, ifElse.truepart.position)
-                return listOf(
-                    IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
-                    IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
-                    IAstModification.ReplaceNode(ifElse.condition, prefixCond.expression, ifElse)
-                )
-            }
         }
 
         return noModifications
