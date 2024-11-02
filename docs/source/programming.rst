@@ -150,7 +150,8 @@ you from having to type the fully scoped name everytime you need to access that 
 Aliases can be created in any scope except at the module level.
 You can create and use an alias with the ``alias`` statement like so::
 
-    alias  prn = txt.print_ub
+    alias  score   = cx16.r7L        ; 'name' the virtual register
+    alias  prn     = txt.print_ub    ; shorter name for a subroutine elsewhere
     ...
     prn(score)
 

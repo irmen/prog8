@@ -832,6 +832,8 @@ It is not possible to use floating point arguments or return values in an asmsub
     ``cx16.r0`` .. ``cx16.r15``  (these are memory mapped uword values),
     ``cx16.r0s`` .. ``cx16.r15s``  (these are memory mapped word values),
     and ``L`` / ``H`` variants are also available to directly access the low and high bytes of these.
+    You can use them directly but their name isn't very descriptive, so it may be useful to define
+    an alias for them when using them regularly.
 
 
 Expressions
