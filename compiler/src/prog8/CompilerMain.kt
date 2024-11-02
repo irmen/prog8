@@ -40,7 +40,7 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 
 
 private fun compileMain(args: Array<String>): Boolean {
-    val cli = ArgParser("prog8compiler", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
+    val cli = ArgParser("prog8c", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
     val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
     val checkSource by cli.option(ArgType.Boolean, fullName = "check", description = "quickly check program for errors, no output will be produced")
     val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
