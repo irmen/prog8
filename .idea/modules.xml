@@ -15,6 +15,7 @@
       <module fileurl="file://$PROJECT_DIR$/docs/docs.iml" filepath="$PROJECT_DIR$/docs/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/examples/examples.iml" filepath="$PROJECT_DIR$/examples/examples.iml" />
       <module fileurl="file://$PROJECT_DIR$/intermediate/intermediate.iml" filepath="$PROJECT_DIR$/intermediate/intermediate.iml" />
+      <module fileurl="file://$PROJECT_DIR$/languageServer/languageServer.iml" filepath="$PROJECT_DIR$/languageServer/languageServer.iml" />
       <module fileurl="file://$PROJECT_DIR$/parser/parser.iml" filepath="$PROJECT_DIR$/parser/parser.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/prog8.iml" filepath="$PROJECT_DIR$/.idea/modules/prog8.iml" />
       <module fileurl="file://$PROJECT_DIR$/simpleAst/simpleAst.iml" filepath="$PROJECT_DIR$/simpleAst/simpleAst.iml" />
