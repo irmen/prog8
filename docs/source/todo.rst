@@ -1,8 +1,6 @@
 TODO
 ====
 
-get rid of audio.p8 module , rewrite audio romsubs , rewrite audio example to use syslib routines
-
 add docs for @rombank @rambank on romsubs.  Add  promo in docs that prog8 does automatic bank switching when calling such a romsub (on cx16 and c128)
 
 rename 'romsub' to 'extsub' ?

@@ -955,18 +955,6 @@ Read the `psg source code <https://github.com/irmen/prog8/tree/master/compiler/r
 to see what's in there.
 
 
-audio  (cx16 only)
-------------------
-Available for the Cx16 target.
-Contains stub routines for all of the kernal audio routines available in rom bank 10.
-The stubs use JSRFAR calls so you don't have to bother with selecting the correct rom bank in your own program code.
-See the cx16/audioroutines.p8 example on how to use them.
-
-Read the `audio source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/audio.p8>`_
-to see what's in there.
-
-
-
 sprites  (cx16 only)
 --------------------
 Available for the Cx16 target. Simple routines to manipulate sprites.

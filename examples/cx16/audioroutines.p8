@@ -1,5 +1,4 @@
 %import textio
-%import audio
 %zeropage basicsafe
 %option no_sysinit
 
@@ -31,32 +30,28 @@ main {
 
     */
 
-        ; Note: the audio module contains stubs for every kernal audio call,
-        ; they use JSRFAR to automatically switch to the correct ROM bank (and back).
-        ; So we don't have to switch rom banks ourselves to access the audio routines in bank 10!
+        cx16.psg_init()
 
-        audio.psg_init()
+        cx16.bas_playstringvoice(15)
+        cx16.bas_psgchordstring(6, "o3g>ce")
 
-        audio.bas_playstringvoice(15)
-        audio.bas_psgchordstring(6, "o3g>ce")
+        cx16.bas_playstringvoice(14)
+        cx16.bas_psgplaystring(10, ">c<dgb>cde")
 
-        audio.bas_playstringvoice(14)
-        audio.bas_psgplaystring(10, ">c<dgb>cde")
+        cx16.bas_playstringvoice(15)
+        cx16.bas_psgchordstring(3, "rrr")
 
-        audio.bas_playstringvoice(15)
-        audio.bas_psgchordstring(3, "rrr")
+        cx16.bas_playstringvoice(14)
+        cx16.bas_psgplaystring(9, "o4cag>c<a")
 
-        audio.bas_playstringvoice(14)
-        audio.bas_psgplaystring(9, "o4cag>c<a")
+        cx16.bas_playstringvoice(0)
+        cx16.bas_psgchordstring(6, "o3a>cf")
 
-        audio.bas_playstringvoice(0)
-        audio.bas_psgchordstring(6, "o3a>cf")
+        cx16.bas_playstringvoice(14)
+        cx16.bas_psgplaystring(14, "l16fgab->cdef4")
 
-        audio.bas_playstringvoice(14)
-        audio.bas_psgplaystring(14, "l16fgab->cdef4")
-
-        audio.bas_playstringvoice(0)
-        audio.bas_psgchordstring(3, "rrr")
+        cx16.bas_playstringvoice(0)
+        cx16.bas_psgchordstring(3, "rrr")
 
     }
 
@@ -79,44 +74,44 @@ main {
 150 FMCHORD 1,"RRR" : REM RELEASE THE CHANNELS THAT ARE PLAYING THE CHORD
 */
 
-        void audio.ym_init()
-        void audio.bas_fmvib(195, 10)
-        audio.ym_loadpatch(1,16,true)
-        audio.ym_loadpatch(2,16,true)
-        audio.ym_loadpatch(3,16,true)
-        void audio.ym_setatten(1,64-50)
-        void audio.ym_setatten(2,64-50)
-        void audio.ym_setatten(3,64-50)
-        audio.ym_loadpatch(0,11,true)
+        void cx16.ym_init()
+        void cx16.bas_fmvib(195, 10)
+        cx16.ym_loadpatch(1,16,true)
+        cx16.ym_loadpatch(2,16,true)
+        cx16.ym_loadpatch(3,16,true)
+        void cx16.ym_setatten(1,64-50)
+        void cx16.ym_setatten(2,64-50)
+        void cx16.ym_setatten(3,64-50)
+        cx16.ym_loadpatch(0,11,true)
 
-        audio.bas_playstringvoice(1)
-        audio.bas_fmchordstring(11, "o3cg>e t130")
+        cx16.bas_playstringvoice(1)
+        cx16.bas_fmchordstring(11, "o3cg>e t130")
 
-        audio.bas_playstringvoice(0)
-        audio.bas_fmplaystring(12, "o4g4.a8g4e2.")
-        audio.bas_playstringvoice(0)
-        audio.bas_fmplaystring(12, "o4g4.a8g4e2.")
+        cx16.bas_playstringvoice(0)
+        cx16.bas_fmplaystring(12, "o4g4.a8g4e2.")
+        cx16.bas_playstringvoice(0)
+        cx16.bas_fmplaystring(12, "o4g4.a8g4e2.")
 
-        audio.bas_playstringvoice(1)
-        audio.bas_fmchordstring(6, "o2g>db")
+        cx16.bas_playstringvoice(1)
+        cx16.bas_fmchordstring(6, "o2g>db")
 
-        audio.bas_playstringvoice(0)
-        audio.bas_fmplaystring(9, "o5d2d4<b2")
+        cx16.bas_playstringvoice(0)
+        cx16.bas_fmplaystring(9, "o5d2d4<b2")
 
-        audio.bas_playstringvoice(1)
-        audio.bas_fmchordstring(3, "o2f")
+        cx16.bas_playstringvoice(1)
+        cx16.bas_fmchordstring(3, "o2f")
 
-        audio.bas_playstringvoice(0)
-        audio.bas_fmplaystring(2, "r4")
+        cx16.bas_playstringvoice(0)
+        cx16.bas_fmplaystring(2, "r4")
 
-        audio.bas_playstringvoice(1)
-        audio.bas_fmchordstring(5, "o3ceg")
+        cx16.bas_playstringvoice(1)
+        cx16.bas_fmchordstring(5, "o3ceg")
 
-        audio.bas_playstringvoice(0)
-        audio.bas_fmplaystring(10, "o5c2c4<g2.")
+        cx16.bas_playstringvoice(0)
+        cx16.bas_fmplaystring(10, "o5c2c4<g2.")
 
-        audio.bas_playstringvoice(1)
-        audio.bas_fmchordstring(3, "rrr")
+        cx16.bas_playstringvoice(1)
+        cx16.bas_fmchordstring(3, "rrr")
     }
 
 }
