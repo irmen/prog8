@@ -806,7 +806,7 @@ class Subroutine(override val name: String,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
                  val asmClobbers: Set<CpuRegister>,
-                 val asmAddress: UInt?,
+                 val asmAddress: Address?,
                  val isAsmSubroutine: Boolean,
                  var inline: Boolean,
                  var hasBeenInlined: Boolean=false,
@@ -846,6 +846,8 @@ class Subroutine(override val name: String,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() =
         "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
+
+    class Address(val rombank: UInt?, val rambank: UInt?, val address: UInt)
 }
 
 open class SubroutineParameter(val name: String,

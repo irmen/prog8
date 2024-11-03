@@ -440,9 +440,10 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
                 }
             }
         }
-        val targetSub = target as? Subroutine
-        if(targetSub?.asmAddress!=null) {
-            return NumericLiteral(DataType.UWORD, targetSub.asmAddress.toDouble(), position)
+        val targetAsmAddress = (target as? Subroutine)?.asmAddress
+        if(targetAsmAddress!=null) {
+            if(targetAsmAddress.rombank==null && targetAsmAddress.rambank==null)
+                return NumericLiteral(DataType.UWORD, targetAsmAddress.address.toDouble(), position)
         }
         return null
     }

@@ -59,8 +59,6 @@ cbm {
 romsub $FA65 = IRQDFRT() clobbers(A,X,Y)                        ; default IRQ routine
 romsub $FF33 = IRQDFEND() clobbers(A,X,Y)                       ; default IRQ end/cleanup
 
-; TODO c128 a bunch of kernal routines are missing here that are specific to the c128
-
 romsub $FF81 = CINT() clobbers(A,X,Y)                           ; (alias: SCINIT) initialize screen editor and video chip
 romsub $FF84 = IOINIT() clobbers(A, X)                          ; initialize I/O devices (CIA, SID, IRQ)
 romsub $FF87 = RAMTAS() clobbers(A,X,Y)                         ; initialize RAM, tape buffer, screen
@@ -317,6 +315,11 @@ c128 {
     &ubyte  VM2     = $0A2D         ; shadow for VIC $d018 in bitmap screen mode
     &ubyte  VM3     = $0A2E         ; starting page for VDC screen mem
     &ubyte  VM4     = $0A2F         ; starting page for VDC attribute mem
+
+
+; TODO c128 a bunch of kernal routines are missing here that are specific to the c128
+
+romsub $FF6E = JSRFAR()
 
 
 ; ---- C128 specific system utility routines: ----

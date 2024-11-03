@@ -177,7 +177,10 @@ private fun AsmsubroutineContext.toAst(): Subroutine {
 
 private fun RomsubroutineContext.toAst(): Subroutine {
     val subdecl = asmsub_decl().toAst()
-    val address = integerliteral().toAst().number.toUInt()
+    val rombank = rombankspec()?.integerliteral()?.toAst()?.number?.toUInt()
+    val rambank = rambankspec()?.integerliteral()?.toAst()?.number?.toUInt()
+    val addr = integerliteral().toAst().number.toUInt()
+    val address = Subroutine.Address(rombank, rambank, addr)
     return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes.toMutableList(),
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
             subdecl.asmClobbers, address, true, inline = false, statements = mutableListOf(), position = toPosition()

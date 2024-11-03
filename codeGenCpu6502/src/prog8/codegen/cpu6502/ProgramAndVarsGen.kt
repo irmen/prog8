@@ -780,7 +780,9 @@ internal class ProgramAndVarsGen(
             .filter { it is PtAsmSub && it.address!=null }
             .forEach { asmsub ->
                 asmsub as PtAsmSub
-                asmgen.out("  ${asmsub.name} = ${asmsub.address!!.toHex()}")
+                val address = asmsub.address!!
+                val bank = if(address.rombank!=null) "; @rombank ${address.rombank}" else if(address.rambank!=null) "; @rambank ${address.rambank}" else ""
+                asmgen.out("  ${asmsub.name} = ${address.address.toHex()} $bank")
             }
     }
 

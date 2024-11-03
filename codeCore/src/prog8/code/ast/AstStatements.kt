@@ -10,13 +10,16 @@ sealed interface IPtSubroutine {
 
 class PtAsmSub(
     name: String,
-    val address: UInt?,
+    val address: Address?,
     val clobbers: Set<CpuRegister>,
     val parameters: List<Pair<RegisterOrStatusflag, PtSubroutineParameter>>,
     val returns: List<Pair<RegisterOrStatusflag, DataType>>,
     val inline: Boolean,
     position: Position
-) : PtNamedNode(name, position), IPtSubroutine
+) : PtNamedNode(name, position), IPtSubroutine {
+
+    class Address(val rombank: UByte?, val rambank: UByte?, val address: UInt)
+}
 
 
 class PtSub(

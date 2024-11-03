@@ -643,8 +643,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val call =
                     if(callTarget.address==null)
                         IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
-                    else
-                        IRInstruction(Opcode.CALL, address = callTarget.address!!.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
+                    else {
+                        val address = callTarget.address!!
+                        if(address.rombank==null && address.rambank==null) {
+                            IRInstruction(
+                                Opcode.CALL,
+                                address = address.address.toInt(),
+                                fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
+                        }
+                        else {
+                            TODO("callfar is not implemented for the selected compilation target")
+                        }
+                    }
                 addInstr(result, call, null)
                 var finalReturnRegister = returnRegSpec?.registerNum ?: -1
 
@@ -755,8 +765,17 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val call =
             if(callTarget.address==null)
                 IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegisters))
-            else
-                IRInstruction(Opcode.CALL, address = callTarget.address!!.toInt(), fcallArgs = FunctionCallArgs(argRegisters, returnRegisters))
+            else {
+                val address = callTarget.address!!
+                if(address.rombank==null && address.rambank==null) {
+                    IRInstruction(
+                        Opcode.CALL,
+                        address = address.address.toInt(),
+                        fcallArgs = FunctionCallArgs(argRegisters, returnRegisters)
+                    )
+                }
+                else TODO("romsub with banked address got called ${callTarget.name}")
+            }
         addInstr(result, call, null)
         val resultRegs = returnRegisters.filter{it.dt!=IRDataType.FLOAT}.map{it.registerNum}
         val resultFpRegs = returnRegisters.filter{it.dt==IRDataType.FLOAT}.map{it.registerNum}

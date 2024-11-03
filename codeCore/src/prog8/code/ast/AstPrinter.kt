@@ -89,10 +89,12 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     }"
                 }
                 val str = if (node.inline) "inline " else ""
-                if(node.address==null) {
+                if(node.address == null) {
                     str + "asmsub ${node.name}($params) $clobbers $returns"
                 } else {
-                    str + "romsub ${node.address.toHex()} = ${node.name}($params) $clobbers $returns"
+                    val rombank = if(node.address.rombank!=null) "@rombank ${node.address.rombank}" else ""
+                    val rambank = if(node.address.rambank!=null) "@rambank ${node.address.rambank}" else ""
+                    str + "romsub $rombank $rambank ${node.address.address.toHex()} = ${node.name}($params) $clobbers $returns"
                 }
             }
             is PtBlock -> {

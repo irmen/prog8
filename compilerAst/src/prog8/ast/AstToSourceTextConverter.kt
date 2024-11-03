@@ -181,7 +181,9 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output("inline ")
         if(subroutine.isAsmSubroutine) {
             if(subroutine.asmAddress!=null) {
-                output("romsub ${subroutine.asmAddress.toHex()} = ${subroutine.name} (")
+                val rombank = if(subroutine.asmAddress.rombank!=null) "@rombank ${subroutine.asmAddress.rombank}" else ""
+                val rambank = if(subroutine.asmAddress.rambank!=null) "@rambank ${subroutine.asmAddress.rambank}" else ""
+                output("romsub $rombank $rambank ${subroutine.asmAddress.address.toHex()} = ${subroutine.name} (")
             }
             else
                 output("asmsub ${subroutine.name} (")

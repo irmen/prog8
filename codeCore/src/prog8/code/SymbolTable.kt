@@ -1,5 +1,6 @@
 package prog8.code
 
+import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtNode
 import prog8.code.ast.PtProgram
 import prog8.code.core.*
@@ -257,7 +258,7 @@ class StSub(name: String, val parameters: List<StSubroutineParameter>, val retur
 
 
 class StRomSub(name: String,
-               val address: UInt?,      // null in case of asmsub, specified in case of romsub
+               val address: PtAsmSub.Address?,      // null in case of asmsub, specified in case of romsub
                val parameters: List<StRomSubParameter>,
                val returns: List<StRomSubParameter>,
                astNode: PtNode) :

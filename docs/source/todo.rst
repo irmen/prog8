@@ -1,6 +1,12 @@
 TODO
 ====
 
+get rid of audio.p8 module , rewrite audio romsubs , rewrite audio example to use syslib routines
+
+add docs for @rombank @rambank on romsubs.  Add  promo in docs that prog8 does automatic bank switching when calling such a romsub (on cx16 and c128)
+
+rename 'romsub' to 'extsub' ?
+
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
 regenerate symbol dump files
@@ -83,13 +89,3 @@ STRUCTS?
 - ARRAY remains the type for an array literal (so we can keep doing register-indexed addressing directly on it)
 - we probably need to have a STRBYREF and ARRAYBYREF if we deal with a pointer to a string / array (such as when passing it to a function)
   the subtype of those should include the declared element type and the declared length of the string / array
-
-
-Other language/syntax features to think about
----------------------------------------------
-
-- add (rom/ram)bank support to romsub.   A call will then automatically switch banks, use callfar and something else when in banked ram.
-  challenges: how to not make this too X16 specific? How does the compiler know what bank to switch (ram/rom)?
-  How to make it performant when we want to (i.e. NOT have it use callfar/auto bank switching) ?
-  Maybe by having a %option rombank=4 rambank=22   to set that as fixed rombank/rambank for that subroutine/block (and pray the user doesn't change it themselves)
-  and then only do bank switching if the bank of the routine is different from the configured rombank/rambank.

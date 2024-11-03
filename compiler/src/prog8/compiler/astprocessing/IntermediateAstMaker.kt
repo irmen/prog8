@@ -466,8 +466,9 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
         val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) })
+        val asmAddr = if(srcSub.asmAddress==null) null else PtAsmSub.Address(srcSub.asmAddress!!.rombank?.toUByte(), srcSub.asmAddress!!.rambank?.toUByte(), srcSub.asmAddress!!.address)
         val sub = PtAsmSub(srcSub.name,
-            srcSub.asmAddress,
+            asmAddr,
             srcSub.asmClobbers,
             params,
             srcSub.asmReturnvaluesRegisters.zip(srcSub.returntypes),

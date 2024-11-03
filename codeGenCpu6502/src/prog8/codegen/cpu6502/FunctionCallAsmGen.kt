@@ -40,7 +40,55 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 sub.children.forEach { asmgen.translate(it as PtInlineAssembly) }
                 asmgen.out("  \t; inlined routine end: ${sub.name}")
             } else {
-                asmgen.out("  jsr  $subAsmName")
+                val rombank = sub.address?.rombank
+                val rambank = sub.address?.rambank
+                if(rombank==null && rambank==null)
+                    asmgen.out("  jsr  $subAsmName")
+                else {
+                    when(asmgen.options.compTarget.name) {
+                        "cx16" -> {
+                            if(rambank!=null) {
+                                // JSRFAR can jump to a banked RAM address as well!
+                                asmgen.out("""
+                                    jsr cx16.JSRFAR
+                                    .word  $subAsmName    ; ${sub.address!!.address.toHex()}
+                                    .byte  $rambank"""
+                                )
+                            } else {
+                                asmgen.out("""
+                                    jsr cx16.JSRFAR
+                                    .word  $subAsmName    ; ${sub.address!!.address.toHex()}
+                                    .byte  $rombank"""
+                                )
+                            }
+                        }
+                        "c128" -> {
+                            val bank = rambank ?: rombank!!
+                            // see https://cx16.dk/c128-kernal-routines/jsrfar.html
+                            asmgen.out("""
+                                sty	 $08
+                                stx	 $07
+                                sta	 $06
+                                php
+                                pla
+                                sta	 $05
+                                lda	 #$bank
+                                ldy	 #>$subAsmName
+                                ldx	 #<$subAsmName
+                                sta	 $02
+                                sty	 $03
+                                stx	 $04
+                                jsr	 c128.JSRFAR
+                                lda	$05
+                                pha
+                                lda	$06
+                                ldx	$07
+                                ldy	$08
+                                plp""")
+                        }
+                        else -> throw AssemblyError("callfar is not supported on the selected compilation target")
+                    }
+                }
             }
         }
         else if(sub is PtSub) {
