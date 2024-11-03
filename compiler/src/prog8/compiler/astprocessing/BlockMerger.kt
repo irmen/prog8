@@ -11,6 +11,8 @@ class BlockMerger(val errors: IErrorReporter) {
     // will be joined into a block with the same name, coming from a library.
     // (or a normal block if no library block with that name was found)
 
+    private val mergedBlocks = mutableSetOf<Block>()        // to make sure blocks aren't merged more than once
+
     fun visit(program: Program) {
         val allBlocks = program.allBlocks
         for(block in allBlocks) {
@@ -31,6 +33,9 @@ class BlockMerger(val errors: IErrorReporter) {
     }
 
     private fun merge(block: Block, target: Block) {
+        if(block===target || block in mergedBlocks || target in mergedBlocks)
+            return
+
         val named = target.statements.filterIsInstance<Subroutine>().associateBy { it.name }
 
         for(stmt in block.statements.filter { it !is Directive }) {
@@ -47,7 +52,9 @@ class BlockMerger(val errors: IErrorReporter) {
             target.statements.add(stmt)
             stmt.parent = target
         }
+
         block.statements.clear()
         block.definingScope.remove(block)
+        mergedBlocks.add(block)
     }
 }

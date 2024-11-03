@@ -1,8 +1,6 @@
 TODO
 ====
 
-merge problem: if 2 library modules both have merge, stuff breaks (math & prog8_math where prog8_math used to have math block.... didn't work)
-
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
 regenerate symbol dump files

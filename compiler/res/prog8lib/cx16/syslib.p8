@@ -734,8 +734,9 @@ asmsub vpeek(ubyte bank @A, uword address @XY) -> ubyte @A {
 }
 
 asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrOrDecrByOne @Y) clobbers(A) {
-        ; -- setup the VERA's data address register 0 or 1
-        ;    with optional auto increment or decrement of 1.
+        ; -- setup the VERA's data address register 0 or 1 with optional auto increment or decrement of 1.
+        ;    This is a convenience routine, and not very efficient if you call it often;
+        ;    it's usually better to write a tailor made version of it that accounts for the repeated values.
         ;    Note that the vaddr_autoincr() and vaddr_autodecr() routines allow to set all possible strides, not just 1.
         ;    Note also that Vera's addrset is reset to 0 on exit, even if you set port #1's address.
         %asm {{
@@ -764,6 +765,8 @@ asmsub vaddr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, byte autoIncrO
 
 asmsub vaddr_clone(ubyte port @A) clobbers (A,X,Y) {
     ; -- clones Vera addresses from the given source port to the other one.
+    ;    This is a convenience routine, and not very efficient if you call it often;
+    ;    it's usually better to write a tailor made version of it that accounts for the repeated values.
     %asm {{
         sta  VERA_CTRL
         ldx  VERA_ADDR_L
@@ -783,9 +786,10 @@ asmsub vaddr_clone(ubyte port @A) clobbers (A,X,Y) {
 }
 
 asmsub vaddr_autoincr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword autoIncrAmount @R2) clobbers(A,Y) {
-        ; -- setup the VERA's data address register 0 or 1
-        ;    including setting up optional auto increment amount.
+        ; -- setup the VERA's data address register 0 or 1, including setting up optional auto increment amount.
         ;    Specifiying an unsupported amount results in amount of zero. See the Vera docs about what amounts are possible.
+        ;    This is a convenience routine, and not very efficient if you call it often;
+        ;    it's usually better to write a tailor made version of it that accounts for the repeated values.
         %asm {{
             jsr  _setup
             lda  cx16.r2H
@@ -847,9 +851,10 @@ _strides_lsb    .byte   0,1,2,4,8,16,32,64,128,255,255,40,80,160,255,255
 }
 
 asmsub vaddr_autodecr(ubyte bank @A, uword address @R0, ubyte addrsel @R1, uword autoDecrAmount @R2) clobbers(A,Y) {
-        ; -- setup the VERA's data address register 0 or 1
-        ;    including setting up optional auto decrement amount.
+        ; -- setup the VERA's data address register 0 or 1 including setting up optional auto decrement amount.
         ;    Specifiying an unsupported amount results in amount of zero. See the Vera docs about what amounts are possible.
+        ;    This is a convenience routine, and not very efficient if you call it often;
+        ;    it's usually better to write a tailor made version of it that accounts for the repeated values.
         %asm {{
             jsr  vaddr_autoincr._setup
             lda  cx16.r2H

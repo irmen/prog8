@@ -135,5 +135,34 @@ main {
         compileText(VMTarget(), optimize = false, src) shouldNotBe null
     }
 
+    test("double merge works") {
+        val src="""
+main {
+
+    sub start() {
+        block1.sub1()
+        block1.sub2()
+    }
+}
+
+block1 {
+    %option merge
+
+    sub sub1() {
+        cx16.r1++
+    }
+}
+
+
+block1 {
+    %option merge
+
+    sub sub2() {
+        cx16.r2++
+    }
+}"""
+        compileText(VMTarget(), optimize = false, src) shouldNotBe null
+    }
+
 
 })

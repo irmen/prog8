@@ -724,7 +724,7 @@ Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
 Normal subroutines can only return zero or one return values.
 However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
-(referencing an external routine in ROM or elsewhere in memory) can return more than one return value.
+(referencing an external routine in ROM or elsewhere in RAM) can return more than one return value.
 For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers and some more values in R0 and R1.
 In all of these cases, you have to "multi assign" all return values of the subroutine call to something.
 You simply write the assignment targets as a comma separated list,
@@ -784,13 +784,18 @@ The return type has to be specified if the subroutine returns a value.
 Assembly /  ROM subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-External subroutines implemented in ROM (or elsewhere in memory) are usually defined by compiler library files, with the following syntax::
+External subroutines implemented in ROM are usually defined by compiler library files, with the following syntax::
 
-    romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) -> clobbers() -> bool @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
+    romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) clobbers()
+         -> bool @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
 
 This defines the ``LOAD`` subroutine at memory address $FFD5, taking arguments in all three registers A, X and Y,
 and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler
 what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
+
+.. note::
+    Unlike what it's name may suggest, ``romsub`` can also define an external subroutine elsewhere in normal RAM.
+    It's just that you explicitly define the memory address where it is located and it doesn't matter if that is in ROM or in RAM.
 
 User-written subroutines in the program source code itself, implemented purely in assembly and which have an assembly calling convention (i.e.
 the parameters are strictly passed via cpu registers), are defined with ``asmsub`` like this::
