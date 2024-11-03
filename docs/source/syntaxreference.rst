@@ -793,8 +793,8 @@ This defines the ``LOAD`` subroutine at memory address $FFD5, taking arguments i
 and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler
 what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
 
-**Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@rombank`` or ``@rambank`` like this:
-``romsub @rombank 10  $C09F = audio_init()`` to define a routine at $C09F in ROM bank 10.
+**Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@bank`` like this:
+``romsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10.
 See :ref:`banking` for more information.
 
 .. note::

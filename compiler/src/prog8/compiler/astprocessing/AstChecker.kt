@@ -377,11 +377,8 @@ internal class AstChecker(private val program: Program,
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
 
-        val rambank = subroutine.asmAddress?.rambank
-        val rombank = subroutine.asmAddress?.rombank
-        if(rambank!=null && rambank>255u)
-            err("bank must be 0 to 255")
-        if(rombank!=null && rombank>255u)
+        val bank = subroutine.asmAddress?.first
+        if(bank!=null && bank>255u)
             err("bank must be 0 to 255")
         if(subroutine.inline && subroutine.asmAddress!=null)
             throw FatalAstException("romsub cannot be inline")

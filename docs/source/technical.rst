@@ -41,10 +41,10 @@ External subroutines defined with ``romsub`` can have a non-standard ROM or RAM 
 The compiler will then transparently change a call to this routine so that the correct bank is activated
 automatically before the normal jump to the subroutine (and switched back on return). The programmer doesn't
 have to bother anymore with setting/resetting the banks manually, or having the program crash because
-the routine is called in the wrong bank!  You define such a routine by adding ``@rombank <bank>`` or ``@rambank <bank>``
+the routine is called in the wrong bank!  You define such a routine by adding ``@bank <bank>``
 to the romsub subroutine definition. This specifies the bank number where the subroutine is located in::
 
-    romsub @rombank 10  $C09F = audio_init()
+    romsub @bank 10  $C09F = audio_init()
 
 When you then call this routine in your program as usual, the compiler will no longer generate a simple JSR instruction to the
 routine. Instead it will generate a piece of code that automatically switches the ROM or RAM bank to the
@@ -56,7 +56,7 @@ Other compilation targets don't have banking or prog8 doesn't yet support automa
 Notice that the symbol for this routine in the assembly source code will still be defined as usual.
 The bank number is not translated into assembly (only as a comment)::
 
-	p8s_audio_init = $c09f ; @rombank 10
+	p8s_audio_init = $c09f ; @bank 10
 
 .. caution::
     Calls with automatic bank switching like this are not safe to use from IRQ handlers. Don't use them there.

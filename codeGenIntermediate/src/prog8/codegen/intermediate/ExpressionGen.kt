@@ -645,10 +645,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
                     else {
                         val address = callTarget.address!!
-                        if(address.rombank==null && address.rambank==null) {
+                        if(address.first==null) {
                             IRInstruction(
                                 Opcode.CALL,
-                                address = address.address.toInt(),
+                                address = address.second.toInt(),
                                 fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
                         }
                         else {
@@ -767,10 +767,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegisters))
             else {
                 val address = callTarget.address!!
-                if(address.rombank==null && address.rambank==null) {
+                if(address.first==null) {
                     IRInstruction(
                         Opcode.CALL,
-                        address = address.address.toInt(),
+                        address = address.second.toInt(),
                         fcallArgs = FunctionCallArgs(argRegisters, returnRegisters)
                     )
                 }

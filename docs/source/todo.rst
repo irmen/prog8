@@ -1,15 +1,13 @@
 TODO
 ====
 
-consolidate @rombank and @rambank into just @bank
-
 add example for cx16 that compiles and loads libraries in different ram banks and calls romsub from rom and ram banks automatically
-
-for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
 add support for banked romsubs on the C64 as well  (banks basic/kernal rom in/out)
 
 rename 'romsub' to 'extsub' ? keep romsub as alias?
+
+for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
 regenerate symbol dump files
 

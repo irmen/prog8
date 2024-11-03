@@ -40,30 +40,20 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 sub.children.forEach { asmgen.translate(it as PtInlineAssembly) }
                 asmgen.out("  \t; inlined routine end: ${sub.name}")
             } else {
-                val rombank = sub.address?.rombank
-                val rambank = sub.address?.rambank
-                if(rombank==null && rambank==null)
+                val bank = sub.address?.first
+                if(bank==null)
                     asmgen.out("  jsr  $subAsmName")
                 else {
                     when(asmgen.options.compTarget.name) {
                         "cx16" -> {
-                            if(rambank!=null) {
-                                // JSRFAR can jump to a banked RAM address as well!
-                                asmgen.out("""
-                                    jsr cx16.JSRFAR
-                                    .word  $subAsmName    ; ${sub.address!!.address.toHex()}
-                                    .byte  $rambank"""
-                                )
-                            } else {
-                                asmgen.out("""
-                                    jsr cx16.JSRFAR
-                                    .word  $subAsmName    ; ${sub.address!!.address.toHex()}
-                                    .byte  $rombank"""
-                                )
-                            }
+                            // JSRFAR can jump to a banked RAM address as well!
+                            asmgen.out("""
+                                jsr cx16.JSRFAR
+                                .word  $subAsmName    ; ${sub.address!!.second.toHex()}
+                                .byte  $bank"""
+                            )
                         }
                         "c128" -> {
-                            val bank = rambank ?: rombank!!
                             // see https://cx16.dk/c128-kernal-routines/jsrfar.html
                             asmgen.out("""
                                 sty	 $08

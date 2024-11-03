@@ -294,11 +294,8 @@ asmsubroutine :
     ;
 
 romsubroutine :
-    'romsub' (rombankspec | rambankspec)? integerliteral '=' asmsub_decl
+    'romsub' ('@bank' bank=integerliteral)? address=integerliteral '=' asmsub_decl
     ;
-
-rombankspec : '@rombank' integerliteral;
-rambankspec : '@rambank' integerliteral;
 
 asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;
 

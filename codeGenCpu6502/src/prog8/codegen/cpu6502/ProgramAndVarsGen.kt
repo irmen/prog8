@@ -781,8 +781,8 @@ internal class ProgramAndVarsGen(
             .forEach { asmsub ->
                 asmsub as PtAsmSub
                 val address = asmsub.address!!
-                val bank = if(address.rombank!=null) "; @rombank ${address.rombank}" else if(address.rambank!=null) "; @rambank ${address.rambank}" else ""
-                asmgen.out("  ${asmsub.name} = ${address.address.toHex()} $bank")
+                val bank = if(address.first!=null) "; @bank ${address.first}" else ""
+                asmgen.out("  ${asmsub.name} = ${address.second.toHex()} $bank")
             }
     }
 

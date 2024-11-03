@@ -173,9 +173,8 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
             }
         }
         if(subroutine.asmAddress!=null) {
-            val rombank = if(subroutine.asmAddress.rombank!=null) "@rombank ${subroutine.asmAddress.rombank}" else ""
-            val rambank = if(subroutine.asmAddress.rambank!=null) "@rambank ${subroutine.asmAddress.rambank}" else ""
-            output("$rombank $rambank = ${subroutine.asmAddress.address.toHex()}")
+            val bank = if(subroutine.asmAddress.first!=null) "@bank ${subroutine.asmAddress.first}" else ""
+            output("$bank = ${subroutine.asmAddress.second.toHex()}")
         }
 
         output("\n")

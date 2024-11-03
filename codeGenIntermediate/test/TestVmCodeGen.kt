@@ -534,7 +534,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val romsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
+        val romsub = PtAsmSub("routine", null to 0x5000u, setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
         block.add(romsub)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         val call = PtFunctionCall("main.routine", true, DataType.UNDEFINED, Position.DUMMY)
