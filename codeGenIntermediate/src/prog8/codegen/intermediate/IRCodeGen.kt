@@ -1716,7 +1716,7 @@ class IRCodeGen(
                         )
                         irBlock += IRAsmSubroutine(
                             child.name,
-                            child.address,
+                            null,
                             child.clobbers,
                             child.parameters.map { IRAsmSubroutine.IRAsmParam(it.first, it.second.type) },        // note: the name of the asmsub param is not used here anymore
                             child.returns.map { IRAsmSubroutine.IRAsmParam(it.first, it.second)},

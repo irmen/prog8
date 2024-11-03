@@ -180,7 +180,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(subroutine.inline)
             output("inline ")
         if(subroutine.isAsmSubroutine) {
-            output("asmsub ${subroutine.name} (")
+            if(subroutine.asmAddress!=null) {
+                output("romsub ${subroutine.asmAddress.toHex()} = ${subroutine.name} (")
+            }
+            else
+                output("asmsub ${subroutine.name} (")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
                 val reg =
                         when {
@@ -227,9 +231,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
                 output("-> $rts ")
             }
         }
-        if(subroutine.asmAddress!=null)
-            outputln("= ${subroutine.asmAddress.toHex()}")
-        else {
+        if (subroutine.asmAddress == null) {
             outputln("{ ")
             scopelevel++
             outputStatements(subroutine.statements.filter { it !is VarDecl || it.origin!=VarDeclOrigin.SUBROUTINEPARAM})
