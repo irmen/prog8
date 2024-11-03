@@ -3,27 +3,11 @@
 %zeropage basicsafe
 
 main {
+    romsub @rombank 10  $C09F = audio_init()
+    romsub @rambank 22  $A000 = hiram_routine()
 
     sub start() {
-        block1.sub1()
-        block1.sub2()
+        audio_init()
+        hiram_routine()
     }
 }
-
-block1 {
-    %option merge
-
-    sub sub1() {
-        txt.print("sub1")
-    }
-}
-
-
-block1 {
-    %option merge
-
-    sub sub2() {
-        txt.print("sub2")
-    }
-}
-

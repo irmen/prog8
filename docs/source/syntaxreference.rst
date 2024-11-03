@@ -781,10 +781,10 @@ The parameters is a (possibly empty) comma separated list of "<datatype> <parame
 The return type has to be specified if the subroutine returns a value.
 
 
-Assembly /  ROM subroutines
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+External subroutines
+^^^^^^^^^^^^^^^^^^^^
 
-External subroutines implemented in ROM are usually defined by compiler library files, with the following syntax::
+External subroutines are usually defined by compiler library files, with the following syntax::
 
     romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) clobbers()
          -> bool @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
@@ -793,9 +793,14 @@ This defines the ``LOAD`` subroutine at memory address $FFD5, taking arguments i
 and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler
 what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
 
+**Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@rombank`` or ``@rambank`` like this:
+``romsub @rombank 10  $C09F = audio_init()`` to define a routine at $C09F in ROM bank 10.
+See :ref:`banking` for more information.
+
 .. note::
-    Unlike what it's name may suggest, ``romsub`` can also define an external subroutine elsewhere in normal RAM.
-    It's just that you explicitly define the memory address where it is located and it doesn't matter if that is in ROM or in RAM.
+    ``romsub`` is most often used to define ROM subroutines. But contrary to what the name may suggest,
+    it can also define an external subroutine elsewhere in normal RAM. It simply states the address
+    and signature of the subroutine; it doesn't care if the routine is in ROM or RAM address space.
 
 User-written subroutines in the program source code itself, implemented purely in assembly and which have an assembly calling convention (i.e.
 the parameters are strictly passed via cpu registers), are defined with ``asmsub`` like this::

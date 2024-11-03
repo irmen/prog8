@@ -25,6 +25,44 @@ It is possible to relocate the BSS section using a compiler option
 so that more system ram is available for the program code itself.
 
 
+.. _banking:
+
+ROM/RAM bank selection
+----------------------
+
+On certain systems prog8 provides support for managing the ROM or RAM banks that are active.
+For example, on the Commander X16, you can use ``cx16.getrombank()`` to get the active ROM bank,
+and ``cx16.rombank(10)`` to make rom bank 10 active. Likewise, ``cx16.getrambank()`` to get the active RAM bank,
+and ``cx16.rambank(10)`` to make ram bank 10 active. This is explicit manual banking control.
+
+However, Prog8 also provides something more sophisticated than this, when dealing with banked subroutines:
+
+External subroutines defined with ``romsub`` can have a non-standard ROM or RAM bank specified as well.
+The compiler will then transparently change a call to this routine so that the correct bank is activated
+automatically before the normal jump to the subroutine (and switched back on return). The programmer doesn't
+have to bother anymore with setting/resetting the banks manually, or having the program crash because
+the routine is called in the wrong bank!  You define such a routine by adding ``@rombank <bank>`` or ``@rambank <bank>``
+to the romsub subroutine definition. This specifies the bank number where the subroutine is located in::
+
+    romsub @rombank 10  $C09F = audio_init()
+
+When you then call this routine in your program as usual, the compiler will no longer generate a simple JSR instruction to the
+routine. Instead it will generate a piece of code that automatically switches the ROM or RAM bank to the
+correct value, does the call, and switches the bank back. The exact code will be different for different
+compilation targets, and not all targets even have banking or support this. As an example,
+on the Commander X16, prog8 will use the JSRFAR kernal routine for this. On the Commodore 128, a similar call exists.
+Other compilation targets don't have banking or prog8 doesn't yet support automatic bank selection on them.
+
+Notice that the symbol for this routine in the assembly source code will still be defined as usual.
+The bank number is not translated into assembly (only as a comment)::
+
+	p8s_audio_init = $c09f ; @rombank 10
+
+.. caution::
+    Calls with automatic bank switching like this are not safe to use from IRQ handlers. Don't use them there.
+    Instead change banks in a controlled manual way (or not at all).
+
+
 .. _symbol-prefixing:
 
 Symbol prefixing in generated Assembly code

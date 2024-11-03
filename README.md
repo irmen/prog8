@@ -72,6 +72,7 @@ What does Prog8 provide?
 - inline assembly allows you to have full control when every cycle or byte matters
 - supports the sixteen 'virtual' 16-bit registers R0 - R15 from the Commander X16 (also available on other targets)
 - encode strings and characters into petscii or screencodes or even other encodings
+- Automatic ROM/RAM bank switching on certain compiler targets when calling routines in other banks 
 
 *Rapid edit-compile-run-debug cycle:*
 

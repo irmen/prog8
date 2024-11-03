@@ -1,14 +1,17 @@
 TODO
 ====
 
-add docs for @rombank @rambank on romsubs.  Add  promo in docs that prog8 does automatic bank switching when calling such a romsub (on cx16 and c128)
+consolidate @rombank and @rambank into just @bank
 
-rename 'romsub' to 'extsub' ?
+add example for cx16 that compiles and loads libraries in different ram banks and calls romsub from rom and ram banks automatically
 
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
-regenerate symbol dump files
+add support for banked romsubs on the C64 as well  (banks basic/kernal rom in/out)
 
+rename 'romsub' to 'extsub' ? keep romsub as alias?
+
+regenerate symbol dump files
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results

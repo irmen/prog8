@@ -104,6 +104,7 @@ Features
 - Easy and highly efficient integration with external subroutines and ROM routines on the target systems.
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
 - Encode strings and characters into petscii or screencodes or even other encodings, as desired (C64/Cx16)
+- Automatic ROM/RAM bank switching on certain compiler targets when calling routines in other banks
 - Identifiers can contain Unicode Letters, so ``knäckebröd``, ``приблизительно``, ``見せしめ`` and ``π`` are all valid identifiers.
 - Advanced code optimizations to make the resulting program smaller and faster
 - Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.
