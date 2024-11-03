@@ -53,6 +53,10 @@ compilation targets, and not all targets even have banking or support this. As a
 on the Commander X16, prog8 will use the JSRFAR kernal routine for this. On the Commodore 128, a similar call exists.
 Other compilation targets don't have banking or prog8 doesn't yet support automatic bank selection on them.
 
+There's a "banking" (not financial) example for the Commander X16 that shows a possible application
+of the romsub with bank support, check out the `bank example code <https://github.com/irmen/prog8/tree/master/examples/cx16/banking>`_ .
+
+
 Notice that the symbol for this routine in the assembly source code will still be defined as usual.
 The bank number is not translated into assembly (only as a comment)::
 

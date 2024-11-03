@@ -1,8 +1,6 @@
 TODO
 ====
 
-add example for cx16 that compiles and loads libraries in different ram banks and calls romsub from rom and ram banks automatically
-
 add support for banked romsubs on the C64 as well  (banks basic/kernal rom in/out)
 
 rename 'romsub' to 'extsub' ? keep romsub as alias?
