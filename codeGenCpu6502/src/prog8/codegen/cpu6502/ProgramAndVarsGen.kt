@@ -75,6 +75,12 @@ internal class ProgramAndVarsGen(
         asmgen.out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
         asmgen.out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
         asmgen.out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
+        if(compTarget.name=="c64") {
+            if(options.floats)
+                asmgen.out("PROG8_C64_BANK_CONFIG=31  ; basic+IO+kernal")
+            else
+                asmgen.out("PROG8_C64_BANK_CONFIG=30  ; IO+kernal, no basic")
+        }
         asmgen.out(".weak")   // hack to allow user to override the following two with command line redefinition (however, just use '-esa' command line option instead!)
         asmgen.out(".endweak")
 
@@ -158,11 +164,13 @@ internal class ProgramAndVarsGen(
                 asmgen.out("  jmp  sys.cleanup_at_exit")
             }
             "c64" -> {
-                asmgen.out("  jsr  p8b_main.p8s_start |  lda  #31 |  sta  $01")
+                asmgen.out("  jsr  p8b_main.p8s_start")
+                asmgen.out("  lda  #31 |  sta  $01")
                 asmgen.out("  jmp  sys.cleanup_at_exit")
             }
             "c128" -> {
-                asmgen.out("  jsr  p8b_main.p8s_start |  lda  #0 |  sta ${"$"}ff00")
+                asmgen.out("  jsr  p8b_main.p8s_start")
+                asmgen.out("  lda  #0 |  sta ${"$"}ff00")
                 asmgen.out("  jmp  sys.cleanup_at_exit")
             }
             else -> {

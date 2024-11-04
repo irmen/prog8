@@ -19,6 +19,7 @@ The language
 - There's usually a single statement per line. There is no statement separator.
 - Semicolon ``;`` is used to start a line comment.  Multi-line comments are also possible by enclosing it all in ``/*`` and ``*/``.
 - Ternary operator ``x ? value1 : value2`` is available in the form of an *if-expression*: ``if x  value1 else value2``
+- Swift/Zig/Go style ``defer`` statement for delayed cleanup is available in the subroutine scope.
 
 
 No linker

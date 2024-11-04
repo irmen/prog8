@@ -383,7 +383,8 @@ sys {
 asmsub  init_system()  {
     ; Initializes the machine to a sane starting state.
     ; Called automatically by the loader program logic.
-    ; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
+    ; This means that the KERNAL and CHARGEN ROMs are banked in,
+    ; BASIC ROM is NOT banked in (so we have another 8Kb of RAM at our disposal),
     ; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
     ; Also a different color scheme is chosen to identify ourselves a little.
     ; Uppercase charset is activated.
@@ -391,7 +392,7 @@ asmsub  init_system()  {
         sei
         lda  #%00101111
         sta  $00
-        lda  #%00100111
+        lda  #%00100110   ; kernal and i/o banked in
         sta  $01
         jsr  cbm.IOINIT
         jsr  cbm.RESTOR
@@ -403,7 +404,16 @@ asmsub  init_system()  {
         lda  #0
         sta  c64.BGCOL0
         jsr  disable_runstop_and_charsetswitch
-        cli
+        lda  #PROG8_C64_BANK_CONFIG     ; apply bank config
+        sta  $01
+        and  #1
+        bne  +
+        ; basic is not banked in, adjust MEMTOP
+        ldx  #<$d000
+        ldy  #>$d000
+        clc
+        jsr  cbm.MEMTOP
++       cli
         rts
     }}
 }
@@ -421,7 +431,11 @@ asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
     %asm {{
         lda  #31
-        sta  $01        ; bank the kernal in
+        sta  $01            ; bank the kernal and basic in
+        ldx  #<$a000
+        ldy  #>$a000
+        clc
+        jsr  cbm.MEMTOP     ; adjust MEMTOP down again
         jsr  cbm.CLRCHN		; reset i/o channels
         jsr  enable_runstop_and_charsetswitch
 _exitcodeCarry = *+1

@@ -75,6 +75,15 @@ The bank number is not translated into assembly (only as a comment)::
     Calls with automatic bank switching like this are not safe to use from IRQ handlers. Don't use them there.
     Instead change banks in a controlled manual way (or not at all).
 
+.. note::
+    On the C64, the Basic ROM is *banked out* by default when running a Prog8 program, because
+    it is not needed. This means we get access to another 8Kb of RAM at that
+    memory area, which actually gives us a 50 Kb contiguous RAM block from $0801 to $d000 (exclusive).
+    This means you can create programs of up to **50 Kb** size with prog8 on the C64.
+    However, if your program uses floats, Prog8 *does* need the Basic ROM for the floating point routines,
+    and it won't be banked out. Such programs are limited to the regular size of about 38 Kb.
+    Be aware that the bank setting is only done if you are not using ``%option no_sysinit``!
+
 
 .. _symbol-prefixing:
 

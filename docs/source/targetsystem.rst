@@ -75,9 +75,15 @@ Footnotes for the Commander X16
 Footnotes for the Commodore 64
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-*RAM $C000-$CFFF*
+*Program RAM $C000-$CFFF*
     *free to use:* $C000 - $CFDF
     *reserved:* $CFE0 - $CFFF for the 16 virtual cx16 registers R0-R15
+
+*Program RAM / BASIC ROM $A000-$BFFF*
+    On the C64 the Basic ROM normally occupies this memory area. However Prog8 programs that do not
+    use floating point variables, actually bank out the Basic ROM to reclaim the 8 Kb of RAM that
+    is hidden below it. This means that all the memory from $0801 to $D000 (exclusive) is available
+    as program ram to Prog8 programs.
 
 *Zero Page $0000 - $00FF*
     Consider the full zero page to be reserved for use by the Kernal and Basic in normal operation.

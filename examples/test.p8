@@ -1,45 +1,38 @@
-%import string
 %import textio
-%option no_sysinit
+; %import floats
 %zeropage basicsafe
-
-; some bank switching on the C64.  See https://www.c64-wiki.com/wiki/Bank_Switching
 
 main {
     sub start() {
-        ; copy basic rom to ram and replace ready prompt
-        sys.memcopy($a000, $a000, $2000)
-        void string.copy(iso:"HELLO!\r", $a378)
+        txt.print("current banks: ")
+        txt.print_ubbin(c64.getbanks(), true)
+        txt.print("\nmemtop: ")
+        txt.print_uwhex(cbm.MEMTOP(0, true), true)
+        txt.print("\n8 bytes at $a000:\n")
+        for cx16.r0 in $a000 to $a007 {
+            txt.print_ubhex(@(cx16.r0), false)
+            txt.spc()
+        }
+        txt.print("\nwriting data to there, result:\n")
+        @($a000) = $11
+        @($a001) = $22
+        @($a002) = $33
+        @($a003) = $44
+        @($a004) = $55
+        @($a005) = $66
+        @($a006) = $77
+        @($a007) = $88
 
-        txt.print("8 bytes at $f000 (kernal rom):\n")
-        for cx16.r0 in $f000 to $f007 {
+        for cx16.r0 in $a000 to $a007 {
             txt.print_ubhex(@(cx16.r0), false)
             txt.spc()
         }
         txt.nl()
 
-        ; store some other data in the RAM below those kernal ROM locations
-        ; switch off kernal rom to see those bytes
-        ; we cannot print during this time and the IRQ has to be disabled temporarily as well.
-        void string.copy("hello !?", $f000)
-        sys.set_irqd()
-        c64.banks(%101)     ; switch off roms
-        ubyte[8] buffer
-        sys.memcopy($f000, &buffer, 8)
-        c64.banks(%111)     ; kernal rom back on
-        sys.clear_irqd()
-        txt.print("8 bytes at $f000 (ram this time):\n")
-        for cx16.r0L in buffer {
-            txt.print_ubhex(cx16.r0L, false)
-            txt.spc()
-        }
-        txt.nl()
-
-
-        ; we can switch off the basic rom now, but this is not persistent after program exit
-        c64.banks(%110)
-
-        ; ...so we print a message for the user to do it manually to see the changed prompt.
-        txt.print("\ntype: poke 1,54\nto switch off basic rom :-)\n")
+;        txt.print("floating point calc: ")
+;        float @shared f1 = 1.0
+;        float @shared f2 = 7.0
+;        floats.print(f1/f2)
+;        txt.nl()
     }
 }

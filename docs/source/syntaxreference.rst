@@ -205,8 +205,8 @@ Directives
       Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
       importing the ``floats`` library is required anyway and that will enable it for you automatically.
     - ``no_sysinit`` (module level) which cause the resulting program to *not* include
-      the system re-initialization logic of clearing the screen, resetting I/O config etc. You'll have to
-      take care of that yourself. The program will just start running from whatever state the machine is in when the
+      the system re-initialization logic of clearing the screen, resetting I/O config, setting memory bank configuration etc.
+      You'll have to take care of that yourself. The program will just start running from whatever state the machine is in when the
       program was launched.
     - ``force_output`` (in a block) will force the block to be outputted in the final program.
       Can be useful to make sure some data is generated that would otherwise be discarded because the compiler thinks it's not referenced (such as sprite data)

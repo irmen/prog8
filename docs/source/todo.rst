@@ -1,9 +1,6 @@
 TODO
 ====
 
-on the C64, if not using floats, disable basic ROM in startup to gain another 8Kb of RAM. Make sure to set memtop to $bfff in this case or $9fff when basic is banked in
-update the memory map picture, and add footnote that BASIC ROM is usually banked out. ALso mention this in the 'banking' chapter
-
 add support for banked romsubs on the C64 as well  (banks basic/kernal rom in/out)
 
 make @bank accept a variable as well to make it dynamic
