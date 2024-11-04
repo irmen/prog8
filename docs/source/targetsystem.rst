@@ -51,6 +51,7 @@ Memory map for the C64 and the X16
 
 This is the default memory map of the 64 Kb addressable memory for those two systems.
 Both systems have ways to alter the memory map and/or to switch memory banks, but that is not shown here.
+See :ref:`banking` for details about that.
 
 .. image:: memorymap.svg
 

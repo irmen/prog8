@@ -1,13 +1,21 @@
 TODO
 ====
 
+on the C64, if not using floats, disable basic ROM in startup to gain another 8Kb of RAM. Make sure to set memtop to $bfff in this case or $9fff when basic is banked in
+update the memory map picture, and add footnote that BASIC ROM is usually banked out. ALso mention this in the 'banking' chapter
+
 add support for banked romsubs on the C64 as well  (banks basic/kernal rom in/out)
+
+make @bank accept a variable as well to make it dynamic
 
 rename 'romsub' to 'extsub' ? keep romsub as alias?
 
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
 regenerate symbol dump files
+
+improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
+Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results

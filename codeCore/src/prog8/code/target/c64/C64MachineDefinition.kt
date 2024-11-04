@@ -15,7 +15,7 @@ class C64MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
-    override val PROGRAM_TOP_ADDRESS = 0xbfffu
+    override val PROGRAM_TOP_ADDRESS = 0x9fffu      // $bfff  if basic rom is banked out
 
     override val BSSHIGHRAM_START = 0xc000u
     override val BSSHIGHRAM_END = 0xcfffu

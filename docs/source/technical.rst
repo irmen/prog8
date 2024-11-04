@@ -31,10 +31,19 @@ ROM/RAM bank selection
 ----------------------
 
 On certain systems prog8 provides support for managing the ROM or RAM banks that are active.
-For example, on the Commander X16, you can use ``cx16.getrombank()`` to get the active ROM bank,
-and ``cx16.rombank(10)`` to make rom bank 10 active. Likewise, ``cx16.getrambank()`` to get the active RAM bank,
-and ``cx16.rambank(10)`` to make ram bank 10 active. This is explicit manual banking control.
 
+======= ============================================= ===========
+system  get banks (returns byte)                      set banks
+======= ============================================= ===========
+c64     ``c64.getbanks()``                            ``c64.banks(x)``
+c128    *TODO*                                        *TODO*
+cx16    ``cx16.getrombank()`` , ``cx16.getrambank()`` ``cx16.rombank(x)`` , ``cx16.rambank(x)``
+other   N/A                                           N/A
+======= ============================================= ===========
+
+Calling a subroutine in another memory bank can be done by using the ``callfar`` or ``callfar2`` builtin functions.
+
+When you are using the routines above, you are doing explicit manual banks control.
 However, Prog8 also provides something more sophisticated than this, when dealing with banked subroutines:
 
 External subroutines defined with ``romsub`` can have a non-standard ROM or RAM bank specified as well.

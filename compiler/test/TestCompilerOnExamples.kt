@@ -74,6 +74,7 @@ class TestCompilerOnExamplesC64: FunSpec({
     val onlyC64 = cartesianProduct(
         listOf(
             "balloonflight",
+            "banking",
             "bdmusic",
             "bdmusic-irq",
             "charset",
@@ -116,6 +117,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "sprites/dragons",
             "zsmkit/demo1",
             "zsmkit/demo2",
+            "banking/program",
             "amiga",
             "audioroutines",
             "automatons",

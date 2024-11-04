@@ -307,6 +307,31 @@ c64 {
 
 ; ---- end of SID registers ----
 
+asmsub banks(ubyte banks @A) {
+    ; -- set the memory bank configuration
+    ;    see https://www.c64-wiki.com/wiki/Bank_Switching
+    %asm {{
+        and  #%00000111
+        sta  P8ZP_SCRATCH_REG
+        sei
+        lda  $01
+        and  #%11111000
+        ora  P8ZP_SCRATCH_REG
+        sta  $01
+        cli
+        rts
+    }}
+}
+
+inline asmsub getbanks() -> ubyte @A {
+    ; -- get the current memory bank configuration
+    ;    see https://www.c64-wiki.com/wiki/Bank_Switching
+    %asm {{
+        lda  $01
+        and  #%00000111
+    }}
+}
+
 
     sub get_vic_memory_base() -> uword {
         ; one of the 4 possible banks. $0000/$4000/$8000/$c000.
