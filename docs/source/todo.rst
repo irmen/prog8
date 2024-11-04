@@ -1,7 +1,8 @@
 TODO
 ====
 
-add support for banked romsubs on the C64 as well  (banks basic/kernal rom in/out)
+fix that on C64 when program ends halfway in basic address space $a000+ the sysinit code that banks out the basic Rom
+is actually not reachable yet because it's at the end of the program in basic rom space?
 
 make @bank accept a variable as well to make it dynamic
 

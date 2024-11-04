@@ -53,6 +53,27 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 .byte  $bank"""
                             )
                         }
+                        "c64" -> {
+                            asmgen.out("""
+                                php
+                                pha
+                                lda  $01
+                                sta  +
+                                lda  #$bank
+                                sta  $01
+                                pla
+                                plp
+                                jsr  $subAsmName
+                                php
+                                pha
+                                lda  +
+                                sta  $01
+                                pla
+                                plp
+                                jmp  ++
++   .byte  0   ; original banks                              
++""")
+                        }
                         "c128" -> {
                             // see https://cx16.dk/c128-kernal-routines/jsrfar.html
                             asmgen.out("""
@@ -69,11 +90,11 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 sty	 $03
                                 stx	 $04
                                 jsr	 c128.JSRFAR
-                                lda	$05
+                                lda	 $05
                                 pha
-                                lda	$06
-                                ldx	$07
-                                ldy	$08
+                                lda	 $06
+                                ldx	 $07
+                                ldy	 $08
                                 plp""")
                         }
                         else -> throw AssemblyError("callfar is not supported on the selected compilation target")

@@ -1,38 +1,66 @@
 %import textio
-; %import floats
 %zeropage basicsafe
 
 main {
     sub start() {
-        txt.print("current banks: ")
-        txt.print_ubbin(c64.getbanks(), true)
-        txt.print("\nmemtop: ")
-        txt.print_uwhex(cbm.MEMTOP(0, true), true)
-        txt.print("\n8 bytes at $a000:\n")
-        for cx16.r0 in $a000 to $a007 {
-            txt.print_ubhex(@(cx16.r0), false)
-            txt.spc()
-        }
-        txt.print("\nwriting data to there, result:\n")
-        @($a000) = $11
-        @($a001) = $22
-        @($a002) = $33
-        @($a003) = $44
-        @($a004) = $55
-        @($a005) = $66
-        @($a006) = $77
-        @($a007) = $88
+        basic_area.routine1()
+        hiram_area.routine2()
 
-        for cx16.r0 in $a000 to $a007 {
-            txt.print_ubhex(@(cx16.r0), false)
-            txt.spc()
-        }
-        txt.nl()
+        ; copy the kernal area routine to actual kernal address space $f800
+        sys.memcopy(&kernal_area.routine3, $f800, 255)
 
-;        txt.print("floating point calc: ")
-;        float @shared f1 = 1.0
-;        float @shared f2 = 7.0
-;        floats.print(f1/f2)
-;        txt.nl()
+        ; how to call the routine using manual bank switching:
+        ; c64.banks(%101)     ; bank out kernal rom
+        ; call($f800)         ; call our routine
+        ; c64.banks(%111)     ; kernal back
+
+        ; how to use prog8's automatic bank switching:
+        romsub @bank %101  $f800 = kernal_routine()
+
+        kernal_routine()
     }
 }
+
+kernal_area {
+    ; this routine is actually copied to kernal address space first
+    ; we cannot use CHROUT when the kernal is banked out so we write to the screen directly
+    asmsub routine3() {
+        %asm {{
+            lda  #<_message
+            ldy  #>_message
+            sta  $fe
+            sty  $ff
+            ldy  #0
+-           lda  ($fe),y
+            beq  +
+            sta  $0400+240,y
+            iny
+            bne  -
++           rts
+
+_message
+        .enc 'screen'
+        .text "hello from kernal area $f800",0
+        .enc 'none'
+            ; !notreached!
+        }}
+    }
+}
+
+
+basic_area $a000 {
+    sub routine1() {
+        txt.print("hello from basic rom area ")
+        txt.print_uwhex(&routine1, true)
+        txt.nl()
+    }
+}
+
+hiram_area $ca00 {
+    sub routine2() {
+        txt.print("hello from hiram area ")
+        txt.print_uwhex(&routine2, true)
+        txt.nl()
+    }
+}
+

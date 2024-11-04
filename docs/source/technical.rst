@@ -59,7 +59,9 @@ When you then call this routine in your program as usual, the compiler will no l
 routine. Instead it will generate a piece of code that automatically switches the ROM or RAM bank to the
 correct value, does the call, and switches the bank back. The exact code will be different for different
 compilation targets, and not all targets even have banking or support this. As an example,
-on the Commander X16, prog8 will use the JSRFAR kernal routine for this. On the Commodore 128, a similar call exists.
+on the Commander X16, prog8 will use the JSRFAR kernal routine for this. On the Commodore 128,
+a similar call exists (but requires a lot more code to prepare, so beware).
+On the Commodore 64 some custom code is also emitted that toggle the banks, retains some registers, and does the call.
 Other compilation targets don't have banking or prog8 doesn't yet support automatic bank selection on them.
 
 There's a "banking" (not financial) example for the Commander X16 that shows a possible application
