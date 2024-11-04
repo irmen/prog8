@@ -165,10 +165,10 @@ internal fun Subroutine.hasRtsInAsm(checkOnlyLastInstruction: Boolean): Boolean 
         .filterIsInstance<InlineAssembly>()
     if(checkOnlyLastInstruction) {
         val lastAsm = asms.lastOrNull() ?: return false
-        val lastLine = lastAsm.assembly.lineSequence().map { it.trim() }.last {
+        val lastLine = lastAsm.assembly.lineSequence().map { it.trim() }.lastOrNull {
             it.isNotBlank() && (!it.startsWith(';') || it.contains("!notreached!"))
         }
-        if(lastLine.contains("!notreached!"))
+        if(lastLine?.contains("!notreached!")==true)
             return true
         val inlineAsm = InlineAssembly("  $lastLine", lastAsm.isIR, lastAsm.position)
         return inlineAsm.hasReturnOrRts()

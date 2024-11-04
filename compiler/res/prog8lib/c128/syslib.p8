@@ -345,6 +345,56 @@ asmsub  disable_basic() clobbers(A) {
     }}
 }
 
+asmsub  x16jsrfar() {
+    %asm {{
+        ; setup a JSRFAR call (using X16 call convention)
+        ; see https://cx16.dk/c128-kernal-routines/jsrfar.html
+        sty  $08                ; save registers
+        stx  $07
+        sta  $06
+        php                    ; including PSR
+        pla
+        sta  $05
+
+        pla                    ; get original return address
+        sta  $fa                ; and store it in a temp ZP pointer
+        pla
+        sta  $fb
+
+        ldy  #$01
+        lda  ($fa),y            ; grab low byte of target address
+        sta  $04
+        iny
+        lda  ($fa),y            ; now the high byte
+        sta  $03
+        iny
+        lda  ($fa),y            ; then the target bank
+        sta  $02
+
+        ; replace the original return address by it + 3 to skip the data bytes
+        clc
+        lda  $fa
+        adc  #3
+        sta  $fa
+        lda  $fb
+        adc  #0
+        pha
+        lda  $fa
+        pha
+
+        jsr c128.JSRFAR        ; call kernal's jsrfar routine
+
+        lda  $05                ; populate registers
+        pha
+        lda  $06
+        ldx  $07
+        ldy  $08
+        plp
+
+        rts                    ; and return
+    }}
+}
+
 ; ---- end of C128 specific system utility routines ----
 
 }
