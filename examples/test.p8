@@ -4,30 +4,39 @@
 
 main {
 
-    romsub @bank 0  $4000 = routine(uword argument @AY) -> ubyte @A
-    romsub @bank 15  $ffd2 = character_out(ubyte char @A)
-
+    romsub @bank %100  $f800 = routine_in_kernal_addr_space(uword arg @AY) -> uword @AY
+    ;              ^-- I/O enabled, basic and kernal roms banked out
     sub start() {
-        sys.memcopy(&the_routine, $4000, 255)
+        ; copy the routine into kernal area address space
+        sys.memcopy(&the_invert_routine, $f800, 255)
 
-        cx16.r0L = routine($2233)
-        txt.print("result=")
-        txt.print_ub(cx16.r0L)
+        cx16.r0 = the_invert_routine(12345)
+        txt.print("inverted (normal)=")
+        txt.print_uw(cx16.r0)
         txt.nl()
-        cx16.r0L = routine($3344)
-        txt.print("result=")
-        txt.print_ub(cx16.r0L)
+        cx16.r0 = routine_in_kernal_addr_space(12345)
+        txt.print("inverted (kernal space)=")
+        txt.print_uw(cx16.r0)
+        txt.nl()
+        txt.print("inverted (callfar)=")
+        cx16.r0=callfar(%100, $f800, 12345)
+        txt.print_uw(cx16.r0)
+        txt.nl()
+        txt.print("inverted (callfar2)=")
+        cx16.r0=callfar2(%100, $f800, 57, 0, 48, false)
+        txt.print_uw(cx16.r0)
         txt.nl()
 
-        character_out('!')
-        character_out('\n')
     }
 
-    asmsub the_routine(uword arg @AY) -> ubyte @A {
+    asmsub the_invert_routine(uword arg @AY) -> uword @AY {
         %asm {{
-            sty  P8ZP_SCRATCH_REG
-            clc
-            adc  P8ZP_SCRATCH_REG
+            eor  #$ff
+            pha
+            tya
+            eor  #$ff
+            tay
+            pla
             rts
         }}
     }

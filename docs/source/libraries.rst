@@ -194,15 +194,15 @@ call (address) -> uword
     But because it doesn't handle bank switching etcetera by itself,
     it is a lot faster than ``callfar``. And it works on other systems than just the Commander X16.
 
-callfar (bank, address, argumentword) -> uword     ; NOTE: specific to cx16 target for now
-    Calls an assembly routine in another bank on the Commander X16 (using its ``JSRFAR`` routine)
+callfar (bank, address, argumentword) -> uword
+    Calls an assembly routine in another bank.
     Be aware that ram OR rom bank may be changed depending on the address it jumps to!
     The argumentword will be loaded into the A+Y registers before calling the routine.
     The uword value that the routine returns in the A+Y registers, will be returned.
     NOTE: this routine is very inefficient, so don't use it to call often. Set the bank yourself
     or even write a custom tailored trampoline routine if you need to. Or use ``call`` if you can.
 
-callfar2 (bank, address, argA, argX, argY, argCarry) -> uword     ; NOTE: specific to cx16 target for now
+callfar2 (bank, address, argA, argX, argY, argCarry) -> uword
     Identical to ``callfar``, except here you can give arguments not only for AY,
     but for each of the A, X and Y registers (each an ubyte) and the Carry status bit as well (a boolean).
 

@@ -332,6 +332,68 @@ inline asmsub getbanks() -> ubyte @A {
     }}
 }
 
+    asmsub x16jsrfar() {
+        %asm {{
+            ; setup a JSRFAR call (using X16 call convention)
+            sta  P8ZP_SCRATCH_W2        ; save A
+            sty  P8ZP_SCRATCH_W2+1      ; save Y
+            php
+            pla
+            sta  P8ZP_SCRATCH_REG       ; save Status
+
+            pla
+            sta  P8ZP_SCRATCH_W1
+            pla
+            sta  P8ZP_SCRATCH_W1+1
+
+            ; retrieve arguments
+            ldy  #$01
+            lda  (P8ZP_SCRATCH_W1),y            ; grab low byte of target address
+            sta  _jmpfar+1
+            iny
+            lda  (P8ZP_SCRATCH_W1),y            ; now the high byte
+            sta  _jmpfar+2
+            iny
+            lda  (P8ZP_SCRATCH_W1),y            ; then the target bank
+            sta  P8ZP_SCRATCH_B1
+
+            ; adjust return address to skip over the arguments
+            clc
+            lda  P8ZP_SCRATCH_W1
+            adc  #3
+            sta  P8ZP_SCRATCH_W1
+            lda  P8ZP_SCRATCH_W1+1
+            adc  #0
+            pha
+            lda  P8ZP_SCRATCH_W1
+            pha
+            lda  $01        ; save old ram banks
+            pha
+            ; set target bank, restore A, Y and flags
+            lda  P8ZP_SCRATCH_REG
+            pha
+            lda  P8ZP_SCRATCH_B1
+            jsr  banks
+            lda  P8ZP_SCRATCH_W2
+            ldy  P8ZP_SCRATCH_W2+1
+            plp
+            jsr  _jmpfar        ; do the actual call
+            ; restore bank without clobbering status flags and A register
+            sta  P8ZP_SCRATCH_W1
+            php
+            pla
+            sta  P8ZP_SCRATCH_B1
+            pla
+            jsr  banks
+            lda  P8ZP_SCRATCH_B1
+            pha
+            lda  P8ZP_SCRATCH_W1
+            plp
+            rts
+
+_jmpfar     jmp  $0000          ; modified
+        }}
+    }
 
     sub get_vic_memory_base() -> uword {
         ; one of the 4 possible banks. $0000/$4000/$8000/$c000.

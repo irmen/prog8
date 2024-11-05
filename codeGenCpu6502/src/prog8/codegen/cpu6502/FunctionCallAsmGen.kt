@@ -54,27 +54,11 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                             )
                         }
                         "c64" -> {
-                            // a bit bloated because it has to retain the status flags and A register
                             asmgen.out("""
-                                ; start doing a jsr to another bank
-                                php
-                                pha
-                                lda  $01
-                                sta  +
-                                lda  #$bank
-                                sta  $01
-                                pla
-                                plp
-                                jsr  $subAsmName
-                                php
-                                pha
-                                lda  +
-                                sta  $01
-                                pla
-                                plp
-                                jmp  ++
-+   .byte  0   ; original banks                              
-+""")
+                                jsr  c64.x16jsrfar
+                                .word  $subAsmName    ; ${sub.address!!.second.toHex()}
+                                .byte  $bank"""
+                            )
                         }
                         "c128" -> {
                             asmgen.out("""

@@ -208,15 +208,22 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcCallFar(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
-        if(asmgen.options.compTarget.name != "cx16")
-            throw AssemblyError("callfar only works on cx16 target at this time")
+        val targetName = asmgen.options.compTarget.name
+        if(targetName !in arrayOf("cx16", "c64", "c128"))
+            throw AssemblyError("callfar only works on cx16, c64 and c128 targets at this time")
 
+        val jsrfar = when(targetName) {
+            "cx16" -> "cx16.JSRFAR"
+            "c64" -> "c64.x16jsrfar"
+            "c128" -> "c128.x16jsrfar"
+            else -> TODO("jsrfar routine")
+        }
         val constBank = fcall.args[0].asConstInteger()
         val constAddress = fcall.args[1].asConstInteger()
         if(constBank!=null && constAddress!=null) {
             asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.AY)     // uword argument
             asmgen.out("""
-                jsr  cx16.JSRFAR
+                jsr  $jsrfar
                 .word  ${constAddress.toHex()}
                 .byte  $constBank""")
         } else {
@@ -226,7 +233,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.out("  sta  (+)+0 |  sty  (+)+1")
             asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.AY)     // uword argument
             asmgen.out("""
-                jsr  cx16.JSRFAR
+                jsr  $jsrfar
 +               .word  0
 +               .byte  0""")
         }
@@ -238,8 +245,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcCallFar2(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
-        if(asmgen.options.compTarget.name != "cx16")
-            throw AssemblyError("callfar2 only works on cx16 target at this time")
+        val targetName = asmgen.options.compTarget.name
+        if(targetName !in arrayOf("cx16", "c64", "c128"))
+            throw AssemblyError("callfar2 only works on cx16, c64 and c128 targets at this time")
 
         fun assignArgs() {
             fun assign(value: PtExpression, register: Char) {
@@ -260,12 +268,18 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 TODO("callfar2: support non-const argument values")
         }
 
+        val jsrfar = when(targetName) {
+            "cx16" -> "cx16.JSRFAR"
+            "c64" -> "c64.x16jsrfar"
+            "c128" -> "c128.x16jsrfar"
+            else -> TODO("jsrfar routine")
+        }
         val constBank = fcall.args[0].asConstInteger()
         val constAddress = fcall.args[1].asConstInteger()
         if(constBank!=null && constAddress!=null) {
             assignArgs()
             asmgen.out("""
-                jsr  cx16.JSRFAR
+                jsr  $jsrfar
                 .word  ${constAddress.toHex()}
                 .byte  $constBank""")
         } else {
@@ -275,7 +289,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.out("  sta  (+)+0 |  sty  (+)+1")
             assignArgs()
             asmgen.out("""
-                jsr  cx16.JSRFAR
+                jsr  $jsrfar
 +               .word  0
 +               .byte  0""")
         }

@@ -1,8 +1,6 @@
 TODO
 ====
 
-in translateFunctionCall(), make the JSRFAR bloat code for the C64 into a subroutine like the kernal JSRFAR on the X16
-
 fix that on C64 when program ends halfway in basic address space $a000+ the sysinit code that banks out the basic Rom
 is actually not reachable yet because it's at the end of the program in basic rom space?
 
