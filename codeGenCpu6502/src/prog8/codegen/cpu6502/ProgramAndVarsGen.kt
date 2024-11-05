@@ -99,8 +99,8 @@ internal class ProgramAndVarsGen(
                 asmgen.out("  tsx  ; save stackpointer for sys.exit()")
                 asmgen.out("  stx  prog8_lib.orig_stackpointer")
                 if(!options.noSysInit)
-                    asmgen.out("  jsr  sys.init_system")
-                asmgen.out("  jsr  sys.init_system_phase2")
+                    asmgen.out("  jsr  p8_sys_startup.init_system")
+                asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
             }
             OutputType.PRG -> {
                 when(options.launcher) {
@@ -119,8 +119,8 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  tsx  ; save stackpointer for sys.exit()")
                         asmgen.out("  stx  prog8_lib.orig_stackpointer")
                         if(!options.noSysInit)
-                            asmgen.out("  jsr  sys.init_system")
-                        asmgen.out("  jsr  sys.init_system_phase2")
+                            asmgen.out("  jsr  p8_sys_startup.init_system")
+                        asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
                     }
                     CbmPrgLauncherType.NONE -> {
                         // this is the same as RAW
@@ -130,8 +130,8 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  tsx  ; save stackpointer for sys.exit()")
                         asmgen.out("  stx  prog8_lib.orig_stackpointer")
                         if(!options.noSysInit)
-                            asmgen.out("  jsr  sys.init_system")
-                        asmgen.out("  jsr  sys.init_system_phase2")
+                            asmgen.out("  jsr  p8_sys_startup.init_system")
+                        asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
                     }
                 }
             }
@@ -142,8 +142,8 @@ internal class ProgramAndVarsGen(
                 asmgen.out("  tsx  ; save stackpointer for sys.exit()")
                 asmgen.out("  stx  prog8_lib.orig_stackpointer")
                 if(!options.noSysInit)
-                    asmgen.out("  jsr  sys.init_system")
-                asmgen.out("  jsr  sys.init_system_phase2")
+                    asmgen.out("  jsr  p8_sys_startup.init_system")
+                asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
             }
         }
 
@@ -161,21 +161,19 @@ internal class ProgramAndVarsGen(
                 if(options.floats)
                     asmgen.out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
                 asmgen.out("  jsr  p8b_main.p8s_start")
-                asmgen.out("  jmp  sys.cleanup_at_exit")
+                asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
             }
             "c64" -> {
                 asmgen.out("  jsr  p8b_main.p8s_start")
-                asmgen.out("  lda  #31 |  sta  $01")
-                asmgen.out("  jmp  sys.cleanup_at_exit")
+                asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
             }
             "c128" -> {
                 asmgen.out("  jsr  p8b_main.p8s_start")
-                asmgen.out("  lda  #0 |  sta ${"$"}ff00")
-                asmgen.out("  jmp  sys.cleanup_at_exit")
+                asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
             }
             else -> {
                 asmgen.out("  jsr  p8b_main.p8s_start")
-                asmgen.out("  jmp  sys.cleanup_at_exit")
+                asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
             }
         }
     }

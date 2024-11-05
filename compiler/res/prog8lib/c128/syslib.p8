@@ -412,80 +412,13 @@ sys {
     const ubyte sizeof_float = 5
 
 
-asmsub  init_system()  {
-    ; Initializes the machine to a sane starting state.
-    ; Called automatically by the loader program logic.
-    ; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
-    ; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
-    ; Also a different color scheme is chosen to identify ourselves a little.
-    ; Uppercase charset is activated.
-    %asm {{
-        sei
-        lda  #0
-        sta  $ff00      ; select default bank 15
-        jsr  cbm.IOINIT
-        jsr  cbm.RESTOR
-        jsr  cbm.CINT
-        lda  #6
-        sta  c64.EXTCOL
-        lda  #7
-        sta  cbm.COLOR
-        lda  #0
-        sta  c64.BGCOL0
-        jsr  disable_runstop_and_charsetswitch
-        cli
-        rts
-    }}
-}
+    sub  disable_runstop_and_charsetswitch() {
+        p8_sys_startup.disable_runstop_and_charsetswitch()
+    }
 
-asmsub  init_system_phase2()  {
-    %asm {{
-        cld
-        clc
-        clv
-        rts
-    }}
-}
-
-asmsub  cleanup_at_exit() {
-    ; executed when the main subroutine does rts
-    %asm {{
-        lda  #0
-        sta  $ff00          ; default bank 15
-        jsr  cbm.CLRCHN		; reset i/o channels
-        jsr  enable_runstop_and_charsetswitch
-_exitcodeCarry = *+1
-        lda  #0
-        lsr  a
-_exitcode = *+1
-        lda  #0        ; exit code possibly modified in exit()
-_exitcodeX = *+1
-        ldx  #0
-_exitcodeY = *+1
-        ldy  #0
-        rts
-    }}
-}
-
-asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
-    %asm {{
-        lda  #$80
-        sta  247    ; disable charset switching
-        lda  #112
-        sta  808    ; disable run/stop key
-        rts
-    }}
-}
-
-asmsub  enable_runstop_and_charsetswitch() clobbers(A) {
-    %asm {{
-        lda  #0
-        sta  247    ; enable charset switching
-        lda  #110
-        sta  808    ; enable run/stop key
-        rts
-    }}
-}
+    sub  enable_runstop_and_charsetswitch() {
+        p8_sys_startup.enable_runstop_and_charsetswitch()
+    }
 
     asmsub save_prog8_internals() {
         %asm {{
@@ -899,37 +832,37 @@ _no_msb_size
     asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
-            sta  cleanup_at_exit._exitcode
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
     asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
         ; -- immediately exit the program with result values in the A, X and Y registers.
         %asm {{
-            sta  cleanup_at_exit._exitcode
-            stx  cleanup_at_exit._exitcodeX
-            sty  cleanup_at_exit._exitcodeY
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
+            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
+            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
     asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
         ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
         %asm {{
-            sta  cleanup_at_exit._exitcode
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
             lda  #0
             rol  a
-            sta  cleanup_at_exit._exitcodeCarry
-            stx  cleanup_at_exit._exitcodeX
-            sty  cleanup_at_exit._exitcodeY
+            sta  p8_sys_startup.cleanup_at_exit._exitcodeCarry
+            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
+            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
@@ -1108,5 +1041,85 @@ cx16 {
         ; Returns true when you have a 65816 cpu, false when it's a 6502.
         return false
     }
+
+}
+
+p8_sys_startup {
+    ; program startup and shutdown machinery. Needs to reside in normal system ram.
+
+asmsub  init_system()  {
+    ; Initializes the machine to a sane starting state.
+    ; Called automatically by the loader program logic.
+    ; This means that the BASIC, KERNAL and CHARGEN ROMs are banked in,
+    ; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
+    ; Also a different color scheme is chosen to identify ourselves a little.
+    ; Uppercase charset is activated.
+    %asm {{
+        sei
+        lda  #0
+        sta  $ff00      ; select default bank 15
+        jsr  cbm.IOINIT
+        jsr  cbm.RESTOR
+        jsr  cbm.CINT
+        lda  #6
+        sta  c64.EXTCOL
+        lda  #7
+        sta  cbm.COLOR
+        lda  #0
+        sta  c64.BGCOL0
+        jsr  disable_runstop_and_charsetswitch
+        cli
+        rts
+    }}
+}
+
+asmsub  init_system_phase2()  {
+    %asm {{
+        cld
+        clc
+        clv
+        rts
+    }}
+}
+
+asmsub  cleanup_at_exit() {
+    ; executed when the main subroutine does rts
+    %asm {{
+        lda  #0
+        sta  $ff00          ; default bank 15
+        jsr  cbm.CLRCHN		; reset i/o channels
+        jsr  enable_runstop_and_charsetswitch
+_exitcodeCarry = *+1
+        lda  #0
+        lsr  a
+_exitcode = *+1
+        lda  #0        ; exit code possibly modified in exit()
+_exitcodeX = *+1
+        ldx  #0
+_exitcodeY = *+1
+        ldy  #0
+        rts
+    }}
+}
+
+asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
+    %asm {{
+        lda  #$80
+        sta  247    ; disable charset switching
+        lda  #112
+        sta  808    ; disable run/stop key
+        rts
+    }}
+}
+
+asmsub  enable_runstop_and_charsetswitch() clobbers(A) {
+    %asm {{
+        lda  #0
+        sta  247    ; enable charset switching
+        lda  #110
+        sta  808    ; enable run/stop key
+        rts
+    }}
+}
 
 }

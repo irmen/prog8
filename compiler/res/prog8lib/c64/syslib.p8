@@ -441,97 +441,13 @@ sys {
     const ubyte sizeof_uword = 2
     const ubyte sizeof_float = 5
 
+    sub  disable_runstop_and_charsetswitch() {
+        p8_sys_startup.disable_runstop_and_charsetswitch()
+    }
 
-asmsub  init_system()  {
-    ; Initializes the machine to a sane starting state.
-    ; Called automatically by the loader program logic.
-    ; This means that the KERNAL and CHARGEN ROMs are banked in,
-    ; BASIC ROM is NOT banked in (so we have another 8Kb of RAM at our disposal),
-    ; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
-    ; Also a different color scheme is chosen to identify ourselves a little.
-    ; Uppercase charset is activated.
-    %asm {{
-        sei
-        lda  #%00101111
-        sta  $00
-        lda  #%00100110   ; kernal and i/o banked in
-        sta  $01
-        jsr  cbm.IOINIT
-        jsr  cbm.RESTOR
-        jsr  cbm.CINT
-        lda  #6
-        sta  c64.EXTCOL
-        lda  #7
-        sta  cbm.COLOR
-        lda  #0
-        sta  c64.BGCOL0
-        jsr  disable_runstop_and_charsetswitch
-        lda  #PROG8_C64_BANK_CONFIG     ; apply bank config
-        sta  $01
-        and  #1
-        bne  +
-        ; basic is not banked in, adjust MEMTOP
-        ldx  #<$d000
-        ldy  #>$d000
-        clc
-        jsr  cbm.MEMTOP
-+       cli
-        rts
-    }}
-}
-
-asmsub  init_system_phase2()  {
-    %asm {{
-        cld
-        clc
-        clv
-        rts
-    }}
-}
-
-asmsub  cleanup_at_exit() {
-    ; executed when the main subroutine does rts
-    %asm {{
-        lda  #31
-        sta  $01            ; bank the kernal and basic in
-        ldx  #<$a000
-        ldy  #>$a000
-        clc
-        jsr  cbm.MEMTOP     ; adjust MEMTOP down again
-        jsr  cbm.CLRCHN		; reset i/o channels
-        jsr  enable_runstop_and_charsetswitch
-_exitcodeCarry = *+1
-        lda  #0
-        lsr  a
-_exitcode = *+1
-        lda  #0        ; exit code possibly modified in exit()
-_exitcodeX = *+1
-        ldx  #0
-_exitcodeY = *+1
-        ldy  #0
-        rts
-    }}
-}
-
-asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
-    %asm {{
-        lda  #$80
-        sta  657    ; disable charset switching
-        lda  #239
-        sta  808    ; disable run/stop key
-        rts
-    }}
-}
-
-asmsub  enable_runstop_and_charsetswitch() clobbers(A) {
-    %asm {{
-        lda  #0
-        sta  657    ; enable charset switching
-        lda  #237
-        sta  808    ; enable run/stop key
-        rts
-    }}
-}
+    sub  enable_runstop_and_charsetswitch() {
+        p8_sys_startup.enable_runstop_and_charsetswitch()
+    }
 
     asmsub save_prog8_internals() {
         %asm {{
@@ -946,37 +862,37 @@ _no_msb_size
     asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
-            sta  cleanup_at_exit._exitcode
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
     asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
         ; -- immediately exit the program with result values in the A, X and Y registers.
         %asm {{
-            sta  cleanup_at_exit._exitcode
-            stx  cleanup_at_exit._exitcodeX
-            sty  cleanup_at_exit._exitcodeY
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
+            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
+            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
     asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
         ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
         %asm {{
-            sta  cleanup_at_exit._exitcode
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
             lda  #0
             rol  a
-            sta  cleanup_at_exit._exitcodeCarry
-            stx  cleanup_at_exit._exitcodeX
-            sty  cleanup_at_exit._exitcodeY
+            sta  p8_sys_startup.cleanup_at_exit._exitcodeCarry
+            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
+            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
@@ -1155,5 +1071,103 @@ cx16 {
         ; Returns true when you have a 65816 cpu, false when it's a 6502.
         return false
     }
+
+}
+
+p8_sys_startup {
+    ; program startup and shutdown machinery. Needs to reside in normal system ram.
+
+asmsub  init_system()  {
+    ; Initializes the machine to a sane starting state.
+    ; Called automatically by the loader program logic.
+    ; This means that the KERNAL and CHARGEN ROMs are banked in,
+    ; BASIC ROM is NOT banked in (so we have another 8Kb of RAM at our disposal),
+    ; the VIC, SID and CIA chips are reset, screen is cleared, and the default IRQ is set.
+    ; Also a different color scheme is chosen to identify ourselves a little.
+    ; Uppercase charset is activated.
+    %asm {{
+        sei
+        lda  #%00101111
+        sta  $00
+        lda  #%00100110   ; kernal and i/o banked in, basic off
+        sta  $01
+        jsr  cbm.IOINIT
+        jsr  cbm.RESTOR
+        jsr  cbm.CINT
+        lda  #6
+        sta  c64.EXTCOL
+        lda  #7
+        sta  cbm.COLOR
+        lda  #0
+        sta  c64.BGCOL0
+        jsr  disable_runstop_and_charsetswitch
+        lda  #PROG8_C64_BANK_CONFIG     ; apply bank config
+        sta  $01
+        and  #1
+        bne  +
+        ; basic is not banked in, adjust MEMTOP
+        ldx  #<$d000
+        ldy  #>$d000
+        clc
+        jsr  cbm.MEMTOP
++       cli
+        rts
+    }}
+}
+
+asmsub  init_system_phase2()  {
+    %asm {{
+        cld
+        clc
+        clv
+        rts
+    }}
+}
+
+asmsub  cleanup_at_exit() {
+    ; executed when the main subroutine does rts
+    %asm {{
+        lda  #%00101111
+        sta  $00
+        lda  #31
+        sta  $01            ; bank the kernal and basic in
+        ldx  #<$a000
+        ldy  #>$a000
+        clc
+        jsr  cbm.MEMTOP     ; adjust MEMTOP down again
+        jsr  cbm.CLRCHN		; reset i/o channels
+        jsr  enable_runstop_and_charsetswitch
+_exitcodeCarry = *+1
+        lda  #0
+        lsr  a
+_exitcode = *+1
+        lda  #0        ; exit code possibly modified in exit()
+_exitcodeX = *+1
+        ldx  #0
+_exitcodeY = *+1
+        ldy  #0
+        rts
+    }}
+}
+
+asmsub  disable_runstop_and_charsetswitch() clobbers(A) {
+    %asm {{
+        lda  #$80
+        sta  657    ; disable charset switching
+        lda  #239
+        sta  808    ; disable run/stop key
+        rts
+    }}
+}
+
+asmsub  enable_runstop_and_charsetswitch() clobbers(A) {
+    %asm {{
+        lda  #0
+        sta  657    ; enable charset switching
+        lda  #237
+        sta  808    ; enable run/stop key
+        rts
+    }}
+}
 
 }

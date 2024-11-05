@@ -1381,90 +1381,6 @@ sys {
     const ubyte sizeof_uword = 2
     const ubyte sizeof_float = 5
 
-asmsub  init_system()  {
-    ; Initializes the machine to a sane starting state.
-    ; Called automatically by the loader program logic.
-    %asm {{
-        sei
-        lda  #0
-        tax
-        tay
-        jsr  cx16.mouse_config  ; disable mouse
-        lda  cx16.VERA_DC_VIDEO
-        and  #%00000111 ; retain chroma + output mode
-        sta  P8ZP_SCRATCH_REG
-        lda  #$0a
-        sta  $01        ; rom bank 10 (audio)
-        jsr  cx16.audio_init ; silence
-        stz  $01        ; rom bank 0 (kernal)
-        jsr  cbm.IOINIT
-        jsr  cbm.RESTOR
-        jsr  cbm.CINT
-        lda  cx16.VERA_DC_VIDEO
-        and  #%11111000
-        ora  P8ZP_SCRATCH_REG
-        sta  cx16.VERA_DC_VIDEO  ; restore old output mode
-        lda  #$90       ; black
-        jsr  cbm.CHROUT
-        lda  #1
-        jsr  cbm.CHROUT ; swap fg/bg
-        lda  #$9e       ; yellow
-        jsr  cbm.CHROUT
-        lda  #147       ; clear screen
-        jsr  cbm.CHROUT
-        lda  #8         ; disable charset case switch
-        jsr  cbm.CHROUT
-        lda  #PROG8_VARSHIGH_RAMBANK
-        sta  $00    ; select ram bank
-        lda  #0
-        sta  $01    ; set ROM bank to kernal bank to speed up kernal calls
-        tax
-        tay
-        cli
-        rts
-    }}
-}
-
-asmsub  init_system_phase2()  {
-    %asm {{
-        sei
-        lda  cbm.CINV
-        sta  restore_irq._orig_irqvec
-        lda  cbm.CINV+1
-        sta  restore_irq._orig_irqvec+1
-        lda  #PROG8_VARSHIGH_RAMBANK
-        sta  $00    ; select ram bank
-        stz  $01    ; set ROM bank to kernal bank to speed up kernal calls
-        cli
-        cld
-        clc
-        clv
-        rts
-    }}
-}
-
-asmsub  cleanup_at_exit() {
-    ; executed when the main subroutine does rts
-    %asm {{
-        lda  #1
-        sta  $00        ; ram bank 1
-        lda  #4
-        sta  $01        ; rom bank 4 (basic)
-        stz  $2d        ; hack to reset machine code monitor bank to 0
-        jsr  cbm.CLRCHN		; reset i/o channels
-_exitcodeCarry = *+1
-        lda  #0
-        lsr  a
-_exitcode = *+1
-        lda  #0        ; exit code possibly modified in exit()
-_exitcodeX = *+1
-        ldx  #0
-_exitcodeY = *+1
-        ldy  #0
-        rts
-    }}
-}
-
 asmsub  set_irq(uword handler @AY) clobbers(A)  {
     ; Sets the handler for the VSYNC interrupt, and enable that interrupt.
 	%asm {{
@@ -1865,37 +1781,37 @@ save_SCRATCH_ZPWORD2	.word  0
     asmsub exit(ubyte returnvalue @A) {
         ; -- immediately exit the program with a return code in the A register
         %asm {{
-            sta  cleanup_at_exit._exitcode
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
     asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
         ; -- immediately exit the program with result values in the A, X and Y registers.
         %asm {{
-            sta  cleanup_at_exit._exitcode
-            stx  cleanup_at_exit._exitcodeX
-            sty  cleanup_at_exit._exitcodeY
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
+            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
+            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
     asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
         ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
         %asm {{
-            sta  cleanup_at_exit._exitcode
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
             lda  #0
             rol  a
-            sta  cleanup_at_exit._exitcodeCarry
-            stx  cleanup_at_exit._exitcodeX
-            sty  cleanup_at_exit._exitcodeY
+            sta  p8_sys_startup.cleanup_at_exit._exitcodeCarry
+            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
+            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
             txs
-            jmp  cleanup_at_exit
+            jmp  p8_sys_startup.cleanup_at_exit
         }}
     }
 
@@ -1931,5 +1847,94 @@ save_SCRATCH_ZPWORD2	.word  0
             pla
         }}
     }
+
+}
+
+p8_sys_startup {
+    ; program startup and shutdown machinery. Needs to reside in normal system ram.
+
+asmsub  init_system()  {
+    ; Initializes the machine to a sane starting state.
+    ; Called automatically by the loader program logic.
+    %asm {{
+        sei
+        lda  #0
+        tax
+        tay
+        jsr  cx16.mouse_config  ; disable mouse
+        lda  cx16.VERA_DC_VIDEO
+        and  #%00000111 ; retain chroma + output mode
+        sta  P8ZP_SCRATCH_REG
+        lda  #$0a
+        sta  $01        ; rom bank 10 (audio)
+        jsr  cx16.audio_init ; silence
+        stz  $01        ; rom bank 0 (kernal)
+        jsr  cbm.IOINIT
+        jsr  cbm.RESTOR
+        jsr  cbm.CINT
+        lda  cx16.VERA_DC_VIDEO
+        and  #%11111000
+        ora  P8ZP_SCRATCH_REG
+        sta  cx16.VERA_DC_VIDEO  ; restore old output mode
+        lda  #$90       ; black
+        jsr  cbm.CHROUT
+        lda  #1
+        jsr  cbm.CHROUT ; swap fg/bg
+        lda  #$9e       ; yellow
+        jsr  cbm.CHROUT
+        lda  #147       ; clear screen
+        jsr  cbm.CHROUT
+        lda  #8         ; disable charset case switch
+        jsr  cbm.CHROUT
+        lda  #PROG8_VARSHIGH_RAMBANK
+        sta  $00    ; select ram bank
+        lda  #0
+        sta  $01    ; set ROM bank to kernal bank to speed up kernal calls
+        tax
+        tay
+        cli
+        rts
+    }}
+}
+
+asmsub  init_system_phase2()  {
+    %asm {{
+        sei
+        lda  cbm.CINV
+        sta  sys.restore_irq._orig_irqvec
+        lda  cbm.CINV+1
+        sta  sys.restore_irq._orig_irqvec+1
+        lda  #PROG8_VARSHIGH_RAMBANK
+        sta  $00    ; select ram bank
+        stz  $01    ; set ROM bank to kernal bank to speed up kernal calls
+        cli
+        cld
+        clc
+        clv
+        rts
+    }}
+}
+
+asmsub  cleanup_at_exit() {
+    ; executed when the main subroutine does rts
+    %asm {{
+        lda  #1
+        sta  $00        ; ram bank 1
+        lda  #4
+        sta  $01        ; rom bank 4 (basic)
+        stz  $2d        ; hack to reset machine code monitor bank to 0
+        jsr  cbm.CLRCHN		; reset i/o channels
+_exitcodeCarry = *+1
+        lda  #0
+        lsr  a
+_exitcode = *+1
+        lda  #0        ; exit code possibly modified in exit()
+_exitcodeX = *+1
+        ldx  #0
+_exitcodeY = *+1
+        ldy  #0
+        rts
+    }}
+}
 
 }
