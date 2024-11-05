@@ -32,10 +32,6 @@ internal class ProgramAndVarsGen(
 
     internal fun generate() {
         header()
-        val allBlocks = program.allBlocks()
-
-        if(allBlocks.first().name != "p8b_main" && allBlocks.first().name != "main")
-            throw AssemblyError("first block should be 'main' or 'p8b_main'")
 
         if(errors.noErrors())  {
             program.allBlocks().forEach { block2asm(it) }
@@ -114,7 +110,7 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .word  (+), $year")
                         asmgen.out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
                         asmgen.out("+\t.word  0")
-                        asmgen.out("prog8_entrypoint\t; assembly code starts here")
+                        asmgen.out("prog8_entrypoint")
                         asmgen.out("  cld")
                         asmgen.out("  tsx  ; save stackpointer for sys.exit()")
                         asmgen.out("  stx  prog8_lib.orig_stackpointer")

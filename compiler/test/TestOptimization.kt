@@ -35,8 +35,7 @@ class TestOptimization: FunSpec({
             }
         """
         val result = compileText(C64Target(), true, sourcecode)!!
-        val toplevelModule = result.compilerAst.toplevelModule
-        val mainBlock = toplevelModule.statements.single() as Block
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
         val startSub = mainBlock.statements.single() as Subroutine
         result.compilerAst.entrypoint shouldBeSameInstanceAs startSub
         withClue("only start sub should remain") {
@@ -85,8 +84,7 @@ main {
             }
         """
         val result = compileText(C64Target(), true, sourcecode)!!
-        val toplevelModule = result.compilerAst.toplevelModule
-        val mainBlock = toplevelModule.statements.single() as Block
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
         val startSub = mainBlock.statements[0] as Subroutine
         val emptySub = mainBlock.statements[1] as Subroutine
         result.compilerAst.entrypoint shouldBeSameInstanceAs startSub

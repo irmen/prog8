@@ -46,8 +46,7 @@ class TestScoping: FunSpec({
         """
 
         val result = compileText(C64Target(), false, src, writeAssembly = false)!!
-        val module = result.compilerAst.toplevelModule
-        val mainBlock = module.statements.single() as Block
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
         val start = mainBlock.statements.single() as Subroutine
         val repeatbody = start.statements.filterIsInstance<RepeatLoop>().single().body
         withClue("no vars moved to main block") {
@@ -120,8 +119,7 @@ class TestScoping: FunSpec({
         """
 
         val result = compileText(C64Target(), false, src, writeAssembly = true)!!
-        val module = result.compilerAst.toplevelModule
-        val mainBlock = module.statements.single() as Block
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
         val start = mainBlock.statements.single() as Subroutine
         val labels = start.statements.filterIsInstance<Label>()
         withClue("only one label in subroutine scope") {

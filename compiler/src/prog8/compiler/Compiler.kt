@@ -481,7 +481,7 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     callGraph.checkRecursiveCalls(errors)
     program.verifyFunctionArgTypes(errors, compilerOptions)
     errors.report()
-    program.moveMainBlockAsFirst()
+    program.moveMainBlockAsFirst(compilerOptions.compTarget)
     program.checkValid(errors, compilerOptions)          // check if final tree is still valid
     errors.report()
 }

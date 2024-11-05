@@ -44,7 +44,7 @@ class TestCallgraph: FunSpec({
         graph.unused(toplevelModule) shouldBe false
         graph.unused(importedModule) shouldBe false
 
-        val mainBlock = toplevelModule.statements.filterIsInstance<Block>().single()
+        val mainBlock = toplevelModule.statements.filterIsInstance<Block>().single{it.name=="main"}
         for(stmt in mainBlock.statements) {
             val sub = stmt as Subroutine
             graph.calls shouldNotContainKey sub
@@ -85,7 +85,7 @@ class TestCallgraph: FunSpec({
         graph.unused(toplevelModule) shouldBe false
         graph.unused(importedModule) shouldBe false
 
-        val mainBlock = toplevelModule.statements.filterIsInstance<Block>().single()
+        val mainBlock = toplevelModule.statements.filterIsInstance<Block>().single{it.name=="main"}
         val startSub = mainBlock.statements.filterIsInstance<Subroutine>().single{it.name=="start"}
         val emptySub = mainBlock.statements.filterIsInstance<Subroutine>().single{it.name=="empty"}
 

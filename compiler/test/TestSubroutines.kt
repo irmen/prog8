@@ -60,8 +60,7 @@ class TestSubroutines: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val module = result.compilerAst.toplevelModule
-        val mainBlock = module.statements.single() as Block
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         asmfunc.isAsmSubroutine shouldBe true
@@ -119,8 +118,7 @@ class TestSubroutines: FunSpec({
             }
         """
         val result = compileText(C64Target(), false, text, writeAssembly = true)!!
-        val module = result.compilerAst.toplevelModule
-        val mainBlock = module.statements.single() as Block
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         val emptysub = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="emptysub"}
@@ -181,8 +179,7 @@ class TestSubroutines: FunSpec({
         """
 
         val result = compileText(C64Target(), false, text, writeAssembly = false)!!
-        val module = result.compilerAst.toplevelModule
-        val mainBlock = module.statements.single() as Block
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         withClue("ubyte array param should have been replaced by UWORD pointer") {

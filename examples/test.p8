@@ -15,9 +15,9 @@ basic_area $a000 {
     }
 }
 
-hiram_area $c000 {
-    %option force_output
-    sub thing() {
-        cx16.r0++
-    }
-}
+;hiram_area $c000 {
+;    %option force_output
+;    sub thing() {
+;        cx16.r0++
+;    }
+;}
