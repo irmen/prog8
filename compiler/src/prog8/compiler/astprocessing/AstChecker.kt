@@ -377,9 +377,16 @@ internal class AstChecker(private val program: Program,
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
 
-        val bank = subroutine.asmAddress?.first
-        if(bank!=null && bank>255u)
-            err("bank must be 0 to 255")
+        val bank = subroutine.asmAddress?.constbank
+        if (bank!=null) {
+            if (bank > 255u) err("bank must be 0 to 255")
+            if (subroutine.asmAddress?.varbank!=null) throw FatalAstException("need either constant or variable bank")
+        }
+        val varbank = subroutine.asmAddress?.varbank
+        if(varbank!=null) {
+            if(varbank.targetVarDecl(program)?.datatype!=DataType.UBYTE)
+                err("bank variable must be ubyte")
+        }
         if(subroutine.inline && subroutine.asmAddress!=null)
             throw FatalAstException("romsub cannot be inline")
 

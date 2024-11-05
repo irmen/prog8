@@ -645,14 +645,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
                     else {
                         val address = callTarget.address!!
-                        if(address.first==null) {
+                        if(address.constbank==null && address.varbank==null) {
                             IRInstruction(
                                 Opcode.CALL,
-                                address = address.second.toInt(),
+                                address = address.address.toInt(),
                                 fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
                         }
                         else {
-                            TODO("callfar is not implemented for the selected compilation target")
+                            TODO("callfar into another bank is not implemented for the selected compilation target")
                         }
                     }
                 addInstr(result, call, null)
@@ -767,10 +767,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = FunctionCallArgs(argRegisters, returnRegisters))
             else {
                 val address = callTarget.address!!
-                if(address.first==null) {
+                if(address.constbank==null && address.varbank==null) {
                     IRInstruction(
                         Opcode.CALL,
-                        address = address.second.toInt(),
+                        address = address.address.toInt(),
                         fcallArgs = FunctionCallArgs(argRegisters, returnRegisters)
                     )
                 }

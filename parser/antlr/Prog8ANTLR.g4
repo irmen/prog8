@@ -294,7 +294,7 @@ asmsubroutine :
     ;
 
 romsubroutine :
-    'romsub' ('@bank' bank=integerliteral)? address=integerliteral '=' asmsub_decl
+    'romsub' ('@bank' (constbank=integerliteral | varbank=scoped_identifier))? address=integerliteral '=' asmsub_decl
     ;
 
 asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;

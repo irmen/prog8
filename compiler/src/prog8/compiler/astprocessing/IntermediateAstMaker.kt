@@ -466,7 +466,8 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
         val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) })
-        val asmAddr = if(srcSub.asmAddress==null) null else srcSub.asmAddress!!.first to srcSub.asmAddress!!.second
+        val varbank = if(srcSub.asmAddress?.varbank==null) null else transform(srcSub.asmAddress!!.varbank!!)
+        val asmAddr = if(srcSub.asmAddress==null) null else PtAsmSub.Address(srcSub.asmAddress!!.constbank, varbank, srcSub.asmAddress!!.address)
         val sub = PtAsmSub(srcSub.name,
             asmAddr,
             srcSub.asmClobbers,
@@ -475,6 +476,8 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             srcSub.inline,
             srcSub.position)
         sub.parameters.forEach { it.second.parent=sub }
+        if(varbank!=null)
+            asmAddr?.varbank?.parent = sub
 
         if(srcSub.asmAddress==null) {
             var combinedTrueAsm = ""

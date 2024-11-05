@@ -442,7 +442,7 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
         }
         val targetAsmAddress = (target as? Subroutine)?.asmAddress
         if(targetAsmAddress!=null) {
-            return NumericLiteral(DataType.UWORD, targetAsmAddress.second.toDouble(), position)
+            return NumericLiteral(DataType.UWORD, targetAsmAddress.address.toDouble(), position)
         }
         return null
     }

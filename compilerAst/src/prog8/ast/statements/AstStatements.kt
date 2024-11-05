@@ -806,7 +806,7 @@ class Subroutine(override val name: String,
                  val asmParameterRegisters: List<RegisterOrStatusflag>,
                  val asmReturnvaluesRegisters: List<RegisterOrStatusflag>,
                  val asmClobbers: Set<CpuRegister>,
-                 val asmAddress: Pair<UByte?, UInt>?,       //  bank, address
+                 val asmAddress: Address?,
                  val isAsmSubroutine: Boolean,
                  var inline: Boolean,
                  var hasBeenInlined: Boolean=false,
@@ -818,6 +818,7 @@ class Subroutine(override val name: String,
 
     override fun linkParents(parent: Node) {
         this.parent = parent
+        this.asmAddress?.varbank?.linkParents(this)
         parameters.forEach { it.linkParents(this) }
         statements.forEach { it.linkParents(this) }
     }
@@ -834,11 +835,18 @@ class Subroutine(override val name: String,
                 statements[idx] = replacement
                 replacement.parent = this
             }
+            is NumericLiteral -> {
+                if(node===asmAddress?.varbank) {
+                    asmAddress.constbank = replacement.number.toInt().toUByte()
+                    asmAddress.varbank = null
+                } else throw FatalAstException("can't replace")
+            }
             else -> throw FatalAstException("can't replace")
         }
     }
 
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
+        asmAddress?.varbank?.referencesIdentifier(nameInSource)==true ||
         statements.any { it.referencesIdentifier(nameInSource) } ||
                 parameters.any { it.referencesIdentifier(nameInSource) }
 
@@ -846,6 +854,17 @@ class Subroutine(override val name: String,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun toString() =
         "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
+
+    class Address(var constbank: UByte?, var varbank: IdentifierReference?, val address: UInt) {
+        override fun toString(): String {
+            if(constbank!=null)
+                return "$constbank:${address.toHex()}"
+            else if(varbank!=null)
+                return "${varbank?.nameInSource?.joinToString(".")}:${address.toHex()}"
+            else
+                return address.toHex()
+        }
+    }
 }
 
 open class SubroutineParameter(val name: String,

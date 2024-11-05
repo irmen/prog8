@@ -51,9 +51,11 @@ The compiler will then transparently change a call to this routine so that the c
 automatically before the normal jump to the subroutine (and switched back on return). The programmer doesn't
 have to bother anymore with setting/resetting the banks manually, or having the program crash because
 the routine is called in the wrong bank!  You define such a routine by adding ``@bank <bank>``
-to the romsub subroutine definition. This specifies the bank number where the subroutine is located in::
+to the romsub subroutine definition. This specifies the bank number where the subroutine is located in.
+You can use a constant bank number 0-255, or a ubyte variable to make it dynamic::
 
     romsub @bank 10  $C09F = audio_init()
+    romsub @bank banknr  $A000 = first_hiram_routine()
 
 When you then call this routine in your program as usual, the compiler will no longer generate a simple JSR instruction to the
 routine. Instead it will generate a piece of code that automatically switches the ROM or RAM bank to the
@@ -64,7 +66,7 @@ a similar call exists (but requires a lot more code to prepare, so beware).
 On the Commodore 64 some custom code is also emitted that toggle the banks, retains some registers, and does the call.
 Other compilation targets don't have banking or prog8 doesn't yet support automatic bank selection on them.
 
-There's a "banking" (not financial) example for the Commander X16 that shows a possible application
+There's a "banking" example for the Commander X16 that shows a possible application
 of the romsub with bank support, check out the `bank example code <https://github.com/irmen/prog8/tree/master/examples/cx16/banking>`_ .
 
 

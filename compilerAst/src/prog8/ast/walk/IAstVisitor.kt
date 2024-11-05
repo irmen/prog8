@@ -45,6 +45,7 @@ interface IAstVisitor {
     }
 
     fun visit(subroutine: Subroutine) {
+        subroutine.asmAddress?.varbank?.accept(this)
         subroutine.statements.forEach { it.accept(this) }
     }
 

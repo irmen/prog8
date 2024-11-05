@@ -794,7 +794,7 @@ and returning stuff in several registers as well. The ``clobbers`` clause is use
 what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
 
 **Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@bank`` like this:
-``romsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10.
+``romsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10. You can also specify a variable for the bank.
 See :ref:`banking` for more information.
 
 .. note::

@@ -40,30 +40,78 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 sub.children.forEach { asmgen.translate(it as PtInlineAssembly) }
                 asmgen.out("  \t; inlined routine end: ${sub.name}")
             } else {
-                val bank = sub.address?.first
-                if(bank==null)
-                    asmgen.out("  jsr  $subAsmName")
+                val bank = sub.address?.constbank?.toString()
+                if(bank==null) {
+                    val varbank = if(sub.address?.varbank==null) null else asmgen.asmVariableName(sub.address!!.varbank!!)
+                    if(varbank!=null) {
+                        when(asmgen.options.compTarget.name) {
+                            "cx16" -> {
+                                // JSRFAR can jump to a banked RAM address as well!
+                                asmgen.out("""
+                                php
+                                pha
+                                lda  $varbank
+                                sta  +
+                                pla
+                                plp
+                                jsr  cx16.JSRFAR
+                                .word  $subAsmName    ; ${sub.address!!.address.toHex()}
++                               .byte  0    ; modified"""
+                                )
+                            }
+                            "c64" -> {
+                                asmgen.out("""
+                                php
+                                pha
+                                lda  $varbank
+                                sta  +
+                                pla
+                                plp
+                                jsr  c64.x16jsrfar
+                                .word  $subAsmName    ; ${sub.address!!.address.toHex()}
++                               .byte  0    ; modified"""
+                                )
+                            }
+                            "c128" -> {
+                                asmgen.out("""
+                                php
+                                pha
+                                lda  $varbank
+                                sta  +
+                                pla
+                                plp
+                                jsr  c128.x16jsrfar
+                                .word  $subAsmName    ; ${sub.address!!.address.toHex()}
++                               .byte  0    ; modified"""
+                                )
+                            }
+                            else -> throw AssemblyError("callfar is not supported on the selected compilation target")
+                        }
+                    } else {
+                        asmgen.out("  jsr  $subAsmName")
+                    }
+                }
                 else {
                     when(asmgen.options.compTarget.name) {
                         "cx16" -> {
                             // JSRFAR can jump to a banked RAM address as well!
                             asmgen.out("""
                                 jsr cx16.JSRFAR
-                                .word  $subAsmName    ; ${sub.address!!.second.toHex()}
+                                .word  $subAsmName    ; ${sub.address!!.address.toHex()}
                                 .byte  $bank"""
                             )
                         }
                         "c64" -> {
                             asmgen.out("""
                                 jsr  c64.x16jsrfar
-                                .word  $subAsmName    ; ${sub.address!!.second.toHex()}
+                                .word  $subAsmName    ; ${sub.address!!.address.toHex()}
                                 .byte  $bank"""
                             )
                         }
                         "c128" -> {
                             asmgen.out("""
                                 jsr  c128.x16jsrfar
-                                .word  $subAsmName    ; ${sub.address!!.second.toHex()}
+                                .word  $subAsmName    ; ${sub.address!!.address.toHex()}
                                 .byte  $bank"""
                             )
                         }

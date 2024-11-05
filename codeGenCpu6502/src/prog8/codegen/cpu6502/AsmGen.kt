@@ -48,6 +48,9 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
                 is PtAsmSub -> {
                     prefixNamedNode(node)
                     node.parameters.forEach { (_, param) -> prefixNamedNode(param) }
+                    if(node.address?.varbank!=null) {
+                        node.address!!.varbank = node.address!!.varbank!!.prefix(node, st)
+                    }
                 }
                 is PtSub -> {
                     prefixNamedNode(node)

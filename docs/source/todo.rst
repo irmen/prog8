@@ -1,8 +1,6 @@
 TODO
 ====
 
-make @bank accept a variable as well to make it dynamic
-
 rename 'romsub' to 'extsub' ? keep romsub as alias?
 
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.

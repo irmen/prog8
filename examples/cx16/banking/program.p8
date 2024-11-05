@@ -12,6 +12,8 @@ main {
     sub start() {
 
         ; load the example libraries in hiram banks 4 and 5
+        ; in this example these are constants, but you can also specify
+        ; a variable for the bank so you can vary the bank where the routine is loaded.
         cx16.rambank(4)
         void diskio.load("library1.prg", $a000)
         cx16.rambank(5)

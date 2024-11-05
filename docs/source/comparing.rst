@@ -81,7 +81,7 @@ Foreign function interface (external/ROM calls)
 -----------------------------------------------
 - You can use the ``romsub`` keyword to define the call signature of foreign functions (usually ROM routines, hence the name) in a natural way.
   Calling those generates code that is as efficient or even more efficient as calling regular subroutines.
-  No additional stubs are needed.  (unless there is bank switching going on, but this *may* be improved in a future language version)
+  No additional stubs are needed.  You can even specify the memory bank the routine is in and the compiler takes care of bank switching when calling it.
 
 Optimizations
 -------------
