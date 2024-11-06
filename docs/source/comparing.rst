@@ -26,7 +26,7 @@ No linker
 ---------
 - Even though your programs can consist of many separate module files, the compiler always outputs a single program file. There is no separate linker step.
   Currently, it's not easily possible to integrate object files created elsewhere. If the object file has a fixed load location and fixed entrypoints,
-  it can be loaded explicitly and accessed easily using romsub definitions though.
+  it can be loaded explicitly and accessed easily using extsub definitions though.
 - The prog8 compiler is self-contained in a single jar file. You do need 1 external tool namely 64tass, which performs the assembler step.
 
 
@@ -79,7 +79,7 @@ Pointers
 
 Foreign function interface (external/ROM calls)
 -----------------------------------------------
-- You can use the ``romsub`` keyword to define the call signature of foreign functions (usually ROM routines, hence the name) in a natural way.
+- You can use the ``extsub`` keyword to define the call signature of foreign functions (ROM routines or external routines elsewhere in RAM) in a natural way.
   Calling those generates code that is as efficient or even more efficient as calling regular subroutines.
   No additional stubs are needed.  You can even specify the memory bank the routine is in and the compiler takes care of bank switching when calling it.
 

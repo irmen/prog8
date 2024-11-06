@@ -24,15 +24,15 @@ cbm {
         const  uword  Screen    = $8000     ; to have this as an array[40*25] the compiler would have to support array size > 255
 
 
-romsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> bool @Pc    ; define an input channel
-romsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; define an output channel
-romsub $FFCC = CLRCHN() clobbers(A,X)                           ; restore default devices
-romsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A              ; input a character (for keyboard, read a whole line from the screen) A=byte read.
-romsub $FFD2 = CHROUT(ubyte character @ A)                           ; output a character
-romsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; check the STOP key (and some others in A)     also see STOP2
-romsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; get a character       also see GETIN2
-romsub $FFE7 = CLALL() clobbers(A,X)                            ; close all files
-romsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
+extsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> bool @Pc    ; define an input channel
+extsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; define an output channel
+extsub $FFCC = CLRCHN() clobbers(A,X)                           ; restore default devices
+extsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A              ; input a character (for keyboard, read a whole line from the screen) A=byte read.
+extsub $FFD2 = CHROUT(ubyte character @ A)                           ; output a character
+extsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; check the STOP key (and some others in A)     also see STOP2
+extsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; get a character       also see GETIN2
+extsub $FFE7 = CLALL() clobbers(A,X)                            ; close all files
+extsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 
 
 inline asmsub STOP2() clobbers(X,A) -> bool @Pz  {

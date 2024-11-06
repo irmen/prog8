@@ -1035,9 +1035,9 @@ main {
 %option no_sysinit
 
 main {
-    romsub ${'$'}2000 = func1() clobbers(X) -> ubyte @A, word @R0, byte @R1
-    romsub ${'$'}3000 = func2() clobbers(X) -> ubyte @A, uword @R0, uword @R1
-    romsub ${'$'}4000 = func3() clobbers(X) -> ubyte @R0
+    extsub ${'$'}2000 = func1() clobbers(X) -> ubyte @A, word @R0, byte @R1
+    extsub ${'$'}3000 = func2() clobbers(X) -> ubyte @A, uword @R0, uword @R1
+    extsub ${'$'}4000 = func3() clobbers(X) -> ubyte @R0
 
     sub start() {
         bool flag

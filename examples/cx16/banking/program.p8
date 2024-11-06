@@ -5,9 +5,9 @@
 %zeropage basicsafe
 
 main {
-    romsub @bank 4   $A000 = lib_routine1(ubyte value @A) clobbers(X) -> uword @AY
-    romsub @bank 5   $A000 = lib_routine2(ubyte value @A) clobbers(X) -> uword @AY
-    romsub @bank 10  $C09F = audio_init() -> bool @A
+    extsub @bank 4   $A000 = lib_routine1(ubyte value @A) clobbers(X) -> uword @AY
+    extsub @bank 5   $A000 = lib_routine2(ubyte value @A) clobbers(X) -> uword @AY
+    extsub @bank 10  $C09F = audio_init() -> bool @A
 
     sub start() {
 

@@ -1,6 +1,7 @@
 package prog8.ast.antlr
 
 import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.tree.ErrorNodeImpl
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.SyntaxError
@@ -78,7 +79,7 @@ private fun SubroutinedeclarationContext.toAst() : Subroutine {
     return when {
         subroutine()!=null -> subroutine().toAst()
         asmsubroutine()!=null -> asmsubroutine().toAst()
-        romsubroutine()!=null -> romsubroutine().toAst()
+        extsubroutine()!=null -> extsubroutine().toAst()
         else -> throw FatalAstException("weird subroutine decl $this")
     }
 }
@@ -175,7 +176,9 @@ private fun AsmsubroutineContext.toAst(): Subroutine {
             subdecl.asmClobbers, null, true, inline, false, statements, toPosition())
 }
 
-private fun RomsubroutineContext.toAst(): Subroutine {
+private fun ExtsubroutineContext.toAst(): Subroutine {
+    if(this.text.startsWith("romsub"))
+        println("INFO  ${toPosition().toClickableStr()} 'romsub' keyword is deprecated, change to 'extsub'")        // TODO eventually, remove this 'romsub' support altogether
     val subdecl = asmsub_decl().toAst()
     val constbank = constbank?.toAst()?.number?.toUInt()?.toUByte()
     val varbank = varbank?.toAst()

@@ -16,7 +16,7 @@ const ubyte DEFAULT_HEIGHT = 60
 const ubyte VERA_TEXTMATRIX_BANK = 1
 const uword VERA_TEXTMATRIX_ADDR = $b000
 
-romsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
+extsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
 
 
 sub clear_screen() {

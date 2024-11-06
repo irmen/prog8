@@ -136,7 +136,7 @@ variabledeclaration :
 subroutinedeclaration :
 	subroutine
 	| asmsubroutine
-	| romsubroutine
+	| extsubroutine
     ;
 
 alias: 'alias' identifier '=' scoped_identifier ;
@@ -293,8 +293,8 @@ asmsubroutine :
     inline? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
     ;
 
-romsubroutine :
-    'romsub' ('@bank' (constbank=integerliteral | varbank=scoped_identifier))? address=integerliteral '=' asmsub_decl
+extsubroutine :
+    ('romsub' | 'extsub') ('@bank' (constbank=integerliteral | varbank=scoped_identifier))? address=integerliteral '=' asmsub_decl
     ;
 
 asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;

@@ -95,7 +95,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     val bank = if(node.address.constbank!=null) "@bank ${node.address.constbank}"
                         else if(node.address.varbank!=null) "@bank ${node.address.varbank?.name}"
                         else ""
-                    str + "romsub $bank ${node.address.address.toHex()} = ${node.name}($params) $clobbers $returns"
+                    str + "extsub $bank ${node.address.address.toHex()} = ${node.name}($params) $clobbers $returns"
                 }
             }
             is PtBlock -> {

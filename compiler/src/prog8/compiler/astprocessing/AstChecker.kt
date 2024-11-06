@@ -388,7 +388,7 @@ internal class AstChecker(private val program: Program,
                 err("bank variable must be ubyte")
         }
         if(subroutine.inline && subroutine.asmAddress!=null)
-            throw FatalAstException("romsub cannot be inline")
+            throw FatalAstException("extsub cannot be inline")
 
         super.visit(subroutine)
 

@@ -805,7 +805,7 @@ Subroutines are parts of the code that can be repeatedly invoked using a subrout
 Their definition, using the ``sub`` statement, includes the specification of the required parameters and return value.
 Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
 With ``asmsub`` you can define a low-level subroutine that is implemented directly in assembly and takes parameters
-directly in registers. Finally with ``romsub`` you can define an external subroutine that's implemented outside
+directly in registers. Finally with ``extsub`` you can define an external subroutine that's implemented outside
 of the program (for instance, a ROM routine, or a routine in a library loaded elsewhere in RAM).
 
 Trivial ``asmsub`` routines can be tagged as ``inline`` to tell the compiler to copy their code

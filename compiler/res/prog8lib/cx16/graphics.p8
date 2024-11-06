@@ -15,7 +15,7 @@
 graphics {
     %option ignore_unused
 
-    romsub $feff = FB_cursor_position2()  clobbers(A,X,Y)     ; alias for the normal FB_cursor_position() call but reuses existing r0 and r1
+    extsub $feff = FB_cursor_position2()  clobbers(A,X,Y)     ; alias for the normal FB_cursor_position() call but reuses existing r0 and r1
 
     const uword WIDTH = 320
     const ubyte HEIGHT = 240

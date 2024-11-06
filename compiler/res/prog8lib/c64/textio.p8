@@ -13,7 +13,7 @@ txt {
 const ubyte DEFAULT_WIDTH = 40
 const ubyte DEFAULT_HEIGHT = 25
 
-romsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
+extsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
 
 sub  clear_screen() {
     chrout(147)

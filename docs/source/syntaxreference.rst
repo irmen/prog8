@@ -723,7 +723,7 @@ Otherwise the compiler will warn you about discarding the result of the call.
 Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
 Normal subroutines can only return zero or one return values.
-However, the special ``asmsub`` routines (implemented in assembly code) or ``romsub`` routines
+However, the special ``asmsub`` routines (implemented in assembly code) or ``extsub`` routines
 (referencing an external routine in ROM or elsewhere in RAM) can return more than one return value.
 For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers and some more values in R0 and R1.
 In all of these cases, you have to "multi assign" all return values of the subroutine call to something.
@@ -786,7 +786,7 @@ External subroutines
 
 External subroutines are usually defined by compiler library files, with the following syntax::
 
-    romsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) clobbers()
+    extsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) clobbers()
          -> bool @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
 
 This defines the ``LOAD`` subroutine at memory address $FFD5, taking arguments in all three registers A, X and Y,
@@ -794,13 +794,8 @@ and returning stuff in several registers as well. The ``clobbers`` clause is use
 what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
 
 **Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@bank`` like this:
-``romsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10. You can also specify a variable for the bank.
+``extsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10. You can also specify a variable for the bank.
 See :ref:`banking` for more information.
-
-.. note::
-    ``romsub`` is most often used to define ROM subroutines. But contrary to what the name may suggest,
-    it can also define an external subroutine elsewhere in normal RAM. It simply states the address
-    and signature of the subroutine; it doesn't care if the routine is in ROM or RAM address space.
 
 User-written subroutines in the program source code itself, implemented purely in assembly and which have an assembly calling convention (i.e.
 the parameters are strictly passed via cpu registers), are defined with ``asmsub`` like this::

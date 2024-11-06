@@ -21,7 +21,7 @@ syn match prog8Float "\<\d\+\.\d\+\([eE]\d\+\)\?\>"
 syn region prog8Expression matchgroup=prog8AddressOp start="@(" end=")"
             \ transparent
 syn match prog8Function "\(\<\(asm\)\?sub\>\s\+\)\@16<=\<\w\+\>"
-syn match prog8Function "\(romsub\s\+$\x\+\s\+=\s\+\)\@16<=\<\w\+\>"
+syn match prog8Function "\(extsub\s\+$\x\+\s\+=\s\+\)\@16<=\<\w\+\>"
 
 syn keyword prog8Statement break continue goto return asmsub sub inline
 syn match prog8Statement "\<\(asm\|rom\)\?sub\>"

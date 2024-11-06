@@ -38,7 +38,7 @@ class TestCompilerOnCharLit: FunSpec({
         val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
-                romsub ${"$"}FFD2 = chrout(ubyte ch @ A)
+                extsub ${"$"}FFD2 = chrout(ubyte ch @ A)
                 sub start() {
                     chrout('\n')
                 }
@@ -61,7 +61,7 @@ class TestCompilerOnCharLit: FunSpec({
         val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
-                romsub ${"$"}FFD2 = chrout(ubyte ch @ A)
+                extsub ${"$"}FFD2 = chrout(ubyte ch @ A)
                 sub start() {
                     ubyte ch = '\n'
                     chrout(ch)
@@ -96,7 +96,7 @@ class TestCompilerOnCharLit: FunSpec({
         val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
-                romsub ${"$"}FFD2 = chrout(ubyte ch @ A)
+                extsub ${"$"}FFD2 = chrout(ubyte ch @ A)
                 sub start() {
                     const ubyte ch = '\n'
                     chrout(ch)

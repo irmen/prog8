@@ -141,7 +141,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         if(fcall!=null && fcall.type==DataType.BOOL) {
             val extsub = st.lookup(fcall.name) as? StExtSub
             if(extsub!=null && extsub.returns.any { it.register.statusflag!=null }) {
-                throw AssemblyError("if romsub() that returns a status register boolean should have been changed into a Conditional branch such as if_cc")
+                throw AssemblyError("if extsub() returning a status register boolean should have been changed into a Conditional branch such as if_cc")
             }
         }
     }

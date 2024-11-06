@@ -184,9 +184,9 @@ main {
         void, void, void = test3()
     }
 
-    romsub ${'$'}8000 = test(ubyte arg @A) -> bool @Pc
-    romsub ${'$'}8002 = test2(uword arg @AY, uword arg2 @R1, bool flag @Pc, byte value @X) -> ubyte @A, bool @Pc
-    romsub ${'$'}8003 = test3() -> uword @R1, bool @Pc, ubyte @X
+    extsub ${'$'}8000 = test(ubyte arg @A) -> bool @Pc
+    extsub ${'$'}8002 = test2(uword arg @AY, uword arg2 @R1, bool flag @Pc, byte value @X) -> ubyte @A, bool @Pc
+    extsub ${'$'}8003 = test3() -> uword @R1, bool @Pc, ubyte @X
 }"""
 
         compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null

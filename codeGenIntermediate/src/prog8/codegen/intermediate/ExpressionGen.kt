@@ -774,7 +774,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         fcallArgs = FunctionCallArgs(argRegisters, returnRegisters)
                     )
                 }
-                else TODO("romsub with banked address got called ${callTarget.name}")
+                else TODO("extsub with banked address got called ${callTarget.name}")
             }
         addInstr(result, call, null)
         val resultRegs = returnRegisters.filter{it.dt!=IRDataType.FLOAT}.map{it.registerNum}

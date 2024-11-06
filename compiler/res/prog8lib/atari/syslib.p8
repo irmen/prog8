@@ -12,9 +12,9 @@ atari {
         &uword COLCRS = 85
         &ubyte ROWCRS = 84
 
-    romsub $F24A = getchar() -> ubyte @A
-    romsub $F2B0 = outchar(ubyte character @ A)
-    romsub $F2FD = waitkey() -> ubyte @A
+    extsub $F24A = getchar() -> ubyte @A
+    extsub $F2B0 = outchar(ubyte character @ A)
+    extsub $F2FD = waitkey() -> ubyte @A
 
 }
 

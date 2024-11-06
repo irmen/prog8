@@ -618,8 +618,8 @@ main {
     test("void assignment is invalid") {
         val src="""
 main {
-    romsub $2000 = multi() -> ubyte @A, ubyte @Y
-    romsub $3000 = single() -> ubyte @A
+    extsub $2000 = multi() -> ubyte @A, ubyte @Y
+    extsub $3000 = single() -> ubyte @A
     
     sub start() {
         void, void = multi()        ; ok

@@ -451,7 +451,7 @@ main {
     test("multiple status flags return values from asmsub") {
         val src="""
 main {
-    romsub 5000 = carryAndNegativeAndByteAndWord() -> bool @Pc, bool @Pn, ubyte @X, uword @AY
+    extsub 5000 = carryAndNegativeAndByteAndWord() -> bool @Pc, bool @Pn, ubyte @X, uword @AY
 
     sub start() {
         ubyte @shared x

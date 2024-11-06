@@ -5,7 +5,7 @@
 main {
     ubyte bank
 
-    romsub @bank bank  $a000 = routine_in_hiram(uword arg @AY) -> uword @AY
+    extsub @bank bank  $a000 = routine_in_hiram(uword arg @AY) -> uword @AY
 
     sub start() {
         ; copy the routine into hiram bank 8

@@ -523,9 +523,9 @@ class TestVmCodeGen: FunSpec({
         irChunks.size shouldBe 1
     }
 
-    test("romsub allowed in ir-codegen") {
+    test("extsub allowed in ir-codegen") {
 //main {
-//    romsub $5000 = routine()
+//    extsub $5000 = routine()
 //
 //    sub start()  {
 //        routine()
