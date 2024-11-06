@@ -34,7 +34,7 @@ class TestCompilerOnCharLit: FunSpec({
             .singleOrNull { it.origin== AssignmentOrigin.VARINIT && it.target.identifier?.targetVarDecl(program) === vardecl }
 
 
-    test("testCharLitAsRomsubArg") {
+    test("testCharLitAsExtsubArg") {
         val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
@@ -57,7 +57,7 @@ class TestCompilerOnCharLit: FunSpec({
         arg.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
     }
 
-    test("testCharVarAsRomsubArg") {
+    test("testCharVarAsExtsubArg") {
         val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {
@@ -92,7 +92,7 @@ class TestCompilerOnCharLit: FunSpec({
         initializerValue.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
     }
 
-    test("testCharConstAsRomsubArg") {
+    test("testCharConstAsExtsubArg") {
         val platform = Cx16Target()
         val result = compileText(platform, false, """
             main {

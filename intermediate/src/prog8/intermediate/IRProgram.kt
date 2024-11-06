@@ -147,7 +147,7 @@ class IRProgram(val name: String,
             chunk.instructions.forEach {
                 if(it.opcode in OpcodesThatBranch && it.opcode!=Opcode.JUMPI && it.opcode!=Opcode.RETURN && it.opcode!=Opcode.RETURNR && it.opcode!=Opcode.RETURNI && it.labelSymbol!=null) {
                     if(it.labelSymbol.startsWith('$') || it.labelSymbol.first().isDigit()) {
-                        // it's a call to an address (romsub most likely)
+                        // it's a call to an address (extsub most likely)
                         requireNotNull(it.address)
                     } else {
                         it.branchTarget = labeledChunks.getValue(it.labelSymbol)

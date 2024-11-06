@@ -1,8 +1,8 @@
 package prog8.codegen.cpu6502.assignment
 
 import prog8.code.StMemVar
-import prog8.code.StRomSub
-import prog8.code.StRomSubParameter
+import prog8.code.StExtSub
+import prog8.code.StExtSubParameter
 import prog8.code.StStaticVariable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -39,7 +39,7 @@ internal class AssignmentAsmGen(
         val values = assignment.value as? PtFunctionCall
             ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
-        val sub = asmgen.symbolTable.lookup(values.name) as? StRomSub
+        val sub = asmgen.symbolTable.lookup(values.name) as? StExtSub
             ?: throw AssemblyError("only asmsubs can return multiple values")
 
         require(sub.returns.size>=2)
@@ -64,11 +64,11 @@ internal class AssignmentAsmGen(
     }
 
     private fun assignStatusFlagsAndRegistersResults(
-        statusFlagResults: List<Pair<StRomSubParameter, PtNode>>,
-        registersResults: List<Pair<StRomSubParameter, PtNode>>
+        statusFlagResults: List<Pair<StExtSubParameter, PtNode>>,
+        registersResults: List<Pair<StExtSubParameter, PtNode>>
     ) {
 
-        fun needsToSaveA(registersResults: List<Pair<StRomSubParameter, PtNode>>): Boolean =
+        fun needsToSaveA(registersResults: List<Pair<StExtSubParameter, PtNode>>): Boolean =
             if(registersResults.isEmpty())
                 false
             else if(registersResults.all { (it.second as PtAssignTarget).identifier!=null})
@@ -91,12 +91,12 @@ internal class AssignmentAsmGen(
         }
     }
 
-    private fun assignOnlyTheStatusFlagsResults(saveA: Boolean, statusFlagResults: List<Pair<StRomSubParameter, PtNode>>) {
+    private fun assignOnlyTheStatusFlagsResults(saveA: Boolean, statusFlagResults: List<Pair<StExtSubParameter, PtNode>>) {
         // assigning flags to their variables targets requires load-instructions that destroy flags
         // so if there's more than 1, we need to save and restore the flags
         val saveFlags = statusFlagResults.size>1
 
-        fun hasFlag(statusFlagResults: List<Pair<StRomSubParameter, PtNode>>, flag: Statusflag): PtAssignTarget? {
+        fun hasFlag(statusFlagResults: List<Pair<StExtSubParameter, PtNode>>, flag: Statusflag): PtAssignTarget? {
             for ((returns, target) in statusFlagResults) {
                 if(returns.register.statusflag!! == flag)
                     return target as PtAssignTarget
@@ -121,7 +121,7 @@ internal class AssignmentAsmGen(
         if(saveA) asmgen.out("  pla")
     }
 
-    private fun assignRegisterResults(registersResults: List<Pair<StRomSubParameter, PtNode>>) {
+    private fun assignRegisterResults(registersResults: List<Pair<StExtSubParameter, PtNode>>) {
         registersResults.forEach { (returns, target) ->
             target as PtAssignTarget
             if(!target.void) {

@@ -170,7 +170,7 @@ main {
         (a1_4.children[2] as PtAssignTarget).void shouldBe true
     }
 
-    test("multi-assign from romsub") {
+    test("multi-assign from extsub") {
         val src="""
 main {
     sub start() {

@@ -98,7 +98,7 @@ enum class StNodeType {
     // MODULE,     // not used with current scoping rules
     BLOCK,
     SUBROUTINE,
-    ROMSUB,
+    EXTSUB,
     LABEL,
     STATICVAR,
     MEMVAR,
@@ -257,17 +257,17 @@ class StSub(name: String, val parameters: List<StSubroutineParameter>, val retur
         StNode(name, StNodeType.SUBROUTINE, astNode)
 
 
-class StRomSub(name: String,
-               val address: PtAsmSub.Address?,      // null in case of asmsub, specified in case of romsub.
-               val parameters: List<StRomSubParameter>,
-               val returns: List<StRomSubParameter>,
+class StExtSub(name: String,
+               val address: PtAsmSub.Address?,      // null in case of asmsub, specified in case of extsub.
+               val parameters: List<StExtSubParameter>,
+               val returns: List<StExtSubParameter>,
                astNode: PtNode) :
-    StNode(name, StNodeType.ROMSUB, astNode)
+    StNode(name, StNodeType.EXTSUB, astNode)
 
 
 
 class StSubroutineParameter(val name: String, val type: DataType)
-class StRomSubParameter(val register: RegisterOrStatusflag, val type: DataType)
+class StExtSubParameter(val register: RegisterOrStatusflag, val type: DataType)
 class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?) {
     init {
         if(number!=null) require(addressOfSymbol==null && boolean==null)

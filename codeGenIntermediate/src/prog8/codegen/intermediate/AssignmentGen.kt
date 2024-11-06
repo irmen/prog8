@@ -1,7 +1,7 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StRomSub
-import prog8.code.StRomSubParameter
+import prog8.code.StExtSub
+import prog8.code.StExtSubParameter
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
@@ -14,7 +14,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val values = assignment.value as? PtFunctionCall
                 ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
-            val sub = codeGen.symbolTable.lookup(values.name) as? StRomSub
+            val sub = codeGen.symbolTable.lookup(values.name) as? StExtSub
                 ?: throw AssemblyError("only asmsubs can return multiple values")
 
             val result = mutableListOf<IRCodeChunkBase>()
@@ -46,7 +46,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         }
     }
 
-    private fun assignCpuRegister(returns: StRomSubParameter, regNum: Int, target: PtAssignTarget): IRCodeChunks {
+    private fun assignCpuRegister(returns: StExtSubParameter, regNum: Int, target: PtAssignTarget): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val loadCpuRegInstr = when(returns.register.registerOrPair) {
             RegisterOrPair.A -> IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)

@@ -202,7 +202,7 @@ private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
 
     val prefixType = when(target!!.type) {
         StNodeType.BLOCK -> 'b'
-        StNodeType.SUBROUTINE, StNodeType.ROMSUB -> 's'
+        StNodeType.SUBROUTINE, StNodeType.EXTSUB -> 's'
         StNodeType.LABEL -> 'l'
         StNodeType.STATICVAR, StNodeType.MEMVAR -> 'v'
         StNodeType.CONSTANT -> 'c'

@@ -1,7 +1,7 @@
 package prog8.codegen.intermediate
 
 import prog8.code.StNode
-import prog8.code.StRomSub
+import prog8.code.StExtSub
 import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -588,7 +588,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 else
                     ExpressionCodeResult(result, returnRegSpec!!.dt, returnRegSpec.registerNum, -1)
             }
-            is StRomSub -> {
+            is StExtSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
                 addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = callTarget.parameters.size), null)
                 // assign the arguments
@@ -621,7 +621,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
 
                 if(callTarget.returns.size>1)
-                    return callRomSubWithMultipleReturnValues(callTarget, fcall, argRegisters, result)
+                    return callExtSubWithMultipleReturnValues(callTarget, fcall, argRegisters, result)
 
                 // return a single value (or nothing)
                 val returnRegSpec = if(fcall.void) null else {
@@ -750,8 +750,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun callRomSubWithMultipleReturnValues(
-        callTarget: StRomSub,
+    private fun callExtSubWithMultipleReturnValues(
+        callTarget: StExtSub,
         fcall: PtFunctionCall,
         argRegisters: MutableList<FunctionCallArgs.ArgumentSpec>,
         result: MutableList<IRCodeChunkBase>

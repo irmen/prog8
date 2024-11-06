@@ -1,6 +1,6 @@
 package prog8.code.optimize
 
-import prog8.code.StRomSub
+import prog8.code.StExtSub
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -39,7 +39,7 @@ private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable, errors: I
             }
             if(functionName!=null) {
                 val stNode = st.lookup(functionName)
-                if (stNode is StRomSub) {
+                if (stNode is StExtSub) {
                     require(node.children.size==stNode.returns.size+1) {
                         "number of targets must match return values"
                     }

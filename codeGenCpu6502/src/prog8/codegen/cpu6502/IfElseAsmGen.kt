@@ -1,6 +1,6 @@
 package prog8.codegen.cpu6502
 
-import prog8.code.StRomSub
+import prog8.code.StExtSub
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -17,7 +17,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
     fun translate(stmt: PtIfElse) {
         require(stmt.condition.type== DataType.BOOL)
-        checkNotRomsubReturnsStatusReg(stmt.condition)
+        checkNotExtsubReturnsStatusReg(stmt.condition)
 
         val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
 
@@ -46,7 +46,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             if(stmt.hasElse())
                 throw AssemblyError("not prefix in ifelse should have been replaced by swapped if-else blocks")
             else {
-                checkNotRomsubReturnsStatusReg(prefixCond.value)
+                checkNotExtsubReturnsStatusReg(prefixCond.value)
                 assignConditionValueToRegisterAndTest(prefixCond.value)
                 return if (jumpAfterIf != null)
                     translateJumpElseBodies("beq", "bne", jumpAfterIf, stmt.elseScope)
@@ -136,11 +136,11 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun checkNotRomsubReturnsStatusReg(condition: PtExpression) {
+    private fun checkNotExtsubReturnsStatusReg(condition: PtExpression) {
         val fcall = condition as? PtFunctionCall
         if(fcall!=null && fcall.type==DataType.BOOL) {
-            val romsub = st.lookup(fcall.name) as? StRomSub
-            if(romsub!=null && romsub.returns.any { it.register.statusflag!=null }) {
+            val extsub = st.lookup(fcall.name) as? StExtSub
+            if(extsub!=null && extsub.returns.any { it.register.statusflag!=null }) {
                 throw AssemblyError("if romsub() that returns a status register boolean should have been changed into a Conditional branch such as if_cc")
             }
         }
