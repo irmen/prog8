@@ -1,7 +1,6 @@
 package prog8.ast.antlr
 
 import org.antlr.v4.runtime.ParserRuleContext
-import org.antlr.v4.runtime.tree.ErrorNodeImpl
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.SyntaxError

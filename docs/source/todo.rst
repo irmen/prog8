@@ -7,6 +7,7 @@ regenerate symbol dump files
 
 improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
 Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
+Add a -library $xxxx command line option to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program
 
 Improve register load order in subroutine call args assignments:
 in certain situations, the "wrong" order of evaluation of function call arguments is done which results
