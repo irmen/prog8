@@ -1,9 +1,12 @@
 .idea/workspace.xml
 .idea/discord.xml
 .idea/developer-tools.xml
+.idea/usage.statistics.xml
+.idea/shelf/
 build/
 dist/
 output/
+out/
 .*cache/
 *.directory
 *.prg
@@ -12,7 +15,6 @@ output/
 *.vm.txt
 *.vice-mon-list
 docs/build
-out/
 parser/**/*.interp
 parser/**/*.tokens
 parser/**/*.java
@@ -23,6 +25,7 @@ compiler/src/prog8/buildversion/*
 .eggs/
 /MANIFEST
 .tox/
+.kotlin/
 __pycache__/
 parser.out
 parsetab.py
@@ -31,7 +34,6 @@ parsetab.py
 compiler/lib/
 
 .gradle
-/prog8compiler.jar
 sd*.img
 *.d64
 

@@ -1,13 +1,20 @@
 %import textio
-%zeropage dontuse
+%import floats
 %option no_sysinit
-%address $5000
-%launcher none
+%zeropage basicsafe
 
 main {
     sub start() {
-        txt.print("address of start: ")
-        txt.print_uwhex(&start, true)
+        float @shared fl1 = 4444.234
+        float @shared fl2 = -9999.111
+        float @shared fl3 = fl1+fl2
+        floats.print(fl1)
+        txt.spc()
+        floats.print(fl2)
+        txt.spc()
+        floats.print(fl3)
+        txt.nl()
+        txt.print_w(fl3 as word)
         txt.nl()
     }
 }

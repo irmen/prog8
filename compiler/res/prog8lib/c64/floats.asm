@@ -120,12 +120,8 @@ cast_FAC1_as_uw_into_ya	.proc               ; also used for float 2 ub
 		.pend
 
 cast_FAC1_as_w_into_ay	.proc               ; also used for float 2 b
-		; -- cast fac1 to word into A/Y
-		;    clobbers X
-		jsr  AYINT
-		ldy  floats.AYINT_facmo
-		lda  floats.AYINT_facmo+1
-		rts
+		; -- cast fac1 to word into A/Y.  clobbers X
+		jmp  AYINT2
 		.pend
 
 

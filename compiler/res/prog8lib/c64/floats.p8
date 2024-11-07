@@ -29,7 +29,7 @@ extsub $bbd4 = MOVMF(uword mflpt @ XY) clobbers(A,Y)        ; store fac1 to memo
 extsub $b7f7 = GETADR() clobbers(X) -> ubyte @ Y, ubyte @ A
 
 extsub $bc9b = QINT() clobbers(A,X,Y)           ; fac1 -> 4-byte signed integer in 98-101 ($62-$65), with the MSB FIRST.
-extsub $b1bf = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY)
+extsub $b1bf = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 100-101 ($64-$65) MSB FIRST. (might throw ILLEGAL QUANTITY) DON'T USE THIS, USE WRAPPER 'AYINT2' INSTEAD.
 
 ; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1
 ; (tip: use floats.GIVAYFAY to use A/Y input; lo/hi switched to normal order)
@@ -79,6 +79,20 @@ extsub $e26b = SIN() clobbers(A,X,Y)                        ; fac1 = SIN(fac1)
 extsub $e2b4 = TAN() clobbers(A,X,Y)                        ; fac1 = TAN(fac1)
 extsub $e30e = ATN() clobbers(A,X,Y)                        ; fac1 = ATN(fac1)
 
+
+asmsub  AYINT2() clobbers(X) -> word @AY {
+    ; fac1-> signed word in AY. Safe wrapper around the AYINT kernal routine (not reading internal memory locations)
+    ; (might throw ILLEGAL QUANTITY)
+    %asm {{
+		jsr  AYINT
+		ldx  #<floats_temp_var
+		ldy  #>floats_temp_var
+		jsr  MOVMF
+		lda  floats_temp_var+4
+		ldy  floats_temp_var+3
+        rts
+    }}
+}
 
 asmsub  FREADS32() clobbers(A,X,Y)  {
 	; ---- fac1 = signed int32 from $62-$65 big endian (MSB FIRST)
@@ -154,7 +168,7 @@ asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) 
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
-		sty  $62
+		sty  $62    ; facmo
 		sta  $63
 		ldx  #$90
 		sec
@@ -183,7 +197,6 @@ asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 	}}
 }
 
-&uword AYINT_facmo = $64      ; $64/$65 contain result of AYINT
 
 sub rnd() -> float {
     %asm {{

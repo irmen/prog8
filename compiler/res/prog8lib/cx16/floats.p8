@@ -14,7 +14,7 @@ floats {
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
 
-extsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 'facmo' and 'faclo', MSB FIRST. (might throw ILLEGAL QUANTITY)  See "basic.sym" kernal symbol file for their memory locations.
+extsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 'facmo' and 'faclo', MSB FIRST. DON'T USE THIS, USE WRAPPER 'AYINT2' INSTEAD.  (might throw ILLEGAL QUANTITY)
 
 ; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1
 ; there is also floats.GIVUAYFAY - unsigned word in A/Y (lo/hi) to fac1
@@ -77,6 +77,19 @@ extsub $fe8d = QINT() clobbers(A,X,Y)                       ; facho:facho+1:fach
 extsub $fe90 = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
 
 
+asmsub  AYINT2() clobbers(X) -> word @AY {
+    ; fac1-> signed word in AY. Safe wrapper around the AYINT kernal routine (not reading internal memory locations)
+    ; (might throw ILLEGAL QUANTITY)
+    %asm {{
+		jsr  AYINT
+		ldx  #<floats_temp_var
+		ldy  #>floats_temp_var
+		jsr  MOVMF
+		lda  floats_temp_var+4
+		ldy  floats_temp_var+3
+        rts
+    }}
+}
 
 asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
     ; ---- 8 bit signed A -> float in fac1
@@ -124,6 +137,8 @@ asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) 
 
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
+	; See "basic.sym" kernal symbol file for the facmo memory location.
+	; TODO find a way to not depend on that internal fac memory location. MOVFM doesn't work.
 	%asm {{
 	sty  $c4        ; facmo
 	sta  $c5        ; facmo+1
@@ -190,7 +205,6 @@ _msg    .text 13,"?rom 47+ required for val1",13,0
     }}
 }
 
-&uword AYINT_facmo = $c6      ; $c6/$c7 contain result of AYINT   (See "basic.sym" kernal symbol file)
 
 sub rnd() -> float {
     %asm {{
