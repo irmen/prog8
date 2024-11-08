@@ -19,28 +19,10 @@ import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestVariousCompilerAst: FunSpec({
-    test("symbol names in inline assembly blocks") {
-        val names1 = InlineAssembly("""
-            
-        """, false, Position.DUMMY).names
-        names1 shouldBe emptySet()
+    context("arrays") {
 
-        val names2 = InlineAssembly("""
-label:   lda #<value
-         sta ${'$'}ea
-         sta 123
-label2: 
-         sta  othervalue    ; but not these in the comments
-; also not these
-        ;;   ...or these
-   // valid words  123456
-        """, false, Position.DUMMY).names
-
-        names2 shouldBe setOf("label", "lda", "sta", "ea", "value", "label2", "othervalue", "valid", "words")
-    }
-
-    test("array literals") {
-        val text="""
+        test("array literals") {
+            val text="""
 %zeropage basicsafe
 
 main {
@@ -57,38 +39,138 @@ main {
         uword[] @shared addresses5 = [1111, 2222]
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-    }
+            compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        }
 
-    test("array init size mismatch error") {
-        val text="""
+        test("array init size mismatch error") {
+            val text="""
 main {
     sub start() {
         ubyte[10] uba = [1,2,3]
         bool[10] bba = [true, false, true]
     }
 }"""
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "size mismatch"
-        errors.errors[1] shouldContain "size mismatch"
-    }
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
+            errors.errors.size shouldBe 2
+            errors.errors[0] shouldContain "size mismatch"
+            errors.errors[1] shouldContain "size mismatch"
+        }
 
-    test("invalid && operator") {
-        val text="""
+        test("returning array as uword") {
+            val src =  """
 main {
     sub start() {
-        uword b1
-        uword b2
-        uword b3 = b1 && b2     ; invalid syntax: '&&' is not an operator, 'and' should be used instead
-    }
-}"""
-        compileText(C64Target(), false, text, writeAssembly = false) shouldBe null
+        cx16.r0 = getarray()
     }
 
-    test("string comparisons") {
-        val src="""
+    sub getarray() -> uword {
+        return [11,22,33]
+    }
+}"""
+            compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        }
+
+        test("split arrays back to normal when address is taken") {
+            val src="""
+main {
+    sub start() {
+        cx16.r0L=0
+        if cx16.r0L==0 {
+            uword[] addresses = [scores2, start]
+            uword[] @split scores1 = [10, 25, 50, 100]
+            uword[] @split scores2 = [100, 250, 500, 1000]
+
+            cx16.r0 = &scores1
+            cx16.r1 = &scores2
+            cx16.r2 = &addresses
+        }
+    }
+}"""
+            val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+            compileText(C64Target(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
+            errors.errors.size shouldBe 0
+            errors.warnings.size shouldBe 2
+            errors.warnings[0] shouldContain("address")
+            errors.warnings[1] shouldContain("address")
+            errors.warnings[0] shouldContain("split")
+            errors.warnings[1] shouldContain("split")
+        }
+    }
+
+    context("alias") {
+        test("aliases ok") {
+            val src="""
+main {
+    alias print = txt.print
+    alias width = txt.DEFAULT_WIDTH
+
+    sub start() {
+        alias print2 = txt.print
+        alias width2 = txt.DEFAULT_WIDTH
+        print("one")
+        print2("two")
+        txt.print_ub(width)
+        txt.print_ub(width2)
+        
+        ; chained aliases
+        alias chained = print2
+        chained("chained")
+    }
+}
+
+txt {
+    const ubyte DEFAULT_WIDTH = 80
+    sub print_ub(ubyte value) {
+        ; nothing
+    }
+    sub print(str msg) {
+        ; nothing
+    }
+}
+
+"""
+            compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        }
+
+        test("wrong alias gives correct error") {
+            val src="""
+main {
+    alias print = txt.print2222
+    alias width = txt.DEFAULT_WIDTH
+
+    sub start() {
+        alias print2 = txt.print
+        alias width2 = txt.DEFAULT_WIDTH_XXX
+        print("one")
+        print2("two")
+        txt.print_ub(width)
+        txt.print_ub(width2)
+    }
+}
+
+txt {
+    const ubyte DEFAULT_WIDTH = 80
+    sub print_ub(ubyte value) {
+        ; nothing
+    }
+    sub print(str msg) {
+        ; nothing
+    }
+}
+
+"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors) shouldBe null
+            errors.errors.size shouldBe 2
+            errors.errors[0] shouldContain "undefined symbol: txt.print2222"
+            errors.errors[1] shouldContain "undefined symbol: txt.DEFAULT_WIDTH_XXX"
+        }
+    }
+
+    context("strings") {
+        test("string comparisons") {
+            val src="""
 main {
 
     sub start() {
@@ -118,16 +200,16 @@ main {
         return 0
     }
 }"""
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 17
-        val result2 = compileText(VMTarget(), optimize=false, src, writeAssembly=true)!!
-        val stmts2 = result2.compilerAst.entrypoint.statements
-        stmts2.size shouldBe 17
-    }
+            val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+            val stmts = result.compilerAst.entrypoint.statements
+            stmts.size shouldBe 17
+            val result2 = compileText(VMTarget(), optimize=false, src, writeAssembly=true)!!
+            val stmts2 = result2.compilerAst.entrypoint.statements
+            stmts2.size shouldBe 17
+        }
 
-    test("string concatenation and repeats") {
-        val src="""
+        test("string concatenation and repeats") {
+            val src="""
         main {
             sub start() {
                 str @shared name = "part1" + "part2"
@@ -137,19 +219,276 @@ main {
                 rept = "xyz" * (times+1)
             }
         }"""
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
-        val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 6
-        val name1 = stmts[0] as VarDecl
-        val rept1 = stmts[1] as VarDecl
-        (name1.value as StringLiteral).value shouldBe "part1part2"
-        (rept1.value as StringLiteral).value shouldBe "reprepreprep"
-        val name2strcopy = stmts[3] as IFunctionCall
-        val rept2strcopy = stmts[4] as IFunctionCall
-        val name2 = name2strcopy.args.first() as IdentifierReference
-        val rept2 = rept2strcopy.args.first() as IdentifierReference
-        (name2.targetVarDecl(result.compilerAst)!!.value as StringLiteral).value shouldBe "xx1xx2"
-        (rept2.targetVarDecl(result.compilerAst)!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
+            val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+            val stmts = result.compilerAst.entrypoint.statements
+            stmts.size shouldBe 6
+            val name1 = stmts[0] as VarDecl
+            val rept1 = stmts[1] as VarDecl
+            (name1.value as StringLiteral).value shouldBe "part1part2"
+            (rept1.value as StringLiteral).value shouldBe "reprepreprep"
+            val name2strcopy = stmts[3] as IFunctionCall
+            val rept2strcopy = stmts[4] as IFunctionCall
+            val name2 = name2strcopy.args.first() as IdentifierReference
+            val rept2 = rept2strcopy.args.first() as IdentifierReference
+            (name2.targetVarDecl(result.compilerAst)!!.value as StringLiteral).value shouldBe "xx1xx2"
+            (rept2.targetVarDecl(result.compilerAst)!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
+        }
+
+        test("char as str param is error") {
+            val src = """
+main {
+    sub start() {
+        print('@')
+    }
+
+    sub print(str message) {
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+            errors.errors.single() shouldContain  "cannot use byte value"
+        }
+    }
+
+    context("return value") {
+        test("missing return value is a syntax error") {
+            val src="""
+main {
+    sub start() {
+        cx16.r0 = runit1()
+        cx16.r1 = runit2()
+    }
+
+    sub runit1() -> uword {
+        repeat {
+            cx16.r0++
+            goto runit1
+        }
+    }
+
+    sub runit2() -> uword {
+        cx16.r0++
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+            errors.errors.size shouldBe 2
+            errors.errors[0] shouldContain "has result value"
+            errors.errors[1] shouldContain "has result value"
+        }
+
+        test("missing return value is not a syntax error if there's an external goto") {
+            val src="""
+main {
+    sub start() {
+        cx16.r0 = runit1()
+        runit2()
+    }
+
+    sub runit1() -> uword {
+        repeat {
+            cx16.r0++
+            goto runit2
+        }
+    }
+
+    sub runit2() {
+        cx16.r0++
+    }
+}"""
+            compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        }
+    }
+
+    context("variable declarations") {
+        test("multi-var decls in scope with initializer") {
+            val src="""
+main {
+    sub start() {
+        ubyte w
+
+        for w in 0 to 20 {
+            ubyte @zp x,y,z=13
+            ubyte q,r,s
+            x++
+            y++
+            z++
+        }
+    }
+}"""
+            val result = compileText(VMTarget(), optimize = false, src, writeAssembly = false)!!
+            val st = result.compilerAst.entrypoint.statements
+            /*
+        sub start () {
+            ubyte s
+            s = 0
+            ubyte r
+            r = 0
+            ubyte q
+            q = 0
+            ubyte @zp z
+            ubyte @zp y
+            ubyte @zp x
+            ubyte w
+            for w in 0 to 20 step 1  {
+                z = 13
+                y = 13
+                x = 13
+                x++
+                y++
+                z++
+            }
+        }
+             */
+            val vars = st.filterIsInstance<VarDecl>()
+            vars.size shouldBe 7
+            vars.all { it.names.size<=1 } shouldBe true
+            vars.map { it.name }.toSet() shouldBe setOf("s","r","q","z","y","x","w")
+            val forloop = st.single { it is ForLoop } as ForLoop
+            forloop.body.statements[0] shouldBe instanceOf<Assignment>()
+            forloop.body.statements[1] shouldBe instanceOf<Assignment>()
+            forloop.body.statements[2] shouldBe instanceOf<Assignment>()
+        }
+
+        test("multi vardecls smart desugaring") {
+            val src="""
+main {
+    sub start() {
+        ubyte @shared x,y,z
+        ubyte @shared k,l,m = 42
+        uword @shared r,s,t = sys.progend()
+    }
+}"""
+            val result = compileText(Cx16Target(), optimize=true, src, writeAssembly=false)!!
+            val st = result.compilerAst.entrypoint.statements
+            st.size shouldBe 18
+            st[0] shouldBe instanceOf<VarDecl>()    // x
+            st[2] shouldBe instanceOf<VarDecl>()    // y
+            st[4] shouldBe instanceOf<VarDecl>()    // z
+            st[6] shouldBe instanceOf<VarDecl>()    // k
+            st[8] shouldBe instanceOf<VarDecl>()    // l
+            st[10] shouldBe instanceOf<VarDecl>()    // m
+            st[12] shouldBe instanceOf<VarDecl>()    // r
+            st[14] shouldBe instanceOf<VarDecl>()    // s
+            st[16] shouldBe instanceOf<VarDecl>()    // t
+            val valX = (st[1] as Assignment).value
+            (valX as NumericLiteral).number shouldBe 0.0
+            val valY = (st[3] as Assignment).value
+            (valY as NumericLiteral).number shouldBe 0.0
+            val valZ = (st[5] as Assignment).value
+            (valZ as NumericLiteral).number shouldBe 0.0
+            val valK = (st[7] as Assignment).value
+            (valK as NumericLiteral).number shouldBe 42.0
+            val valL = (st[9] as Assignment).value
+            (valL as NumericLiteral).number shouldBe 42.0
+            val valM = (st[11] as Assignment).value
+            (valM as NumericLiteral).number shouldBe 42.0
+            val valR = (st[13] as Assignment).value
+            (valR as FunctionCallExpression).target.nameInSource shouldBe listOf("sys", "progend")
+            val valS = (st[15] as Assignment).value
+            (valS as IdentifierReference).nameInSource shouldBe listOf("r")
+            val valT = (st[17] as Assignment).value
+            (valT as IdentifierReference).nameInSource shouldBe listOf("r")
+        }
+
+        test("various multi var decl symbol lookups") {
+            val src="""
+main {
+    sub start() {
+        uword @shared a,b
+        b = a
+        cx16.r1L = lsb(a)
+        funcw(a)
+        funcb(lsb(a))
+    }
+
+    sub funcw(uword arg) {
+        arg++
+    }
+
+    sub funcb(ubyte arg) {
+        arg++
+    }
+}"""
+            compileText(Cx16Target(), false, src) shouldNotBe null
+        }
+
+        test("@dirty variables") {
+            val src="""
+%import floats
+
+main {
+    uword @shared @dirty globw
+    uword @shared globwi = 4444
+    float @shared @dirty globf
+    float @shared globfi = 4
+    ubyte[5] @shared @dirty globarr1
+    ubyte[] @shared globarr2 = [11,22,33,44,55]
+
+    sub start() {
+        uword @shared @dirty locw
+        uword @shared locwi = 4444
+        float @shared @dirty locf
+        float @shared locfi = 4.0
+        ubyte[5] @shared @dirty locarr1
+        ubyte[] @shared locarr2 = [11,22,33,44,55]
+
+        sys.clear_carry()
+    }
+}"""
+
+            val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+            val result = compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors)!!
+            errors.errors.size shouldBe 0
+            errors.infos.size shouldBe 6
+            errors.infos.all { "dirty variable" in it } shouldBe true
+            val start = result.compilerAst.entrypoint
+            val st = start.statements
+            st.size shouldBe 9
+            val assignments = st.filterIsInstance<Assignment>()
+            assignments.size shouldBe 2
+            assignments[0].target.identifier?.nameInSource shouldBe listOf("locwi")
+            assignments[1].target.identifier?.nameInSource shouldBe listOf("locfi")
+            val blockst = start.definingBlock.statements
+            blockst.size shouldBe(9)
+            val blockassignments = blockst.filterIsInstance<Assignment>()
+            blockassignments.size shouldBe 2
+            blockassignments[0].target.identifier?.nameInSource shouldBe listOf("globwi")
+            blockassignments[1].target.identifier?.nameInSource shouldBe listOf("globfi")
+        }
+    }
+
+context("various") {
+    test("symbol names in inline assembly blocks") {
+        val names1 = InlineAssembly("""
+            
+        """, false, Position.DUMMY).names
+        names1 shouldBe emptySet()
+
+        val names2 = InlineAssembly("""
+label:   lda #<value
+         sta ${'$'}ea
+         sta 123
+label2: 
+         sta  othervalue    ; but not these in the comments
+; also not these
+        ;;   ...or these
+   // valid words  123456
+        """, false, Position.DUMMY).names
+
+        names2 shouldBe setOf("label", "lda", "sta", "ea", "value", "label2", "othervalue", "valid", "words")
+    }
+
+    test("invalid && operator") {
+        val text="""
+main {
+    sub start() {
+        uword b1
+        uword b2
+        uword b3 = b1 && b2     ; invalid syntax: '&&' is not an operator, 'and' should be used instead
+    }
+}"""
+        compileText(C64Target(), false, text, writeAssembly = false) shouldBe null
     }
 
     test("pointervariable indexing allowed with >255") {
@@ -324,20 +663,6 @@ other {
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
 
-    test("returning array as uword") {
-        val src =  """
-main {
-    sub start() {
-        cx16.r0 = getarray()
-    }
-
-    sub getarray() -> uword {
-        return [11,22,33]
-    }
-}"""
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
-    }
-
     test("when on booleans") {
         val src = """
 main
@@ -358,21 +683,6 @@ main
         errors.errors[0] shouldContain "use if"
     }
 
-    test("char as str param is error") {
-        val src = """
-main {
-    sub start() {
-        print('@')
-    }
-
-    sub print(str message) {
-    }
-}"""
-        val errors = ErrorReporterForTests()
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
-        errors.errors.single() shouldContain  "cannot use byte value"
-    }
-
     test("sizeof number const evaluation in vardecl") {
         val src="""
 main {
@@ -382,55 +692,6 @@ main {
     }
 }"""
         compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
-    }
-
-    test("multi-var decls in scope with initializer") {
-        val src="""
-main {
-    sub start() {
-        ubyte w
-
-        for w in 0 to 20 {
-            ubyte @zp x,y,z=13
-            ubyte q,r,s
-            x++
-            y++
-            z++
-        }
-    }
-}"""
-        val result = compileText(VMTarget(), optimize = false, src, writeAssembly = false)!!
-        val st = result.compilerAst.entrypoint.statements
-        /*
-    sub start () {
-        ubyte s
-        s = 0
-        ubyte r
-        r = 0
-        ubyte q
-        q = 0
-        ubyte @zp z
-        ubyte @zp y
-        ubyte @zp x
-        ubyte w
-        for w in 0 to 20 step 1  {
-            z = 13
-            y = 13
-            x = 13
-            x++
-            y++
-            z++
-        }
-    }
-         */
-        val vars = st.filterIsInstance<VarDecl>()
-        vars.size shouldBe 7
-        vars.all { it.names.size<=1 } shouldBe true
-        vars.map { it.name }.toSet() shouldBe setOf("s","r","q","z","y","x","w")
-        val forloop = st.single { it is ForLoop } as ForLoop
-        forloop.body.statements[0] shouldBe instanceOf<Assignment>()
-        forloop.body.statements[1] shouldBe instanceOf<Assignment>()
-        forloop.body.statements[2] shouldBe instanceOf<Assignment>()
     }
 
     test("'not in' operator parsing") {
@@ -552,69 +813,6 @@ main {
         tc.expression shouldBe instanceOf<ArrayIndexedExpression>()
     }
 
-    test("multi vardecls smart desugaring") {
-        val src="""
-main {
-    sub start() {
-        ubyte @shared x,y,z
-        ubyte @shared k,l,m = 42
-        uword @shared r,s,t = sys.progend()
-    }
-}"""
-        val result = compileText(Cx16Target(), optimize=true, src, writeAssembly=false)!!
-        val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 18
-        st[0] shouldBe instanceOf<VarDecl>()    // x
-        st[2] shouldBe instanceOf<VarDecl>()    // y
-        st[4] shouldBe instanceOf<VarDecl>()    // z
-        st[6] shouldBe instanceOf<VarDecl>()    // k
-        st[8] shouldBe instanceOf<VarDecl>()    // l
-        st[10] shouldBe instanceOf<VarDecl>()    // m
-        st[12] shouldBe instanceOf<VarDecl>()    // r
-        st[14] shouldBe instanceOf<VarDecl>()    // s
-        st[16] shouldBe instanceOf<VarDecl>()    // t
-        val valX = (st[1] as Assignment).value
-        (valX as NumericLiteral).number shouldBe 0.0
-        val valY = (st[3] as Assignment).value
-        (valY as NumericLiteral).number shouldBe 0.0
-        val valZ = (st[5] as Assignment).value
-        (valZ as NumericLiteral).number shouldBe 0.0
-        val valK = (st[7] as Assignment).value
-        (valK as NumericLiteral).number shouldBe 42.0
-        val valL = (st[9] as Assignment).value
-        (valL as NumericLiteral).number shouldBe 42.0
-        val valM = (st[11] as Assignment).value
-        (valM as NumericLiteral).number shouldBe 42.0
-        val valR = (st[13] as Assignment).value
-        (valR as FunctionCallExpression).target.nameInSource shouldBe listOf("sys", "progend")
-        val valS = (st[15] as Assignment).value
-        (valS as IdentifierReference).nameInSource shouldBe listOf("r")
-        val valT = (st[17] as Assignment).value
-        (valT as IdentifierReference).nameInSource shouldBe listOf("r")
-    }
-
-    test("various multi var decl symbol lookups") {
-        val src="""
-main {
-    sub start() {
-        uword @shared a,b
-        b = a
-        cx16.r1L = lsb(a)
-        funcw(a)
-        funcb(lsb(a))
-    }
-
-    sub funcw(uword arg) {
-        arg++
-    }
-
-    sub funcb(ubyte arg) {
-        arg++
-    }
-}"""
-        compileText(Cx16Target(), false, src) shouldNotBe null
-    }
-
     test("void assignment is invalid") {
         val src="""
 main {
@@ -638,54 +836,6 @@ main {
         errors.errors[0] shouldEndWith "cannot assign to 'void'"
         errors.errors[1] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
         errors.errors[2] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
-    }
-
-    test("missing return value is a syntax error") {
-        val src="""
-main {
-    sub start() {
-        cx16.r0 = runit1()
-        cx16.r1 = runit2()
-    }
-
-    sub runit1() -> uword {
-        repeat {
-            cx16.r0++
-            goto runit1
-        }
-    }
-
-    sub runit2() -> uword {
-        cx16.r0++
-    }
-}"""
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "has result value"
-        errors.errors[1] shouldContain "has result value"
-    }
-
-    test("missing return value is not a syntax error if there's an external goto") {
-        val src="""
-main {
-    sub start() {
-        cx16.r0 = runit1()
-        runit2()
-    }
-
-    sub runit1() -> uword {
-        repeat {
-            cx16.r0++
-            goto runit2
-        }
-    }
-
-    sub runit2() {
-        cx16.r0++
-    }
-}"""
-        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
     }
 
     test("defer syntactic sugaring") {
@@ -727,99 +877,7 @@ main {
         val handler = sub.children[7] as PtSub
         handler.name shouldBe "p8s_prog8_invoke_defers"
     }
-
-    test("aliases ok") {
-        val src="""
-main {
-    alias print = txt.print
-    alias width = txt.DEFAULT_WIDTH
-
-    sub start() {
-        alias print2 = txt.print
-        alias width2 = txt.DEFAULT_WIDTH
-        print("one")
-        print2("two")
-        txt.print_ub(width)
-        txt.print_ub(width2)
-        
-        ; chained aliases
-        alias chained = print2
-        chained("chained")
-    }
 }
 
-txt {
-    const ubyte DEFAULT_WIDTH = 80
-    sub print_ub(ubyte value) {
-        ; nothing
-    }
-    sub print(str msg) {
-        ; nothing
-    }
-}
-
-"""
-        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
-    }
-
-    test("wrong alias gives correct error") {
-        val src="""
-main {
-    alias print = txt.print2222
-    alias width = txt.DEFAULT_WIDTH
-
-    sub start() {
-        alias print2 = txt.print
-        alias width2 = txt.DEFAULT_WIDTH_XXX
-        print("one")
-        print2("two")
-        txt.print_ub(width)
-        txt.print_ub(width2)
-    }
-}
-
-txt {
-    const ubyte DEFAULT_WIDTH = 80
-    sub print_ub(ubyte value) {
-        ; nothing
-    }
-    sub print(str msg) {
-        ; nothing
-    }
-}
-
-"""
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "undefined symbol: txt.print2222"
-        errors.errors[1] shouldContain "undefined symbol: txt.DEFAULT_WIDTH_XXX"
-    }
-
-    test("split arrays back to normal when address is taken") {
-        val src="""
-main {
-    sub start() {
-        cx16.r0L=0
-        if cx16.r0L==0 {
-            uword[] addresses = [scores2, start]
-            uword[] @split scores1 = [10, 25, 50, 100]
-            uword[] @split scores2 = [100, 250, 500, 1000]
-
-            cx16.r0 = &scores1
-            cx16.r1 = &scores2
-            cx16.r2 = &addresses
-        }
-    }
-}"""
-        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
-        errors.errors.size shouldBe 0
-        errors.warnings.size shouldBe 2
-        errors.warnings[0] shouldContain("address")
-        errors.warnings[1] shouldContain("address")
-        errors.warnings[0] shouldContain("split")
-        errors.warnings[1] shouldContain("split")
-    }
 })
 

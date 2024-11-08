@@ -81,7 +81,9 @@ Foreign function interface (external/ROM calls)
 -----------------------------------------------
 - You can use the ``extsub`` keyword to define the call signature of foreign functions (ROM routines or external routines elsewhere in RAM) in a natural way.
   Calling those generates code that is as efficient or even more efficient as calling regular subroutines.
-  No additional stubs are needed.  You can even specify the memory bank the routine is in and the compiler takes care of bank switching when calling it.
+  No additional stubs are needed.  Y
+- High level support of memory banking: an ``extsub`` can be defined with the memory bank number (constant or variable) where the routine is located in,
+  and then when you call it as usual, the compiler takes care of the required bank switching.
 
 Optimizations
 -------------

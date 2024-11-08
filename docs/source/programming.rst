@@ -239,10 +239,16 @@ when assembling the rest of the code). Example::
 **uninitialized variables:**
 All variables will be initialized by prog8 at startup, they'll get their assigned initialization value, or be cleared to zero.
 This (re)initialization is also done on each subroutine entry for the variables declared in the subroutine.
-There may be certain scenarios where this initialization is redundant and/or where you want to avoid the overhead of it
-You can do so by using the ``@dirty`` tag on the variable declaration.
-This means that the variable will *not* be (re)initialized by Prog8 and that its value is undefined.
-You have to assign it a value yourself first, before using the variable. If you don't do that, the value can be anything, so beware.
+
+There may be certain scenarios where this initialization is redundant and/or where you want to avoid the overhead of it.
+In some cases, Prog8 itself can detect that a variable doesn't need a separate automatic initialization to zero, if
+it's trivial that it is not being read between the variable's declaration and the first assignment. For instance, when
+you declare a variable immediately before a for loop where it is the loop variable. However Prog8 is not yet very smart
+at detecting these redundant initializations. If you want to be sure, check the generated assembly output.
+
+In any case, you can use the ``@dirty`` tag on the variable declaration to make the variable *not* being (re)initialized by Prog8.
+This means its value will be undefined (it can be anything) until you assign a value yourself! Don't use such
+a variable before you have done so. 🦶🔫 Footgun warning.
 
 
 **memory alignment:**

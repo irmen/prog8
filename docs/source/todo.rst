@@ -1,28 +1,25 @@
 TODO
 ====
 
-- add unit tests for @dirty variables
-
-
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
 regenerate symbol dump files
 
-improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
-Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
-Add a -library $xxxx command line option to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
-Need to add some way to generate a stable jump table at a given address.
-Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
-
-
-Improve register load order in subroutine call args assignments:
-in certain situations, the "wrong" order of evaluation of function call arguments is done which results
-in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
-Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+
+- something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
+- Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
+- Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
+  Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
+  Add a -library $xxxx command line option to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
+  Need to add some way to generate a stable jump table at a given address.
+- Improve register load order in subroutine call args assignments:
+  in certain situations, the "wrong" order of evaluation of function call arguments is done which results
+  in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
+  Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 - remove 'extsub' as a recognised alternative for 'extsub'
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
