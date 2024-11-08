@@ -26,8 +26,10 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if (decl.type == VarDeclType.VAR && decl.value != null && (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL))
-            throw InternalCompilerException("vardecls for variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
+        if (decl.type == VarDeclType.VAR && decl.value != null && (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL)) {
+            if(!decl.initOnce)
+                throw InternalCompilerException("vardecls for non-initonce variables, with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
+        }
 
         return noModifications
     }

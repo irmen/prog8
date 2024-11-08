@@ -1,6 +1,10 @@
 TODO
 ====
 
+- BUG: fix @initonce for variables that end up in zeropage.
+- add unit tests for @initonce variables
+- add docs about variables with @initonce initialization
+
 
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
 
@@ -36,7 +40,7 @@ Future Things and Ideas
     - (What, how, isn't current BSS support enough?)
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
     - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
-    - maybe or may not needed: the variables can NOT have initializfation values, they will all be set to zero on startup (simple memset)
+    - maybe or may not needed: the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
       just initialize them yourself in start() if you need a non-zero value .
     - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
