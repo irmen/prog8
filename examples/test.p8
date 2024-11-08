@@ -1,6 +1,8 @@
 %import textio
 %option no_sysinit
-%zeropage dontuse
+%zeropage basicsafe
+
+; INIT ONCE tests
 
 main {
     sub start() {
@@ -26,6 +28,11 @@ main {
         dump()
         txt.nl()
 
+        repeat 10 {
+            footgun()
+        }
+        txt.nl()
+
         sub dump() {
             txt.print_uw(w0)
             txt.spc()
@@ -46,5 +53,13 @@ main {
             txt.print_uw(wb[0])
             txt.nl()
         }
+    }
+
+    sub footgun() {
+        ; TODO should just be a nonlocal variable outside of the subroutine...?
+        ubyte @shared @initonce @requirezp variable = 42        ; BUG: is never initialized now
+        txt.print_ub(variable)
+        txt.spc()
+        variable++
     }
 }

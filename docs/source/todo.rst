@@ -1,7 +1,7 @@
 TODO
 ====
 
-- BUG: fix @initonce for variables that end up in zeropage.
+- BUG: fix @initonce for variables that end up in zeropage. They remain uninitialized altogether now. Fix it or don't allow it?
 - add unit tests for @initonce variables
 - add docs about variables with @initonce initialization
 
