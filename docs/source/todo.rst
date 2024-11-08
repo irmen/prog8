@@ -1,9 +1,7 @@
 TODO
 ====
 
-- BUG: fix @initonce for variables that end up in zeropage. They remain uninitialized altogether now. Fix it or don't allow it?
-- add unit tests for @initonce variables
-- add docs about variables with @initonce initialization
+- add unit tests for @dirty variables
 
 
 for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.

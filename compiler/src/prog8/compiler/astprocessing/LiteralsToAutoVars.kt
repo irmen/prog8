@@ -180,7 +180,7 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
         }
         return VarDecl(
             variable.type, variable.origin, normalDt, variable.zeropage, variable.arraysize, variable.name, emptyList(),
-            variable.value?.copy(), variable.sharedWithAsm, false, variable.alignment, variable.initOnce, variable.position
+            variable.value?.copy(), variable.sharedWithAsm, false, variable.alignment, variable.dirty, variable.position
         )
     }
 

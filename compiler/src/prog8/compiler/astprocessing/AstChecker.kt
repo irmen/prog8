@@ -920,14 +920,14 @@ internal class AstChecker(private val program: Program,
         }
 
 
-        if(decl.datatype==DataType.STR) {
-            if(!decl.initOnce)
-                throw FatalAstException("string vars must be initonce")
-        }
-
-        if (decl.initOnce) {
-            if (decl.datatype != DataType.STR) {
-                errors.warn("non-string initonce variable: value will not be reset in subsequent subroutine invocations", decl.position)
+        if (decl.dirty) {
+            if(decl.datatype==DataType.STR)
+                errors.err("string variables cannot be @dirty", decl.position)
+            else {
+                if(decl.value==null)
+                    errors.info("dirty variable: initial value will be undefined", decl.position)
+                else
+                    errors.err("dirty variable can't have initialization value", decl.position)
             }
         }
 

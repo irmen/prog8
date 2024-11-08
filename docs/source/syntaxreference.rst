@@ -385,6 +385,7 @@ Tag         Effect
 @alignword  aligns string or array variable on an even memory address
 @align64    aligns string or array variable on a 64 byte address interval (example: for C64 sprite data)
 @alignpage  aligns string or array variable on a 256 byte address interval (example: to avoid page boundaries)
+@dirty      the variable won't be initialized by Prog8 which means that its value is undefined. You'll have to set it yourself before using the variable. Used to reduce overhead in certain scenarios. 🦶🔫 Footgun warning.
 ==========  ======
 
 

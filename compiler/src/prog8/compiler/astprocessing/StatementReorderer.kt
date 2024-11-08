@@ -43,15 +43,16 @@ internal class StatementReorderer(
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if (decl.type == VarDeclType.VAR) {
+            if(decl.dirty && decl.value!=null)
+                errors.err("dirty variable can't have initialization value", decl.position)
+
             if (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL) {
                 if(decl !in declsProcessedWithInitAssignment) {
                     declsProcessedWithInitAssignment.add(decl)
                     if (decl.value == null) {
                         if (decl.origin==VarDeclOrigin.USERCODE && decl.allowInitializeWithZero) {
-                            if(decl.initOnce) {
-                                val zerovalue = decl.zeroElementValue()
-                                decl.value = zerovalue
-                                zerovalue.linkParents(decl)
+                            if(decl.dirty) {
+                                // no initialization at all!
                                 return noModifications
                             }
                             // A numeric vardecl without an initial value is initialized with zero,
@@ -72,9 +73,6 @@ internal class StatementReorderer(
                             }
                         }
                     } else {
-                        if(decl.initOnce) {
-                            return noModifications
-                        }
                         // Transform the vardecl with initvalue to a plain vardecl + assignment
                         // this allows for other optimizations to kick in.
                         // So basically consider 'ubyte xx=99' as a short form for 'ubyte xx; xx=99'
@@ -231,7 +229,7 @@ internal class StatementReorderer(
                                 it.sharedWithAsm,
                                 it.splitArray,
                                 it.alignment,
-                                it.initOnce,
+                                it.dirty,
                                 it.position
                             )
                             IAstModification.ReplaceNode(it, newvar, subroutine)

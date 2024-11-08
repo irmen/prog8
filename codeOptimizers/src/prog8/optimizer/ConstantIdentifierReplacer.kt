@@ -76,7 +76,7 @@ class VarConstantValueTypeAdjuster(
                     if (declValue != null) {
                         // variable is never written to, so it can be replaced with a constant, IF the value is a constant
                         errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
-                        val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, declValue, decl.sharedWithAsm, decl.splitArray, decl.alignment, decl.initOnce, decl.position)
+                        val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, declValue, decl.sharedWithAsm, decl.splitArray, decl.alignment, decl.dirty, decl.position)
                         decl.value = null
                         return listOf(
                             IAstModification.ReplaceNode(decl, const, parent)
@@ -96,7 +96,7 @@ class VarConstantValueTypeAdjuster(
                     }
                     // variable only has a single write and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
                     errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
-                    val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.alignment, decl.initOnce, decl.position)
+                    val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.alignment, decl.dirty, decl.position)
                     return listOf(
                         IAstModification.ReplaceNode(decl, const, parent),
                         IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
@@ -417,21 +417,6 @@ internal class ConstantIdentifierReplacer(
         if(rangeSize!=null && rangeSize>65535) {
             errors.err("range size overflow", decl.value!!.position)
             return null
-        }
-
-        if (decl.isArray && decl.initOnce) {
-            if (decl.value == null) {
-                // initonce array without initialization value, make an array of just zeros
-                val size = decl.arraysize?.constIndex()
-                if(size!=null) {
-                    val zeros = Array<Expression>(size) { decl.zeroElementValue() }
-                    val initvalue = ArrayLiteral(InferredTypes.InferredType.known(decl.datatype), zeros, decl.position)
-                    decl.value = initvalue
-                    initvalue.linkParents(decl)
-                }
-            } else {
-                errors.err("arrays with an initialization value already are initialized only once by default", decl.position)
-            }
         }
 
         val rangeExpr = decl.value as? RangeExpression ?: return null

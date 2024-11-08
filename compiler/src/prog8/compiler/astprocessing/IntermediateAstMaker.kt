@@ -528,8 +528,10 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         when(srcVar.type) {
             VarDeclType.VAR -> {
                 val value = if(srcVar.value!=null) transformExpression(srcVar.value!!) else null
-                if(srcVar.initOnce && value==null)
-                    throw FatalAstException("initonce without value $srcVar")
+                if(srcVar.dirty && value!=null)
+                    throw FatalAstException("dirty with initializer value $srcVar")
+//                if(value==null && !srcVar.dirty)
+//                    throw FatalAstException("no init value but not marked dirty $srcVar")
                 return PtVariable(
                     srcVar.name,
                     srcVar.datatype,

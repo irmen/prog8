@@ -1,65 +1,71 @@
+%import floats
 %import textio
 %option no_sysinit
 %zeropage basicsafe
 
-; INIT ONCE tests
+; DIRTY tests
 
 main {
+    uword @shared @dirty globw
+    uword @shared globwi = 4444
+    float @shared @dirty globf
+    float @shared globfi = 4
+    ubyte[5] @shared @dirty globarr1
+    ubyte[] @shared globarr2 = [11,22,33,44,55]
+
     sub start() {
-        uword w0
-        uword @initonce w1
-        uword @initonce w2
-        uword @initonce w3
-        uword @initonce w4 = 12345
-        uword[4] wa
-        uword[] @shared wb = [1111,2222,3333,4444]
-
-        dump()
+        testdirty()
         txt.nl()
-        w0++
-        w1++
-        w2++
-        w3++
-        w4++
-        wa[1]++
-        wa[2]++
-        wa[3]++
-        wb[0]++
-        dump()
+        testdirty()
         txt.nl()
-
-        repeat 10 {
-            footgun()
-        }
-        txt.nl()
-
-        sub dump() {
-            txt.print_uw(w0)
-            txt.spc()
-            txt.print_uw(w1)
-            txt.spc()
-            txt.print_uw(w2)
-            txt.spc()
-            txt.print_uw(w3)
-            txt.spc()
-            txt.print_uw(w4)
-            txt.spc()
-            txt.print_uw(wa[1])
-            txt.spc()
-            txt.print_uw(wa[2])
-            txt.spc()
-            txt.print_uw(wa[3])
-            txt.spc()
-            txt.print_uw(wb[0])
-            txt.nl()
-        }
     }
 
-    sub footgun() {
-        ; TODO should just be a nonlocal variable outside of the subroutine...?
-        ubyte @shared @initonce @requirezp variable = 42        ; BUG: is never initialized now
-        txt.print_ub(variable)
+    sub testdirty() {
+        uword @shared @dirty locw
+        uword @shared locwi = 4444
+        float @shared @dirty locf
+        float @shared locfi = 4.0
+        ubyte[5] @shared @dirty locarr1
+        ubyte[] @shared locarr2 = [11,22,33,44,55]
+
+        txt.print("globals: ")
+        txt.print_uw(globw)
         txt.spc()
-        variable++
+        floats.print(globf)
+        txt.print("  with init: ")
+        txt.print_uw(globwi)
+        txt.spc()
+        floats.print(globfi)
+        txt.print("  arrays: ")
+        txt.print_ub(globarr1[2])
+        txt.spc()
+        txt.print_ub(globarr2[2])
+        txt.print("\nlocals:  ")
+        txt.print_uw(locw)
+        txt.spc()
+        floats.print(locf)
+        txt.print("  with init: ")
+        txt.print_uw(locwi)
+        txt.spc()
+        floats.print(locfi)
+        txt.print("  arrays: ")
+        txt.print_ub(locarr1[2])
+        txt.spc()
+        txt.print_ub(locarr2[2])
+        txt.nl()
+
+
+        globw++
+        globwi++
+        globf++
+        globfi++
+        globarr1[2]++
+        globarr2[2]++
+        locw++
+        locwi++
+        locf++
+        locfi++
+        locarr1[2]++
+        locarr2[2]++
     }
 }

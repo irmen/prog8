@@ -236,6 +236,15 @@ when assembling the rest of the code). Example::
     byte  @shared  assemblyVariable = 42
 
 
+**uninitialized variables:**
+All variables will be initialized by prog8 at startup, they'll get their assigned initialization value, or be cleared to zero.
+This (re)initialization is also done on each subroutine entry for the variables declared in the subroutine.
+There may be certain scenarios where this initialization is redundant and/or where you want to avoid the overhead of it
+You can do so by using the ``@dirty`` tag on the variable declaration.
+This means that the variable will *not* be (re)initialized by Prog8 and that its value is undefined.
+You have to assign it a value yourself first, before using the variable. If you don't do that, the value can be anything, so beware.
+
+
 **memory alignment:**
 A string or array variable can be aligned to a couple of possible interval sizes in memory.
 The use for this is very situational, but two examples are: sprite data for the C64 that needs
