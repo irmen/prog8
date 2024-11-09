@@ -1,11 +1,7 @@
 TODO
 ====
 
-for releasenotes: gfx2.width and gfx2.height got renamed as gfx_lores.WIDTH/HEIGHT or gfx_hires4.WIDTH/HEIGTH constants.  Screen mode routines also renamed.
-
-regenerate symbol dump files
-
-
+...
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -21,6 +17,7 @@ Future Things and Ideas
   in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
   Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 - remove 'extsub' as a recognised alternative for 'extsub'
+- remove the 'addmissingrts' compiler option.
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
 - Can we support signed % (remainder) somehow?

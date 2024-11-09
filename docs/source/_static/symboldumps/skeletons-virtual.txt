@@ -1,5 +1,5 @@
 
-Prog8 compiler v10.4.2 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -102,6 +102,7 @@ diskio  {
     curdir  () -> uword 
     delete  (uword filenameptr) 
     directory  () -> bool 
+    exists  (str filename) -> bool 
     f_close  () 
     f_close_w  () 
     f_open  (uword filenameptr) -> bool 
@@ -154,6 +155,8 @@ floats  {
     csc  (float value) -> float 
     deg  (float angle) -> float 
     floor  (float value) -> float 
+    lerp  (float v0, float v1, float t) -> float 
+    lerp_fast  (float v0, float v1, float t) -> float 
     ln  (float value) -> float 
     log2  (float value) -> float 
     maxf  (float f1, float f2) -> float 
@@ -197,6 +200,7 @@ math  {
     direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
     direction_qd  (ubyte quadrant, ubyte xdelta, ubyte ydelta) -> ubyte 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
     log2  (ubyte value) -> ubyte 
     log2w  (uword value) -> ubyte 
     mul16_last_upper  () -> uword 
@@ -306,6 +310,7 @@ sys  {
     gfx_getpixel  (uword xx, uword yy) -> ubyte 
     gfx_plot  (uword xx, uword yy, ubyte color) 
     internal_stringcopy  (uword source, uword tgt) 
+    memcmp  (uword address1, uword address2, uword size) -> byte 
     memcopy  (uword source, uword tgt, uword count) 
     memset  (uword mem, uword numbytes, ubyte value) 
     memsetw  (uword mem, uword numwords, uword value) 

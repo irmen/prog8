@@ -1,5 +1,5 @@
 
-Prog8 compiler v10.4.2 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -111,9 +111,11 @@ diskio  {
     str  list_filetype 
     uword  list_pattern 
     bool  list_skip_disk_name 
+    bool  write_iteration_in_progress 
     delete  (uword filenameptr) 
     directory  () -> bool 
     diskname  () -> uword 
+    exists  (str filename) -> bool 
     f_close  () 
     f_close_w  () 
     f_open  (uword filenameptr) -> bool 
@@ -142,65 +144,65 @@ LIBRARY MODULE NAME: floats
 ---------------------------
 
 floats  {
-    &uword  AYINT_facmo 
     const float  PI 
     const float  TWOPI 
     const float  π 
-    ABS  () = $bc58
-    ATN  () -> clobbers (A,X,Y) = $e30e
-    AYINT  () -> clobbers (A,X,Y) = $b1bf
-    CONUPK  (uword mflpt @AY) -> clobbers (A,Y) = $ba8c
-    COS  () -> clobbers (A,X,Y) = $e264
-    DIV10  () -> clobbers (A,X,Y) = $bafe
-    EXP  () -> clobbers (A,X,Y) = $bfed
-    FADD  (uword mflpt @AY) -> clobbers (A,X,Y) = $b867
-    FADDH  () -> clobbers (A,X,Y) = $b849
-    FADDT  () -> clobbers (A,X,Y) = $b86a
-    FAREADMEM  () -> clobbers (A,Y) = $ba90
-    FCOMP  (uword mflpt @AY) -> clobbers (X,Y) -> ubyte @A = $bc5b
-    FDIV  (uword mflpt @AY) -> clobbers (A,X,Y) = $bb0f
-    FDIVT  () -> clobbers (A,X,Y) = $bb12
-    FINLOG  (byte value @A) -> clobbers (A,X,Y) = $bd7e
-    FMULT  (uword mflpt @AY) -> clobbers (A,X,Y) = $ba28
-    FMULTT  () -> clobbers (A,X,Y) = $ba2b
-    FOUT  () -> clobbers (X) -> uword @AY = $bddd
-    FPRINTLN  () -> clobbers (A,X,Y) = $aabc
-    FPWR  (uword mflpt @AY) -> clobbers (A,X,Y) = $bf78
-    FPWRT  () -> clobbers (A,X,Y) = $bf7b
-    FREADMEM  () -> clobbers (A,Y) = $bba6
+    ABS  ()  = $bc58
+    ATN  () -> clobbers (A,X,Y)  = $e30e
+    AYINT  () -> clobbers (A,X,Y)  = $b1bf
+    AYINT2  () -> clobbers (X) -> word @AY 
+    CONUPK  (uword mflpt @AY) -> clobbers (A,Y)  = $ba8c
+    COS  () -> clobbers (A,X,Y)  = $e264
+    DIV10  () -> clobbers (A,X,Y)  = $bafe
+    EXP  () -> clobbers (A,X,Y)  = $bfed
+    FADD  (uword mflpt @AY) -> clobbers (A,X,Y)  = $b867
+    FADDH  () -> clobbers (A,X,Y)  = $b849
+    FADDT  () -> clobbers (A,X,Y)  = $b86a
+    FAREADMEM  () -> clobbers (A,Y)  = $ba90
+    FCOMP  (uword mflpt @AY) -> clobbers (X,Y) -> ubyte @A  = $bc5b
+    FDIV  (uword mflpt @AY) -> clobbers (A,X,Y)  = $bb0f
+    FDIVT  () -> clobbers (A,X,Y)  = $bb12
+    FINLOG  (byte value @A) -> clobbers (A,X,Y)  = $bd7e
+    FMULT  (uword mflpt @AY) -> clobbers (A,X,Y)  = $ba28
+    FMULTT  () -> clobbers (A,X,Y)  = $ba2b
+    FOUT  () -> clobbers (X) -> uword @AY  = $bddd
+    FPRINTLN  () -> clobbers (A,X,Y)  = $aabc
+    FPWR  (uword mflpt @AY) -> clobbers (A,X,Y)  = $bf78
+    FPWRT  () -> clobbers (A,X,Y)  = $bf7b
+    FREADMEM  () -> clobbers (A,Y)  = $bba6
     FREADS24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y) -> clobbers (A,X,Y) 
     FREADS32  () -> clobbers (A,X,Y) 
-    FREADSA  (byte value @A) -> clobbers (A,X,Y) = $bc3c
-    FREADSTR  (ubyte length @A) -> clobbers (A,X,Y) = $b7b5
+    FREADSA  (byte value @A) -> clobbers (A,X,Y)  = $bc3c
+    FREADSTR  (ubyte length @A) -> clobbers (A,X,Y)  = $b7b5
     FREADU24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y) -> clobbers (A,X,Y) -> float @FAC1 
     FREADUS32  () -> clobbers (A,X,Y) 
-    FREADUY  (ubyte value @Y) -> clobbers (A,X,Y) = $b3a2
-    FSUB  (uword mflpt @AY) -> clobbers (A,X,Y) = $b850
-    FSUBT  () -> clobbers (A,X,Y) = $b853
-    GETADR  () -> clobbers (X) -> ubyte @Y, ubyte @A = $b7f7
+    FREADUY  (ubyte value @Y) -> clobbers (A,X,Y)  = $b3a2
+    FSUB  (uword mflpt @AY) -> clobbers (A,X,Y)  = $b850
+    FSUBT  () -> clobbers (A,X,Y)  = $b853
+    GETADR  () -> clobbers (X) -> ubyte @Y, ubyte @A  = $b7f7
     GETADRAY  () -> clobbers (X) -> uword @AY 
-    GIVAYF  (ubyte lo @Y, ubyte hi @A) -> clobbers (A,X,Y) = $b391
+    GIVAYF  (ubyte lo @Y, ubyte hi @A) -> clobbers (A,X,Y)  = $b391
     GIVAYFAY  (uword value @AY) -> clobbers (A,X,Y) 
     GIVUAYFAY  (uword value @AY) -> clobbers (A,X,Y) 
-    INT  () -> clobbers (A,X,Y) = $bccc
-    LOG  () -> clobbers (A,X,Y) = $b9ea
-    MOVAF  () -> clobbers (A,X) = $bc0c
-    MOVEF  () -> clobbers (A,X) = $bc0f
-    MOVFA  () -> clobbers (A,X) = $bbfc
-    MOVFM  (uword mflpt @AY) -> clobbers (A,Y) = $bba2
-    MOVMF  (uword mflpt @XY) -> clobbers (A,Y) = $bbd4
-    MUL10  () -> clobbers (A,X,Y) = $bae2
-    NEGOP  () -> clobbers (A) = $bfb4
-    NORMAL  () -> clobbers (A) = $b8d7
-    NOTOP  () -> clobbers (A,X,Y) = $aed4
-    QINT  () -> clobbers (A,X,Y) = $bc9b
-    RND  () -> clobbers (A,X,Y) = $e097
-    SGN  () -> clobbers (A,X,Y) = $bc39
-    SIGN  () -> ubyte @A = $bc2b
-    SIN  () -> clobbers (A,X,Y) = $e26b
-    SQR  () -> clobbers (A,X,Y) = $bf71
-    SQRA  () -> clobbers (A,X,Y) = $bf74
-    TAN  () -> clobbers (A,X,Y) = $e2b4
+    INT  () -> clobbers (A,X,Y)  = $bccc
+    LOG  () -> clobbers (A,X,Y)  = $b9ea
+    MOVAF  () -> clobbers (A,X)  = $bc0c
+    MOVEF  () -> clobbers (A,X)  = $bc0f
+    MOVFA  () -> clobbers (A,X)  = $bbfc
+    MOVFM  (uword mflpt @AY) -> clobbers (A,Y)  = $bba2
+    MOVMF  (uword mflpt @XY) -> clobbers (A,Y)  = $bbd4
+    MUL10  () -> clobbers (A,X,Y)  = $bae2
+    NEGOP  () -> clobbers (A)  = $bfb4
+    NORMAL  () -> clobbers (A)  = $b8d7
+    NOTOP  () -> clobbers (A,X,Y)  = $aed4
+    QINT  () -> clobbers (A,X,Y)  = $bc9b
+    RND  () -> clobbers (A,X,Y)  = $e097
+    SGN  () -> clobbers (A,X,Y)  = $bc39
+    SIGN  () -> ubyte @A  = $bc2b
+    SIN  () -> clobbers (A,X,Y)  = $e26b
+    SQR  () -> clobbers (A,X,Y)  = $bf71
+    SQRA  () -> clobbers (A,X,Y)  = $bf74
+    TAN  () -> clobbers (A,X,Y)  = $e2b4
     atan  (float value) -> float 
     atan2  (float y, float x) -> float 
     ceil  (float value) -> float 
@@ -210,6 +212,8 @@ floats  {
     csc  (float value) -> float 
     deg  (float angle) -> float 
     floor  (float value) -> float 
+    lerp  (float v0, float v1, float t) -> float 
+    lerp_fast  (float v0, float v1, float t) -> float 
     ln  (float value) -> float 
     log2  (float value) -> float 
     maxf  (float f1, float f2) -> float 
@@ -249,7 +253,7 @@ graphics  {
     fillrect  (uword xx, ubyte yy, uword width, ubyte height) 
     get_y_lookup  (ubyte yy @Y) -> uword @AY 
     horizontal_line  (uword xx, ubyte yy, uword length) 
-    internal_plot  (ubyte ploty @A) -> clobbers (A,X,Y) 
+    internal_plot  (ubyte ploty @Y) -> clobbers (A,X,Y) 
     line  (uword x1, ubyte y1, uword x2, ubyte y2) 
     plot  (uword plotx @XY, ubyte ploty @A) -> clobbers (A,X,Y) 
     rect  (uword xx, ubyte yy, uword width, ubyte height) 
@@ -279,6 +283,7 @@ math  {
     direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
     log2  (ubyte value @A) -> ubyte @Y 
     log2w  (uword value @AY) -> ubyte @Y 
     mul16_last_upper  () -> uword @AY 
@@ -379,54 +384,54 @@ cbm  {
     &ubyte  TIME_MID 
     &uword  USERCMD 
     &uword  USRADD 
-    ACPTR  () -> ubyte @A = $ffa5
-    CHKIN  (ubyte logical @X) -> clobbers (A,X) -> bool @Pc = $ffc6
-    CHKOUT  (ubyte logical @X) -> clobbers (A,X) = $ffc9
-    CHRIN  () -> clobbers (X,Y) -> ubyte @A = $ffcf
-    CHROUT  (ubyte character @A) = $ffd2
-    CINT  () -> clobbers (A,X,Y) = $ff81
-    CIOUT  (ubyte databyte @A) = $ffa8
-    CLALL  () -> clobbers (A,X) = $ffe7
-    CLEARSCR  () -> clobbers (A,X,Y) = $e544
+    ACPTR  () -> ubyte @A  = $ffa5
+    CHKIN  (ubyte logical @X) -> clobbers (A,X) -> bool @Pc  = $ffc6
+    CHKOUT  (ubyte logical @X) -> clobbers (A,X)  = $ffc9
+    CHRIN  () -> clobbers (X,Y) -> ubyte @A  = $ffcf
+    CHROUT  (ubyte character @A)  = $ffd2
+    CINT  () -> clobbers (A,X,Y)  = $ff81
+    CIOUT  (ubyte databyte @A)  = $ffa8
+    CLALL  () -> clobbers (A,X)  = $ffe7
+    CLEARSCR  () -> clobbers (A,X,Y)  = $e544
     CLEARST  () 
-    CLOSE  (ubyte logical @A) -> clobbers (A,X,Y) = $ffc3
-    CLRCHN  () -> clobbers (A,X) = $ffcc
-    GETIN  () -> clobbers (X,Y) -> bool @Pc, ubyte @A = $ffe4
+    CLOSE  (ubyte logical @A) -> clobbers (A,X,Y)  = $ffc3
+    CLRCHN  () -> clobbers (A,X)  = $ffcc
+    GETIN  () -> clobbers (X,Y) -> bool @Pc, ubyte @A  = $ffe4
     GETIN2  () -> clobbers (X,Y) -> ubyte @A 
-    HOMECRSR  () -> clobbers (A,X,Y) = $e566
-    IOBASE  () -> uword @XY = $fff3
-    IOINIT  () -> clobbers (A,X) = $ff84
-    IRQDFEND  () -> clobbers (A,X,Y) = $ea81
-    IRQDFRT  () -> clobbers (A,X,Y) = $ea31
-    LISTEN  (ubyte device @A) -> clobbers (A) = $ffb1
-    LOAD  (ubyte verify @A, uword address @XY) -> bool @Pc, ubyte @A, uword @XY = $ffd5
-    MEMBOT  (uword address @XY, bool dir @Pc) -> uword @XY = $ff9c
-    MEMTOP  (uword address @XY, bool dir @Pc) -> uword @XY = $ff99
-    OPEN  () -> clobbers (X,Y) -> bool @Pc, ubyte @A = $ffc0
-    PLOT  (ubyte col @Y, ubyte row @X, bool dir @Pc) -> clobbers (A) -> ubyte @X, ubyte @Y = $fff0
-    RAMTAS  () -> clobbers (A,X,Y) = $ff87
-    RDTIM  () -> ubyte @A, ubyte @X, ubyte @Y = $ffde
+    HOMECRSR  () -> clobbers (A,X,Y)  = $e566
+    IOBASE  () -> uword @XY  = $fff3
+    IOINIT  () -> clobbers (A,X)  = $ff84
+    IRQDFEND  () -> clobbers (A,X,Y)  = $ea81
+    IRQDFRT  () -> clobbers (A,X,Y)  = $ea31
+    LISTEN  (ubyte device @A) -> clobbers (A)  = $ffb1
+    LOAD  (ubyte verify @A, uword address @XY) -> bool @Pc, ubyte @A, uword @XY  = $ffd5
+    MEMBOT  (uword address @XY, bool dir @Pc) -> uword @XY  = $ff9c
+    MEMTOP  (uword address @XY, bool dir @Pc) -> uword @XY  = $ff99
+    OPEN  () -> clobbers (X,Y) -> bool @Pc, ubyte @A  = $ffc0
+    PLOT  (ubyte col @Y, ubyte row @X, bool dir @Pc) -> clobbers (A) -> ubyte @X, ubyte @Y  = $fff0
+    RAMTAS  () -> clobbers (A,X,Y)  = $ff87
+    RDTIM  () -> ubyte @A, ubyte @X, ubyte @Y  = $ffde
     RDTIM16  () -> clobbers (X) -> uword @AY 
-    READST  () -> ubyte @A = $ffb7
-    RESTOR  () -> clobbers (A,X,Y) = $ff8a
-    SAVE  (ubyte zp_startaddr @A, uword endaddr @XY) -> bool @Pc, ubyte @A = $ffd8
-    SCNKEY  () -> clobbers (A,X,Y) = $ff9f
-    SCREEN  () -> ubyte @X, ubyte @Y = $ffed
-    SECOND  (ubyte address @A) -> clobbers (A) = $ff93
-    SETLFS  (ubyte logical @A, ubyte device @X, ubyte secondary @Y) = $ffba
-    SETMSG  (ubyte value @A) = $ff90
-    SETNAM  (ubyte namelen @A, str filename @XY) = $ffbd
-    SETTIM  (ubyte low @A, ubyte middle @X, ubyte high @Y) = $ffdb
-    SETTMO  (ubyte timeout @A) = $ffa2
-    STOP  () -> clobbers (X) -> bool @Pz, ubyte @A = $ffe1
+    READST  () -> ubyte @A  = $ffb7
+    RESTOR  () -> clobbers (A,X,Y)  = $ff8a
+    SAVE  (ubyte zp_startaddr @A, uword endaddr @XY) -> bool @Pc, ubyte @A  = $ffd8
+    SCNKEY  () -> clobbers (A,X,Y)  = $ff9f
+    SCREEN  () -> ubyte @X, ubyte @Y  = $ffed
+    SECOND  (ubyte address @A) -> clobbers (A)  = $ff93
+    SETLFS  (ubyte logical @A, ubyte device @X, ubyte secondary @Y)  = $ffba
+    SETMSG  (ubyte value @A)  = $ff90
+    SETNAM  (ubyte namelen @A, str filename @XY)  = $ffbd
+    SETTIM  (ubyte low @A, ubyte middle @X, ubyte high @Y)  = $ffdb
+    SETTMO  (ubyte timeout @A)  = $ffa2
+    STOP  () -> clobbers (X) -> bool @Pz, ubyte @A  = $ffe1
     STOP2  () -> clobbers (A,X) -> bool @Pz 
-    STROUT  (uword strptr @AY) -> clobbers (A,X,Y) = $ab1e
-    TALK  (ubyte device @A) -> clobbers (A) = $ffb4
-    TKSA  (ubyte address @A) -> clobbers (A) = $ff96
-    UDTIM  () -> clobbers (A,X) = $ffea
-    UNLSN  () -> clobbers (A) = $ffae
-    UNTLK  () -> clobbers (A) = $ffab
-    VECTOR  (uword userptr @XY, bool dir @Pc) -> clobbers (A,Y) = $ff8d
+    STROUT  (uword strptr @AY) -> clobbers (A,X,Y)  = $ab1e
+    TALK  (ubyte device @A) -> clobbers (A)  = $ffb4
+    TKSA  (ubyte address @A) -> clobbers (A)  = $ff96
+    UDTIM  () -> clobbers (A,X)  = $ffea
+    UNLSN  () -> clobbers (A)  = $ffae
+    UNTLK  () -> clobbers (A)  = $ffab
+    VECTOR  (uword userptr @XY, bool dir @Pc) -> clobbers (A,Y)  = $ff8d
     kbdbuf_clear  () 
 }
 
@@ -558,11 +563,14 @@ c64  {
     &ubyte  VMCSB 
     &ubyte  XXPAND 
     &ubyte  YXPAND 
+    banks  (ubyte banks @A) 
     get_bitmap_ptr  () -> uword 
     get_char_matrix_ptr  () -> uword 
     get_sprite_addr_ptrs  () -> uword 
     get_vic_memory_base  () -> uword 
+    getbanks  () -> ubyte @A 
     set_sprite_ptr  (ubyte sprite_num, uword sprite_data_address) 
+    x16jsrfar  () 
 }
 
 sys  {
@@ -573,21 +581,19 @@ sys  {
     const ubyte  sizeof_uword 
     const ubyte  sizeof_word 
     const ubyte  target 
-    cleanup_at_exit  () 
     clear_carry  () 
     clear_irqd  () 
     disable_caseswitch  () 
-    disable_runstop_and_charsetswitch  () -> clobbers (A) 
+    disable_runstop_and_charsetswitch  () 
     enable_caseswitch  () 
-    enable_runstop_and_charsetswitch  () -> clobbers (A) 
+    enable_runstop_and_charsetswitch  () 
     exit  (ubyte returnvalue @A) 
     exit2  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) 
     exit3  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) 
-    init_system  () 
-    init_system_phase2  () 
     internal_stringcopy  (uword source @R0, uword target @AY) -> clobbers (A,Y) 
     irqsafe_clear_irqd  () 
     irqsafe_set_irqd  () 
+    memcmp  (uword address1 @R0, uword address2 @R1, uword size @AY) -> byte @A 
     memcopy  (uword source @R0, uword target @R1, uword count @AY) -> clobbers (A,X,Y) 
     memset  (uword mem @R0, uword numbytes @R1, ubyte value @A) -> clobbers (A,X,Y) 
     memsetw  (uword mem @R0, uword numwords @R1, uword value @AY) -> clobbers (A,X,Y) 
@@ -712,6 +718,14 @@ cx16  {
     save_virtual_registers  () -> clobbers (A,Y) 
 }
 
+p8_sys_startup  {
+    cleanup_at_exit  () 
+    disable_runstop_and_charsetswitch  () -> clobbers (A) 
+    enable_runstop_and_charsetswitch  () -> clobbers (A) 
+    init_system  () 
+    init_system_phase2  () 
+}
+
 
 LIBRARY MODULE NAME: test_stack
 -------------------------------
@@ -728,7 +742,7 @@ txt  {
     const ubyte  DEFAULT_HEIGHT 
     const ubyte  DEFAULT_WIDTH 
     bell  () 
-    chrout  (ubyte character @A) = $ffd2
+    chrout  (ubyte character @A)  = $ffd2
     clear_screen  () 
     clear_screenchars  (ubyte character @A) -> clobbers (Y) 
     clear_screencolors  (ubyte color @A) -> clobbers (Y) 

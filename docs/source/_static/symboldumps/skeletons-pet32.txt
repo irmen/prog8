@@ -1,5 +1,5 @@
 
-Prog8 compiler v10.4.2 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
@@ -111,9 +111,11 @@ diskio  {
     str  list_filetype 
     uword  list_pattern 
     bool  list_skip_disk_name 
+    bool  write_iteration_in_progress 
     delete  (uword filenameptr) 
     directory  () -> bool 
     diskname  () -> uword 
+    exists  (str filename) -> bool 
     f_close  () 
     f_close_w  () 
     f_open  (uword filenameptr) -> bool 
@@ -160,6 +162,7 @@ math  {
     direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
     log2  (ubyte value @A) -> ubyte @Y 
     log2w  (uword value @AY) -> ubyte @Y 
     mul16_last_upper  () -> uword @AY 
@@ -230,20 +233,20 @@ cbm  {
     &ubyte  TIME_HI 
     &ubyte  TIME_LO 
     &ubyte  TIME_MID 
-    CHKIN  (ubyte logical @X) -> clobbers (A,X) -> bool @Pc = $ffc6
-    CHKOUT  (ubyte logical @X) -> clobbers (A,X) = $ffc9
-    CHRIN  () -> clobbers (X,Y) -> ubyte @A = $ffcf
-    CHROUT  (ubyte character @A) = $ffd2
-    CLALL  () -> clobbers (A,X) = $ffe7
-    CLRCHN  () -> clobbers (A,X) = $ffcc
-    GETIN  () -> clobbers (X,Y) -> bool @Pc, ubyte @A = $ffe4
+    CHKIN  (ubyte logical @X) -> clobbers (A,X) -> bool @Pc  = $ffc6
+    CHKOUT  (ubyte logical @X) -> clobbers (A,X)  = $ffc9
+    CHRIN  () -> clobbers (X,Y) -> ubyte @A  = $ffcf
+    CHROUT  (ubyte character @A)  = $ffd2
+    CLALL  () -> clobbers (A,X)  = $ffe7
+    CLRCHN  () -> clobbers (A,X)  = $ffcc
+    GETIN  () -> clobbers (X,Y) -> bool @Pc, ubyte @A  = $ffe4
     GETIN2  () -> clobbers (X,Y) -> ubyte @A 
     RDTIM  () -> ubyte @A, ubyte @X, ubyte @Y 
     RDTIM16  () -> clobbers (X) -> uword @AY 
     SETTIM  (ubyte low @A, ubyte middle @X, ubyte high @Y) 
-    STOP  () -> clobbers (X) -> bool @Pz, ubyte @A = $ffe1
+    STOP  () -> clobbers (X) -> bool @Pz, ubyte @A  = $ffe1
     STOP2  () -> clobbers (A,X) -> bool @Pz 
-    UDTIM  () -> clobbers (A,X) = $ffea
+    UDTIM  () -> clobbers (A,X)  = $ffea
     kbdbuf_clear  () 
 }
 
@@ -255,7 +258,6 @@ sys  {
     const ubyte  sizeof_uword 
     const ubyte  sizeof_word 
     const ubyte  target 
-    cleanup_at_exit  () 
     clear_carry  () 
     clear_irqd  () 
     disable_caseswitch  () 
@@ -263,11 +265,10 @@ sys  {
     exit  (ubyte returnvalue @A) 
     exit2  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) 
     exit3  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) 
-    init_system  () 
-    init_system_phase2  () 
     internal_stringcopy  (uword source @R0, uword target @AY) -> clobbers (A,Y) 
     irqsafe_clear_irqd  () 
     irqsafe_set_irqd  () 
+    memcmp  (uword address1 @R0, uword address2 @R1, uword size @AY) -> byte @A 
     memcopy  (uword source @R0, uword target @R1, uword count @AY) -> clobbers (A,X,Y) 
     memset  (uword mem @R0, uword numbytes @R1, ubyte value @A) -> clobbers (A,X,Y) 
     memsetw  (uword mem @R0, uword numwords @R1, uword value @AY) -> clobbers (A,X,Y) 
@@ -388,6 +389,12 @@ cx16  {
     save_virtual_registers  () -> clobbers (A,Y) 
 }
 
+p8_sys_startup  {
+    cleanup_at_exit  () 
+    init_system  () 
+    init_system_phase2  () 
+}
+
 
 LIBRARY MODULE NAME: test_stack
 -------------------------------
@@ -404,7 +411,7 @@ txt  {
     const ubyte  DEFAULT_HEIGHT 
     const ubyte  DEFAULT_WIDTH 
     bell  () 
-    chrout  (ubyte character @A) = $ffd2
+    chrout  (ubyte character @A)  = $ffd2
     clear_screen  () 
     clear_screenchars  (ubyte character @A) -> clobbers (Y) 
     clear_screencolors  (ubyte color) 

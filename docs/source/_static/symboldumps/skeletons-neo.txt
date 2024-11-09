@@ -1,6 +1,5 @@
 
-Prog8 compiler v10.5-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 7d4dc3c0 in branch master
+Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-neo.p8
