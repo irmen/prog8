@@ -324,6 +324,20 @@ extsub $FF6E = JSRFAR()
 
 ; ---- C128 specific system utility routines: ----
 
+inline asmsub banks(ubyte banks @A) {
+    ; -- set the memory bank configuration MMU register
+    %asm {{
+        sta  $FF00
+    }}
+}
+
+inline asmsub getbanks() -> ubyte @A {
+    ; -- get the current memory bank configuration from the MMU register
+    %asm {{
+        lda  $FF00
+    }}
+}
+
 asmsub  disable_basic() clobbers(A) {
     %asm {{
         lda $0a04   ; disable BASIC shadow registers
@@ -1061,6 +1075,8 @@ asmsub  init_system()  {
         jsr  cbm.IOINIT
         jsr  cbm.RESTOR
         jsr  cbm.CINT
+        lda  #%00001110
+        sta  $ff00      ; bank out basic rom so we have ram from $1c00-$bfff
         lda  #6
         sta  c64.EXTCOL
         lda  #7

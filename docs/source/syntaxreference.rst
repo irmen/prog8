@@ -449,6 +449,8 @@ Arrays can be initialized with a range expression or an array literal value.
 You can write out such an initializer value over several lines if you want to improve readability.
 When an initialization value is given, you are allowed to omit the array size in the declaration,
 because it can be inferred from the initialization value.
+You can use '*' to repeat array fragments to build up a larger array.
+
 
 **numbers:** unless prefixed for hex or binary as described below, all numbers are decimal numbers. There is no octal notation.
 

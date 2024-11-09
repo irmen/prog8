@@ -445,7 +445,9 @@ c128  {
     &ubyte  VM3 
     &ubyte  VM4 
     JSRFAR  ()  = $ff6e
+    banks  (ubyte banks @A) 
     disable_basic  () -> clobbers (A) 
+    getbanks  () -> ubyte @A 
     x16jsrfar  () 
 }
 

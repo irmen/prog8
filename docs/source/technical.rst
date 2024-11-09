@@ -36,7 +36,7 @@ On certain systems prog8 provides support for managing the ROM or RAM banks that
 system  get banks (returns byte)                      set banks
 ======= ============================================= ===========
 c64     ``c64.getbanks()``                            ``c64.banks(x)``
-c128    *TODO*                                        *TODO*
+c128    ``c128.getbanks()``                           ``c128.banks(x)``
 cx16    ``cx16.getrombank()`` , ``cx16.getrambank()`` ``cx16.rombank(x)`` , ``cx16.rambank(x)``
 other   N/A                                           N/A
 ======= ============================================= ===========
@@ -80,13 +80,15 @@ The bank number is not translated into assembly (only as a comment)::
     Instead change banks in a controlled manual way (or not at all).
 
 .. note::
-    On the C64, the Basic ROM is *banked out* by default when running a Prog8 program, because
-    it is not needed. This means we get access to another 8Kb of RAM at that
+    On the C64 and C128, the Basic ROM is *banked out* by default when running a Prog8 program, because
+    it is not needed. This means on the C64 we get access to another 8Kb of RAM at that
     memory area, which actually gives us a 50 Kb contiguous RAM block from $0801 to $d000 (exclusive).
     This means you can create programs of up to **50 Kb** size with prog8 on the C64.
+    On the C128, it means programs can use ~41 Kb of contiguous RAM at $1c00 to $c000 (exclusive).
     However, if your program uses floats, Prog8 *does* need the Basic ROM for the floating point routines,
-    and it won't be banked out. Such programs are limited to the regular size of about 38 Kb.
-    Be aware that the bank setting is only done if you are not using ``%option no_sysinit``!
+    and it won't be banked out. Such programs are limited to the regular size of about 38 Kb on the C64, and less on the C128.
+    Be aware that the bank setting is only done if you are *not* using ``%option no_sysinit`` because the
+    program's bootstrap code is what initializes the memory bank configuration.
 
 
 .. _symbol-prefixing:
