@@ -2,7 +2,6 @@
 %import conv
 %import diskio
 %import string
-%option no_sysinit
 %zeropage basicsafe
 
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.

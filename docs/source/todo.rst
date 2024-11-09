@@ -3,9 +3,11 @@ TODO
 
 ...
 
+
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- Port the diskio module to the PET  using lower level serial kernal IO calls?
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
 - Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
