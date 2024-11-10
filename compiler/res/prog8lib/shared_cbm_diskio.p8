@@ -1,4 +1,4 @@
-; C64/C128 disk drive I/O routines.
+; shared CBM (C64/C128) disk drive I/O routines.
 
 %import textio
 %import conv
@@ -6,7 +6,7 @@
 %import syslib
 
 diskio {
-    %option no_symbol_prefixing, ignore_unused
+    %option merge, no_symbol_prefixing, ignore_unused
 
     const ubyte READ_IO_CHANNEL=12
     const ubyte WRITE_IO_CHANNEL=13
