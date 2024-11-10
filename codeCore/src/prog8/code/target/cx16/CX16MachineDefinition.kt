@@ -14,7 +14,7 @@ class CX16MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
-    override val PROGRAM_TOP_ADDRESS = 0x9effu
+    override val PROGRAM_MEMTOP_ADDRESS = 0x9f00u
 
     override val BSSHIGHRAM_START = 0xa000u     // hiram bank 1, 8Kb, assumed to be active
     override val BSSHIGHRAM_END = 0xbfffu       // Rom starts at $c000

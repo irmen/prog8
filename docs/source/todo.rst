@@ -1,6 +1,21 @@
 TODO
 ====
 
+make repeat support 65536 iterations
+
+make memtop adjust automatically when you use %address larger than the default . Then simply set it at $ffff because apparently the programmer knows better?
+
+scripts/cx16_images : add an option to keep the first palette entry black (there's already the option to retain the first 16 entries)
+
+support this usage of defer:
+
+        if diskio.f_open(filename) {
+            defer diskio.f_close()
+            ...
+        }
+
+need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
+
 ...
 
 

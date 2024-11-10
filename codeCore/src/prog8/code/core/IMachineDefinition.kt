@@ -14,7 +14,7 @@ interface IMachineDefinition {
     val FLOAT_MAX_POSITIVE: Double
     val FLOAT_MEM_SIZE: Int
     val PROGRAM_LOAD_ADDRESS : UInt
-    val PROGRAM_TOP_ADDRESS: UInt
+    val PROGRAM_MEMTOP_ADDRESS: UInt
     val BSSHIGHRAM_START: UInt
     val BSSHIGHRAM_END: UInt
     val BSSGOLDENRAM_START: UInt

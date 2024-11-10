@@ -1,7 +1,7 @@
 %import diskio
 %import textio
 %import zsmkit_high
-%memtop $8bff           ; zsmkit is loaded from 8c00 onwards
+%memtop $8c00           ; zsmkit is loaded from 8c00 onwards
 
 ;; Proof Of Concept ZSM player using a binary blob version of zsmkit by MooingLemur
 ;; This version is a bit simpler as "demo1".

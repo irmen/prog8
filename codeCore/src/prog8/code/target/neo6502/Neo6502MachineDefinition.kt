@@ -12,7 +12,7 @@ class Neo6502MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97
     override val FLOAT_MEM_SIZE = 6
     override val PROGRAM_LOAD_ADDRESS = 0x0800u
-    override val PROGRAM_TOP_ADDRESS = 0xfbffu
+    override val PROGRAM_MEMTOP_ADDRESS = 0xfc00u       // kernal starts here
 
     override val BSSHIGHRAM_START = 0u    // TODO
     override val BSSHIGHRAM_END = 0u      // TODO

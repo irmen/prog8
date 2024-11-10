@@ -287,7 +287,7 @@ internal class ProgramAndVarsGen(
             }
         }
         asmgen.out("  ; memtop check")
-        asmgen.out("  .cerror * > ${options.memtopAddress.toHex()}, \"Program too long by \", * - ${options.memtopAddress.toHex()}, \" bytes, memtop=${options.memtopAddress.toHex()}\"")
+        asmgen.out("  .cerror * >= ${options.memtopAddress.toHex()}, \"Program too long by \", * - ${(options.memtopAddress-1u).toHex()}, \" bytes, memtop=${options.memtopAddress.toHex()}\"")
     }
 
     private fun block2asm(block: PtBlock) {

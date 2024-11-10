@@ -264,7 +264,7 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
     }
 
     options.loadAddress = loadAddress
-    options.memtopAddress = program.toplevelModule.memtopAddress?.first ?: options.compTarget.machine.PROGRAM_TOP_ADDRESS
+    options.memtopAddress = program.toplevelModule.memtopAddress?.first ?: options.compTarget.machine.PROGRAM_MEMTOP_ADDRESS
 }
 
 

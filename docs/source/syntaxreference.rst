@@ -191,8 +191,8 @@ Directives
 	but with this you can change it to another value. This can be useful for example to 'reserve' a piece
 	of memory at the end of program space where other data such as external library files can be loaded into.
 	This memtop value is used for a check instruction for the assembler to see if the resulting program size
-	exceeds the given memtop address. This value is inclusive, so $9eff means that the program can use up to
-	and including the address $9eff and that $9f00 is the first address out of bounds.
+	exceeds the given memtop address. This value is exclusive, so $a000 means that $a000 is the first address
+	that program can no longer use. Everything up to and including $9fff is still usable.
 
 
 .. data:: %option <option> [, <option> ...]
