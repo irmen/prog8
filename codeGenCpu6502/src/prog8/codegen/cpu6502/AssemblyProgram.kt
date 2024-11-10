@@ -1,5 +1,6 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.ast.PtLabel
 import prog8.code.core.*
 import prog8.code.target.AtariTarget
 import prog8.code.target.C64Target
@@ -9,7 +10,7 @@ import java.nio.file.Path
 
 internal class AssemblyProgram(
         override val name: String,
-        outputDir: Path,
+        private val outputDir: Path,
         private val compTarget: ICompilationTarget) : IAssemblyProgram {
 
     private val assemblyFile = outputDir.resolve("$name.asm")
@@ -147,7 +148,7 @@ internal class AssemblyProgram(
     }
 
     private fun removeGeneratedLabelsFromMonlist() {
-        val pattern = Regex("""al (\w+) \S+prog8_label_.+?""")
+        val pattern = Regex("""al (\w+) \S+${PtLabel.GeneratedLabelPrefix}.+?""")
         val lines = viceMonListFile.toFile().readLines()
         viceMonListFile.toFile().outputStream().bufferedWriter().use {
             for (line in lines) {

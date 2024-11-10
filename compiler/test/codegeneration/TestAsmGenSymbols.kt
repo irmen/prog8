@@ -77,7 +77,7 @@ class TestAsmGenSymbols: StringSpec({
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), CompilationOptions.AllZeropageAllowed, false, true, C64Target(), 999u, 0xffffu)
         val ptProgram = IntermediateAstMaker(program, errors).transform()
         val st = SymbolTableMaker(ptProgram, options).make()
-        return AsmGen6502Internal(ptProgram, st, options, errors)
+        return AsmGen6502Internal(ptProgram, st, options, errors, 0)
     }
 
     "symbol and variable names from strings" {

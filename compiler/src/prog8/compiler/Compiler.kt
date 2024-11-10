@@ -149,7 +149,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 verifyFinalAstBeforeAsmGen(intermediateAst, compilationOptions, symbolTable, args.errors)
                 args.errors.report()
 
-                if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions)) {
+                if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions, program.generatedLabelSequenceNumber)) {
                     System.err.println("Error in codegeneration or assembler")
                     return null
                 }
@@ -489,13 +489,14 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
 
 private fun createAssemblyAndAssemble(program: PtProgram,
                                       errors: IErrorReporter,
-                                      compilerOptions: CompilationOptions
+                                      compilerOptions: CompilationOptions,
+                                      lastGeneratedLabelSequenceNr: Int
 ): Boolean {
 
     val asmgen = if(compilerOptions.experimentalCodegen)
         prog8.codegen.experimental.ExperiCodeGen()
     else if (compilerOptions.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
-        prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true)
+        prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1)
     else if (compilerOptions.compTarget.name == VMTarget.NAME)
         VmCodeGen()
     else

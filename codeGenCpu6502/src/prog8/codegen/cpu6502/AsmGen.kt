@@ -16,15 +16,15 @@ import kotlin.io.path.writeLines
 internal const val subroutineFloatEvalResultVar1 = "prog8_float_eval_result1"
 internal const val subroutineFloatEvalResultVar2 = "prog8_float_eval_result2"
 
-class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
+class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSequenceNr: Int): ICodeGeneratorBackend {
     override fun generate(
         program: PtProgram,
         symbolTable: SymbolTable,
         options: CompilationOptions,
-        errors: IErrorReporter
+        errors: IErrorReporter,
     ): IAssemblyProgram? {
         val st = if(prefixSymbols) prefixSymbols(program, options, symbolTable) else symbolTable
-        val asmgen = AsmGen6502Internal(program, st, options, errors)
+        val asmgen = AsmGen6502Internal(program, st, options, errors, lastGeneratedLabelSequenceNr)
         return asmgen.compileToAssembly()
     }
 
@@ -36,7 +36,7 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
             when(node) {
                 is PtAsmSub, is PtSub -> node.name = "p8s_${node.name}"
                 is PtBlock -> node.name = "p8b_${node.name}"
-                is PtLabel -> node.name = "p8l_${node.name}"
+                is PtLabel -> if(!node.name.startsWith(PtLabel.GeneratedLabelPrefix)) node.name = "p8l_${node.name}"
                 is PtConstant -> node.name = "p8c_${node.name}"
                 is PtVariable, is PtMemMapped, is PtSubroutineParameter -> node.name = "p8v_${node.name}"
                 else -> node.name = "p8_${node.name}"
@@ -126,11 +126,15 @@ class AsmGen6502(val prefixSymbols: Boolean): ICodeGeneratorBackend {
 }
 
 private fun prefixScopedName(name: String, type: Char): String {
-    if('.' !in name)
+    if('.' !in name) {
+        if(name.startsWith(PtLabel.GeneratedLabelPrefix))
+            return name
         return "p8${type}_$name"
+    }
     val parts = name.split('.')
     val firstPrefixed = "p8b_${parts[0]}"
-    val lastPrefixed = "p8${type}_${parts.last()}"
+    val lastPart = parts.last()
+    val lastPrefixed = if(lastPart.startsWith(PtLabel.GeneratedLabelPrefix)) lastPart else  "p8${type}_$lastPart"
     // the parts in between are assumed to be subroutine scopes.
     val inbetweenPrefixed = parts.drop(1).dropLast(1).map{ "p8s_$it" }
     val prefixed = listOf(firstPrefixed) + inbetweenPrefixed + listOf(lastPrefixed)
@@ -221,7 +225,8 @@ class AsmGen6502Internal (
     val program: PtProgram,
     internal val symbolTable: SymbolTable,
     internal val options: CompilationOptions,
-    internal val errors: IErrorReporter
+    internal val errors: IErrorReporter,
+    private var generatedLabelSequenceNumber: Int
 ) {
 
     internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
@@ -1364,11 +1369,9 @@ $repeatLabel""")
             extra
     }
 
-    private var generatedLabelSequenceNumber: Int = 0
-
     internal fun makeLabel(postfix: String): String {
         generatedLabelSequenceNumber++
-        return "label_asm_${generatedLabelSequenceNumber}_$postfix"
+        return "${PtLabel.GeneratedLabelPrefix}${generatedLabelSequenceNumber}_$postfix"
     }
 
     fun assignConstFloatToPointerAY(number: PtNumber) {
