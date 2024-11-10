@@ -1,16 +1,12 @@
 %import textio
-%zeropage basicsafe
 %option no_sysinit
+%zeropage basicsafe
+%address $f200
+%output raw
+%launcher none
 
 main {
     sub start() {
-        repeat 100 {
-            cx16.r0++
-            if cx16.r0!=0
-                goto mylabel
-        }
-
-mylabel:
-
+        txt.print_uwhex(cbm.MEMTOP(0, true), true)
     }
 }
