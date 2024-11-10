@@ -133,69 +133,14 @@ One or more .p8 module files
 ``-help``, ``-h``
     Prints short command line usage information.
 
-``-target <compilation target>``
-    Sets the target output of the compiler. This option is required.
-    ``c64`` = Commodore 64, ``c128`` = Commodore 128, ``cx16`` = Commander X16, ``pet32`` - Commodore PET model 4032,
-    ``atari`` = Atari 800 XL, ``neo`` = Neo6502, ``virtual`` = builtin virtual machine.
-
-``-srcdirs <pathlist>``
-    Specify a list of extra paths (separated with ':'), to search in for imported modules.
-    Useful if you have library modules somewhere that you want to re-use,
-    or to switch implementations of certain routines via a command line switch.
-
-``-emu``, ``-emu2``
-    Auto-starts target system emulator after successful compilation.
-    emu2 starts the alternative emulator if available.
-    The compiled program and the symbol and breakpoint lists
-    (for the machine code monitor) are immediately loaded into the emulator (if it supports them)
-
-``-out <directory>``
-    sets directory location for output files instead of current directory
-
-``-noasm``
-    Do not create assembly code and output program.
-    Useful for debugging or doing quick syntax checks.
-
-``-noopt``
-    Don't perform any code optimizations.
-    Useful for debugging or faster compilation cycles.
-
-``-optfloatx``
-    Also optimize float expressions if optimizations are enabled.
-    Warning: can increase program size significantly if a lot of floating point expressions are used.
-
-``-watch``
-    Enables continuous compilation mode (watches for file changes).
-    This greatly increases compilation speed on subsequent runs:
-    almost instant compilation times (less than a second) can be achieved in this mode.
-    The compiler will compile your program and then instead of exiting, it waits for any changes in the module source files.
-    As soon as a change happens, the program gets compiled again.
-    Note that it is possible to use the watch mode with multiple modules as well, but it will
-    recompile everything in that list even if only one of the files got updated.
-
-``-warnshadow``
-    Tells the assembler to issue warning messages about symbol shadowing.
-    These *can* be problematic, but usually aren't because prog8 has different scoping rules
-    than the assembler has.
-    You may want to watch out for shadowing of builtin names though. Especially 'a', 'x' and 'y'
-    as those are the cpu register names and if you shadow those, the assembler might
-    interpret certain instructions differently and produce unexpected opcodes (like LDA X getting
-    turned into TXA, or not, depending on the symbol 'x' being defined in your own assembly code or not)
-
 ``-addmissingrts``
     Enables old compiler behavior that silently adds RTS to asmsubs that don't have one.
     This was done to fix asmsubs so they return properly to the caller instead of crashing the program.
     However the new compiler behavior is to not silently modify the code anymore and instead give an error message
     that tells you how to fix the problem. This option may go away in future version.
 
-``-quietasm``
-    Don't print assembler output results.
-
 ``-asmlist``
-    Generate an assembler listing file as well.
-
-``-check``
-    Quickly check the program for errors. No actual compilation will be performed.
+    Also generate an assembler listing file  <program>.list
 
 ``-breakinstr <instruction>``
     Also output the specified CPU instruction for a ``%breakpoint``, as well as the entry in the vice monitor list file.
@@ -205,8 +150,48 @@ One or more .p8 module files
     For example for the Commander X16 emulator, ``stp`` is useful because it can actually tyrigger
     a breakpoint halt in the debugger when this is enabled by running the emulator with -debug.
 
+``-bytes2float <bytes>``
+    convert a comma separated list of bytes from the target system to a float value.
+    NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
+    Also see -float2bytes
+
+``-check``
+    Quickly check the program for errors. No actual compilation will be performed.
+
+``-D SYMBOLNAME=VALUE``
+    Add this user-defined symbol directly to the beginning of the generated assembly file.
+    Can be repeated to define multiple symbols.
+
+``-dumpsymbols``
+    print a dump of the variable declarations and subroutine signatures
+
+``-dumpvars``
+    print a dump of the variables in the program
+
+``-emu``, ``-emu2``
+    Auto-starts target system emulator after successful compilation.
+    emu2 starts the alternative emulator if available.
+    The compiled program and the symbol and breakpoint lists
+    (for the machine code monitor) are immediately loaded into the emulator (if it supports them)
+
 ``-expericodegen``
     Use experimental code generation backend (*incomplete*).
+
+``-float2bytes <number>``
+    convert floating point number to a list of bytes for the target system.
+    NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
+    Also see -bytes2float
+
+``-noasm``
+    Do not create assembly code and output program.
+    Useful for debugging or doing quick syntax checks.
+
+``-noopt``
+    Don't perform any code optimizations.
+    Useful for debugging or faster compilation cycles.
+
+``-out <directory>``
+    sets directory location for output files instead of current directory
 
 ``-printast1``
     Prints the "compiler AST" (the internal representation of the program) after all processing steps.
@@ -215,11 +200,16 @@ One or more .p8 module files
     Prints the "intermediate AST" which is the reduced representation of the program.
     This is what is used in the code generators, to generate the executable code from.
 
-``-dumpvars``
-    print a dump of the variables in the program
+``-quietasm``
+    Don't print assembler output results.
 
-``-dumpsymbols``
-    print a dump of the variable declarations and subroutine signatures
+``-slabsgolden``
+    put memory() slabs in 'golden ram' memory area instead of at the end of the program.
+    On the cx16 target this is $0400-07ff. This is unavailable on other systems.
+
+``-slabshigh``
+    put memory() slabs in high memory area instead of at the end of the program.
+    On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.
 
 ``-sourcelines``
     Also include the original prog8 source code lines as comments in the generated assembly code file,
@@ -231,12 +221,20 @@ One or more .p8 module files
     This removes the need to add @split yourself but some programs may fail to compile with
     this option as not all array operations are implemented yet on split arrays.
 
-``-vm``
-    load and run a p8-virt or p8-ir listing in the internal VirtualMachine instead of compiling a prog8 program file..
+``-srcdirs <pathlist>``
+    Specify a list of extra paths (separated with ':'), to search in for imported modules.
+    Useful if you have library modules somewhere that you want to re-use,
+    or to switch implementations of certain routines via a command line switch.
 
-``-D SYMBOLNAME=VALUE``
-    Add this user-defined symbol directly to the beginning of the generated assembly file.
-    Can be repeated to define multiple symbols.
+``-target <compilation target>``
+    Sets the target output of the compiler. This option is required.
+    ``c64`` = Commodore 64, ``c128`` = Commodore 128, ``cx16`` = Commander X16, ``pet32`` - Commodore PET model 4032,
+    ``atari`` = Atari 800 XL, ``neo`` = Neo6502, ``virtual`` = builtin virtual machine.
+
+``-varsgolden``
+    Like ``-varshigh``, but places the variables in the $0400-$07FF "golden ram" area instead.
+    Because this is in normal system memory, there are no bank switching issues.
+    This mode is only available on the Commander X16.
 
 ``-varshigh <rambank>``
     Places uninitialized non-zeropage variables in a separate memory area, instead of inside the program itself.
@@ -254,26 +252,26 @@ One or more .p8 module files
     (it's called 'BSS' section or Gap at the address mentioned above).
     Assembling the program will fail if there are too many variables to fit in a single high ram bank.
 
-``-varsgolden``
-    Like ``-varshigh``, but places the variables in the $0400-$07FF "golden ram" area instead.
-    Because this is in normal system memory, there are no bank switching issues.
-    This mode is only available on the Commander X16.
+``-vm``
+    load and run a p8-virt or p8-ir listing in the internal VirtualMachine instead of compiling a prog8 program file..
 
-``-slabshigh``
-    put memory() slabs in high memory area instead of at the end of the program.
-    On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.
+``-warnshadow``
+    Tells the assembler to issue warning messages about symbol shadowing.
+    These *can* be problematic, but usually aren't because prog8 has different scoping rules
+    than the assembler has.
+    You may want to watch out for shadowing of builtin names though. Especially 'a', 'x' and 'y'
+    as those are the cpu register names and if you shadow those, the assembler might
+    interpret certain instructions differently and produce unexpected opcodes (like LDA X getting
+    turned into TXA, or not, depending on the symbol 'x' being defined in your own assembly code or not)
 
-``-slabsgolden``
-    put memory() slabs in 'golden ram' memory area instead of at the end of the program.
-    On the cx16 target this is $0400-07ff. This is unavailable on other systems.
-
-``-bytes2float <bytes>``
-    convert a comma separated list of bytes from the target system to a float value.
-    NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
-
-``-float2bytes <number>``
-    convert floating point number to a list of bytes for the target system.
-    NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
+``-watch``
+    Enables continuous compilation mode (watches for file changes).
+    This greatly increases compilation speed on subsequent runs:
+    almost instant compilation times (less than a second) can be achieved in this mode.
+    The compiler will compile your program and then instead of exiting, it waits for any changes in the module source files.
+    As soon as a change happens, the program gets compiled again.
+    Note that it is possible to use the watch mode with multiple modules as well, but it will
+    recompile everything in that list even if only one of the files got updated.
 
 
 Module source code files
