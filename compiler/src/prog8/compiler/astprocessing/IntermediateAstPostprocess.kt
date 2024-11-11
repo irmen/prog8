@@ -60,15 +60,16 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
 
         for((deferIndex, defer) in defers.withIndex()) {
             // replace the defer statement with one that enables the bit in the mask for this defer
-            val idx = defer.parent.children.indexOf(defer)
+            val scope = defer.parent
+            val idx = scope.children.indexOf(defer)
             val enableDefer = PtAugmentedAssign("|=", defer.position)
             val target = PtAssignTarget(true, defer.position)
             target.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, defer.position))
             enableDefer.add(target)
             // enable the bit for this defer (beginning with high bits so the handler can simply shift right to check them in reverse order)
             enableDefer.add(PtNumber(DataType.UBYTE, (1 shl (defers.size-1 - deferIndex)).toDouble(), defer.position))
-            enableDefer.parent = sub
-            sub.children[idx] = enableDefer
+            enableDefer.parent = scope
+            scope.children[idx] = enableDefer
         }
     }
 

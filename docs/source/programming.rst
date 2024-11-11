@@ -891,9 +891,9 @@ and the logic is declared very close to the spot where the allocation of the res
 It's possible to write a defer for a block of statements, but the advice is to keep such cleanup code as simple and short as possible.
 
 .. caution::
-    Defers only work for subroutines that are written as regular Prog8 code.
-    If a piece of inlined assembly somehow causes the routine to exit, the compiler cannot detect this.
-    Defers will not be handled in such cases.
+    Defers only work for subroutines that are written in regular Prog8 code.
+    If a piece of inlined assembly somehow causes the routine to exit, the compiler cannot detect this,
+    and defers won't be handled in such cases.
 
 
 Library routines and builtin functions

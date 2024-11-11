@@ -850,6 +850,10 @@ main {
             cx16.r0++
             cx16.r1++
         }
+        
+        if cx16.r0==0 {
+            defer cx16.r1++
+        }
 
         if cx16.r0==0
             return cx16.r0+cx16.r1
@@ -863,7 +867,24 @@ main {
 
         // check the desugaring of the defer statements
         (sub.children[0] as PtVariable).name shouldBe "p8v_prog8_defers_mask"
-        val ifelse = sub.children[3] as PtIfElse
+
+        val firstDefer = sub.children[2] as PtAugmentedAssign
+        firstDefer.operator shouldBe "|="
+        firstDefer.target.identifier?.name shouldBe "p8b_main.p8s_test.p8v_prog8_defers_mask"
+        firstDefer.value.asConstInteger() shouldBe 4
+
+        val firstIf = sub.children[3] as PtIfElse
+        val deferInIf = firstIf.ifScope.children[0] as PtAugmentedAssign
+        deferInIf.operator shouldBe "|="
+        deferInIf.target.identifier?.name shouldBe "p8b_main.p8s_test.p8v_prog8_defers_mask"
+        deferInIf.value.asConstInteger() shouldBe 2
+
+        val lastDefer = sub.children[5] as PtAugmentedAssign
+        lastDefer.operator shouldBe "|="
+        lastDefer.target.identifier?.name shouldBe "p8b_main.p8s_test.p8v_prog8_defers_mask"
+        lastDefer.value.asConstInteger() shouldBe 1
+
+        val ifelse = sub.children[4] as PtIfElse
         val ifscope = ifelse.ifScope.children[0] as PtNodeGroup
         val ifscope_push = ifscope.children[0] as PtFunctionCall
         val ifscope_defer = ifscope.children[1] as PtFunctionCall
@@ -871,10 +892,11 @@ main {
         ifscope_defer.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"
         ifscope_push.name shouldBe "sys.pushw"
         (ifscope_return.value as PtFunctionCall).name shouldBe "sys.popw"
-        val ending = sub.children[5] as PtFunctionCall
+
+        val ending = sub.children[6] as PtFunctionCall
         ending.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"
-        sub.children[6] shouldBe instanceOf<PtReturn>()
-        val handler = sub.children[7] as PtSub
+        sub.children[7] shouldBe instanceOf<PtReturn>()
+        val handler = sub.children[8] as PtSub
         handler.name shouldBe "p8s_prog8_invoke_defers"
     }
 }

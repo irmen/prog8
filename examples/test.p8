@@ -1,13 +1,28 @@
-%import floats
+%import textio
 %option no_sysinit
 %zeropage basicsafe
 
 main {
-
-    extsub $8000 = routine(float xx @FAC1, float yy @FAC2)
-
     sub start() {
-        @($8000) = $60
-        routine(1.234, 2.3445)
+        defer initial()
+        if allocate() {
+            txt.print("1")
+            defer deallocate()
+            txt.print("2")
+            return
+        }
+        txt.print("3")
+    }
+
+    sub allocate() -> bool {
+        txt.print("allocate\n")
+        return true
+    }
+
+    sub initial() {
+        txt.print("initial\n")
+    }
+    sub deallocate() {
+        txt.print("deallocate\n")
     }
 }
