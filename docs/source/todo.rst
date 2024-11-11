@@ -1,14 +1,6 @@
 TODO
 ====
 
-support this usage of defer somehow?:
-
-        if diskio.f_open(filename) {
-            defer diskio.f_close()
-            ...
-        }
-
-need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 
 ...
 
@@ -32,7 +24,7 @@ Future Things and Ideas
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
 - Can we support signed % (remainder) somehow?
-- IR: implement missing operators in AssignmentGen  (array shifts etc)
+
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful if we have typed pointers.
@@ -49,20 +41,6 @@ Future Things and Ideas
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
 
-- ir: support %align on code chunks
-- ir: fix call() return value handling
-- ir: fix float register parameters (FAC1,FAC2) for extsubs, search for TODO("floating point register parameters not supported")
-- ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
-- ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
-  global initialization values are simply a list of LOAD instructions.
-  Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
-- ir: add more optimizations in IRPeepholeOptimizer
-- ir: the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
-  maybe another representation is needed once actual codegeneration is done from the IR...?
-- ir: split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
-- ir: getting it in shape for code generation...
-- ir: make optimizeBitTest work for IR too to use the BIT instruction?
-- ir: make sure that a 6502 codegen based off the IR, still generates BIT instructions when testing bit 7 or 6 of a byte var.
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
@@ -70,16 +48,36 @@ Future Things and Ideas
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 
 
-Libraries:
+IR/VM
+-----
+- implement missing operators in AssignmentGen  (array shifts etc)
+- support %align on code chunks
+- fix call() return value handling
+- fix float register parameters (FAC1,FAC2) for extsubs, search for TODO("floating point register parameters not supported")
+- proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
+- idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
+  global initialization values are simply a list of LOAD instructions.
+  Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
+- add more optimizations in IRPeepholeOptimizer
+- the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
+  maybe another representation is needed once actual codegeneration is done from the IR...?
+- split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
+- getting it in shape for code generation...
+- make optimizeBitTest work for IR too to use the BIT instruction?
+- make sure that a 6502 codegen based off the IR, still generates BIT instructions when testing bit 7 or 6 of a byte var.
 
+
+Libraries
+---------
+- pet32 target: make syslib more complete (missing kernal routines)?
+- need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 - fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
-- pet32 target: make syslib more complete (missing kernal routines)?
 - VM: implement the last diskio support (file listings)
 
 
-Optimizations:
-
+Optimizations
+-------------
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
