@@ -9,7 +9,7 @@ Requirements: Pillow  (pip install pillow)
 """
 
 from PIL import Image, PyAccess
-from typing import TypeAlias
+from typing import TypeAlias, Tuple, Optional
 
 RGBList: TypeAlias = list[tuple[int, int, int]]
 
@@ -182,26 +182,29 @@ class BitmapImage:
         palette_image.putpalette(palette)
         self.img = self.img.quantize(dither=dither, palette=palette_image)
 
-    def quantize(self, bits_per_pixel: int, preserve_first_16_colors: bool,
+    def quantize(self, bits_per_pixel: int, preserve_first_16_colors: bool = False, fixed_color_zero: Optional[Tuple[int, int, int]] = None,
                  dither: Image.Dither = Image.Dither.FLOYDSTEINBERG) -> None:
         """
         Convert the image to one with indexed colors (12 bits colorspace palette extended back into 8 bits per channel).
         If you want to display the image on the actual Commander X16, simply take the lower (or upper) 4 bits of every color channel.
         There is support for either 8 or 4 bits per pixel (256 or 16 color modes).
         Dithering is applied as given (default is Floyd-Steinberg).
+        preserve_first_16_colors:  set to True to keep the first 16 colors in the palette the same as the X16's default palette.
+        fixed_color_zero: set to tuple (R,G,B) to keep the first color entry in the palette to the given fixed color (4 bit per color channel color space).
         """
+        assert not(preserve_first_16_colors and fixed_color_zero), "preserve 16 and fixed color 0 are mutually exclusive"
         if bits_per_pixel == 8:
-            num_colors = 240 if preserve_first_16_colors else 256
+            num_colors = 240 if preserve_first_16_colors else (255 if fixed_color_zero else 256)
         elif bits_per_pixel == 4:
-            num_colors = 16
-            if preserve_first_16_colors:
+            num_colors = 15 if fixed_color_zero else 16
+            if num_colors==16 and preserve_first_16_colors:
                 return self.quantize_to(default_colors[:16])
         elif bits_per_pixel == 2:
             assert preserve_first_16_colors==False, "bpp is too small for 16 default colors"
-            num_colors = 4
+            num_colors = 3 if fixed_color_zero else 4
         elif bits_per_pixel == 1:
             assert preserve_first_16_colors==False, "bpp is too small for 16 default colors"
-            num_colors = 2
+            num_colors = 1 if fixed_color_zero else 2
         else:
             raise ValueError("only 8,4,2,1 bpp supported")
         image = self.img.convert("RGB")
@@ -212,6 +215,9 @@ class BitmapImage:
         palette_rgb = list(reversed(sorted(set(palette_8to4(palette_rgb)))))
         if preserve_first_16_colors:
             palette_rgb = default_colors[:16] + palette_rgb
+        elif fixed_color_zero:
+            assert fixed_color_zero[0]<16 and fixed_color_zero[1]<16 and fixed_color_zero[2]<16, "fixed color 0 must to be 4 bits per channel"
+            palette_rgb = [fixed_color_zero] + palette_rgb
         self.img = image
         self.quantize_to(palette_rgb, dither)
 
