@@ -1,13 +1,13 @@
-%import textio
+%import floats
 %option no_sysinit
 %zeropage basicsafe
 
 main {
+
+    extsub $8000 = routine(float xx @FAC1, float yy @FAC2)
+
     sub start() {
-        cx16.r0=0
-        repeat 65536 {
-            cx16.r0++
-        }
-        txt.print_uw(cx16.r0)
+        @($8000) = $60
+        routine(1.234, 2.3445)
     }
 }

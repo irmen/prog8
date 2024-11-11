@@ -1,7 +1,7 @@
 TODO
 ====
 
-support this usage of defer:
+support this usage of defer somehow?:
 
         if diskio.f_open(filename) {
             defer diskio.f_close()
@@ -51,6 +51,7 @@ Future Things and Ideas
 
 - ir: support %align on code chunks
 - ir: fix call() return value handling
+- ir: fix float register parameters (FAC1,FAC2) for extsubs, search for TODO("floating point register parameters not supported")
 - ir: proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - ir: idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.

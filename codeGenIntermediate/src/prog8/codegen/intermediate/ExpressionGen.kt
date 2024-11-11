@@ -608,6 +608,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         RegisterOrPair.AX -> addInstr(result, IRInstruction(Opcode.STOREHAX, IRDataType.WORD, reg1=tr.resultReg), null)
                         RegisterOrPair.AY -> addInstr(result, IRInstruction(Opcode.STOREHAY, IRDataType.WORD, reg1=tr.resultReg), null)
                         RegisterOrPair.XY -> addInstr(result, IRInstruction(Opcode.STOREHXY, IRDataType.WORD, reg1=tr.resultReg), null)
+                        RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> TODO("floating point register parameters not supported")
                         in Cx16VirtualRegisters -> {
                             addInstr(result, IRInstruction(Opcode.STOREM, paramDt, reg1=tr.resultReg, labelSymbol = "cx16.${parameter.register.registerOrPair.toString().lowercase()}"), null)
                         }
