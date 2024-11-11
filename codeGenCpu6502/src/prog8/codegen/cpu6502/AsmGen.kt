@@ -790,7 +790,7 @@ class AsmGen6502Internal (
                 when {
                     iterations == 0 -> {}
                     iterations == 1 -> translate(stmt.statements)
-                    iterations<0 || iterations>65535 -> throw AssemblyError("invalid number of iterations")
+                    iterations<0 || iterations>65536 -> throw AssemblyError("invalid number of iterations")
                     iterations <= 256 -> repeatByteCount(iterations, stmt)
                     else -> repeatWordCount(iterations, stmt)
                 }
@@ -830,10 +830,10 @@ class AsmGen6502Internal (
     }
 
     private fun repeatWordCount(iterations: Int, stmt: PtRepeatLoop) {
-        require(iterations in 257..65535) { "invalid repeat count ${stmt.position}" }
+        require(iterations in 257..65536) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
         val counterVar = createRepeatCounterVar(DataType.UWORD, isTargetCpu(CpuType.CPU65c02), stmt)
-        val loopcount = if(iterations and 0x00ff == 0) iterations else iterations + 0x0100   // so that the loop can simply use a double-dec
+        val loopcount = if(iterations==65536) 0 else if(iterations and 0x00ff == 0) iterations else iterations + 0x0100   // so that the loop can simply use a double-dec
         out("""
             ldy  #>$loopcount
             lda  #<$loopcount

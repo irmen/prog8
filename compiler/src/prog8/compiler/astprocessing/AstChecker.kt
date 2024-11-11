@@ -547,7 +547,7 @@ internal class AstChecker(private val program: Program,
         val iterations = repeatLoop.iterations?.constValue(program)
         if (iterations != null) {
             require(floor(iterations.number)==iterations.number)
-            if (iterations.number.toInt() > 65535) errors.err("repeat cannot go over 65535 iterations", iterations.position)
+            if (iterations.number.toInt() > 65536) errors.err("repeat cannot exceed 65536 iterations", iterations.position)
         }
 
         val ident = repeatLoop.iterations as? IdentifierReference
@@ -1700,8 +1700,10 @@ internal class AstChecker(private val program: Program,
 
     private fun checkLongType(expression: Expression) {
         if(expression.inferType(program).istype(DataType.LONG)) {
-            if(errors.noErrorForLine(expression.position))
-                errors.err("integer overflow", expression.position)
+            if(expression.parent !is RepeatLoop) {
+                if (errors.noErrorForLine(expression.position))
+                    errors.err("integer overflow", expression.position)
+            }
         }
     }
 

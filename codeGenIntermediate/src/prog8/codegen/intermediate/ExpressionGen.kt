@@ -894,7 +894,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(binExpr.left.type==DataType.STR || binExpr.right.type==DataType.STR) {
                 throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
             } else {
-                return if(constValue(binExpr.right)==0.0) {
+                return if(binExpr.right.asConstValue()==0.0) {
                     val tr = translateExpression(binExpr.left)
                     addToResult(result, tr, tr.resultReg, -1)
                     val opcode = if (notEquals) Opcode.SNZ else Opcode.SZ

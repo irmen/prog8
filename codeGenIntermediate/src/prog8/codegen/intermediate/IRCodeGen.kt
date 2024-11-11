@@ -1589,7 +1589,7 @@ class IRCodeGen(
     }
 
     private fun translate(repeat: PtRepeatLoop): IRCodeChunks {
-        when (constIntValue(repeat.count)) {
+        when (repeat.count.asConstInteger()) {
             0 -> return emptyList()
             1 -> return translateGroup(repeat.children)
             256 -> {
@@ -1600,18 +1600,30 @@ class IRCodeGen(
 
         val repeatLabel = createLabelName()
         val skipRepeatLabel = createLabelName()
-        val irDt = irType(repeat.count.type)
+        val constRepeats = repeat.count.asConstInteger()
         val result = mutableListOf<IRCodeChunkBase>()
-        val countTr = expressionEval.translateExpression(repeat.count)
-        addToResult(result, countTr, countTr.resultReg, -1)
-        if(constIntValue(repeat.count)==null) {
-            // check if the counter is already zero
-            addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = skipRepeatLabel), null)
-        }
-        result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)  // sets status bits
-            it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
+        if(constRepeats==65536) {
+            // make use of the word wrap around to count to 65536
+            val resultRegister = registers.nextFree()
+            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultRegister, immediate = 0), null)
+            result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.DEC, IRDataType.WORD, reg1 = resultRegister)  // sets status bits
+                it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
+            }
+        } else {
+            val irDt = irType(repeat.count.type)
+            val countTr = expressionEval.translateExpression(repeat.count)
+            addToResult(result, countTr, countTr.resultReg, -1)
+            if (repeat.count.asConstValue() == null) {
+                // check if the counter is already zero
+                addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = skipRepeatLabel), null)
+            }
+            result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.DEC, irDt, reg1 = countTr.resultReg)  // sets status bits
+                it += IRInstruction(Opcode.BSTNE, labelSymbol = repeatLabel)
+            }
         }
         result += IRCodeChunk(skipRepeatLabel, null)
         return result

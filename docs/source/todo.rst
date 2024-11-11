@@ -1,9 +1,7 @@
 TODO
 ====
 
-make repeat support 65536 iterations
-
-scripts/cx16_images : add an option to keep the first palette entry black (there's already the option to retain the first 16 entries)
+scripts/cx16_images : add an option to keep the first palette entry black (or any specific color) (there's already the option to retain the first 16 entries)
 
 support this usage of defer:
 

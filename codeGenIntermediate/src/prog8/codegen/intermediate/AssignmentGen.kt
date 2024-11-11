@@ -359,7 +359,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val variable = targetArray.variable.name
             val itemsize = codeGen.program.memsizer.memorySize(targetArray.type)
 
-            val fixedIndex = constIntValue(targetArray.index)
+            val fixedIndex = targetArray.index.asConstInteger()
             val arrayLength = codeGen.symbolTable.getLength(targetArray.variable.name)
             if(zero) {
                 if(fixedIndex!=null) {

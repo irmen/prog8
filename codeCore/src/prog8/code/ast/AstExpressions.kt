@@ -82,6 +82,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     }
 
     fun asConstInteger(): Int? = (this as? PtNumber)?.number?.toInt() ?: (this as? PtBool)?.asInt()
+    fun asConstValue(): Double? = (this as? PtNumber)?.number ?: (this as? PtBool)?.asInt()?.toDouble()
 
     fun isSimple(): Boolean {
         return when(this) {
@@ -378,7 +379,3 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code
 class PtIrRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position)
-
-
-fun constValue(expr: PtExpression): Double? = if(expr is PtNumber) expr.number else if(expr is PtBool) expr.asInt().toDouble() else null
-fun constIntValue(expr: PtExpression): Int? = if(expr is PtNumber) expr.number.toInt() else if(expr is PtBool) expr.asInt() else null
