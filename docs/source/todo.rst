@@ -8,6 +8,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- implement const long to store a 32 bit signed integer value. (constants should be able to be long?)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
 - on the C64: make the floating point routines @banked so that basic can be permanently banked out even if you use floats?  But this will crash when the call is done from program code at $a000+
@@ -24,13 +25,11 @@ Future Things and Ideas
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
 - Can we support signed % (remainder) somehow?
-
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
   that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful if we have typed pointers.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
-
 - [much work:] more support for (64tass) SEGMENTS ?
     - (What, how, isn't current BSS support enough?)
     - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
@@ -40,7 +39,6 @@ Future Things and Ideas
     - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
     - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
     - (need separate step in codegen and IR to write the "golden" variables)
-
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)

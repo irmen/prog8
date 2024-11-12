@@ -147,7 +147,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "starszoom",
             "tehtriz",
             "test_gfx_lores",
-            "test_gfx_hires4",
+            "test_gfx_hires",
             "testmonogfx",
         ),
         listOf(false, true)

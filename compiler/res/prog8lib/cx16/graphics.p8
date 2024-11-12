@@ -4,7 +4,7 @@
 ; Wraps the graphics functions that are in ROM.
 ; Only lo-res 320x240 256 color mode for now.
 ; Unlike graphics module on the C64, you can use colors() to set new drawing colors for every draw operation.
-; For other resolutions or other color modes, use the "gfx_lores", "gfx_hires4", or "monogfx" module instead.
+; For other resolutions or other color modes, use the "gfx_lores", "gfx_hires", or "monogfx" module instead.
 ; Note: there is no color palette manipulation here, you have to do that yourself or use the "palette" module.
 ;
 ; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!

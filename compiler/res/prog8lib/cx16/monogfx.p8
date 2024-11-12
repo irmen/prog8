@@ -2,7 +2,7 @@
 ; Using the full-screen 640x480 and 320x240 screen modes, in 1 bpp mode (black/white).
 ;
 ; No text layer is currently shown, but text can be drawn as part of the bitmap itself.
-; For color bitmap graphics, see the gfx_lores or gfx_hires4 libraries.
+; For color bitmap graphics, see the gfx_lores or gfx_hires libraries.
 ;
 ; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
 ;       You'll have to make sure yourself that you're not writing outside of bitmap boundaries!

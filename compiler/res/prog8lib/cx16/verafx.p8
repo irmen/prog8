@@ -28,7 +28,7 @@ verafx {
 
     sub clear(ubyte vbank, uword vaddr, ubyte data, uword num_longwords) {
         ; use cached 4-byte write to quickly clear a portion of the video memory to a given byte value
-        ; this routine is around 3 times faster as gfx_hires4/gfx_lores.clear_screen()
+        ; this routine is around 3 times faster as gfx_hires/gfx_lores.clear_screen()
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_H = vbank | %00110000       ; 4-byte increment
         cx16.VERA_ADDR_M = msb(vaddr)

@@ -919,8 +919,7 @@ gfx_lores and gfx_hires (cx16 only)
 Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
 
 - gfx_lores: optimized routines for 320x240  256 color bitmap graphics mode. Compatible with X16 screen mode 128.
-- gfx_hires4: optimized routines for 640x480  4 color bitmap graphics mode
-- bitmap mode
+- gfx_hires: optimized routines for 640x480  4 color bitmap graphics mode
 - enable bitmap graphics mode, also back to text mode
 - drawing and reading individual pixels
 - drawing lines, rectangles, filled rectangles, circles, discs
@@ -928,7 +927,7 @@ Full-screen multicolor bitmap graphics routines, available on the Cx16 machine o
 - drawing text inside the bitmap
 
 Read the `gfx_lores source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_lores.p8>`_
-or `gfx_hires4 source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_hires4.p8>`_
+or `gfx_hires source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_hires.p8>`_
 to see what's in there.
 
 They share the same routines.

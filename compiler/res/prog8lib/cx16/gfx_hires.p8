@@ -12,7 +12,7 @@
 ; This is compatible with the CX16's screen mode 128.  (void cx16.set_screen_mode(128))
 ;
 
-gfx_hires4 {
+gfx_hires {
 
     %option ignore_unused
 
@@ -144,7 +144,7 @@ gfx_hires4 {
                 and  #3
                 tay
                 lda  cx16.VERA_DATA0
-                and  p8b_gfx_hires4.p8s_plot.p8v_mask4c,y
+                and  p8b_gfx_hires.p8s_plot.p8v_mask4c,y
                 ora  p8v_colorbits,y
                 sta  cx16.VERA_DATA0
                 cpy  #%00000011         ; next vera byte?
@@ -189,11 +189,11 @@ gfx_hires4 {
         cx16.r2L = lsb(xx) & 3
         when color & 3 {
             0 -> color = 0
-            1 -> color = gfx_hires4.plot.shiftedleft_4c_1[cx16.r2L]
-            2 -> color = gfx_hires4.plot.shiftedleft_4c_2[cx16.r2L]
-            3 -> color = gfx_hires4.plot.shiftedleft_4c_3[cx16.r2L]
+            1 -> color = gfx_hires.plot.shiftedleft_4c_1[cx16.r2L]
+            2 -> color = gfx_hires.plot.shiftedleft_4c_2[cx16.r2L]
+            3 -> color = gfx_hires.plot.shiftedleft_4c_3[cx16.r2L]
         }
-        ubyte @shared mask = gfx_hires4.plot.mask4c[lsb(xx) & 3]
+        ubyte @shared mask = gfx_hires.plot.mask4c[lsb(xx) & 3]
         repeat lheight {
             %asm {{
                 lda  cx16.VERA_DATA0
@@ -561,7 +561,7 @@ gfx_hires4 {
             lda  p8v_xx
             and  #3
             tay
-            lda  p8b_gfx_hires4.p8s_plot.p8v_shift4c,y
+            lda  p8b_gfx_hires.p8s_plot.p8v_shift4c,y
             tay
             pla
             cpy  #0
@@ -704,7 +704,7 @@ skip:
 
         sub fill_scanline_left_2bpp() -> bool {
             uword vx = xx as uword
-            void gfx_hires4.addr_mul_24_for_highres_4c(yy as uword,vx)
+            void gfx_hires.addr_mul_24_for_highres_4c(yy as uword,vx)
             cx16.r1L |= %0001_1000  ; auto decrement
             set_vera_address()
             cmask = amask[lsb(vx) & 3]  ; set the color mask for the first color pel
@@ -748,7 +748,7 @@ set_byte:
         }
 
         sub fill_scanline_right_2bpp() {
-            void gfx_hires4.addr_mul_24_for_highres_4c(yy as uword,xx as uword)
+            void gfx_hires.addr_mul_24_for_highres_4c(yy as uword,xx as uword)
             cx16.r1L |= %00010000    ; auto increment
             set_vera_address()
             cmask = amask[lsb(xx) & 3]  ; set the color mask for the first color pel
@@ -891,12 +891,12 @@ set_byte:
                     if_cs {
                         cx16.r2L = cx16.r7L & 3       ; xbits
                         when cx16.r11L & 3 {
-                            1 -> cx16.r12L = gfx_hires4.plot.shiftedleft_4c_1[cx16.r2L]
-                            2 -> cx16.r12L = gfx_hires4.plot.shiftedleft_4c_2[cx16.r2L]
-                            3 -> cx16.r12L = gfx_hires4.plot.shiftedleft_4c_3[cx16.r2L]
+                            1 -> cx16.r12L = gfx_hires.plot.shiftedleft_4c_1[cx16.r2L]
+                            2 -> cx16.r12L = gfx_hires.plot.shiftedleft_4c_2[cx16.r2L]
+                            3 -> cx16.r12L = gfx_hires.plot.shiftedleft_4c_3[cx16.r2L]
                             else -> cx16.r12L = 0
                         }
-                        cx16.VERA_DATA0 = cx16.VERA_DATA0 & gfx_hires4.plot.mask4c[cx16.r2L] | cx16.r12L
+                        cx16.VERA_DATA0 = cx16.VERA_DATA0 & gfx_hires.plot.mask4c[cx16.r2L] | cx16.r12L
                     }
                     cx16.r7++
                     if (cx16.r7 & 3) == 0 {

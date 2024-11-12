@@ -5,7 +5,6 @@
 %import compression
 %import conv
 %import cx16logo
-%import diskio
 %import math
 %import prog8_lib
 %import string
