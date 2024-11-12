@@ -175,8 +175,8 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         ;     as soon as a negative word value (or 2) was used in the multiplication, these upper 16 bits are not valid!!
         ;     Suggestion (if you are on the Commander X16): use verafx.muls() to get a hardware accelerated 32 bit signed multplication.
         %asm {{
-            lda  multiply_words.result+2
-            ldy  multiply_words.result+3
+            lda  prog8_math.multiply_words.result+2
+            ldy  prog8_math.multiply_words.result+3
             rts
         }}
     }
@@ -650,5 +650,16 @@ log2_tab
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
         ; guarantees v = v1 when t = 255
         return v0 + msb(t as uword * (v1 - v0) + 255)
+    }
+
+    sub lerpw(uword v0, uword v1, uword t) -> uword {
+        ; Linear interpolation (LERP) on word values
+        ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
+        ; guarantees v = v1 when t = 65535
+        t *= v1-v0
+        cx16.r0 = math.mul16_last_upper()
+        if t!=0
+            cx16.r0++
+        return v0 + cx16.r0
     }
 }

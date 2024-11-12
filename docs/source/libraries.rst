@@ -677,6 +677,14 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
     Warning: this routine may stop working on the Commander X16 when a new ROM version is released,
     because it uses an internal BASIC routine. Then it will require a fix.
 
+``lerp(v0, v1, t)``
+    Linear interpolation (LERP). Precise method, which guarantees v = v1 when t = 1.
+    Returns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0.0, 1.0]
+
+``lerp_fast(v0, v1, t)```
+    Linear interpolation (LERP). Imprecise (but faster) method, which does not guarantee v = v1 when t = 1
+    Teturns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0.0, 1.0]
+
 
 graphics
 --------
@@ -822,6 +830,17 @@ but perhaps the provided ones can be of service too.
     Tracks the crc32 checksum in cx16.r14 and cx16.r15! If your code uses these, it must save/restore them before calling this routine!
     Call the start() routine first, feed it bytes with the update() routine, finalize with calling the end() routine.
     The 32 bits result is stored in cx16.r14 (low word) and cx16.r15 (high word).
+
+``lerp(v0, v1, t)``
+    Linear interpolation routine for unsigned byte values.
+    Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
+    Guarantees v = v1 when t = 255.
+
+``lerpw(v0, v1, t)``
+    Linear interpolation routine for unsigned word values.
+    Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
+    Guarantees v = v1 when t = 65535.
+
 
 cx16logo
 --------

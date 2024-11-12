@@ -406,4 +406,15 @@ math {
         ; guarantees v = v1 when t = 255
         return v0 + msb(t as uword * (v1 - v0) + 255)
     }
+
+    sub lerpw(uword v0, uword v1, uword t) -> uword {
+        ; Linear interpolation (LERP) on word values
+        ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
+        ; guarantees v = v1 when t = 65535
+        t *= v1-v0
+        cx16.r0 = math.mul16_last_upper()
+        if t!=0
+            cx16.r0++
+        return v0 + cx16.r0
+    }
 }
