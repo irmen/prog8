@@ -34,6 +34,22 @@ sprites {
         cx16.vpoke(1, sprite_reg+7, height_flag<<6 | width_flag<<4 | palette_offset&15) ; 64x64 pixels, palette offset
     }
 
+    sub reset(ubyte spritenum_start, ubyte count)  {
+        ; resets all sprite attributes for the given sprite range
+        ; this removes these sprites from the screen completely
+        ; (without disabling sprites globally so the mouse cursor remains visible)
+        if spritenum_start > 127
+            return
+        if count + spritenum_start > 128
+            return
+        cx16.VERA_CTRL   = $00
+        cx16.VERA_ADDR_H = $11
+        cx16.VERA_ADDR   = VERA_SPRITEREGS + spritenum_start * $0008
+        repeat count {
+            unroll 8 cx16.VERA_DATA0 = $00
+        }
+    }
+
     sub data(ubyte spritenum, ubyte bank, uword addr) {
         addr >>= 5
         addr |= (bank as uword)<<11
