@@ -22,6 +22,19 @@ import prog8tests.helpers.compileText
 class TestVariousCompilerAst: FunSpec({
     context("arrays") {
 
+        test("invalid array element proper errormessage") {
+            val text="""
+            main {
+                sub start() {
+                    uword[] commands = ["abc", 1.234]
+                }
+            }"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
+            errors.errors.size shouldBe 1
+            errors.errors[0] shouldContain "value has incompatible type"
+        }
+
         test("array literals") {
             val text="""
 %zeropage basicsafe

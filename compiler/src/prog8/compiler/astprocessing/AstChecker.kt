@@ -717,7 +717,7 @@ internal class AstChecker(private val program: Program,
         if(decl.names.size>1)
             throw InternalCompilerException("vardecls with multiple names should have been converted into individual vardecls")
 
-        if(decl.datatype==DataType.LONG)
+        if(decl.datatype==DataType.LONG && decl.type!=VarDeclType.CONST)
             errors.err("integer overflow", decl.position)
         if(decl.type==VarDeclType.MEMORY) {
             if (decl.datatype == DataType.BOOL || decl.datatype == DataType.ARRAY_BOOL)
@@ -1691,9 +1691,11 @@ internal class AstChecker(private val program: Program,
 
     private fun checkLongType(expression: Expression) {
         if(expression.inferType(program).istype(DataType.LONG)) {
-            if(expression.parent !is RepeatLoop) {
-                if (errors.noErrorForLine(expression.position))
-                    errors.err("integer overflow", expression.position)
+            if((expression.parent as? VarDecl)?.type!=VarDeclType.CONST) {
+                if (expression.parent !is RepeatLoop) {
+                    if (errors.noErrorForLine(expression.position))
+                        errors.err("integer overflow", expression.position)
+                }
             }
         }
     }
@@ -1830,30 +1832,37 @@ internal class AstChecker(private val program: Program,
             DataType.UBYTE -> {
                 if(value.type==DataType.FLOAT)
                     err("unsigned byte value expected instead of float; possible loss of precision")
-                val number=value.number.toInt()
+                val number=value.number
                 if (number < 0 || number > 255)
                     return err("value '$number' out of range for unsigned byte")
             }
             DataType.BYTE -> {
                 if(value.type==DataType.FLOAT)
                     err("byte value expected instead of float; possible loss of precision")
-                val number=value.number.toInt()
+                val number=value.number
                 if (number < -128 || number > 127)
                     return err("value '$number' out of range for byte")
             }
             DataType.UWORD -> {
                 if(value.type==DataType.FLOAT)
                     err("unsigned word value expected instead of float; possible loss of precision")
-                val number=value.number.toInt()
+                val number=value.number
                 if (number < 0 || number > 65535)
                     return err("value '$number' out of range for unsigned word")
             }
             DataType.WORD -> {
                 if(value.type==DataType.FLOAT)
                     err("word value expected instead of float; possible loss of precision")
-                val number=value.number.toInt()
+                val number=value.number
                 if (number < -32768 || number > 32767)
                     return err("value '$number' out of range for word")
+            }
+            DataType.LONG -> {
+                if(value.type==DataType.FLOAT)
+                    err("integer value expected instead of float; possible loss of precision")
+                val number=value.number
+                if (number < -2147483647 || number > 2147483647)
+                    return err("value '$number' out of range for long")
             }
             DataType.BOOL -> {
                 if (value.type!=DataType.BOOL) {

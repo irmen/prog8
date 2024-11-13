@@ -24,6 +24,50 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         return noModifications
     }
 
+    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        // check and possibly adjust value datatype vs decl datatype
+        val valueType = decl.value?.inferType(program)
+        if(valueType!=null && !valueType.istype(decl.datatype)) {
+            if(valueType.isUnknown) {
+                errors.err("value has incompatible type for ${decl.datatype}", decl.value!!.position)
+                return noModifications
+            }
+            val valueDt = valueType.getOr(DataType.UNDEFINED)
+            when(decl.type) {
+                VarDeclType.VAR -> {
+                    if(decl.isArray) {
+                        errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
+                    } else {
+                        if (valueDt.largerThan(decl.datatype)) {
+                            val constValue = decl.value?.constValue(program)
+                            if (constValue != null)
+                                errors.err("value '$constValue' out of range for ${decl.datatype}", constValue.position)
+                            else
+                                errors.err("value out of range for ${decl.datatype}", decl.value!!.position)
+                        } else {
+                            throw FatalAstException("value dt differs from decl dt ${decl.position}")
+                        }
+                    }
+                }
+                VarDeclType.CONST -> {
+                    // change the vardecl type itself as well, but only if it's smaller
+                    if(valueDt.largerThan(decl.datatype)) {
+                        val constValue = decl.value!!.constValue(program)!!
+                        errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
+                    } else {
+                        val changed = decl.copy(valueDt)
+                        return listOf(IAstModification.ReplaceNode(decl, changed, parent))
+                    }
+                }
+                VarDeclType.MEMORY -> if(!valueType.isWords && !valueType.isBytes)
+                    throw FatalAstException("value type for a memory var should be word or byte (address)")
+            }
+
+        }
+
+        return noModifications
+    }
+
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         return if(parent is IStatementContainer)
             listOf(ScopeFlatten(scope, parent as IStatementContainer))

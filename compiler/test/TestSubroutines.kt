@@ -17,7 +17,7 @@ import prog8tests.helpers.compileText
 
 class TestSubroutines: FunSpec({
 
-    test("string arg for byte param proper errormessage and subroutineptr in array too") {
+    test("string arg for byte param proper errormessage") {
         val text="""
             main {
                 sub func(ubyte bb) {
@@ -26,14 +26,12 @@ class TestSubroutines: FunSpec({
 
                 sub start() {
                     func("abc")
-                    uword[] commands = ["abc", 1.234]
                 }
             }"""
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
+        errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "type mismatch, was: STR expected: UBYTE"
-        errors.errors[1] shouldContain "value has incompatible type"
     }
 
     test("stringParameter") {

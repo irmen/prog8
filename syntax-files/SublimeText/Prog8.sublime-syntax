@@ -149,7 +149,7 @@ contexts:
     - match: (\b\w+\.)
       scope: entity.name.namespace.prog8
   storage:
-    - match: (\b(ubyte|byte|word|uword|float|str)\b)
+    - match: (\b(ubyte|byte|word|uword|long|float|str)\b)
       scope: storage.type.prog8
     - match: (\b(const)\b)
       scope: storage.modifier.prog8

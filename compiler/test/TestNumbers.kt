@@ -46,8 +46,8 @@ class TestNumbers: FunSpec({
         (-50050).toHex() shouldBe "-\$c382"
         (-65535).toHex() shouldBe "-\$ffff"
         (-65535L).toHex() shouldBe "-\$ffff"
-        shouldThrow<IllegalArgumentException> { 65536.toHex()  }
-        shouldThrow<IllegalArgumentException> { 65536L.toHex()  }
+        (65536).toHex() shouldBe "\$00010000"
+        (-65536).toHex() shouldBe "-\$00010000"
     }
 
     test("testFloatToMflpt5") {

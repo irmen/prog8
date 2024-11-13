@@ -293,7 +293,7 @@ class VarDecl(val type: VarDeclType,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && (value==null || node===value))
-        value = replacement
+        value = replacement     // note: any datatype differences between the value and the decl itself, will be fixed by a separate ast walker step
         replacement.parent = this
     }
 
@@ -311,10 +311,12 @@ class VarDecl(val type: VarDeclType,
             throw IllegalArgumentException("attempt to get zero value for vardecl that shouldn't get it")
     }
 
-    override fun copy(): VarDecl {
+    override fun copy(): VarDecl = copy(datatype)
+
+    fun copy(newDatatype: DataType): VarDecl {
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
-        val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), name, names, value?.copy(),
+        val copy = VarDecl(type, origin, newDatatype, zeropage, arraysize?.copy(), name, names, value?.copy(),
             sharedWithAsm, splitArray, alignment, dirty, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy

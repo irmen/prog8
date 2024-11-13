@@ -38,8 +38,9 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if(numLiteral.type==DataType.LONG) {
             // see if LONG values may be reduced to something smaller
             val smaller = NumericLiteral.optimalInteger(numLiteral.number.toInt(), numLiteral.position)
-            if(smaller.type!=DataType.LONG)
+            if(smaller.type!=DataType.LONG) {
                 return listOf(IAstModification.ReplaceNode(numLiteral, smaller, parent))
+            }
         }
 
         if(parent is Assignment) {
@@ -437,8 +438,9 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             }
             if(valueDt isnot decl.datatype) {
                 val cast = numval.cast(decl.datatype, true)
-                if (cast.isValid)
+                if (cast.isValid) {
                     return listOf(IAstModification.ReplaceNode(numval, cast.valueOrZero(), decl))
+                }
             }
         }
         return noModifications

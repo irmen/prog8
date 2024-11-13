@@ -167,7 +167,7 @@ constdecl: 'const' varinitializer ;
 
 memoryvardecl: ADDRESS_OF varinitializer;
 
-datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'float' | 'str' | 'bool' ;
+datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 'bool' ;
 
 arrayindex:  '[' expression ']' ;
 
