@@ -903,6 +903,13 @@ _no_msb_size
         }}
     }
 
+    inline asmsub progstart() -> uword @AY {
+        %asm {{
+            lda  #<prog8_program_start
+            ldy  #>prog8_program_start
+        }}
+    }
+
     inline asmsub push(ubyte value @A) {
         %asm {{
             pha

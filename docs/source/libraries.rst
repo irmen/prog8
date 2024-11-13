@@ -330,6 +330,11 @@ sys (part of syslib)
     Returns the last address of the program in memory + 1. This means: the memory address directly after all the program code and variables,
     including the uninitialized ones ("BSS" variables) and the uninitialized memory blocks reserved by the `memory()` function.
     Can be used to load dynamic data after the program, instead of hardcoding something.
+    On the assembly level: it returns the address of the symbol "``prog8_program_end``".
+
+``progstart ()``
+    Returns the first address of the program in memory. This usually is $0801 on the C64 and the X16, for example.
+    On the assembly level: it returns the address of the symbol "``prog8_program_start``".
 
 ``wait (uword jiffies)``
     wait approximately the given number of jiffies (1/60th seconds)

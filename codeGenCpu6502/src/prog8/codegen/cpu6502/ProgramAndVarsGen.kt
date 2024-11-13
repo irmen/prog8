@@ -91,6 +91,7 @@ internal class ProgramAndVarsGen(
             OutputType.RAW -> {
                 asmgen.out("; ---- raw assembler program ----")
                 asmgen.out("* = ${options.loadAddress.toHex()}")
+                asmgen.out("prog8_program_start\t; start of program label")
                 asmgen.out("  cld")
                 asmgen.out("  tsx  ; save stackpointer for sys.exit()")
                 asmgen.out("  stx  prog8_lib.orig_stackpointer")
@@ -106,6 +107,7 @@ internal class ProgramAndVarsGen(
                         }
                         asmgen.out("; ---- basic program with sys call ----")
                         asmgen.out("* = ${options.loadAddress.toHex()}")
+                        asmgen.out("prog8_program_start\t; start of program label")
                         val year = LocalDate.now().year
                         asmgen.out("  .word  (+), $year")
                         asmgen.out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
@@ -122,6 +124,7 @@ internal class ProgramAndVarsGen(
                         // this is the same as RAW
                         asmgen.out("; ---- program without basic sys call ----")
                         asmgen.out("* = ${options.loadAddress.toHex()}")
+                        asmgen.out("prog8_program_start\t; start of program label")
                         asmgen.out("  cld")
                         asmgen.out("  tsx  ; save stackpointer for sys.exit()")
                         asmgen.out("  stx  prog8_lib.orig_stackpointer")
@@ -134,6 +137,7 @@ internal class ProgramAndVarsGen(
             OutputType.XEX -> {
                 asmgen.out("; ---- atari xex program ----")
                 asmgen.out("* = ${options.loadAddress.toHex()}")
+                asmgen.out("prog8_program_start\t; start of program label")
                 asmgen.out("  cld")
                 asmgen.out("  tsx  ; save stackpointer for sys.exit()")
                 asmgen.out("  stx  prog8_lib.orig_stackpointer")
