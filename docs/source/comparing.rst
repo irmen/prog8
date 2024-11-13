@@ -41,6 +41,9 @@ Data types
 - strings and arrays are mutable: you can change their contents, but always keep the original storage size in mind to avoid overwriting memory outside of the buffer.
 - maximum string length is 255 characters + a trailing 0 byte.
 - maximum storage size for arrays is 256 bytes (512 for split word arrays) , the maximum number of elements in the array depends on the size of a single element value.
+  you can use larger "arrays" via pointer indexing, see below at Pointers.  One way of obtaining a piece of memory to store
+  such an "array" is by using  ``memory()`` builtin function.
+
 
 Variables
 ---------
@@ -72,7 +75,7 @@ Pointers
   You have to deal with the uword manually if the object it points to is something different.
 - Note that there is the ``peekw`` builtin function that *does* allow you to directy obtain the *word* value at the given memory location.
   So if you use this, you can use uword pointers as pointers to word values without much hassle.
-- "dereferencing" a uword pointer is done via array indexing (where index value can be 0-65535!) or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
+- "dereferencing" a uword pointer is done via array indexing ``ptr[index]`` (where index value can be 0-65535!) or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
 - Pointers don't have to be a variable, you can immediately access the value of a given memory location using ``@($d020)`` for instance.
   Reading is done by assigning it to a variable, writing is done by just assigning the new value to it.
 

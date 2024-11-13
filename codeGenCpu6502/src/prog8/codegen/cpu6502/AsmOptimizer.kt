@@ -3,6 +3,7 @@ package prog8.codegen.cpu6502
 import prog8.code.StConstant
 import prog8.code.StMemVar
 import prog8.code.SymbolTable
+import prog8.code.ast.PtLabel
 import prog8.code.core.IMachineDefinition
 
 
@@ -361,15 +362,16 @@ or *_afterif labels.
 This gets generated after certain if conditions, and only the branch instruction is needed in these cases.
          */
 
+        val autoLabelPrefix = PtLabel.GeneratedLabelPrefix
         if(first=="beq  +" && second=="lda  #1" && third=="+") {
-            if((fourth.startsWith("beq  label_") || fourth.startsWith("bne  label_")) &&
+            if((fourth.startsWith("beq  $autoLabelPrefix") || fourth.startsWith("bne  $autoLabelPrefix")) &&
                 (fourth.endsWith("_shortcut") || fourth.endsWith("_afterif") || fourth.endsWith("_shortcut:") || fourth.endsWith("_afterif:"))) {
                 mods.add(Modification(lines[0].index, true, null))
                 mods.add(Modification(lines[1].index, true, null))
                 mods.add(Modification(lines[2].index, true, null))
             }
-            else if(fourth.startsWith("label_") && (fourth.endsWith("_shortcut") || fourth.endsWith("_shortcut:"))) {
-                if((fifth.startsWith("beq  label_") || fifth.startsWith("bne  label_")) &&
+            else if(fourth.startsWith(autoLabelPrefix) && (fourth.endsWith("_shortcut") || fourth.endsWith("_shortcut:"))) {
+                if((fifth.startsWith("beq  $autoLabelPrefix") || fifth.startsWith("bne  $autoLabelPrefix")) &&
                     (fifth.endsWith("_shortcut") || fifth.endsWith("_afterif") || fifth.endsWith("_shortcut:") || fifth.endsWith("_afterif:"))) {
                     mods.add(Modification(lines[0].index, true, null))
                     mods.add(Modification(lines[1].index, true, null))

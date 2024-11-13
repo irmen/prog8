@@ -47,6 +47,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- constants are not retained in the IR file, they should. (need to be able to make asm labels from them eventually)
 - implement missing operators in AssignmentGen  (array shifts etc)
 - support %align on code chunks
 - fix call() return value handling
