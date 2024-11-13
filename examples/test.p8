@@ -3,7 +3,7 @@
 %option no_sysinit
 %zeropage basicsafe
 
-main {
+main $0810 {
     sub start() {
         ubyte sprite
 

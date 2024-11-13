@@ -11,6 +11,7 @@ class AtariMachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_POSITIVE = 9.999999999e97
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97
     override val FLOAT_MEM_SIZE = 6
+    override val STARTUP_CODE_RESERVED_SIZE = 20u
     override val PROGRAM_LOAD_ADDRESS = 0x2000u
     override val PROGRAM_MEMTOP_ADDRESS = 0xffffu  // TODO what's memtop?
 

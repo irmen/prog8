@@ -1,9 +1,6 @@
 TODO
 ====
 
-
-- make "block address must be at least program load address + 20 (to allow for startup logic)" more flexible;  the 20 should be a constant in the compilation target
-
 ...
 
 

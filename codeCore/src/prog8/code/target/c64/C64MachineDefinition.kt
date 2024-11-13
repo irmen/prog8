@@ -14,6 +14,7 @@ class C64MachineDefinition: IMachineDefinition {
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
+    override val STARTUP_CODE_RESERVED_SIZE = 20u
     override val PROGRAM_LOAD_ADDRESS = 0x0801u
     override val PROGRAM_MEMTOP_ADDRESS = 0xcfe0u      // $a000  if floats are used
             // note that at $cfe0-$cfff are the 16 'virtual registers' R0-R15

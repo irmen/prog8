@@ -410,7 +410,13 @@ private fun AugassignmentContext.toAst(): Assignment {
     return Assignment(assign_target().toAst(), expression, AssignmentOrigin.USERCODE, toPosition())
 }
 
-private fun DatatypeContext.toAst() = DataType.valueOf(text.uppercase())
+private fun DatatypeContext.toAst(): DataType {
+    try {
+        return DataType.valueOf(text.uppercase())
+    } catch (_: IllegalArgumentException) {
+        return DataType.UNDEFINED
+    }
+}
 
 private fun ArrayindexContext.toAst() : ArrayIndex =
         ArrayIndex(expression().toAst(), toPosition())

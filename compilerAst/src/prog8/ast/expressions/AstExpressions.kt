@@ -1182,7 +1182,12 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         return when (val targetStmt = targetStatement(program)) {
-            is VarDecl -> InferredTypes.knownFor(targetStmt.datatype)
+            is VarDecl -> {
+                if(targetStmt.datatype==DataType.UNDEFINED)
+                    InferredTypes.unknown()
+                else
+                    InferredTypes.knownFor(targetStmt.datatype)
+            }
             else -> InferredTypes.InferredType.unknown()
         }
     }
