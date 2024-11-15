@@ -58,6 +58,7 @@ Variables
 
 Subroutines
 -----------
+- There is no call stack. Subroutine parameters are overwritten when called again (recursion is not easily possible, but you can do it with manual stack manipulations).
 - There is no function overloading (except for a couple of builtin functions).
 - Some subroutine types can return multiple return values, and you can multi-assign those in a single statement.
 - Because every declared variable allocates some memory, it might be beneficial to share the same variables over different subroutines

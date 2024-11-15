@@ -7,8 +7,10 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- adjust builtin function call convention to also use X register? see class FSignature.
+- adjust funcion call convention for regular subroutines too?  Can it reuse the CallConvention class here? can it also start using the X register? see optimizeIntArgsViaRegisters()
 - implement const long to store a 32 bit signed integer value. (constants should be able to be long?) -> const_long branch
-- get rid of the BuiltinFunctionCall (and PtBuiltinFunctionCall)  ast nodes distinction, just use 1 node type, they're mixed up now already anyways.
+- get rid of the BuiltinFunctionCall (and PtBuiltinFunctionCall)  ast nodes distinction, just use 1 node type, they're mixed up now already anyways. -> remove-BFC-node branch
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
 - on the C64: make the floating point routines @banked so that basic can be permanently banked out even if you use floats?  But this will crash when the call is done from program code at $a000+

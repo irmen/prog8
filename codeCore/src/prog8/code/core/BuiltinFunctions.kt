@@ -49,11 +49,14 @@ class FSignature(val pure: Boolean,      // does it have side effects?
         return when {
             actualParamTypes.isEmpty() -> CallConvention(emptyList(), returns)
             actualParamTypes.size==1 -> {
-                // one parameter goes via register/registerpair
+                // One parameter goes via register/registerpair.
+                // this avoids repeated code for every caller to store the value in the subroutine's argument variable.
+                // (that store is still done, but only coded once at the start at the subroutine itself rather than at every call site).
+                // TODO can we start using the X register as well for a third byte or word+byte combo
                 val paramConv = when(val paramType = actualParamTypes[0]) {
                     DataType.UBYTE, DataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
                     DataType.UWORD, DataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    DataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)
+                    DataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)      // TODO is this correct? shouldn't it be FAC1?
                     in PassByReferenceDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
                     else -> ParamConvention(paramType, null, false)
                 }

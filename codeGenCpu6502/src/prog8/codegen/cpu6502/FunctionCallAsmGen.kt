@@ -15,6 +15,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // just ignore any result values from the function call.
     }
 
+    // TODO tweak subroutine call convention to also make use of X register to pass a third byte?
     internal fun optimizeIntArgsViaRegisters(sub: PtSub) =
         (sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypesWithBoolean)
                 || (sub.parameters.size==2 && sub.parameters[0].type in ByteDatatypesWithBoolean && sub.parameters[1].type in ByteDatatypesWithBoolean)

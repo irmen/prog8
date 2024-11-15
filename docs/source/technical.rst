@@ -137,42 +137,65 @@ Calling a subroutine requires three steps:
 #. preparing the return value (if any) and returning that from the call.
 
 
-``asmsub`` routines
+Regular subroutines
 ^^^^^^^^^^^^^^^^^^^
 
-These are usually declarations of Kernal (ROM) routines or low-level assembly only routines,
-that have their arguments solely passed into specific registers.
-Sometimes even via a processor status flag such as the Carry flag.
-Return values also via designated registers.
-The processor status flag is preserved on returning so you can immediately act on that for instance
-via a special branch instruction such as ``if_z`` or ``if_cs`` etc.
-
-
-regular subroutines
-^^^^^^^^^^^^^^^^^^^
-
-- subroutine parameters are just variables scoped to the subroutine.
-- the arguments passed in a call are evaluated and then copied into those variables.
-  Using variables for this sometimes can seem inefficient but it's required to allow subroutines to work locally
-  with their parameters and allow them to modify them as required, without changing the
-  variables used in the call's arguments.  If you want to get rid of this overhead you'll
-  have to make an ``asmsub`` routine in assembly instead.
-- the order of evaluation of subroutine call arguments *is unspecified* and should not be relied upon.
-- the return value is passed back to the caller via cpu register(s):
+- Each subroutine parameter is represented as a variable scoped to the subroutine. Prog8 doesn't have a call stack.
+- The arguments passed in a subroutine call are evaluated by the caller, and then put into those variables by the caller.
+  The order of evaluation of subroutine call arguments *is unspecified* and should not be relied upon.
+- The subroutine is invoked.
+- The return value is not put into a variable, but the subroutine passes it back to the caller via cpu register(s):
   Byte values will be put in ``A`` .
-  Word values will be put in ``A`` + ``Y`` register pair.
-  Float values will be put in the ``FAC1`` float 'register' (BASIC allocated this somewhere in ram).
+  Boolean values will be put in ``A`` too, as 0 or 1.
+  Word values will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
+  Float values will be put in the ``FAC1`` float 'register'.
+
+**Builtin functions can be different:**
+some builtin functions are special and won't exactly follow these rules.
+
+**Some arguments will be passed in registers:**
+For single byte and word arguments, the values are simply loaded in cpu registers by the caller before calling the subroutine.
+*The subroutine itself will take care of putting the values into the parameter variables.* This saves on code size because
+otherwise all callers would have to store the values in those variables themselves. The rules for this are as follows:
+
+Single byte parameter: ``sub foo(ubyte bar) { ... }``
+   gets bar in the accumulator A, *subroutine* stores it into parameter variable
+
+Two byte parameters: ``sub foo(ubyte bar, ubyte baz) { ... }``
+   gets bar in the accumulator A, and baz in Y, *subroutine* stores it into parameter variable
+
+Single word parameter: ``sub foo(uword bar) { ... }``
+    gets bar in the register pair A + Y (lsb in A, msb in Y), *subroutine* stores it into parameter variable
+
+Other: ``sub foo(ubyte bar, ubyte baz, ubyte zoo) { ... }``
+   register values indeterminate, values all get stored in the parameter variables *by the caller*
 
 
-Calls to builtin functions are treated in a special way:
-Generally if they have a single argument it's passed in a register or register pair.
-Multiple arguments are passed like a normal subroutine, into variables.
-Some builtin functions have a fully custom implementation.
 
+``asmsub`` and ``extsub`` routines
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The compiler will warn about routines that are called and that return a value, if you're not
-doing something with that returnvalue. This can be on purpose if you're simply not interested in it.
-Use the ``void`` keyword in front of the subroutine call to get rid of the warning in that case.
+These are kernal (ROM) routines or low-level assembly routines, that get their arguments via specific registers.
+Sometimes even via a processor status flag such as the Carry flag.
+Note that word values can be put in a "CPU register pair" such as AY (meaning A+Y registers) but also
+in one of the 16 'virtual' 16 bit registers introduced by the Commander X16, R0-R15.
+Float values can be put in the FAC1 or FAC2 floating point 'registers'.
+The return values also get returned via designated registers, or via processor status flags again.
+This means that after calling such a routine you can immediately act on the status
+via a special branch instruction such as ``if_z`` or ``if_cs`` etc.
+The register/status flag usage is fully specified in the asmsub or extsub signature defintion
+for both the parameters and the return values::
+
+    extsub $2000 = extfunction(ubyte arg1 @A, uword arg2 @XY, uword arg3 @R0,
+                               float frac @FAC1, bool flag @Pc) -> ubyte @Y, bool @Pz
+
+    asmsub function(ubyte arg1 @A, uword arg2 @XY, uword arg3 @R0,
+                    float frac @FAC1, bool flag @Pc) -> ubyte @Y, bool @Pz {
+        %asm {{
+            ...
+            ...
+        }}
+    }
 
 
 Compiler Internals
