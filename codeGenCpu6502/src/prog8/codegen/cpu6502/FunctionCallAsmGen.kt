@@ -15,10 +15,12 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // just ignore any result values from the function call.
     }
 
-    // TODO tweak subroutine call convention to also make use of X register to pass a third byte?
     internal fun optimizeIntArgsViaRegisters(sub: PtSub) =
-        (sub.parameters.size==1 && sub.parameters[0].type in IntegerDatatypesWithBoolean)
-                || (sub.parameters.size==2 && sub.parameters[0].type in ByteDatatypesWithBoolean && sub.parameters[1].type in ByteDatatypesWithBoolean)
+        when(sub.parameters.size) {
+            1 -> sub.parameters[0].type in IntegerDatatypesWithBoolean
+            2 -> sub.parameters[0].type in ByteDatatypesWithBoolean && sub.parameters[1].type in ByteDatatypesWithBoolean
+            else -> false
+        }
 
     internal fun translateFunctionCall(call: PtFunctionCall) {
         // Output only the code to set up the parameters and perform the actual call
@@ -123,17 +125,25 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         }
         else if(sub is PtSub) {
             if(optimizeIntArgsViaRegisters(sub)) {
-                if(sub.parameters.size==1) {
-                    val register = if (sub.parameters[0].type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
-                    argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], register)
-                } else {
-                    // 2 byte params, second in Y, first in A
-                    argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], RegisterOrPair.A)
-                    if(asmgen.needAsaveForExpr(call.args[1]))
-                        asmgen.out("  pha")
-                    argumentViaRegister(sub, IndexedValue(1, sub.parameters[1]), call.args[1], RegisterOrPair.Y)
-                    if(asmgen.needAsaveForExpr(call.args[1]))
-                        asmgen.out("  pla")
+                when(sub.parameters.size) {
+                    1 -> {
+                        val register = if (sub.parameters[0].type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
+                        argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], register)
+                    }
+                    2 -> {
+                        if(sub.parameters[0].type in ByteDatatypesWithBoolean && sub.parameters[1].type in ByteDatatypesWithBoolean) {
+                            // 2 byte params, second in Y, first in A
+                            argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], RegisterOrPair.A)
+                            if(asmgen.needAsaveForExpr(call.args[1]))
+                                asmgen.out("  pha")
+                            argumentViaRegister(sub, IndexedValue(1, sub.parameters[1]), call.args[1], RegisterOrPair.Y)
+                            if(asmgen.needAsaveForExpr(call.args[1]))
+                                asmgen.out("  pla")
+                        } else {
+                            throw AssemblyError("cannot use registers for word+byte")
+                        }
+                    }
+                    else -> throw AssemblyError("cannot use registers for >2 arguments")
                 }
             } else {
                 // arguments via variables

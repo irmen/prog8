@@ -1,6 +1,6 @@
 package prog8.code.core
 
-class ReturnConvention(val dt: DataType?, val reg: RegisterOrPair?, val floatFac1: Boolean)
+class ReturnConvention(val dt: DataType?, val reg: RegisterOrPair?)
 class ParamConvention(val dt: DataType, val reg: RegisterOrPair?, val variable: Boolean)
 class CallConvention(val params: List<ParamConvention>, val returns: ReturnConvention) {
     override fun toString(): String {
@@ -13,8 +13,8 @@ class CallConvention(val params: List<ParamConvention>, val returns: ReturnConve
         }
         val returnConv =
             when {
-                returns.reg!=null -> returns.reg.toString()
-                returns.floatFac1 -> "floatFAC1"
+                returns.reg == RegisterOrPair.FAC1 -> "floatFAC1"
+                returns.reg != null -> returns.reg.toString()
                 else -> "<no returnvalue>"
             }
         return "CallConvention[" + paramConvs.joinToString() + " ; returns: $returnConv]"
@@ -29,19 +29,19 @@ class FSignature(val pure: Boolean,      // does it have side effects?
 
     fun callConvention(actualParamTypes: List<DataType>): CallConvention {
         val returns: ReturnConvention = when (returnType) {
-            DataType.UBYTE, DataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A, false)
-            DataType.UWORD, DataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY, false)
-            DataType.FLOAT -> ReturnConvention(returnType, null, true)
-            in PassByReferenceDatatypes -> ReturnConvention(returnType!!, RegisterOrPair.AY, false)
-            null -> ReturnConvention(null, null, false)
+            DataType.UBYTE, DataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A)
+            DataType.UWORD, DataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY)
+            DataType.FLOAT -> ReturnConvention(returnType, RegisterOrPair.FAC1)
+            in PassByReferenceDatatypes -> ReturnConvention(returnType!!, RegisterOrPair.AY)
+            null -> ReturnConvention(null, null)
             else -> {
                 // return type depends on arg type
                 when (val paramType = actualParamTypes.first()) {
-                    DataType.UBYTE, DataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A, false)
-                    DataType.UWORD, DataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY, false)
-                    DataType.FLOAT -> ReturnConvention(paramType, null, true)
-                    in PassByReferenceDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY, false)
-                    else -> ReturnConvention(paramType, null, false)
+                    DataType.UBYTE, DataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A)
+                    DataType.UWORD, DataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY)
+                    DataType.FLOAT -> ReturnConvention(paramType, RegisterOrPair.FAC1)
+                    in PassByReferenceDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY)
+                    else -> ReturnConvention(paramType, null)
                 }
             }
         }
@@ -52,15 +52,23 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                 // One parameter goes via register/registerpair.
                 // this avoids repeated code for every caller to store the value in the subroutine's argument variable.
                 // (that store is still done, but only coded once at the start at the subroutine itself rather than at every call site).
-                // TODO can we start using the X register as well for a third byte or word+byte combo
                 val paramConv = when(val paramType = actualParamTypes[0]) {
                     DataType.UBYTE, DataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
                     DataType.UWORD, DataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    DataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)      // TODO is this correct? shouldn't it be FAC1?
+                    DataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)      // NOTE: for builtin functions, floating point arguments are passed by reference (so you get a pointer in AY)
                     in PassByReferenceDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
                     else -> ParamConvention(paramType, null, false)
                 }
                 CallConvention(listOf(paramConv), returns)
+            }
+            actualParamTypes.size==2 && (actualParamTypes[0] in ByteDatatypes && actualParamTypes[1] in WordDatatypes) -> {
+                TODO("opportunity to pass word+byte arguments in A,Y and X registers but not implemented yet")
+            }
+            actualParamTypes.size==2 && (actualParamTypes[0] in WordDatatypes && actualParamTypes[1] in ByteDatatypes) -> {
+                TODO("opportunity to pass word+byte arguments in A,Y and X registers but not implemented yet")
+            }
+            actualParamTypes.size==3 && actualParamTypes.all { it in ByteDatatypes } -> {
+                TODO("opportunity to pass 3 byte arguments in A,Y and X registers but not implemented yet")
             }
             else -> {
                 // multiple parameters go via variables

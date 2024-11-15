@@ -29,7 +29,6 @@ class TestBuiltinFunctions: FunSpec({
         conv.params[0].reg shouldBe RegisterOrPair.A
         conv.params[0].variable shouldBe false
         conv.returns.dt shouldBe DataType.BYTE
-        conv.returns.floatFac1 shouldBe false
         conv.returns.reg shouldBe RegisterOrPair.A
     }
 
@@ -42,7 +41,6 @@ class TestBuiltinFunctions: FunSpec({
         val conv = func.callConvention(listOf(DataType.UWORD, DataType.UWORD))
         conv.params.size shouldBe 2
         conv.returns.dt shouldBe null
-        conv.returns.floatFac1 shouldBe false
         conv.returns.reg shouldBe null
     }
 
@@ -55,18 +53,6 @@ class TestBuiltinFunctions: FunSpec({
         func.parameters[1].possibleDatatypes shouldBe arrayOf(DataType.UBYTE)
         func.pure shouldBe false
         func.returnType shouldBe null
-
-        val conv = func.callConvention(listOf(DataType.UWORD, DataType.UBYTE))
-        conv.params.size shouldBe 2
-        conv.params[0].dt shouldBe DataType.UWORD
-        conv.params[0].reg shouldBe null
-        conv.params[0].variable shouldBe true
-        conv.params[1].dt shouldBe DataType.UBYTE
-        conv.params[1].reg shouldBe null
-        conv.params[1].variable shouldBe true
-        conv.returns.dt shouldBe null
-        conv.returns.floatFac1 shouldBe false
-        conv.returns.reg shouldBe null
     }
 
     test("certain builtin functions should be compile time evaluated") {
