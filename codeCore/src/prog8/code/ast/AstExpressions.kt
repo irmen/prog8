@@ -350,12 +350,11 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
 
         val fromLv = from as? PtNumber
         val toLv = to as? PtNumber
-        val stepLv = step as? PtNumber
-        if(fromLv==null || toLv==null || stepLv==null)
+        if(fromLv==null || toLv==null)
             return null
         val fromVal = fromLv.number.toInt()
         val toVal = toLv.number.toInt()
-        val stepVal = stepLv.number.toInt()
+        val stepVal = step.number.toInt()
         return makeRange(fromVal, toVal, stepVal)
     }
 }
