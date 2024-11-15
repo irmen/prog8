@@ -18,7 +18,7 @@ main {
         word balloon_y = 120
 
         ; clear the screen (including all the tiles outside of the visible area)
-        cx16.vaddr(txt.VERA_TEXTMATRIX>>16, txt.VERA_TEXTMATRIX & $ffff, 0, 1)
+        cx16.vaddr(bnk(txt.VERA_TEXTMATRIX), txt.VERA_TEXTMATRIX & $ffff, 0, 1)
         repeat 128 * txt.DEFAULT_HEIGHT {
             cx16.VERA_DATA0 = sc:' '
             cx16.VERA_DATA0 = $00

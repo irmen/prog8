@@ -118,7 +118,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         is PtAddressOf -> value.arrayIndexExpr == null || notComplex(value.arrayIndexExpr!!)
         is PtBuiltinFunctionCall -> {
             when (value.name) {
-                in arrayOf("msb", "lsb", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> value.args.all { notComplex(it) }
+                in arrayOf("msb", "lsb", "bnk", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> value.args.all { notComplex(it) }
                 else -> false
             }
         }

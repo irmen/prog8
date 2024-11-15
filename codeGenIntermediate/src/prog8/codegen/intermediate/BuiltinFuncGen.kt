@@ -19,6 +19,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "callfar" -> funcCallfar(call)
             "callfar2" -> funcCallfar2(call)
             "call" -> funcCall(call)
+            "bnk" -> throw AssemblyError("bnk() should have been replaced by a const value at all times (either the bank number of a long const, or zero for any other smaller value)")
             "msb" -> funcMsb(call)
             "lsb" -> funcLsb(call)
             "memory" -> funcMemory(call)

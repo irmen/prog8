@@ -24,6 +24,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val sscope = fcall.definingISub()
 
         when (fcall.name) {
+            "bnk" -> throw AssemblyError("bnk() should have been replaced by a const value at all times (either the bank number of a long const, or zero for any other smaller value)")
             "msb" -> funcMsb(fcall, resultRegister)
             "lsb" -> funcLsb(fcall, resultRegister)
             "mkword" -> funcMkword(fcall, resultRegister)

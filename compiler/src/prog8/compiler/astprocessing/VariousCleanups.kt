@@ -341,5 +341,16 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
         return noModifications
     }
+
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+        if(functionCallExpr.target.nameInSource==listOf("bnk")) {
+            val valueDt = functionCallExpr.args[0].inferType(program)
+            if(valueDt.isWords || valueDt.isBytes) {
+                val zero = NumericLiteral.optimalInteger(0, functionCallExpr.position)
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, zero, parent))
+            }
+        }
+        return noModifications
+    }
 }
 

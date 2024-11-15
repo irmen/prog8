@@ -154,7 +154,7 @@ contexts:
     - match: (\b(const)\b)
       scope: storage.modifier.prog8
   support:
-    - match: (\b(abs|atan|ceil|cos|cos8u|cos8|cos16u|cos16|deg|floor|ln|log2|rad|round|sin|sgn|sin8u|sin8|sin16u|sin16|sqrt16|sqrt|tan|any|all|len|max|min|reverse|sum|sort|memcopy|memset|memsetw|leftstr|rightstr|strlen|strcmp|substr|exit|lsb|msb|mkword|rnd|rndw|rndf|rol|rol2|ror|ror2|rsave|rrestore|read_flags|sizeof|set_carry|clear_carry|set_irqd|clear_irqd|swap)\b)
+    - match: (\b(abs|atan|ceil|cos|cos8u|cos8|cos16u|cos16|deg|floor|ln|log2|rad|round|sin|sgn|sin8u|sin8|sin16u|sin16|sqrt16|sqrt|tan|any|all|len|max|min|reverse|sum|sort|memcopy|memset|memsetw|leftstr|rightstr|strlen|strcmp|substr|exit|lsb|msb|bnk|mkword|rnd|rndw|rndf|rol|rol2|ror|ror2|rsave|rrestore|read_flags|sizeof|set_carry|clear_carry|set_irqd|clear_irqd|swap)\b)
       scope: support.function.prog8
   variable:
     - match: (\b\w+\b)

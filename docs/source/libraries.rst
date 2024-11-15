@@ -91,10 +91,20 @@ cmp (x,y)
     Normally you should just use a comparison expression (``x < y``)
 
 lsb (x)
-    Get the least significant byte of the word x. Equivalent to the cast "x as ubyte".
+    Get the least significant (or 'lower') byte of the value x. Equivalent to the cast "x as ubyte".
 
 msb (x)
-    Get the most significant byte of the word x.
+    Get the most significant (or 'higher') byte of the word value x.
+    If x is a value greater than a word, it will not actually return the *highest* byte of this value,
+    but it will only look a the lower word part of this value and return the higher byte from that.
+    More accurately, you'll get bits 8-16 of the value x. So msb($1234) is $12, whereas msb($123456) is $34.
+    If you want to extract the actual highest byte from a long value, we call that the 'bank' byte and you
+    can do that using ``bnk(x)``.
+
+bnk (x)
+    Get the 'bank' byte from the value x. This means bits 16-24 of that value: bnk($1234567) = $12.
+    If x is a word or smaller, bnk(x) will always be zero.
+    You can consider this equivalent to the expression ``lsb(x >> 16)``.
 
 mkword (msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.

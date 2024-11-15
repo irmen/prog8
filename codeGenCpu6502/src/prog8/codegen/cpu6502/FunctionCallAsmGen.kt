@@ -161,7 +161,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     private fun usesOtherRegistersWhileEvaluating(arg: PtExpression): Boolean {
         return when(arg) {
             is PtBuiltinFunctionCall -> {
-                if (arg.name == "lsb" || arg.name == "msb")
+                if (arg.name in arrayOf("lsb", "msb", "bnk"))
                     return usesOtherRegistersWhileEvaluating(arg.args[0])
                 if (arg.name == "mkword")
                     return usesOtherRegistersWhileEvaluating(arg.args[0]) || usesOtherRegistersWhileEvaluating(arg.args[1])
