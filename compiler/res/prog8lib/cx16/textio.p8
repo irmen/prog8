@@ -12,9 +12,7 @@ txt {
 
 const ubyte DEFAULT_WIDTH = 80
 const ubyte DEFAULT_HEIGHT = 60
-
-const ubyte VERA_TEXTMATRIX_BANK = 1
-const uword VERA_TEXTMATRIX_ADDR = $b000
+const long VERA_TEXTMATRIX = $1b000
 
 extsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
 
@@ -131,10 +129,10 @@ _ly     ldy  #1                     ; modified
 
 set_vera_textmatrix_addresses:
         stz  cx16.VERA_CTRL
-        ora  #VERA_TEXTMATRIX_BANK
+        ora  #VERA_TEXTMATRIX>>16
         sta  cx16.VERA_ADDR_H
         stz  cx16.VERA_ADDR_L       ; start at (0,0)
-        lda  #>VERA_TEXTMATRIX_ADDR
+        lda  #>VERA_TEXTMATRIX
         sta  cx16.VERA_ADDR_M
         rts
 
@@ -280,18 +278,18 @@ asmsub  scroll_left() clobbers(A, X, Y)  {
 
 _nextline
         stz  cx16.VERA_CTRL     ; data port 0: source column
-        lda  #%00010000 | VERA_TEXTMATRIX_BANK        ; auto increment 1
+        lda  #%00010000 | VERA_TEXTMATRIX>>16        ; auto increment 1
         sta  cx16.VERA_ADDR_H
         lda  #2
         sta  cx16.VERA_ADDR_L   ; begin in column 1
         lda  P8ZP_SCRATCH_B1
         clc
-        adc  #>VERA_TEXTMATRIX_ADDR
+        adc  #>VERA_TEXTMATRIX
         tay
         sty  cx16.VERA_ADDR_M
         lda  #1
         sta  cx16.VERA_CTRL     ; data port 1: destination column
-        lda  #%00010000  | VERA_TEXTMATRIX_BANK         ; auto increment 1
+        lda  #%00010000  | VERA_TEXTMATRIX>>16         ; auto increment 1
         sta  cx16.VERA_ADDR_H
         stz  cx16.VERA_ADDR_L
         sty  cx16.VERA_ADDR_M
@@ -331,18 +329,18 @@ asmsub  scroll_right() clobbers(A,X,Y)  {
 
 _nextline
         stz  cx16.VERA_CTRL     ; data port 0: source column
-        lda  #%00011000 | VERA_TEXTMATRIX_BANK        ; auto decrement 1
+        lda  #%00011000 | VERA_TEXTMATRIX>>16        ; auto decrement 1
         sta  cx16.VERA_ADDR_H
 _rcol   lda  #79*2-1            ; modified
         sta  cx16.VERA_ADDR_L   ; begin in rightmost column minus one
         lda  P8ZP_SCRATCH_B1
         clc
-        adc  #>VERA_TEXTMATRIX_ADDR
+        adc  #>VERA_TEXTMATRIX
         tay
         sty  cx16.VERA_ADDR_M
         lda  #1
         sta  cx16.VERA_CTRL     ; data port 1: destination column
-        lda  #%00011000 | VERA_TEXTMATRIX_BANK        ; auto decrement 1
+        lda  #%00011000 | VERA_TEXTMATRIX>>16        ; auto decrement 1
         sta  cx16.VERA_ADDR_H
 _rcol2  lda  #79*2+1           ; modified
         sta  cx16.VERA_ADDR_L
@@ -373,18 +371,18 @@ asmsub  scroll_up() clobbers(A, X, Y)  {
 	    dey
         sty  P8ZP_SCRATCH_B1
         stz  cx16.VERA_CTRL         ; data port 0 is source
-        lda  #1 | (>VERA_TEXTMATRIX_ADDR)
+        lda  #1 | (>VERA_TEXTMATRIX)
         sta  cx16.VERA_ADDR_M       ; start at second line
         stz  cx16.VERA_ADDR_L
-        lda  #%00010000 | VERA_TEXTMATRIX_BANK
+        lda  #%00010000 | VERA_TEXTMATRIX>>16
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
         lda  #1
         sta  cx16.VERA_CTRL         ; data port 1 is destination
-        lda  #>VERA_TEXTMATRIX_ADDR
+        lda  #>VERA_TEXTMATRIX
         sta  cx16.VERA_ADDR_M       ; start at top line
         stz  cx16.VERA_ADDR_L
-        lda  #%00010000 | VERA_TEXTMATRIX_BANK
+        lda  #%00010000 | VERA_TEXTMATRIX>>16
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
 _nextline
@@ -424,10 +422,10 @@ asmsub  scroll_down() clobbers(A, X, Y)  {
         dey
         tya
         clc
-        adc  #>VERA_TEXTMATRIX_ADDR
+        adc  #>VERA_TEXTMATRIX
         sta  cx16.VERA_ADDR_M       ; start at line before bottom line
         stz  cx16.VERA_ADDR_L
-        lda  #%00010000 | VERA_TEXTMATRIX_BANK
+        lda  #%00010000 | VERA_TEXTMATRIX>>16
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
         lda  #1
@@ -435,10 +433,10 @@ asmsub  scroll_down() clobbers(A, X, Y)  {
         iny
         tya
         clc
-        adc  #>VERA_TEXTMATRIX_ADDR
+        adc  #>VERA_TEXTMATRIX
         sta  cx16.VERA_ADDR_M       ; start at bottom line
         stz  cx16.VERA_ADDR_L
-        lda  #%00010000 | VERA_TEXTMATRIX_BANK
+        lda  #%00010000 | VERA_TEXTMATRIX>>16
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
 _nextline
@@ -471,14 +469,14 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A)  {
 	%asm {{
             pha
             stz  cx16.VERA_CTRL
-            lda  #VERA_TEXTMATRIX_BANK
+            lda  #VERA_TEXTMATRIX>>16
             sta  cx16.VERA_ADDR_H
             txa
             asl  a
             sta  cx16.VERA_ADDR_L
             tya
             ; clc
-            adc  #>VERA_TEXTMATRIX_ADDR
+            adc  #>VERA_TEXTMATRIX
             sta  cx16.VERA_ADDR_M
             pla
             sta  cx16.VERA_DATA0
@@ -492,13 +490,13 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
             asl  a
             pha
             stz  cx16.VERA_CTRL
-            lda  #VERA_TEXTMATRIX_BANK
+            lda  #VERA_TEXTMATRIX>>16
             sta  cx16.VERA_ADDR_H
             pla
             sta  cx16.VERA_ADDR_L
             tya
             ; clc
-            adc  #>VERA_TEXTMATRIX_ADDR
+            adc  #>VERA_TEXTMATRIX
             sta  cx16.VERA_ADDR_M
             lda  cx16.VERA_DATA0
             rts
@@ -512,7 +510,7 @@ asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A)  {
 	%asm {{
             pha
             stz  cx16.VERA_CTRL
-            lda  #VERA_TEXTMATRIX_BANK
+            lda  #VERA_TEXTMATRIX>>16
             sta  cx16.VERA_ADDR_H
             txa
             asl  a
@@ -520,7 +518,7 @@ asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A)  {
             sta  cx16.VERA_ADDR_L
             tya
             ; clc
-            adc  #>VERA_TEXTMATRIX_ADDR
+            adc  #>VERA_TEXTMATRIX
             sta  cx16.VERA_ADDR_M
             pla
             sta  cx16.VERA_DATA0
@@ -535,13 +533,13 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
             ina
             pha
             stz  cx16.VERA_CTRL
-            lda  #VERA_TEXTMATRIX_BANK
+            lda  #VERA_TEXTMATRIX>>16
             sta  cx16.VERA_ADDR_H
             pla
             sta  cx16.VERA_ADDR_L
             tya
             ; clc
-            adc  #>VERA_TEXTMATRIX_ADDR
+            adc  #>VERA_TEXTMATRIX
             sta  cx16.VERA_ADDR_M
             lda  cx16.VERA_DATA0
             rts
@@ -558,12 +556,12 @@ sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor) {
             tax
             ldy  row
             stz  cx16.VERA_CTRL
-            lda  #VERA_TEXTMATRIX_BANK
+            lda  #VERA_TEXTMATRIX>>16
             sta  cx16.VERA_ADDR_H
             stx  cx16.VERA_ADDR_L
             tya
             ;clc
-            adc  #>VERA_TEXTMATRIX_ADDR
+            adc  #>VERA_TEXTMATRIX
             sta  cx16.VERA_ADDR_M
             lda  character
             sta  cx16.VERA_DATA0
@@ -589,12 +587,12 @@ sub  setcc2  (ubyte col, ubyte row, ubyte character, ubyte colors)  {
             tax
             ldy  row
             stz  cx16.VERA_CTRL
-            lda  #VERA_TEXTMATRIX_BANK
+            lda  #VERA_TEXTMATRIX>>16
             sta  cx16.VERA_ADDR_H
             stx  cx16.VERA_ADDR_L
             tya
             ; clc
-            adc  #>VERA_TEXTMATRIX_ADDR
+            adc  #>VERA_TEXTMATRIX
             sta  cx16.VERA_ADDR_M
             lda  character
             sta  cx16.VERA_DATA0

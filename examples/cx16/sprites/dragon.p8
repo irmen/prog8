@@ -8,9 +8,7 @@
 ; an example that displays and moves a single dragon (actually 2 sprites).
 
 main {
-    ; we choose arbitrary unused vram location for sprite data: $12000
-    const ubyte SPRITE_DATA_BANK = 1
-    const uword SPRITE_DATA_ADDR = $2000
+    const long SPRITE_DATA = $12000
     const ubyte SPRITE_PALETTE_OFFSET = 1       ; sprite palette at color index 16
 
     sub start() {
@@ -18,12 +16,12 @@ main {
         txt.print("there be dragons!")
 
         ; load the sprite data and color palette directly into Vera ram
-        void diskio.vload_raw("dragonsprite.bin", SPRITE_DATA_BANK, SPRITE_DATA_ADDR)
+        void diskio.vload_raw("dragonsprite.bin", SPRITE_DATA>>16, SPRITE_DATA & $ffff)
         void diskio.vload_raw("dragonsprite.pal", 1, $fa00 + SPRITE_PALETTE_OFFSET*16*2)
 
         ; initialize the dragon sprites
-        sprites.init(1, SPRITE_DATA_BANK, SPRITE_DATA_ADDR, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
-        sprites.init(2, SPRITE_DATA_BANK, SPRITE_DATA_ADDR + 64*64/2, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16,SPRITE_PALETTE_OFFSET)
+        sprites.init(1, SPRITE_DATA>>16, SPRITE_DATA & $ffff, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
+        sprites.init(2, SPRITE_DATA>>16, (SPRITE_DATA & $ffff) + 64*64/2, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16,SPRITE_PALETTE_OFFSET)
 
         ubyte tt = 0
         word xpos = -64

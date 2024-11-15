@@ -737,7 +737,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 throw FatalAstException("type cast of weird type $type")
             }
         }
-        return ValueAfterCast(false, "no cast available from $type to $targettype", null)
+        return ValueAfterCast(false, "no cast available from $type to $targettype number=$number", null)
     }
 
     fun convertTypeKeepValue(targetDt: DataType): ValueAfterCast {
