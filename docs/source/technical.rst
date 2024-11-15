@@ -144,11 +144,12 @@ Regular subroutines
 - The arguments passed in a subroutine call are evaluated by the caller, and then put into those variables by the caller.
   The order of evaluation of subroutine call arguments *is unspecified* and should not be relied upon.
 - The subroutine is invoked.
-- The return value is not put into a variable, but the subroutine passes it back to the caller via cpu register(s):
-  Byte values will be put in ``A`` .
-  Boolean values will be put in ``A`` too, as 0 or 1.
-  Word values will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
-  Float values will be put in the ``FAC1`` float 'register'.
+- The return value is not put into a variable, but the subroutine passes it back to the caller via register(s):
+
+  - A byte value will be put in ``A`` .
+  - A boolean value will be put in ``A`` too, as 0 or 1.
+  - A word value will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
+  - A float value will be put in the ``FAC1`` float 'register'.
 
 **Builtin functions can be different:**
 some builtin functions are special and won't exactly follow these rules.
@@ -166,6 +167,9 @@ Two byte parameters: ``sub foo(ubyte bar, ubyte baz) { ... }``
 
 Single word parameter: ``sub foo(uword bar) { ... }``
     gets bar in the register pair A + Y (lsb in A, msb in Y), *subroutine* stores it into parameter variable
+
+Floating point parameter: ``sub foo(float bar) { ... }``
+    value for bar gets copied into the parameter variable *by the caller*
 
 Other: ``sub foo(ubyte bar, ubyte baz, ubyte zoo) { ... }``
    register values indeterminate, values all get stored in the parameter variables *by the caller*

@@ -2,8 +2,9 @@
 
 main {
     sub start() {
+        float zz
         thing()
-        thang()
+        zz = thang(1.22)
         bool status
         cx16.r0L, status = extfunction(42, 11223, 999, 1.22, true)
         cx16.r0L, status = function(42, 11223, 999, 1.22, true)
@@ -18,8 +19,9 @@ main {
         return true
     }
 
-    sub thang() -> float {
-
+    sub thang(float arg) -> float {
+        arg++
+        return arg
     }
 
     sub func1(ubyte arg) {
