@@ -233,11 +233,6 @@ class AstPreprocessor(val program: Program,
         return noModifications
     }
 
-    override fun after(bfcs: BuiltinFunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        checkStringParam(bfcs as IFunctionCall, bfcs)
-        return noModifications
-    }
-
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         val stmtOfExpression = findParentNode<Statement>(functionCallExpr)
             ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")

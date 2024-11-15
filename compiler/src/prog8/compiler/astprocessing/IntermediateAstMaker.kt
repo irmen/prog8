@@ -44,7 +44,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             is Alias -> throw FatalAstException("alias should have been desugared")
             is Break -> throw FatalAstException("break should have been replaced by Goto")
             is Continue -> throw FatalAstException("continue should have been replaced by Goto")
-            is BuiltinFunctionCallStatement -> transform(statement)
             is BuiltinFunctionPlaceholder -> throw FatalAstException("BuiltinFunctionPlaceholder should not occur in Ast here")
             is ConditionalBranch -> transform(statement)
             is Directive -> transform(statement)
@@ -221,15 +220,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         return decls
     }
 
-    private fun transform(srcNode: BuiltinFunctionCallStatement): PtBuiltinFunctionCall {
-        val type = builtinFunctionReturnType(srcNode.name).getOr(DataType.UNDEFINED)
-        val noSideFx = BuiltinFunctions.getValue(srcNode.name).pure
-        val call = PtBuiltinFunctionCall(srcNode.name, true, noSideFx, type, srcNode.position)
-        for (arg in srcNode.args)
-            call.add(transformExpression(arg))
-        return call
-    }
-
     private fun transform(srcBranch: ConditionalBranch): PtConditionalBranch {
         val branch = PtConditionalBranch(srcBranch.condition, srcBranch.position)
         val trueScope = PtNodeGroup()
@@ -290,7 +280,19 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         return forloop
     }
 
-    private fun transform(srcCall: FunctionCallStatement): PtFunctionCall {
+    private fun transform(srcCall: FunctionCallStatement): PtExpression {
+        val singleName = srcCall.target.nameInSource.singleOrNull()
+        if(singleName!=null && singleName in BuiltinFunctions) {
+            // it is a builtin function. Create a special Ast node for that.
+            val type = builtinFunctionReturnType(singleName).getOr(DataType.UNDEFINED)
+            val noSideFx = BuiltinFunctions.getValue(singleName).pure
+            val call = PtBuiltinFunctionCall(singleName, true, noSideFx, type, srcCall.position)
+            for (arg in srcCall.args)
+                call.add(transformExpression(arg))
+            return call
+        }
+
+        // regular function call
         val (target, type) = srcCall.target.targetNameAndType(program)
         val call = PtFunctionCall(target, true, type, srcCall.position)
         for (arg in srcCall.args)

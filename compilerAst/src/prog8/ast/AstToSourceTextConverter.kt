@@ -259,10 +259,6 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         printout(functionCallStatement as IFunctionCall)
     }
 
-    override fun visit(bfcs: BuiltinFunctionCallStatement) {
-        printout(bfcs as IFunctionCall)
-    }
-
     private fun printout(call: IFunctionCall) {
         call.target.accept(this)
         output("(")

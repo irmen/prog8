@@ -1200,35 +1200,3 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
     override fun copy() = DirectMemoryWrite(addressExpression.copy(), position)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = addressExpression.referencesIdentifier(nameInSource)
 }
-
-
-// Calls to builtin functions will be replaced with this node just before handing the Ast to the codegen.
-// this is meant to eventually (?) be able to not have any FunctionCallStatement nodes to worry about anymore
-// However, if/when the codegen is moved over to use the new CodeAst (PtProgram etc. etc.) this is all moot.
-class BuiltinFunctionCallStatement(override var target: IdentifierReference,
-                                   override val args: MutableList<Expression>,
-                                   override val position: Position) : Statement(), IFunctionCall {
-    val name: String = target.nameInSource.single()
-
-    override lateinit var parent: Node
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        args.forEach { it.linkParents(this) }
-    }
-
-    override fun copy() = throw NotImplementedError("no support for duplicating a BuiltinFunctionCallStatement")
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        if(node===target)
-            target = replacement as IdentifierReference
-        else {
-            val idx = args.indexOfFirst { it===node }
-            args[idx] = replacement as Expression
-        }
-        replacement.parent = this
-    }
-
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || args.any { it.referencesIdentifier(nameInSource) }
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun toString() = "BuiltinFunctionCallStatement(name=$name, pos=$position)"
-}

@@ -115,7 +115,6 @@ abstract class AstWalker {
     open fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(bfcs: BuiltinFunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
@@ -161,7 +160,6 @@ abstract class AstWalker {
     open fun after(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(bfcs: BuiltinFunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
@@ -291,12 +289,6 @@ abstract class AstWalker {
         functionCallStatement.target.accept(this, functionCallStatement)
         functionCallStatement.args.forEach { it.accept(this, functionCallStatement) }
         track(after(functionCallStatement, parent), functionCallStatement, parent)
-    }
-
-    fun visit(bfcs: BuiltinFunctionCallStatement, parent: Node) {
-        track(before(bfcs, parent), bfcs, parent)
-        bfcs.args.forEach { it.accept(this, bfcs) }
-        track(after(bfcs, parent), bfcs, parent)
     }
 
     fun visit(identifier: IdentifierReference, parent: Node) {

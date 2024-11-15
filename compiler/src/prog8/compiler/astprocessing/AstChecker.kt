@@ -106,7 +106,7 @@ internal class AstChecker(private val program: Program,
             if (iterations < 0 || iterations > 65535)
                 errors.err("invalid number of unrolls", unrollLoop.position)
             unrollLoop.body.statements.forEach {
-                if (it !is InlineAssembly && it !is Assignment && it !is BuiltinFunctionCallStatement && it !is FunctionCallStatement)
+                if (it !is InlineAssembly && it !is Assignment && it !is FunctionCallStatement)
                     errors.err("invalid statement in unroll loop", it.position)
             }
             if (iterations * unrollLoop.body.statements.size > 256) {

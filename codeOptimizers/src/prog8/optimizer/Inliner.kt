@@ -94,14 +94,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                             false
                                     }
 
-                                    is BuiltinFunctionCallStatement -> {
-                                        val inline =
-                                            stmt.args.size <= 1 && stmt.args.all { it is NumericLiteral || it is IdentifierReference }
-                                        if (inline)
-                                            makeFullyScoped(stmt)
-                                        inline
-                                    }
-
                                     is FunctionCallStatement -> {
                                         val inline =
                                             stmt.args.size <= 1 && stmt.args.all { it is NumericLiteral || it is IdentifierReference }
@@ -130,14 +122,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 val scoped = (target as INamedStatement).scopedName
                 val scopedIdent = IdentifierReference(scoped, identifier.position)
                 modifications += IAstModification.ReplaceNode(identifier, scopedIdent, identifier.parent)
-            }
-        }
-
-        private fun makeFullyScoped(call: BuiltinFunctionCallStatement) {
-            val scopedArgs = makeScopedArgs(call.args)
-            if(scopedArgs.any()) {
-                val scopedCall = BuiltinFunctionCallStatement(call.target.copy(), scopedArgs.toMutableList(), call.position)
-                modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
             }
         }
 
