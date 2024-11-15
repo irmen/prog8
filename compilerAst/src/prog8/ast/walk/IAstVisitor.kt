@@ -54,11 +54,6 @@ interface IAstVisitor {
         functionCallExpr.args.forEach { it.accept(this) }
     }
 
-    fun visit(bfc: BuiltinFunctionCall) {
-        bfc.target.accept(this)
-        bfc.args.forEach { it.accept(this) }
-    }
-
     fun visit(functionCallStatement: FunctionCallStatement) {
         functionCallStatement.target.accept(this)
         functionCallStatement.args.forEach { it.accept(this) }

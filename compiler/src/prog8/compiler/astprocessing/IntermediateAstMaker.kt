@@ -76,7 +76,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             is ArrayIndexedExpression -> transform(expr)
             is ArrayLiteral -> transform(expr)
             is BinaryExpression -> transform(expr)
-            is BuiltinFunctionCall -> transform(expr)
             is CharLiteral -> throw FatalAstException("char literals should have been converted into bytes")
             is ContainmentCheck -> transform(expr)
             is DirectMemoryRead -> transform(expr)
@@ -299,7 +298,21 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         return call
     }
 
-    private fun transform(srcCall: FunctionCallExpression): PtFunctionCall {
+    private fun transform(srcCall: FunctionCallExpression): PtExpression {
+        val singleName = srcCall.target.nameInSource.singleOrNull()
+        if(singleName!=null) {
+            val builtinFunc = BuiltinFunctions[singleName]
+            if (builtinFunc != null) {
+                // it's a builtin function. Create special node type for this.
+                val noSideFx = builtinFunc.pure
+                val type = srcCall.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+                val call = PtBuiltinFunctionCall(singleName, false, noSideFx, type, srcCall.position)
+                for (arg in srcCall.args)
+                    call.add(transformExpression(arg))
+                return call
+            }
+        }
+
         val (target, _) = srcCall.target.targetNameAndType(program)
         val iType = srcCall.inferType(program)
         val call = PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
@@ -608,15 +621,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         return expr
     }
 
-    private fun transform(srcCall: BuiltinFunctionCall): PtBuiltinFunctionCall {
-        val type = srcCall.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val noSideFx = BuiltinFunctions.getValue(srcCall.name).pure
-        val call = PtBuiltinFunctionCall(srcCall.name, false, noSideFx, type, srcCall.position)
-        for (arg in srcCall.args)
-            call.add(transformExpression(arg))
-        return call
-    }
-
     private fun transform(srcCheck: ContainmentCheck): PtExpression {
 
         fun desugar(range: RangeExpression): PtExpression {
@@ -683,7 +687,6 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
             else -> throw FatalAstException("iterable in containmentcheck must always be an identifier (referencing string or array) or a range expression $srcCheck")
         }
     }
-
 
     private fun transform(memory: DirectMemoryWrite): PtMemoryByte {
         val mem = PtMemoryByte(memory.position)

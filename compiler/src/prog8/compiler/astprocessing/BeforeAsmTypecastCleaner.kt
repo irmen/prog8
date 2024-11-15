@@ -84,18 +84,6 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
         return noModifications
     }
 
-    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        if(functionCallExpr.target.nameInSource.singleOrNull() in program.builtinFunctions.names) {
-            return listOf(IAstModification.ReplaceNode(
-                functionCallExpr,
-                BuiltinFunctionCall(functionCallExpr.target, functionCallExpr.args, functionCallExpr.position),
-                parent
-            ))
-        }
-
-        return noModifications
-    }
-
     override fun after(bfcs: BuiltinFunctionCallStatement, parent: Node): Iterable<IAstModification> {
         if(bfcs.name=="cmp") {
             // if the datatype of the arguments of cmp() are different, cast the byte one to word.

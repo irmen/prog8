@@ -70,7 +70,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             if (rightNum!=null && rightNum.type==DataType.UWORD) {
                 if ((rightNum.number.toInt() and 0x00ff) == 0) {
                     // if WORD & $xx00  ->  if msb(WORD) & $xx
-                    val msb = BuiltinFunctionCall(IdentifierReference(listOf("msb"), booleanCondition.left.position), mutableListOf(booleanCondition.left), booleanCondition.left.position)
+                    val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), booleanCondition.left.position), mutableListOf(booleanCondition.left), booleanCondition.left.position)
                     val bytevalue = NumericLiteral(DataType.UBYTE, (rightNum.number.toInt() shr 8).toDouble(), booleanCondition.right.position)
                     return listOf(
                         IAstModification.ReplaceNode(booleanCondition.left, msb, booleanCondition),
@@ -78,7 +78,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 else if ((rightNum.number.toInt() and 0xff00) == 0) {
                     // if WORD & $00ff  ->  if lsb(WORD) & $ff
-                    val lsb = BuiltinFunctionCall(IdentifierReference(listOf("lsb"), booleanCondition.left.position), mutableListOf(booleanCondition.left), booleanCondition.left.position)
+                    val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), booleanCondition.left.position), mutableListOf(booleanCondition.left), booleanCondition.left.position)
                     val bytevalue = NumericLiteral(DataType.UBYTE, rightNum.number, booleanCondition.right.position)
                     return listOf(
                         IAstModification.ReplaceNode(booleanCondition.left, lsb, booleanCondition),
@@ -383,7 +383,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 if (andNum!=null) {
                     if ((andNum and 0x00ff) == 0) {
                         // (WORD & $xx00)==y  ->  (msb(WORD) & $xx)==y
-                        val msb = BuiltinFunctionCall(IdentifierReference(listOf("msb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
+                        val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
                         val bytevalue = NumericLiteral(DataType.UBYTE, (andNum shr 8).toDouble(), bitwise.right.position)
                         val rightvalByte = NumericLiteral(DataType.UBYTE, (rightVal.number.toInt() shr 8).toDouble(), rightVal.position)
                         return listOf(
@@ -394,7 +394,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     }
                     else if((andNum and 0xff00) == 0) {
                         // (WORD & $00xx)==y  ->  (lsb(WORD) & $xx)==y
-                        val lsb = BuiltinFunctionCall(IdentifierReference(listOf("lsb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
+                        val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
                         val bytevalue = NumericLiteral(DataType.UBYTE, andNum.toDouble(), bitwise.right.position)
                         val rightvalByte = NumericLiteral(DataType.UBYTE, (rightVal.number.toInt() and 255).toDouble(), rightVal.position)
                         return listOf(
@@ -696,7 +696,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                         DataType.BYTE -> return null        // is either 0 or -1 we cannot tell here
                         DataType.UWORD, DataType.WORD -> {
                             // just use:  msb(value) as type
-                            val msb = BuiltinFunctionCall(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
+                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                             return if(leftDt==DataType.WORD)
                                 TypecastExpression(msb, DataType.BYTE, true, expr.position)
                             else

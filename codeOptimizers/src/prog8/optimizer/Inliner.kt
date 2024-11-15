@@ -48,11 +48,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                             true
                                         } else if (stmt.value!! is IFunctionCall && (stmt.value as IFunctionCall).args.size <= 1 && (stmt.value as IFunctionCall).args.all { it is NumericLiteral || it is IdentifierReference }) {
                                             when (stmt.value) {
-                                                is BuiltinFunctionCall -> {
-                                                    makeFullyScoped(stmt.value as BuiltinFunctionCall)
-                                                    true
-                                                }
-
                                                 is FunctionCallExpression -> {
                                                     makeFullyScoped(stmt.value as FunctionCallExpression)
                                                     true
@@ -153,17 +148,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 val scopedArgs = makeScopedArgs(call.args)
                 if(scopedArgs.any()) {
                     val scopedCall = FunctionCallStatement(scopedName, scopedArgs.toMutableList(), call.void, call.position)
-                    modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
-                }
-            }
-        }
-
-        private fun makeFullyScoped(call: BuiltinFunctionCall) {
-            call.target.targetSubroutine(program)?.let { sub ->
-                val scopedName = IdentifierReference(sub.scopedName, call.target.position)
-                val scopedArgs = makeScopedArgs(call.args)
-                if(scopedArgs.any()) {
-                    val scopedCall = BuiltinFunctionCall(scopedName, scopedArgs.toMutableList(), call.position)
                     modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
                 }
             }

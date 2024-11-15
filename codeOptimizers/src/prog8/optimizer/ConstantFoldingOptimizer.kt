@@ -359,14 +359,6 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         }
     }
 
-    override fun after(bfc: BuiltinFunctionCall, parent: Node): Iterable<IAstModification> {
-        val constvalue = bfc.constValue(program)
-        return if(constvalue!=null)
-            listOf(IAstModification.ReplaceNode(bfc, constvalue, parent))
-        else
-            noModifications
-    }
-
     override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
         fun adjustRangeDt(rangeFrom: NumericLiteral, targetDt: DataType, rangeTo: NumericLiteral, stepLiteral: NumericLiteral?, range: RangeExpression): RangeExpression? {
             val fromCast = rangeFrom.cast(targetDt, true)

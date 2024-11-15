@@ -1214,8 +1214,10 @@ class FunctionCallExpression(override var target: IdentifierReference,
     }
 
     override fun copy() = FunctionCallExpression(target.copy(), args.map { it.copy() }.toMutableList(), position)
-    override val isSimple = false
-
+    override val isSimple = when (target.nameInSource.singleOrNull()) {
+        in arrayOf("msb", "lsb", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> this.args.all { it.isSimple }
+        else -> false
+    }
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===target)
             target=replacement as IdentifierReference
@@ -1341,50 +1343,6 @@ class ContainmentCheck(var element: Expression,
         else
             throw FatalAstException("invalid replace")
     }
-}
-
-class BuiltinFunctionCall(override var target: IdentifierReference,
-                          override val args: MutableList<Expression>,
-                          override val position: Position) : Expression(), IFunctionCall {
-
-    val name = target.nameInSource.single()
-
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        target.linkParents(this)
-        args.forEach { it.linkParents(this) }
-    }
-
-    override fun copy() = BuiltinFunctionCall(target.copy(), args.map { it.copy() }.toMutableList(), position)
-    override val isSimple = when (name) {
-        in arrayOf("msb", "lsb", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> this.args.all { it.isSimple }
-        else -> false
-    }
-
-    override fun replaceChildNode(node: Node, replacement: Node) {
-        if(node===target)
-            target=replacement as IdentifierReference
-        else {
-            val idx = args.indexOfFirst { it===node }
-            args[idx] = replacement as Expression
-        }
-        replacement.parent = this
-    }
-
-    override fun constValue(program: Program): NumericLiteral? {
-        val function = BuiltinFunctions.getValue(name)
-        if(function.pure) {
-            return program.builtinFunctions.constValue(name, args, position)
-        }
-        return null
-    }
-    override fun toString() = "BuiltinFunctionCall(name=$name, pos=$position)"
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)}
-    override fun inferType(program: Program) = program.builtinFunctions.returnType(name)
 }
 
 class IfExpression(var condition: Expression, var truevalue: Expression, var falsevalue: Expression, override val position: Position) : Expression() {

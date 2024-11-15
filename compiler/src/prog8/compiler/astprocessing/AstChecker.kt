@@ -1400,13 +1400,6 @@ internal class AstChecker(private val program: Program,
         super.visit(functionCallExpr)
     }
 
-    override fun visit(bfc: BuiltinFunctionCall) {
-        // most function calls, even to builtin functions, are still regular FunctionCall nodes here.
-        // they get converted to the more specialized node type in BeforeAsmTypecastCleaner
-        checkLongType(bfc)
-        super.visit(bfc)
-    }
-
     override fun visit(functionCallStatement: FunctionCallStatement) {
         // most function calls, even to builtin functions, are still regular FunctionCall nodes here.
         // they get converted to the more specialized node type in BeforeAsmTypecastCleaner

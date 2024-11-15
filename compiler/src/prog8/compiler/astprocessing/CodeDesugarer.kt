@@ -48,7 +48,7 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
                 is ForLoop,
                 is RepeatLoop,
                 is UntilLoop,
-                is WhileLoop -> return jumpAfter(partof as Statement)
+                is WhileLoop -> return jumpAfter(partof)
                 else -> partof = partof.parent
             }
         }
@@ -238,7 +238,7 @@ _after:
 
             if(isStringComparison(leftDt, rightDt)) {
                 // replace string comparison expressions with calls to string.compare()
-                val stringCompare = BuiltinFunctionCall(
+                val stringCompare = FunctionCallExpression(
                     IdentifierReference(listOf("prog8_lib_stringcompare"), expr.position),
                     mutableListOf(expr.left.copy(), expr.right.copy()), expr.position)
                 val zero = NumericLiteral.optimalInteger(0, expr.position)
@@ -250,7 +250,7 @@ _after:
         if(expr.operator=="*" && expr.inferType(program).isInteger && expr.left isSameAs expr.right) {
             // replace squaring with call to builtin function to do this in a more optimized way
             val function = if(expr.left.inferType(program).isBytes) "prog8_lib_square_byte" else "prog8_lib_square_word"
-            val squareCall = BuiltinFunctionCall(
+            val squareCall = FunctionCallExpression(
                 IdentifierReference(listOf(function), expr.position),
                 mutableListOf(expr.left.copy()), expr.position)
             return listOf(IAstModification.ReplaceNode(expr, squareCall, parent))

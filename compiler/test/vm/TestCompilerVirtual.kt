@@ -6,7 +6,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
-import prog8.ast.expressions.BuiltinFunctionCall
+import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.statements.Assignment
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
@@ -175,7 +175,7 @@ main {
         val result = compileText(target, true, src, writeAssembly = true)!!
         val start = result.compilerAst.entrypoint
         start.statements.size shouldBe 9
-        ((start.statements[1] as Assignment).value as BuiltinFunctionCall).name shouldBe "memory"
+        ((start.statements[1] as Assignment).value as FunctionCallExpression).target.nameInSource shouldBe listOf("memory")
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUB(2) shouldBe 42u
