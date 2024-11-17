@@ -1,6 +1,7 @@
 package prog8tests.ast
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -459,6 +460,23 @@ main {
     }
 
 context("various") {
+    test("no crash for all sorts of undefined variables in complex expression") {
+        val src = """
+%import floats
+
+main {
+    sub start() {
+        x_position = (((floats.cos(CORNER_ANGLE + theta) * distance_to_corner) + (position_offset as float)) * 256.0) as word
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBeGreaterThan 1
+        errors.clear()
+        compileText(C64Target(), optimize=true, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBeGreaterThan 1
+    }
+
     test("symbol names in inline assembly blocks") {
         val names1 = InlineAssembly("""
             

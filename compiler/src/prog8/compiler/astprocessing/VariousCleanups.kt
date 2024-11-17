@@ -58,8 +58,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {
-            val targetDt = parent.target.inferType(program).getOrElse { throw FatalAstException("invalid dt ${parent.target.position}") }
-            if(sourceDt istype targetDt) {
+            val targetDt = parent.target.inferType(program).getOr(DataType.UNDEFINED)
+            if(targetDt!=DataType.UNDEFINED && sourceDt istype targetDt) {
                 // we can get rid of this typecast because the type is already the target type
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
