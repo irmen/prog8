@@ -3,7 +3,7 @@
 
 main {
     sub start() {
-        romsub $fff1 = WriteCharacter(ubyte character @A)
+        extsub $fff1 = WriteCharacter(ubyte character @A)
 
         for cx16.r0L in "\n\n\n.... Hello from Prog8 :-)"
             WriteCharacter(cx16.r0L)

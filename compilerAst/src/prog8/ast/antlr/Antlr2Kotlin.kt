@@ -176,8 +176,6 @@ private fun AsmsubroutineContext.toAst(): Subroutine {
 }
 
 private fun ExtsubroutineContext.toAst(): Subroutine {
-    if(this.text.startsWith("romsub"))
-        println("INFO  ${toPosition().toClickableStr()} 'romsub' keyword is deprecated, change to 'extsub'")        // TODO eventually, remove this 'romsub' support altogether
     val subdecl = asmsub_decl().toAst()
     val constbank = constbank?.toAst()?.number?.toUInt()?.toUByte()
     val varbank = varbank?.toAst()
