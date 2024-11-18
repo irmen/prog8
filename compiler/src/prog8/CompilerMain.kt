@@ -41,7 +41,6 @@ fun pathFrom(stringPath: String, vararg rest: String): Path  = FileSystems.getDe
 
 private fun compileMain(args: Array<String>): Boolean {
     val cli = ArgParser("prog8c", prefixStyle = ArgParser.OptionPrefixStyle.JVM)
-    val addMissingRts by cli.option(ArgType.Boolean, fullName = "addmissingrts", description="enable old behavior that silently adds RTS to asmsubs that don't have one (deprecated, may go away in future version)")
     val asmListfile by cli.option(ArgType.Boolean, fullName = "asmlist", description = "make the assembler produce a listing file as well")
     val breakpointCpuInstruction by cli.option(ArgType.Choice(listOf("brk", "stp"), { it }), fullName = "breakinstr", description = "the CPU instruction to use as well for %breakpoint")
     val bytes2float by cli.option(ArgType.String, fullName = "bytes2float", description = "convert a comma separated list of bytes from the target system to a float value. NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!")
@@ -180,7 +179,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     slabsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
-                    addMissingRts == true,
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
@@ -261,7 +259,6 @@ private fun compileMain(args: Array<String>): Boolean {
                     slabsGolden == true,
                     compilationTarget!!,
                     splitWordArrays == true,
-                    addMissingRts == true,
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,

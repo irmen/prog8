@@ -83,21 +83,10 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
 
         if (!subroutine.inline) {
             if (subroutine.isAsmSubroutine && subroutine.asmAddress==null) {
-                if(!options.addMissingRts && !subroutine.hasRtsInAsm(true)) {
-                    errors.err("asmsub seems to never return as it doesn't end with RTS/JMP/branch. If this is intended, add a '; !notreached!' comment at the end, or use -addmissingrts", subroutine.position)
-                }
-                else if (!subroutine.hasRtsInAsm(false)) {
-                    // make sure the NOT INLINED asm subroutine actually has a rts at the end
-                    // (non-asm routines get a Return statement as needed, above)
-                    if(options.addMissingRts) {
-                        errors.info("added missing RTS to asmsub", subroutine.position)
-                        mods += if(options.compTarget.name==VMTarget.NAME)
-                            IAstModification.InsertLast(InlineAssembly("  return\n", true, Position.DUMMY), subroutine)
-                        else
-                            IAstModification.InsertLast(InlineAssembly("  rts\n", false, Position.DUMMY), subroutine)
-                    } else
-                        errors.err("asmsub seems to never return as it doesn't end with RTS/JMP/branch. If this is intended, add a '; !notreached!' comment at the end, or use -addmissingrts", subroutine.position)
-                }
+                if(!subroutine.hasRtsInAsm(true))
+                    errors.err("asmsub seems to never return as it doesn't end with RTS/JMP/branch. If this is intended, add a '; !notreached!' comment at the end", subroutine.position)
+                else if (!subroutine.hasRtsInAsm(false))
+                    errors.err("asmsub seems to never return as it doesn't end with RTS/JMP/branch. If this is intended, add a '; !notreached!' comment at the end", subroutine.position)
             }
         }
 

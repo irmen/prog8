@@ -28,7 +28,6 @@ class CompilationOptions(val output: OutputType,
                          var slabsHighBank: Int? = null,
                          var slabsGolden: Boolean = false,
                          var splitWordArrays: Boolean = false,
-                         var addMissingRts: Boolean = false,        // deprecated, will likely go way in future version
                          var breakpointCpuInstruction: String? = null,
                          var outputDir: Path = Path(""),
                          var symbolDefs: Map<String, String> = emptyMap()
