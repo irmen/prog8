@@ -401,7 +401,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 val prefixedFcall = prefix.expression as? FunctionCallExpression
                 if (prefixedFcall != null) {
                     val returnRegs = prefixedFcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
-                    if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
+                    if (returnRegs != null && returnRegs.size == 1 && returnRegs[0].statusflag != null) {
                         return codeForStatusflag(prefixedFcall, returnRegs[0].statusflag!!, true)
                     }
                 }

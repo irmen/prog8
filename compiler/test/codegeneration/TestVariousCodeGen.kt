@@ -9,6 +9,9 @@ import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtBinaryExpression
+import prog8.code.ast.PtFunctionCall
+import prog8.code.ast.PtIfElse
+import prog8.code.ast.PtPrefix
 import prog8.code.ast.PtVariable
 import prog8.code.core.DataType
 import prog8.code.target.*
@@ -513,5 +516,51 @@ main {
 }"""
 
         compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
+
+    test("if not without else is not swapped") {
+        val src="""
+main {
+    sub start() {
+        if not thing()
+            cx16.r0++
+    }
+
+    sub thing() -> bool {
+        cx16.r0++
+        return false
+    }
+}"""
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        val st = result.codegenAst!!.entrypoint()!!.children
+        st.size shouldBe 2
+        val ifelse = st[0] as PtIfElse
+        ifelse.hasElse() shouldBe false
+        (ifelse.condition as PtPrefix).operator shouldBe "not"
+    }
+
+    test("if not with else is swapped") {
+        val src="""
+main {
+    sub start() {
+        if not thing()
+            cx16.r0++
+        else
+            cx16.r1++
+    }
+
+    sub thing() -> bool {
+        cx16.r0++
+        return false
+    }
+}"""
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        val st = result.codegenAst!!.entrypoint()!!.children
+        st.size shouldBe 2
+        val ifelse = st[0] as PtIfElse
+        ifelse.hasElse() shouldBe true
+        ifelse.condition shouldBe instanceOf<PtFunctionCall>()
     }
 })
