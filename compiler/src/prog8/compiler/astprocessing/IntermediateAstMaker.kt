@@ -28,7 +28,14 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         )
 
         // note: modules are not represented any longer in this Ast. All blocks have been moved into the top scope.
-        for (block in program.allBlocks)
+
+        // (re)sort the blocks: "main" first, then all blocks without addresses, then all blocks with addresses (sorted by ascending address)
+        val sortedBlocks = program.allBlocks.sortedBy {
+            if(it.name=="main") UInt.MIN_VALUE
+            else if(it.address==null) UInt.MIN_VALUE+1u
+            else it.address
+        }
+        for (block in sortedBlocks)
             ptProgram.add(transform(block))
 
         return ptProgram

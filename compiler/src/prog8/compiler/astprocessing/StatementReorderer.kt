@@ -12,9 +12,8 @@ internal class StatementReorderer(
     val errors: IErrorReporter
 ) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
-    // - 'main' block must be the very first statement UNLESS it has an address set.
-    // - library blocks are put last.
-    // - blocks are ordered by address, where blocks without address are placed last.
+    // - 'main' block must be the very first.
+    // - blocks without address come next, after those, blocks with addresses (sorted bye ascending address)
     // - in every block and module, most directives and vardecls are moved to the top. (not in subroutines!)
     // - the 'start' subroutine is moved to the top.
     // - (syntax desugaring) a vardecl with a non-const initializer value is split into a regular vardecl and an assignment statement.
@@ -27,10 +26,11 @@ internal class StatementReorderer(
     override fun after(module: Module, parent: Node): Iterable<IAstModification> {
         val (blocks, other) = module.statements.partition { it is Block }
         module.statements.clear()
-        module.statements.addAll(other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: UInt.MAX_VALUE }))
+        module.statements.addAll(other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: UInt.MIN_VALUE }))
+        // note: the block sort order is finalized in the second Ast, see IntermediateAstMaker
 
         val mainBlock = module.statements.asSequence().filterIsInstance<Block>().firstOrNull { it.name=="main" }
-        if(mainBlock!=null && mainBlock.address==null) {
+        if(mainBlock!=null) {
             module.statements.remove(mainBlock)
             module.statements.add(0, mainBlock)
         }
@@ -174,14 +174,6 @@ internal class StatementReorderer(
     }
 
     override fun before(block: Block, parent: Node): Iterable<IAstModification> {
-        parent as Module
-        if(block.isInLibrary) {
-            return listOf(
-                    IAstModification.Remove(block, parent),
-                    IAstModification.InsertLast(block, parent)
-            )
-        }
-
         directivesToTheTop(block.statements)
         return noModifications
     }

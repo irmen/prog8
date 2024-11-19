@@ -3,13 +3,19 @@ package prog8tests.ast
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldBeIn
+import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.Module
 import prog8.ast.Program
+import prog8.ast.statements.Block
+import prog8.code.ast.PtBlock
+import prog8.code.ast.PtBool
 import prog8.code.core.Position
 import prog8.code.core.SourceCode
 import prog8.code.core.internedStringsModuleName
@@ -194,5 +200,79 @@ txt {
             errors.errors.size shouldBe 1
             errors.errors[0] shouldContain "name conflict"
         }
+    }
+
+    test("block sort order") {
+        val src="""
+%import textio
+
+main ${'$'}0a00 {
+    sub start() {
+        otherblock1.foo()
+        otherblock2.foo()
+    }
+}
+
+otherblock1 {
+    sub foo() {
+        txt.print("main.start:       ")
+        txt.print_uwhex(&main.start, true)
+        txt.nl()
+        txt.print("datablock1 array: ")
+        txt.print_uwhex(&datablock1.array1, true)
+        txt.nl()
+        txt.print("datablock2 array: ")
+        txt.print_uwhex(&datablock2.array2, true)
+        txt.nl()
+        txt.print("otherblock1.foo:  ")
+        txt.print_uwhex(&foo, true)
+        txt.nl()
+    }
+}
+
+otherblock2 {
+    sub foo() {
+        txt.print("otherblock2.foo:  ")
+        txt.print_uwhex(&otherblock2.foo, true)
+        txt.nl()
+    }
+}
+
+datablock1 ${'$'}9000 {
+    ubyte[5] @shared array1 = [1,2,3,4,5]
+}
+
+datablock2 ${'$'}8000 {
+    ubyte[5] @shared array2 = [1,2,3,4,5]
+}
+"""
+
+        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+        result.compilerAst.allBlocks.size shouldBeGreaterThan 5
+        result.compilerAst.modules.drop(2).all { it.isLibrary } shouldBe true
+        val mainMod = result.compilerAst.modules[0]
+        mainMod.name shouldStartWith "on_the_fly"
+        result.compilerAst.modules[1].name shouldBe "prog8_interned_strings"
+        val mainBlocks = mainMod.statements.filterIsInstance<Block>()
+        mainBlocks.size shouldBe 6
+        mainBlocks[0].name shouldBe "main"
+        mainBlocks[1].name shouldBe "p8_sys_startup"
+        mainBlocks[2].name shouldBe "otherblock1"
+        mainBlocks[3].name shouldBe "otherblock2"
+        mainBlocks[4].name shouldBe "datablock2"
+        mainBlocks[5].name shouldBe "datablock1"
+
+        result.codegenAst!!.children.size shouldBeGreaterThan 5
+        val blocks = result.codegenAst.children.filterIsInstance<PtBlock>()
+        blocks.size shouldBe 15
+        blocks[0].name shouldBe "p8b_main"
+        blocks[1].name shouldBe "p8_sys_startup"
+        blocks[2].name shouldBe "p8b_otherblock1"
+        blocks[3].name shouldBe "p8b_otherblock2"
+        blocks[4].name shouldBe "prog8_interned_strings"
+        blocks[5].name shouldBe "txt"
+        blocks[5].library shouldBe true
+        blocks[13].name shouldBe "p8b_datablock2"
+        blocks[14].name shouldBe "p8b_datablock1"
     }
 })
