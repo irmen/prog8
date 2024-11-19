@@ -823,6 +823,7 @@ class Subroutine(override val name: String,
     override fun linkParents(parent: Node) {
         this.parent = parent
         this.asmAddress?.varbank?.linkParents(this)
+        this.asmAddress?.address?.linkParents(this)
         parameters.forEach { it.linkParents(this) }
         statements.forEach { it.linkParents(this) }
     }
@@ -840,7 +841,9 @@ class Subroutine(override val name: String,
                 replacement.parent = this
             }
             is NumericLiteral -> {
-                if(node===asmAddress?.varbank) {
+                if(node===asmAddress?.address) {
+                    asmAddress.address = replacement
+                } else if(node===asmAddress?.varbank) {
                     asmAddress.constbank = replacement.number.toInt().toUByte()
                     asmAddress.varbank = null
                 } else throw FatalAstException("can't replace")
@@ -859,14 +862,15 @@ class Subroutine(override val name: String,
     override fun toString() =
         "Subroutine(name=$name, parameters=$parameters, returntypes=$returntypes, ${statements.size} statements, address=$asmAddress)"
 
-    class Address(var constbank: UByte?, var varbank: IdentifierReference?, val address: UInt) {
+    class Address(var constbank: UByte?, var varbank: IdentifierReference?, var address: Expression) {
         override fun toString(): String {
-            if(constbank!=null)
-                return "$constbank:${address.toHex()}"
+            val addrString = (address as? NumericLiteral)?.number?.toHex() ?: "<non-const-address>"
+            return if(constbank!=null)
+                "$constbank:$addrString"
             else if(varbank!=null)
-                return "${varbank?.nameInSource?.joinToString(".")}:${address.toHex()}"
+                "${varbank?.nameInSource?.joinToString(".")}:$addrString"
             else
-                return address.toHex()
+                addrString
         }
     }
 }

@@ -482,7 +482,11 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
         val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) })
         val varbank = if(srcSub.asmAddress?.varbank==null) null else transform(srcSub.asmAddress!!.varbank!!)
-        val asmAddr = if(srcSub.asmAddress==null) null else PtAsmSub.Address(srcSub.asmAddress!!.constbank, varbank, srcSub.asmAddress!!.address)
+        val asmAddr = if(srcSub.asmAddress==null) null else {
+            val constAddr = srcSub.asmAddress!!.address.constValue(program)
+            if(constAddr==null) throw FatalAstException("extsub address should be a constant")
+            PtAsmSub.Address(srcSub.asmAddress!!.constbank, varbank, constAddr.number.toUInt())
+        }
         val sub = PtAsmSub(srcSub.name,
             asmAddr,
             srcSub.asmClobbers,

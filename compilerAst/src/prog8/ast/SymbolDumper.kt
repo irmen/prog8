@@ -1,5 +1,6 @@
 package prog8.ast
 
+import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
@@ -176,7 +177,9 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
             val bank = if(subroutine.asmAddress.constbank!=null) "@bank ${subroutine.asmAddress.constbank}"
             else if(subroutine.asmAddress.varbank!=null) "@bank ${subroutine.asmAddress.varbank?.nameInSource?.joinToString(".")}"
             else ""
-            output("$bank = ${subroutine.asmAddress.address.toHex()}")
+            val address = subroutine.asmAddress.address
+            val addrString = if(address is NumericLiteral) address.number.toHex() else "<non-const-address>"
+            output("$bank = $addrString")
         }
 
         output("\n")

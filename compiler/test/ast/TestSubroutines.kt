@@ -219,4 +219,24 @@ main {
         (a1_4.children[1] as PtAssignTarget).void shouldBe true
         (a1_4.children[2] as PtAssignTarget).void shouldBe true
     }
+
+    test("extsub with (non)const addresses") {
+        val src="""
+main {
+    const uword address = ${'$'}2000
+    uword nonconst = ${'$'}3000
+
+    extsub address = foo1()
+    extsub address+3 = foo2()
+    extsub nonconst = foo3()
+
+    sub start() {
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, errors, false) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain ":8:5: address must be a constant"
+    }
 })

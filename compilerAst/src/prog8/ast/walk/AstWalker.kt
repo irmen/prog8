@@ -273,6 +273,7 @@ abstract class AstWalker {
     fun visit(subroutine: Subroutine, parent: Node) {
         track(before(subroutine, parent), subroutine, parent)
         subroutine.asmAddress?.varbank?.accept(this, subroutine)
+        subroutine.asmAddress?.address?.accept(this, subroutine)
         subroutine.statements.forEach { it.accept(this, subroutine) }
         track(after(subroutine, parent), subroutine, parent)
     }

@@ -296,7 +296,7 @@ asmsubroutine :
     ;
 
 extsubroutine :
-    'extsub' ('@bank' (constbank=integerliteral | varbank=scoped_identifier))? address=integerliteral '=' asmsub_decl
+    'extsub' ('@bank' (constbank=integerliteral | varbank=scoped_identifier))? address=expression '=' asmsub_decl
     ;
 
 asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;

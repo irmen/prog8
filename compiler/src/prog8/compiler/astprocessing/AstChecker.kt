@@ -391,6 +391,10 @@ internal class AstChecker(private val program: Program,
         if(subroutine.inline && subroutine.asmAddress!=null)
             throw FatalAstException("extsub cannot be inline")
 
+        val address = subroutine.asmAddress?.address
+        if(address != null && address !is NumericLiteral)
+            err("address must be a constant")
+
         super.visit(subroutine)
 
         // user-defined subroutines can only have zero or one return type

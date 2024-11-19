@@ -461,6 +461,18 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         return listOf(IAstModification.ReplaceNode(typecast, constValue, parent))
     }
 
+    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+        val address = subroutine.asmAddress?.address
+        if(address!=null) {
+            val constAddress = address.constValue(program)
+            if(constAddress!=null) {
+                subroutine.asmAddress!!.address = constAddress
+                constAddress.parent = subroutine
+            }
+        }
+        return noModifications
+    }
+
     private class ShuffleOperands(val expr: BinaryExpression,
                                   val exprOperator: String?,
                                   val subExpr: BinaryExpression,

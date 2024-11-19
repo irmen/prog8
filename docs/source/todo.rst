@@ -1,7 +1,9 @@
 TODO
 ====
 
+- Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
 ...
+
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^

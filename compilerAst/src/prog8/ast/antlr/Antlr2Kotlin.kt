@@ -179,7 +179,7 @@ private fun ExtsubroutineContext.toAst(): Subroutine {
     val subdecl = asmsub_decl().toAst()
     val constbank = constbank?.toAst()?.number?.toUInt()?.toUByte()
     val varbank = varbank?.toAst()
-    val addr = address.toAst().number.toUInt()
+    val addr = address.toAst()
     val address = Subroutine.Address(constbank, varbank, addr)
     return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes.toMutableList(),
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,

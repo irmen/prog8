@@ -795,6 +795,13 @@ External subroutines are usually defined by compiler library files, with the fol
 This defines the ``LOAD`` subroutine at memory address $FFD5, taking arguments in all three registers A, X and Y,
 and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler
 what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
+Note that the address ($ffd5 in the example above) can actually be an expression as long as it is a compile time constant. This can
+make it easier to define jump tables for example, like this::
+
+    const uword APIBASE = $8000
+    extsub APIBASE+0 = firstroutine()
+    extsub APIBASE+10 = secondroutine()
+    extsub APIBASE+20 = thirdroutine()
 
 **Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@bank`` like this:
 ``extsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10. You can also specify a variable for the bank.

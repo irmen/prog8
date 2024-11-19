@@ -184,7 +184,9 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
                 val bank = if(subroutine.asmAddress.constbank!=null) "@bank ${subroutine.asmAddress.constbank}"
                     else if(subroutine.asmAddress.varbank!=null) "@bank ${subroutine.asmAddress.varbank?.nameInSource?.joinToString(".")}"
                     else ""
-                output("extsub $bank ${subroutine.asmAddress.address.toHex()} = ${subroutine.name} (")
+                val address = subroutine.asmAddress.address
+                val addrString = if(address is NumericLiteral) address.number.toHex() else "<non-const-address>"
+                output("extsub $bank $addrString = ${subroutine.name} (")
             }
             else
                 output("asmsub ${subroutine.name} (")
