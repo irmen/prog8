@@ -153,12 +153,13 @@ class VmProgramLoader {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
                     val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
                     if(target==null)
-                        throw IRParseException("placeholder not found in variables nor labels: $label")
+                        throw IRParseException("label '$label' not found in variables nor labels. VM cannot reference other things such as blocks")
                     else if(instr.opcode in OpcodesThatBranch)
                         chunk.instructions[line] = instr.copy(branchTarget = target, address = null)
                     else {
                         var address = artificialLabelAddresses[label]
                         if(address==null) {
+                            // generate an artificial address
                             address = 0xa000 + artificialLabelAddresses.size
                             artificialLabelAddresses[label] = address
                         }

@@ -92,7 +92,6 @@ class IRCodeGen(
             when (node) {
                 is PtBuiltinFunctionCall -> require('.' !in node.name) { "builtin function call name should not be scoped: ${node.name}" }
                 is PtFunctionCall -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
-                is PtIdentifier -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                 is PtAsmSub -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                 is PtBlock -> require('.' !in node.name) { "block name should not be scoped: ${node.name}" }
                 is PtConstant -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
@@ -102,8 +101,7 @@ class IRCodeGen(
                 is PtVariable -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                 is PtProgram -> require('.' !in node.name) { "program name should not be scoped: ${node.name}" }
                 is PtSubroutineParameter -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
-                else -> { /* node has no name */
-                }
+                else -> { /* node has no name or is ok to have no dots in the name */ }
             }
             node.children.forEach { verifyPtNode(it) }
         }

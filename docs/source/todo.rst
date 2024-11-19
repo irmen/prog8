@@ -7,10 +7,10 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- implement const long to store a 32 bit signed integer value. (constants should be able to be long?) -> const_long branch
-- get rid of the BuiltinFunctionCall (and PtBuiltinFunctionCall)  ast nodes distinction, just use 1 node type, they're mixed up now already anyways. -> remove-BFC-node branch
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
+- Make extsub address a (constant) expression instead of a numeric literal
+- rename 'string' module to 'strings' to be consistent with 'floats'?
 - on the C64: make the floating point routines @banked so that basic can be permanently banked out even if you use floats?  But this will crash when the call is done from program code at $a000+
 - Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
   Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
@@ -20,8 +20,6 @@ Future Things and Ideas
   in certain situations, the "wrong" order of evaluation of function call arguments is done which results
   in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
   Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
-- remove 'extsub' as a recognised alternative for 'extsub'
-- remove the 'addmissingrts' compiler option.
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
 - Can we support signed % (remainder) somehow?
