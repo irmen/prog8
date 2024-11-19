@@ -887,4 +887,26 @@ main {
         errors.errors[0] shouldContain "17:16: type UBYTE of return value doesn't match subroutine's return type BYTE"
         errors.errors[1] shouldContain "20:16: type UWORD of return value doesn't match subroutine's return type WORD"
     }
+
+    test("if-expression adjusts different value types to common type") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0sL = if cx16.r0L < cx16.r1L -1 else 1
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        val result = compileText(C64Target(), false, src, writeAssembly = false, errors = errors)!!
+        val program = result.compilerAst
+        val st = program.entrypoint.statements
+        st.size shouldBe 1
+        val assign = st[0] as Assignment
+        assign.target.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.BYTE
+        val ifexpr = assign.value as IfExpression
+        ifexpr.truevalue.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.BYTE
+        ifexpr.falsevalue.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.BYTE
+        ifexpr.truevalue shouldBe instanceOf<NumericLiteral>()
+        ifexpr.falsevalue shouldBe instanceOf<NumericLiteral>()
+    }
 })

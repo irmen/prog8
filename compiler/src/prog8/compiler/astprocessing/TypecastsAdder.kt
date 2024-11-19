@@ -383,6 +383,25 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         return noModifications
     }
 
+    override fun after(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> {
+        val trueDt = ifExpr.truevalue.inferType(program)
+        val falseDt = ifExpr.falsevalue.inferType(program)
+        if (trueDt != falseDt) {
+            val (commonDt, toFix) = BinaryExpression.commonDatatype(
+                trueDt.getOr(DataType.UNDEFINED),
+                falseDt.getOr(DataType.UNDEFINED),
+                ifExpr.truevalue,
+                ifExpr.falsevalue
+            )
+            if (toFix != null) {
+                val modifications = mutableListOf<IAstModification>()
+                addTypecastOrCastedValueModification(modifications, toFix, commonDt, ifExpr)
+                return modifications
+            }
+        }
+        return noModifications
+    }
+
     private fun adjustRangeDts(
         range: RangeExpression,
         fromConst: NumericLiteral?,
