@@ -19,22 +19,19 @@ configurations.all {
     exclude(group = "com.ibm.icu", module = "icu4j")
 }
 
-tasks.compileJava {
-    dependsOn(tasks.withType<AntlrTask>())
-}
-
 tasks.generateGrammarSource {
     outputDirectory = file("src/prog8/parser")
     arguments.addAll(listOf("-no-listener", "-no-visitor"))
+}
+
+tasks.compileJava {
+    dependsOn(tasks.generateGrammarSource)
 }
 
 sourceSets {
     main {
         java {
             srcDir("${project.projectDir}/src")
-        }
-        antlr {
-            srcDirs(listOf("${project.projectDir}/antlr"))
         }
     }
 }

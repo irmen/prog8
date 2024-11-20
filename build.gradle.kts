@@ -1,5 +1,5 @@
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "$kotlinVersion" apply false
+    kotlin("jvm") version "2.0.21"
 }
 
 allprojects {
