@@ -1,5 +1,5 @@
 
-Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.5.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
@@ -98,48 +98,6 @@ cx16logo  {
 }
 
 
-LIBRARY MODULE NAME: diskio
----------------------------
-
-diskio  {
-    const ubyte  READ_IO_CHANNEL 
-    const ubyte  WRITE_IO_CHANNEL 
-    ubyte @shared  drivenumber 
-    bool  iteration_in_progress 
-    uword  list_blocks 
-    str  list_filename 
-    str  list_filetype 
-    uword  list_pattern 
-    bool  list_skip_disk_name 
-    bool  write_iteration_in_progress 
-    delete  (uword filenameptr) 
-    directory  () -> bool 
-    diskname  () -> uword 
-    exists  (str filename) -> bool 
-    f_close  () 
-    f_close_w  () 
-    f_open  (uword filenameptr) -> bool 
-    f_open_w  (uword filenameptr) -> bool 
-    f_read  (uword bufferpointer, uword num_bytes) -> uword 
-    f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
-    f_write  (uword bufferpointer, uword num_bytes) -> bool 
-    lf_end_list  () 
-    lf_next_entry  () -> bool 
-    lf_start_list  (uword pattern_ptr) -> bool 
-    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
-    load  (uword filenameptr, uword address_override) -> uword 
-    load_raw  (uword filenameptr, uword start_address) -> uword 
-    rename  (uword oldfileptr, uword newfileptr) 
-    reset_read_channel  () 
-    reset_write_channel  () 
-    save  (uword filenameptr, uword start_address, uword savesize) -> bool 
-    send_command  (uword commandptr) 
-    status  () -> uword 
-    status_code  () -> ubyte 
-}
-
-
 LIBRARY MODULE NAME: math
 -------------------------
 
@@ -163,6 +121,7 @@ math  {
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
+    lerpw  (uword v0, uword v1, uword t) -> uword 
     log2  (ubyte value @A) -> ubyte @Y 
     log2w  (uword value @AY) -> ubyte @Y 
     mul16_last_upper  () -> uword @AY 
@@ -275,6 +234,7 @@ sys  {
     pop  () -> ubyte @A 
     popw  () -> uword @AY 
     progend  () -> uword @AY 
+    progstart  () -> uword @AY 
     push  (ubyte value @A) 
     pushw  (uword value @AY) 
     read_flags  () -> ubyte @A 

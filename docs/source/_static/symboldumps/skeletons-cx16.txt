@@ -1,5 +1,5 @@
 
-Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.5.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -329,10 +329,10 @@ floats  {
 }
 
 
-LIBRARY MODULE NAME: gfx_hires4
--------------------------------
+LIBRARY MODULE NAME: gfx_hires
+------------------------------
 
-gfx_hires4  {
+gfx_hires  {
     const uword  HEIGHT 
     const uword  WIDTH 
     const uword  charset_addr 
@@ -457,6 +457,7 @@ math  {
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
+    lerpw  (uword v0, uword v1, uword t) -> uword 
     log2  (ubyte value @A) -> ubyte @Y 
     log2w  (uword value @AY) -> ubyte @Y 
     mul16_last_upper  () -> uword @AY 
@@ -588,6 +589,7 @@ sprites  {
     movey  (ubyte spritenum, word dy) 
     pos  (ubyte spritenum, word xpos, word ypos) 
     pos_batch  (ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr) 
+    reset  (ubyte spritenum_start, ubyte count) 
     set_mousepointer_hand  () 
     set_mousepointer_image  (uword data, bool compressed) 
     set_palette_offset  (ubyte spritenum, ubyte offset) 
@@ -1152,6 +1154,7 @@ sys  {
     popw  () -> uword @AY 
     poweroff_system  () 
     progend  () -> uword @AY 
+    progstart  () -> uword @AY 
     push  (ubyte value @A) 
     pushw  (uword value @AY) 
     read_flags  () -> ubyte @A 

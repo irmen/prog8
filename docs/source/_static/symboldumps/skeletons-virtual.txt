@@ -1,5 +1,5 @@
 
-Prog8 compiler v10.5 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.5.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -201,6 +201,7 @@ math  {
     direction_qd  (ubyte quadrant, ubyte xdelta, ubyte ydelta) -> ubyte 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
+    lerpw  (uword v0, uword v1, uword t) -> uword 
     log2  (ubyte value) -> ubyte 
     log2w  (uword value) -> ubyte 
     mul16_last_upper  () -> uword 

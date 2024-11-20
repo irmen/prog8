@@ -8,8 +8,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
-- Why are blocks without an addr moved BEHIND a block with an address? That's done in the StatementReorderer.
-- Make extsub address a (constant) expression instead of a numeric literal
 - rename 'string' module to 'strings' to be consistent with 'floats'?
 - on the C64: make the floating point routines @banked so that basic can be permanently banked out even if you use floats?  But this will crash when the call is done from program code at $a000+
 - Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
