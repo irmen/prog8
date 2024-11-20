@@ -1929,7 +1929,6 @@ asmsub  cleanup_at_exit() {
         sta  $00        ; ram bank 1
         lda  #4
         sta  $01        ; rom bank 4 (basic)
-        stz  $2d        ; hack to reset machine code monitor bank to 0
         jsr  cbm.CLRCHN		; reset i/o channels
 _exitcodeCarry = *+1
         lda  #0
