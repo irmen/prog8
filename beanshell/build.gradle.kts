@@ -84,8 +84,4 @@ java {
 
 kotlin {
     compilerOptions.jvmTarget = JvmTarget.JVM_11
-//    jvmToolchain {
-//        languageVersion = JavaLanguageVersion.of(javaVersion.toInt())
-//    }
 }
-
