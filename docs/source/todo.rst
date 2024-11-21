@@ -1,6 +1,11 @@
 TODO
 ====
 
+this should not be allowed:
+const byte MAX_BYTE = 128       ; actual value ends up as -128
+const word MAX_WORD = 32768     ; actual value ends up as -32768
+(how are vars behaving? what if you explicitly cast - that should work?)
+
 ...
 
 

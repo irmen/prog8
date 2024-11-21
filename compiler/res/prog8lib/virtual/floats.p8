@@ -9,8 +9,8 @@ floats {
         const float  TWOPI     = 2*π
         const float  E         = 2.718281828459045
         const float  EPSILON   = 4.9E-324
-        const float  MAX_FLOAT = 1.7976931348623157e+308
-        const float  MIN_FLOAT = -1.7976931348623157e+308
+        const float  MAX       = 1.7976931348623157e+308
+        const float  MIN       = -1.7976931348623157e+308
         const ubyte  SIZEOF    = 8
 
 

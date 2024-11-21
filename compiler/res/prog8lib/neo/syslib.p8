@@ -15,12 +15,21 @@ sys {
 
     const ubyte target = 7         ;  compilation target specifier.  255=virtual, 128=C128, 64=C64, 32=PET, 16=CommanderX16, 8=atari800XL, 7=Neo6502
 
-    const ubyte sizeof_bool = 1
-    const ubyte sizeof_byte = 1
-    const ubyte sizeof_ubyte = 1
-    const ubyte sizeof_word = 2
-    const ubyte sizeof_uword = 2
-    const ubyte sizeof_float = 0    ; undefined, no floats supported
+    const ubyte SIZEOF_BOOL  = 1
+    const ubyte SIZEOF_BYTE  = 1
+    const ubyte SIZEOF_UBYTE = 1
+    const ubyte SIZEOF_WORD  = 2
+    const ubyte SIZEOF_UWORD = 2
+    const ubyte SIZEOF_FLOAT = 0    ; undefined, no floats supported
+    const byte  MIN_BYTE     = -128
+    const byte  MAX_BYTE     = 127
+    const ubyte MIN_UBYTE    = 0
+    const ubyte MAX_UBYTE    = 255
+    const word  MIN_WORD     = -32768
+    const word  MAX_WORD     = 32767
+    const uword MIN_UWORD    = 0
+    const uword MAX_UWORD    = 65535
+    ; MIN_FLOAT and MAX_FLOAT are defined in the floats module as MIN and MAX
 
 
     asmsub  reset_system()  {
