@@ -1830,8 +1830,8 @@ internal class AstChecker(private val program: Program,
         when (targetDt) {
             DataType.FLOAT -> {
                 val number=value.number
-                if (number > 1.7014118345e+38 || number < -1.7014118345e+38)
-                    return err("value '$number' out of range for MFLPT format")
+                if (number > compilerOptions.compTarget.machine.FLOAT_MAX_POSITIVE || number < compilerOptions.compTarget.machine.FLOAT_MAX_NEGATIVE)
+                    return err("value '$number' out of range")
             }
             DataType.UBYTE -> {
                 if(value.type==DataType.FLOAT)

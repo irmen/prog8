@@ -2,9 +2,14 @@ floats {
     ; the floating point functions shared across compiler targets
     %option merge, no_symbol_prefixing, ignore_unused
 
-    const float  π      = 3.141592653589793
-    const float  PI     = π
-    const float  TWOPI  = 2*π
+    const float  π         = 3.141592653589793
+    const float  PI        = π
+    const float  TWOPI     = 2*π
+    const float  E         = 2.718281828459045
+    const float  EPSILON   = 2.938735878e-39          ; bytes: 1,0,0,0,0
+    const float  MAX_FLOAT = 1.7014118345e+38         ; bytes: 255,127,255,255,255
+    const float  MIN_FLOAT = -1.7014118345e+38        ; bytes: 255,255,255,255,255
+    const ubyte  SIZEOF    = 5
 
 
 asmsub print(float value @FAC1) clobbers(A,X,Y) {

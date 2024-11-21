@@ -10,8 +10,8 @@ class VirtualMachineDefinition: IMachineDefinition {
 
     override val cpu = CpuType.VIRTUAL
 
-    override val FLOAT_MAX_POSITIVE = Float.MAX_VALUE.toDouble()
-    override val FLOAT_MAX_NEGATIVE = -Float.MAX_VALUE.toDouble()
+    override val FLOAT_MAX_POSITIVE = Double.MAX_VALUE.toDouble()
+    override val FLOAT_MAX_NEGATIVE = -Double.MAX_VALUE.toDouble()
     override val FLOAT_MEM_SIZE = 8             // 64-bits double
     override val STARTUP_CODE_RESERVED_SIZE = 0u  // not actually used
     override val PROGRAM_LOAD_ADDRESS = 0u      // not actually used

@@ -1,8 +1,19 @@
+%import floats
 %import textio
 %option no_sysinit
+%zeropage basicsafe
 
 main {
     sub start() {
-        cx16.r0s = if cx16.r0L < cx16.r1L -1 else 1
+        floats.print(floats.EPSILON)
+        txt.nl()
+        floats.print(floats.MIN_FLOAT)
+        txt.nl()
+        floats.print(floats.MAX_FLOAT)
+        txt.nl()
+        floats.print(floats.E)
+        txt.nl()
+        txt.print_ub(floats.SIZEOF)
+        txt.nl()
     }
 }

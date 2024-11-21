@@ -4,9 +4,14 @@
 
 floats {
 
-        const float  π      = 3.141592653589793
-        const float  PI     = π
-        const float  TWOPI  = 2*π
+        const float  π         = 3.141592653589793
+        const float  PI        = π
+        const float  TWOPI     = 2*π
+        const float  E         = 2.718281828459045
+        const float  EPSILON   = 4.9E-324
+        const float  MAX_FLOAT = 1.7976931348623157e+308
+        const float  MIN_FLOAT = -1.7976931348623157e+308
+        const ubyte  SIZEOF    = 8
 
 
 sub print(float value) {
