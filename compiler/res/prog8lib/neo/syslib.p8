@@ -29,7 +29,7 @@ sys {
     const word  MAX_WORD     = 32767
     const uword MIN_UWORD    = 0
     const uword MAX_UWORD    = 65535
-    ; MIN_FLOAT and MAX_FLOAT are defined in the floats module as MIN and MAX
+    ; MIN_FLOAT and MAX_FLOAT are defined in the floats module if importec
 
 
     asmsub  reset_system()  {

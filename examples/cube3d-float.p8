@@ -1,5 +1,5 @@
-%import floats
 %import textio
+%import floats
 %zeropage basicsafe
 
 ; Note: this program can be compiled for multiple target systems.

@@ -2,6 +2,20 @@
 
 %option enable_floats, ignore_unused
 
+sys {
+    %option merge       ; add some constants to sys
+
+    const float  MAX_FLOAT = 1.7976931348623157e+308
+    const float  MIN_FLOAT = -1.7976931348623157e+308
+}
+
+txt {
+    %option merge       ; add function to txt
+
+    alias print_f = floats.print
+}
+
+
 floats {
 
         const float  π         = 3.141592653589793
@@ -9,9 +23,6 @@ floats {
         const float  TWOPI     = 2*π
         const float  E         = 2.718281828459045
         const float  EPSILON   = 4.9E-324
-        const float  MAX       = 1.7976931348623157e+308
-        const float  MIN       = -1.7976931348623157e+308
-        const ubyte  SIZEOF    = 8
 
 
 sub print(float value) {

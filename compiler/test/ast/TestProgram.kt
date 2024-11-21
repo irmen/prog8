@@ -3,7 +3,6 @@ package prog8tests.ast
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
@@ -15,11 +14,11 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.statements.Block
 import prog8.code.ast.PtBlock
-import prog8.code.ast.PtBool
 import prog8.code.core.Position
 import prog8.code.core.SourceCode
 import prog8.code.core.internedStringsModuleName
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.*
 
@@ -199,6 +198,62 @@ txt {
             compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
             errors.errors.size shouldBe 1
             errors.errors[0] shouldContain "name conflict"
+        }
+
+        test("merge of float stuff into sys and txt - import order 1") {
+            val src="""
+%import textio
+%import floats
+
+main {
+    sub start() {
+        txt.print_b(sys.MIN_BYTE)
+        txt.print_b(sys.MAX_BYTE)
+        txt.print_ub(sys.MIN_UBYTE)
+        txt.print_ub(sys.MAX_UBYTE)
+        txt.print_w(sys.MIN_WORD)
+        txt.print_w(sys.MAX_WORD)
+        txt.print_uw(sys.MIN_UWORD)
+        txt.print_uw(sys.MAX_UWORD)
+
+        txt.print_f(floats.EPSILON)
+        txt.print_f(sys.MIN_FLOAT)
+        txt.print_f(sys.MAX_FLOAT)
+        txt.print_f(floats.E)
+        txt.print_ub(sys.SIZEOF_FLOAT)
+    }
+}"""
+
+            compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+            compileText(Cx16Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        }
+
+        test("merge of float stuff into sys and txt - import order 2") {
+            val src="""
+%import floats
+%import textio
+
+main {
+    sub start() {
+        txt.print_b(sys.MIN_BYTE)
+        txt.print_b(sys.MAX_BYTE)
+        txt.print_ub(sys.MIN_UBYTE)
+        txt.print_ub(sys.MAX_UBYTE)
+        txt.print_w(sys.MIN_WORD)
+        txt.print_w(sys.MAX_WORD)
+        txt.print_uw(sys.MIN_UWORD)
+        txt.print_uw(sys.MAX_UWORD)
+
+        txt.print_f(floats.EPSILON)
+        txt.print_f(sys.MIN_FLOAT)
+        txt.print_f(sys.MAX_FLOAT)
+        txt.print_f(floats.E)
+        txt.print_ub(sys.SIZEOF_FLOAT)
+    }
+}"""
+
+            compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+            compileText(Cx16Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
         }
     }
 

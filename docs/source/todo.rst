@@ -6,6 +6,15 @@ const byte MAX_BYTE = 128       ; actual value ends up as -128
 const word MAX_WORD = 32768     ; actual value ends up as -32768
 (how are vars behaving? what if you explicitly cast - that should work?)
 
+
+import is now order dependent due to merges, you must use this order:
+%import textio
+%import floats
+needs to be fixed.  It should be an error for the same block to be declared twice without either
+declaration having %option merge, but as long as at least all but one declaration includes the option,
+it shouldn't matter where in the list the one without it falls.   See unit test breaking in TestProgram
+
+
 ...
 
 

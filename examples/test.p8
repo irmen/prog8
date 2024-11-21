@@ -1,5 +1,5 @@
-%import floats
 %import textio
+%import floats
 %option no_sysinit
 %zeropage basicsafe
 
@@ -23,15 +23,13 @@ main {
         txt.nl()
         txt.nl()
 
-        floats.print(floats.EPSILON)
+        txt.print_f(floats.EPSILON)
         txt.nl()
-        floats.print(floats.MIN)
+        txt.print_f(sys.MIN_FLOAT)
         txt.nl()
-        floats.print(floats.MAX)
+        txt.print_f(sys.MAX_FLOAT)
         txt.nl()
-        floats.print(floats.E)
-        txt.nl()
-        txt.print_ub(floats.SIZEOF)
+        txt.print_f(floats.E)
         txt.nl()
         txt.print_ub(sys.SIZEOF_FLOAT)
         txt.nl()

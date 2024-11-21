@@ -1,3 +1,17 @@
+
+sys {
+    %option merge       ; add some constants to sys
+
+    const float  MAX_FLOAT = 1.7014118345e+38         ; bytes: 255,127,255,255,255
+    const float  MIN_FLOAT = -1.7014118345e+38        ; bytes: 255,255,255,255,255
+}
+
+txt {
+    %option merge       ; add function to txt
+
+    alias print_f = floats.print
+}
+
 floats {
     ; the floating point functions shared across compiler targets
     %option merge, no_symbol_prefixing, ignore_unused
@@ -7,9 +21,6 @@ floats {
     const float  TWOPI     = 2*π
     const float  E         = 2.718281828459045
     const float  EPSILON   = 2.938735878e-39          ; bytes: 1,0,0,0,0
-    const float  MAX       = 1.7014118345e+38         ; bytes: 255,127,255,255,255
-    const float  MIN       = -1.7014118345e+38        ; bytes: 255,255,255,255,255
-    const ubyte  SIZEOF    = 5
 
 
 asmsub print(float value @FAC1) clobbers(A,X,Y) {
