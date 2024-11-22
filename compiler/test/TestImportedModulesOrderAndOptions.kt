@@ -4,10 +4,12 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import prog8.code.core.ZeropageType
 import prog8.code.core.internedStringsModuleName
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseMainModule
@@ -135,7 +137,7 @@ main {
         compileText(VMTarget(), optimize = false, src) shouldNotBe null
     }
 
-    test("double merge works") {
+    test("double merge is invalid") {
         val src="""
 main {
 
@@ -161,8 +163,151 @@ block1 {
         cx16.r2++
     }
 }"""
-        compileText(VMTarget(), optimize = false, src) shouldNotBe null
+        val errors=ErrorReporterForTests()
+        compileText(VMTarget(), optimize = false, src, errors=errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "all declarations of block 'block1' have %option merge"
     }
 
+    test("merge works") {
+        val src = """
+%import textio
 
+main {
+
+sub start() {
+    blah.test()
+}
+}
+
+txt {
+; merges this block into the txt block coming from the textio library
+%option merge
+
+sub schrijf(str arg) {
+    print(arg)
+}
+}
+
+blah {
+; merges this block into the other 'blah' one
+%option merge
+
+sub test() {
+    printit("test merge")
+}
+}
+
+blah {
+sub printit(str arg) {
+    txt.schrijf(arg)
+}
+}"""
+        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
+
+    test("merge override existing subroutine") {
+        val src="""
+%import textio
+
+main {
+
+sub start() {
+    txt.print("sdfdsf")
+}
+}
+
+txt {
+%option merge
+
+sub print(str text) {
+    cx16.r0++
+    ; just some dummy implementation to replace existing print
+}
+}"""
+
+        val result = compileText(VMTarget(), optimize=false, src, writeAssembly=false)
+        result shouldNotBe null
+    }
+
+    test("merge doesn't override existing subroutine if signature differs") {
+        val src="""
+%import textio
+
+main {
+
+sub start() {
+    txt.print("sdfdsf")
+}
+}
+
+txt {
+%option merge
+
+sub print(str anotherparamname) {
+    cx16.r0++
+    ; just some dummy implementation to replace existing print
+}
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "name conflict"
+    }
+
+    test("merge of float stuff into sys and txt - import order 1") {
+        val src="""
+%import textio
+%import floats
+
+main {
+sub start() {
+    txt.print_b(sys.MIN_BYTE)
+    txt.print_b(sys.MAX_BYTE)
+    txt.print_ub(sys.MIN_UBYTE)
+    txt.print_ub(sys.MAX_UBYTE)
+    txt.print_w(sys.MIN_WORD)
+    txt.print_w(sys.MAX_WORD)
+    txt.print_uw(sys.MIN_UWORD)
+    txt.print_uw(sys.MAX_UWORD)
+
+    txt.print_f(floats.EPSILON)
+    txt.print_f(sys.MIN_FLOAT)
+    txt.print_f(sys.MAX_FLOAT)
+    txt.print_f(floats.E)
+    txt.print_ub(sys.SIZEOF_FLOAT)
+}
+}"""
+
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(Cx16Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
+
+    test("merge of float stuff into sys and txt - import order 2") {
+        val src="""
+%import floats
+%import textio
+
+main {
+sub start() {
+    txt.print_b(sys.MIN_BYTE)
+    txt.print_b(sys.MAX_BYTE)
+    txt.print_ub(sys.MIN_UBYTE)
+    txt.print_ub(sys.MAX_UBYTE)
+    txt.print_w(sys.MIN_WORD)
+    txt.print_w(sys.MAX_WORD)
+    txt.print_uw(sys.MIN_UWORD)
+    txt.print_uw(sys.MAX_UWORD)
+
+    txt.print_f(floats.EPSILON)
+    txt.print_f(sys.MIN_FLOAT)
+    txt.print_f(sys.MAX_FLOAT)
+    txt.print_f(floats.E)
+    txt.print_ub(sys.SIZEOF_FLOAT)
+}
+}"""
+
+        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(Cx16Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+    }
 })

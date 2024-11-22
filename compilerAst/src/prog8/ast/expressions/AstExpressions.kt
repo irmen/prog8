@@ -620,12 +620,18 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
         if(type==targettype)
             return ValueAfterCast(true, null, this)
-        if (implicit) {
-            if (targettype == DataType.BOOL)
-                return ValueAfterCast(false, "no implicit cast to boolean allowed", this)
-            if (targettype in IntegerDatatypes && type==DataType.BOOL)
-                return ValueAfterCast(false, "no implicit cast from boolean to integer allowed", this)
+        if (implicit && targettype in IntegerDatatypes && type==DataType.BOOL)
+            return ValueAfterCast(false, "no implicit cast from boolean to integer allowed", this)
+
+        if(targettype == DataType.BOOL) {
+            return if(implicit)
+                ValueAfterCast(false, "no implicit cast to boolean allowed", this)
+            else if(type in NumericDatatypes)
+                ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
+            else
+                ValueAfterCast(false, "no cast available from $type to BOOL", null)
         }
+
 
         when(type) {
             DataType.UBYTE -> {
@@ -637,8 +643,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.BOOL)
-                    return ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
             }
             DataType.BYTE -> {
                 if(targettype==DataType.UBYTE) {
@@ -657,8 +661,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.FLOAT)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.BOOL)
-                    return ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
                 if(targettype==DataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
@@ -671,8 +673,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toShort().toDouble(), position))
                 if(targettype==DataType.FLOAT)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.BOOL)
-                    return ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
                 if(targettype==DataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
@@ -693,8 +693,6 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 }
                 if(targettype==DataType.FLOAT)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.BOOL)
-                    return ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
                 if(targettype==DataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
