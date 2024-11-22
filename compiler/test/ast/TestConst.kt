@@ -3,6 +3,7 @@ package prog8tests.ast
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.BinaryExpression
@@ -16,6 +17,7 @@ import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestConst: FunSpec({
@@ -322,5 +324,83 @@ main {
         val assignAddr2 = ((st[9] as Assignment).value as AddressOf)
         assignAddr2.identifier.nameInSource shouldBe listOf("buffer")
         assignAddr2.arrayIndex!!.indexExpr shouldBe instanceOf<BinaryExpression>()
+    }
+
+    test("out of range const byte and word give correct error") {
+        var src="""
+main {
+    sub start() {
+        const byte MIN_BYTE = -129
+        const word MIN_WORD = -32769
+        const byte MAX_BYTE = 128
+        const word MAX_WORD = 32768
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain "out of range"
+        errors.errors[1] shouldContain "out of range"
+        errors.errors[2] shouldContain "out of range"
+        errors.errors[3] shouldContain "out of range"
+    }
+
+    test("out of range var byte and word give correct error") {
+        var src="""
+main {
+    sub start() {
+        byte @shared v_MIN_BYTE = -129
+        word @shared v_MIN_WORD = -32769
+        byte @shared v_MAX_BYTE = 128
+        word @shared v_MAX_WORD = 32768
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 8
+        errors.errors[0] shouldContain "out of range"
+        errors.errors[2] shouldContain "out of range"
+        errors.errors[4] shouldContain "out of range"
+        errors.errors[6] shouldContain "out of range"
+    }
+
+    test("out of range const byte and word no errors with explicit cast if possible") {
+        var src="""
+main {
+    sub start() {
+        const byte MIN_BYTE = -129 as byte      ; still error
+        const word MIN_WORD = -32769 as word    ; still error
+        const byte MAX_BYTE = 128 as byte
+        const word MAX_WORD = 32768 as word
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain(":4:31: const declaration needs a compile-time constant")
+        errors.errors[1] shouldContain(":4:32: no cast available")
+        errors.errors[2] shouldContain(":5:31: const declaration needs a compile-time constant")
+        errors.errors[3] shouldContain(":5:32: no cast available")
+    }
+
+    test("out of range var byte and word no errors with explicit cast if possible") {
+        var src="""
+main {
+    sub start() {
+        byte @shared v_min_byte2 = -129 as byte     ; still error
+        word @shared v_min_word2 = -32769 as word   ; still error
+        byte @shared v_min_byte3 = 255 as byte
+        word @shared v_min_word3 = 50000 as word
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain(":4:37: no cast available")
+        errors.errors[1] shouldContain(":5:37: no cast available")
     }
 })

@@ -629,7 +629,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
         when(type) {
             DataType.UBYTE -> {
-                if(targettype==DataType.BYTE)
+                if(targettype==DataType.BYTE && (number in 0.0..127.0 || !implicit))
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toByte().toDouble(), position))
                 if(targettype==DataType.WORD || targettype==DataType.UWORD)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
@@ -667,7 +667,7 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.UBYTE && number <= 255)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.WORD)
+                if(targettype==DataType.WORD && (number <= 32767 || !implicit))
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toShort().toDouble(), position))
                 if(targettype==DataType.FLOAT)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))

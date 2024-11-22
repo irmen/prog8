@@ -32,15 +32,9 @@ class VarConstantValueTypeAdjuster(
             val declConstValue = decl.value?.constValue(program)
             if(declConstValue!=null && (decl.type== VarDeclType.VAR || decl.type==VarDeclType.CONST)
                 && declConstValue.type != decl.datatype) {
-                // avoid silent float roundings
                 if(decl.datatype in IntegerDatatypes && declConstValue.type == DataType.FLOAT) {
+                    // avoid silent float roundings
                     errors.err("refused truncating of float to avoid loss of precision", decl.value!!.position)
-                } else if(decl.datatype!=DataType.BOOL) {
-                    // cast the numeric literal to the appropriate datatype of the variable if it's not boolean
-                    declConstValue.linkParents(decl)
-                    val cast = declConstValue.cast(decl.datatype, true)
-                    if (cast.isValid)
-                        return listOf(IAstModification.ReplaceNode(decl.value!!, cast.valueOrZero(), decl))
                 }
             }
         } catch (x: UndefinedSymbolError) {

@@ -50,13 +50,20 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     }
                 }
                 VarDeclType.CONST -> {
-                    // change the vardecl type itself as well, but only if it's smaller
+                    // change the vardecl type itself as well, but only if new type is smaller
                     if(valueDt.largerThan(decl.datatype)) {
                         val constValue = decl.value!!.constValue(program)!!
                         errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                     } else {
-                        val changed = decl.copy(valueDt)
-                        return listOf(IAstModification.ReplaceNode(decl, changed, parent))
+                        // don't make it signed if it was unsigned and vice versa
+                        if(valueDt in SignedDatatypes && decl.datatype !in SignedDatatypes ||
+                            valueDt !in SignedDatatypes && decl.datatype in SignedDatatypes) {
+                            val constValue = decl.value!!.constValue(program)!!
+                            errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
+                        } else {
+                            val changed = decl.copy(valueDt)
+                            return listOf(IAstModification.ReplaceNode(decl, changed, parent))
+                        }
                     }
                 }
                 VarDeclType.MEMORY -> if(!valueType.isWords && !valueType.isBytes)
