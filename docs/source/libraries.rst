@@ -103,8 +103,9 @@ msb (x)
 
 bnk (x)
     Get the 'bank' byte from the value x. This means bits 16-24 of that value: bnk($1234567) = $12.
+    (To get the 16 bit address out of a value simply use ``x & $ffff``)
     If x is a word or smaller, bnk(x) will always be zero.
-    You can consider this equivalent to the expression ``lsb(x >> 16)``.
+    You can consider this function equivalent to the expression ``lsb(x >> 16)``.
 
 mkword (msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.

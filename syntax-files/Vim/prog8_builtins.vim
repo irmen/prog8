@@ -766,17 +766,29 @@ syn match prog8BuiltInFunc "\<diskio\.rename\>"
 " prog8_lib.p8
 
 
-" string.p8
-syn match prog8BuiltInFunc "\<string\.length\>"
-syn match prog8BuiltInFunc "\<string\.left\>"
-syn match prog8BuiltInFunc "\<string\.right\>"
-syn match prog8BuiltInFunc "\<string\.slice\>"
-syn match prog8BuiltInFunc "\<string\.find\>"
-syn match prog8BuiltInFunc "\<string\.copy\>"
-syn match prog8BuiltInFunc "\<string\.compare\>"
-syn match prog8BuiltInFunc "\<string\.lower\>"
-syn match prog8BuiltInFunc "\<string\.upper\>"
-syn match prog8BuiltInFunc "\<string\.pattern_match\>"
+" strings.p8
+syn match prog8BuiltInFunc "\<strings\.length\>"
+syn match prog8BuiltInFunc "\<strings\.left\>"
+syn match prog8BuiltInFunc "\<strings\.right\>"
+syn match prog8BuiltInFunc "\<strings\.slice\>"
+syn match prog8BuiltInFunc "\<strings\.find\>"
+syn match prog8BuiltInFunc "\<strings\.rfind\>"
+syn match prog8BuiltInFunc "\<strings\.contains\>"
+syn match prog8BuiltInFunc "\<strings\.copy\>"
+syn match prog8BuiltInFunc "\<strings\.append\>"
+syn match prog8BuiltInFunc "\<strings\.compare\>"
+syn match prog8BuiltInFunc "\<strings\.lower\>"
+syn match prog8BuiltInFunc "\<strings\.lowerchar\>"
+syn match prog8BuiltInFunc "\<strings\.upper\>"
+syn match prog8BuiltInFunc "\<strings\.upperchar\>"
+syn match prog8BuiltInFunc "\<strings\.pattern_match\>"
+syn match prog8BuiltInFunc "\<strings\.hash\>"
+syn match prog8BuiltInFunc "\<strings\.isdigit\>"
+syn match prog8BuiltInFunc "\<strings\.isupper\>"
+syn match prog8BuiltInFunc "\<strings\.islower\>"
+syn match prog8BuiltInFunc "\<strings\.isletter\>"
+syn match prog8BuiltInFunc "\<strings\.isspace\>"
+syn match prog8BuiltInFunc "\<strings\.isprint\>"
 
 
 " test_stack.p8

@@ -1,8 +1,6 @@
-%import floats
-
-%import strings
 
 main {
     sub start() {
+        long @shared foo2  = 123456
     }
 }

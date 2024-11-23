@@ -427,6 +427,8 @@ type identifier  type                     storage size       example var declara
 ``bool``         boolean                  1 byte = 8 bits    ``bool myvar = true`` or ``bool myvar == false``
 ``word``         signed word              2 bytes = 16 bits  ``word myvar = -12345``
 ``uword``        unsigned word            2 bytes = 16 bits  ``uword myvar = $8fee``
+``long``         signed 32 bits integer   n/a                ``const long LARGE = $12345678``
+                                          (only for consts)
 ``float``        floating-point           5 bytes = 40 bits  ``float myvar = 1.2345``
                                                              stored in 5-byte cbm MFLPT format
 ``byte[x]``      signed byte array        x bytes            ``byte[4] myvar``

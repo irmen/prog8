@@ -276,6 +276,10 @@ Unsigned integers are in the range 0-255 for unsigned byte types, and 0-65535 fo
 The signed integers integers are in the range -128..127 for bytes,
 and -32768..32767 for words.
 
+Only for ``const`` numbers, you can use larger values (32 bits signed integers). The compiler can handle those
+internally in expressions. As soon as you have to actually store it into a variable,
+you have to make sure the resulting value fits into the byte or word size of the variable.
+
 .. attention::
     Doing math on signed integers can result in code that is a lot larger and slower than
     when using unsigned integers. Make sure you really need the signed numbers, otherwise

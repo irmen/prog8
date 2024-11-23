@@ -22,11 +22,12 @@ such as the `Commodore 64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
 
 You can compile programs for various machines:
 
-* Commander X16  (with 65c02 cpu, 65816 cpu specifics are currently not supported)
+* Commander X16  (with 65c02 cpu, 65816 cpu specifics are currently not supported by prog8 itself)
 * Commodore 64
 * Commodore 128 (limited support)
 * Commodore PET (limited support)
-* Atari 800 XL (limited support)
+* Atari 800 XL (very limited support)
+* Neo6502 (very imited support)
 
 Some language features are mentioned below, and you can also read :ref:`comparingprog8` if you
 want to quickly read about how Prog8 compares to well-known other languages.

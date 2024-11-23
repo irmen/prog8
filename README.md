@@ -84,11 +84,12 @@ What does Prog8 provide?
 
 *Multiple supported compiler targets* (contributions to improve these or to add support for other machines are welcome!):
 
+- "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU)
 - "c64": Commodore-64  (6502 like CPU)
 - "c128": Commodore-128  (6502 like CPU - the Z80 cpu mode is not supported)
-- "cx16": [CommanderX16](https://www.commanderx16.com)  (65c02 CPU)
-- "pet32": Commodore PET (experimental)
+- "pet32": Commodore PET (limited support)
 - "atari": Atari 8 bit such as 800XL (experimental)
+- "neo": Neo6502 (experimental)
 - If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compiler target flag)
 
 
