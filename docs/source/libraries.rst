@@ -99,12 +99,12 @@ msb (x)
     but it will only look a the lower word part of this value and return the higher byte from that.
     More accurately, you'll get bits 8-16 of the value x. So msb($1234) is $12, whereas msb($123456) is $34.
     If you want to extract the actual highest byte from a long value, we call that the 'bank' byte and you
-    can do that using ``bnk(x)``.
+    can do that using ``bankof(x)``.
 
-bnk (x)
-    Get the 'bank' byte from the value x. This means bits 16-24 of that value: bnk($1234567) = $12.
+bankof (x)
+    Get the 'bank' byte from the value x. This means bits 16-24 of that value: bankof($1234567) = $12.
     (To get the 16 bit address out of a value simply use ``x & $ffff``)
-    If x is a word or smaller, bnk(x) will always be zero.
+    If x is a word or smaller, bankof(x) will always be zero.
     You can consider this function equivalent to the expression ``lsb(x >> 16)``.
 
 mkword (msb, lsb)

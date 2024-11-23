@@ -1,7 +1,12 @@
+%import textio
+%zeropage basicsafe
 
 main {
     sub start() {
-        long @shared foo2  = 22
+        const long foo2  = $123456
+        txt.print_ubhex(bankof(foo2), true)
+        txt.spc()
+        txt.print_uwhex(foo2 &$ffff, false)
 
     }
 }

@@ -111,7 +111,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "divmod__uword"    to FSignature(false, listOf(FParam("dividend", arrayOf(DataType.UWORD)), FParam("divisor", arrayOf(DataType.UWORD)), FParam("quotient", arrayOf(DataType.UWORD)), FParam("remainder", arrayOf(DataType.UWORD))), null),
     "lsb"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD, DataType.LONG))), DataType.UBYTE),
     "msb"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD, DataType.LONG))), DataType.UBYTE),
-    "bnk"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD, DataType.LONG))), DataType.UBYTE),
+    "bankof"    to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD, DataType.LONG))), DataType.UBYTE),
     "mkword"    to FSignature(true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), DataType.UWORD),
     "clamp"     to FSignature(true, listOf(FParam("value", arrayOf(DataType.BYTE)), FParam("minimum", arrayOf(DataType.BYTE)), FParam("maximum", arrayOf(DataType.BYTE))), null),
     "clamp__byte"  to FSignature(true, listOf(FParam("value", arrayOf(DataType.BYTE)), FParam("minimum", arrayOf(DataType.BYTE)), FParam("maximum", arrayOf(DataType.BYTE))), DataType.BYTE),

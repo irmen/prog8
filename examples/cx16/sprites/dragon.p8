@@ -16,12 +16,12 @@ main {
         txt.print("there be dragons!")
 
         ; load the sprite data and color palette directly into Vera ram
-        void diskio.vload_raw("dragonsprite.bin", bnk(SPRITE_DATA), SPRITE_DATA & $ffff)
+        void diskio.vload_raw("dragonsprite.bin", bankof(SPRITE_DATA), SPRITE_DATA & $ffff)
         void diskio.vload_raw("dragonsprite.pal", 1, $fa00 + SPRITE_PALETTE_OFFSET*16*2)
 
         ; initialize the dragon sprites
-        sprites.init(1, bnk(SPRITE_DATA), SPRITE_DATA & $ffff, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
-        sprites.init(2, bnk(SPRITE_DATA), (SPRITE_DATA & $ffff) + 64*64/2, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16,SPRITE_PALETTE_OFFSET)
+        sprites.init(1, bankof(SPRITE_DATA), SPRITE_DATA & $ffff, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
+        sprites.init(2, bankof(SPRITE_DATA), (SPRITE_DATA & $ffff) + 64*64/2, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16,SPRITE_PALETTE_OFFSET)
 
         ubyte tt = 0
         word xpos = -64
