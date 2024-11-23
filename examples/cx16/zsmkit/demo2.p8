@@ -13,7 +13,7 @@ main {
 	const ubyte zsmkit_bank = 1
 
 	sub start() {
-		txt.print("zsmkit demo program (dynamic loading)\n")
+		txt.print("zsmkit demo program (preloaded)\n")
 
 		load_and_init_zsmkit(iso:"lib/zsmkit-8c00.bin")
 		load_music_file(iso:"music/MUSIC.ZSM")
