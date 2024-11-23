@@ -13,8 +13,9 @@ main {
         uword two57 = 257
         uword thousand = 1000
         uword maximum = 65535
+        const long maxxx = 65536
 
-        txt.print("expected:\n 0, 1, 100, 255, 256, 257, 1000, 65535\n\n")
+        txt.print("expected:\n 0, 1, 100, 255, 256, 257, 1000, 65535, 999\n\n")
 
         repeat zero {
             amount++
@@ -66,6 +67,13 @@ main {
 
         amount=0
         repeat maximum {
+            amount++
+        }
+        txt.print_uw(amount)
+        txt.nl()
+
+        amount=999
+        repeat maxxx {
             amount++
         }
         txt.print_uw(amount)

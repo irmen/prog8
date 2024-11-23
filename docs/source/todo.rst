@@ -1,10 +1,6 @@
 TODO
 ====
 
-- fix the aggregate any all errors
-- remove this warning INFO  library:/prog8lib/shared_floats_functions.p8:9:1: removing unused block 'txt'
-- compiler is particularly slow (>2 sec) for compiler/test/comparisons/test_word_splitw_lte.p8
-
 ...
 
 

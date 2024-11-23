@@ -14,11 +14,11 @@ main {
         uword uw = 2000
         word ww = -1000
         float fl = 999.99
-        ubyte[3] ubarr = 200
-        byte[3] barr = -100
-        uword[3] uwarr = 2000
-        word[3] warr = -1000
-        float[3] flarr = 999.99
+        ubyte[3] ubarr = [200]*3
+        byte[3] barr = [-100]*3
+        uword[3] uwarr = [2000]*3
+        word[3] warr = [-1000]*3
+        float[3] flarr = [999.99]*3
 
         txt.print("++\n")
         ub++

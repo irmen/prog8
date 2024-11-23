@@ -1,13 +1,13 @@
 
 sys {
-    %option merge       ; add some constants to sys
+    %option merge, ignore_unused       ; add some constants to sys
 
     const float  MAX_FLOAT = 1.7014118345e+38         ; bytes: 255,127,255,255,255
     const float  MIN_FLOAT = -1.7014118345e+38        ; bytes: 255,255,255,255,255
 }
 
 txt {
-    %option merge       ; add function to txt
+    %option merge, ignore_unused       ; add function to txt
 
     alias print_f = floats.print
 }
