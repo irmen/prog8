@@ -722,7 +722,7 @@ internal class AstChecker(private val program: Program,
             throw InternalCompilerException("vardecls with multiple names should have been converted into individual vardecls")
 
         if(decl.datatype==DataType.LONG && decl.type!=VarDeclType.CONST)
-            errors.err("integer overflow", decl.position)
+            errors.err("cannot use long type for variables; only for constants", decl.position)
         if(decl.type==VarDeclType.MEMORY) {
             if (decl.datatype == DataType.BOOL || decl.datatype == DataType.ARRAY_BOOL)
                 errors.err("variables mapped in memory should be numeric", decl.position)
@@ -1956,6 +1956,7 @@ internal class AstChecker(private val program: Program,
             DataType.UBYTE -> sourceDatatype == DataType.UBYTE
             DataType.WORD -> sourceDatatype in setOf(DataType.BYTE, DataType.UBYTE, DataType.WORD)
             DataType.UWORD -> sourceDatatype == DataType.UBYTE || sourceDatatype == DataType.UWORD
+            DataType.LONG -> sourceDatatype in IntegerDatatypes
             DataType.FLOAT -> sourceDatatype in NumericDatatypes
             DataType.STR -> sourceDatatype == DataType.STR
             else -> false

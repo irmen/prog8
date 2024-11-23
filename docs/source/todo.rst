@@ -1,8 +1,6 @@
 TODO
 ====
 
-fix weird error messages for long vars   long @shared foo2  = 123456
-
 what to do with bnk(): it's an awkward name but bank() is too general a name and will forbid you to use 'bank' as a variable...
 add a function like addr() or lsw() to complement bnk() in getting easy access to the lower 16 bits of a long integer?
 
