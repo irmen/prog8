@@ -1,4 +1,4 @@
-string {
+strings {
     ; the string functions shared across compiler targets
     %option merge, no_symbol_prefixing, ignore_unused
 
@@ -12,11 +12,11 @@ string {
         ; -- gets rid of whitespace and other non-visible characters at the end of the string
         if s[0]==0
             return
-        cx16.r0L = string.length(s)
+        cx16.r0L = length(s)
         do {
             cx16.r0L--
             cx16.r1L = s[cx16.r0L]
-        } until cx16.r0L==0 or string.isprint(cx16.r1L) and not string.isspace(cx16.r1L)
+        } until cx16.r0L==0 or isprint(cx16.r1L) and not isspace(cx16.r1L)
         s[cx16.r0L+1] = 0
     }
 
@@ -24,7 +24,7 @@ string {
         ; -- gets rid of whitespace and other non-visible characters at the start of the string (destructive)
         cx16.r0 = lstripped(s)
         if cx16.r0 != s
-            void string.copy(cx16.r0, s)
+            void copy(cx16.r0, s)
     }
 
     sub lstripped(str s) -> str {
@@ -35,7 +35,7 @@ string {
         do {
             cx16.r0L++
             cx16.r1L = s[cx16.r0L]
-        } until cx16.r1L==0 or string.isprint(cx16.r1L) and not string.isspace(cx16.r1L)
+        } until cx16.r1L==0 or isprint(cx16.r1L) and not isspace(cx16.r1L)
         return s+cx16.r0L
     }
 
@@ -49,11 +49,11 @@ string {
         ; -- gets rid of whitespace characters at the end of the string
         if s[0]==0
             return
-        cx16.r0L = string.length(s)
+        cx16.r0L = length(s)
         do {
             cx16.r0L--
             cx16.r1L = s[cx16.r0L]
-        } until cx16.r0L==0 or not string.isspace(cx16.r1L)
+        } until cx16.r0L==0 or not isspace(cx16.r1L)
         s[cx16.r0L+1] = 0
     }
 
@@ -61,7 +61,7 @@ string {
         ; -- gets rid of whitespace characters at the start of the string (destructive)
         cx16.r0 = ltrimmed(s)
         if cx16.r0 != s
-            void string.copy(cx16.r0, s)
+            void copy(cx16.r0, s)
     }
 
     sub ltrimmed(str s) -> str {
@@ -72,41 +72,41 @@ string {
         do {
             cx16.r0L++
             cx16.r1L = s[cx16.r0L]
-        } until not string.isspace(cx16.r1L)
+        } until not isspace(cx16.r1L)
         return s+cx16.r0L
     }
 
     sub startswith(str st, str prefix) -> bool {
-        ubyte prefix_len = string.length(prefix)
-        ubyte str_len = string.length(st)
+        ubyte prefix_len = length(prefix)
+        ubyte str_len = length(st)
         if prefix_len > str_len
             return false
         cx16.r9L = st[prefix_len]
         st[prefix_len] = 0
-        cx16.r9H = string.compare(st, prefix) as ubyte
+        cx16.r9H = compare(st, prefix) as ubyte
         st[prefix_len] = cx16.r9L
         return cx16.r9H==0
     }
 
     sub endswith(str st, str suffix) -> bool {
-        ubyte suffix_len = string.length(suffix)
-        ubyte str_len = string.length(st)
+        ubyte suffix_len = length(suffix)
+        ubyte str_len = length(st)
         if suffix_len > str_len
             return false
-        return string.compare(st + str_len - suffix_len, suffix) == 0
+        return compare(st + str_len - suffix_len, suffix) == 0
     }
 
     sub findstr(str haystack, str needle) -> ubyte {
         ; searches for needle in haystack.
         ; returns index in haystack where it first occurs, and Carry set,
         ; or if needle doesn't occur in haystack it returns Carry clear and 255 (an invalid index.)
-        cx16.r2L = string.length(haystack)
-        cx16.r3L = string.length(needle)
+        cx16.r2L = length(haystack)
+        cx16.r3L = length(needle)
         if cx16.r3L <= cx16.r2L {
             cx16.r2L = cx16.r2L-cx16.r3L+1
             cx16.r3 = haystack
             repeat cx16.r2L {
-                if string.startswith(cx16.r3, needle) {
+                if startswith(cx16.r3, needle) {
                     sys.set_carry()
                     return cx16.r3-haystack as ubyte
                 }

@@ -252,7 +252,7 @@ class ConstExprEvaluator {
         return when(call.target.nameInSource[0]) {
             "math" -> evalMath(call, constArgs)
             "floats" -> evalFloats(call, constArgs)
-            "string" -> evalString(call, constArgs)
+            "strings" -> evalString(call, constArgs)
             else -> null
         }
     }

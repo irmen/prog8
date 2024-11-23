@@ -78,7 +78,7 @@ len (x)
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
     Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
     length of the string during execution, the value of len(s) may no longer be correct!
-    (use the ``string.length`` routine if you want to dynamically determine the length by counting to the
+    (use the ``strings.length`` routine if you want to dynamically determine the length by counting to the
     first 0-byte)
 
 
@@ -482,8 +482,8 @@ to see what's in there. (Note: slight variations for different compiler targets)
     descriptions for the various methods in this library for details and tips.
 
 
-string
-------
+strings
+-------
 Provides string manipulation routines.
 
 ``length (str) -> ubyte length``
@@ -527,7 +527,7 @@ Provides string manipulation routines.
 ``compare (string1, string2) -> ubyte result``
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
     Note that you can also directly compare strings and string values with each other
-    using ``==``, ``<`` etcetera (it will use string.compare for you under water automatically).
+    using ``==``, ``<`` etcetera (it will use strings.compare for you under water automatically).
     This even works when dealing with uword (pointer) variables when comparing them to a string type.
 
 ``copy (from, to) -> ubyte length``

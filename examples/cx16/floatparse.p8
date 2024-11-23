@@ -1,6 +1,6 @@
 %import floats
 %import textio
-%import string
+%import strings
 %zeropage basicsafe
 
 main {
@@ -75,7 +75,7 @@ main {
                 '-' -> negative=true
                 '+', ' ' -> { /* skip */ }
                 else -> {
-                    if string.isdigit(cx16.r0L) {
+                    if strings.isdigit(cx16.r0L) {
                         result *= 10
                         result += cx16.r0L - '0'
                     } else
@@ -92,7 +92,7 @@ main {
                 cx16.r0L = @(stringptr)
                 if cx16.r0L==' '
                     continue
-                else if string.isdigit(cx16.r0L) {
+                else if strings.isdigit(cx16.r0L) {
                     exponent--
                     result *= 10
                     result += cx16.r0L - '0'
@@ -113,7 +113,7 @@ main {
                     '+', ' ' -> { /* skip */ }
                     '-' -> neg_exponent=true
                     else -> {
-                        if string.isdigit(cx16.r0L) {
+                        if strings.isdigit(cx16.r0L) {
                             exp_value *= 10
                             exp_value += cx16.r0L - '0'
                         } else

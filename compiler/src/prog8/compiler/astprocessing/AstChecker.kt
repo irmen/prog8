@@ -1989,7 +1989,7 @@ internal class AstChecker(private val program: Program,
         }
         else if(targetDatatype==DataType.STR) {
             if(sourceDatatype==DataType.UWORD)
-                errors.err("can't assign UWORD to STR. If the source is a string and you actually want to overwrite the target string, use an explicit string.copy(src,tgt) instead.", position)
+                errors.err("can't assign UWORD to STR. If the source is a string and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
             else
                 errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
         }

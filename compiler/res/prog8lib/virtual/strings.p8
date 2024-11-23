@@ -2,7 +2,7 @@
 
 %import shared_string_functions
 
-string {
+strings {
     %option ignore_unused
 
     sub length(str st) -> ubyte {
@@ -73,7 +73,7 @@ string {
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
         ; NOTE: because this isn't an asmsub, there's only a SINGLE return value here. On the c64/cx16 targets etc there are 2 return values.
         ubyte ix
-        for ix in string.length(stringptr)-1 downto 0 {
+        for ix in length(stringptr)-1 downto 0 {
             if stringptr[ix]==character {
                 sys.set_carry()
                 return ix
@@ -96,8 +96,8 @@ string {
         ; Often you don’t have to call this explicitly and can just write string1 = string2
         ; but this function is useful if you’re dealing with addresses for instance.
         %ir {{
-            loadm.w r65534,string.copy.source
-            loadm.w r65535,string.copy.target
+            loadm.w r65534,strings.copy.source
+            loadm.w r65535,strings.copy.target
             syscall 39 (r65534.w, r65535.w): r0.b
             returnr.b r0
         }}
@@ -116,8 +116,8 @@ string {
         ; Note that you can also directly compare strings and string values with eachother using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
-            loadm.w r65534,string.compare.st1
-            loadm.w r65535,string.compare.st2
+            loadm.w r65534,strings.compare.st1
+            loadm.w r65535,strings.compare.st2
             syscall 16 (r65534.w, r65535.w) : r0.b
             returnr.b r0
         }}

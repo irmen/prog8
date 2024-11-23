@@ -2,7 +2,7 @@
 
 %import textio
 %import conv
-%import string
+%import strings
 %import syslib
 
 diskio {
@@ -141,7 +141,7 @@ io_error:
         if lf_start_list(pattern_ptr) {
             while lf_next_entry() {
                 if list_filetype!="dir" {
-                    filenames_buffer += string.copy(list_filename, filenames_buffer) + 1
+                    filenames_buffer += strings.copy(list_filename, filenames_buffer) + 1
                     files_found++
                     if filenames_buffer - buffer_start > filenames_buf_size-20 {
                         @(filenames_buffer)=0
@@ -243,7 +243,7 @@ io_error:
             if not list_skip_disk_name {
                 if list_pattern==0
                     return true
-                if string.pattern_match(list_filename, list_pattern)
+                if strings.pattern_match(list_filename, list_pattern)
                     return true
             }
             list_skip_disk_name = false
@@ -275,7 +275,7 @@ close_end:
         ;          if you're going to read from it yourself instead of using f_read()!
         f_close()
 
-        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETNAM(strings.length(filenameptr), filenameptr)
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, READ_IO_CHANNEL)     ; note: has to be Channel,x,Channel because otherwise f_seek doesn't work
         void cbm.OPEN()          ; open 12,8,12,"filename"
         if_cc {
@@ -398,7 +398,7 @@ _end        jsr  cbm.READST
         ;    and check the drive's status message!
         f_close_w()
 
-        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETNAM(strings.length(filenameptr), filenameptr)
         cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, 1)
         void cbm.OPEN()             ; open 13,8,1,"filename"
         if_cc {
@@ -444,7 +444,7 @@ _end        jsr  cbm.READST
         str device_not_present_error = "device not present #xx"
         if cbm.READST()==128 {
             device_not_present_error[len(device_not_present_error)-2] = 0
-            void string.copy(conv.str_ub(drivenumber), &device_not_present_error+len(device_not_present_error)-2)
+            void strings.copy(conv.str_ub(drivenumber), &device_not_present_error+len(device_not_present_error)-2)
             return device_not_present_error
         }
         uword messageptr = &list_filename
@@ -508,7 +508,7 @@ io_error:
     }
 
     sub save(uword filenameptr, uword start_address, uword savesize) -> bool {
-        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETNAM(strings.length(filenameptr), filenameptr)
         cbm.SETLFS(1, drivenumber, 0)
         uword @shared end_address = start_address + savesize
         cx16.r0L = 0
@@ -539,7 +539,7 @@ io_error:
     ; and the rest is loaded at the given location in memory.
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
     sub load(uword filenameptr, uword address_override) -> uword {
-        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETNAM(strings.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
         if address_override!=0
@@ -578,7 +578,7 @@ io_error:
         ; -- delete a file on the drive
         list_filename[0] = 's'
         list_filename[1] = ':'
-        ubyte flen = string.copy(filenameptr, &list_filename+2)
+        ubyte flen = strings.copy(filenameptr, &list_filename+2)
         cbm.SETNAM(flen+2, list_filename)
         cbm.SETLFS(1, drivenumber, 15)
         void cbm.OPEN()
@@ -590,9 +590,9 @@ io_error:
         ; -- rename a file on the drive
         list_filename[0] = 'r'
         list_filename[1] = ':'
-        ubyte flen_new = string.copy(newfileptr, &list_filename+2)
+        ubyte flen_new = strings.copy(newfileptr, &list_filename+2)
         list_filename[flen_new+2] = '='
-        ubyte flen_old = string.copy(oldfileptr, &list_filename+3+flen_new)
+        ubyte flen_old = strings.copy(oldfileptr, &list_filename+3+flen_new)
         cbm.SETNAM(3+flen_new+flen_old, list_filename)
         cbm.SETLFS(1, drivenumber, 15)
         void cbm.OPEN()
@@ -611,7 +611,7 @@ io_error:
 
     sub send_command(uword commandptr) {
         ; -- send a dos command to the drive
-        cbm.SETNAM(string.length(commandptr), commandptr)
+        cbm.SETNAM(strings.length(commandptr), commandptr)
         cbm.SETLFS(15, drivenumber, 15)
         void cbm.OPEN()
         cbm.CLRCHN()

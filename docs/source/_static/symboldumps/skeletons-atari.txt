@@ -1,5 +1,6 @@
 
-Prog8 compiler v10.5.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v10.6-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 7a647300 in branch nextversion
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-atari.p8
@@ -137,10 +138,10 @@ math  {
 }
 
 
-LIBRARY MODULE NAME: string
----------------------------
+LIBRARY MODULE NAME: strings
+----------------------------
 
-string  {
+strings  {
     append  (uword target @R0, uword suffix @R1) -> clobbers (Y) -> ubyte @A 
     compare  (uword string1 @R0, uword string2 @AY) -> clobbers (Y) -> byte @A 
     contains  (uword string @AY, ubyte character @X) -> bool @Pc 
@@ -192,12 +193,20 @@ atari  {
 }
 
 sys  {
-    const ubyte  sizeof_bool 
-    const ubyte  sizeof_byte 
-    const ubyte  sizeof_float 
-    const ubyte  sizeof_ubyte 
-    const ubyte  sizeof_uword 
-    const ubyte  sizeof_word 
+    const byte  MAX_BYTE 
+    const ubyte  MAX_UBYTE 
+    const uword  MAX_UWORD 
+    const word  MAX_WORD 
+    const byte  MIN_BYTE 
+    const ubyte  MIN_UBYTE 
+    const uword  MIN_UWORD 
+    const word  MIN_WORD 
+    const ubyte  SIZEOF_BOOL 
+    const ubyte  SIZEOF_BYTE 
+    const ubyte  SIZEOF_FLOAT 
+    const ubyte  SIZEOF_UBYTE 
+    const ubyte  SIZEOF_UWORD 
+    const ubyte  SIZEOF_WORD 
     const ubyte  target 
     clear_carry  () 
     clear_irqd  () 

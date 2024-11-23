@@ -1,4 +1,4 @@
-%import string
+%import strings
 %import textio
 %option no_sysinit
 %zeropage basicsafe
@@ -9,7 +9,7 @@ main {
     sub start() {
         ; copy basic rom to ram and replace ready prompt
         sys.memcopy($a000, $a000, $2000)
-        void string.copy(iso:"HELLO!\r", $a378)
+        void strings.copy(iso:"HELLO!\r", $a378)
 
         txt.print("8 bytes at $f000 (kernal rom):\n")
         for cx16.r0 in $f000 to $f007 {
@@ -21,7 +21,7 @@ main {
         ; store some other data in the RAM below those kernal ROM locations
         ; switch off kernal rom to see those bytes
         ; we cannot print during this time and the IRQ has to be disabled temporarily as well.
-        void string.copy("hello !?", $f000)
+        void strings.copy("hello !?", $f000)
         sys.set_irqd()
         c64.banks(%101)     ; switch off roms
         ubyte[8] buffer

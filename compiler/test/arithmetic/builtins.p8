@@ -1,6 +1,6 @@
 %import textio
 %import floats
-%import string
+%import strings
 %import syslib
 %import math
 %import anyall

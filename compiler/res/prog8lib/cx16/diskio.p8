@@ -13,7 +13,7 @@
 
 %import textio
 %import conv
-%import string
+%import strings
 %import syslib
 
 diskio {
@@ -163,7 +163,7 @@ io_error:
         if lf_start_list(pattern_ptr) {
             while lf_next_entry() {
                 if list_filetype!="dir" {
-                    filenames_buffer += string.copy(list_filename, filenames_buffer) + 1
+                    filenames_buffer += strings.copy(list_filename, filenames_buffer) + 1
                     files_found++
                     if filenames_buffer - buffer_start > filenames_buf_size-20 {
                         @(filenames_buffer)=0
@@ -265,7 +265,7 @@ io_error:
             if not list_skip_disk_name {
                 if list_pattern==0
                     return true
-                if string.pattern_match(list_filename, list_pattern)
+                if strings.pattern_match(list_filename, list_pattern)
                     return true
             }
             list_skip_disk_name = false
@@ -297,7 +297,7 @@ close_end:
         ;          if you're going to read from it yourself instead of using f_read()!
         f_close()
 
-        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETNAM(strings.length(filenameptr), filenameptr)
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, READ_IO_CHANNEL)     ; note: has to be Channel,x,Channel because otherwise f_seek doesn't work
         void cbm.OPEN()          ; open 12,8,12,"filename"
         if_cc {
@@ -457,7 +457,7 @@ _end        jsr  cbm.READST
         modifier[3] = 'w'
         if open_for_seeks
             modifier[3] = 'm'
-        cx16.r0L = string.append(list_filename, modifier)   ; secondary 13 requires a mode suffix to signal we're writing/modifying
+        cx16.r0L = strings.append(list_filename, modifier)   ; secondary 13 requires a mode suffix to signal we're writing/modifying
         cbm.SETNAM(cx16.r0L, list_filename)
         cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, WRITE_IO_CHANNEL)
         void cbm.OPEN()             ; open 13,8,13,"filename"
@@ -519,7 +519,7 @@ no_mciout:
         str device_not_present_error = "device not present #xx"
         if cbm.READST()==128 {
             device_not_present_error[len(device_not_present_error)-2] = 0
-            void string.copy(conv.str_ub(drivenumber), &device_not_present_error+len(device_not_present_error)-2)
+            void strings.copy(conv.str_ub(drivenumber), &device_not_present_error+len(device_not_present_error)-2)
             return device_not_present_error
         }
 
@@ -596,7 +596,7 @@ io_error:
     }
 
     sub internal_save_routine(uword filenameptr, uword startaddress, uword savesize, bool headerless) -> bool {
-        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETNAM(strings.length(filenameptr), filenameptr)
         cbm.SETLFS(1, drivenumber, 0)
         uword @shared end_address = startaddress + savesize
         cx16.r0L = 0
@@ -651,7 +651,7 @@ io_error:
 
 
     sub internal_load_routine(uword filenameptr, uword address_override, bool headerless) -> uword {
-        cbm.SETNAM(string.length(filenameptr), filenameptr)
+        cbm.SETNAM(strings.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
         if address_override!=0
@@ -677,7 +677,7 @@ io_error:
         ; -- delete a file on the drive
         list_filename[0] = 's'
         list_filename[1] = ':'
-        ubyte flen = string.copy(filenameptr, &list_filename+2)
+        ubyte flen = strings.copy(filenameptr, &list_filename+2)
         cbm.SETNAM(flen+2, list_filename)
         cbm.SETLFS(1, drivenumber, 15)
         void cbm.OPEN()
@@ -689,9 +689,9 @@ io_error:
         ; -- rename a file on the drive
         list_filename[0] = 'r'
         list_filename[1] = ':'
-        ubyte flen_new = string.copy(newfileptr, &list_filename+2)
+        ubyte flen_new = strings.copy(newfileptr, &list_filename+2)
         list_filename[flen_new+2] = '='
-        ubyte flen_old = string.copy(oldfileptr, &list_filename+3+flen_new)
+        ubyte flen_old = strings.copy(oldfileptr, &list_filename+3+flen_new)
         cbm.SETNAM(3+flen_new+flen_old, list_filename)
         cbm.SETLFS(1, drivenumber, 15)
         void cbm.OPEN()
@@ -701,7 +701,7 @@ io_error:
 
     sub send_command(uword commandptr) {
         ; -- send a dos command to the drive (don't read any response)
-        cbm.SETNAM(string.length(commandptr), commandptr)
+        cbm.SETNAM(strings.length(commandptr), commandptr)
         cbm.SETLFS(15, drivenumber, 15)
         void cbm.OPEN()
         cbm.CLRCHN()
@@ -776,7 +776,7 @@ internal_vload:
         list_filename[0] = 'c'
         list_filename[1] = 'd'
         list_filename[2] = ':'
-        void string.copy(path, &list_filename+3)
+        void strings.copy(path, &list_filename+3)
         send_command(list_filename)
     }
 
@@ -785,19 +785,19 @@ internal_vload:
         list_filename[0] = 'm'
         list_filename[1] = 'd'
         list_filename[2] = ':'
-        void string.copy(name, &list_filename+3)
+        void strings.copy(name, &list_filename+3)
         send_command(list_filename)
     }
 
     sub rmdir(str name) {
         ; -- remove a subdirectory.
-        void string.find(name, '*')
+        void strings.find(name, '*')
         if_cs
             return    ; refuse to act on a wildcard *
         list_filename[0] = 'r'
         list_filename[1] = 'd'
         list_filename[2] = ':'
-        void string.copy(name, &list_filename+3)
+        void strings.copy(name, &list_filename+3)
         send_command(list_filename)
     }
 
@@ -860,7 +860,7 @@ io_error:
         sub prepend(str dir) {
             if dir[0]=='/' and dir[1]==0
                 return
-            cx16.r9L = string.length(dir)
+            cx16.r9L = strings.length(dir)
             cx16.r12 -= cx16.r9L
             sys.memcopy(dir, cx16.r12, cx16.r9L)
             cx16.r12--
@@ -874,7 +874,7 @@ io_error:
         list_filename[1] = '-'
         list_filename[2] = 'h'
         list_filename[3] = ':'
-        void string.copy(name, &list_filename+4)
+        void strings.copy(name, &list_filename+4)
         send_command(list_filename)
     }
 

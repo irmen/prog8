@@ -1,5 +1,5 @@
 %import textio
-%import string
+%import strings
 
 ; Animal guessing game where the computer gets smarter every time.
 ; Note: this program can be compiled for multiple target systems.
@@ -114,8 +114,8 @@ main {
 
         animals[new_animal_number] = animal_names_ptr
         questions[new_question_number] = questions_ptr
-        animal_names_ptr += string.copy(name, animal_names_ptr)+1  ; store animal name in buffer
-        questions_ptr += string.copy(userinput, questions_ptr)+1   ; store question in buffer
+        animal_names_ptr += strings.copy(name, animal_names_ptr)+1  ; store animal name in buffer
+        questions_ptr += strings.copy(userinput, questions_ptr)+1   ; store question in buffer
 
         answers_questions[new_question_number] = mkword(0, 0)
         if answer[0]=='y'

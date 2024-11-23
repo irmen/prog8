@@ -432,13 +432,13 @@ read the syntax reference on strings.
 
 Using the ``in`` operator you can easily check if a character is present in a string,
 example: ``if '@' in email_address {....}`` (however this gives no clue about the location
-in the string where the character is present, if you need that, use the ``string.find()``
+in the string where the character is present, if you need that, use the ``strings.find()``
 library function instead)
 **Caution:**
 This checks *all* elements in the string with the length as it was initially declared.
 Even when a string was changed and is terminated early with a 0-byte early,
 the containment check with ``in`` will still look at all character positions in the initial string.
-Consider using ``string.find`` followed by ``if_cs`` (for instance) to do a "safer" search
+Consider using ``strings.find`` followed by ``if_cs`` (for instance) to do a "safer" search
 for a character in such strings (one that stops at the first 0 byte)
 
 
@@ -482,7 +482,7 @@ by the compiler everywhere you refer to the constant (and no memory is allocated
 for the constant itself). Onlythe simple numeric types (byte, word, float) can be defined as a constant.
 If something is defined as a constant, very efficient code can usually be generated from it.
 Variables on the other hand can't be optimized as much, need memory, and more code to manipulate them.
-Note that a subset of the library routines in the ``math``, ``string`` and ``floats`` modules are recognised in
+Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
 compile time expressions. For example, the compiler knows what ``math.sin8u(12)`` is and replaces it with the computed result.
 
 When using ``&`` (the address-of operator but now applied to a datatype), the variable will point to specific location in memory,

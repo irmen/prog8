@@ -6,5 +6,5 @@
 %import conv
 %import math
 %import prog8_lib
-%import string
+%import strings
 %import syslib

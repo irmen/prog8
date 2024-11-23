@@ -1,6 +1,6 @@
 %import textio
 %import palette
-%import string
+%import strings
 %import gfx_hires
 
 ; Mockup of a classic Amiga Workbench screen.
@@ -164,7 +164,7 @@ widget {
         const ubyte height = 28
         highlightedrect(x, y, width, height, false, false)
         uword middlex = x+width/2+1
-        ubyte halfstring = string.length(caption) * 4
+        ubyte halfstring = strings.length(caption) * 4
         gfx_hires.text(middlex-halfstring,y+height+1,1,caption)
         gfx_hires.disc(x+width/4+4, y+height/2, height/2-3, 1)
         gfx_hires.fillrect(x+20,y+12,width/2,height/2-4,3)

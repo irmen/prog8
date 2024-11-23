@@ -10,7 +10,7 @@
 %import graphics
 %import math
 %import prog8_lib
-%import string
+%import strings
 %import syslib
 %import test_stack
 %import textio

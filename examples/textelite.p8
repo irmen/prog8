@@ -1,7 +1,7 @@
 %import textio
 %import conv
 %import diskio
-%import string
+%import strings
 %zeropage basicsafe
 
 ; Prog8 adaptation of the Text-Elite galaxy system trading simulation engine.
@@ -517,7 +517,7 @@ galaxy {
             ubyte distance = planet.distance(px, py)
             if distance <= max_distance {
                 planet.name = make_current_planet_name()
-                planet.name[0] = string.upperchar(planet.name[0])
+                planet.name[0] = strings.upperchar(planet.name[0])
                 uword tx = planet.x
                 uword ty = planet.y
                 if local {
@@ -803,7 +803,7 @@ planet {
             }
         }
         randname[nx] = 0
-        randname[0] = string.upperchar(randname[0])
+        randname[0] = strings.upperchar(randname[0])
         return randname
     }
 
@@ -875,12 +875,12 @@ planet {
                         source_ptr = source_stack[stack_ptr]
                     } else {
                         if c == $b0 {
-                            @(result_ptr) = string.upperchar(name[0])
+                            @(result_ptr) = strings.upperchar(name[0])
                             result_ptr++
                             concat_string(&name + 1)
                         }
                         else if c == $b1 {
-                            @(result_ptr) = string.upperchar(name[0])
+                            @(result_ptr) = strings.upperchar(name[0])
                             result_ptr++
                             ubyte ni
                             for ni in 1 to len(name) {
@@ -995,7 +995,7 @@ planet {
 
     sub print_name_uppercase() {
         for cx16.r0L in name
-            txt.chrout(string.upperchar(cx16.r0L))
+            txt.chrout(strings.upperchar(cx16.r0L))
     }
 
     sub getword(ubyte listnum, ubyte wordidx) -> uword {
@@ -1012,7 +1012,7 @@ util {
             if pc == 0
                 return true
             ; to lowercase for case insensitive compare:
-            if string.lowerchar(pc)!=string.lowerchar(sc)
+            if strings.lowerchar(pc)!=strings.lowerchar(sc)
                 return false
             prefixptr++
             stringptr++
@@ -1020,7 +1020,7 @@ util {
     }
 
     sub print_right(ubyte width, uword s) {
-        repeat width - string.length(s) {
+        repeat width - strings.length(s) {
             txt.spc()
         }
         txt.print(s)

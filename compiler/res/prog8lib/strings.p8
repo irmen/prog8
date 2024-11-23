@@ -2,7 +2,7 @@
 
 %import shared_string_functions
 
-string {
+strings {
     %option no_symbol_prefixing, ignore_unused
 
     asmsub length(uword string @AY) clobbers(A) -> ubyte @Y {
@@ -60,7 +60,7 @@ _loop		dey
                 stx  P8ZP_SCRATCH_B1
                 sta  cx16.r0
                 sty  cx16.r0+1
-                jsr  string.length
+                jsr  length
                 tya
                 sec
                 sbc  P8ZP_SCRATCH_B1
@@ -158,7 +158,7 @@ _found	tya
             stx  P8ZP_SCRATCH_B1
             sta  _str
             sty  _str+1
-            jsr  string.length
+            jsr  length
             dey
             lda  _str
     		sta  P8ZP_SCRATCH_W1

@@ -16,8 +16,8 @@ main {
         if diskio.f_open_w("@:seektestfile.bin") {
             repeat 100 {
                 str text = "hello world.*"
-                void diskio.f_write(text, string.length(text))
-                total += string.length(text)
+                void diskio.f_write(text, strings.length(text))
+                total += strings.length(text)
             }
             diskio.f_close_w()
             txt.print("written size=")

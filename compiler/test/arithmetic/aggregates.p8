@@ -1,6 +1,6 @@
 %import floats
 %import textio
-%import string
+%import strings
 %import anyall
 %zeropage basicsafe
 
@@ -24,10 +24,10 @@ main {
         if length!=5 txt.print("error len1\n")
         length = len(uwarr)
         if length!=5 txt.print("error len2\n")
-        length=string.length(name)
+        length=strings.length(name)
         if length!=5 txt.print("error strlen1\n")
         name[3] = 0
-        length=string.length(name)
+        length=strings.length(name)
         if length!=3 txt.print("error strlen2\n")
 
         ; ANY

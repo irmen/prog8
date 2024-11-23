@@ -1,5 +1,5 @@
 %import syslib
-%import string
+%import strings
 
 ; Streaming routine for MCF files (multipurpose chunk format):
 ; 1. call open()
@@ -18,7 +18,7 @@ mcf {
 
     sub open(str filename, ubyte drive, ubyte channel) -> bool {
         file_channel = channel
-        cbm.SETNAM(string.length(filename), filename)
+        cbm.SETNAM(strings.length(filename), filename)
         cbm.SETLFS(channel, drive, 2)
         void cbm.OPEN()
         if_cc {

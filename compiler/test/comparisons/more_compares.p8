@@ -1,7 +1,7 @@
 %zeropage basicsafe
 %import textio
 %import floats
-%import string
+%import strings
 
 main {
     sub start() {
@@ -15,10 +15,10 @@ main {
     sub test_string() {
         str name="john"
 
-        if (string.compare(name, "aaa")==0) or (string.compare(name, "john")==0) or (string.compare(name, "bbb")==0) {
+        if (strings.compare(name, "aaa")==0) or (strings.compare(name, "john")==0) or (strings.compare(name, "bbb")==0) {
             txt.print("name1 ok\n")
         }
-        if (string.compare(name, "aaa")==0) or (string.compare(name, "zzz")==0) or (string.compare(name, "bbb")==0) {
+        if (strings.compare(name, "aaa")==0) or (strings.compare(name, "zzz")==0) or (strings.compare(name, "bbb")==0) {
             txt.print("name2 fail!\n")
         }
 

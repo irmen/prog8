@@ -546,7 +546,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
             }
         }
-        else if(functionCallExpr.target.nameInSource == listOf("string", "contains")) {
+        else if(functionCallExpr.target.nameInSource == listOf("strings", "contains")) {
             val target = (functionCallExpr.args[0] as? IdentifierReference)?.targetVarDecl(program)
             if(target?.value is StringLiteral) {
                 errors.info("for actual strings, use a regular containment check instead: 'char in string'", functionCallExpr.position)

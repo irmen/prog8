@@ -18,7 +18,7 @@
 %import prog8_lib
 %import psg
 %import sprites
-%import string
+%import strings
 %import syslib
 %import test_stack
 %import textio
