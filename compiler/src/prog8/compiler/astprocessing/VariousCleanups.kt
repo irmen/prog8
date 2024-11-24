@@ -148,6 +148,22 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
         }
 
+        if(expr.operator=="<<") {
+            // << X --> X   (X is word or byte)
+            val valueDt = expr.expression.inferType(program)
+            if(valueDt.isBytes || valueDt.isWords) {
+                return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
+            }
+        }
+
+        if(expr.operator=="^") {
+            // ^ X --> 0  (X is word or byte)
+            val valueDt = expr.expression.inferType(program)
+            if(valueDt.isBytes || valueDt.isWords) {
+                val zero = NumericLiteral(DataType.UBYTE, 0.0, expr.expression.position)
+                return listOf(IAstModification.ReplaceNode(expr, zero, parent))
+            }
+        }
         return noModifications
     }
 

@@ -318,7 +318,7 @@ class PtPrefix(val operator: String, type: DataType, position: Position): PtExpr
         get() = children.single() as PtExpression
 
     init {
-        require(operator in setOf("+", "-", "~", "not")) { "invalid prefix operator: $operator" }
+        require(operator in setOf("+", "-", "~", "^", "<<", "not")) { "invalid prefix operator: $operator" }
     }
 }
 

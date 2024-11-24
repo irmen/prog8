@@ -536,6 +536,10 @@ internal class AssignmentAsmGen(
                 }
             }
             is PtPrefix -> {
+                if(value.operator=="^")
+                    throw AssemblyError("unary ^ should have been replaced by a const value (either the bank number of a long const, or zero for any other smaller value)")
+                if(value.operator=="<<")
+                    throw AssemblyError("unary << should have been replaced by a const uword")
                 if(assign.target.array==null) {
                     if(assign.source.datatype isAssignableTo assign.target.datatype || (assign.source.datatype==DataType.BOOL && assign.target.datatype in ByteDatatypes)) {
                         if(assign.source.datatype in IntegerDatatypesWithBoolean) {
