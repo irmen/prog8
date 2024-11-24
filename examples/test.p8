@@ -3,31 +3,34 @@
 
 main {
     sub start() {
-        const long foo2  = $123456
-        cx16.r0 = $ffff
-        cx16.r1 = $ea31
-        txt.print_uwbin(cx16.r1 << 7, true)
+        foo(42)
+        bar(9999,55)
         txt.nl()
-        txt.print_uwhex(cx16.r0 ^ cx16.r1, true)
-        txt.nl()
-        txt.print_ubhex(^cx16.r0, true)
-        txt.spc()
-        txt.print_uwhex(<<cx16.r0, false)
-        txt.nl()
-        txt.print_ubhex(^foo2, true)
-        txt.spc()
-        txt.print_uwhex(<<foo2, false)
-        txt.nl()
-        txt.print_ubhex(bankof(foo2), true)
-        txt.spc()
-        txt.print_uwhex(foo2 &$ffff, false)
-        txt.nl()
+        test(1,2,3)
+        test2(1)
+    }
 
-        txt.print_ubhex(msw(foo2), true)
-        txt.spc()
-        txt.print_uwhex(lsw(foo2), false)
+    sub foo(ubyte arg) {
+        txt.print_ub(arg)
         txt.nl()
+    }
 
+    sub bar(uword arg, ubyte arg2) {
+        txt.print_uw(arg)
+        txt.spc()
+        txt.print_ub(arg2)
+        txt.nl()
+    }
 
+    asmsub test(ubyte a1 @R1, ubyte a2 @R1, ubyte a3 @R2) {      ; TODO should give register reuse error
+        %asm {{
+            rts
+        }}
+    }
+
+    asmsub test2(uword a1 @AY) clobbers(A, X) -> ubyte @X {
+        %asm {{
+            rts
+        }}
     }
 }

@@ -451,66 +451,49 @@ internal class AstChecker(private val program: Program,
                 }
             }
 
-            val regCounts = mutableMapOf<CpuRegister, Int>().withDefault { 0 }
-            val statusflagCounts = mutableMapOf<Statusflag, Int>().withDefault { 0 }
+            val regsUsed = mutableListOf<RegisterOrPair>()
+            val statusflagUsed = mutableListOf<Statusflag>()
             fun countRegisters(from: Iterable<RegisterOrStatusflag>) {
-                regCounts.clear()
-                statusflagCounts.clear()
+                regsUsed.clear()
+                statusflagUsed.clear()
                 for(p in from) {
                     when(p.registerOrPair) {
-                        RegisterOrPair.A -> regCounts[CpuRegister.A]=regCounts.getValue(CpuRegister.A)+1
-                        RegisterOrPair.X -> regCounts[CpuRegister.X]=regCounts.getValue(CpuRegister.X)+1
-                        RegisterOrPair.Y -> regCounts[CpuRegister.Y]=regCounts.getValue(CpuRegister.Y)+1
+                        null -> {
+                            if (p.statusflag != null)
+                                statusflagUsed += p.statusflag!!
+                        }
                         RegisterOrPair.AX -> {
-                            regCounts[CpuRegister.A]=regCounts.getValue(CpuRegister.A)+1
-                            regCounts[CpuRegister.X]=regCounts.getValue(CpuRegister.X)+1
+                            regsUsed += RegisterOrPair.A
+                            regsUsed += RegisterOrPair.X
                         }
                         RegisterOrPair.AY -> {
-                            regCounts[CpuRegister.A]=regCounts.getValue(CpuRegister.A)+1
-                            regCounts[CpuRegister.Y]=regCounts.getValue(CpuRegister.Y)+1
+                            regsUsed += RegisterOrPair.A
+                            regsUsed += RegisterOrPair.Y
                         }
                         RegisterOrPair.XY -> {
-                            regCounts[CpuRegister.X]=regCounts.getValue(CpuRegister.X)+1
-                            regCounts[CpuRegister.Y]=regCounts.getValue(CpuRegister.Y)+1
+                            regsUsed += RegisterOrPair.X
+                            regsUsed += RegisterOrPair.Y
                         }
-                        RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> { /* no sensible way to count this */ }
-                        RegisterOrPair.R0,
-                        RegisterOrPair.R1,
-                        RegisterOrPair.R2,
-                        RegisterOrPair.R3,
-                        RegisterOrPair.R4,
-                        RegisterOrPair.R5,
-                        RegisterOrPair.R6,
-                        RegisterOrPair.R7,
-                        RegisterOrPair.R8,
-                        RegisterOrPair.R9,
-                        RegisterOrPair.R10,
-                        RegisterOrPair.R11,
-                        RegisterOrPair.R12,
-                        RegisterOrPair.R13,
-                        RegisterOrPair.R14,
-                        RegisterOrPair.R15 -> { /* no sensible way to count this */ }
-                        null -> {
-                            val statusf = p.statusflag
-                            if (statusf != null)
-                                statusflagCounts[statusf] = statusflagCounts.getValue(statusf) + 1
-                        }
+                        else -> regsUsed += p.registerOrPair!!
                     }
                 }
             }
             countRegisters(subroutine.asmParameterRegisters)
-            if(regCounts.any{it.value>1})
+            if(regsUsed.size != regsUsed.toSet().size)
                 err("a register is used multiple times in the parameters")
-            if(statusflagCounts.any{it.value>1})
+            if(statusflagUsed.size != statusflagUsed.toSet().size)
                 err("a status flag is used multiple times in the parameters")
+
             countRegisters(subroutine.asmReturnvaluesRegisters)
-            if(regCounts.any{it.value>1})
+            if(regsUsed.size != regsUsed.toSet().size)
                 err("a register is used multiple times in the return values")
-            if(statusflagCounts.any{it.value>1})
+            if(statusflagUsed.size != statusflagUsed.toSet().size)
                 err("a status flag is used multiple times in the return values")
 
-            if(subroutine.asmClobbers.intersect(regCounts.keys).isNotEmpty())
-                err("a return register is also in the clobber list")
+            for(reg in subroutine.asmClobbers) {
+                if(regsUsed.contains(RegisterOrPair.fromCpuRegister(reg)))
+                    err("a return register is also in the clobber list")
+            }
 
             if(subroutine.statements.any{it !is InlineAssembly})
                 err("asmsub can only contain inline assembly (%asm)")
