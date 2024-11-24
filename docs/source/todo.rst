@@ -1,6 +1,13 @@
 TODO
 ====
 
+document the @R0 - @R15 register support for normal subroutine parameters (footgun!)
+add unit tests for it too.
+
+make a compiler switch to disable footgun warnings
+
+turn some existing warnings into INFO
+
 what to do with bankof(): keep it? add another syntax like \`value  or ^value  to get the bank byte?
 add a function like addr() or lsw() to complement bnk() in getting easy access to the lower 16 bits of a long integer?
 -> added unary ^ operator as alternative to bankof()

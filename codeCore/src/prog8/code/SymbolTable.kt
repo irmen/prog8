@@ -266,7 +266,7 @@ class StExtSub(name: String,
 
 
 
-class StSubroutineParameter(val name: String, val type: DataType)
+class StSubroutineParameter(val name: String, val type: DataType, val register: RegisterOrPair?)
 class StExtSubParameter(val register: RegisterOrStatusflag, val type: DataType)
 class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?) {
     init {

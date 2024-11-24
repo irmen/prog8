@@ -147,7 +147,6 @@ class IRCodeGen(
                             }
                             is IRInlineAsmChunk -> IRInlineAsmChunk(sub.label, first.assembly, first.isIR, first.next)
                             is IRInlineBinaryChunk -> IRInlineBinaryChunk(sub.label, first.data, first.next)
-                            else -> throw AssemblyError("invalid chunk")
                         }
                         sub.chunks.removeAt(0)
                         sub.chunks.add(0, replacement)
@@ -362,9 +361,6 @@ class IRCodeGen(
             }
             is IRInlineBinaryChunk -> {
                 IRInlineBinaryChunk(label, first.data, first.next)
-            }
-            else -> {
-                throw AssemblyError("invalid chunk")
             }
         }
         return listOf(labeledFirstChunk) + chunks.drop(1)
@@ -1750,14 +1746,25 @@ class IRCodeGen(
         return irBlock
     }
 
-    private fun translate(parameters: List<PtSubroutineParameter>) =
-        parameters.map {
-            val flattenedName = it.definingISub()!!.name + "." + it.name
-            if(symbolTable.lookup(flattenedName)==null)
-                TODO("fix missing lookup for: $flattenedName   parameter")
-            val orig = symbolTable.lookup(flattenedName) as StStaticVariable
-            IRSubroutine.IRParam(flattenedName, orig.dt)
+    private fun translate(parameters: List<PtSubroutineParameter>): List<IRSubroutine.IRParam> {
+        val result = mutableListOf<IRSubroutine.IRParam>()
+        parameters.forEach {
+            if(it.register==null) {
+                val flattenedName = it.definingISub()!!.name + "." + it.name
+                if (symbolTable.lookup(flattenedName) == null)
+                    TODO("fix missing lookup for: $flattenedName   parameter")
+                val orig = symbolTable.lookup(flattenedName) as StStaticVariable
+                result += IRSubroutine.IRParam(flattenedName, orig.dt)
+            } else {
+                val reg = it.register
+                require(reg in Cx16VirtualRegisters) { "can only use R0-R15 'registers' here" }
+                val regname = it.register!!.asScopedNameVirtualReg(it.type).joinToString(".")
+                val targetVar = symbolTable.lookup(regname) as StMemVar
+                result += IRSubroutine.IRParam(regname, targetVar.dt)
+            }
         }
+        return result
+    }
 
     private var labelSequenceNumber = 0
     internal fun createLabelName(): String {

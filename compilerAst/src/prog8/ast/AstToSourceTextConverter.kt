@@ -209,7 +209,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         else {
             output("sub ${subroutine.name} (")
             for(param in subroutine.parameters) {
-                output("${datatypeString(param.type)} ${param.name}")
+                val reg = if(param.registerOrPair!=null) " @${param.registerOrPair}" else ""
+                output("${datatypeString(param.type)} ${param.name}$reg")
                 if(param!==subroutine.parameters.last())
                     output(", ")
             }

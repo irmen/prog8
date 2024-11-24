@@ -39,7 +39,7 @@ class PtSub(
 }
 
 
-class PtSubroutineParameter(name: String, val type: DataType, position: Position): PtNamedNode(name, position)
+class PtSubroutineParameter(name: String, val type: DataType, val register: RegisterOrPair?, position: Position): PtNamedNode(name, position)
 
 
 sealed interface IPtAssignment {

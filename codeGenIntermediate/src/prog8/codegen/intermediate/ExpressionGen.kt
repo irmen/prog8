@@ -86,7 +86,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtRange,
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
-            else -> throw AssemblyError("weird expression")
         }
     }
 
@@ -565,12 +564,23 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val argRegisters = mutableListOf<FunctionCallArgs.ArgumentSpec>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
                     val paramDt = irType(parameter.type)
-                    val tr = translateExpression(arg)
-                    if(paramDt==IRDataType.FLOAT)
-                        argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, tr.resultFpReg, null)))
-                    else
-                        argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(paramDt, tr.resultReg, null)))
-                    result += tr.chunks
+                    if(parameter.register==null) {
+                        val tr = translateExpression(arg)
+                        result += tr.chunks
+                        if(paramDt==IRDataType.FLOAT)
+                            argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(IRDataType.FLOAT, tr.resultFpReg, null)))
+                        else
+                            argRegisters.add(FunctionCallArgs.ArgumentSpec(parameter.name, null, FunctionCallArgs.RegSpec(paramDt, tr.resultReg, null)))
+                    } else {
+                        require(parameter.register in Cx16VirtualRegisters) { "can only use R0-R15 'registers' here" }
+                        val regname = parameter.register!!.asScopedNameVirtualReg(parameter.type).joinToString(".")
+                        val assign = PtAssignment(fcall.position)
+                        val target = PtAssignTarget(true, fcall.position)
+                        target.add(PtIdentifier(regname, parameter.type, fcall.position))
+                        assign.add(target)
+                        assign.add(arg)
+                        result += codeGen.translateNode(assign)
+                    }
                 }
                 // return value (always singular for normal Subs)
                 val returnRegSpec = if(fcall.void) null else {

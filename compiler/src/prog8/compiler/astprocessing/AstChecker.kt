@@ -501,11 +501,28 @@ internal class AstChecker(private val program: Program,
             val statusFlagsNoCarry = subroutine.asmParameterRegisters.mapNotNull { it.statusflag }.toSet() - Statusflag.Pc
             if(statusFlagsNoCarry.isNotEmpty())
                 err("can only use Carry as status flag parameter")
+        } else {
+            // normal subroutines only can have R0-R15 as param registers
+            val paramsWithRegs = subroutine.parameters.filter { it.registerOrPair!=null }
+            val regsUsed = paramsWithRegs.map { it.registerOrPair!! }
+            if(regsUsed.size != regsUsed.toSet().size) {
+                err("a register is used multiple times in the parameters")
+            }
         }
 
         // Non-string and non-ubytearray Pass-by-reference datatypes can not occur as parameters to a subroutine directly
         // Instead, their reference (address) should be passed (as an UWORD).
         for(p in subroutine.parameters) {
+            if (!subroutine.isAsmSubroutine && p.registerOrPair!=null) {
+                if (p.registerOrPair !in Cx16VirtualRegisters) errors.err("can only use R0-R15 as register param for normal subroutines", p.position)
+                else {
+                    errors.warn("\uD83D\uDCA3 footgun: reusing R0-R15 as parameters risks overwriting due to no callstack or clobbering", subroutine.position)
+                    if(p.type !in WordDatatypes && p.type !in ByteDatatypesWithBoolean) {
+                        errors.err("can only use register param when type is boolean, byte or word", p.position)
+                    }
+                }
+            }
+
             if(p.name.startsWith('_'))
                 errors.err("identifiers cannot start with an underscore", p.position)
 
@@ -913,7 +930,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("string variables cannot be @dirty", decl.position)
             else {
                 if(decl.value==null)
-                    errors.info("dirty variable: initial value will be undefined", decl.position)
+                    errors.warn("\uD83D\uDCA3 footgun: dirty variable, initial value will be undefined", decl.position)
                 else
                     errors.err("dirty variable can't have initialization value", decl.position)
             }

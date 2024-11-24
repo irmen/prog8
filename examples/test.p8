@@ -1,25 +1,36 @@
-%import floats
-%import math
 %import textio
 %zeropage basicsafe
 
 main {
     sub start() {
-        floats.print(floats.interpolate(0, 0, 10, 1000, 2000))
-        txt.spc()
-        txt.print_uw(math.interpolate(10, 10, 20, 100, 200))
+        foo(42)
+        foo2(42)
+        bar(9999,55)
+        bar2(9999,55)
         txt.nl()
-        floats.print(floats.interpolate(2.22, 0, 10, 1000, 2000))
-        txt.spc()
-        txt.print_uw(math.interpolate(12, 10, 20, 100, 200))
+    }
+
+    sub foo(ubyte arg) {
+        txt.print_ub(arg)
         txt.nl()
-        floats.print(floats.interpolate(5.0, 0, 10, 1000, 2000))
-        txt.spc()
-        txt.print_uw(math.interpolate(15, 10, 20, 100, 200))
+    }
+
+    sub foo2(ubyte arg @R2) {
+        txt.print_ub(arg)
         txt.nl()
-        floats.print(floats.interpolate(10, 0, 10, 1000, 2000))
+    }
+
+    sub bar(uword arg, ubyte arg2) {
+        txt.print_uw(arg)
         txt.spc()
-        txt.print_uw(math.interpolate(20, 10, 20, 100, 200))
+        txt.print_ub(arg2)
+        txt.nl()
+    }
+
+    sub bar2(uword arg @R0, ubyte arg2 @R1) {
+        txt.print_uw(arg)
+        txt.spc()
+        txt.print_ub(arg2)
         txt.nl()
     }
 }

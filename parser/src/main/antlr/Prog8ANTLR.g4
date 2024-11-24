@@ -289,7 +289,9 @@ statement_block :
 	;
 
 
-sub_params :  vardecl (',' EOL? vardecl)* ;
+sub_params :  sub_param (',' EOL? sub_param)* ;
+
+sub_param: vardecl ('@' register=NAME)? ;
 
 asmsubroutine :
     inline? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
@@ -303,7 +305,7 @@ asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns?
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' register=NAME ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed.
+asmsub_param :  vardecl '@' register=NAME ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
 
 asmsub_clobbers : 'clobbers' '(' clobber? ')' ;
 

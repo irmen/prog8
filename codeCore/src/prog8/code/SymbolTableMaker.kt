@@ -55,7 +55,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StMemVar(node.name, node.type, node.address, node.arraySize?.toInt(), node)
             }
             is PtSub -> {
-                val params = node.parameters.map {StSubroutineParameter(it.name, it.type) }
+                val params = node.parameters.map {StSubroutineParameter(it.name, it.type, it.register) }
                 StSub(node.name, params, node.returntype, node)
             }
             is PtVariable -> {

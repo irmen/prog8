@@ -3464,11 +3464,9 @@ $endLabel""")
                         RegisterOrPair.AX -> { }
                         RegisterOrPair.XY -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG |  tax") }
                         in Cx16VirtualRegisters -> {
-                            asmgen.out(
-                                """
-                                    sta  cx16.${target.register.toString().lowercase()}
-                                    stx  cx16.${target.register.toString().lowercase()}+1
-                                """)
+                            asmgen.out("""
+                                sta  cx16.${target.register.toString().lowercase()}
+                                stx  cx16.${target.register.toString().lowercase()}+1""")
                         }
                         else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                     }
@@ -3477,11 +3475,9 @@ $endLabel""")
                         RegisterOrPair.AX -> { asmgen.out("  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.XY -> { asmgen.out("  tax") }
                         in Cx16VirtualRegisters -> {
-                            asmgen.out(
-                                """
-                                    sta  cx16.${target.register.toString().lowercase()}
-                                    sty  cx16.${target.register.toString().lowercase()}+1
-                                """)
+                            asmgen.out("""
+                                sta  cx16.${target.register.toString().lowercase()}
+                                sty  cx16.${target.register.toString().lowercase()}+1""")
                         }
                         else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                     }
@@ -3490,11 +3486,9 @@ $endLabel""")
                         RegisterOrPair.AX -> { asmgen.out("  txa |  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.XY -> { }
                         in Cx16VirtualRegisters -> {
-                            asmgen.out(
-                                """
-                                    stx  cx16.${target.register.toString().lowercase()}
-                                    sty  cx16.${target.register.toString().lowercase()}+1
-                                """)
+                            asmgen.out("""
+                                stx  cx16.${target.register.toString().lowercase()}
+                                sty  cx16.${target.register.toString().lowercase()}+1""")
                         }
                         else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
                     }
@@ -3570,15 +3564,13 @@ $endLabel""")
                     asmgen.out("""
                     lda  #${(word and 255).toHex()}
                     sta  ${target.asmVarname}
-                    sta  ${target.asmVarname}+1
-                """)
+                    sta  ${target.asmVarname}+1""")
                 } else {
                     asmgen.out("""
                     lda  #<${word.toHex()}
                     ldy  #>${word.toHex()}
                     sta  ${target.asmVarname}
-                    sty  ${target.asmVarname}+1
-                """)
+                    sty  ${target.asmVarname}+1""")
                 }
             }
             TargetStorageKind.MEMORY -> {
@@ -3605,13 +3597,11 @@ $endLabel""")
                     RegisterOrPair.AY -> asmgen.out("  ldy  #>${word.toHex()} |  lda  #<${word.toHex()}")
                     RegisterOrPair.XY -> asmgen.out("  ldy  #>${word.toHex()} |  ldx  #<${word.toHex()}")
                     in Cx16VirtualRegisters -> {
-                        asmgen.out(
-                            """
+                        asmgen.out("""
                             lda  #<${word.toHex()}
                             sta  cx16.${target.register.toString().lowercase()}
                             lda  #>${word.toHex()}
-                            sta  cx16.${target.register.toString().lowercase()}+1
-                            """)
+                            sta  cx16.${target.register.toString().lowercase()}+1""")
                     }
                     else -> throw AssemblyError("invalid register for word value")
                 }

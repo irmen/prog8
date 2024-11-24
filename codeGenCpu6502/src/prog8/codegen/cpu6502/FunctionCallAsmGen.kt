@@ -15,10 +15,19 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // just ignore any result values from the function call.
     }
 
-    internal fun optimizeIntArgsViaRegisters(sub: PtSub) =
-        when(sub.parameters.size) {
-            1 -> sub.parameters[0].type in IntegerDatatypesWithBoolean
-            2 -> sub.parameters[0].type in ByteDatatypesWithBoolean && sub.parameters[1].type in ByteDatatypesWithBoolean
+    @JvmName("optimizeIntArgsViaRegisters")
+    internal fun optimizeIntArgsViaRegisters(params: List<IndexedValue<PtSubroutineParameter>>) =
+        when(params.size) {
+            1 -> params[0].value.type in IntegerDatatypesWithBoolean
+            2 -> params[0].value.type in ByteDatatypesWithBoolean && params[1].value.type in ByteDatatypesWithBoolean
+            else -> false
+        }
+
+    @JvmName("optimizeIntArgsViaRegistersNotIndexed")
+    internal fun optimizeIntArgsViaRegisters(params: List<PtSubroutineParameter>) =
+        when(params.size) {
+            1 -> params[0].type in IntegerDatatypesWithBoolean
+            2 -> params[0].type in ByteDatatypesWithBoolean && params[1].type in ByteDatatypesWithBoolean
             else -> false
         }
 
@@ -124,30 +133,38 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             }
         }
         else if(sub is PtSub) {
-            if(optimizeIntArgsViaRegisters(sub)) {
-                when(sub.parameters.size) {
-                    1 -> {
-                        val register = if (sub.parameters[0].type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
-                        argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], register)
-                    }
-                    2 -> {
-                        if(sub.parameters[0].type in ByteDatatypesWithBoolean && sub.parameters[1].type in ByteDatatypesWithBoolean) {
-                            // 2 byte params, second in Y, first in A
-                            argumentViaRegister(sub, IndexedValue(0, sub.parameters[0]), call.args[0], RegisterOrPair.A)
-                            if(asmgen.needAsaveForExpr(call.args[1]))
-                                asmgen.out("  pha")
-                            argumentViaRegister(sub, IndexedValue(1, sub.parameters[1]), call.args[1], RegisterOrPair.Y)
-                            if(asmgen.needAsaveForExpr(call.args[1]))
-                                asmgen.out("  pla")
-                        } else {
-                            throw AssemblyError("cannot use registers for word+byte")
+            val (paramsViaRegisters, normalParams) = sub.parameters.withIndex().partition { it.value.register!=null }
+            if(normalParams.isNotEmpty()) {
+                if(optimizeIntArgsViaRegisters(normalParams)) {
+                    when(normalParams.size) {
+                        1 -> {
+                            val register = if (normalParams[0].value.type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
+                            argumentViaRegister(sub, IndexedValue(0, normalParams[0].value), call.args[0], register)
                         }
+                        2 -> {
+                            if(normalParams[0].value.type in ByteDatatypesWithBoolean && normalParams[1].value.type in ByteDatatypesWithBoolean) {
+                                // 2 byte params, second in Y, first in A
+                                argumentViaRegister(sub, IndexedValue(0, normalParams[0].value), call.args[0], RegisterOrPair.A)
+                                if(asmgen.needAsaveForExpr(call.args[1]))
+                                    asmgen.out("  pha")
+                                argumentViaRegister(sub, IndexedValue(1, normalParams[1].value), call.args[1], RegisterOrPair.Y)
+                                if(asmgen.needAsaveForExpr(call.args[1]))
+                                    asmgen.out("  pla")
+                            } else {
+                                throw AssemblyError("cannot use registers for word+byte")
+                            }
+                        }
+                        else -> throw AssemblyError("cannot use registers for >2 arguments")
                     }
-                    else -> throw AssemblyError("cannot use registers for >2 arguments")
+                } else {
+                    // arguments via variables
+                    for(arg in normalParams.zip(call.args))
+                        argumentViaVariable(sub, arg.first.value, arg.second)
                 }
-            } else {
-                // arguments via variables
-                for(arg in sub.parameters.withIndex().zip(call.args))
+            }
+            if(paramsViaRegisters.isNotEmpty()) {
+                // the R0-R15 'registers' are not really registers. They're just special variables.
+                for(arg in paramsViaRegisters.zip(call.args))
                     argumentViaVariable(sub, arg.first.value, arg.second)
             }
             asmgen.out("  jsr  $subAsmName")
@@ -219,8 +236,15 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         if(!isArgumentTypeCompatible(value.type, parameter.type))
             throw AssemblyError("argument type incompatible")
 
-        val varName = asmgen.asmVariableName(sub.scopedName + "." + parameter.name)
-        asmgen.assignExpressionToVariable(value, varName, parameter.type)
+        val reg = parameter.register
+        if(reg!=null) {
+            require(reg in Cx16VirtualRegisters) { "can only use R0-R15 'registers' here" }
+            val varName = "cx16.${reg.name.lowercase()}"
+            asmgen.assignExpressionToVariable(value, varName, parameter.type)
+        } else {
+            val varName = asmgen.asmVariableName(sub.scopedName + "." + parameter.name)
+            asmgen.assignExpressionToVariable(value, varName, parameter.type)
+        }
     }
 
     private fun argumentViaRegister(sub: IPtSubroutine, parameter: IndexedValue<PtSubroutineParameter>, value: PtExpression, registerOverride: RegisterOrPair? = null): RegisterOrStatusflag {

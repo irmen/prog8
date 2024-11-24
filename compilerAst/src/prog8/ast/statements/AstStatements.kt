@@ -878,6 +878,7 @@ class Subroutine(override val name: String,
 open class SubroutineParameter(val name: String,
                                val type: DataType,
                                val zp: ZeropageWish,
+                               val registerOrPair: RegisterOrPair?,
                                final override val position: Position) : Node {
     override lateinit var parent: Node
 
@@ -889,17 +890,19 @@ open class SubroutineParameter(val name: String,
         throw FatalAstException("can't replace anything in a subroutineparameter node")
     }
 
-    override fun copy() = SubroutineParameter(name, type, zp, position)
+    override fun copy() = SubroutineParameter(name, type, zp, registerOrPair, position)
     override fun toString() = "Param($type:$name)"
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = nameInSource.size==1 && name==nameInSource[0]
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is SubroutineParameter) return false
-        return name == other.name && type == other.type && zp == other.zp
+        return name == other.name && type == other.type && zp == other.zp && registerOrPair == other.registerOrPair
     }
 
     override fun hashCode(): Int = Objects.hash(name, type, zp)
+
+
 }
 
 class IfElse(var condition: Expression,

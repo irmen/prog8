@@ -487,7 +487,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     }
 
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
-        val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) })
+        val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position) })
         val varbank = if(srcSub.asmAddress?.varbank==null) null else transform(srcSub.asmAddress!!.varbank!!)
         val asmAddr = if(srcSub.asmAddress==null) null else {
             val constAddr = srcSub.asmAddress!!.address.constValue(program)
@@ -539,7 +539,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
         // do not bother about the 'inline' hint of the source subroutine.
         val sub = PtSub(srcSub.name,
-            srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.position) },
+            srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position) },
             returntype,
             srcSub.position)
         sub.parameters.forEach { it.parent=sub }

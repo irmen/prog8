@@ -23,14 +23,14 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     "&"
             }
             is PtArray -> {
-                val valuelist = node.children.map {
+                val valuelist = node.children.joinToString(", ") {
                     when (it) {
                         is PtBool -> it.toString()
                         is PtNumber -> it.number.toString()
                         is PtIdentifier -> it.name
                         else -> "?"
                     }
-                }.joinToString(", ")
+                }
                 "array len=${node.children.size} ${type(node.type)} [ $valuelist ]"
             }
             is PtArrayIndexer -> "<arrayindexer> ${type(node.type)} ${if(node.splitWords) "[splitwords]" else ""}"
@@ -121,7 +121,10 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 }
             }
             is PtSub -> {
-                val params = node.parameters.joinToString(", ") { "${it.type} ${it.name}" }
+                val params = node.parameters.joinToString(", ") {
+                    val reg = if(it.register!=null) "@${it.register}" else ""
+                    "${it.type} ${it.name} $reg"
+                }
                 var str = "sub ${node.name}($params) "
                 if(node.returntype!=null)
                     str += "-> ${node.returntype.name.lowercase()}"
@@ -156,7 +159,10 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtProgram -> "PROGRAM ${node.name}"
             is PtRepeatLoop -> "repeat"
             is PtReturn -> "return"
-            is PtSubroutineParameter -> "${node.type.name.lowercase()} ${node.name}"
+            is PtSubroutineParameter -> {
+                val reg = if(node.register!=null) "@${node.register}" else ""
+                "${node.type.name.lowercase()} ${node.name} $reg"
+            }
             is PtWhen -> "when"
             is PtWhenChoice -> {
                 if(node.isElse)

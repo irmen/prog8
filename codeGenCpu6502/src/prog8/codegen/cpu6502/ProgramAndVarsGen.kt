@@ -421,21 +421,22 @@ internal class ProgramAndVarsGen(
         if((sub.name=="start" || sub.name=="p8s_start") && (sub.definingBlock()!!.name=="main" || sub.definingBlock()!!.name=="p8b_main"))
             entrypointInitialization()
 
-        if(functioncallAsmGen.optimizeIntArgsViaRegisters(sub)) {
+        val normalParams = sub.parameters.filter { it.register==null }
+        if(functioncallAsmGen.optimizeIntArgsViaRegisters(normalParams)) {
             asmgen.out("; simple int arg(s) passed via register(s)")
-            when(sub.parameters.size) {
+            when(normalParams.size) {
                 1 -> {
-                    val dt = sub.parameters[0].type
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, sub.parameters[0].position, variableAsmName = sub.parameters[0].name)
+                    val dt = normalParams[0].type
+                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, normalParams[0].position, variableAsmName = normalParams[0].name)
                     if(dt in ByteDatatypesWithBoolean)
                         asmgen.assignRegister(RegisterOrPair.A, target)
                     else
                         asmgen.assignRegister(RegisterOrPair.AY, target)
                 }
                 2 -> {
-                    val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[0].type, sub, sub.parameters[0].position, variableAsmName = sub.parameters[0].name)
-                    val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, sub.parameters[1].type, sub, sub.parameters[1].position, variableAsmName = sub.parameters[1].name)
-                    if(sub.parameters[0].type in ByteDatatypesWithBoolean && sub.parameters[1].type in ByteDatatypesWithBoolean) {
+                    val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, normalParams[0].type, sub, normalParams[0].position, variableAsmName = normalParams[0].name)
+                    val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, normalParams[1].type, sub, normalParams[1].position, variableAsmName = normalParams[1].name)
+                    if(normalParams[0].type in ByteDatatypesWithBoolean && normalParams[1].type in ByteDatatypesWithBoolean) {
                         // 2 byte args, first in A, second in Y
                         asmgen.assignRegister(RegisterOrPair.A, target1)
                         asmgen.assignRegister(RegisterOrPair.Y, target2)

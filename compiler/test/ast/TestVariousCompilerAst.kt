@@ -453,9 +453,9 @@ main {
 
             val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
             val result = compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors)!!
-            errors.errors.size shouldBe 0
-            errors.infos.size shouldBe 6
-            errors.infos.all { "dirty variable" in it } shouldBe true
+            errors.warnings.size shouldBe 6
+            errors.infos.size shouldBe 0
+            errors.warnings.all { "dirty variable" in it } shouldBe true
             val start = result.compilerAst.entrypoint
             val st = start.statements
             st.size shouldBe 9

@@ -1,6 +1,7 @@
 package prog8.ast.antlr
 
 import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
 import prog8.ast.base.FatalAstException
 import prog8.ast.base.SyntaxError
@@ -199,7 +200,7 @@ private fun Asmsub_declContext.toAst(): AsmsubDecl {
     val params = asmsub_params()?.toAst() ?: emptyList()
     val returns = asmsub_returns()?.toAst() ?: emptyList()
     val clobbers = asmsub_clobbers()?.clobber()?.toAst() ?: emptySet()
-    val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.zp, it.position) }
+    val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.zp, it.registerOrPair, it.position) }
     val normalReturntypes = returns.map { it.type }
     val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
     val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
@@ -208,9 +209,9 @@ private fun Asmsub_declContext.toAst(): AsmsubDecl {
 
 private class AsmSubroutineParameter(name: String,
                                      type: DataType,
-                                     val registerOrPair: RegisterOrPair?,
+                                     registerOrPair: RegisterOrPair?,
                                      val statusflag: Statusflag?,
-                                     position: Position) : SubroutineParameter(name, type, ZeropageWish.DONTCARE, position)
+                                     position: Position) : SubroutineParameter(name, type, ZeropageWish.DONTCARE, registerOrPair, position)
 
 private class AsmSubroutineReturn(val type: DataType,
                                   val registerOrPair: RegisterOrPair?,
@@ -240,7 +241,18 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
     var datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
     if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
         datatype = ElementToArrayTypes.getValue(datatype)
-    val register = it.register.text
+    val (registerorpair, statusregister) = parseParamRegister(it.register, it.toPosition())
+    val identifiers = vardecl.identifier()
+    if(identifiers.size>1)
+        throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
+    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
+    AsmSubroutineParameter(identifiername.text, datatype, registerorpair, statusregister, toPosition())
+}
+
+private fun parseParamRegister(registerTok: Token?, pos: Position): Pair<RegisterOrPair?, Statusflag?> {
+    if(registerTok==null)
+        return Pair(null, null)
+    val register = registerTok.text
     var registerorpair: RegisterOrPair? = null
     var statusregister: Statusflag? = null
     if(register!=null) {
@@ -248,16 +260,11 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
             in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(register)
             in Statusflag.names -> statusregister = Statusflag.valueOf(register)
             else -> {
-                val p = toPosition()
-                throw SyntaxError("invalid register or status flag", Position(p.file, it.register.line, it.register.charPositionInLine, it.register.charPositionInLine+1))
+                throw SyntaxError("invalid register or status flag", Position(pos.file, registerTok.line, registerTok.charPositionInLine, registerTok.charPositionInLine+1))
             }
         }
     }
-    val identifiers = vardecl.identifier()
-    if(identifiers.size>1)
-        throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
-    AsmSubroutineParameter(identifiername.text, datatype, registerorpair, statusregister, toPosition())
+    return Pair(registerorpair, statusregister)
 }
 
 private fun Functioncall_stmtContext.toAst(): Statement {
@@ -322,22 +329,28 @@ private fun SubroutineContext.toAst() : Subroutine {
 }
 
 private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
-        vardecl().map {
-            val options = it.decloptions()
+        sub_param().map {
+            val decl = it.vardecl()
+            val options = decl.decloptions()
             if(options.ALIGNPAGE().isNotEmpty() || options.ALIGNWORD().isNotEmpty())
                 throw SyntaxError("cannot use alignments on parameters", it.toPosition())
             if(options.DIRTY().isNotEmpty())
                 throw SyntaxError("cannot use @dirty on parameters", it.toPosition())
             val zp = getZpOption(options)
-            var datatype = it.datatype()?.toAst() ?: DataType.UNDEFINED
-            if(it.ARRAYSIG()!=null || it.arrayindex()!=null)
+            var datatype = decl.datatype()?.toAst() ?: DataType.UNDEFINED
+            if(decl.ARRAYSIG()!=null || decl.arrayindex()!=null)
                 datatype = ElementToArrayTypes.getValue(datatype)
 
-            val identifiers = it.identifier()
+            val identifiers = decl.identifier()
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
             val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
-            SubroutineParameter(identifiername.text, datatype, zp, it.toPosition())
+
+            val (registerorpair, statusregister) = parseParamRegister(it.register, it.toPosition())
+            if(statusregister!=null) {
+                throw SyntaxError("can't use status register as param for normal subroutines", Position(toPosition().file, it.register.line, it.register.charPositionInLine, it.register.charPositionInLine+1))
+            }
+            SubroutineParameter(identifiername.text, datatype, zp, registerorpair, it.toPosition())
         }
 
 private fun getZpOption(options: DecloptionsContext?): ZeropageWish {
@@ -382,7 +395,7 @@ private fun ClobberContext.toAst() : Set<CpuRegister> {
     val names = this.NAME().map { it.text }
     try {
         return names.map { CpuRegister.valueOf(it) }.toSet()
-    } catch(ax: IllegalArgumentException) {
+    } catch(_: IllegalArgumentException) {
         throw SyntaxError("invalid cpu register", toPosition())
     }
 }

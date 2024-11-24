@@ -76,7 +76,7 @@ class AstPreprocessor(val program: Program,
                 val constval = range.from.constValue(program)
                 if (constval != null)
                     modifications += IAstModification.ReplaceNode(range.from, constval, range)
-            } catch (x: SyntaxError) {
+            } catch (_: SyntaxError) {
                 // syntax errors will be reported later
             }
         }
@@ -214,17 +214,33 @@ class AstPreprocessor(val program: Program,
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         // For non-kernal subroutines and non-asm parameters:
         // inject subroutine params as local variables (if they're not there yet).
+        // If the param should be in a R0-R15 register, don't make a local variable but an alias instead.
         val symbolsInSub = subroutine.allDefinedSymbols
         val namesInSub = symbolsInSub.map{ it.first }.toSet()
         if(subroutine.asmAddress==null) {
             if(!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty()) {
-                val existingVars = subroutine.statements.asSequence().filterIsInstance<VarDecl>().map { it.name }.toSet()
-                return subroutine.parameters
-                    .filter { it.name !in namesInSub && it.name !in existingVars }
-                    .map {
-                        val vardecl = VarDecl.fromParameter(it)
-                        IAstModification.InsertFirst(vardecl, subroutine)
-                    }
+                var mods = mutableListOf<IAstModification>()
+                var (normalParams, registerParams) = subroutine.parameters.partition { it.registerOrPair==null }
+                if(normalParams.isNotEmpty()) {
+                    val existingVars = subroutine.statements.asSequence().filterIsInstance<VarDecl>().map { it.name }.toSet()
+                    normalParams
+                        .filter { it.name !in namesInSub && it.name !in existingVars }
+                        .forEach {
+                            val vardecl = VarDecl.fromParameter(it)
+                            mods += IAstModification.InsertFirst(vardecl, subroutine)
+                        }
+                }
+                if(registerParams.isNotEmpty()) {
+                    val existingAliases = subroutine.statements.asSequence().filterIsInstance<Alias>().map { it.alias }.toSet()
+                    registerParams
+                        .filter { it.name !in namesInSub && it.name !in existingAliases }
+                        .forEach {
+                            val regname = it.registerOrPair!!.asScopedNameVirtualReg(it.type)
+                            var alias = Alias(it.name, IdentifierReference(regname, it.position), it.position)
+                            mods += IAstModification.InsertFirst(alias, subroutine)
+                        }
+                }
+                return mods
             }
         }
 

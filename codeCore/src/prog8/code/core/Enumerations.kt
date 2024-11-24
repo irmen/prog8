@@ -95,6 +95,17 @@ enum class RegisterOrPair {
         else -> throw IllegalArgumentException("no cpu hardware register for $this")
     }
 
+    fun asScopedNameVirtualReg(type: DataType?): List<String> {
+        require(this in Cx16VirtualRegisters)
+        val suffix = when(type) {
+            DataType.UBYTE, DataType.BOOL -> "L"
+            DataType.BYTE -> "sL"
+            DataType.WORD -> "s"
+            DataType.UWORD, null -> ""
+            else -> throw kotlin.IllegalArgumentException("invalid register param type")
+        }
+        return listOf("cx16", name.lowercase()+suffix)
+    }
 }       // only used in parameter and return value specs in asm subroutines
 
 enum class Statusflag {

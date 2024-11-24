@@ -22,7 +22,7 @@ class StatementOptimizer(private val program: Program,
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in functions.purefunctionNames) {
                 if("ignore_unused" !in parent.definingBlock.options())
-                    errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
+                    errors.info("statement has no effect (function return value is discarded)", functionCallStatement.position)
                 return listOf(IAstModification.Remove(functionCallStatement, parent as IStatementContainer))
             }
         }
