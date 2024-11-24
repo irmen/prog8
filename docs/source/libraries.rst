@@ -697,9 +697,12 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
     Linear interpolation (LERP). Precise method, which guarantees v = v1 when t = 1.
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0.0, 1.0]
 
-``lerp_fast(v0, v1, t)```
+``lerp_fast(v0, v1, t)``
     Linear interpolation (LERP). Imprecise (but faster) method, which does not guarantee v = v1 when t = 1
     Teturns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0.0, 1.0]
+
+``interpolate(v, inputMin, inputMax, outputMin, outputMax)``
+    Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
 
 
 graphics
@@ -856,6 +859,11 @@ but perhaps the provided ones can be of service too.
     Linear interpolation routine for unsigned word values.
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
     Guarantees v = v1 when t = 65535.
+
+``interpolate(v, inputMin, inputMax, outputMin, outputMax)``
+    Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+    All values are unsigned bytes.
+    (there is no version for word values because of lack of precision in the fixed point calculation there).
 
 
 cx16logo

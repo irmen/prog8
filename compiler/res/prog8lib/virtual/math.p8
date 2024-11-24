@@ -417,4 +417,12 @@ math {
             cx16.r0++
         return v0 + cx16.r0
     }
+
+    sub interpolate(ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte {
+        ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+        ; There is no version for words because of lack of precision in the fixed point calculation there.
+        cx16.r0 = ((v-inputMin)*256+inputMax) / (inputMax-inputMin)
+        cx16.r0 *= (outputMax-outputMin)
+        return cx16.r0H + outputMin
+    }
 }

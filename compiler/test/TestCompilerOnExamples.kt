@@ -132,6 +132,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "cxlogo",
             "diskspeed",
             "fileseek",
+            "interpolation",
             "kefrenbars",
             "keyboardhandler",
             "life",

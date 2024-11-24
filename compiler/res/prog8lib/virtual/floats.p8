@@ -15,6 +15,13 @@ txt {
     alias print_f = floats.print
 }
 
+math {
+    %option merge, ignore_unused       ; add functions to math
+
+    alias lerpf = floats.lerp
+    alias lerpf_fast = floats.lerp_fast
+}
+
 
 floats {
 
@@ -231,6 +238,14 @@ sub lerp_fast(float v0, float v1, float t) -> float {
     ; Imprecise (but slightly faster) method, which does not guarantee v = v1 when t = 1
     ; returns an interpolation between two inputs (v0, v1) for a parameter t in the closed unit interval [0, 1]
     return v0 + t * (v1 - v0)
+}
+
+sub interpolate(float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float {
+    ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+    if outputMin==outputMax
+        return outputMin
+    v = (v - inputMin) / (inputMax - inputMin)
+    return v * (outputMax - outputMin) + outputMin
 }
 
 }
