@@ -218,15 +218,13 @@ class AstPreprocessor(val program: Program,
         val namesInSub = symbolsInSub.map{ it.first }.toSet()
         if(subroutine.asmAddress==null) {
             if(!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty()) {
-                val vars = subroutine.statements.asSequence().filterIsInstance<VarDecl>().map { it.name }.toSet()
-                if(!vars.containsAll(subroutine.parameters.map{it.name})) {
-                    return subroutine.parameters
-                        .filter { it.name !in namesInSub }
-                        .map {
-                            val vardecl = VarDecl.fromParameter(it)
-                            IAstModification.InsertFirst(vardecl, subroutine)
-                        }
-                }
+                val existingVars = subroutine.statements.asSequence().filterIsInstance<VarDecl>().map { it.name }.toSet()
+                return subroutine.parameters
+                    .filter { it.name !in namesInSub && it.name !in existingVars }
+                    .map {
+                        val vardecl = VarDecl.fromParameter(it)
+                        IAstModification.InsertFirst(vardecl, subroutine)
+                    }
             }
         }
 

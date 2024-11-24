@@ -117,7 +117,7 @@ contexts:
   general__5:
     - include: general
   keywords:
-    - match: (\b(sub|if|if_cs|if_cc|if_eq|if_ne|if_pl|if_mi|if_vs|if_vc|if_z|if_nz|if_pos|if_neg|for|in|to|step|do|while|until|repeat|else|when|return|break|as|goto|asmsub|clobbers)\b)
+    - match: (\b(sub|if|if_cs|if_cc|if_eq|if_ne|if_pl|if_mi|if_vs|if_vc|if_z|if_nz|if_pos|if_neg|for|in|to|step|do|while|until|repeat|else|when|return|break|as|goto|asmsub|clobbers|alias)\b)
       scope: keyword.control.prog8
     - match: (\b(and|or)\b)
       scope: keyword.operator.prog8

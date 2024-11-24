@@ -41,6 +41,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(block: Block) {
+        if(block.isInLibrary && skipLibraries) {
+            outputln("; library block skipped: ${block.name}")
+            return
+        }
         val addr = if(block.address!=null) block.address.toHex() else ""
         outputln("${block.name} $addr {")
         scopelevel++
@@ -526,5 +530,9 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         else
             whenChoice.statements.accept(this)
         outputln("")
+    }
+
+    override fun visit(alias: Alias) {
+        output("alias ${alias.alias} = ${alias.target.nameInSource.joinToString(".")}")
     }
 }

@@ -11,7 +11,7 @@
       <option name="HAS_PARENS" value="true" />
       <option name="HAS_STRING_ESCAPES" value="true" />
     </options>
-    <keywords keywords="&amp;;-&gt;;@;and;as;asmsub;break;clobbers;continue;do;downto;else;extsub;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;step;sub;to;true;unroll;until;when;while;xor;~" ignore_case="false" />
+    <keywords keywords="&amp;;-&gt;;@;alias;and;as;asmsub;break;clobbers;continue;do;downto;else;extsub;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;step;sub;to;true;unroll;until;when;while;xor;~" ignore_case="false" />
     <keywords2 keywords="%address;%align;%asm;%asmbinary;%asminclude;%breakpoint;%encoding;%import;%ir;%launcher;%memtop;%option;%output;%zeropage;%zpallowed;%zpreserved;@align64;@alignpage;@alignword;@bank;@dirty;@nozp;@requirezp;@shared;@split;@zp;atascii:;cp437:;default:;iso16:;iso5:;iso:;kata:;petscii:;sc:" />
     <keywords3 keywords="bool;byte;const;float;long;str;ubyte;uword;void;word" />
     <keywords4 keywords="abs;bankof;call;callfar;callfar2;clamp;cmp;defer;divmod;len;lsb;max;memory;min;mkword;msb;peek;peekf;peekw;poke;pokef;pokew;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;setlsb;setmsb;sgn;sizeof;sqrt" />
