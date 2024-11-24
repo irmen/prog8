@@ -928,7 +928,7 @@ internal class AssignmentAsmGen(
             is PtIdentifier -> true
             is PtIrRegister -> true
             is PtNumber -> true
-            is PtBuiltinFunctionCall -> expr.name in arrayOf("lsb", "msb", "bankof")
+            is PtBuiltinFunctionCall -> expr.name in arrayOf("lsb", "msb", "lsw", "msw", "bankof")
             else -> false
         }
     }

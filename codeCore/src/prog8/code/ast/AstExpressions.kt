@@ -92,7 +92,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtBinaryExpression -> false
             is PtBuiltinFunctionCall -> {
                 when (name) {
-                    in arrayOf("msb", "lsb", "bankof", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> this.args.all { it.isSimple() }
+                    in arrayOf("msb", "lsb", "msw", "lsw", "bankof", "mkword", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> this.args.all { it.isSimple() }
                     else -> false
                 }
             }

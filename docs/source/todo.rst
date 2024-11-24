@@ -5,7 +5,8 @@ what to do with bankof(): keep it? add another syntax like \`value  or ^value  t
 add a function like addr() or lsw() to complement bnk() in getting easy access to the lower 16 bits of a long integer?
 -> added unary ^ operator as alternative to bankof()
 -> added unary << operator as alternative to addr() / lsb(x>>16) / lsw()
--> TODO document whatever remains of those!
+-> added msw() and lsw() .  note: msw() on a 24 bits constant can ALSO be used to get the bank byte because the value, while a word type, will be <=255
+-> TODO document whatever remains of those! (and add to syntax files)
 
 ...
 

@@ -13,7 +13,6 @@ import prog8.code.target.encodings.JapaneseCharacterConverter
 import java.io.CharConversionException
 import java.util.Objects
 import kotlin.math.abs
-import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.truncate
 

@@ -366,11 +366,26 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        if(functionCallExpr.target.nameInSource==listOf("bankof")) {
+        val name = functionCallExpr.target.nameInSource
+        if(name==listOf("bankof")) {
             val valueDt = functionCallExpr.args[0].inferType(program)
             if(valueDt.isWords || valueDt.isBytes) {
-                val zero = NumericLiteral.optimalInteger(0, functionCallExpr.position)
+                val zero = NumericLiteral(DataType.UBYTE, 0.0, functionCallExpr.position)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, zero, parent))
+            }
+        } else if(name==listOf("msw")) {
+            val valueDt = functionCallExpr.args[0].inferType(program)
+            if(valueDt.isWords || valueDt.isBytes) {
+                val zero = NumericLiteral(DataType.UWORD, 0.0, functionCallExpr.position)
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, zero, parent))
+            }
+        } else if(name==listOf("lsw")) {
+            val valueDt = functionCallExpr.args[0].inferType(program)
+            if(valueDt.isWords)
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
+            if(valueDt.isBytes) {
+                val cast = TypecastExpression(functionCallExpr.args[0], DataType.UWORD, true, functionCallExpr.position)
+                return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
             }
         }
         return noModifications

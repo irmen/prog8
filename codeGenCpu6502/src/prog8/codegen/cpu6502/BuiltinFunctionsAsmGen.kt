@@ -25,6 +25,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
         when (fcall.name) {
             "bankof" -> throw AssemblyError("bankof() should have been replaced by a const value (either the bank number of a long const, or zero for any other smaller value)")
+            "lsw" -> throw AssemblyError("lsw() should have been removed or replaced by a const value")
+            "msw" -> throw AssemblyError("msw() should have been removed or replaced by a const value")
             "msb" -> funcMsb(fcall, resultRegister)
             "lsb" -> funcLsb(fcall, resultRegister)
             "mkword" -> funcMkword(fcall, resultRegister)

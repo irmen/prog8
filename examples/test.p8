@@ -21,6 +21,13 @@ main {
         txt.print_ubhex(bankof(foo2), true)
         txt.spc()
         txt.print_uwhex(foo2 &$ffff, false)
+        txt.nl()
+
+        txt.print_ubhex(msw(foo2), true)
+        txt.spc()
+        txt.print_uwhex(lsw(foo2), false)
+        txt.nl()
+
 
     }
 }
