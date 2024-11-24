@@ -131,9 +131,9 @@ class TestNumbers: FunSpec({
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
-        errors.warnings.size shouldBe 2
-        errors.warnings[0] shouldContain "converted to float"
-        errors.warnings[1] shouldContain "converted to float"
+        errors.infos.size shouldBe 2
+        errors.infos[0] shouldContain "converted to float"
+        errors.infos[1] shouldContain "converted to float"
     }
 
     test("implicit float conversion error if not enabled") {

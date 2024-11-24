@@ -2,11 +2,8 @@ TODO
 ====
 
 document the @R0 - @R15 register support for normal subroutine parameters (footgun!)
-add unit tests for it too.
 
 make a compiler switch to disable footgun warnings
-
-turn some existing warnings into INFO
 
 what to do with bankof(): keep it? add another syntax like \`value  or ^value  to get the bank byte?
 add a function like addr() or lsw() to complement bnk() in getting easy access to the lower 16 bits of a long integer?
@@ -21,8 +18,6 @@ add a function like addr() or lsw() to complement bnk() in getting easy access t
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- a way to specify subroutine params for normal (non-asmsub) subs to be in r0-r15 registers instead of allocating a new localvariable for them
-- the previous should give another footgun warning (the @dirty info should be a footgun warning/info as well). Need a switch to turn off footgun warnings.
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - on the C64: make the floating point routines @banked so that basic can be permanently banked out even if you use floats?  But this will crash when the call is done from program code at $a000+
 - Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.

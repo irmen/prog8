@@ -796,13 +796,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         when (val targetDt = targetIDt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE, DataType.BYTE -> {
                 if (amount >= 8) {
-                    errors.warn("shift always results in 0", expr.position)
+                    errors.info("shift always results in 0", expr.position)
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
             }
             DataType.UWORD -> {
                 if (amount >= 16) {
-                    errors.warn("shift always results in 0", expr.position)
+                    errors.info("shift always results in 0", expr.position)
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
                 else if(amount==8) {
@@ -819,7 +819,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             DataType.WORD -> {
                 if (amount >= 16) {
-                    errors.warn("shift always results in 0", expr.position)
+                    errors.info("shift always results in 0", expr.position)
                     return NumericLiteral(targetDt, 0.0, expr.position)
                 }
                 else if(amount==8) {
@@ -856,7 +856,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         when (idt.getOr(DataType.UNDEFINED)) {
             DataType.UBYTE -> {
                 if (amount >= 8) {
-                    errors.warn("shift always results in 0", expr.position)
+                    errors.info("shift always results in 0", expr.position)
                     return NumericLiteral.optimalInteger(0, expr.position)
                 }
             }

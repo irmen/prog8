@@ -263,7 +263,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // warn about any implicit type casts to Float, because that may not be intended
         if(typecast.implicit && typecast.type.oneOf(DataType.FLOAT, DataType.ARRAY_F)) {
             if(options.floats)
-                errors.warn("integer implicitly converted to float. Suggestion: use float literals, add an explicit cast, or revert to integer arithmetic", typecast.position)
+                errors.info("integer implicitly converted to float. Suggestion: use float literals, add an explicit cast, or revert to integer arithmetic", typecast.position)
             else
                 errors.err("integer implicitly converted to float but floating point is not enabled via options", typecast.position)
         }

@@ -84,7 +84,6 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
                 val decl = elt.targetVarDecl(program)
                 if(decl!=null && decl.splitArray) {
                     // you can't take the adress of a split-word array.
-                    // instead of giving a fatal error, we remove the
                     // instead of a fatal error, we give a warning and turn it back into a regular array.
                     errors.warn("cannot take address of split word array - the array is turned back into a regular word array", decl.position)
                     val normalArray = makeNormalArrayFromSplit(decl)

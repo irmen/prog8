@@ -372,7 +372,7 @@ internal class AstChecker(private val program: Program,
             err("cannot redefine a built-in function")
 
         if(subroutine.parameters.size>6 && !subroutine.isAsmSubroutine && !subroutine.definingBlock.isInLibrary)
-            errors.warn("subroutine has a large number of parameters, this is slow if called often", subroutine.position)
+            errors.info("subroutine has a large number of parameters, this is slow if called often", subroutine.position)
 
         val uniqueNames = subroutine.parameters.asSequence().map { it.name }.toSet()
         if(uniqueNames.size!=subroutine.parameters.size)

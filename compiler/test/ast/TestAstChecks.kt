@@ -28,9 +28,9 @@ class TestAstChecks: FunSpec({
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(C64Target(), true, text, writeAssembly = true, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
-        errors.warnings.size shouldBe 2
-        errors.warnings[0] shouldContain "converted to float"
-        errors.warnings[1] shouldContain "converted to float"
+        errors.infos.size shouldBe 2
+        errors.infos[0] shouldContain "converted to float"
+        errors.infos[1] shouldContain "converted to float"
     }
 
     test("can't assign label or subroutine without using address-of") {
@@ -272,5 +272,82 @@ main {
 }"""
         compileText(C64Target(), false, src, writeAssembly = false) shouldNotBe null
         compileText(C64Target(), true, src, writeAssembly = false) shouldNotBe null
+    }
+
+    test("reg params cannot be statusflag") {
+        val src="""
+main {
+    sub start() {
+        faulty(false)
+    }
+
+    sub faulty(bool flag @Pc) {
+        cx16.r0++
+    }
+}"""
+
+        // the syntax error is actually thrown by the parser, so we cannot catch it, but we know that there may not be a compilation result
+        compileText(C64Target(), false, src, writeAssembly = false) shouldBe null
+    }
+
+    test("reg params cannot be cpu register") {
+        val src="""
+main {
+    sub start() {
+        faulty(42)
+    }
+
+    sub faulty(byte arg @Y) {
+        arg++
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "can only use R0-R15"
+    }
+
+    test("reg params must be all different") {
+        val src="""
+main {
+    sub start() {
+        faulty3(9999,55)
+    }
+
+    sub faulty3(uword arg @R1, ubyte arg2 @R1) {
+        arg += arg2
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "register is used multiple times"
+    }
+
+    test("reg params R0-R15 are ok") {
+        val src="""
+main {
+    sub start() {
+        foo(42)
+        bar(9999,55)
+    }
+
+    sub foo(ubyte arg @R2) {
+        arg++
+    }
+
+    sub bar(uword arg @R0, ubyte arg2 @R1) {
+        arg += arg2
+    }
+}"""
+
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 2
+        errors.warnings[0] shouldContain "footgun"
+        errors.warnings[1] shouldContain "footgun"
     }
 })

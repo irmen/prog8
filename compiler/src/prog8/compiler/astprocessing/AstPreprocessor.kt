@@ -235,9 +235,12 @@ class AstPreprocessor(val program: Program,
                     registerParams
                         .filter { it.name !in namesInSub && it.name !in existingAliases }
                         .forEach {
-                            val regname = it.registerOrPair!!.asScopedNameVirtualReg(it.type)
-                            var alias = Alias(it.name, IdentifierReference(regname, it.position), it.position)
-                            mods += IAstModification.InsertFirst(alias, subroutine)
+                            if (it.registerOrPair in Cx16VirtualRegisters) {
+                                val regname = it.registerOrPair!!.asScopedNameVirtualReg(it.type)
+                                var alias = Alias(it.name, IdentifierReference(regname, it.position), it.position)
+                                mods += IAstModification.InsertFirst(alias, subroutine)
+                            } else
+                                errors.err("can only use R0-R15 as register param for normal subroutines", it.position)
                         }
                 }
                 return mods

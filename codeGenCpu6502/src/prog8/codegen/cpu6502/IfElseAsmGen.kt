@@ -347,7 +347,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     else
                         translateIfElseBodies("beq", stmt)
                 } else {
-                    errors.warn("SLOW FALLBACK FOR 'IF' CODEGEN - ask for support", stmt.position)      //  should not occur ;-)
+                    errors.info("SLOW FALLBACK FOR 'IF' CODEGEN - ask for support", stmt.position)      //  should not occur ;-)
                     assignConditionValueToRegisterAndTest(stmt.condition)
                     if(jumpAfterIf!=null)
                         translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
