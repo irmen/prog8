@@ -6,7 +6,7 @@ import prog8.code.core.Zeropage
 import prog8.code.core.ZeropageType
 
 
-// reference: "Mapping the C128" zero page chapter.
+// reference: "Mapping the C128" zeropage chapter.
 
 class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
 

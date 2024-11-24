@@ -227,8 +227,8 @@ class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, positi
         get() = children[1] as? PtArray
 
     companion object {
-        val MAX_SIZE_FOR_INLINE_CHECKS_BYTE = 5
-        val MAX_SIZE_FOR_INLINE_CHECKS_WORD = 4
+        const val MAX_SIZE_FOR_INLINE_CHECKS_BYTE = 5
+        const val MAX_SIZE_FOR_INLINE_CHECKS_WORD = 4
     }
 }
 

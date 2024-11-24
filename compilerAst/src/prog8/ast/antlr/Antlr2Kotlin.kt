@@ -422,10 +422,10 @@ private fun AugassignmentContext.toAst(): Assignment {
 }
 
 private fun DatatypeContext.toAst(): DataType {
-    try {
-        return DataType.valueOf(text.uppercase())
+    return try {
+        DataType.valueOf(text.uppercase())
     } catch (_: IllegalArgumentException) {
-        return DataType.UNDEFINED
+        DataType.UNDEFINED
     }
 }
 

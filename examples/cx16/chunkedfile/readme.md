@@ -12,7 +12,7 @@
 
 Theoretical optimal chunk size is 512 bytes but actual size may be different. (In practice there seems to be no significant speed impact)
 
-MCF files are meant to be be created using a tool on PC, and only being read on the X16.
+MCF files are meant to be created using a tool on PC, and only being read on the X16.
 A Python tool is provided to create a demo MCF file.
 A proof of concept Prog8 library module and example program is provided to consume that demo MCF file on the X16.
 
@@ -96,4 +96,4 @@ The second routine has the following signature:
 
 These routines are provided to the streaming routine as callback addresses (ram bank number + address to call).
 If any of these routines returns Carry set (error status) the streaming routine halts, otherwise it keeps on going.
-The streaming continues until a End of File chunk type is encountered in the loadlist.
+The streaming continues until an End of File chunk type is encountered in the loadlist.

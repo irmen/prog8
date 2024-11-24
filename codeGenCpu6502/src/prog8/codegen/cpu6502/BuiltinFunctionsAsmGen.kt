@@ -119,8 +119,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcDivmodW(fcall: PtBuiltinFunctionCall) {
         asmgen.assignWordOperandsToAYAndVar(fcall.args[1], fcall.args[0], "P8ZP_SCRATCH_W1")
         // math.divmod_uw_asm: -- divide two unsigned words (16 bit each) into 16 bit results
-        //    input:  P8ZP_SCRATCH_W1 in ZP: 16 bit number, A/Y: 16 bit divisor
-        //    output: P8ZP_SCRATCH_W2 in ZP: 16 bit remainder, A/Y: 16 bit division result
+        //    input:  P8ZP_SCRATCH_W1 in ZP: 16-bit number, A/Y: 16 bit divisor
+        //    output: P8ZP_SCRATCH_W2 in ZP: 16-bit remainder, A/Y: 16 bit division result
         asmgen.out("  jsr  prog8_math.divmod_uw_asm")
         val var2name = asmgen.asmVariableName(fcall.args[2] as PtIdentifier)
         val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[2].position, var2name)

@@ -258,10 +258,10 @@ class BinaryExpression(
 
             return when (leftDt) {
                 DataType.BOOL -> {
-                    if(rightDt==DataType.BOOL)
-                        return Pair(DataType.BOOL, null)
+                    return if(rightDt==DataType.BOOL)
+                        Pair(DataType.BOOL, null)
                     else
-                        return Pair(DataType.BOOL, right)
+                        Pair(DataType.BOOL, right)
                 }
                 DataType.UBYTE -> {
                     when (rightDt) {
@@ -518,19 +518,19 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         fun optimalNumeric(origType1: DataType, origType2: DataType?, value: Number, position: Position) : NumericLiteral {
             val optimal = optimalNumeric(value, position)
             val largestOrig = if(origType2==null) origType1 else if(origType1.largerThan(origType2)) origType1 else origType2
-            if(largestOrig.largerThan(optimal.type))
-                return NumericLiteral(largestOrig, optimal.number, position)
+            return if(largestOrig.largerThan(optimal.type))
+                NumericLiteral(largestOrig, optimal.number, position)
             else
-                return optimal
+                optimal
         }
 
         fun optimalInteger(origType1: DataType, origType2: DataType?, value: Int, position: Position): NumericLiteral {
             val optimal = optimalInteger(value, position)
             val largestOrig = if(origType2==null) origType1 else if(origType1.largerThan(origType2)) origType1 else origType2
-            if(largestOrig.largerThan(optimal.type))
-                return NumericLiteral(largestOrig, optimal.number, position)
+            return if(largestOrig.largerThan(optimal.type))
+                NumericLiteral(largestOrig, optimal.number, position)
             else
-                return optimal
+                optimal
         }
 
         fun optimalNumeric(value: Number, position: Position): NumericLiteral {
@@ -805,14 +805,14 @@ class CharLiteral private constructor(val value: Char,
 
     companion object {
         fun create(character: Char, encoding: Encoding, position: Position): CharLiteral {
-            if(encoding==Encoding.KATAKANA) {
+            return if(encoding==Encoding.KATAKANA) {
                 val processed = JapaneseCharacterConverter.zenkakuKatakanaToHankakuKatakana(character.toString())
                 if(processed.length==1)
-                    return CharLiteral(processed[0], encoding, position)
+                    CharLiteral(processed[0], encoding, position)
                 else
                     throw CharConversionException("character literal encodes into multiple bytes at $position")
             } else
-                return CharLiteral(character, encoding, position)
+                CharLiteral(character, encoding, position)
         }
 
         fun fromEscaped(raw: String, encoding: Encoding, position: Position): CharLiteral {

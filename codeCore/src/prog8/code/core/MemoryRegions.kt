@@ -94,7 +94,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
                 }
 
         synchronized(this) {
-            if(free.size > 0) {
+            if(free.isNotEmpty()) {
                 if(size==1) {
                     for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                         if(oneSeparateByteFree(candidate))

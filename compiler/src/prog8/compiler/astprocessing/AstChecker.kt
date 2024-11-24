@@ -138,7 +138,7 @@ internal class AstChecker(private val program: Program,
                     } else if(valueDt.isIterable && expectedReturnValues[0]==DataType.UWORD) {
                         // you can return a string or array when an uword (pointer) is returned
                     } else if(valueDt istype DataType.UWORD && expectedReturnValues[0]==DataType.STR) {
-                        // you can return a uword pointer when the return type is a string
+                        // you can return an uword pointer when the return type is a string
                     } else {
                         errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}",returnStmt.value!!.position)
                     }
@@ -340,7 +340,7 @@ internal class AstChecker(private val program: Program,
                 val jumpTarget = jump.identifier?.targetStatement(program)
                 if(jumpTarget!=null) {
                     val sub = jump.definingSubroutine
-                    val targetSub = if(jumpTarget is Subroutine) jumpTarget else jumpTarget.definingSubroutine
+                    val targetSub = jumpTarget as? Subroutine ?: jumpTarget.definingSubroutine
                     if(sub !== targetSub)
                         count++
                 }
@@ -1173,7 +1173,7 @@ internal class AstChecker(private val program: Program,
                 val jumpTarget = jump.identifier?.targetStatement(program)
                 if(jumpTarget!=null) {
                     val sub = jump.definingSubroutine
-                    val targetSub = if(jumpTarget is Subroutine) jumpTarget else jumpTarget.definingSubroutine
+                    val targetSub = jumpTarget as? Subroutine ?: jumpTarget.definingSubroutine
                     if(sub !== targetSub)
                         count++
                 }
@@ -1978,7 +1978,7 @@ internal class AstChecker(private val program: Program,
             // this is allowed: bitwise operation between different types as long as they're the same size.
         }
         else if(targetDatatype==DataType.UWORD && sourceDatatype in PassByReferenceDatatypes) {
-            // this is allowed: a pass-by-reference datatype into a uword (pointer value).
+            // this is allowed: a pass-by-reference datatype into an uword (pointer value).
         }
         else if(sourceDatatype in ArrayDatatypes && targetDatatype in ArrayDatatypes) {
             // this is allowed (assigning array to array)

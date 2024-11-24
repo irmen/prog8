@@ -12,7 +12,7 @@ It then uses the streaming support in zsmkit to load the song from disk as it is
 It shows some other features such as callbacks and pausing as well.
 The way the zsmkit blob is embedded into the program is done by telling prog8 that
 the 'main' block of the program has to start at $0830, and the very first command
-in that block is not the usual 'start' subroutine but a %asmbinary command to load
+in that block is not the usual 'start' subroutine but an %asmbinary command to load
 and embed the zsmkit blob right there and then.
 
 
@@ -29,7 +29,7 @@ this one was configured without streaming support enabled.
 CUSTOMIZING ZSMKIT
 ------------------
 
-Read the README on the zsmkit github repo. It contains a lot of important information,
+Read the README on the zsmkit GitHub repo. It contains a lot of important information,
 about how zsmkit works, but also about the various things you have to configure to build a
 new library blob to your liking. The example here includes two recently built variants of the blob,
 so you don't immediately have to build something yourself, but if you want to enable or disable

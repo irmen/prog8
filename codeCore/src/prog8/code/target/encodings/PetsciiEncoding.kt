@@ -7,7 +7,7 @@ import java.io.CharConversionException
 
 object PetsciiEncoding {
 
-    // decoding:  from Petscii/Screencodes (0-255) to unicode
+    // decoding:  from Petscii/Screencodes (0-255) to Unicode
     // character tables used from https://github.com/irmen/cbmcodecs2
 
     private val decodingPetsciiLowercase = charArrayOf(
@@ -1157,16 +1157,16 @@ object PetsciiEncoding {
         }
     }
 
-    fun petscii2scr(petscii_code: UByte, inverseVideo: Boolean): Result<UByte, CharConversionException> {
+    fun petscii2scr(petsciicode: UByte, inverseVideo: Boolean): Result<UByte, CharConversionException> {
         val code: UInt = when {
-            petscii_code <= 0x1fu -> petscii_code + 128u
-            petscii_code <= 0x3fu -> petscii_code.toUInt()
-            petscii_code <= 0x5fu -> petscii_code - 64u
-            petscii_code <= 0x7fu -> petscii_code - 32u
-            petscii_code <= 0x9fu -> petscii_code + 64u
-            petscii_code <= 0xbfu -> petscii_code - 64u
-            petscii_code <= 0xfeu -> petscii_code - 128u
-            petscii_code == 255.toUByte() -> 95u
+            petsciicode <= 0x1fu -> petsciicode + 128u
+            petsciicode <= 0x3fu -> petsciicode.toUInt()
+            petsciicode <= 0x5fu -> petsciicode - 64u
+            petsciicode <= 0x7fu -> petsciicode - 32u
+            petsciicode <= 0x9fu -> petsciicode + 64u
+            petsciicode <= 0xbfu -> petsciicode - 64u
+            petsciicode <= 0xfeu -> petsciicode - 128u
+            petsciicode == 255.toUByte() -> 95u
             else -> return Err(CharConversionException("petscii code out of range"))
         }
         if(inverseVideo) {

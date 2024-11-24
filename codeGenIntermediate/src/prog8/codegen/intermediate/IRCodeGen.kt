@@ -151,7 +151,7 @@ class IRCodeGen(
                         sub.chunks.removeAt(0)
                         sub.chunks.add(0, replacement)
                     } else if(first.label != sub.label) {
-                        val next = if(first is IRCodeChunk) first else null
+                        val next = first as? IRCodeChunk
                         sub.chunks.add(0, IRCodeChunk(sub.label, next))
                     }
                 }

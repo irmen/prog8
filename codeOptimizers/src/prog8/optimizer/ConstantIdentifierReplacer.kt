@@ -88,7 +88,7 @@ class VarConstantValueTypeAdjuster(
                             IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
                         )
                     }
-                    // variable only has a single write and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
+                    // variable only has a single write, and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
                     errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
                     val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.splitArray, decl.alignment, decl.dirty, decl.position)
                     return listOf(

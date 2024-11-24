@@ -236,7 +236,7 @@ class IRProgram(val name: String,
                         i++
                         instr2 = chunk.instructions[i]
                     }
-                    // it could be that the actual call is only in another code chunk, so IF we find one, we can check. Otherwise just skip the check...
+                    // it could be that the actual call is only in another code chunk, so IF we find one, we can check, otherwise just skip the check...
                     if(chunk.instructions[i].fcallArgs!=null) {
                         val expectedRegisterLoads = chunk.instructions[i].fcallArgs!!.arguments.map { it.reg.registerNum }
                         require(registers.containsAll(expectedRegisterLoads)) { "not all argument registers are given a value in the preparecall-call sequence" }

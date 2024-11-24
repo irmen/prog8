@@ -568,7 +568,7 @@ object SysCalls {
                         return returnValue(callspec.returns.single(), height*256 + width, vm)
                     }
                 } catch (x: Exception) {
-                    // dunno what happened...
+                    // don't know what happened...
                 }
                 return returnValue(callspec.returns.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30
             }
@@ -603,17 +603,17 @@ object SysCalls {
             }
             Syscall.READ_FILE_BYTE -> {
                 val (success, byte) = vm.read_file_byte()
-                if(success)
-                    return returnValue(callspec.returns.single(), 0x0100 or byte.toInt(), vm)
+                return if(success)
+                    returnValue(callspec.returns.single(), 0x0100 or byte.toInt(), vm)
                 else
-                    return returnValue(callspec.returns.single(), 0x0000, vm)
+                    returnValue(callspec.returns.single(), 0x0000, vm)
             }
             Syscall.WRITE_FILE_BYTE -> {
                 val byte = getArgValues(callspec.arguments, vm).single() as UByte
-                if(vm.write_file_byte(byte))
-                    return returnValue(callspec.returns.single(), 1, vm)
+                return if(vm.write_file_byte(byte))
+                    returnValue(callspec.returns.single(), 1, vm)
                 else
-                    return returnValue(callspec.returns.single(), 0, vm)
+                    returnValue(callspec.returns.single(), 0, vm)
             }
             Syscall.CLOSE_FILE -> vm.close_file_read()
             Syscall.CLOSE_FILE_WRITE -> vm.close_file_write()

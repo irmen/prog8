@@ -408,10 +408,10 @@ class IRFileReader {
 
         skipText(reader)
         while(reader.peek().isStartElement) {
-            when(reader.peek().asStartElement().name.localPart) {
-                "CODE" -> sub += parseCodeChunk(reader)
-                "BYTES" -> sub += parseBinaryBytes(reader)
-                "ASM" -> sub += parseInlineAssembly(reader)
+            sub += when(reader.peek().asStartElement().name.localPart) {
+                "CODE" -> parseCodeChunk(reader)
+                "BYTES" -> parseBinaryBytes(reader)
+                "ASM" -> parseInlineAssembly(reader)
                 else -> throw IRParseException("invalid line in SUB: ${reader.peek()}")
             }
             skipText(reader)

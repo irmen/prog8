@@ -10,7 +10,7 @@ import java.nio.file.Path
 
 internal class AssemblyProgram(
         override val name: String,
-        private val outputDir: Path,
+        outputDir: Path,
         private val compTarget: ICompilationTarget) : IAssemblyProgram {
 
     private val assemblyFile = outputDir.resolve("$name.asm")

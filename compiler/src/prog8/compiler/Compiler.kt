@@ -177,7 +177,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
     } catch (ac: ErrorsReportedException) {
         if(args.printAst1 && resultingProgram!=null) {
             println("\n*********** COMPILER AST *************")
-            printProgram(resultingProgram!!)
+            printProgram(resultingProgram)
             println("*********** COMPILER AST END *************\n")
         }
         if (args.printAst2) {
@@ -185,7 +185,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 println("There is no intermediate AST available because of compilation errors.")
             else {
                 println("\n*********** INTERMEDIATE AST *************")
-                printAst(ast!!, true, ::println)
+                printAst(ast, true, ::println)
                 println("*********** INTERMEDIATE AST END *************\n")
             }
         }
@@ -449,7 +449,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     }
 
     removeUnusedCode(program, errors,compilerOptions)
-    for(num_cycles in 0..10000) {
+    for(numCycles in 0..10000) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
@@ -463,7 +463,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         if (numOpts == 0)
             break
 
-        if(num_cycles==10000) {
+        if(numCycles==10000) {
             throw InternalCompilerException("optimizeAst() is looping endlessly, numOpts = $numOpts")
         }
     }

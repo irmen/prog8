@@ -7,7 +7,7 @@ enum class DataType {
     WORD,               // pass by value            16 bits signed
     LONG,               // pass by value            32 bits signed
     FLOAT,              // pass by value            machine dependent
-    BOOL,               // pass by value            bit 0 of a 8 bit byte
+    BOOL,               // pass by value            bit 0 of an 8-bit byte
     STR,                // pass by reference
     ARRAY_UB,           // pass by reference
     ARRAY_B,            // pass by reference
