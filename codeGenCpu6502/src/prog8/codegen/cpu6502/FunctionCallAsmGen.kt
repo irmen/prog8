@@ -15,16 +15,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // just ignore any result values from the function call.
     }
 
-    @JvmName("optimizeIntArgsViaRegisters")
-    internal fun optimizeIntArgsViaRegisters(params: List<IndexedValue<PtSubroutineParameter>>) =
-        when(params.size) {
-            1 -> params[0].value.type in IntegerDatatypesWithBoolean
-            2 -> params[0].value.type in ByteDatatypesWithBoolean && params[1].value.type in ByteDatatypesWithBoolean
-            else -> false
-        }
-
-    @JvmName("optimizeIntArgsViaRegistersNotIndexed")
-    internal fun optimizeIntArgsViaRegisters(params: List<PtSubroutineParameter>) =
+    internal fun optimizeIntArgsViaCpuRegisters(params: List<PtSubroutineParameter>) =
         when(params.size) {
             1 -> params[0].type in IntegerDatatypesWithBoolean
             2 -> params[0].type in ByteDatatypesWithBoolean && params[1].type in ByteDatatypesWithBoolean
@@ -133,45 +124,53 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             }
         }
         else if(sub is PtSub) {
-            val (paramsViaRegisters, normalParams) = sub.parameters.withIndex().partition { it.value.register!=null }
-            if(normalParams.isNotEmpty()) {
-                if(optimizeIntArgsViaRegisters(normalParams)) {
-                    when(normalParams.size) {
-                        1 -> {
-                            val register = if (normalParams[0].value.type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
-                            argumentViaRegister(sub, IndexedValue(0, normalParams[0].value), call.args[0], register)
-                        }
-                        2 -> {
-                            if(normalParams[0].value.type in ByteDatatypesWithBoolean && normalParams[1].value.type in ByteDatatypesWithBoolean) {
-                                // 2 byte params, second in Y, first in A
-                                argumentViaRegister(sub, IndexedValue(0, normalParams[0].value), call.args[0], RegisterOrPair.A)
-                                if(asmgen.needAsaveForExpr(call.args[1]))
-                                    asmgen.out("  pha")
-                                argumentViaRegister(sub, IndexedValue(1, normalParams[1].value), call.args[1], RegisterOrPair.Y)
-                                if(asmgen.needAsaveForExpr(call.args[1]))
-                                    asmgen.out("  pla")
-                            } else {
-                                throw AssemblyError("cannot use registers for word+byte")
-                            }
-                        }
-                        else -> throw AssemblyError("cannot use registers for >2 arguments")
-                    }
-                } else {
-                    // arguments via variables
-                    for(arg in normalParams.zip(call.args))
+            if(optimizeIntArgsViaCpuRegisters(sub.parameters)) {
+                // Note that if the args fit into cpu registers, we don't concern ourselves here
+                // if they should be put into regular subroutine parameter variables, or the R0-R15 register variables.
+                // That is now up to the subroutine itself.
+                useCpuRegistersForArgs(call.args, sub)
+            } else {
+                // arguments via variables
+                val (normalParams, registerParams) = sub.parameters.withIndex().partition { it.value.register == null }
+                if (normalParams.isNotEmpty()) {
+                    for (arg in normalParams.zip(call.args))
                         argumentViaVariable(sub, arg.first.value, arg.second)
                 }
-            }
-            if(paramsViaRegisters.isNotEmpty()) {
-                // the R0-R15 'registers' are not really registers. They're just special variables.
-                for(arg in paramsViaRegisters.zip(call.args))
-                    argumentViaVariable(sub, arg.first.value, arg.second)
+                if (registerParams.isNotEmpty()) {
+                    // the R0-R15 'registers' are not really registers. They're just special variables.
+                    for (arg in registerParams.zip(call.args))
+                        argumentViaVariable(sub, arg.first.value, arg.second)
+                }
             }
             asmgen.out("  jsr  $subAsmName")
         }
         else throw AssemblyError("invalid sub type")
 
         // remember: dealing with the X register and/or dealing with return values is the responsibility of the caller
+    }
+
+    private fun useCpuRegistersForArgs(args: List<PtExpression>, sub: PtSub) {
+        val params = sub.parameters
+        when(params.size) {
+            1 -> {
+                val register = if (params[0].type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
+                argumentViaRegister(sub, IndexedValue(0, params[0]), args[0], register)
+            }
+            2 -> {
+                if(params[0].type in ByteDatatypesWithBoolean && params[1].type in ByteDatatypesWithBoolean) {
+                    // 2 byte params, second in Y, first in A
+                    argumentViaRegister(sub, IndexedValue(0, params[0]), args[0], RegisterOrPair.A)
+                    if(asmgen.needAsaveForExpr(args[1]))
+                        asmgen.out("  pha")
+                    argumentViaRegister(sub, IndexedValue(1, params[1]), args[1], RegisterOrPair.Y)
+                    if(asmgen.needAsaveForExpr(args[1]))
+                        asmgen.out("  pla")
+                } else {
+                    throw AssemblyError("cannot use registers for word+byte")
+                }
+            }
+            else -> throw AssemblyError("cannot use cpu registers for >2 arguments")
+        }
     }
 
 

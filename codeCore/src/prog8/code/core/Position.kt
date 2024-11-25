@@ -15,7 +15,7 @@ data class Position(val file: String, val line: Int, val startCol: Int, val endC
         return try {
             val path = Path(file).absolute().normalize().toString()
             "file://$path:$line:$startCol:"
-        } catch(x: InvalidPathException) {
+        } catch(_: InvalidPathException) {
             // this can occur on Windows when the source origin contains "invalid" characters such as ':'
             "file://$file:$line:$startCol:"
         }

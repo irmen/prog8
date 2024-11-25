@@ -55,7 +55,7 @@ class C64MachineDefinition: IMachineDefinition {
             val process: Process
             try {
                 process=processb.start()
-            } catch(x: IOException) {
+            } catch(_: IOException) {
                 continue  // try the next emulator executable
             }
             process.waitFor()

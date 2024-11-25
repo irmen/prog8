@@ -219,8 +219,8 @@ class AstPreprocessor(val program: Program,
         val namesInSub = symbolsInSub.map{ it.first }.toSet()
         if(subroutine.asmAddress==null) {
             if(!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty()) {
-                var mods = mutableListOf<IAstModification>()
-                var (normalParams, registerParams) = subroutine.parameters.partition { it.registerOrPair==null }
+                val mods = mutableListOf<IAstModification>()
+                val (normalParams, registerParams) = subroutine.parameters.partition { it.registerOrPair==null }
                 if(normalParams.isNotEmpty()) {
                     val existingVars = subroutine.statements.asSequence().filterIsInstance<VarDecl>().map { it.name }.toSet()
                     normalParams

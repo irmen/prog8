@@ -421,28 +421,35 @@ internal class ProgramAndVarsGen(
         if((sub.name=="start" || sub.name=="p8s_start") && (sub.definingBlock()!!.name=="main" || sub.definingBlock()!!.name=="p8b_main"))
             entrypointInitialization()
 
-        val normalParams = sub.parameters.filter { it.register==null }
-        if(functioncallAsmGen.optimizeIntArgsViaRegisters(normalParams)) {
-            asmgen.out("; simple int arg(s) passed via register(s)")
-            when(normalParams.size) {
+        val params = sub.parameters
+        if(functioncallAsmGen.optimizeIntArgsViaCpuRegisters(params)) {
+            asmgen.out("; simple int arg(s) passed via cpu register(s)")
+
+            fun varname(param: PtSubroutineParameter): String =
+                if(param.register==null)
+                    param.name
+                else
+                    param.register!!.asScopedNameVirtualReg(param.type).joinToString(".")
+
+            when(params.size) {
                 1 -> {
-                    val dt = normalParams[0].type
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, normalParams[0].position, variableAsmName = normalParams[0].name)
+                    val dt = params[0].type
+                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, sub, params[0].position, variableAsmName = varname(params[0]))
                     if(dt in ByteDatatypesWithBoolean)
-                        asmgen.assignRegister(RegisterOrPair.A, target)
+                        asmgen.assignRegister(RegisterOrPair.A, target)     // single byte in A
                     else
-                        asmgen.assignRegister(RegisterOrPair.AY, target)
+                        asmgen.assignRegister(RegisterOrPair.AY, target)    // word in AY
                 }
                 2 -> {
-                    val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, normalParams[0].type, sub, normalParams[0].position, variableAsmName = normalParams[0].name)
-                    val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, normalParams[1].type, sub, normalParams[1].position, variableAsmName = normalParams[1].name)
-                    if(normalParams[0].type in ByteDatatypesWithBoolean && normalParams[1].type in ByteDatatypesWithBoolean) {
+                    val target1 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, params[0].type, sub, params[0].position, variableAsmName = varname(params[0]))
+                    val target2 = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, params[1].type, sub, params[1].position, variableAsmName = varname(params[1]))
+                    if(params[0].type in ByteDatatypesWithBoolean && params[1].type in ByteDatatypesWithBoolean) {
                         // 2 byte args, first in A, second in Y
                         asmgen.assignRegister(RegisterOrPair.A, target1)
                         asmgen.assignRegister(RegisterOrPair.Y, target2)
-                    } else throw AssemblyError("cannot use registers for word+byte")
+                    } else throw AssemblyError("cannot use registers for word+byte args")
                 }
-                else -> throw AssemblyError("cannot use registers for >2 arguments")
+                else -> throw AssemblyError("cannot use registers for >2 args")
             }
         }
 

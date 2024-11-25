@@ -286,10 +286,10 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
             if(exprfunc!=null) {
                 return try {
                     exprfunc(args, position, program)
-                } catch(x: NotConstArgumentException) {
+                } catch(_: NotConstArgumentException) {
                     // const-evaluating the builtin function call failed.
                     null
-                } catch(x: CannotEvaluateException) {
+                } catch(_: CannotEvaluateException) {
                     // const-evaluating the builtin function call failed.
                     null
                 }
@@ -354,7 +354,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
         else
             try {
                 ZeropageType.valueOf(zpoption)
-            } catch (x: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 ZeropageType.KERNALSAFE
                 // error will be printed by the astchecker
             }
@@ -383,7 +383,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
     } else {
         try {
             OutputType.valueOf(outputTypeStr)
-        } catch (x: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // set default value; actual check and error handling of invalid option is handled in the AstChecker later
             OutputType.PRG
         }
@@ -396,7 +396,7 @@ fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget
     } else {
         try {
             CbmPrgLauncherType.valueOf(launcherTypeStr)
-        } catch (x: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // set default value; actual check and error handling of invalid option is handled in the AstChecker later
             CbmPrgLauncherType.BASIC
         }

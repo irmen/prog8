@@ -270,7 +270,7 @@ object SysCalls {
                     val trimmed = memstring.takeWhile { it in " +-0123456789.eE" }
                     try {
                         trimmed.toDouble()
-                    } catch(x: NumberFormatException) {
+                    } catch(_: NumberFormatException) {
                         0.0
                     }
                 }
@@ -567,7 +567,7 @@ object SysCalls {
                         val height = response.next().toInt()
                         return returnValue(callspec.returns.single(), height*256 + width, vm)
                     }
-                } catch (x: Exception) {
+                } catch (_: Exception) {
                     // don't know what happened...
                 }
                 return returnValue(callspec.returns.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30

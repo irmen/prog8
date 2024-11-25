@@ -1050,7 +1050,7 @@ main {
         val src="""
             main { sub start() { cx16.r0++ cx16.r1++ } }
             other { asmsub thing() { %asm {{ inx }} } }
-        """;
+        """
         val result = compileText(VMTarget(),  false, src, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 2

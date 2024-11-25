@@ -72,7 +72,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     val (instr, typestr, rest) = match.destructured
     val opcode = try {
         Opcode.valueOf(instr.uppercase())
-    } catch (ax: IllegalArgumentException) {
+    } catch (_: IllegalArgumentException) {
         throw IRParseException("invalid vmasm instruction: $instr")
     }
     var type: IRDataType? = convertIRType(typestr)
@@ -181,11 +181,11 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
             throw IRParseException("needs value or symbol for $line")
         when (type) {
             IRDataType.BYTE -> {
-                if (immediateInt!=null && (immediateInt!! < -128 || immediateInt!! > 255))
+                if (immediateInt!=null && (immediateInt < -128 || immediateInt > 255))
                     throw IRParseException("immediate value out of range for byte: $immediateInt")
             }
             IRDataType.WORD -> {
-                if (immediateInt!=null && (immediateInt!! < -32768 || immediateInt!! > 65535))
+                if (immediateInt!=null && (immediateInt < -32768 || immediateInt > 65535))
                     throw IRParseException("immediate value out of range for word: $immediateInt")
             }
             IRDataType.FLOAT -> {}
@@ -198,13 +198,13 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
 
     var offset: Int? = null
     if(labelSymbol!=null) {
-        if (labelSymbol!![0] == 'r' && labelSymbol!![1].isDigit())
+        if (labelSymbol[0] == 'r' && labelSymbol[1].isDigit())
             throw IRParseException("labelsymbol confused with register?: $labelSymbol")
-        if('+' in labelSymbol!!) {
-            val offsetStr = labelSymbol!!.substringAfterLast('+')
+        if('+' in labelSymbol) {
+            val offsetStr = labelSymbol.substringAfterLast('+')
             if (offsetStr.isNotEmpty()) {
                 offset = offsetStr.toInt()
-                labelSymbol = labelSymbol!!.substringBeforeLast('+')
+                labelSymbol = labelSymbol.substringBeforeLast('+')
             }
         }
     }
@@ -320,10 +320,10 @@ internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag
 
     try {
         reg = RegisterOrPair.valueOf(regs)
-    } catch (x: IllegalArgumentException) {
+    } catch (_: IllegalArgumentException) {
         try {
             sf = Statusflag.valueOf(regs)
-        } catch(x: IllegalArgumentException) {
+        } catch(_: IllegalArgumentException) {
             throw IRParseException("invalid IR register or statusflag: $regs")
         }
     }
