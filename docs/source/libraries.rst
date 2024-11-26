@@ -410,6 +410,51 @@ Routines to check if any or all values in an array or memory buffer are not zero
     Doesn't work on split arrays.
 
 
+buffers (experimental)
+----------------------
+A small library providing a 8 KB stack, an 8 KB ringbuffer, and a fast 256 bytes ringbuffer.
+Stack is a LIFO container, ringbuffers are FIFO containers.
+On the Commander X16 the stack and ringbuffer will use a HiRAM bank instead of system ram,
+you have to initialize that via the init(bank) routine.
+
+Read the `buffers source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/diskio.p8>`_
+to see what's in there. Note that the init() routines have that extra bank parameter on the cx16.
+
+
+compression
+-----------
+Routines for data compression and decompression. Currently only the 'ByteRun1' aka 'PackBits' RLE encoding
+is available. This is the compression that was also used in Amiga IFF images and in old MacPaint images.
+
+``encode_rle (uword data, uword size, uword target, bool is_last_block) -> uword``
+    Compress the given data block using ByteRun1 aka PackBits RLE encoding.
+    Returns the size of the compressed RLE data. Worst case result storage size needed = (size + (size+126) / 127) + 1.
+    'is_last_block' = usually true, but you can set it to false if you want to concatenate multiple
+    compressed blocks (for instance if the source data is >64Kb)
+
+``encode_rle_outfunc (uword data, uword size, uword output_function, bool is_last_block)``
+    Like ``encode_rle`` but not with an output buffer, but with an 'output_function' argument.
+    This is the address of a routine that gets a byte arg in A,
+    which is the next RLE byte to write to the compressed output buffer or file.
+
+``decode_rle (uword compressed, uword target, uword maxsize) -> uword``
+    Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
+    Also stops decompressing if the maxsize has been reached. Returns the size of the decompressed data.
+
+``decode_rle_srcfunc (uword source_function, uword target, uword maxsize) -> uword``
+    Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
+    Also stops decompressing when the maxsize has been reached. Returns the size of the decompressed data.
+    Instead of a source buffer, you provide a callback function that must return the next byte to compress in A.
+
+``decode_rle_vram (uword compressed, ubyte vbank, uword vaddr)``  (cx16 only)
+    Decodes "ByteRun1" (aka PackBits) RLE compressed data directly into Vera VRAM.
+    Control byte value 128 ends the decoding.
+    While the X16 has pretty fast lzsa decompression in the kernal, RLE is still a lot faster to decode.
+    However it also doesn't compress data nearly as well, but that's the usual tradeoff.
+    There is a *compression* routine as well for RLE that you can run on the X16 itself,
+    something that the lzsa compression lacks.
+
+
 conv
 ----
 Routines to convert strings to numbers or vice versa.
@@ -926,37 +971,6 @@ without the need to buffer something in main memory.
 For details about what routines are available, have a look at
 the `bmx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/bmx.p8>`_ .
 There's also the "showbmx" example to look at.
-
-
-compression
------------
-Routines for data compression and decompression. Currently only the 'ByteRun1' aka 'PackBits' RLE encoding
-is available. This is the compression that was also used in Amiga IFF images and in old MacPaint images.
-
-``encode_rle (uword data, uword size, uword target, bool is_last_block) -> uword``
-    Compress the given data block using ByteRun1 aka PackBits RLE encoding.
-    Returns the size of the compressed RLE data. Worst case result storage size needed = (size + (size+126) / 127) + 1.
-    'is_last_block' = usually true, but you can set it to false if you want to concatenate multiple
-    compressed blocks (for instance if the source data is >64Kb)
-
-``encode_rle_outfunc (uword data, uword size, uword output_function, bool is_last_block)``
-    Like ``encode_rle`` but not with an output buffer, but with an 'output_function' argument.
-    This is the address of a routine that gets a byte arg in A,
-    which is the next RLE byte to write to the compressed output buffer or file.
-
-``decode_rle (uword compressed, uword target, uword maxsize) -> uword``
-    Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
-    Also stops decompressing if the maxsize has been reached. Returns the size of the decompressed data.
-
-``decode_rle_srcfunc (uword source_function, uword target, uword maxsize) -> uword``
-    Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
-    Also stops decompressing when the maxsize has been reached. Returns the size of the decompressed data.
-    Instead of a source buffer, you provide a callback function that must return the next byte to compress in A.
-
-``decode_rle_vram (uword compressed, ubyte vbank, uword vaddr)``  (cx16 only)
-    Decodes "ByteRun1" (aka PackBits) RLE compressed data directly into Vera VRAM.
-    Control byte value 128 ends the decoding.
-
 
 
 emudbg  (cx16 only)
