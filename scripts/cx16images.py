@@ -82,7 +82,8 @@ class BitmapImage:
     def show(self) -> None:
         """Shows the image on the screen"""
         if self.img.mode == "P":
-            self.img.convert("RGB").convert("P").show()
+            self.img.show()
+            # self.img.convert("RGB").convert("P").show()
         else:
             self.img.show()
 
@@ -198,7 +199,7 @@ class BitmapImage:
         elif bits_per_pixel == 4:
             num_colors = 15 if fixed_color_zero else 16
             if num_colors==16 and preserve_first_16_colors:
-                return self.quantize_to(default_colors[:16])
+                return self.quantize_to(default_colors[:16], 0)
         elif bits_per_pixel == 2:
             assert preserve_first_16_colors==False, "bpp is too small for 16 default colors"
             num_colors = 3 if fixed_color_zero else 4

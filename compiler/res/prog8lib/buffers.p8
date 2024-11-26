@@ -4,7 +4,7 @@
 
 smallringbuffer {
     ; -- A ringbuffer (FIFO queue) that occupies a single page in memory, containing 255 bytes maximum.
-    ;    You can store and retrieve words too.
+    ;    You can store and retrieve bytes and words too.
     ;    It's optimized for speed and depends on the byte-wrap-around feature when doing incs and decs.
 
     ubyte fill
@@ -70,8 +70,8 @@ smallringbuffer {
 
 
 ringbuffer {
-    ; -- A ringbuffer (FIFO queue) that occupies a single page in memory, containing 8 KB maximum.
-    ;    You can store and retrieve words too.
+    ; -- A ringbuffer (FIFO queue) that uses a block of 8 KB of memory.
+    ;    You can store and retrieve bytes and words too.
 
     uword fill
     uword head
@@ -148,5 +148,5 @@ ringbuffer {
 }
 
 
-; TODO ringbuffer (FIFO queue) should use banked ram on the X16, but still work on virtual
+; TODO ringbuffer (FIFO queue) should use banked ram on the X16, but still work on virtual target
 ; TODO stack (LIFO queue) using more than 1 page of ram (maybe even banked ram on the x16)

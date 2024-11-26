@@ -7,7 +7,7 @@ compression {
     sub encode_rle_outfunc(uword data, uword size, uword output_function, bool is_last_block) {
         ; -- Compress the given data block using ByteRun1 aka PackBits RLE encoding.
         ;    output_function = address of a routine that gets a byte arg in A,
-        ;                      this is the next RLE byte to write to the compressed output buffer or file.
+        ;                      which is the next RLE byte to write to the compressed output buffer or file.
         ;    is_last_block = usually true, but you can set it to false if you want to concatenate multiple
         ;                    compressed blocks (for instance if the source data is >64Kb)
         ;    Worst case result storage size needed = (size + (size+126) / 127) + 1
@@ -136,9 +136,9 @@ compression {
     }
 
     asmsub decode_rle_srcfunc(uword source_function @AY, uword target @R0, uword maxsize @R1) clobbers(X) -> uword @AY {
-        ; -- decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
-        ;    instead of a source buffer, you provide a callback function that must return the next byte to compress in A.
-        ;    Stops decompressing when the maxsize has been reached.
+        ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
+        ;    Also stops decompressing when the maxsize has been reached. Returns the size of the decompressed data.
+        ;    Instead of a source buffer, you provide a callback function that must return the next byte to compress in A.
         %asm {{
             sta  _cb_mod1+1
             sty  _cb_mod1+2
@@ -234,8 +234,9 @@ _end
     }
 
     asmsub decode_rle(uword compressed @AY, uword target @R0, uword maxsize @R1) clobbers(X) -> uword @AY {
-        ; -- decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
-        ;    Stops decompressing when the maxsize has been reached.
+        ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
+        ;    Also stops decompressing if the maxsize has been reached.
+        ;    Returns the size of the decompressed data.
         %asm {{
             sta  P8ZP_SCRATCH_W1        ; compressed data ptr
             sty  P8ZP_SCRATCH_W1+1
@@ -345,6 +346,65 @@ _end
         }}
     }
 
+    asmsub decode_rle_vram(uword compressed @R0, ubyte vbank @X, uword vaddr @AY) {
+        ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data directly into Vera VRAM.
+        ;    Control byte value 128 ends the decoding.  This routine is for the Commander X16 only.
+        %asm {{
+            stz  cx16.VERA_CTRL
+            sta  cx16.VERA_ADDR_L
+            sty  cx16.VERA_ADDR_M
+            txa
+            ora  #%00010000     ; autoincr by 1
+            sta  cx16.VERA_ADDR_H
+_loop
+            lda  (cx16.r0)
+            bpl  _copy_literals
+            cmp  #128
+            bne  +
+            rts  ; DONE!
+
+            ; replicate the next byte -n+1 times
++
+            inc  cx16.r0L
+            bne  +
+            inc  cx16.r0H
++           eor  #255
+            clc
+            adc  #2
+            tay
+            lda  (cx16.r0)
+-           sta  cx16.VERA_DATA0
+            dey
+            bne  -
+            inc  cx16.r0L
+            bne  _loop
+            inc  cx16.r0H
+            bra  _loop
+
+_copy_literals
+            ; copy the next n+1 bytes
+            inc  cx16.r0L
+            bne  +
+            inc  cx16.r0H
++           pha
+            tax
+            inx
+            ldy  #0
+-           lda  (cx16.r0),y
+            sta  cx16.VERA_DATA0
+            iny
+            dex
+            bne  -
+            ; increase pointer by n+1 bytes
+            pla
+            sec
+            adc  cx16.r0L
+            sta  cx16.r0L
+            bcc  _loop
+            inc  cx16.r0H
+            bra  _loop
+        }}
+    }
 
 /***
     ; prog8 source code for the asm routine above:

@@ -1,6 +1,8 @@
 TODO
 ====
 
+work a bit more on the buffers library
+
 document the @R0 - @R15 register support for normal subroutine parameters (footgun!)
 
 make a compiler switch to disable footgun warnings
