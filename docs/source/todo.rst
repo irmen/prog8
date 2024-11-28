@@ -5,13 +5,11 @@ document the @R0 - @R15 register support for normal subroutine parameters (footg
 
 make a compiler switch to disable footgun warnings
 
-upgrade zmskit example to use zsmkit v2
-
 what to do with bankof(): keep it? add another syntax like \`value  or ^value  to get the bank byte?
--> added unary ^ operator as alternative to bankof()
--> added unary << operator as alternative to addr() / lsb(x>>16) / lsw()
 -> added msw() and lsw() .  note: msw() on a 24 bits constant can ALSO be used to get the bank byte because the value, while a word type, will be <=255
--> TODO document whatever remains of those! (and add to syntax files)
+-> added unary ^ operator as alternative to bankof()
+-> added unary << operator as alternative to lsw() / lsb(x>>16)
+-> TODO document whatever remains of these! (and add to syntax files)
 
 ...
 

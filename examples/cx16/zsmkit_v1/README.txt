@@ -1,8 +1,9 @@
-Prog8 ZSMKIT music player library integration
----------------------------------------------
+Prog8 ZSMKIT (v1) music player library integration
+--------------------------------------------------
 
-ZSMKIT:  https://github.com/mooinglemur/zsmkit
+ZSMKIT V1:  https://github.com/mooinglemur/zsmkit/tree/v1
 (evolution of Zerobyte's ZSOUND, by MooingLemur).  Read the README there!
+Note: the current version of Zsmkit is V2. See below.
 
 
 DEMO1:  LOW-RAM ZSMKIT + STREAMING
@@ -37,8 +38,10 @@ streaming support or change the load address you'll have to build one yourself.
 See the "alternative builds" chapter.
 
 
-FUTURE: ZSMKIT V2
------------------
-If all goes well, there will be a zsmkit v2 in the future that has some important changes
-that will make it much easier to integrate it into prog8 programs.  Less RAM usage and
-a fixed jump table location, among other changes.
+ZSMKIT V2
+---------
+Zsmkit v2 is current and  has some important changes that will make it much easier
+to integrate it into prog8 programs.  Less RAM usage and a fixed jump table location,
+among other changes. However, it requires the ZSM to be loaded in Ram completely
+because it has no streaming support anymore. So Zsmkit v1 might still have some uses.
+
