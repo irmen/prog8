@@ -1,12 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("java")
     id("application")
-    id("org.jetbrains.kotlin.jvm")
+    kotlin("jvm")
     // id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("io.github.goooler.shadow") version "8.1.7"
-    id("com.peterabeles.gversion") version "1.10.2"
+    id("io.github.goooler.shadow") version "8.1.8"
+    id("com.peterabeles.gversion") version "1.10.3"
 }
 
 java {

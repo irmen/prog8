@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("jvm")
     id("application")
+    kotlin("jvm")
 }
 
 val serverMainClassName = "prog8lsp.MainKt"
