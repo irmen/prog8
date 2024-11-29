@@ -753,11 +753,14 @@ class InlineAssembly(val assembly: String, val isIR: Boolean, override val posit
     val names: Set<String> by lazy {
         // A cache of all the words (identifiers) present in this block of assembly code
         // this is used when checking if prog8 names are referenced from assembly code
-        val wordPattern = Regex("""\b([_a-zA-Z]\w+?)\b""")
+        val wordPattern = if(isIR)
+                Regex("""\b([_a-zA-Z]\w+?)(?!.[a-zA-Z]\b)\b""")     // words not ending with a dot and a single letter (like "pop.b")
+            else
+                Regex("""\b([_a-zA-Z]\w+?)\b""")
         assembly.splitToSequence('\n')
             .map {
-                val everythintBeforeComment = it.substringBefore(';')
-                wordPattern.findAll(everythintBeforeComment)
+                val everythingBeforeComment = it.substringBefore(';')
+                wordPattern.findAll(everythingBeforeComment)
             }
             .flatMap { it.map { mr -> mr.value } }
             .toSet()

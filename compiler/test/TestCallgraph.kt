@@ -285,4 +285,26 @@ main {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
+
+    test("also remove subroutines with names matching IR asm instruction") {
+        var src="""
+main {
+    sub start() {
+    }
+}
+
+xyz {
+    uword buffer_ptr = memory("buffers_stack", 8192, 0)
+
+    sub pop() -> ubyte {            ; pop is also an IR instruction
+        return buffer_ptr[2]
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        val blocks = result.codegenAst!!.allBlocks().toList()
+        blocks.any { it.name=="xyz" } shouldBe false
+        val result2 = compileText(C64Target(), true, src, writeAssembly = true)!!
+        val blocks2 = result2.codegenAst!!.allBlocks().toList()
+        blocks2.any { it.name=="xyz" } shouldBe false
+    }
 })

@@ -94,18 +94,18 @@ class UnusedCodeRemover(private val program: Program,
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars) {
-                if(block.name != internedStringsModuleName && "ignore_unused" !in block.options()) {
-                    if(!block.statements.any { it is Subroutine && it.hasBeenInlined })
+                if (block.name != internedStringsModuleName && "ignore_unused" !in block.options()) {
+                    if (!block.statements.any { it is Subroutine && it.hasBeenInlined })
                         errors.info("removing unused block '${block.name}'", block.position)
                 }
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
             }
-            if(callgraph.unused(block)) {
-                if(block.statements.any{ it !is VarDecl || it.type== VarDeclType.VAR} && "ignore_unused" !in block.options()) {
-                    if(!block.statements.any { it is Subroutine && it.hasBeenInlined })
+            if (callgraph.unused(block)) {
+                if (block.statements.any { it !is VarDecl || it.type == VarDeclType.VAR } && "ignore_unused" !in block.options()) {
+                    if (!block.statements.any { it is Subroutine && it.hasBeenInlined })
                         errors.info("removing unused block '${block.name}'", block.position)
                 }
-                if(!block.statements.any { it is Subroutine && it.hasBeenInlined }) {
+                if (!block.statements.any { it is Subroutine && it.hasBeenInlined }) {
                     program.removeInternedStringsFromRemovedBlock(block)
                 }
                 return listOf(IAstModification.Remove(block, parent as IStatementContainer))
