@@ -1,6 +1,8 @@
 TODO
 ====
 
+virtual:  importing buffers in main results in a vm error?
+
 document the @R0 - @R15 register support for normal subroutine parameters (footgun!)
 
 make a compiler switch to disable footgun warnings

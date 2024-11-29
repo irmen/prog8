@@ -7,6 +7,7 @@
 
 
 main {
+    const ubyte FILL_STACK_BANK = 2
 
     sub start() {
         monogfx.lores()
@@ -28,7 +29,7 @@ main {
         monogfx.line(101, 150, 241, 10, true)
         monogfx.drawmode(monogfx.MODE_STIPPLE)
         sys.wait(60)
-        monogfx.fill(100,100,true)
+        monogfx.fill(100,100,true, FILL_STACK_BANK)
     }
 
     sub demo1() {

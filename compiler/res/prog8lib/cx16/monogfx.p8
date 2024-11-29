@@ -7,6 +7,8 @@
 ; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
 ;       You'll have to make sure yourself that you're not writing outside of bitmap boundaries!
 
+%import buffers
+
 monogfx {
 
     %option ignore_unused
@@ -733,78 +735,31 @@ invert:
         }}
     }
 
-    sub fill(uword x, uword y, bool draw) {
+    sub fill(uword x, uword y, bool draw, ubyte stack_rambank) {
         ; Non-recursive scanline flood fill.
         ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
         ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
-        const ubyte MAXDEPTH = 100
         word @zp xx = x as word
         word @zp yy = y as word
-        word[MAXDEPTH] @split @shared stack_xl
-        word[MAXDEPTH] @split @shared stack_xr
-        word[MAXDEPTH] @split @shared stack_y
-        byte[MAXDEPTH] @shared stack_dy
-        cx16.r12L = 0       ; stack pointer
         word x1
         word x2
         byte dy
+        stack.init(stack_rambank)
         cx16.r10L = draw as ubyte
         sub push_stack(word sxl, word sxr, word sy, byte sdy) {
-            if cx16.r12L==MAXDEPTH
-                return
             cx16.r0s = sy+sdy
             if cx16.r0s>=0 and cx16.r0s<=height-1 {
-;;                stack_xl[cx16.r12L] = sxl
-;;                stack_xr[cx16.r12L] = sxr
-;;                stack_y[cx16.r12L] = sy
-;;                stack_dy[cx16.r12L] = sdy
-;;                cx16.r12L++
-                %asm {{
-                    ldy  cx16.r12L
-                    lda  p8v_sxl
-                    sta  p8v_stack_xl_lsb,y
-                    lda  p8v_sxl+1
-                    sta  p8v_stack_xl_msb,y
-                    lda  p8v_sxr
-                    sta  p8v_stack_xr_lsb,y
-                    lda  p8v_sxr+1
-                    sta  p8v_stack_xr_msb,y
-                    lda  p8v_sy
-                    sta  p8v_stack_y_lsb,y
-                    lda  p8v_sy+1
-                    sta  p8v_stack_y_msb,y
-                    ldy  cx16.r12L
-                    lda  p8v_sdy
-                    sta  p8v_stack_dy,y
-                    inc  cx16.r12L
-                }}
+                stack.pushw(sxl as uword)
+                stack.pushw(sxr as uword)
+                stack.pushw(sy as uword)
+                stack.push(sdy as ubyte)
             }
         }
         sub pop_stack() {
-;;            cx16.r12L--
-;;            x1 = stack_xl[cx16.r12L]
-;;            x2 = stack_xr[cx16.r12L]
-;;            y = stack_y[cx16.r12L]
-;;            dy = stack_dy[cx16.r12L]
-            %asm {{
-                dec  cx16.r12L
-                ldy  cx16.r12L
-                lda  p8v_stack_xl_lsb,y
-                sta  p8v_x1
-                lda  p8v_stack_xl_msb,y
-                sta  p8v_x1+1
-                lda  p8v_stack_xr_lsb,y
-                sta  p8v_x2
-                lda  p8v_stack_xr_msb,y
-                sta  p8v_x2+1
-                lda  p8v_stack_y_lsb,y
-                sta  p8v_yy
-                lda  p8v_stack_y_msb,y
-                sta  p8v_yy+1
-                ldy  cx16.r12L
-                lda  p8v_stack_dy,y
-                sta  p8v_dy
-            }}
+            dy = stack.pop() as byte
+            yy = stack.popw() as word
+            x2 = stack.popw() as word
+            x1 = stack.popw() as word
             yy+=dy
         }
         cx16.r11L = pget(xx as uword, yy as uword) as ubyte        ; old_color
@@ -815,7 +770,7 @@ invert:
         push_stack(xx, xx, yy, 1)
         push_stack(xx, xx, yy + 1, -1)
         word left = 0
-        while cx16.r12L!=0 {
+        while not stack.isempty() {
             pop_stack()
             xx = x1
             if fill_scanline_left() goto skip

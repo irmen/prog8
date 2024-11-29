@@ -8,6 +8,8 @@
 
 main {
 
+    const ubyte FILL_STACK_BANK = 2
+
     sub start() {
         demofill()
         sys.wait(120)
@@ -24,9 +26,9 @@ main {
         gfx_lores.line(100, 150, 240, 10, 1)
         gfx_lores.line(101, 150, 241, 10, 1)
         sys.wait(60)
-        gfx_lores.fill(100,100,2)
-        gfx_lores.fill(182,140,3)
-        gfx_lores.fill(182,40,1)
+        gfx_lores.fill(100,100,2, FILL_STACK_BANK)
+        gfx_lores.fill(182,140,3, FILL_STACK_BANK)
+        gfx_lores.fill(182,40,1, FILL_STACK_BANK)
 
     }
 
