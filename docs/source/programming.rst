@@ -3,7 +3,6 @@ Programming in Prog8
 ====================
 
 This chapter describes a high level overview of the elements that make up a program.
-Details about the syntax can be found in the :ref:`syntaxreference` chapter.
 
 
 Elements of a program
@@ -17,6 +16,9 @@ Module
     Whitespace and indentation in the source code are arbitrary and can be mixed tabs or spaces.
     A module file can *import* other modules, including *library modules*.
     It should be saved in UTF-8 encoding.
+    Line endings are significant because *only one* declaration, statement or other instruction can occur on every line.
+    Other whitespace and line indentation is arbitrary and ignored by the compiler.
+    You can use tabs or spaces as you wish.
 
 Comments
     Everything on the line after a semicolon ``;`` is a comment and is ignored by the compiler.
@@ -29,6 +31,7 @@ Directive
     These are special instructions for the compiler, to change how it processes the code
     and what kind of program it creates. A directive is on its own line in the file, and
     starts with ``%``, optionally followed by some arguments. See the syntax reference for all directives.
+    The list of directives is given below at :ref:`directives`.
 
 Code block
     A block of actual program code. It has a starting address in memory,
@@ -38,13 +41,7 @@ Code block
 
 Variable declarations
     The data that the code works on is stored in variables ('named values that can change').
-    The compiler allocates the required memory for them.
-    There is *no dynamic memory allocation*. The storage size of all variables
-    is fixed and is determined at compile time.
-    Variable declarations tend to appear at the top of the code block that uses them, but this is not mandatory.
-    They define the name and type of the variable, and its initial value.
-    Prog8 supports a small list of data types, including special 'memory mapped' types
-    that don't allocate storage but instead point to a fixed location in the address space.
+    They are described in the chapter :ref:`variables`.
 
 Code
     These are the instructions that make up the program's logic.
@@ -68,6 +65,8 @@ Label
     This is a named position in your code where you can jump to from another place.
     You can jump to it with a jump statement elsewhere. It is also possible to use a
     subroutine call to a label (but without parameters and return value).
+    A label is an identifier followed by a colon ``:``. It's ok to put the next statement on
+    the same line, immediately after the label.
 
 Scope
     Also known as 'namespace', this is a named box around the symbols defined in it.
@@ -87,6 +86,43 @@ Scope
     Some more details about how to deal with scopes and names is discussed below.
 
 
+Identifiers
+-----------
+
+Naming things in Prog8 is done via valid *identifiers*. They start with a letter,
+and after that, a combination of letters, numbers, or underscores.
+Note that any Unicode Letter symbol is accepted as a letter!
+Examples of valid identifiers::
+
+	a
+	A
+	monkey
+	COUNTER
+	Better_Name_2
+	something_strange__
+	knäckebröd
+	приблизительно
+	π
+
+**Scoped names**
+
+Sometimes called "qualified names" or "dotted names", a scoped name is a sequence of identifiers separated by a dot.
+They are used to reference symbols in other scopes. Note that unlike many other programming languages,
+scoped names always need to be fully scoped (because they always start in the global scope). Also see :ref:`blocks`::
+
+    main.start              ; the entrypoint subroutine
+    main.start.variable     ; a variable in the entrypoint subroutine
+
+**Aliases**
+
+The ``alias`` statement makes it easier to refer to symbols from other places, and they can save
+you from having to type the fully scoped name everytime you need to access that symbol.
+Aliases can be created in any scope except at the module level.
+An alias is created with ``alias <name> = <target>`` and then you can use ``<name>`` as if it were ``<target>``.
+It is possible to alias variables, labels and subroutines, but not whole blocks.
+The name has to be an unscoped identifier name, the target can be any symbol.
+
+
 .. _blocks:
 
 Blocks, Scopes, and accessing Symbols
@@ -94,19 +130,19 @@ Blocks, Scopes, and accessing Symbols
 
 **Blocks** are the top level separate pieces of code and data of your program. They have a
 starting address in memory and will be combined together into a single output program.
-They can only contain *directives*, *variable declarations*, *subroutines* and *inline assembly code*.
-Your actual program code can only exist inside these subroutines.
-(except the occasional inline assembly)
+They can only contain *directives*, *variable declarations*, *subroutines* and *inline assembly code*::
 
-Here's an example::
-
-    main $c000 {
-        ; this is code inside the block...
+    <blockname> [<address>] {
+        <directives>
+        <variables>
+        <subroutines>
+        <inline asm>
     }
 
-The name of a block must be unique in your entire program.
-Be careful when importing other modules; blocks in your own code cannot have
-the same name as a block defined in an imported module or library.
+The <blockname> must be a valid identifier, and must be unique in the entire program (there's
+a directive to merge multiple occurences).
+The <address> is optional. If specified it must be a valid memory address such as ``$c000``.
+It's used to tell the compiler to put the block at a certain position in memory.
 
 .. sidebar::
     Using qualified names ("dotted names") to reference symbols defined elsewhere
@@ -187,370 +223,253 @@ first address. This will also be the address that the BASIC loader program (if g
 calls with the SYS statement.
 
 
+.. _directives:
+
+Directives
+-----------
+
+.. data:: %address <address>
+
+	Level: module.
+	Global setting, set the program's start memory address. It's usually fixed at ``$0801`` because the
+	default launcher type is a CBM-BASIC program. But you have to specify this address yourself when
+	you don't use a CBM-BASIC launcher.
 
 
-Variables and values
---------------------
+.. data:: %align <interval>
 
-Variables are named values that can change during the execution of the program.
-They can be defined inside any scope (blocks, subroutines etc.) See :ref:`blocks`.
-When declaring a numeric variable it is possible to specify the initial value, if you don't want it to be zero.
-For other data types it is required to specify that initial value it should get.
-Values will usually be part of an expression or assignment statement::
-
-    12345                 ; integer number
-    $aa43                 ; hex integer number
-    %100101               ; binary integer number (% is also remainder operator so be careful)
-    false                 ; boolean false
-    -33.456e52            ; floating point number
-    "Hi, I am a string"   ; text string, encoded with default encoding
-    'a'                   ; byte value (ubyte) for the letter a
-    sc:"Alternate"        ; text string, encoded with c64 screencode encoding
-    sc:'a'                ; byte value of the letter a in c64 screencode encoding
-
-    byte  counter  = 42   ; variable of size 8 bits, with initial value 42
+    Level: not at module scope.
+    Tells the assembler to continue assembling on the given alignment interval. For example, ``%align $100``
+    will insert an assembler command to align on the next page boundary.
+    Note that this has no impact on variables following this directive! Prog8 reallocates all variables
+    using different rules. If you want to align a specific variable (array or string), you should use
+    one of the alignment tags for variable declarations instead.
+    Valid intervals are from 2 to 65536.
+    **Warning:** if you use this directive in between normal statements, it will disrupt the output
+    of the machine code instructions by making gaps between them, this will probably crash the program!
 
 
-**putting a variable in zeropage:**
-If you add the ``@zp`` tag to the variable declaration, the compiler will prioritize this variable
-when selecting variables to put into zeropage (but no guarantees). If there are enough free locations in the zeropage,
-it will try to fill it with as much other variables as possible (before they will be put in regular memory pages).
-Use ``@requirezp`` tag to *force* the variable into zeropage, but if there is no more free space the compilation will fail.
-It's possible to put strings, arrays and floats into zeropage too, however because Zp space is really scarce
-this is not advised as they will eat up the available space very quickly. It's best to only put byte or word
-variables in zeropage.  By the way, there is also ``@nozp`` to keep a variable *out of the zeropage* at all times.
+.. data:: %asm {{ ... }}
 
-Example::
+    Level: not at module scope.
+    Declares that a piece of *assembly code* is inside the curly braces.
+    This code will be copied as-is into the generated output assembly source file.
+    Note that the start and end markers are both *double curly braces* to minimize the chance
+    that the assembly code itself contains either of those. If it does contain a ``}}``,
+    it will confuse the parser.
 
-    byte   @zp  smallcounter = 42
-    uword  @requirezp  zppointer = $4000
+    If you use the correct scoping rules you can access symbols from the prog8 program from inside
+    the assembly code. Sometimes you'll have to declare a variable in prog8 with `@shared` if it
+    is only used in such assembly code.
 
+    .. note::
+        64tass syntax is required for the assembly code. As such, mnemonics need to be written in lowercase.
 
-**shared variables:**
-If you add the ``@shared`` tag to the variable declaration, the compiler will know that this variable
-is a prog8 variable shared with some assembly code elsewhere. This means that the assembly code can
-refer to the variable even if it's otherwise not used in prog8 code itself.
-(usually, these kinds of 'unused' variables are optimized away by the compiler, resulting in an error
-when assembling the rest of the code). Example::
-
-    byte  @shared  assemblyVariable = 42
+    .. caution::
+        Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
+        Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
 
 
-**uninitialized variables:**
-All variables will be initialized by prog8 at startup, they'll get their assigned initialization value, or be cleared to zero.
-This (re)initialization is also done on each subroutine entry for the variables declared in the subroutine.
+.. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
 
-There may be certain scenarios where this initialization is redundant and/or where you want to avoid the overhead of it.
-In some cases, Prog8 itself can detect that a variable doesn't need a separate automatic initialization to zero, if
-it's trivial that it is not being read between the variable's declaration and the first assignment. For instance, when
-you declare a variable immediately before a for loop where it is the loop variable. However Prog8 is not yet very smart
-at detecting these redundant initializations. If you want to be sure, check the generated assembly output.
-
-In any case, you can use the ``@dirty`` tag on the variable declaration to make the variable *not* being (re)initialized by Prog8.
-This means its value will be undefined (it can be anything) until you assign a value yourself! Don't use such
-a variable before you have done so. 🦶🔫 Footgun warning.
-
-
-**memory alignment:**
-A string or array variable can be aligned to a couple of possible interval sizes in memory.
-The use for this is very situational, but two examples are: sprite data for the C64 that needs
-to be on a 64 byte aligned memory address, or an array aligned on a full page boundary to avoid
-any possible extra page boundary clock cycles on certain instructions when accessing the array.
-You can align on word, 64 bytes, and page boundaries::
-
-    ubyte[] @alignword array = [1, 2, 3, 4, ...]
-    ubyte[] @align64 spritedata = [ %00000000, %11111111, ...]
-    ubyte[] @alignpage lookup = [11, 22, 33, 44, ...]
+    Level: not at module scope.
+    This directive can only be used inside a block.
+    The assembler itself will include the file as binary bytes at this point, prog8 will not process this at all.
+    This means that the filename must be spelled exactly as it appears on your computer's file system.
+    Note that this filename may differ in case compared to when you chose to load the file from disk from within the
+    program code itself (for example on the C64 and X16 there's the PETSCII encoding difference).
+    The file is located relative to the current working directory!
+    The optional offset and length can be used to select a particular piece of the file.
+    To reference the contents of the included binary data, you can put a label in your prog8 code
+    just before the %asmbinary.  To find out where the included binary data ends, add another label directly after it.
+    An example program for this can be found below at the description of %asminclude.
 
 
-Integers
-^^^^^^^^
+.. data:: %asminclude "<filename>"
 
-Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
-in hexadecimal and in binary notation. There is no octal notation.
-You can use underscores to group digits to make long numbers more readable.
-A single character in single quotes such as ``'a'`` is translated into a byte integer,
-which is the PETSCII value for that character.
+    Level: not at module scope.
+    This directive can only be used inside a block.
+    The assembler will include the file as raw assembly source text at this point,
+    prog8 will not process this at all. Symbols defined in the included assembly can not be referenced
+    from prog8 code. However they can be referenced from other assembly code if properly prefixed.
+    You can of course use a label in your prog8 code just before the %asminclude directive, and reference
+    that particular label to get to (the start of) the included assembly.
+    Be careful: you risk symbol redefinitions or duplications if you include a piece of
+    assembly into a prog8 block that already defines symbols itself.
+    The compiler first looks for the file relative to the same directory as the module containing this statement is in,
+    if the file can't be found there it is searched relative to the current directory.
 
-Unsigned integers are in the range 0-255 for unsigned byte types, and 0-65535 for unsigned word types.
-The signed integers integers are in the range -128..127 for bytes,
-and -32768..32767 for words.
+    .. caution::
+        Avoid using single-letter symbols in included assembly code, as they could be confused with CPU registers.
+        Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
 
-Only for ``const`` numbers, you can use larger values (32 bits signed integers). The compiler can handle those
-internally in expressions. As soon as you have to actually store it into a variable,
-you have to make sure the resulting value fits into the byte or word size of the variable.
+    Here is a small example program to show how to use labels to reference the included contents from prog8 code::
 
-.. attention::
-    Doing math on signed integers can result in code that is a lot larger and slower than
-    when using unsigned integers. Make sure you really need the signed numbers, otherwise
-    stick to unsigned integers for efficiency.
+        %import textio
+        %zeropage basicsafe
 
+        main {
 
-Booleans
-^^^^^^^^
+            sub start() {
+                txt.print("first three bytes of included asm:\n")
+                uword included_addr = &included_asm
+                txt.print_ub(@(included_addr))
+                txt.spc()
+                txt.print_ub(@(included_addr+1))
+                txt.spc()
+                txt.print_ub(@(included_addr+2))
 
-Booleans are a distinct type in Prog8 and can have only the values ``true`` or ``false``.
-It can be casted to and from other integer types though
-where a nonzero integer is considered to be true, and zero is false.
-Logical expressions, comparisons and some other code tends to compile more efficiently if
-you explicitly use ``bool`` types instead of 0/1 integers.
-The in-memory representation of a boolean value is just a byte containing 0 or 1.
+                txt.print("\nfirst three bytes of included binary:\n")
+                included_addr = &included_bin
+                txt.print_ub(@(included_addr))
+                txt.spc()
+                txt.print_ub(@(included_addr+1))
+                txt.spc()
+                txt.print_ub(@(included_addr+2))
+                txt.nl()
+                return
 
-If you find that you need a whole bunch of boolean variables or perhaps even an array of them,
-consider using integer bit mask variable + bitwise operators instead.
-This saves a lot of memory and may be faster as well.
+        included_asm:
+                %asminclude "inc.asm"
 
+        included_bin:
+                %asmbinary "inc.bin"
+        end_of_included_bin:
 
-Floating point numbers
-^^^^^^^^^^^^^^^^^^^^^^
-
-You can use underscores to group digits to make long numbers more readable.
-
-Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines.
-Floating point support is available on the c64 and cx16 (and virtual) compiler targets.
-On the c64 and cx16, the rom routines are used for floating point operations,
-so on both systems the correct rom banks have to be banked in to make this work.
-Although the C128 shares the same floating point format, Prog8 currently doesn't support
-using floating point on that system (because the c128 fp routines require the fp variables
-to be in another ram bank than the program, something Prog8 doesn't do).
-
-Also your code needs to import the ``floats`` library to enable floating point support
-in the compiler, and to gain access to the floating point routines.
-(this library contains the directive to enable floating points, you don't have
-to worry about this yourself)
-
-The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
+            }
+        }
 
 
-Arrays
-^^^^^^
-Array types are also supported. They can be formed from a list of booleans, bytes, words, floats, or addresses of other variables
-(such as explicit address-of expressions, strings, or other array variables) - values in an array literal
-always have to be constants. Here are some examples of arrays::
+.. data:: %breakpoint
 
-    byte[10]  array                   ; array of 10 bytes, initially set to 0
-    byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value
-    ubyte[99] array = [255]*99        ; initialize array with 99 times 255 [255, 255, 255, 255, ...]
-    byte[] array = 100 to 199         ; initialize array with [100, 101, ..., 198, 199]
-    str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to array of uwords)
-    uword[] others = [names, array]   ; array of pointers/addresses to other arrays
-    bool[2] flags = [true, false]     ; array of two boolean values  (take up 1 byte each, like a byte array)
+    Level: not at module scope.
+    Defines a debugging breakpoint at this location. See :ref:`debugging`
 
-    value = array[3]            ; the fourth value in the array (index is 0-based)
-    char = string[4]            ; the fifth character (=byte) in the string
-    char = string[-2]           ; the second-to-last character in the string (Python-style indexing from the end)
+
+.. data:: %encoding <encodingname>
+
+    Overrides, in the module file it occurs in,
+    the default text encoding to use for strings and characters that have no explicit encoding prefix.
+    You can use one of the recognised encoding names, see :ref:`encodings`.
+
+
+.. data:: %import <name>
+
+	Level: module.
+	This reads and compiles the named module source file as part of your current program.
+	Symbols from the imported module become available in your code,
+	without a module or filename prefix.
+	You can import modules one at a time, and importing a module more than once has no effect.
+
+
+.. data:: %launcher <type>
+
+	Level: module.
+	Global setting, selects the program launcher stub to use.
+	Only relevant when using the ``prg`` output type. Defaults to ``basic``.
+
+	- type ``basic`` : add a tiny C64 BASIC program, with a SYS statement calling into the machine code
+	- type ``none`` : no launcher logic is added at all
+
+
+.. data:: %memtop <address>
+
+	Level: module.
+	Global setting, changes the program's top memory address. This is usually specified internally by the compiler target,
+	but with this you can change it to another value. This can be useful for example to 'reserve' a piece
+	of memory at the end of program space where other data such as external library files can be loaded into.
+	This memtop value is used for a check instruction for the assembler to see if the resulting program size
+	exceeds the given memtop address. This value is exclusive, so $a000 means that $a000 is the first address
+	that program can no longer use. Everything up to and including $9fff is still usable.
+
+
+.. data:: %option <option> [, <option> ...]
+
+	Level: module, block.
+	Sets special compiler options.
+
+    - ``enable_floats`` (module level) tells the compiler
+      to deal with floating point numbers (by using various subroutines from the Kernal).
+      Otherwise, floating point support is not enabled. Normally you don't have to use this yourself as
+      importing the ``floats`` library is required anyway and that will enable it for you automatically.
+    - ``no_sysinit`` (module level) which cause the resulting program to *not* include
+      the system re-initialization logic of clearing the screen, resetting I/O config, setting memory bank configuration etc.
+      You'll have to take care of that yourself. The program will just start running from whatever state the machine is in when the
+      program was launched.
+    - ``force_output`` (in a block) will force the block to be outputted in the final program.
+      Can be useful to make sure some data is generated that would otherwise be discarded because the compiler thinks it's not referenced (such as sprite data)
+    - ``merge`` (in a block) will merge this block's contents into an already existing block with the same name.
+      Can be used to add or override subroutines to an existing library block, for instance.
+      Overriding (monkeypatching) happens only if the signature of the subroutine exactly matches the original subroutine, including the exact names and types of the parameters.
+      Where blocks with this option are merged into is intricate: it looks for the first other block with the same name that does not have %option merge,
+      if that can't be found, select the first occurrence regardless. If no other blocks are found, no merge is done. Blocks in libraries are considered first to merge into.
+    - ``splitarrays`` (block or module) makes all word-arrays in this scope lsb/msb split arrays (as if they all have the @split tag). See Arrays.
+    - ``no_symbol_prefixing`` (block or module) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
+      Only use this if you know what you're doing because it could result in invalid assembly code being generated.
+      This option can be useful when writing library modules that you don't want to be exposing prefixed assembly symbols.
+    - ``ignore_unused`` (block or module) suppress warnings about unused variables and subroutines. Instead, these will be silently stripped.
+      This option is useful in library modules that contain many more routines beside the ones that you actually use.
+    - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
+
+
+.. data:: %output <type>
+
+	Level: module.
+	Global setting, selects program output type. Default is ``prg``.
+
+	- type ``raw`` : no header at all, just the raw machine code data
+	- type ``prg`` : C64 program (with load address header)
+
+
+.. data:: %zeropage <style>
+
+    Level: module.
+    Global setting, select zeropage handling style. Defaults to ``kernalsafe``.
+
+    - style ``kernalsafe`` -- use the part of the ZP that is 'free' or only used by BASIC routines,
+      and don't change anything else.  This allows full use of Kernal ROM routines (but not BASIC routines),
+      including default IRQs during normal system operation.
+      It's not possible to return cleanly to BASIC when the program exits. The only choice is
+      to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
+    - style ``floatsafe`` -- like the previous one but also reserves the addresses that
+      are required to perform floating point operations (from the BASIC Kernal). No clean exit is possible.
+    - style ``basicsafe`` -- the most restricted mode; only use the handful 'free' addresses in the ZP, and don't
+      touch change anything else. This allows full use of BASIC and Kernal ROM routines including default IRQs
+      during normal system operation.
+      When the program exits, it simply returns to the BASIC ready prompt.
+    - style ``full`` -- claim the whole ZP for variables for the program, overwriting everything,
+      except for a few addresses that are used by the system's IRQ handler.
+      Even though that default IRQ handler is still active, it is impossible to use most BASIC and Kernal ROM routines.
+      This includes many floating point operations and several utility routines that do I/O, such as ``print``.
+      This option makes programs smaller and faster because even more variables can
+      be stored in the ZP (which allows for more efficient assembly code).
+      It's not possible to return cleanly to BASIC when the program exits. The only choice is
+      to perform a system reset. (A ``system_reset`` subroutine is available in the syslib to help you do this)
+    - style ``dontuse`` -- don't use *any* location in the zeropage.
 
 .. note::
-    Right now, the array should be small enough to be indexable by a single byte index.
-    This means byte arrays should be <= 256 elements, word arrays <= 128 elements (256 if
-    it's a split array - see below), and float arrays <= 51 elements.
-
-Arrays can be initialized with a range expression or an array literal value.
-You can write out such an initializer value over several lines if you want to improve readability.
-
-You can assign a new value to an element in the array, but you can't assign a whole
-new array to another array at once. This is usually a costly operation. If you really
-need this you have to write it out depending on the use case: you can copy the memory using
-``sys.memcopy(sourcearray, targetarray, sizeof(targetarray))``. Or perhaps use ``sys.memset`` instead to
-set it all to the same value, or maybe even simply assign the individual elements.
-
-Note that the various keywords for the data type and variable type (``byte``, ``word``, ``const``, etc.)
-can't be used as *identifiers* elsewhere. You can't make a variable, block or subroutine with the name ``byte``
-for instance.
-
-Using the ``in`` operator you can easily check if a value is present in an array,
-example: ``if choice in [1,2,3,4] {....}``
-
-**Arrays at a specific memory location:**
-Using the memory-mapped syntax it is possible to define an array to be located at a specific memory location.
-For instance to reference the first 5 rows of the Commodore 64's screen matrix as an array, you can define::
-
-    &ubyte[5*40]  top5screenrows = $0400
-
-This way you can set the second character on the second row from the top like this::
-
-    top5screenrows[41] = '!'
-
-**Array indexing on a pointer variable:**
-An uword variable can be used in limited scenarios as a 'pointer' to a byte in memory at a specific,
-dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
-a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
-memory at the given index. In contrast to a real array variable, the index value can be the size of a word.
-Unlike array variables, negative indexing for pointer variables does *not* mean it will be counting from the end, because the size of the buffer is unknown.
-Instead, it simply addresses memory that lies *before* the pointer variable.
-See also :ref:`pointervars_programming`
-
-**LSB/MSB split word arrays:**
-For (u)word arrays, you can make the compiler layout the array in memory as two separate arrays,
-one with the LSBs and one with the MSBs of the word values. This makes it more efficient to access
-values from the array (smaller and faster code). It also doubles the maximum size of the array from 128 words to 256 words!
-The ``@split`` tag should be added to the variable declaration to do this.
-In the assembly code, the array will then be generated as two byte arrays namely ``name_lsb`` and ``name_msb``.
-
-.. caution::
-    Not all array operations are supported yet on "split word arrays".
-    If you get an error message, simply revert to a regular word array and please report the issue,
-    so that more support can be added in the future where it is needed.
+    ``kernalsafe`` and ``full`` on the C64 leave enough room in the zeropage to reallocate the
+    16 virtual registers cx16.r0...cx16.r15 from the Commander X16 into the zeropage as well
+    (but not on the same locations). They are relocated automatically by the compiler.
+    The other options need those locations for other things so those virtual registers have
+    to be put into memory elsewhere (outside of the zeropage). Trying to use them as zeropage
+    variables or pointers etc. will be a lot slower in those cases!
+    On the Commander X16 the registers are always in zeropage. On other targets, for now, they
+    are always outside of the zeropage.
 
 
-Strings
-^^^^^^^
+.. data:: %zpallowed <fromaddress>,<toaddress>
 
-Strings are a sequence of characters enclosed in double quotes. The length is limited to 255 characters.
-They're stored and treated much the same as a byte array,
-but they have some special properties because they are considered to be *text*.
-Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the
-*default encoding* for the target platform. On the CBM machines, this is CBM PETSCII.
-
-Alternative encodings can be specified with a ``encodingname:`` prefix to the string or character literal.
-The following encodings are currently recognised:
-
-    - ``petscii``  PETSCII, the default encoding on CBM machines (c64, c128, cx16)
-    - ``sc``  CBM-screencodes aka 'poke' codes (c64, c128, cx16)
-    - ``iso``  iso-8859-15 text (supported on cx16)
-
-So the following is a string literal that will be encoded into memory bytes using the iso encoding.
-It can be correctly displayed on the screen only if a iso-8859-15 charset has been activated first
-(the Commander X16 has this feature built in)::
-
-    iso:"Käse, Straße"
-
-You can concatenate two string literals using '+', which can be useful to
-split long strings over separate lines. But remember that the length
-of the total string still cannot exceed 255 characters.
-A string literal can also be repeated a given number of times using '*', where the repeat number must be a constant value.
-And a new string value can be assigned to another string, but no bounds check is done!
-So be sure the destination string is large enough to contain the new value (it is overwritten in memory)::
-
-    str string1 = "first part" + "second part"
-    str string2 = "hello!" * 10
-
-    string1 = string2
-    string1 = "new value"
+    Level: module.
+    Global setting, can occur multiple times. It allows you to designate a part of the zeropage that
+    the compiler is allowed to use (if other options don't prevent usage).
 
 
-There are several 'escape sequences' to help you put special characters into strings, such
-as newlines, quote characters themselves, and so on. The ones used most often are
-``\\``, ``\"``, ``\n``, ``\r``.  For a detailed description of all of them and what they mean,
-read the syntax reference on strings.
+.. data:: %zpreserved <fromaddress>,<toaddress>
 
-Using the ``in`` operator you can easily check if a character is present in a string,
-example: ``if '@' in email_address {....}`` (however this gives no clue about the location
-in the string where the character is present, if you need that, use the ``strings.find()``
-library function instead)
-**Caution:**
-This checks *all* elements in the string with the length as it was initially declared.
-Even when a string was changed and is terminated early with a 0-byte early,
-the containment check with ``in`` will still look at all character positions in the initial string.
-Consider using ``strings.find`` followed by ``if_cs`` (for instance) to do a "safer" search
-for a character in such strings (one that stops at the first 0 byte)
-
-
-.. hint::
-    Strings/arrays and uwords (=memory address) can often be interchanged.
-    An array of strings is actually an array of uwords where every element is the memory
-    address of the string. You can pass a memory address to assembly functions
-    that require a string as an argument.
-    For regular assignments you still need to use an explicit ``&`` (address-of) to take
-    the address of the string or array.
-
-.. hint::
-    You can declare parameters and return values of subroutines as ``str``,
-    but in this case that is equivalent to declaring them as ``uword`` (because
-    in this case, the address of the string is passed as argument or returned as value).
-
-.. note:: Strings and their (im)mutability
-
-    *String literals outside of a string variable's initialization value*,
-    are considered to be "constant", i.e. the string isn't going to change
-    during the execution of the program. The compiler takes advantage of this in certain
-    ways. For instance, multiple identical occurrences of a string literal are folded into
-    just one string allocation in memory. Examples of such strings are the string literals
-    passed to a subroutine as arguments.
-
-    *Strings that aren't such string literals are considered to be unique*, even if they
-    are the same as a string defined elsewhere. This includes the strings assigned to
-    a string variable in its declaration! These kind of strings are not deduplicated and
-    are just copied into the program in their own unique part of memory. This means that
-    it is okay to treat those strings as mutable; you can safely change the contents
-    of such a string without destroying other occurrences (as long as you stay within
-    the size of the allocated string!)
-
-
-Special types: const and memory-mapped
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When using ``const``, the value of the 'variable' cannot be changed; it has become a compile-time constant value instead.
-You'll have to specify the initial value expression. This value is then used
-by the compiler everywhere you refer to the constant (and no memory is allocated
-for the constant itself). Onlythe simple numeric types (byte, word, float) can be defined as a constant.
-If something is defined as a constant, very efficient code can usually be generated from it.
-Variables on the other hand can't be optimized as much, need memory, and more code to manipulate them.
-Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
-compile time expressions. For example, the compiler knows what ``math.sin8u(12)`` is and replaces it with the computed result.
-
-When using ``&`` (the address-of operator but now applied to a datatype), the variable will point to specific location in memory,
-rather than being newly allocated. The initial value (mandatory) must be a valid
-memory address.  Reading the variable will read the given data type from the
-address you specified, and setting the variable will directly modify that memory location(s)::
-
-	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
-	&word  SCREENCOLORS = $d020             ; a 16-bit word at the address $d020-$d021
-
-.. _pointervars_programming:
-
-Direct access to memory locations ('peek' and 'poke')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Normally memory locations are accessed by a *memory mapped* name, such as ``cbm.BGCOL0`` that is defined
-as the memory mapped address $d021 (on the c64 target).
-
-If you want to access a memory location directly (by using the address itself or via an uword pointer variable),
-without defining a memory mapped location, you can do so by enclosing the address in ``@(...)``::
-
-    color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
-    @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
-    @(vic+$20) = 6    ; you can also use expressions to 'calculate' the address
-
-This is the official syntax to 'dereference a pointer' as it is often named in other languages.
-You can actually also use the array indexing notation for this. It will be silently converted into
-the direct memory access expression as explained above. Note that unlike regular arrays,
-the index is not limited to an ubyte value. You can use a full uword to index a pointer variable like this::
-
-    pointervar[999] = 0     ; set memory byte to zero at location pointervar + 999.
-
-
-Converting types into other types
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Sometimes you need an unsigned word where you have an unsigned byte, or you need some other type conversion.
-Many type conversions are possible by just writing ``as <type>`` at the end of an expression::
-
-    uword  uw = $ea31
-    ubyte  ub = uw as ubyte     ; ub will be $31, identical to lsb(uw)
-    float  f = uw as float      ; f will be 59953, but this conversion can be omitted in this case
-    word   w = uw as word       ; w will be -5583 (simply reinterpret $ea31 as 2-complement negative number)
-    f = 56.777
-    ub = f as ubyte             ; ub will be 56
-
-Sometimes it is a straight reinterpretation of the given value as being of the other type,
-sometimes an actual value conversion is done to convert it into the other type.
-Try to avoid those type conversions as much as possible.
-
-
-Initial values across multiple runs of the program
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When declaring values with an initial value, this value will be set into the variable each time
-the program reaches the declaration again. This can be in loops, multiple subroutine calls,
-or even multiple invocations of the entire program.
-If you omit the initial value, zero will be used instead.
-
-This only works for simple types, *and not for string variables and arrays*.
-It is assumed these are left unchanged by the program; they are not re-initialized on
-a second run.
-If you do modify them in-place, you should take care yourself that they work as
-expected when the program is restarted.
-(This is an optimization choice to avoid having to store two copies of every string and array)
+    Level: module.
+    Global setting, can occur multiple times. It allows you to reserve or 'block' a part of the zeropage so
+    that it will not be used by the compiler.
 
 
 Loops
@@ -586,6 +505,121 @@ Only simple statements are allowed to be inside an unroll loop (assignments, fun
     The value of the loop variable after executing the loop *is undefined* - you cannot rely
     on it to be the last value in the range for instance! The value of the variable should only be used inside the for loop body.
     (this is an optimization issue to avoid having to deal with mostly useless post-loop logic to adjust the loop variable's value)
+
+
+for loop
+^^^^^^^^
+
+The loop variable must be a byte or word variable, and it must be defined separately first.
+The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
+array variables and strings) *except* floating-point arrays (because a floating-point loop variable is not supported).
+Remember that a step value in a range must be a constant value.
+
+You can use a single statement, or a statement block like in the example below::
+
+    for <loopvar>  in  <expression>  [ step <amount> ]   {
+        ; do something...
+        break       ; break out of the loop
+        continue    ; immediately next iteration
+    }
+
+For example, this is a for loop using a byte variable ``i``, defined before, to loop over a certain range of numbers::
+
+    ubyte i
+
+    ...
+
+    for i in 20 to 155 {
+        ; do something
+    }
+
+To loop over a decreasing or descending range, use the ``downto`` keyword::
+
+    ubyte i
+
+    ...
+
+    for i in 155 downto 20 {        ; 155, 154, 153, ..., 20
+        ; do something
+    }
+
+Similarly, a descending range may be specified by using ``to`` in combination with a ``step`` that is ``< 0``::
+
+    ubyte i
+
+    ...
+
+    for i in 155 to 20 step -1 {    ; 155, 154, 153, ..., 20
+        ; do something
+    }
+
+The following example is a loop over the values of the array ``fibonacci_numbers``::
+
+    uword[] fibonacci_numbers = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181]
+
+    uword number
+    for number in fibonacci_numbers {
+        ; do something with number...
+        break       ; break out of the loop early
+    }
+
+See :ref:`range-expression` for all of the details.
+
+while loop
+^^^^^^^^^^
+
+As long as the condition is true (1), repeat the given statement(s).
+You can use a single statement, or a statement block like in the example below::
+
+	while  <condition>  {
+		; do something...
+		break		; break out of the loop
+		continue    ; immediately next iteration
+	}
+
+
+do-until loop
+^^^^^^^^^^^^^
+
+Until the given condition is true (1), repeat the given statement(s).
+You can use a single statement, or a statement block like in the example below::
+
+	do  {
+		; do something...
+		break		; break out of the loop
+		continue    ; immediately next iteration
+	} until  <condition>
+
+
+repeat loop
+^^^^^^^^^^^
+
+When you're only interested in repeating something a given number of times.
+It's a short hand for a for loop without an explicit loop variable::
+
+    repeat 15 {
+        ; do something...
+        break		; you can break out of the loop
+        continue    ; immediately next iteration
+    }
+
+If you omit the iteration count, it simply loops forever.
+You can still ``break`` out of such a loop if you want though.
+
+
+unroll loop
+^^^^^^^^^^^
+
+Like a repeat loop, but trades memory for speed by not generating the code
+for the counter. Instead it duplicates the code inside the loop on the spot for
+the given number of iterations. This means that only a constant number of iterations can be specified.
+Also, only simple statements such as assignments and function calls can be inside the loop::
+
+    unroll 80 {
+        cx16.VERA_DATA0 = 255
+    }
+
+A `break` or `continue` statement cannot occur in an unroll loop, as there is no actual loop to break out of.
 
 
 Conditional Execution
@@ -663,8 +697,13 @@ So ``if_cc goto target`` will directly translate into the single CPU instruction
 if expression
 ^^^^^^^^^^^^^
 
-You can also use if..else as an *expression* instead of a statement. This expression selects one of two
-different values depending of the condition. Sometimes it may be more legible if you surround the condition expression with parentheses.
+Similar to the if statement, but this time selects one of two possible values as the outcome of the expression,
+depending on the condition. You write it as ``if <condition>  <value1> else <value2>`` and it can be
+used anywhere an expression is used to assign or pass a value.
+The first value will be used if the condition is true, otherwise the second value is used.
+Sometimes it may be more legible if you surround the condition expression with parentheses so it is better
+separated visually from the first value following it.
+You must always provide two alternatives to choose from, and they can only be values (expressions).
 An example, to select the number of cards to use depending on what game is played::
 
     ubyte numcards = if game_is_piquet  32 else 52
@@ -698,10 +737,36 @@ action. It is possible to combine several choices to result in the same action::
 The when-*value* can be any expression but the choice values have to evaluate to
 compile-time constant integers (bytes or words). They also have to be the same
 datatype as the when-value, otherwise no efficient comparison can be done.
+The else part is optional.
+Choices can result in a single statement or a block of multiple statements in which
+case you have to use { } to enclose them.
+
 
 .. note::
     Instead of chaining several value equality checks together using ``or`` (ex.: ``if x==1 or xx==5 or xx==9``),
     consider using a ``when`` statement or ``in`` containment check instead. These are more efficient.
+
+
+Unconditional jump: goto
+------------------------
+
+To jump to another part of the program, you use a ``goto`` statement with an address or the name
+of a label or subroutine. Referencing labels or subroutines outside of their defined scope requires
+using qualified "dotted names"::
+
+    goto  $c000           ; address
+    goto  name            ; label or subroutine
+    goto  main.mysub.name ; qualified dotted name; see, "Blocks, Scopes, and accessing Symbols"
+
+    uword address = $4000
+    goto  address         ; jump via address variable
+
+Notice that this is a valid way to end a subroutine (you can either ``return`` from it, or jump
+to another piece of code that eventually returns).
+
+If you jump to an address variable (uword), it is doing an 'indirect' jump: the jump will be done
+to the address that's currently in the variable.
+
 
 Assignments
 -----------
@@ -750,8 +815,6 @@ Expressions that cannot be compile-time evaluated will result in code that calcu
 Expressions can contain procedure and function calls.
 There are various built-in functions that can be used in expressions (see :ref:`builtinfunctions`).
 You can also reference identifiers defined elsewhere in your code.
-
-Read the :ref:`syntaxreference` chapter for all details on the available operators and kinds of expressions you can write.
 
 .. note::
     **Order of evaluation:**
@@ -813,6 +876,92 @@ and ``(true or false) and false`` is false instead of true.
         w = b*(55 as word)
 
 
+Operators
+---------
+
+arithmetic: ``+``  ``-``  ``*``  ``/``  ``%``
+    ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
+    ``/`` is division (will result in integer division when using on integer operands, and a floating point division when at least one of the operands is a float)
+    ``%`` is the remainder operator: ``25 % 7`` is 4.  Be careful: without a space after the %, it will be parsed as a binary number.
+    So ``25 %10`` will be parsed as the number 25 followed by the binary number 2, which is a syntax error.
+    Note that remainder is only supported on integer operands (not floats).
+
+bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``
+    ``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
+    ``<<`` is bitwise left shift and ``>>`` is bitwise right shift (both will not change the datatype of the value)
+
+assignment: ``=``
+    Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).
+    Note that an assignment sometimes is not possible or supported.
+    It's possible to chain assignments like ``x = y = z = 42`` as a shorthand for the three assignments with the same value.
+
+augmented assignment: ``+=``  ``-=``  ``*=``  ``/=``  ``&=``  ``|=``  ``^=``  ``<<=``  ``>>=``
+    This is syntactic sugar; ``aa += xx`` is equivalent to ``aa = aa + xx``
+
+postfix increment and decrement: ``++``  ``--``
+    Syntactic sugar: ``aa++`` is equivalent to ``aa += 1``, and ``aa--`` is equivalent to ``aa -= 1``.
+    Because these operations are so common, and often used in other languages, we have these short forms.
+    *Notes:* unlike some other languages, they are *not* expressions in prog8, but statements. You cannot
+    increment or decrement something inside an expression like, for example, ``x = value[aa++]`` is invalid.
+    Also because of this, there is no *prefix* increment and decrement.
+
+comparison: ``==``  ``!=``  ``<``  ``>``  ``<=``  ``>=``
+    Equality, Inequality, Less-than, Greater-than, Less-or-Equal-than, Greater-or-Equal-than comparisons.
+    The result is a boolean, true or false.
+
+logical:  ``not``  ``and``  ``or``  ``xor``
+	These operators are the usual logical operations that are part of a logical expression to reason
+	about truths (boolean values). The result of such an expression is a boolean, true or false.
+	Prog8 applies short-circuit aka McCarthy evaluation for ``and`` and ``or``.
+
+range creation:  ``to``, ``downto``
+    Creates a range of values from the LHS value to the RHS value, inclusive.
+    These are mainly used in for loops to set the loop range.
+    See :ref:`range-expression` for details.
+
+containment check:  ``in``
+    Tests if a value is present in a list of values, which can be a string, or an array, or a range expression.
+    The result is a simple boolean true or false.
+    Consider using this instead of chaining multiple value tests with ``or``, because the
+    containment check is more efficient.
+    Checking N in a range from x to y, is identical to x<=N and N<=y; the actual range of values is never created.
+    Examples::
+
+        ubyte cc
+        if cc in [' ', '@', 0] {
+            txt.print("cc is one of the values")
+        }
+
+        if cc in 10 to 20 {
+            txt.print("10 <= cc and cc <=20")
+        }
+
+        str email_address = "name@test.com"
+        if '@' in email_address {
+            txt.print("email address seems ok")
+        }
+
+
+address of:  ``&``
+    This is a prefix operator that can be applied to a string or array variable or literal value.
+    It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``
+    Sometimes the compiler silently inserts this operator to make it easier for instance
+    to pass strings or arrays as subroutine call arguments.
+    This operator can also be used as a prefix to a variable's data type keyword to indicate that
+    it is a memory mapped variable (for instance: ``&ubyte screencolor = $d021``)
+
+ternary:
+    Prog8 doesn't have a ternary operator to choose one of two values (``x? y : z`` in many other languages)
+    instead it provides this feature in the form of an *if expression*.  See below under "Conditional Execution".
+
+precedence grouping in expressions, or subroutine parameter list:  ``(`` *expression* ``)``
+	Parentheses are used to group parts of an expression to change the order of evaluation.
+	(the subexpression inside the parentheses will be evaluated first):
+	``(4 + 8) * 2`` is 24 instead of 20.
+
+	Parentheses are also used in a subroutine call, they follow the name of the subroutine and contain
+	the list of arguments to pass to the subroutine:   ``big_function(1, 99)``
+
 
 Subroutines
 -----------
@@ -820,27 +969,119 @@ Subroutines
 Defining a subroutine
 ^^^^^^^^^^^^^^^^^^^^^
 
-Subroutines are parts of the code that can be repeatedly invoked using a subroutine call from elsewhere.
-Their definition, using the ``sub`` statement, includes the specification of the required parameters and return value.
-Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
-With ``asmsub`` you can define a low-level subroutine that is implemented directly in assembly and takes parameters
-directly in registers. Finally with ``extsub`` you can define an external subroutine that's implemented outside
-of the program (for instance, a ROM routine, or a routine in a library loaded elsewhere in RAM).
+You define a subroutine like so::
 
-Trivial ``asmsub`` routines can be tagged as ``inline`` to tell the compiler to copy their code
+    sub   <identifier>  ( [parameters] )  [ -> returntype ]  {
+        ... statements ...
+    }
+
+    ; example:
+    sub  triple (word amount) -> word  {
+        return  amount * 3
+    }
+
+The parameters is a (possibly empty) comma separated list of "<datatype> <parametername>" pairs specifying the input parameters.
+The return type has to be specified if the subroutine returns a value.
+
+Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
+There are three different types of subroutines: regular subroutines (the one above), assembly-only, and
+external subroutines. These last two are described in detail below.
+
+
+Assembly-Subroutines
+^^^^^^^^^^^^^^^^^^^^
+These are user-written subroutines in the program source code itself, implemented purely in assembly and
+which have an assembly calling convention (i.e. the parameters are strictly passed via cpu registers).
+Such subroutines are defined with ``asmsub`` like this::
+
+    asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
+        %asm {{
+            ldy  #0
+    _loop   sta  cbm.Screen,y
+            sta  cbm.Screen+$0100,y
+            sta  cbm.Screen+$0200,y
+            sta  cbm.Screen+$02e8,y
+            iny
+            bne  _loop
+            rts
+            }}
+    }
+
+the statement body of such a subroutine can only consist of just inline assembly.
+
+The ``@ <register>`` part is required for rom and assembly-subroutines, as it specifies for the compiler
+what cpu registers should take the routine's arguments.  You can use the regular set of registers
+(A, X, Y), special 16-bit register pairs to take word values (AX, AY and XY) and even a processor status
+flag such as Carry (Pc).
+
+It is not possible to use floating point arguments or return values in an asmsub.
+
+**inline:** Trivial ``asmsub`` routines can be tagged as ``inline`` to tell the compiler to copy their code
 in-place to the locations where the subroutine is called, rather than inserting an actual call and return to the
 subroutine. This may increase code size significantly and can only be used in limited scenarios, so YMMV.
 Note that the routine's code is copied verbatim into the place of the subroutine call in this case,
 so pay attention to any jumps and rts instructions in the inlined code!
-Inlining regular Prog8 subroutines is at the discretion of the compiler.
+
+.. note::
+    Asmsubs can also be tagged as ``inline asmsub`` to make trivial pieces of assembly inserted
+    directly instead of a call to them. Note that it is literal copy-paste of code that is done,
+    so make sure the assembly is actually written to behave like such - which probably means you
+    don't want a ``rts`` or ``jmp`` or ``bra`` in it!
+
+.. note::
+    The 'virtual' 16-bit registers from the Commander X16 can also be specified as ``R0`` .. ``R15`` .
+    This means you don't have to set them up manually before calling a subroutine that takes
+    one or more parameters in those 'registers'. You can just list the arguments directly.
+    *This also works on the Commodore 64!*  (however they are not as efficient there because they're not in zeropage)
+    In prog8 and assembly code these 'registers' are directly accessible too via
+    ``cx16.r0`` .. ``cx16.r15``  (these are memory mapped uword values),
+    ``cx16.r0s`` .. ``cx16.r15s``  (these are memory mapped word values),
+    and ``L`` / ``H`` variants are also available to directly access the low and high bytes of these.
+    You can use them directly but their name isn't very descriptive, so it may be useful to define
+    an alias for them when using them regularly.
+
+
+External subroutines
+^^^^^^^^^^^^^^^^^^^^
+
+Thse define an external subroutine that's implemented outside of the program
+(for instance, a ROM routine, or a routine in a library loaded elsewhere in RAM).
+External subroutines are usually defined by compiler library files, with the following syntax::
+
+    extsub $FFD5 = LOAD(ubyte verify @ A, uword address @ XY) clobbers()
+         -> bool @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
+
+This defines the ``LOAD`` subroutine at memory address $FFD5, taking arguments in all three registers A, X and Y,
+and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler
+what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
+Note that the address ($ffd5 in the example above) can actually be an expression as long as it is a compile time constant. This can
+make it easier to define jump tables for example, like this::
+
+    const uword APIBASE = $8000
+    extsub APIBASE+0 = firstroutine()
+    extsub APIBASE+10 = secondroutine()
+    extsub APIBASE+20 = thirdroutine()
+
+**Banks:** it is possible to declare a non-standard ROM or RAM bank that the routine is living in, with ``@bank`` like this:
+``extsub @bank 10  $C09F = audio_init()`` to define a routine at $C09F in bank 10. You can also specify a variable for the bank.
+See :ref:`banking` for more information.
 
 
 Calling a subroutine
 ^^^^^^^^^^^^^^^^^^^^
 
-The arguments in parentheses after the function name, should match the parameters in the subroutine definition.
-If you want to ignore a return value of a subroutine, you should prefix the call with the ``void`` keyword.
-Otherwise the compiler will issue a warning about discarding a result value.
+You call a subroutine like this::
+
+        [ void / result = ] subroutinename_or_address ( [argument...] )
+
+        ; example:
+        resultvariable = subroutine(arg1, arg2, arg3)
+        void noresultvaluesub(arg)
+
+Arguments are separated by commas. The argument list can also be empty if the subroutine
+takes no parameters.  If the subroutine returns a value, usually you assign it to a variable.
+If you're not interested in the return value, prefix the function call with the ``void`` keyword.
+Otherwise the compiler will warn you about discarding the result of the call.
 
 .. note::
     **Order of evaluation:**
@@ -858,6 +1099,51 @@ Otherwise the compiler will issue a warning about discarding a result value.
     then undefined because the variables will get overwritten.
 
 
+.. _multiassign:
+
+Multiple return values
+^^^^^^^^^^^^^^^^^^^^^^
+Normal subroutines can only return zero or one return values.
+However, the special ``asmsub`` routines (implemented in assembly code) or ``extsub`` routines
+(referencing an external routine in ROM or elsewhere in RAM) can return more than one return value.
+For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers and some more values in R0 and R1.
+In all of these cases, you have to "multi assign" all return values of the subroutine call to something.
+You simply write the assignment targets as a comma separated list,
+where the element's order corresponds to the order of the return values declared in the subroutine's signature.
+So for instance::
+
+    bool   flag
+    ubyte  bytevar
+    uword  wordvar
+
+    wordvar, flag, bytevar = multisub()        ; call and assign the three result values
+
+    asmsub multisub() -> uword @AY, bool @Pc, ubyte @X { ... }
+
+.. sidebar:: Using just one of the values
+
+    Sometimes it is easier to just have a single return value in the subroutine's signagure (even though it
+    actually may return multiple values): this avoids having to put ``void`` for all other values.
+    It also allows it to be called in expressions such as if-statements again.
+    Examples of these second 'convenience' definition are library routines such as ``cbm.STOP2`` and ``cbm.GETIN2``,
+    that only return a single value where the "official" versions ``STOP`` and ``GETIN`` always return multiple values.
+
+**Skipping values:** Instead of using ``void`` to ignore the result of a subroutine call altogether,
+you can also use it as a placeholder name in a multi-assignment. This skips assignment of the return value in that place.
+One of the cases where this is useful, is with boolean values returned in status flags such as the carry flag.
+Storing that flag as a boolean in a variable first, and then possibly adding an ``if flag...`` statement afterwards, is a lot less
+efficient than just keeping the flag as-is and using a conditional branch such as ``if_cs`` to do something with it.
+So in the case above that could be::
+
+    wordvar, void, bytevar = multisub()
+    if_cs
+        something()
+
+Notice that a call to a subroutine that returns multiple values cannot be used inside an expression,
+because expression terms always need to be a single value. You'll have to use a separate multi-assignment
+first and then use the result of that in the expression. However, also read the sidebar about a possible alternative.
+
+
 Deferred ("cleanup") code
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -868,9 +1154,13 @@ Every spot where the subroutine exits (return statement, jump, or the end of the
 of doing the cleanups required.  This can get tedious, and the cleanup code is separated from the place where
 the resource allocation was done at the start.
 
-To help make this easier and less error prone, you can ``defer`` code to be executed automatically,
-immediately before any moment the subroutine exits. So for example to make sure a file is closed
-regardless of what happens later in the routine, you can write something along these lines::
+The ``defer`` keyword can be used to schedule a statement (or block of statements) to be executed
+just before exiting of the current subroutine. That can be via a return statement or a jump to somewhere else,
+or just the normal ending of the subroutine. This is often useful to "not forget" to clean up stuff,
+and if the subroutine has multiple ways or places where it can exit, it saves you from repeating
+the cleanup code at every exit spot. Multiple defers can be scheduled in a single subroutine (up to a maximum of 8).
+They are handled in reversed order. Return values are evaluated before any deferred code is executed.
+You write defers like so::
 
     sub example() -> bool {
         ubyte file = open_file()

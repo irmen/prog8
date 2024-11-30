@@ -217,7 +217,7 @@ Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-fil
     comparing.rst
     compiling.rst
     programming.rst
-    syntaxreference.rst
+    variables.rst
     libraries.rst
     targetsystem.rst
     technical.rst

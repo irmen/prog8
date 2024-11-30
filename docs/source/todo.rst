@@ -1,7 +1,7 @@
 TODO
 ====
 
-document the @R0 - @R15 register support for normal subroutine parameters (footgun!)
+document the @R0 - @R15 register support for normal subroutine parameters (🦶🔫 Footgun warning!)
 
 make a compiler switch to disable footgun warnings
 
