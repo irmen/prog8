@@ -1,8 +1,6 @@
 TODO
 ====
 
-document the @R0 - @R15 register support for normal subroutine parameters (🦶🔫 Footgun warning!)
-
 make a compiler switch to disable footgun warnings
 
 what to do with bankof(): keep it? add another syntax like \`value  or ^value  to get the bank byte?

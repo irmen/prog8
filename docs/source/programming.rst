@@ -987,6 +987,27 @@ Subroutines can be defined in a Block, but also nested inside another subroutine
 There are three different types of subroutines: regular subroutines (the one above), assembly-only, and
 external subroutines. These last two are described in detail below.
 
+Reusing *virtual registers* R0-R15 for parameters
+*************************************************
+.. sidebar::
+    🦶🔫 Footgun warning
+
+    when using this the program can clobber the contents of R0-R15 when doing other operations that also
+    use these registers, or when calling other routines because Prog8 doesn't have a callstack.
+    Be very aware of what you are doing, the compiler can't guarantee correct values by itself anymore.
+
+Normally, every subroutine parameter will get its own local variable in the subroutine where the argument value
+will be stored when the subroutine is called. In certain situations, this may lead to many variables being allocated.
+You *can* instruct the compiler to not allocate a new variable, but instead to reuse one of the *virtual registers* R0-R15
+(accessible in the code as ``cx16.r0`` - ``cx16.r15``)  for the parameter. This is done by adding a ``@Rx`` tag
+to the parameter. This can only be done for byte and word types.
+Note: the R0-R15 *virtual registers* are described in more detail below for the Assembly subroutines.
+Here's an example that reuses the R0 and the R1L (lower byte of R1) virtual registers for the paremeters::
+
+    sub  get_indexed_byte(uword pointer @R0, ubyte index @R1) -> ubyte {
+        return @(cx16.r0 + cx16.r1L)
+    }
+
 
 Assembly-Subroutines
 ^^^^^^^^^^^^^^^^^^^^

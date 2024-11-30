@@ -157,7 +157,10 @@ some builtin functions are special and won't exactly follow these rules.
 **Some arguments will be passed in registers:**
 For single byte and word arguments, the values are simply loaded in cpu registers by the caller before calling the subroutine.
 *The subroutine itself will take care of putting the values into the parameter variables.* This saves on code size because
-otherwise all callers would have to store the values in those variables themselves. The rules for this are as follows:
+otherwise all callers would have to store the values in those variables themselves.
+Note that his convention is also still used for subroutines that specify parameters to be put into
+one of the *virtual registers* R0-R15, as those are in the end just variables too.
+The rules are as follows:
 
 Single byte parameter: ``sub foo(ubyte bar) { ... }``
    gets bar in the accumulator A, *subroutine* stores it into parameter variable
