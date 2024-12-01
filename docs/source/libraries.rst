@@ -91,21 +91,23 @@ cmp (x,y)
     Normally you should just use a comparison expression (``x < y``)
 
 lsb (x)
-    Get the least significant (or 'lower') byte of the value x. Equivalent to the cast "x as ubyte".
+    Get the least significant (lower) byte of the value x. Equivalent to ``x & 255``.
+
+lsw (x)
+    Get the least significant (lower) word of the value x. Equivalent to ``x & 65535``.
 
 msb (x)
-    Get the most significant (or 'higher') byte of the word value x.
+    Get the most significant (higher) byte of the word value x.
     If x is a value greater than a word, it will not actually return the *highest* byte of this value,
     but it will only look a the lower word part of this value and return the higher byte from that.
-    More accurately, you'll get bits 8-16 of the value x. So msb($1234) is $12, whereas msb($123456) is $34.
-    If you want to extract the actual highest byte from a long value, we call that the 'bank' byte and you
-    can do that using ``bankof(x)``.
+    So you're always getting bits 8-16 of the value x: ``msb($1234)`` is $12, whereas ``msb($123456)`` is $34.
 
-bankof (x)
-    Get the 'bank' byte from the value x. This means bits 16-24 of that value: bankof($123456) = $12.
-    (To get the 16 bit address out of a value simply use ``x & $ffff``)
-    If x is a word or smaller, bankof(x) will always be zero.
-    You can consider this function equivalent to the expression ``lsb(x >> 16)``.
+msw (x)
+    Get the most significant (higher) word of the value x. For all word and byte numbers this will always result in 0.
+    For a long integer though, it returns the upper 16 bits of x as an uword.
+    If x is not greater than a 24 bit number ($ffffff), ``msw(x)`` will actually give you the bank byte of x (bits 16 to 23).
+    You can treat this as an ubyte value, even if the function is normally returning a uword:
+    ``msw($123456)`` is $0012, which you can treat as an ubyte.  ``msw($12345678)`` is $1234, an uword.
 
 mkword (msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.

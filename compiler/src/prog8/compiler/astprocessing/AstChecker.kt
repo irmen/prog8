@@ -1517,7 +1517,7 @@ internal class AstChecker(private val program: Program,
                     else if(arg.value is FunctionCallExpression) {
                         val fcall = arg.value as FunctionCallExpression
                         val name = fcall.target.nameInSource
-                        if(name==listOf("lsb") || name==listOf("msb") || name==listOf("bankof") || name==listOf("msw") || name==listOf("lsw"))
+                        if(name==listOf("lsb") || name==listOf("msb") || name==listOf("msw") || name==listOf("lsw"))
                             ident = fcall.args[0] as? IdentifierReference
                     }
                     if(ident!=null && ident.nameInSource[0] == "cx16" && ident.nameInSource[1].startsWith("r")) {

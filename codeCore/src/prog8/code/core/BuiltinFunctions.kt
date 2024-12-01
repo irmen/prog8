@@ -113,7 +113,6 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "lsw"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD, DataType.LONG))), DataType.UWORD),
     "msb"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD, DataType.LONG))), DataType.UBYTE),
     "msw"       to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD, DataType.LONG))), DataType.UWORD),
-    "bankof"    to FSignature(true, listOf(FParam("value", arrayOf(DataType.UWORD, DataType.WORD, DataType.LONG))), DataType.UBYTE),
     "mkword"    to FSignature(true, listOf(FParam("msb", arrayOf(DataType.UBYTE)), FParam("lsb", arrayOf(DataType.UBYTE))), DataType.UWORD),
     "clamp"     to FSignature(true, listOf(FParam("value", arrayOf(DataType.BYTE)), FParam("minimum", arrayOf(DataType.BYTE)), FParam("maximum", arrayOf(DataType.BYTE))), null),
     "clamp__byte"  to FSignature(true, listOf(FParam("value", arrayOf(DataType.BYTE)), FParam("minimum", arrayOf(DataType.BYTE)), FParam("maximum", arrayOf(DataType.BYTE))), DataType.BYTE),

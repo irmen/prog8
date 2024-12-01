@@ -367,13 +367,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         val name = functionCallExpr.target.nameInSource
-        if(name==listOf("bankof")) {
-            val valueDt = functionCallExpr.args[0].inferType(program)
-            if(valueDt.isWords || valueDt.isBytes) {
-                val zero = NumericLiteral(DataType.UBYTE, 0.0, functionCallExpr.position)
-                return listOf(IAstModification.ReplaceNode(functionCallExpr, zero, parent))
-            }
-        } else if(name==listOf("msw")) {
+        if(name==listOf("msw")) {
             val valueDt = functionCallExpr.args[0].inferType(program)
             if(valueDt.isWords || valueDt.isBytes) {
                 val zero = NumericLiteral(DataType.UWORD, 0.0, functionCallExpr.position)

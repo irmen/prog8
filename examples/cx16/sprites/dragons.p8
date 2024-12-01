@@ -20,14 +20,14 @@ main {
         txt.print("there be many dragons!")
 
         ; load the sprite data and color palette directly into Vera ram
-        void diskio.vload_raw("dragonsprite.bin", bankof(SPRITE_DATA), SPRITE_DATA & $ffff)
+        void diskio.vload_raw("dragonsprite.bin", msw(SPRITE_DATA), SPRITE_DATA & $ffff)
         void diskio.vload_raw("dragonsprite.pal", 1, $fa00 + SPRITE_PALETTE_OFFSET*16*2)
 
         ; initialize the dragon sprites (every dragon needs 2 sprites, top and bottom half)
         ubyte sprite_num
         for sprite_num in 0 to NUM_DRAGONS*2-2 step 2 {
-            sprites.init(sprite_num+1, bankof(SPRITE_DATA), SPRITE_DATA & $ffff, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
-            sprites.init(sprite_num+2, bankof(SPRITE_DATA), (SPRITE_DATA & $ffff) + 64*64/2, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
+            sprites.init(sprite_num+1, msw(SPRITE_DATA), SPRITE_DATA & $ffff, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
+            sprites.init(sprite_num+2, msw(SPRITE_DATA), (SPRITE_DATA & $ffff) + 64*64/2, sprites.SIZE_64, sprites.SIZE_64, sprites.COLORS_16, SPRITE_PALETTE_OFFSET)
 
             xpositions[sprite_num] = math.rndw() % (640-64) as word
             xpositions[sprite_num+1] = xpositions[sprite_num]
