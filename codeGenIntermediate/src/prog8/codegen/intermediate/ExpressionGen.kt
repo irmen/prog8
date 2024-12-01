@@ -229,8 +229,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, elementTr.resultReg, immediate = 1), gottemLabel)
                     result += IRCodeChunk(endLabel, null)
-                    return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
-
+                    return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
                 }
                 DataType.FLOAT -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
                 else -> throw AssemblyError("weird dt $elementDt")

@@ -1556,6 +1556,7 @@ class IRCodeGen(
         }
 
         when(val cond=ifElse.condition) {
+            // TODO investigate; maybe do all conditions require a CMPI at the end? Some here still have false, but do they work correctly in all cases?
             is PtBool -> {
                 // normally this will be optimized away, but not with -noopt
                 translateSimple(cond, Opcode.BSTEQ, false)
@@ -1572,7 +1573,7 @@ class IRCodeGen(
             }
             is PtPrefix -> {
                 require(cond.operator=="not")
-                translateSimple(cond.value, Opcode.BSTNE, false)
+                translateSimple(cond.value, Opcode.BSTNE, true)
             }
             is PtBinaryExpression -> {
                 translateBinExpr(cond)

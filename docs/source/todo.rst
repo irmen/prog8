@@ -1,7 +1,11 @@
 TODO
 ====
 
-make a compiler switch to disable footgun warnings
+Fix diskio (cx16, possibly other cbm targets too?) when opening write file , read file stops working
+
+make a compiler switch to disable footgun warnings  -ignorefootguns
+
+update zsmkit to newest version that includes the on_deck routines
 
 ...
 
@@ -9,6 +13,7 @@ make a compiler switch to disable footgun warnings
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- a syntax to access specific bits in a variable, to avoid manually shifts&ands, something like  variable[4:8] ?  (or something else this may be too similar to regular array indexing)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - on the C64: make the floating point routines @banked so that basic can be permanently banked out even if you use floats?  But this will crash when the call is done from program code at $a000+
 - Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
@@ -45,6 +50,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers?
 - constants are not retained in the IR file, they should. (need to be able to make asm labels from them eventually)
 - implement missing operators in AssignmentGen  (array shifts etc)
 - support %align on code chunks

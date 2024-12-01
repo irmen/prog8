@@ -320,6 +320,7 @@ c128 {
 ; TODO c128 a bunch of kernal routines are missing here that are specific to the c128
 
 extsub $FF6E = JSRFAR()
+extsub $FF68 = SETBNK(ubyte databank @A, ubyte filenamebank @X)
 
 
 ; ---- C128 specific system utility routines: ----
