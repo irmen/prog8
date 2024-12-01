@@ -266,7 +266,7 @@ class TestCompilerOnRanges: FunSpec({
         (array as ArrayLiteral).value.size shouldBe 26
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
-        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.UBYTE, -2.0, Position.DUMMY)
+        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.BYTE, -2.0, Position.DUMMY)
     }
 
     test("range with start/end variables should be ok") {
@@ -285,7 +285,7 @@ class TestCompilerOnRanges: FunSpec({
         val statements = result.compilerAst.entrypoint.statements
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
-        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.UBYTE, -2.0, Position.DUMMY)
+        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.BYTE, -2.0, Position.DUMMY)
     }
 
 

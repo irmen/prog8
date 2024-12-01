@@ -1142,21 +1142,33 @@ internal class AstChecker(private val program: Program,
         if(dt==DataType.UNDEFINED)
             return  // any error should be reported elsewhere
 
-        if(expr.operator=="-") {
-            if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
-                errors.err("can only take negative of a signed number type", expr.position)
+        when (expr.operator) {
+            "-" -> {
+                if (dt != DataType.BYTE && dt != DataType.WORD && dt != DataType.FLOAT) {
+                    errors.err("can only take negative of a signed number type", expr.position)
+                }
             }
-        }
-        else if(expr.operator == "~") {
-            if(dt !in IntegerDatatypes)
-                errors.err("can only use bitwise invert on integer types", expr.position)
-            else if(dt==DataType.BOOL)
-                errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
-        }
-        else if(expr.operator == "not") {
-            if(dt!=DataType.BOOL) {
-                errors.err("logical not is for booleans", expr.position)
+            "~" -> {
+                if(dt !in IntegerDatatypes)
+                    errors.err("can only use bitwise invert on integer types", expr.position)
+                else if(dt==DataType.BOOL)
+                    errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
             }
+            "not" -> {
+                if(dt!=DataType.BOOL) {
+                    errors.err("logical not is for booleans", expr.position)
+                }
+            }
+            "^" -> {  // TODO ^ prefix operator is experimental
+                if(dt in IntegerDatatypes) {
+                    val value = expr.expression.constValue(program)?.number?.toInt()
+                    if(value!=null && value > 0xffffff) {
+                        errors.err("integer overflow, bank exceeds 255", expr.position)
+                    }
+                } else
+                    errors.err("bankof operator can only take integer values", expr.position)
+            }
+            "<<" -> throw FatalAstException("unary << should have been replaced by a const uword")  // TODO << is experimental
         }
         super.visit(expr)
     }

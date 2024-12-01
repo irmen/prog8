@@ -102,7 +102,7 @@ msb (x)
     can do that using ``bankof(x)``.
 
 bankof (x)
-    Get the 'bank' byte from the value x. This means bits 16-24 of that value: bankof($1234567) = $12.
+    Get the 'bank' byte from the value x. This means bits 16-24 of that value: bankof($123456) = $12.
     (To get the 16 bit address out of a value simply use ``x & $ffff``)
     If x is a word or smaller, bankof(x) will always be zero.
     You can consider this function equivalent to the expression ``lsb(x >> 16)``.

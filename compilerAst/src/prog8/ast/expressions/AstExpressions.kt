@@ -119,7 +119,13 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
                 else -> throw ExpressionError("can only take bitwise inversion of int", constval.position)
             }
             "not" -> NumericLiteral.fromBoolean(constval.number==0.0, constval.position)
-            "^" -> NumericLiteral(DataType.UBYTE, (constval.number.toInt() ushr 16 and 255).toDouble(), constval.position)  // bank
+            "^" -> {
+                val const = constval.number.toInt()
+                return if(const>0xffffff)
+                    null    // number is more than 24 bits; bank byte exceeds 255
+                else
+                    NumericLiteral(DataType.UBYTE, (const ushr 16 and 255).toDouble(), constval.position)  // bank
+            }
             "<<" -> NumericLiteral(DataType.UWORD, (constval.number.toInt() and 65535).toDouble(), constval.position)       // address
             else -> throw FatalAstException("invalid operator")
         }
@@ -226,7 +232,7 @@ class BinaryExpression(
                                 dt
                         } else
                             dt
-                    } catch (x: FatalAstException) {
+                    } catch (_: FatalAstException) {
                         InferredTypes.unknown()
                     }
                 }
@@ -255,6 +261,25 @@ class BinaryExpression(
             // word + byte -> word
             // word + word -> word
             // a combination with a float will be float (but give a warning about this!)
+
+            // if left or right is a numeric literal, and its value fits in the type of the other operand, use the other's operand type
+            // EXCEPTION: if the numeric value is a word and the other operand is a byte type (to allow   v * $0008  for example)
+            if (left is NumericLiteral) {
+                if(!(leftDt in WordDatatypes && rightDt in ByteDatatypes)) {
+                    val optimal = NumericLiteral.optimalNumeric(rightDt, null, left.number, left.position)
+                    if (optimal.type != leftDt && optimal.type isAssignableTo rightDt) {
+                        return optimal.type to left
+                    }
+                }
+            }
+            if (right is NumericLiteral) {
+                if(!(rightDt in WordDatatypes && leftDt in ByteDatatypes)) {
+                    val optimal = NumericLiteral.optimalNumeric(leftDt, null, right.number, right.position)
+                    if (optimal.type != rightDt && optimal.type isAssignableTo leftDt) {
+                        return optimal.type to right
+                    }
+                }
+            }
 
             return when (leftDt) {
                 DataType.BOOL -> {
@@ -508,6 +533,18 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         }
     }
 
+    init {
+        when(type) {
+            DataType.UBYTE -> require(numbervalue in 0.0..255.0)
+            DataType.BYTE -> require(numbervalue in -128.0..127.0)
+            DataType.UWORD -> require(numbervalue in 0.0..65535.0)
+            DataType.WORD -> require(numbervalue in -32768.0..32767.0)
+            DataType.LONG -> require(numbervalue in -2147483647.0..2147483647.0)
+            DataType.BOOL -> require(numbervalue==0.0 || numbervalue==1.0)
+            else -> {}
+        }
+    }
+
     override val isSimple = true
     override fun copy() = NumericLiteral(type, number, position)
 
@@ -515,23 +552,11 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         fun fromBoolean(bool: Boolean, position: Position) =
                 NumericLiteral(DataType.BOOL, if(bool) 1.0 else 0.0, position)
 
-        fun optimalNumeric(origType1: DataType, origType2: DataType?, value: Number, position: Position) : NumericLiteral {
-            val optimal = optimalNumeric(value, position)
-            val largestOrig = if(origType2==null) origType1 else if(origType1.largerThan(origType2)) origType1 else origType2
-            return if(largestOrig.largerThan(optimal.type))
-                NumericLiteral(largestOrig, optimal.number, position)
-            else
-                optimal
-        }
+        fun optimalNumeric(origType1: DataType, origType2: DataType?, value: Number, position: Position) : NumericLiteral =
+            fromOptimal(optimalNumeric(value, position), origType1, origType2, position)
 
-        fun optimalInteger(origType1: DataType, origType2: DataType?, value: Int, position: Position): NumericLiteral {
-            val optimal = optimalInteger(value, position)
-            val largestOrig = if(origType2==null) origType1 else if(origType1.largerThan(origType2)) origType1 else origType2
-            return if(largestOrig.largerThan(optimal.type))
-                NumericLiteral(largestOrig, optimal.number, position)
-            else
-                optimal
-        }
+        fun optimalInteger(origType1: DataType, origType2: DataType?, value: Int, position: Position): NumericLiteral =
+            fromOptimal(optimalInteger(value, position), origType1, origType2, position)
 
         fun optimalNumeric(value: Number, position: Position): NumericLiteral {
             val digits = floor(value.toDouble()) - value.toDouble()
@@ -569,6 +594,23 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 in 0u..2147483647u -> NumericLiteral(DataType.LONG, value.toDouble(), position)
                 else -> throw FatalAstException("unsigned integer overflow: $value")
             }
+        }
+
+        private fun fromOptimal(optimal: NumericLiteral, origType1: DataType, origType2: DataType?, position: Position): NumericLiteral {
+            var largestOrig = if(origType2==null) origType1 else if(origType1.largerThan(origType2)) origType1 else origType2
+            return if(largestOrig.largerThan(optimal.type)) {
+                if(optimal.number<0 && largestOrig !in SignedDatatypes) {
+                    when(largestOrig){
+                        DataType.BOOL -> {}
+                        DataType.UBYTE -> largestOrig = DataType.BYTE
+                        DataType.UWORD -> largestOrig = DataType.WORD
+                        else -> throw FatalAstException("invalid dt")
+                    }
+                }
+                NumericLiteral(largestOrig, optimal.number, position)
+            }
+            else
+                optimal
         }
     }
 
@@ -655,13 +697,13 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
             }
             DataType.BYTE -> {
                 if(targettype==DataType.UBYTE) {
-                    if(number in -128.0..0.0)
+                    if(number in -128.0..0.0 && !implicit)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
                     else if(number in 0.0..255.0)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 }
                 if(targettype==DataType.UWORD) {
-                    if(number in -32768.0..0.0)
+                    if(number in -32768.0..0.0 && !implicit)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
                     else if(number in 0.0..65535.0)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
@@ -689,13 +731,13 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
                 if(targettype==DataType.BYTE && number >= -128 && number <=127)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==DataType.UBYTE) {
-                    if(number in -128.0..0.0)
+                    if(number in -128.0..0.0 && !implicit)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
                     else if(number in 0.0..255.0)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 }
                 if(targettype==DataType.UWORD) {
-                    if(number in -32768.0 .. 0.0)
+                    if(number in -32768.0 .. 0.0 && !implicit)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
                     else if(number in 0.0..65535.0)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))

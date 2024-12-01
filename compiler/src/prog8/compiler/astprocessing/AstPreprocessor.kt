@@ -85,7 +85,7 @@ class AstPreprocessor(val program: Program,
                 val constval = range.to.constValue(program)
                 if(constval!=null)
                     modifications += IAstModification.ReplaceNode(range.to, constval, range)
-            } catch (x: SyntaxError) {
+            } catch (_: SyntaxError) {
                 // syntax errors will be reported later
             }
         }
@@ -94,7 +94,7 @@ class AstPreprocessor(val program: Program,
                 val constval = range.step.constValue(program)
                 if(constval!=null)
                     modifications += IAstModification.ReplaceNode(range.step, constval, range)
-            } catch (x: SyntaxError) {
+            } catch (_: SyntaxError) {
                 // syntax errors will be reported later
             }
         }

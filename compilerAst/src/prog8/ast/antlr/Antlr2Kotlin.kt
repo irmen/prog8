@@ -464,7 +464,9 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
                 }
             }
             2 -> {
-                if(literalText.length>8)
+                if(literalText.length>16)
+                    datatype = DataType.LONG
+                else if(literalText.length>8)
                     datatype = DataType.UWORD
                 try {
                     integer = literalText.toInt(2)
@@ -473,7 +475,9 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
                 }
             }
             16 -> {
-                if(literalText.length>2)
+                if(literalText.length>4)
+                    datatype = DataType.LONG
+                else if(literalText.length>2)
                     datatype = DataType.UWORD
                 try {
                     integer = literalText.toInt(16)
@@ -558,7 +562,7 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
 
     if (rangefrom!=null && rangeto!=null) {
         val defaultstep = if(rto.text == "to") 1 else -1
-        val step = rangestep?.toAst() ?: NumericLiteral(DataType.UBYTE, defaultstep.toDouble(), toPosition())
+        val step = rangestep?.toAst() ?: NumericLiteral.optimalInteger(defaultstep, toPosition())
         return RangeExpression(rangefrom.toAst(), rangeto.toAst(), step, toPosition())
     }
 

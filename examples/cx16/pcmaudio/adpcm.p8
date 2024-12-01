@@ -28,7 +28,7 @@ adpcm {
     ; belong to the left channel and -if it's stereo- the next 4 bytes belong to the right channel.
 
 
-    ubyte[] t_index = [ -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
+    byte[] t_index = [ -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
     uword[] @split t_step = [
             7, 8, 9, 10, 11, 12, 13, 14,
             16, 17, 19, 21, 23, 25, 28, 31,
@@ -92,7 +92,7 @@ adpcm {
         ; elif predicted < -32767:
         ;    predicted = - 32767
 
-        index += t_index[nibble]
+        index += t_index[nibble] as ubyte
         if_neg
             index = 0
         else if index >= len(t_step)-1
@@ -128,7 +128,7 @@ adpcm {
         ; elif predicted < -32767:
         ;    predicted = - 32767
 
-        index_2 += t_index[nibble]
+        index_2 += t_index[nibble] as ubyte
         if_neg
             index_2 = 0
         else if index_2 >= len(t_step)-1

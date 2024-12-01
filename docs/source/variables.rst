@@ -190,13 +190,26 @@ which is the PETSCII value for that character. You can prefix it with the desire
 
 **bytes versus words:**
 
-- When an integer value ranges from 0..255 the compiler sees it as a ``ubyte``.  For -128..127 it's a ``byte``.
-- When an integer value ranges from 256..65535 the compiler sees it as a ``uword``.  For -32768..32767 it's a ``word``.
-- When a hex number has 3 or 4 digits, for example ``$0004``, it is seen as a ``word`` otherwise as a ``byte``.
-- When a binary number has 9 to 16 digits, for example ``%1100110011``, it is seen as a ``word`` otherwise as a ``byte``.
-- If the number fits in a byte but you really require it as a word value, you'll have to explicitly cast it: ``60 as uword``
-  or you can use the full word hexadecimal notation ``$003c``.
+Prog8 tries to determine the data type of integer values according to the table below,
+and sometimes the context in which they are used.
 
+========================= =================
+value                     datatype
+========================= =================
+-128 .. 127               byte
+0 .. 255                  ubyte
+-32768 .. 32767           word
+0 .. 65535                uword
+-2147483647 .. 2147483647 long (only for const)
+========================= =================
+
+If the number fits in a byte but you really require it as a word value, you'll have to explicitly cast it: ``60 as uword``
+or you can use the full word hexadecimal notation ``$003c``.  This is useful in expressions where you want a calcuation
+to be done on word values, and don't want to explicitly have to cast everything all the time. For instance::
+
+    ubyte  column
+    uword  offset = column * 64       ; does (column * 64) as uword, wrong result?
+    uword  offset = column * $0040    ; does (column as uword) * 64 , a word calculation
 
 Only for ``const`` numbers, you can use larger values (32 bits signed integers). The compiler can handle those
 internally in expressions. As soon as you have to actually store it into a variable,
@@ -226,8 +239,6 @@ This saves a lot of memory and may be faster as well.
 Floating point numbers
 ^^^^^^^^^^^^^^^^^^^^^^
 
-You can use underscores to group digits to make long numbers more readable.
-
 Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines.
 Floating point support is available on the c64 and cx16 (and virtual) compiler targets.
 On the c64 and cx16, the rom routines are used for floating point operations,
@@ -242,6 +253,10 @@ in the compiler, and to gain access to the floating point routines.
 to worry about this yourself)
 
 The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (negative: **-1.7014118345e+38**)
+
+You can use underscores to group digits in floating point literals to make long numbers more readable:
+any underscores in the number are ignored by the compiler.
+For instance ``30_000.999_999`` is a valid floating point number 30000.999999.
 
 
 Arrays

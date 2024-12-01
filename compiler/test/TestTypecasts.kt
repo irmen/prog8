@@ -896,8 +896,7 @@ main {
     }
 }"""
 
-        val errors = ErrorReporterForTests()
-        val result = compileText(C64Target(), false, src, writeAssembly = false, errors = errors)!!
+        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
         val program = result.compilerAst
         val st = program.entrypoint.statements
         st.size shouldBe 1
@@ -908,5 +907,50 @@ main {
         ifexpr.falsevalue.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.BYTE
         ifexpr.truevalue shouldBe instanceOf<NumericLiteral>()
         ifexpr.falsevalue shouldBe instanceOf<NumericLiteral>()
+    }
+
+    test("correct data types of numeric literals in word/byte scenario") {
+        val src = """
+main {
+    sub start() {
+        const uword WIDTH = 40
+        const uword WIDER = 400
+        cx16.r0 = cx16.r0-1+WIDTH
+        cx16.r0 = cx16.r0-1+WIDER 
+        cx16.r0 = cx16.r0L * 5               ; byte multiplication
+        cx16.r0 = cx16.r0L * ${'$'}0005      ; word multiplication
+    }
+}"""
+        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
+        val program = result.compilerAst
+        val st = program.entrypoint.statements
+        st.size shouldBe 6
+        val v1 = (st[2] as Assignment).value as BinaryExpression
+        v1.operator shouldBe "+"
+        (v1.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0")
+        (v1.right as NumericLiteral).type shouldBe DataType.UWORD
+        (v1.right as NumericLiteral).number shouldBe 39
+
+        val v2 = (st[3] as Assignment).value as BinaryExpression
+        v2.operator shouldBe "+"
+        (v2.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0")
+        (v2.right as NumericLiteral).type shouldBe DataType.UWORD
+        (v2.right as NumericLiteral).number shouldBe 399
+
+        val v3 = (st[4] as Assignment).value as TypecastExpression
+        v3.type shouldBe DataType.UWORD
+        val v3e = v3.expression as BinaryExpression
+        v3e.operator shouldBe "*"
+        (v3e.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0L")
+        (v3e.right as NumericLiteral).type shouldBe DataType.UBYTE
+        (v3e.right as NumericLiteral).number shouldBe 5
+
+        val v4 = (st[5] as Assignment).value as BinaryExpression
+        v4.operator shouldBe "*"
+        val v4t = v4.left as TypecastExpression
+        v4t.type shouldBe DataType.UWORD
+        (v4t.expression as IdentifierReference).nameInSource shouldBe listOf("cx16","r0L")
+        (v4.right as NumericLiteral).type shouldBe DataType.UWORD
+        (v4.right as NumericLiteral).number shouldBe 5
     }
 })

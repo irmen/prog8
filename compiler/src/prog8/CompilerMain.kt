@@ -275,7 +275,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     return false
                 else
                     compilationResult = result
-            } catch (x: AstException) {
+            } catch (_: AstException) {
                 return false
             }
 

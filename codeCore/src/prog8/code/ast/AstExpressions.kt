@@ -294,6 +294,14 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
             if (trunc != number)
                 throw IllegalArgumentException("refused truncating of float to avoid loss of precision @$position")
         }
+        when(type) {
+            DataType.UBYTE -> require(number in 0.0..255.0)
+            DataType.BYTE -> require(number in -128.0..127.0)
+            DataType.UWORD -> require(number in 0.0..65535.0)
+            DataType.WORD -> require(number in -32728.0..32767.0)
+            DataType.LONG -> require(number in -2147483647.0..2147483647.0)
+            else -> {}
+        }
     }
 
     override fun hashCode(): Int = Objects.hash(type, number)
@@ -318,7 +326,7 @@ class PtPrefix(val operator: String, type: DataType, position: Position): PtExpr
         get() = children.single() as PtExpression
 
     init {
-        require(operator in setOf("+", "-", "~", "^", "<<", "not")) { "invalid prefix operator: $operator" }
+        require(operator in setOf("+", "-", "~", "^", "<<", "not")) { "invalid prefix operator: $operator" }        // TODO ^ and << are experimental
     }
 }
 

@@ -1089,7 +1089,7 @@ object PetsciiEncoding {
             Ok(text.map {
                 try {
                     encodeChar(it, lowercase)
-                } catch (x: CharConversionException) {
+                } catch (_: CharConversionException) {
                     encodeChar(it, !lowercase)
                 }
             })
@@ -1135,7 +1135,7 @@ object PetsciiEncoding {
             Ok(text.map {
                 try {
                     encodeChar(it, lowercase)
-                } catch (x: CharConversionException) {
+                } catch (_: CharConversionException) {
                     encodeChar(it, !lowercase)
                 }
             })

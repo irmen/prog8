@@ -6,11 +6,7 @@ import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.statements.Assignment
-import prog8.code.core.DataType
 import prog8.code.core.InternalCompilerException
-import prog8.code.core.Position
 import prog8.code.core.toHex
 import prog8.code.target.C64Target
 import prog8.code.target.cbm.Mflpt5
@@ -162,15 +158,33 @@ class TestNumbers: FunSpec({
                 sub start() {
                     uword @shared qq = ${'$'}2ff33
                     cx16.r0 = ${'$'}1fc0f
+                    cx16.r0L = 1234
                 }
             }
         """
         val errors = ErrorReporterForTests()
         compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
+        errors.errors.size shouldBe 6
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "out of range"
-        errors.errors[1] shouldContain "out of range"
+        errors.errors[1] shouldContain "doesn't match"
+        errors.errors[2] shouldContain "out of range"
+        errors.errors[3] shouldContain "doesn't match"
+        errors.errors[4] shouldContain "out of range"
+        errors.errors[5] shouldContain "cannot assign word to byte"
+    }
+
+    test("large numeric literals still ok if actual value is small") {
+        val src="""
+            main {
+                sub start() {
+                    cx16.r1L = %000000000001
+                    cx16.r2L = ${'$'}000000000001
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldNotBe null
     }
 
     test("big numbers okay in const expressions if result fits") {
@@ -185,7 +199,7 @@ class TestNumbers: FunSpec({
         compileText(C64Target(), true, src, writeAssembly = false) shouldNotBe null
     }
 
-    test("signed negative numbers cast to unsigned allowed") {
+    test("signed negative numbers not implicitly cast to unsigned") {
         val src="""
             main {
                 sub start() {
@@ -197,13 +211,14 @@ class TestNumbers: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
-        val statements = result.compilerAst.entrypoint.statements
-        statements.size shouldBe 8
-        (statements[1] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 32768.0, Position.DUMMY)
-        (statements[3] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 65535.0, Position.DUMMY)
-        (statements[5] as Assignment).value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
-        (statements[6] as Assignment).value shouldBe NumericLiteral(DataType.UWORD, 65534.0, Position.DUMMY)
-        (statements[7] as Assignment).value shouldBe NumericLiteral(DataType.UBYTE, 254.0, Position.DUMMY)
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 6
+        errors.errors[0] shouldContain "out of range"
+        errors.errors[1] shouldContain "WORD doesn't match"
+        errors.errors[2] shouldContain "out of range"
+        errors.errors[3] shouldContain "BYTE doesn't match"
+        errors.errors[4] shouldContain "out of range"
+        errors.errors[5] shouldContain "BYTE doesn't match"
     }
 })

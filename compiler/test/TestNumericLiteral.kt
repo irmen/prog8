@@ -162,6 +162,14 @@ class TestNumericLiteral: FunSpec({
         NumericLiteral.optimalInteger(-1000, Position.DUMMY).number shouldBe -1000.0
         NumericLiteral.optimalInteger(1000u, Position.DUMMY).type shouldBe DataType.UWORD
         NumericLiteral.optimalInteger(1000u, Position.DUMMY).number shouldBe 1000.0
+
+        NumericLiteral.optimalInteger(DataType.UBYTE, DataType.UWORD, 1, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalInteger(DataType.UWORD, DataType.UBYTE, 1, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalInteger(DataType.UWORD, null, 1, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalInteger(DataType.UBYTE, DataType.UBYTE, -1, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalInteger(DataType.UBYTE, null, -1, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalInteger(DataType.UWORD, DataType.UWORD, -1, Position.DUMMY).type shouldBe DataType.WORD
+        NumericLiteral.optimalInteger(DataType.UWORD, null, -1, Position.DUMMY).type shouldBe DataType.WORD
     }
 
     test("optimalNumeric") {
@@ -183,6 +191,22 @@ class TestNumericLiteral: FunSpec({
         NumericLiteral.optimalNumeric(1234.0, Position.DUMMY).number shouldBe 1234.0
         NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).type shouldBe DataType.WORD
         NumericLiteral.optimalNumeric(-1234.0, Position.DUMMY).number shouldBe -1234.0
+
+        NumericLiteral.optimalNumeric(DataType.UBYTE, DataType.UWORD, 1.0, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalNumeric(DataType.UWORD, DataType.UBYTE, 1.0, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalNumeric(DataType.UWORD, null, 1.0, Position.DUMMY).type shouldBe DataType.UWORD
+        NumericLiteral.optimalNumeric(DataType.UBYTE, DataType.UBYTE, -1.0, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalNumeric(DataType.UBYTE, null, -1.0, Position.DUMMY).type shouldBe DataType.BYTE
+        NumericLiteral.optimalNumeric(DataType.UWORD, DataType.UWORD, -1.0, Position.DUMMY).type shouldBe DataType.WORD
+        NumericLiteral.optimalNumeric(DataType.UWORD, null, -1.0, Position.DUMMY).type shouldBe DataType.WORD
+
+        NumericLiteral.optimalNumeric(DataType.UBYTE, DataType.UWORD, 1.234, Position.DUMMY).type shouldBe DataType.FLOAT
+        NumericLiteral.optimalNumeric(DataType.UWORD, DataType.UBYTE, 1.234, Position.DUMMY).type shouldBe DataType.FLOAT
+        NumericLiteral.optimalNumeric(DataType.UWORD, null, 1.234, Position.DUMMY).type shouldBe DataType.FLOAT
+        NumericLiteral.optimalNumeric(DataType.UBYTE, DataType.UBYTE, -1.234, Position.DUMMY).type shouldBe DataType.FLOAT
+        NumericLiteral.optimalNumeric(DataType.UBYTE, null, -1.234, Position.DUMMY).type shouldBe DataType.FLOAT
+        NumericLiteral.optimalNumeric(DataType.UWORD, DataType.UWORD, -1.234, Position.DUMMY).type shouldBe DataType.FLOAT
+        NumericLiteral.optimalNumeric(DataType.UWORD, null, -1.234, Position.DUMMY).type shouldBe DataType.FLOAT
     }
 
     test("cast can change value") {

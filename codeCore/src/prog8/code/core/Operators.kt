@@ -4,7 +4,7 @@ val AssociativeOperators = setOf("+", "*", "&", "|", "^", "==", "!=", "xor")    
 val ComparisonOperators = setOf("==", "!=", "<", ">", "<=", ">=")
 val LogicalOperators = setOf("and", "or", "xor", "not", "in")
 val BitwiseOperators = setOf("&", "|", "^", "~")
-val PrefixOperators = setOf("+", "-", "~", "not")
+val PrefixOperators = setOf("+", "-", "~", "^", "<<", "not")          // TODO ^ and << are experimental
 
 fun invertedComparisonOperator(operator: String) =
     when (operator) {

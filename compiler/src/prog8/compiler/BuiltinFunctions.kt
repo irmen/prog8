@@ -23,7 +23,7 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "lsw" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 65535).toDouble() } },
     "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 8 and 255).toDouble()} },
     "msw" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 16 and 65535).toDouble()} },
-    "bankof" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 16 and 255).toDouble()} },
+    "bankof" to ::builtinBankof,
     "mkword" to ::builtinMkword,
     "clamp__ubyte" to ::builtinClampUByte,
     "clamp__byte" to ::builtinClampByte,
@@ -151,6 +151,15 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
         in NumericDatatypes, DataType.BOOL -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
         else -> throw InternalCompilerException("weird datatype")
     }
+}
+
+private fun builtinBankof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 1)
+        throw SyntaxError("bankof requires one argument", position)
+    val const = args[0].constValue(program)?.number?.toInt() ?: throw NotConstArgumentException()
+    if(const > 0xffffff)
+        throw SyntaxError("integer overflow, bank exceeds 255", position)
+    return NumericLiteral(DataType.UBYTE, (const ushr 16 and 255).toDouble(), position)
 }
 
 private fun builtinMkword(args: List<Expression>, position: Position, program: Program): NumericLiteral {
