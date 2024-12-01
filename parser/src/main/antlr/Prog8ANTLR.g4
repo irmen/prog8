@@ -192,7 +192,7 @@ postincrdecr :  assign_target  operator = ('++' | '--') ;
 expression :
 	'(' expression ')'
 	| functioncall
-	| <assoc=right> prefix = ('+'|'-'|'~'|'^'|'<<') expression
+	| <assoc=right> prefix = ('+'|'-'|'~') expression
 	| left = expression EOL? bop = ('*' | '/' | '%' ) EOL? right = expression
 	| left = expression EOL? bop = ('+' | '-' ) EOL? right = expression
 	| left = expression EOL? bop = ('<<' | '>>' ) EOL? right = expression

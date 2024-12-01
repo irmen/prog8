@@ -5,8 +5,6 @@ make a compiler switch to disable footgun warnings
 
 -> added bankof() to get the bank byte of a large integer
 -> added msw() and lsw() .  note: msw() on a 24 bits constant can ALSO be used to get the bank byte because the value, while a word type, will be <=255
--> added unary ^ operator as alternative to bankof()
--> added unary << operator as alternative to lsw() / lsb(x>>16)
 -> TODO document whatever remains of these! (and add to syntax files)
 
 ...

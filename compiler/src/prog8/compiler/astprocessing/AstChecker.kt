@@ -1159,16 +1159,6 @@ internal class AstChecker(private val program: Program,
                     errors.err("logical not is for booleans", expr.position)
                 }
             }
-            "^" -> {  // TODO ^ prefix operator is experimental
-                if(dt in IntegerDatatypes) {
-                    val value = expr.expression.constValue(program)?.number?.toInt()
-                    if(value!=null && value > 0xffffff) {
-                        errors.err("integer overflow, bank exceeds 255", expr.position)
-                    }
-                } else
-                    errors.err("bankof operator can only take integer values", expr.position)
-            }
-            "<<" -> throw FatalAstException("unary << should have been replaced by a const uword")  // TODO << is experimental
         }
         super.visit(expr)
     }

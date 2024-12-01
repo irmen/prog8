@@ -98,11 +98,6 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
 
     override fun copy() = PrefixExpression(operator, expression.copy(), position)
     override fun constValue(program: Program): NumericLiteral? {
-        if(operator=="^") {
-            val valueDt = expression.inferType(program)
-            if(valueDt.isBytes || valueDt.isWords)
-                return NumericLiteral(DataType.UBYTE, 0.0, expression.position)
-        }
         val constval = expression.constValue(program) ?: return null
         val converted = when(operator) {
             "+" -> constval
@@ -119,14 +114,6 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
                 else -> throw ExpressionError("can only take bitwise inversion of int", constval.position)
             }
             "not" -> NumericLiteral.fromBoolean(constval.number==0.0, constval.position)
-            "^" -> {
-                val const = constval.number.toInt()
-                return if(const>0xffffff)
-                    null    // number is more than 24 bits; bank byte exceeds 255
-                else
-                    NumericLiteral(DataType.UBYTE, (const ushr 16 and 255).toDouble(), constval.position)  // bank
-            }
-            "<<" -> NumericLiteral(DataType.UWORD, (constval.number.toInt() and 65535).toDouble(), constval.position)       // address
             else -> throw FatalAstException("invalid operator")
         }
         converted.linkParents(this.parent)
@@ -151,8 +138,6 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
                 else if(inferred.isWords) InferredTypes.knownFor(DataType.WORD)
                 else inferred
             }
-            "^" -> InferredTypes.knownFor(DataType.UBYTE)
-            "<<" -> InferredTypes.knownFor(DataType.UWORD)
             else -> throw FatalAstException("weird prefix expression operator")
         }
     }

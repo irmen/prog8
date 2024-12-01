@@ -372,8 +372,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             "not" -> {
                 addInstr(result, IRInstruction(Opcode.XOR, vmDt, reg1 = tr.resultReg, immediate = 1), null)
             }
-            "^" -> throw AssemblyError("unary ^ should have been replaced by a const value (either the bank number of a long const, or zero for any other smaller value)")
-            "<<" -> throw AssemblyError("unary << should have been replaced by a const uword")
             else -> throw AssemblyError("weird prefix operator")
         }
         return ExpressionCodeResult(result, vmDt, tr.resultReg, tr.resultFpReg)
