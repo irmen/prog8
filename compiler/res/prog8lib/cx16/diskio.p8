@@ -454,34 +454,14 @@ _end        jsr  cbm.READST
         ;    (for example, if it already exists). This is different than f_open()!
         ;    To be 100% sure if this call was successful, you have to use status()
         ;    and check the drive's status message!
+        ;    NOTE: the default output isn't yet set to this file, you must use reset_write_channel() to do this,
+        ;          if you're going to write to it yourself instead of using f_write()!
         return internal_f_open_w(filename, false)
     }
 
     sub f_open_w_seek(str filename) -> bool {
         ; -- Open an existing file for iterative writing with f_write, and seeking with f_seek_w.
         return internal_f_open_w(filename, true)
-    }
-
-    sub internal_f_open_w(str filename, bool open_for_seeks) -> bool {
-        f_close_w()
-        list_filename = filename
-        str modifier = ",s,?"
-        modifier[3] = 'w'
-        if open_for_seeks
-            modifier[3] = 'm'
-        cx16.r0L = strings.append(list_filename, modifier)   ; secondary 13 requires a mode suffix to signal we're writing/modifying
-        cbm.SETNAM(cx16.r0L, list_filename)
-        cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, WRITE_IO_CHANNEL)
-        void cbm.OPEN()             ; open 13,8,13,"filename"
-        if_cc {
-            if cbm.READST()==0 {
-                write_iteration_in_progress = true
-                return true
-            }
-        }
-        cbm.CLOSE(WRITE_IO_CHANNEL)
-        f_close_w()
-        return false
     }
 
     sub f_write(uword bufferpointer, uword num_bytes) -> bool {
@@ -521,6 +501,29 @@ no_mciout:
             cbm.CLOSE(WRITE_IO_CHANNEL)
             write_iteration_in_progress = false
         }
+    }
+
+    sub internal_f_open_w(str filename, bool open_for_seeks) -> bool {
+        f_close_w()
+        list_filename = filename
+        str modifier = ",s,?"
+        modifier[3] = 'w'
+        if open_for_seeks
+            modifier[3] = 'm'
+        cx16.r0L = strings.append(list_filename, modifier)   ; secondary 13 requires a mode suffix to signal we're writing/modifying
+        cbm.SETNAM(cx16.r0L, list_filename)
+        cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, WRITE_IO_CHANNEL)
+        void cbm.OPEN()             ; open 13,8,13,"filename"
+        if_cc {
+            if cbm.READST()==0 {
+                write_iteration_in_progress = true
+                cbm.CLRCHN()            ; reset default i/o channels
+                return true
+            }
+        }
+        cbm.CLOSE(WRITE_IO_CHANNEL)
+        f_close_w()
+        return false
     }
 
 
@@ -892,6 +895,7 @@ io_error:
 
     sub exists(str filename) -> bool {
         ; -- returns true if the given file exists on the disk, otherwise false
+        ;    DON'T use this if you already have a file open with f_open!
         if f_open(filename) {
             f_close()
             return true
