@@ -20,7 +20,7 @@ diskio {
 
     sub reset_write_channel() {
         void cbm.CLRCHN()
-        cbm.CHKOUT(WRITE_IO_CHANNEL)
+        void cbm.CHKOUT(WRITE_IO_CHANNEL)
     }
 
     sub directory() -> bool {
