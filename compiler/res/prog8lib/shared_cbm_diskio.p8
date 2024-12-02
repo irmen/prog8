@@ -303,8 +303,19 @@ close_end:
             return 0
 
         reset_read_channel()
-        list_blocks = 0     ; we reuse this variable for the total number of bytes read
+        if num_bytes==1 {
+            ; slightly optimized path for reading just a single byte
+            @(bufferpointer) = cbm.CHRIN()
+            cx16.r0L = cbm.READST()
+            if cx16.r0L!=0 {
+                f_close()
+                if cx16.r0L & $40 == 0
+                    return 0
+            }
+            return 1
+        }
 
+        list_blocks = 0     ; we reuse this variable for the total number of bytes read
         %asm {{
             lda  bufferpointer
             sta  m_in_buffer+1
@@ -312,12 +323,6 @@ close_end:
             sta  m_in_buffer+2
         }}
         while num_bytes!=0 {
-            if cbm.READST()!=0 {
-                f_close()
-                if cbm.READST() & $40 !=0    ; eof?
-                    return list_blocks   ; number of bytes read
-                return 0  ; error.
-            }
             %asm {{
                 jsr  cbm.CHRIN
 m_in_buffer     sta  $ffff
@@ -326,6 +331,13 @@ m_in_buffer     sta  $ffff
                 inc  m_in_buffer+2
 +
             }}
+            cx16.r0L = cbm.READST()
+            if cx16.r0L!=0 {
+                f_close()
+                if cx16.r0L & $40 !=0    ; eof?
+                    return list_blocks   ; number of bytes read
+                return 0  ; error.
+            }
             list_blocks++
             num_bytes--
         }
