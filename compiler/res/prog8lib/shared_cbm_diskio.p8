@@ -456,12 +456,15 @@ _end        jsr  cbm.READST
 
     sub status() -> uword {
         ; -- retrieve the disk drive's current status message
-        str device_not_present_error = "device not present #xx"
-        if cbm.READST()==128 {
-            device_not_present_error[len(device_not_present_error)-2] = 0
-            void strings.copy(conv.str_ub(drivenumber), &device_not_present_error+len(device_not_present_error)-2)
-            return device_not_present_error
-        }
+
+; TODO this doesn't seem to work reliably, sometimes READST returns 128 when the drive is just fine
+;        str device_not_present_error = "device not present #xx"
+;        if cbm.READST()==128 {
+;            device_not_present_error[len(device_not_present_error)-2] = 0
+;            void strings.copy(conv.str_ub(drivenumber), &device_not_present_error+len(device_not_present_error)-2)
+;            return device_not_present_error
+;        }
+
         uword messageptr = &list_filename
         cbm.SETNAM(0, list_filename)
         cbm.SETLFS(15, drivenumber, 15)
