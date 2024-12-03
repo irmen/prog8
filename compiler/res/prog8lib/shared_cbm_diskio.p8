@@ -14,10 +14,12 @@ diskio {
     ubyte @shared drivenumber = 8           ; user programs can set this to the drive number they want to load/save to!
 
     sub reset_read_channel() {
+        cbm.CLRCHN()
         void cbm.CHKIN(READ_IO_CHANNEL)
     }
 
     sub reset_write_channel() {
+        cbm.CLRCHN()
         cbm.CHKOUT(WRITE_IO_CHANNEL)
     }
 
