@@ -525,11 +525,6 @@ to see what's in there. (Note: slight variations for different compiler targets)
     You can set the active disk drive number, so it supports multiple drives, just one at a time.
     It does not support reading from more than one file or writing to more than one file at a time.
 
-.. note::
-    If you want to print text to the screen, or do keyboard input, while reading or writing an open file is in progress,
-    you should use ``cbm.CLRCHN()`` before doing so. This resets the default i/o channels to screen and keyboard.
-    Diskio itself is smart enough to set them back to whatever is needed to continue reading/writing with the ``f_read`` or ``f_write`` routines.
-
 .. attention::
     Error handling is peculiar on CBM dos systems (C64, C128, cx16, PET). Read the
     descriptions for the various methods in this library for details and tips.

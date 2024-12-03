@@ -331,6 +331,7 @@ close_end:
             ; optimize for reading just a single byte
             @(bufferpointer) = cbm.CHRIN()
             cx16.r0L = cbm.READST()
+            cbm.CLRCHN()            ; reset default i/o channels
             if cx16.r0L!=0 {
                 f_close()
                 if cx16.r0L & $40 == 0
@@ -358,6 +359,7 @@ close_end:
                 break
             }
         }
+        cbm.CLRCHN()            ; reset default i/o channels
         return list_blocks  ; number of bytes read
 
 byte_read_loop:         ; fallback if MACPTR isn't supported on the device
@@ -377,8 +379,9 @@ m_in_buffer     sta  $ffff
 +
             }}
             cx16.r0L = cbm.READST()
-            if cx16.r0L!=0 {
+            if_nz {
                 f_close()
+                cbm.CLRCHN()            ; reset default i/o channels
                 if cx16.r0L & $40 !=0    ; eof?
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
@@ -386,6 +389,7 @@ m_in_buffer     sta  $ffff
             list_blocks++
             num_bytes--
         }
+        cbm.CLRCHN()            ; reset default i/o channels
         return list_blocks  ; number of bytes read
     }
 
@@ -404,12 +408,13 @@ m_in_buffer     sta  $ffff
             total_read += cx16.r0
             bufferpointer += cx16.r0
         }
+        cbm.CLRCHN()            ; reset default i/o channels
         return total_read
     }
 
     asmsub f_readline(uword bufptr @AY) clobbers(X) -> ubyte @Y, ubyte @A {
         ; Routine to read text lines from a text file. Lines must be less than 255 characters.
-        ; Reads characters from the input file UNTIL a newline or return character (or EOF).
+        ; Reads characters from the input file UNTIL a newline or return character, or 0 byte (likely EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
         ; The length of the line is returned in Y. Note that an empty line is okay and is length 0!
         ; The I/O error status byte is returned in A.
@@ -430,6 +435,9 @@ _line_end   dey     ; get rid of the trailing end-of-line char
             lda  #0
             sta  (P8ZP_SCRATCH_W1),y
 _end        jsr  cbm.READST
+            pha
+            jsr  cbm.CLRCHN
+            pla
             rts
         }}
     }
@@ -478,9 +486,9 @@ _end        jsr  cbm.READST
                 if msb(bufferpointer) == $c0
                     bufferpointer = mkword($a0, lsb(bufferpointer))  ; wrap over bank boundary
                 if cbm.READST()!=0
-                    return false
+                    goto return_status
             } until num_bytes==0
-            return cbm.READST()==0
+            goto return_status
 
 no_mciout:
             ; the device doesn't support MCIOUT, use a normal per-byte write loop
@@ -488,7 +496,10 @@ no_mciout:
                 cbm.CHROUT(@(bufferpointer))
                 bufferpointer++
             }
-            return cbm.READST()==0
+return_status:
+            cx16.r0L = cbm.READST()
+            cbm.CLRCHN()            ; reset default i/o channels
+            return cx16.r0L==0
         }
         return true
     }

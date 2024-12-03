@@ -309,6 +309,7 @@ close_end:
             ; slightly optimized path for reading just a single byte
             @(bufferpointer) = cbm.CHRIN()
             cx16.r0L = cbm.READST()
+            cbm.CLRCHN()            ; reset default i/o channels
             if cx16.r0L!=0 {
                 f_close()
                 if cx16.r0L & $40 == 0
@@ -334,8 +335,9 @@ m_in_buffer     sta  $ffff
 +
             }}
             cx16.r0L = cbm.READST()
-            if cx16.r0L!=0 {
+            if_nz {
                 f_close()
+                cbm.CLRCHN()            ;  reset default i/o channels
                 if cx16.r0L & $40 !=0    ; eof?
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
@@ -343,6 +345,7 @@ m_in_buffer     sta  $ffff
             list_blocks++
             num_bytes--
         }
+        cbm.CLRCHN()            ; reset default i/o channels
         return list_blocks  ; number of bytes read
     }
 
@@ -359,12 +362,13 @@ m_in_buffer     sta  $ffff
             total_read += cx16.r0
             bufferpointer += cx16.r0
         }
+        cbm.CLRCHN()            ; reset default i/o channels
         return total_read
     }
 
     asmsub f_readline(uword bufptr @AY) clobbers(X) -> ubyte @Y, ubyte @A {
         ; Routine to read text lines from a text file. Lines must be less than 255 characters.
-        ; Reads characters from the input file UNTIL a newline or return character (or EOF).
+        ; Reads characters from the input file UNTIL a newline or return character, or 0 byte (likely EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
         ; The length of the line is returned in Y. Note that an empty line is okay and is length 0!
         ; I/O error status should be checked by the caller itself via READST() routine.
@@ -386,6 +390,9 @@ _line_end   dey     ; get rid of the trailing end-of-line char
             lda  #0
             sta  (P8ZP_SCRATCH_W1),y
 _end        jsr  cbm.READST
+            pha
+            jsr  cbm.CLRCHN
+            pla
             rts
         }}
     }
@@ -438,7 +445,9 @@ _end        jsr  cbm.READST
                 cbm.CHROUT(@(bufferpointer))
                 bufferpointer++
             }
-            return cbm.READST()==0
+            cx16.r0L = cbm.READST()
+            cbm.CLRCHN()            ; reset default i/o channels
+            return cx16.r0L==0
         }
         return true
     }

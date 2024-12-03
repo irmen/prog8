@@ -107,7 +107,7 @@ diskio {
 
     sub f_readline(uword bufptr) -> ubyte {
         ; Routine to read text lines from a text file. Lines must be less than 255 characters.
-        ; Reads characters from the input file UNTIL a newline or return character (or EOF).
+        ; Reads characters from the input file UNTIL a newline or return character, or 0 byte (likely EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
         ; The length of the line is returned. Note that an empty line is okay and is length 0!
         ; The success status is returned in the Carry flag instead: C set = success, C clear = failure/endoffile
@@ -122,7 +122,7 @@ diskio {
                 sys.clear_carry()
                 return size
             } else {
-                if cx16.r0L == '\n' or cx16.r0L=='\r' {
+                if cx16.r0L in ['\n', '\r', 0] {
                     @(bufptr) = 0
                     sys.set_carry()
                     return size
