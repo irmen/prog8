@@ -1,7 +1,6 @@
 TODO
 ====
 
-add a -plain option to turn off text output coloring and unicode symbols in error messages (footguns)
 make a compiler switch to disable footgun warnings  -ignorefootguns
 
 update zsmkit to newest version that includes the on_deck routines when stabilized

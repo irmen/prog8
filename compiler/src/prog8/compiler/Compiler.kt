@@ -52,10 +52,11 @@ class CompilerArguments(val filepath: Path,
                         val breakpointCpuInstruction: String?,
                         val printAst1: Boolean,
                         val printAst2: Boolean,
+                        val ignoreFootguns: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
-                        val errors: IErrorReporter = ErrorReporter())
+                        val errors: IErrorReporter = ErrorReporter(ErrorReporter.AnsiColors))
 
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
@@ -81,6 +82,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 dumpVariables = args.dumpVariables
                 dumpSymbols = args.dumpSymbols
                 breakpointCpuInstruction = args.breakpointCpuInstruction
+                ignoreFootguns = args.ignoreFootguns
                 varsHighBank = args.varsHighBank
                 varsGolden = args.varsGolden
                 slabsHighBank = args.slabsHighBank
@@ -337,7 +339,7 @@ fun parseMainModule(filepath: Path,
     return Triple(program, compilerOptions, importedFiles)
 }
 
-fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
+internal fun determineCompilationOptions(program: Program, compTarget: ICompilationTarget): CompilationOptions {
     val toplevelModule = program.toplevelModule
     val outputDirective = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
     val launcherDirective = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)

@@ -29,6 +29,7 @@ class CompilationOptions(val output: OutputType,
                          var slabsGolden: Boolean = false,
                          var splitWordArrays: Boolean = false,
                          var breakpointCpuInstruction: String? = null,
+                         var ignoreFootguns: Boolean = false,
                          var outputDir: Path = Path(""),
                          var symbolDefs: Map<String, String> = emptyMap()
 ) {

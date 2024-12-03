@@ -7,6 +7,7 @@ import prog8.code.target.*
 import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
+import prog8.compiler.ErrorReporter
 import prog8.compiler.compileProgram
 import java.io.File
 import java.nio.file.FileSystems
@@ -52,10 +53,12 @@ private fun compileMain(args: Array<String>): Boolean {
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
     val float2bytes by cli.option(ArgType.String, fullName = "float2bytes", description = "convert floating point number to a list of bytes for the target system. NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!")
+    val ignoreFootguns by cli.option(ArgType.Boolean, fullName = "ignorefootguns", description = "don't print warnings for 'footgun' issues:  'Yes I know I'm treading on mighty thin ice here'.")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform code optimizations")
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
     val printAst1 by cli.option(ArgType.Boolean, fullName = "printast1", description = "print out the compiler AST")
+    val plainText by cli.option(ArgType.Boolean, fullName = "plaintext", description = "output only plain text, no colors or fancy symbols")
     val printAst2 by cli.option(ArgType.Boolean, fullName = "printast2", description = "print out the intermediate AST that is used for code generation")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
     val slabsGolden by cli.option(ArgType.Boolean, fullName = "slabsgolden", description = "put memory() slabs in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
@@ -162,6 +165,7 @@ private fun compileMain(args: Array<String>): Boolean {
             results.clear()
             for(filepathRaw in moduleFiles) {
                 val filepath = pathFrom(filepathRaw).normalize()
+                val txtcolors = if(plainText==true) ErrorReporter.PlainText else ErrorReporter.AnsiColors
                 val compilerArgs = CompilerArguments(
                     filepath,
                     if(checkSource==true) false else dontOptimize != true,
@@ -182,9 +186,11 @@ private fun compileMain(args: Array<String>): Boolean {
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
+                    ignoreFootguns == true,
                     processedSymbols,
                     srcdirs,
-                    outputPath
+                    outputPath,
+                    errors = ErrorReporter(txtcolors)
                 )
                 val compilationResult = compileProgram(compilerArgs)
 
@@ -242,6 +248,7 @@ private fun compileMain(args: Array<String>): Boolean {
             val filepath = pathFrom(filepathRaw).normalize()
             val compilationResult: CompilationResult
             try {
+                val txtcolors = if(plainText==true) ErrorReporter.PlainText else ErrorReporter.AnsiColors
                 val compilerArgs = CompilerArguments(
                     filepath,
                     if(checkSource==true) false else dontOptimize != true,
@@ -262,9 +269,11 @@ private fun compileMain(args: Array<String>): Boolean {
                     breakpointCpuInstruction,
                     printAst1 == true,
                     printAst2 == true,
+                    ignoreFootguns == true,
                     processedSymbols,
                     srcdirs,
-                    outputPath
+                    outputPath,
+                    errors = ErrorReporter(txtcolors)
                 )
                 val result = compileProgram(compilerArgs)
 

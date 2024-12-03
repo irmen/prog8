@@ -176,6 +176,12 @@ One or more .p8 module files
     NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
     Also see -bytes2float
 
+``-ignorefootguns``
+    Don't print warnings for 'footgun' issues.
+    Footgun issues are certain things you can do in Prog8 that may make your program blow up unexpectedly,
+    for instance uncareful use of dirty variables, or reusing the R0-R15 registers for subroutine parameters.
+    With this option you're basically saying: "Yes, I know I am treading on mighty thin ice here, but I don't want to be reminded about that".
+
 ``-noasm``
     Do not create assembly code and output program.
     Useful for debugging or doing quick syntax checks.
@@ -186,6 +192,9 @@ One or more .p8 module files
 
 ``-out <directory>``
     sets directory location for output files instead of current directory
+
+``-plaintext``
+    Prints output messages in plain text: no colors or fancy symbols.
 
 ``-printast1``
     Prints the "compiler AST" (the internal representation of the program) after all processing steps.

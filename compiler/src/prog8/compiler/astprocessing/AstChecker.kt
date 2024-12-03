@@ -516,7 +516,8 @@ internal class AstChecker(private val program: Program,
             if (!subroutine.isAsmSubroutine && p.registerOrPair!=null) {
                 if (p.registerOrPair !in Cx16VirtualRegisters) errors.err("can only use R0-R15 as register param for normal subroutines", p.position)
                 else {
-                    errors.warn("\uD83D\uDCA3 footgun: reusing R0-R15 as parameters risks overwriting due to clobbering or no callstack", subroutine.position)
+                    if(!compilerOptions.ignoreFootguns)
+                        errors.warn("\uD83D\uDCA3 footgun: reusing R0-R15 as parameters risks overwriting due to clobbering or no callstack", subroutine.position)
                     if(p.type !in WordDatatypes && p.type !in ByteDatatypesWithBoolean) {
                         errors.err("can only use register param when type is boolean, byte or word", p.position)
                     }
@@ -929,8 +930,10 @@ internal class AstChecker(private val program: Program,
             if(decl.datatype==DataType.STR)
                 errors.err("string variables cannot be @dirty", decl.position)
             else {
-                if(decl.value==null)
-                    errors.warn("\uD83D\uDCA3 footgun: dirty variable, initial value will be undefined", decl.position)
+                if(decl.value==null) {
+                    if(!compilerOptions.ignoreFootguns)
+                        errors.warn("\uD83D\uDCA3 footgun: dirty variable, initial value will be undefined", decl.position)
+                }
                 else
                     errors.err("dirty variable can't have initialization value", decl.position)
             }
