@@ -1126,4 +1126,35 @@ other {
         compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("if-else should not have 'not' in the condition even after optimization steps") {
+        val src="""
+main {
+    sub start() {
+        if (cx16.r0 & 1) as bool == false
+            cx16.r1++
+        else
+            cx16.r2++
+
+        if (cx16.r0 & 1) as bool == true
+            cx16.r1++
+        else
+            cx16.r2++
+
+        if not((cx16.r0 & 1) as bool)
+            cx16.r1++
+        else
+            cx16.r2++
+
+        if (cx16.r0 & 1) as bool
+            cx16.r1++
+        else
+            cx16.r2++
+    }
+}"""
+        compileText(VMTarget(), false, src, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, src, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+    }
 })

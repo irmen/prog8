@@ -1,30 +1,26 @@
 %import textio
-%import diskio
-%option no_sysinit
 %zeropage basicsafe
 
 main {
     sub start() {
+        if (cx16.r0 & 1) as bool == false
+            cx16.r1++
+        else
+            cx16.r2++
 
-        if diskio.f_open("lines.txt") {
-            defer diskio.f_close()
+        if (cx16.r0 & 1) as bool == true
+            cx16.r1++
+        else
+            cx16.r2++
 
-            if diskio.f_open_w("@:copy.txt") {
-                defer diskio.f_close_w()
+        if not((cx16.r0 & 1) as bool)
+            cx16.r1++
+        else
+            cx16.r2++
 
-                str buffer = " "*80
-                ubyte length, status
-                do {
-                    length, status = diskio.f_readline(&buffer)
-                    cbm.CLRCHN()
-                    txt.print_uw(length)
-                    txt.nl()
-                    if length!=0 {
-                        if not diskio.f_write(buffer, length)
-                            return
-                    }
-                } until status!=0
-            }
-        }
+        if (cx16.r0 & 1) as bool
+            cx16.r1++
+        else
+            cx16.r2++
     }
 }

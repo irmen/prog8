@@ -477,6 +477,14 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
     }
 
+    if(errors.noErrors()) {
+        // certain optimization steps could have introduced a "not" in an if statement, postprocess those again.
+        var changer = NotExpressionAndIfComparisonExprChanger(program, errors, compilerOptions.compTarget)
+        changer.visit(program)
+        if(errors.noErrors())
+            changer.applyModifications()
+    }
+
     errors.report()
 }
 
