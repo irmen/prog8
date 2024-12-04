@@ -128,7 +128,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             }
             else if (target is BuiltinFunctionPlaceholder) {
                 val func = BuiltinFunctions.getValue(target.name)
-                val consideredParamTypes: List<Array<DataType>> = func.parameters.map { it.possibleDatatypes }
+                val consideredParamTypes = func.parameters.map { it.possibleDatatypes }
                 if(argtypes.size != consideredParamTypes.size)
                     return Pair("invalid number of arguments", call.position)
                 argtypes.zip(consideredParamTypes).forEachIndexed { index, pair ->

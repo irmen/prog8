@@ -5,7 +5,7 @@ import java.util.Objects
 
 
 object InferredTypes {
-    class InferredType private constructor(val isUnknown: Boolean, val isVoid: Boolean, private var datatype: DataType?) {
+    class InferredType private constructor(val isUnknown: Boolean, val isVoid: Boolean, private val datatype: DataType?) {
         init {
             require(!(datatype!=null && (isUnknown || isVoid))) { "invalid combination of args" }
         }
@@ -47,17 +47,17 @@ object InferredTypes {
         infix fun isNotAssignableTo(targetDt: InferredType): Boolean = !this.isAssignableTo(targetDt)
         infix fun isNotAssignableTo(targetDt: DataType): Boolean = !this.isAssignableTo(targetDt)
 
-        val isBool get() = datatype == DataType.BOOL
-        val isBytes get() = datatype in ByteDatatypes
-        val isWords get() = datatype in WordDatatypes
-        val isInteger get() = datatype in IntegerDatatypes
-        val isNumeric get() = datatype in NumericDatatypes
-        val isArray get() = datatype in ArrayDatatypes
-        val isString get() = datatype in StringlyDatatypes
-        val isIterable get() = datatype in IterableDatatypes
-        val isPassByReference get() = datatype in PassByReferenceDatatypes
-        val isPassByValue get() = datatype in PassByValueDatatypes
-        val isArrayElement get() = datatype in ElementToArrayTypes
+        val isBool = datatype == DataType.BOOL
+        val isBytes = datatype in ByteDatatypes
+        val isWords = datatype in WordDatatypes
+        val isInteger = datatype in IntegerDatatypes
+        val isNumeric = datatype in NumericDatatypes
+        val isArray = datatype in ArrayDatatypes
+        val isString = datatype in StringlyDatatypes
+        val isIterable = datatype in IterableDatatypes
+        val isPassByReference = datatype in PassByReferenceDatatypes
+        val isPassByValue = datatype in PassByValueDatatypes
+        val isArrayElement = datatype in ElementToArrayTypes
     }
 
     private val unknownInstance = InferredType.unknown()
