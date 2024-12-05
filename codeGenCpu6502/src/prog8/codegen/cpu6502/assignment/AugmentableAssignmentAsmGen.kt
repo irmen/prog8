@@ -2400,12 +2400,10 @@ $shortcutLabel:""")
                     }
                     "&" -> {
                         asmgen.out("  lda  $otherName |  and  $name |  sta  $name")
-                        if(dt.isWord) {
-                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                asmgen.out("  stz  $name+1")
-                            else
-                                asmgen.out("  lda  #0 |  sta  $name+1")
-                        }
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  $name+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  $name+1")
                     }
                     "|" -> asmgen.out("  lda  $otherName |  ora  $name |  sta  $name")
                     "^" -> asmgen.out("  lda  $otherName |  eor  $name |  sta  $name")
@@ -2822,12 +2820,10 @@ $shortcutLabel:""")
                     "&" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  and  $name |  sta  $name")
-                        if(dt.isWord) {
-                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                asmgen.out("  stz  $name+1")
-                            else
-                                asmgen.out("  lda  #0 |  sta  $name+1")
-                        }
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  $name+1")
+                        else
+                            asmgen.out("  lda  #0 |  sta  $name+1")
                     }
                     "|" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
@@ -2896,11 +2892,7 @@ $shortcutLabel:""")
                     }
                     "<<", ">>" -> {
                         if(value is PtNumber && value.number<=255) {
-                            when {
-                                dt.isWord -> TODO("shift a word var by ${value.number}")
-                                dt.isByte -> TODO("shift a byte var by ${value.number}")
-                                else -> throw AssemblyError("weird dt for shift")
-                            }
+                            TODO("shift a word var by ${value.number}")
                         } else {
                             throw AssemblyError("shift by a word value not supported, max is a byte")
                         }

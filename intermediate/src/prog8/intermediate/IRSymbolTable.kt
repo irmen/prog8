@@ -100,7 +100,7 @@ class IRSymbolTable {
         } else {
             scopedName = try {
                 variable.scopedName
-            } catch (ux: UninitializedPropertyAccessException) {
+            } catch (_: UninitializedPropertyAccessException) {
                 variable.name
             }
             varToadd = IRStMemVar(scopedName, variable.dt, variable.address, variable.length)

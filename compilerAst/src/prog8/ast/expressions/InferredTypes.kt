@@ -11,7 +11,7 @@ object InferredTypes {
             require(!(datatype!=null && (isUnknown || isVoid))) { "invalid combination of args" }
         }
 
-        val isKnown get() = datatype!=null && !datatype!!.isUndefined
+        val isKnown get() = datatype!=null && !datatype.isUndefined
         fun getOr(default: DataType) = if(isUnknown || isVoid) default else datatype!!
         fun getOrUndef() = if(isUnknown || isVoid) DataType.forDt(BaseDataType.UNDEFINED) else datatype!!
         fun getOrElse(transform: (InferredType) -> DataType): DataType =
@@ -21,7 +21,7 @@ object InferredTypes {
                 false
             else if(type==BaseDataType.STR && this.datatype?.base==BaseDataType.STR)
                 true
-            else (this.datatype?.base == type && this.datatype?.sub == null)     // strict equality if known
+            else (this.datatype?.base == type && this.datatype.sub == null)     // strict equality if known
 
         companion object {
             fun unknown() = InferredType(isUnknown = true, isVoid = false, datatype = null)

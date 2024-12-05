@@ -172,7 +172,7 @@ class TestC64Zeropage: FunSpec({
         var result = zp.allocate("", DataType.forDt(BaseDataType.FLOAT), null, null, errors)
         result.expectError { "expect allocation error: in regular zp there aren't 5 sequential bytes free" }
 
-        for (i in 0 until zp.availableBytes()) {
+        (0 until zp.availableBytes()).forEach {
             val alloc = zp.allocate("", DataType.forDt(BaseDataType.UBYTE), null, null, errors)
             alloc.getOrElse { throw it }
         }
@@ -196,7 +196,7 @@ class TestC64Zeropage: FunSpec({
         loc shouldNotBeIn zp.free
         val num = zp.availableBytes() / 2
 
-        for(i in 0..num-3) {
+        (0..num-3).forEach {
             zp.allocate("", DataType.forDt(BaseDataType.UWORD), null, null, errors)
         }
         zp.availableBytes() shouldBe 5
@@ -205,7 +205,7 @@ class TestC64Zeropage: FunSpec({
         result = zp.allocate("", DataType.forDt(BaseDataType.UWORD), null, null, errors)
         result.expectError { "should give allocation error" }
 
-        for(i in 0..4) {
+        (0..4).forEach {
             zp.allocate("", DataType.forDt(BaseDataType.UBYTE), null, null, errors)
         }
 

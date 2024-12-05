@@ -11,7 +11,7 @@ fun optimizeIntermediateAst(program: PtProgram, options: CompilationOptions, st:
         return
     while (errors.noErrors() &&
             (optimizeBitTest(program, options)
-            + optimizeAssignTargets(program, st, errors)) > 0
+            + optimizeAssignTargets(program, st)) > 0
     ) {
         // keep rolling
     }
@@ -27,7 +27,7 @@ private fun walkAst(root: PtNode, act: (node: PtNode, depth: Int) -> Boolean) {
 }
 
 
-private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable, errors: IErrorReporter): Int {
+private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable): Int {
     var changes = 0
     walkAst(program) { node: PtNode, depth: Int ->
         if(node is PtAssignment) {

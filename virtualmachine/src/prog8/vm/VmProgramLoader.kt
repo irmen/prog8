@@ -56,7 +56,6 @@ class VmProgramLoader {
                                 is IRInlineAsmChunk -> throw IRParseException("encountered unconverted inline assembly chunk")
                                 is IRInlineBinaryChunk -> throw IRParseException("inline binary data not yet supported in the VM")
                                 is IRCodeChunk -> programChunks += chunk
-                                else -> throw AssemblyError("weird chunk type")
                             }
                         }
                     }
