@@ -498,6 +498,14 @@ Provides several routines that deal with disk drive I/O, such as:
 - delete and rename files on the disk
 - send arbitrary CbmDos command to disk drive
 
+For simplicity sake, this library is designed to work on a *single* open file
+for reading, and a *single* open file for writing at any time only.
+If you need to load or save to more than one file at a time, you'll have
+to write your own I/O routines (or supplement the ones found here)
+
+You can set the active *disk drive number*, so it supports multiple drives, just one at a time.
+It does not support reading from more than one file or writing to more than one file at a time.
+
 Commander X16 additions:
 Headerless load and save routines are available (load_raw, save_raw).
 On the Commander X16 it tries to use that machine's fast Kernal loading routines if possible.
@@ -511,19 +519,17 @@ Read the `diskio source code <https://github.com/irmen/prog8/tree/master/compile
 to see what's in there. (Note: slight variations for different compiler targets)
 
 .. note::
-    For simplicity sake, this library is designed to work on a *single* open file
-    for reading, and a *single* open file for writing at any time only.
-    If you need to load or save to more than one file at a time, you'll have
-    to write your own I/O routines (or supplement the ones found here)
+    Opening a file using f_read() or f_read_w() doesn't set the default i/o channels to that file.
+    In fact, after calling routines in diskio, it resets the input and output channels to their
+    defaults (keyboard and screen).
+    If you are going to do kernal I/O calls like CHRIN/CHROUT/(M)ACPTR yourself on the files opened via diskio,
+    you must use reset_read_channel() or reset_write_channel() before doing so. This makes
+    the correct file channel active. The diskio routines themselves do this as well internally.
 
 .. note::
     If you are using the X16 emulator with HostFS, and are experiencing weird behavior with these
     routines, please first try again with an SD-card image instead of HostFs.
     It is possible that there are still small differences between HostFS and actual CBM DOS in the X16 emulator.
-
-.. note::
-    You can set the active disk drive number, so it supports multiple drives, just one at a time.
-    It does not support reading from more than one file or writing to more than one file at a time.
 
 .. attention::
     Error handling is peculiar on CBM dos systems (C64, C128, cx16, PET). Read the

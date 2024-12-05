@@ -796,7 +796,7 @@ skip:
         }
 
         sub fill_scanline_left() -> bool {
-            ; TODO maybe this could use vera auto decrement, but that would require some clever masking calculations
+            ; TODO maybe this could use vera auto decrement, but that requires some clever masking calculations
             cx16.r9s = xx
             while xx >= 0 {
                 if pgetset()
@@ -807,7 +807,7 @@ skip:
         }
 
         sub fill_scanline_right() {
-             ; TODO maybe this could use vera auto increment, but that would require some clever masking calculations
+             ; TODO maybe this could use vera auto increment, but that requires some clever masking calculations
              cx16.r9s = xx
             while xx <= width-1 {
                 if pgetset()

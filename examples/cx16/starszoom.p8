@@ -4,7 +4,6 @@
 ; Movement is dictated by a random accelleration, which increases the speed, which increases the radius.
 
 ; TODO extend the radius to a larger maximum (0-319 or perhaps 0-511, instead of 0-255) so that we can fill the whole screen.
-; TODO do something with the colors palette: make stars darker in the distance
 
 %import math
 %import palette

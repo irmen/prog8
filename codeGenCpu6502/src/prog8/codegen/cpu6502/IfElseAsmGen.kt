@@ -63,7 +63,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         require(target.datatype==expr.type)
         val falseLabel = asmgen.makeLabel("ifexpr_false")
         val endLabel = asmgen.makeLabel("ifexpr_end")
-        evalConditonAndBranchWhenFalse(expr.condition, falseLabel)
+        evalIfExpressionConditonAndBranchWhenFalse(expr.condition, falseLabel)
         when(expr.type) {
             in ByteDatatypesWithBoolean -> {
                 asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.A, false)
@@ -93,12 +93,12 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun evalConditonAndBranchWhenFalse(condition: PtExpression, falseLabel: String) {
+    private fun evalIfExpressionConditonAndBranchWhenFalse(condition: PtExpression, falseLabel: String) {
         if (condition is PtBinaryExpression) {
             return when(condition.right.type) {
-                in ByteDatatypesWithBoolean -> translateIfByteConditionBranch(condition, falseLabel)
-                in WordDatatypes -> translateIfWordConditionBranch(condition, falseLabel)
-                DataType.FLOAT -> translateFloatConditionBranch(condition, falseLabel)
+                in ByteDatatypesWithBoolean -> translateIfExpressionByteConditionBranch(condition, falseLabel)
+                in WordDatatypes -> translateIfExpressionWordConditionBranch(condition, falseLabel)
+                DataType.FLOAT -> translateIfExpressionFloatConditionBranch(condition, falseLabel)
                 else -> throw AssemblyError("weird dt")
             }
         }
@@ -359,7 +359,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateIfByteConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
+    private fun translateIfExpressionByteConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
         val signed = condition.left.type in SignedDatatypes
         val constValue = condition.right.asConstInteger()
         if(constValue==0) {
@@ -398,7 +398,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateIfWordConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
+    private fun translateIfExpressionWordConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
         // TODO can we reuse this whole thing from IfElse ?
         val constValue = condition.right.asConstInteger()
         if(constValue!=null) {
@@ -2048,7 +2048,7 @@ _jump                       jmp  ($asmLabel)
         }
     }
 
-    private fun translateFloatConditionBranch(condition: PtBinaryExpression, elseLabel: String) {
+    private fun translateIfExpressionFloatConditionBranch(condition: PtBinaryExpression, elseLabel: String) {
         val constValue = (condition.right as? PtNumber)?.number
         if(constValue==0.0) {
             if (condition.operator == "==") {
