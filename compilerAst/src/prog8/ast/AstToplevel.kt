@@ -3,14 +3,12 @@ package prog8.ast
 import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.DataType
-import prog8.code.core.Encoding
-import prog8.code.core.Position
-import prog8.code.core.SourceCode
+import prog8.code.core.*
 
 
 object ParentSentinel : Node {
@@ -376,12 +374,16 @@ internal object BuiltinFunctionScopePlaceholder : INameScope {
 }
 
 
-fun defaultZero(dt: DataType, position: Position) = when(dt) {
-    DataType.BOOL -> NumericLiteral(DataType.BOOL, 0.0,  position)
-    DataType.UBYTE -> NumericLiteral(DataType.UBYTE, 0.0,  position)
-    DataType.BYTE -> NumericLiteral(DataType.BYTE, 0.0,  position)
-    DataType.UWORD, DataType.STR -> NumericLiteral(DataType.UWORD, 0.0, position)
-    DataType.WORD -> NumericLiteral(DataType.WORD, 0.0, position)
-    DataType.FLOAT -> NumericLiteral(DataType.FLOAT, 0.0, position)
+fun defaultZero(dt: BaseDataType, position: Position) = when(dt) {
+    BaseDataType.BOOL -> NumericLiteral(BaseDataType.BOOL, 0.0,  position)
+    BaseDataType.UBYTE -> NumericLiteral(BaseDataType.UBYTE, 0.0,  position)
+    BaseDataType.BYTE -> NumericLiteral(BaseDataType.BYTE, 0.0,  position)
+    BaseDataType.UWORD, BaseDataType.STR -> NumericLiteral(BaseDataType.UWORD, 0.0, position)
+    BaseDataType.WORD -> NumericLiteral(BaseDataType.WORD, 0.0, position)
+    BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, 0.0, position)
     else -> throw FatalAstException("can only determine default zero value for a numeric type")
 }
+
+fun defaultZero(dt: SubType, position: Position) = defaultZero(dt.dt, position)
+
+fun defaultZero(idt: InferredTypes.InferredType, position: Position) = defaultZero(idt.getOrUndef().base, position)

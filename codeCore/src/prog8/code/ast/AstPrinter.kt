@@ -1,13 +1,15 @@
 package prog8.code.ast
 
-import prog8.code.core.*
+import prog8.code.core.DataType
+import prog8.code.core.escape
+import prog8.code.core.toHex
 
 /**
  * Produces readable text from a [PtNode] (AST node, usually starting with PtProgram as root),
  * passing it as a String to the specified receiver function.
  */
 fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Unit) {
-    fun type(dt: DataType) = "!${dt.name.lowercase()}!"
+    fun type(dt: DataType) = "!${dt}!"
     fun txt(node: PtNode): String {
         return when(node) {
             is PtAlign -> "%align ${node.align}"
@@ -48,14 +50,14 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtIrRegister -> "IRREG#${node.register} ${type(node.type)}"
             is PtMemoryByte -> "@()"
             is PtNumber -> {
-                val numstr = if(node.type == DataType.FLOAT) node.number.toString() else node.number.toHex()
+                val numstr = if(node.type.isFloat) node.number.toString() else node.number.toHex()
                 "$numstr ${type(node.type)}"
             }
             is PtBool -> node.value.toString()
             is PtPrefix -> node.operator
             is PtRange -> "<range>"
             is PtString -> "\"${node.value.escape()}\""
-            is PtTypeCast -> "as ${node.type.name.lowercase()}"
+            is PtTypeCast -> "as ${node.type}"
             is PtForLoop -> "for"
             is PtIfElse -> "ifelse"
             is PtIncludeBinary -> "%incbin '${node.file}', ${node.offset}, ${node.length}"
@@ -103,21 +105,20 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 "\nblock '${node.name}' $addr"
             }
             is PtConstant -> {
-                val value = when(node.type) {
-                    DataType.BOOL -> if(node.value==0.0) "false" else "true"
-                    in IntegerDatatypes -> node.value.toInt().toString()
+                val value = when {
+                    node.type.isBool -> if(node.value==0.0) "false" else "true"
+                    node.type.isInteger -> node.value.toInt().toString()
                     else -> node.value.toString()
                 }
-                "const ${node.type.name.lowercase()} ${node.name} = $value"
+                "const ${node.type} ${node.name} = $value"
             }
             is PtLabel -> "${node.name}:"
             is PtMemMapped -> {
-                if(node.type in ArrayDatatypes) {
+                if(node.type.isArray) {
                     val arraysize = if(node.arraySize==null) "" else node.arraySize.toString()
-                    val eltType = ArrayToElementTypes.getValue(node.type)
-                    "&${eltType.name.lowercase()}[$arraysize] ${node.name} = ${node.address.toHex()}"
+                    "&${node.type.elementType()}[$arraysize] ${node.name} = ${node.address.toHex()}"
                 } else {
-                    "&${node.type.name.lowercase()} ${node.name} = ${node.address.toHex()}"
+                    "&${node.type} ${node.name} = ${node.address.toHex()}"
                 }
             }
             is PtSub -> {
@@ -127,11 +128,11 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 }
                 var str = "sub ${node.name}($params) "
                 if(node.returntype!=null)
-                    str += "-> ${node.returntype.name.lowercase()}"
+                    str += "-> ${node.returntype}"
                 str
             }
             is PtVariable -> {
-                val split = if(node.type in SplitWordArrayTypes) "@split" else ""
+                val split = if(node.type.isSplitWordArray) "@split" else ""
                 val align = when(node.align) {
                     0u -> ""
                     2u -> "@alignword"
@@ -140,15 +141,15 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     else -> throw IllegalArgumentException("invalid alignment size")
                 }
                 val str = if(node.arraySize!=null) {
-                    val eltType = ArrayToElementTypes.getValue(node.type)
-                    "${eltType.name.lowercase()}[${node.arraySize}] $split $align ${node.name}"
+                    val eltType = node.type.elementType()
+                    "${eltType}[${node.arraySize}] $split $align ${node.name}"
                 }
-                else if(node.type in ArrayDatatypes) {
-                    val eltType = ArrayToElementTypes.getValue(node.type)
-                    "${eltType.name.lowercase()}[] $split $align ${node.name}"
+                else if(node.type.isArray) {
+                    val eltType = node.type.elementType()
+                    "${eltType}[] $split $align ${node.name}"
                 }
                 else
-                    "${node.type.name.lowercase()} ${node.name}"
+                    "${node.type} ${node.name}"
                 if(node.value!=null)
                     str + " = " + txt(node.value)
                 else
@@ -161,7 +162,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtReturn -> "return"
             is PtSubroutineParameter -> {
                 val reg = if(node.register!=null) "@${node.register}" else ""
-                "${node.type.name.lowercase()} ${node.name} $reg"
+                "${node.type} ${node.name} $reg"
             }
             is PtWhen -> "when"
             is PtWhenChoice -> {

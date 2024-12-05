@@ -44,7 +44,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     init {
-        if(register!=null && datatype !in NumericDatatypesWithBoolean)
+        if(register!=null && !datatype.isNumericOrBool)
             throw AssemblyError("must be numeric type")
     }
 
@@ -77,12 +77,20 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 when(registers) {
                     RegisterOrPair.A,
                     RegisterOrPair.X,
-                    RegisterOrPair.Y -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.BYTE else DataType.UBYTE, scope, pos, register = registers)
+                    RegisterOrPair.Y -> {
+                        val dt = DataType.forDt(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
+                    }
                     RegisterOrPair.AX,
                     RegisterOrPair.AY,
-                    RegisterOrPair.XY -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, pos, register = registers)
+                    RegisterOrPair.XY -> {
+                        val dt = DataType.forDt(if(signed) BaseDataType.WORD else BaseDataType.UWORD)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
+                    }
                     RegisterOrPair.FAC1,
-                    RegisterOrPair.FAC2 -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, scope, pos, register = registers)
+                    RegisterOrPair.FAC2 -> {
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.FLOAT), scope, pos, register = registers)
+                    }
                     RegisterOrPair.R0,
                     RegisterOrPair.R1,
                     RegisterOrPair.R2,
@@ -98,7 +106,10 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.R12,
                     RegisterOrPair.R13,
                     RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, if(signed) DataType.WORD else DataType.UWORD, scope, pos, register = registers)
+                    RegisterOrPair.R15 -> {
+                        val dt = DataType.forDt(if(signed) BaseDataType.WORD else BaseDataType.UWORD)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
+                    }
                 }
     }
 
@@ -151,7 +162,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
             val bv = value as? PtBool
             if(bv!=null)
-                return AsmAssignSource(SourceStorageKind.LITERALBOOLEAN, program, asmgen, DataType.BOOL, boolean = bv)
+                return AsmAssignSource(SourceStorageKind.LITERALBOOLEAN, program, asmgen, DataType.forDt(BaseDataType.BOOL), boolean = bv)
 
             return when(value) {
                 // checked above:   is PtNumber -> throw AssemblyError("should have been constant value")
@@ -163,7 +174,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system
-                    if(value.type == DataType.UWORD && varName.lowercase().startsWith("cx16.r")) {
+                    if(value.type.isUnsignedWord && varName.lowercase().startsWith("cx16.r")) {
                         val regStr = varName.lowercase().substring(5)
                         val reg = RegisterOrPair.valueOf(regStr.uppercase())
                         AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, value.type, register = reg)
@@ -172,7 +183,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     }
                 }
                 is PtMemoryByte -> {
-                    AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.UBYTE, memory = value)
+                    AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.forDt(BaseDataType.UBYTE), memory = value)
                 }
                 is PtArrayIndexer -> {
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, value.type, array = value)
@@ -202,9 +213,9 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 AsmAssignSource(kind, program, asmgen, newType, variableAsmName, array, memory, register, number, boolean, expression)
 
         if(target.datatype!=datatype) {
-            if(target.datatype in ByteDatatypes && datatype in ByteDatatypes) {
+            if(target.datatype.isByte && datatype.isByte) {
                 return withAdjustedDt(target.datatype)
-            } else if(target.datatype in WordDatatypes && datatype in WordDatatypes) {
+            } else if(target.datatype.isWord && datatype.isWord) {
                 return withAdjustedDt(target.datatype)
             }
         }
@@ -220,8 +231,9 @@ internal sealed class AsmAssignmentBase(val source: AsmAssignSource,
                                         val position: Position) {
     init {
         if(target.register !in arrayOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
-            require(source.datatype != DataType.UNDEFINED) { "must not be placeholder/undefined datatype at $position" }
-            require(memsizer.memorySize(source.datatype) <= memsizer.memorySize(target.datatype)) {
+            require(!source.datatype.isUndefined) { "must not be placeholder/undefined datatype at $position" }
+        if(!source.datatype.isArray && !target.datatype.isArray)
+            require(memsizer.memorySize(source.datatype, null) <= memsizer.memorySize(target.datatype, null)) {
                 "source dt size must be less or equal to target dt size at $position srcdt=${source.datatype} targetdt=${target.datatype}"
             }
     }

@@ -17,28 +17,28 @@ internal class AnyExprAsmGen(
     private val asmgen: AsmGen6502Internal
 ) {
     fun assignAnyExpressionUsingStack(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
-        when(expr.type) {
-            in ByteDatatypesWithBoolean -> {
-                if(expr.left.type in ByteDatatypesWithBoolean && expr.right.type in ByteDatatypesWithBoolean)
+        when {
+            expr.type.isByteOrBool -> {
+                if(expr.left.type.isByteOrBool && expr.right.type.isByteOrBool)
                     return assignByteBinExpr(expr, assign)
-                if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+                if (expr.left.type.isWord && expr.right.type.isWord) {
                     require(expr.operator in ComparisonOperators)
                     throw AssemblyError("words operands comparison -> byte, should have been handled elsewhere")
                 }
-                if (expr.left.type==DataType.FLOAT && expr.right.type==DataType.FLOAT) {
+                if (expr.left.type.isFloat && expr.right.type.isFloat) {
                     require(expr.operator in ComparisonOperators)
                     return assignFloatBinExpr(expr, assign)
                 }
                 throw AssemblyError("weird expr operand types: ${expr.left.type} and ${expr.right.type}")
             }
-            in WordDatatypes -> {
-                require(expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+            expr.type.isWord -> {
+                require(expr.left.type.isWord && expr.right.type.isWord) {
                     "both operands must be words"
                 }
                 throw AssemblyError("expression should have been handled otherwise: word ${expr.operator} at ${expr.position}")
             }
-            DataType.FLOAT -> {
-                require(expr.left.type==DataType.FLOAT && expr.right.type==DataType.FLOAT) {
+            expr.type.isFloat -> {
+                require(expr.left.type.isFloat && expr.right.type.isFloat) {
                     "both operands must be floats"
                 }
                 return assignFloatBinExpr(expr, assign)
@@ -52,7 +52,7 @@ internal class AnyExprAsmGen(
             "+" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  clc |  adc  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -60,7 +60,7 @@ internal class AnyExprAsmGen(
             "-" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  sec |  sbc  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -75,7 +75,7 @@ internal class AnyExprAsmGen(
             "&" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  and  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -83,7 +83,7 @@ internal class AnyExprAsmGen(
             "|" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  ora  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -91,7 +91,7 @@ internal class AnyExprAsmGen(
             "^", "xor" -> {
                 asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla |  eor  P8ZP_SCRATCH_B1")
                 asmgen.assignRegister(RegisterOrPair.A, assign.target)
                 return true
@@ -197,7 +197,7 @@ internal class AnyExprAsmGen(
     private fun setupFloatComparisonFAC1vsVarAY(expr: PtBinaryExpression) {
         asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
         if(!expr.right.isSimple()) asmgen.pushFAC1()
-        asmgen.assignExpressionToVariable(expr.right, "floats.floats_temp_var", DataType.FLOAT)
+        asmgen.assignExpressionToVariable(expr.right, "floats.floats_temp_var", DataType.forDt(BaseDataType.FLOAT))
         if(!expr.right.isSimple()) asmgen.popFAC1()
         asmgen.out("  lda  #<floats.floats_temp_var |  ldy  #>floats.floats_temp_var")
     }

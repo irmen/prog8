@@ -58,20 +58,20 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         // the asm-gen code can deal with situations where you want to assign a byte into a word.
         // it will create the most optimized code to do this (so it type-extends for us).
         // But we can't deal with writing a word into a byte - explicit typeconversion should be done
-        if(program.memsizer.memorySize(value.datatype) > program.memsizer.memorySize(target.datatype))
+        if(program.memsizer.memorySize(value.datatype, null) > program.memsizer.memorySize(target.datatype, null))
             throw AssemblyError("missing type cast: value type > target type  ${target.position}")
 
         fun regName(v: AsmAssignSource) = "cx16.${v.register!!.name.lowercase()}"
 
         when (target.kind) {
             TargetStorageKind.VARIABLE -> {
-                when (target.datatype) {
-                    in ByteDatatypesWithBoolean -> {
+                when {
+                    target.datatype.isByteOrBool -> {
                         when(value.kind) {
                             SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(target.asmVarname, target.datatype, operator, value.boolean!!.asInt())
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(target.asmVarname, target.datatype, operator, value.asmVarname)
-                            SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(target.asmVarname, target.datatype, operator, regName(value))
+                            SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(target.asmVarname, target.datatype.isSigned, operator, value.asmVarname)
+                            SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(target.asmVarname, target.datatype.isSigned, operator, regName(value))
                             SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(target.asmVarname, target.datatype, operator, value.memory!!)
                             SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(target.asmVarname, target.datatype, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
@@ -84,7 +84,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                     }
-                    in WordDatatypes -> {
+                    target.datatype.isWord -> {
                         val block = target.origAstTarget?.definingBlock()
                         when(value.kind) {
                             SourceStorageKind.LITERALBOOLEAN -> inplacemodificationWordWithLiteralval(target.asmVarname, target.datatype, operator, value.boolean!!.asInt(), block)
@@ -104,7 +104,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                     }
-                    DataType.FLOAT -> {
+                    target.datatype.isFloat -> {
                         when(value.kind) {
                             SourceStorageKind.LITERALBOOLEAN -> inplacemodificationFloatWithLiteralval(target.asmVarname, operator, value.boolean!!.asInt().toDouble())
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(target.asmVarname, operator, value.number!!.number)
@@ -131,18 +131,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     is PtNumber -> {
                         val addr = (memory.address as PtNumber).number.toInt()
                         when(value.kind) {
-                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.UBYTE, operator, value.boolean!!.asInt())
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.UBYTE, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(addr.toHex(), DataType.UBYTE, operator, value.asmVarname)
-                            SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(addr.toHex(), DataType.UBYTE, operator, regName(value))
-                            SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataType.UBYTE, operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataType.UBYTE, operator, value.array!!)
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.boolean!!.asInt())
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.number!!.number.toInt())
+                            SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(addr.toHex(), false, operator, value.asmVarname)
+                            SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(addr.toHex(), false, operator, regName(value))
+                            SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataType.UBYTE, operator, value.expression)
+                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.expression)
                                 } else {
-                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataType.UBYTE, operator, value.expression!!)
+                                    inplacemodificationByteVariableWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.expression!!)
                                 }
                             }
                         }
@@ -192,21 +192,21 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             SourceStorageKind.MEMORY -> {
                                 asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.memory!!)
+                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE), operator, value.memory!!)
                                 asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                             SourceStorageKind.ARRAY -> {
                                 asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.array!!)
+                                inplacemodificationByteVariableWithValue("P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE), operator, value.array!!)
                                 asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                             SourceStorageKind.EXPRESSION -> {
-                                val tempVar = asmgen.getTempVarName(DataType.UBYTE)
+                                val tempVar = asmgen.getTempVarName(BaseDataType.UBYTE)
                                 asmgen.out("  sta  $tempVar")
                                 if(value.expression is PtTypeCast)
-                                    inplacemodificationByteVariableWithValue(tempVar, DataType.UBYTE, operator, value.expression)
+                                    inplacemodificationByteVariableWithValue(tempVar, DataType.forDt(BaseDataType.UBYTE), operator, value.expression)
                                 else
-                                    inplacemodificationByteVariableWithValue(tempVar, DataType.UBYTE, operator, value.expression!!)
+                                    inplacemodificationByteVariableWithValue(tempVar, DataType.forDt(BaseDataType.UBYTE), operator, value.expression!!)
                                 asmgen.out("  ldx  $tempVar")
                             }
                         }
@@ -235,14 +235,14 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         return
                     }
                     // normal array
-                    val targetVarName = "${target.asmVarname} + ${index*program.memsizer.memorySize(target.datatype)}"
-                    when (target.datatype) {
-                        in ByteDatatypesWithBoolean -> {
+                    val targetVarName = "${target.asmVarname} + ${index*program.memsizer.memorySize(target.datatype, null)}"
+                    when {
+                        target.datatype.isByteOrBool -> {
                             when(value.kind) {
                                 SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.boolean!!.asInt())
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationByteVariableWithLiteralval(targetVarName, target.datatype, operator, value.number!!.number.toInt())
-                                SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, value.asmVarname)
-                                SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype, operator, regName(value))
+                                SourceStorageKind.VARIABLE -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype.isSigned, operator, value.asmVarname)
+                                SourceStorageKind.REGISTER -> inplacemodificationByteVariableWithVariable(targetVarName, target.datatype.isSigned, operator, regName(value))
                                 SourceStorageKind.MEMORY -> inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.memory!!)
                                 SourceStorageKind.ARRAY -> inplacemodificationByteVariableWithValue(targetVarName, target.datatype, operator, value.array!!)
                                 SourceStorageKind.EXPRESSION -> {
@@ -256,7 +256,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                         }
 
-                        in WordDatatypes -> {
+                        target.datatype.isWord -> {
                             val block = target.origAstTarget?.definingBlock()
                             when(value.kind) {
                                 SourceStorageKind.LITERALBOOLEAN -> inplacemodificationWordWithLiteralval(targetVarName, target.datatype, operator, value.boolean!!.asInt(), block)
@@ -276,7 +276,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                         }
 
-                        DataType.FLOAT -> {
+                        target.datatype.isFloat -> {
                             when(value.kind) {
                                 SourceStorageKind.LITERALBOOLEAN -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.boolean!!.asInt().toDouble())
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.number!!.number)
@@ -305,8 +305,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         && tryIndexedIncDec(target.array, operator))
                         return
 
-                    when (target.datatype) {
-                        in ByteDatatypesWithBoolean -> {
+                    when {
+                        target.datatype.isByteOrBool -> {
                             if(value.kind==SourceStorageKind.EXPRESSION
                                 && value.expression is PtTypeCast
                                 && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
@@ -316,21 +316,21 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  lda  ${target.array.variable.name},y")
                             when(value.kind) {
                                 SourceStorageKind.LITERALBOOLEAN -> {
-                                    inplacemodificationRegisterAwithVariable(operator, "#${value.boolean!!.asInt()}", target.datatype in SignedDatatypes)
+                                    inplacemodificationRegisterAwithVariable(operator, "#${value.boolean!!.asInt()}", target.datatype.isSigned)
                                     asmgen.restoreRegisterStack(CpuRegister.Y, true)
                                 }
                                 SourceStorageKind.LITERALNUMBER -> {
-                                    inplacemodificationRegisterAwithVariable(operator, "#${value.number!!.number.toInt()}", target.datatype in SignedDatatypes)
+                                    inplacemodificationRegisterAwithVariable(operator, "#${value.number!!.number.toInt()}", target.datatype.isSigned)
                                     asmgen.restoreRegisterStack(CpuRegister.Y, true)
                                 }
 
                                 SourceStorageKind.VARIABLE -> {
-                                    inplacemodificationRegisterAwithVariable(operator, value.asmVarname, target.datatype in SignedDatatypes)
+                                    inplacemodificationRegisterAwithVariable(operator, value.asmVarname, target.datatype.isSigned)
                                     asmgen.restoreRegisterStack(CpuRegister.Y, true)
                                 }
 
                                 SourceStorageKind.REGISTER -> {
-                                    inplacemodificationRegisterAwithVariable(operator, regName(value), target.datatype in SignedDatatypes)
+                                    inplacemodificationRegisterAwithVariable(operator, regName(value), target.datatype.isSigned)
                                     asmgen.restoreRegisterStack(CpuRegister.Y, true)
                                 }
 
@@ -349,7 +349,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
 
                                 SourceStorageKind.EXPRESSION -> {
-                                    val tempVar = asmgen.getTempVarName(DataType.UBYTE)
+                                    val tempVar = asmgen.getTempVarName(BaseDataType.UBYTE)
                                     asmgen.out("  sta  $tempVar")
                                     if(value.expression is PtTypeCast)
                                         inplacemodificationByteVariableWithValue(tempVar, target.datatype, operator, value.expression)
@@ -362,7 +362,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             asmgen.out("  sta  ${target.array.variable.name},y")
                         }
 
-                        in WordDatatypes -> {
+                        target.datatype.isWord -> {
                             if(value.kind==SourceStorageKind.EXPRESSION
                                 && value.expression is PtTypeCast
                                 && tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator))
@@ -399,7 +399,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     if(!inplacemodificationRegisterAXwithVariable(
                                             operator,
                                             value.asmVarname,
-                                            value.datatype
+                                            value.datatype.base
                                         )) {
                                         asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
                                         inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, value.asmVarname, value.datatype, block)
@@ -411,7 +411,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     if(!inplacemodificationRegisterAXwithVariable(
                                             operator,
                                             regName(value),
-                                            value.datatype
+                                            value.datatype.base
                                         )) {
                                         asmgen.out("  sta  P8ZP_SCRATCH_W1 |  stx  P8ZP_SCRATCH_W1+1")
                                         inplacemodificationWordWithVariable("P8ZP_SCRATCH_W1", target.datatype, operator, regName(value), value.datatype, block)
@@ -432,7 +432,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
 
                                 SourceStorageKind.EXPRESSION -> {
-                                    val tempVar = asmgen.getTempVarName(DataType.UWORD)
+                                    val tempVar = asmgen.getTempVarName(BaseDataType.UWORD)
                                     asmgen.out("  sta  $tempVar |  stx  $tempVar+1")
                                     if(value.expression is PtTypeCast)
                                         inplacemodificationWordWithValue(tempVar, target.datatype, operator, value.expression, block)
@@ -448,9 +448,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 asmgen.out("  sta  ${target.array.variable.name},y |  txa |  sta  ${target.array.variable.name}+1,y")
                         }
 
-                        DataType.FLOAT -> {
+                        target.datatype.isFloat -> {
                             // copy array value into tempvar
-                            val tempvar = asmgen.getTempVarName(DataType.FLOAT)
+                            val tempvar = asmgen.getTempVarName(BaseDataType.FLOAT)
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.A)
                             asmgen.out("""
                                                 ldy  #>${target.asmVarname}
@@ -508,8 +508,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
     private fun tryIndexedIncDec(array: PtArrayIndexer, operator: String): Boolean {
         val arrayvar = asmgen.asmVariableName(array.variable)
-        when (array.type) {
-            in ByteDatatypes -> {
+        when {
+            array.type.isByte -> {
                 asmgen.loadScaledArrayIndexIntoRegister(array, CpuRegister.X)
                 if (operator == "+")
                     asmgen.out("  inc  $arrayvar,x")
@@ -517,7 +517,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     asmgen.out("  dec  $arrayvar,x")
                 return true
             }
-            in WordDatatypes -> {
+            array.type.isWord -> {
                 asmgen.loadScaledArrayIndexIntoRegister(array, CpuRegister.X)
                 if(array.splitWords) {
                     if(operator=="+") {
@@ -551,7 +551,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     return true
                 }
             }
-            DataType.FLOAT -> {
+            array.type.isFloat -> {
                 asmgen.loadScaledArrayIndexIntoRegister(array, CpuRegister.A)
                 asmgen.out("""
                     ldy  #>$arrayvar
@@ -568,7 +568,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun tryOptimizedMemoryInplace(address: PtBinaryExpression, operator: String, value: AsmAssignSource): Boolean {
-        if(value.datatype !in ByteDatatypes || operator !in "|&^+-")
+        if(!value.datatype.isByte || operator !in "|&^+-")
             return false
 
         fun addrIntoZpPointer(): String {
@@ -583,7 +583,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         fun assignValueToA() {
             val assignValue = AsmAssignment(value,
-                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE,
+                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.UBYTE),
                     address.definingISub(), Position.DUMMY, register = RegisterOrPair.A),
                 program.memsizer, Position.DUMMY)
             assignmentAsmGen.translateNormalAssignment(assignValue, address.definingISub())   // calculate value into A
@@ -591,7 +591,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         val rightTc = address.right as? PtTypeCast
         val constOffset = (address.right as? PtNumber)?.number?.toInt()
-        if(address.operator=="+" && (address.right.type in ByteDatatypes || (rightTc!=null && rightTc.value.type in ByteDatatypes) || (constOffset!=null && constOffset<256)) ) {
+        if(address.operator=="+" && (address.right.type.isByte || (rightTc!=null && rightTc.value.type.isByte) || (constOffset!=null && constOffset<256)) ) {
             if(constOffset!=null) {
                 val zpPointerVarName = addrIntoZpPointer()
                 if(value.number==null) assignValueToA()
@@ -677,10 +677,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         inplacemodificationSomeWordWithLiteralval("${arrayVar}_lsb+$index", "${arrayVar}_msb+$index", dt, operator, value, null)
     }
 
-    private fun inplacemodificationRegisterAXwithVariable(operator: String, variable: String, varDt: DataType): Boolean {
+    private fun inplacemodificationRegisterAXwithVariable(operator: String, variable: String, varDt: BaseDataType): Boolean {
         when(operator) {
             "+" -> {
-                return if(varDt in WordDatatypes) {
+                return if(varDt.isWord) {
                     asmgen.out("""
                         clc
                         adc  $variable
@@ -704,7 +704,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             "-" -> {
-                return if(varDt in WordDatatypes) {
+                return if(varDt.isWord) {
                     asmgen.out("""
                         sec
                         sbc  $variable
@@ -882,7 +882,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     private fun tryInplaceModifyWithRemovedRedundantCast(value: PtTypeCast, target: AsmAssignTarget, operator: String): Boolean {
         if (target.datatype == value.type) {
             val childDt = value.value.type
-            if (value.type!=DataType.FLOAT && (value.type.equalsSize(childDt) || value.type.largerThan(childDt))) {
+            if (!value.type.isFloat && (value.type.equalsSize(childDt) || value.type.largerSizeThan(childDt))) {
                 // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.
                 // (works for integer types, not for float.)
                 val src = AsmAssignSource.fromAstSource(value.value, program, asmgen)
@@ -894,7 +894,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationBytePointerWithValue(pointervar: PtIdentifier, operator: String, value: PtExpression) {
-        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
         inplacemodificationBytePointerWithVariable(pointervar, operator, "P8ZP_SCRATCH_B1")
     }
 
@@ -1058,6 +1058,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationByteVariableWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {
+        require(dt.isByteOrBool)
         if(!value.isSimple()) {
             // attempt short-circuit (McCarthy) evaluation
             when (operator) {
@@ -1065,7 +1066,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
                     val shortcutLabel = asmgen.makeLabel("shortcut")
                     asmgen.out("  lda  $name |  beq  $shortcutLabel")
-                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt.isSigned)
                     asmgen.out("""
                          and  $name
                          sta  $name
@@ -1076,7 +1077,7 @@ $shortcutLabel:""")
                     // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
                     val shortcutLabel = asmgen.makeLabel("shortcut")
                     asmgen.out("  lda  $name |  bne  $shortcutLabel")
-                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt.isSigned)
                     asmgen.out("""
                          ora  $name
                          sta  $name
@@ -1089,25 +1090,25 @@ $shortcutLabel:""")
         if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
             if(operator=="&" && value is PtPrefix && value.operator=="~") {
                 // M &= ~A  -->  use TRB 65c02 instruction for that
-                asmgen.assignExpressionToRegister(value.value, RegisterOrPair.A, dt in SignedDatatypes)
+                asmgen.assignExpressionToRegister(value.value, RegisterOrPair.A, dt.isSigned)
                 asmgen.out("  trb  $name")
                 return
             }
             else if(operator=="|") {
                 // M |= A --> use TSB 65c02 instruction for that
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt.isSigned)
                 asmgen.out("  tsb  $name")
                 return
             }
         }
 
         // normal evaluation
-        asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt in SignedDatatypes)
-        inplacemodificationRegisterAwithVariableWithSwappedOperands(operator, name, dt in SignedDatatypes)
+        asmgen.assignExpressionToRegister(value, RegisterOrPair.A, dt.isSigned)
+        inplacemodificationRegisterAwithVariableWithSwappedOperands(operator, name, dt.isSigned)
         asmgen.out("  sta  $name")
     }
 
-    private fun inplacemodificationByteVariableWithVariable(name: String, dt: DataType, operator: String, otherName: String) {
+    private fun inplacemodificationByteVariableWithVariable(name: String, signed: Boolean, operator: String, otherName: String) {
         // note: no logical and/or shortcut here, not worth it due to simple right operand
 
         if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
@@ -1119,7 +1120,7 @@ $shortcutLabel:""")
         }
 
         asmgen.out("  lda  $name")
-        inplacemodificationRegisterAwithVariable(operator, otherName, dt in SignedDatatypes)
+        inplacemodificationRegisterAwithVariable(operator, otherName, signed)
         asmgen.out("  sta  $name")
     }
 
@@ -1467,6 +1468,7 @@ $shortcutLabel:""")
     private fun inplacemodificationByteVariableWithLiteralval(name: String, dt: DataType, operator: String, value: Int) {
         // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
         // note: no logical and/or shortcut here, not worth it due to simple right operand
+        require(dt.isByteOrBool)
         when (operator) {
             "+" -> {
                 if(value==1) asmgen.out("  inc  $name")
@@ -1484,13 +1486,13 @@ $shortcutLabel:""")
             }
             "/" -> {
                 // replacing division by shifting is done in an optimizer step.
-                if (dt == DataType.UBYTE)
+                if (dt.isUnsignedByte)
                     asmgen.out("  lda  $name |  ldy  #$value |  jsr  prog8_math.divmod_ub_asm |  sty  $name")
                 else
                     asmgen.out("  lda  $name |  ldy  #$value |  jsr  prog8_math.divmod_b_asm |  sty  $name")
             }
             "%" -> {
-                if(dt==DataType.BYTE)
+                if(dt.isSignedByte)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                 asmgen.out("""
                     lda  $name
@@ -1509,7 +1511,7 @@ $shortcutLabel:""")
             }
             ">>" -> {
                 if(value>0) {
-                    if (dt == DataType.UBYTE) {
+                    if (dt.isUnsignedByte) {
                         if(value>=8) {
                             if(asmgen.isTargetCpu(CpuType.CPU65c02))
                                 asmgen.out("  stz  $name")
@@ -1560,7 +1562,7 @@ $shortcutLabel:""")
 +                   sta  $name""")
             }
             "<" -> {
-                if(dt==DataType.UBYTE) {
+                if(dt.isUnsignedByte) {
                     asmgen.out("""
                         lda  #0
                         ldy  $name
@@ -1585,7 +1587,7 @@ $shortcutLabel:""")
                 }
             }
             "<=" -> {
-                if(dt==DataType.UBYTE) {
+                if(dt.isUnsignedByte) {
                     asmgen.out("""
                         lda  #0
                         ldy  #$value
@@ -1608,7 +1610,7 @@ $shortcutLabel:""")
                 }
             }
             ">" -> {
-                if(dt==DataType.UBYTE) {
+                if(dt.isUnsignedByte) {
                     asmgen.out("""
                         lda  #0
                         ldy  $name
@@ -1632,7 +1634,7 @@ $shortcutLabel:""")
                 }
             }
             ">=" -> {
-                if(dt==DataType.UBYTE) {
+                if(dt.isUnsignedByte) {
                     asmgen.out("""
                         lda  #0
                         ldy  $name
@@ -1675,6 +1677,7 @@ $shortcutLabel:""")
     }
 
     private fun inplacemodificationWordWithMemread(name: String, dt: DataType, operator: String, memread: PtMemoryByte) {
+        require(dt.isInteger)
         when (operator) {
             "+" -> {
                 asmgen.translateDirectMemReadExpressionToRegA(memread)
@@ -1707,7 +1710,7 @@ $shortcutLabel:""")
             "&" -> {
                 asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("  and  $name  |  sta  $name")
-                if(dt in WordDatatypes) {
+                if(dt.isWord) {
                     if(asmgen.isTargetCpu(CpuType.CPU65c02))
                         asmgen.out("  stz  $name+1")
                     else
@@ -1732,6 +1735,7 @@ $shortcutLabel:""")
     }
     
     private fun inplacemodificationSomeWordWithLiteralval(lsb: String, msb: String, dt: DataType, operator: String, value: Int, block: PtBlock?) {
+        require(dt.isWord)
         when (operator) {
             "+" -> {
                 when {
@@ -1836,7 +1840,7 @@ $shortcutLabel:""")
                 if(value==0) {
                     throw AssemblyError("division by zero")
                 } else {
-                    if(dt==DataType.WORD) {
+                    if(dt.isSignedWord) {
                         asmgen.out("""
                             lda  $lsb
                             ldy  $msb
@@ -1867,7 +1871,7 @@ $shortcutLabel:""")
             "%" -> {
                 if(value==0)
                     throw AssemblyError("division by zero")
-                if(dt==DataType.WORD)
+                if(dt.isSignedWord)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                 asmgen.out("""
                     lda  $lsb
@@ -1910,7 +1914,7 @@ $shortcutLabel:""")
             }
             ">>" -> {
                 if (value > 0) {
-                    if(dt==DataType.UWORD) {
+                    if(dt.isUnsignedWord) {
                         when {
                             value>=16 -> {
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -2050,7 +2054,7 @@ $shortcutLabel:""")
                     sta  $msb""")
             }
             "<" -> {
-                if(dt==DataType.UWORD) {
+                if(dt.isUnsignedWord) {
                     asmgen.out("""
                         lda  $msb
                         cmp  #>$value
@@ -2091,7 +2095,7 @@ $shortcutLabel:""")
                 }
             }
             "<=" -> {
-                if(dt==DataType.UWORD) {
+                if(dt.isUnsignedWord) {
                     asmgen.out("""
                         lda  $msb
                         cmp  #>$value
@@ -2134,7 +2138,7 @@ $shortcutLabel:""")
             }
             ">" -> {
                 // word > value  -->  value < word
-                if(dt==DataType.UWORD) {
+                if(dt.isUnsignedWord) {
                     asmgen.out("""
                         lda  #>$value
                         cmp  $msb
@@ -2176,7 +2180,7 @@ $shortcutLabel:""")
             }
             ">=" -> {
                 // word >= value  -->  value <= word
-                if(dt==DataType.UWORD) {
+                if(dt.isUnsignedWord) {
                     asmgen.out("""
                         lda  #>$value
                         cmp  $msb
@@ -2222,12 +2226,14 @@ $shortcutLabel:""")
     }
 
     private fun inplacemodificationWordWithVariable(name: String, dt: DataType, operator: String, otherName: String, valueDt: DataType, block: PtBlock?) {
-        when (valueDt) {
-            in ByteDatatypes -> {
+        require(dt.isWord)
+        require(valueDt.isInteger)
+        when {
+            valueDt.isByte -> {
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
                     "+" -> {
-                        if(valueDt==DataType.UBYTE)
+                        if(valueDt.isUnsignedByte)
                             asmgen.out("""
                                 lda  $name
                                 clc
@@ -2250,7 +2256,7 @@ $shortcutLabel:""")
                                 sta  $name+1""")
                     }
                     "-" -> {
-                        if(valueDt==DataType.UBYTE)
+                        if(valueDt.isUnsignedByte)
                             asmgen.out("""
                                 lda  $name
                                 sec
@@ -2276,7 +2282,7 @@ $shortcutLabel:""")
                     "*" -> {
                         if(block?.options?.veraFxMuls==true) {
                             // cx16 verafx hardware muls
-                            if(valueDt==DataType.UBYTE) {
+                            if(valueDt.isUnsignedByte) {
                                 asmgen.out("  lda  $otherName |  sta  cx16.r1")
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02))
                                     asmgen.out("  stz  cx16.r1+1")
@@ -2284,7 +2290,7 @@ $shortcutLabel:""")
                                     asmgen.out("  lda  #0 |  sta  cx16.r1+1")
                             } else {
                                 asmgen.out("  lda  $otherName")
-                                asmgen.signExtendAYlsb(valueDt)
+                                asmgen.signExtendAYlsb(valueDt.base)
                                 asmgen.out("  sta  cx16.r1 |  sty  cx16.r1+1")
                             }
                             asmgen.out("""
@@ -2296,7 +2302,7 @@ $shortcutLabel:""")
                                 sta  $name
                                 sty  $name+1""")
                         } else {
-                            if(valueDt==DataType.UBYTE) {
+                            if(valueDt.isUnsignedByte) {
                                 asmgen.out("  lda  $otherName |  sta  prog8_math.multiply_words.multiplier")
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02))
                                     asmgen.out("  stz  prog8_math.multiply_words.multiplier+1")
@@ -2304,7 +2310,7 @@ $shortcutLabel:""")
                                     asmgen.out("  lda  #0 |  sta  prog8_math.multiply_words.multiplier+1")
                             } else {
                                 asmgen.out("  lda  $otherName")
-                                asmgen.signExtendAYlsb(valueDt)
+                                asmgen.signExtendAYlsb(valueDt.base)
                                 asmgen.out("  sta  prog8_math.multiply_words.multiplier |  sty  prog8_math.multiply_words.multiplier+1")
                             }
                             asmgen.out("""
@@ -2316,7 +2322,7 @@ $shortcutLabel:""")
                         }
                     }
                     "/" -> {
-                        if(dt==DataType.UWORD) {
+                        if(dt.isUnsignedWord) {
                             asmgen.out("""
                                 lda  $name
                                 ldy  $name+1
@@ -2343,7 +2349,7 @@ $shortcutLabel:""")
                         }
                     }
                     "%" -> {
-                        if(valueDt!=DataType.UBYTE || dt!=DataType.UWORD)
+                        if(!valueDt.isUnsignedByte || !dt.isUnsignedWord)
                             throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                         asmgen.out("""
                             lda  $name
@@ -2370,7 +2376,7 @@ $shortcutLabel:""")
 +""")
                     }
                     ">>" -> {
-                        if(dt==DataType.UWORD) {
+                        if(dt.isUnsignedWord) {
                             asmgen.out("""
                             ldy  $otherName
                             beq  +
@@ -2394,7 +2400,7 @@ $shortcutLabel:""")
                     }
                     "&" -> {
                         asmgen.out("  lda  $otherName |  and  $name |  sta  $name")
-                        if(dt in WordDatatypes) {
+                        if(dt.isWord) {
                             if(asmgen.isTargetCpu(CpuType.CPU65c02))
                                 asmgen.out("  stz  $name+1")
                             else
@@ -2436,7 +2442,7 @@ $shortcutLabel:""")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
-            in WordDatatypes -> {
+            valueDt.isWord -> {
                 // the value is a proper 16-bit word, so use both bytes of it.
                 when (operator) {
                     "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
@@ -2469,7 +2475,7 @@ $shortcutLabel:""")
                                 sty  $name+1""")
                     }
                     "/" -> {
-                        if(dt==DataType.WORD) {
+                        if(dt.isSignedWord) {
                             asmgen.out("""
                                 lda  $name
                                 ldy  $name+1
@@ -2495,7 +2501,7 @@ $shortcutLabel:""")
                         }
                     }
                     "%" -> {
-                        if(dt==DataType.WORD)
+                        if(dt.isSignedWord)
                             throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                         asmgen.out("""
                             lda  $name
@@ -2548,7 +2554,7 @@ $shortcutLabel:""")
                             sta  $name+1""")
                     }
                     "<" -> {
-                        val compareRoutine = if(dt==DataType.UWORD) "reg_less_uw" else "reg_less_w"
+                        val compareRoutine = if(dt.isUnsignedWord) "reg_less_uw" else "reg_less_w"
                         asmgen.out("""
                             lda  $otherName
                             ldy  $otherName+1
@@ -2563,7 +2569,7 @@ $shortcutLabel:""")
                     }
                     ">" -> {
                         // a > b  -->  b < a
-                        val compareRoutine = if(dt==DataType.UWORD) "reg_less_uw" else "reg_less_w"
+                        val compareRoutine = if(dt.isUnsignedWord) "reg_less_uw" else "reg_less_w"
                         asmgen.out("""
                             lda  $name
                             ldy  $name+1
@@ -2577,7 +2583,7 @@ $shortcutLabel:""")
                             sta  $name+1""")
                     }
                     "<=" -> {
-                        if(dt==DataType.UWORD) {
+                        if(dt.isUnsignedWord) {
                             asmgen.out("""
                             lda  $otherName
                             ldy  $otherName+1
@@ -2606,7 +2612,7 @@ $shortcutLabel:""")
                     }
                     ">=" -> {
                         // a>=b --> b<=a
-                        if(dt==DataType.UWORD) {
+                        if(dt.isUnsignedWord) {
                             asmgen.out("""
                             lda  $name
                             ldy  $name+1
@@ -2645,6 +2651,7 @@ $shortcutLabel:""")
     }
 
     private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression, block: PtBlock?) {
+        require(dt.isWord)
         fun multiplyVarByWordInAY() {
             if(block?.options?.veraFxMuls==true)
                 // cx16 verafx hardware muls
@@ -2679,7 +2686,7 @@ $shortcutLabel:""")
                     lda  $name+1
                     sta  P8ZP_SCRATCH_W1+1
                     txa""")
-            if (dt == DataType.WORD)
+            if (dt.isSignedWord)
                 asmgen.out("  jsr  prog8_math.divmod_w_asm")
             else
                 asmgen.out("  jsr  prog8_math.divmod_uw_asm")
@@ -2687,7 +2694,7 @@ $shortcutLabel:""")
         }
 
         fun remainderVarByWordInAY() {
-            if(dt==DataType.WORD)
+            if(dt.isSignedWord)
                 throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
             asmgen.out("""
                 tax
@@ -2703,14 +2710,14 @@ $shortcutLabel:""")
                 sty  $name+1
             """)
         }
-
-        when (val valueDt = value.type) {
-            in ByteDatatypes -> {
+        val valueDt = value.type
+        when {
+            valueDt.isByte -> {
                 // the other variable is a BYTE type so optimize for that
                 when (operator) {
                     "+" -> {
                         // name += byteexpression
-                        if(valueDt==DataType.UBYTE) {
+                        if(valueDt.isUnsignedByte) {
                             asmgen.assignExpressionToRegister(value, RegisterOrPair.A, false)
                             asmgen.out("""
                                 clc
@@ -2737,7 +2744,7 @@ $shortcutLabel:""")
                     "-" -> {
                         // name -= byteexpression
                         asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", valueDt)
-                        if(valueDt==DataType.UBYTE)
+                        if(valueDt.isUnsignedByte)
                             asmgen.out("""
                                 lda  $name
                                 sec
@@ -2764,21 +2771,21 @@ $shortcutLabel:""")
                         // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word * byte multiplication routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                        asmgen.signExtendAYlsb(valueDt)
+                        asmgen.signExtendAYlsb(valueDt.base)
                         multiplyVarByWordInAY()
                     }
                     "/" -> {
                         // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word / byte divmod routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                        asmgen.signExtendAYlsb(valueDt)
+                        asmgen.signExtendAYlsb(valueDt.base)
                         divideVarByWordInAY()
                     }
                     "%" -> {
                         // value is (u) byte value, sign extend that and proceed with regular 16 bit operation
                         // TODO use an optimized word / byte divmod routine?
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
-                        asmgen.signExtendAYlsb(valueDt)
+                        asmgen.signExtendAYlsb(valueDt.base)
                         remainderVarByWordInAY()
                     }
                     "<<" -> {
@@ -2793,7 +2800,7 @@ $shortcutLabel:""")
                     }
                     ">>" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.Y)
-                        if(dt==DataType.UWORD)
+                        if(dt.isUnsignedWord)
                             asmgen.out("""
                             beq  +
 -                           lsr  $name+1
@@ -2815,7 +2822,7 @@ $shortcutLabel:""")
                     "&" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  and  $name |  sta  $name")
-                        if(dt in WordDatatypes) {
+                        if(dt.isWord) {
                             if(asmgen.isTargetCpu(CpuType.CPU65c02))
                                 asmgen.out("  stz  $name+1")
                             else
@@ -2863,7 +2870,7 @@ $shortcutLabel:""")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
-            in WordDatatypes -> {
+            valueDt.isWord -> {
                 // the value is a proper 16-bit word, so use both bytes of it.
                 when (operator) {
                     "+" -> {
@@ -2889,9 +2896,9 @@ $shortcutLabel:""")
                     }
                     "<<", ">>" -> {
                         if(value is PtNumber && value.number<=255) {
-                            when (dt) {
-                                in WordDatatypes -> TODO("shift a word var by ${value.number}")
-                                in ByteDatatypes -> TODO("shift a byte var by ${value.number}")
+                            when {
+                                dt.isWord -> TODO("shift a word var by ${value.number}")
+                                dt.isByte -> TODO("shift a byte var by ${value.number}")
                                 else -> throw AssemblyError("weird dt for shift")
                             }
                         } else {

@@ -83,7 +83,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val symbol = target.identifier?.name
         val array = target.array
         val value = augAssign.value
-        val signed = target.type in SignedDatatypes
+        val signed = target.type.isSigned
 
         val chunks = when (augAssign.operator) {
             "+=" -> operatorPlusInplace(symbol, array, constAddress, memTarget, targetDt, value)
@@ -182,7 +182,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun inplacePrefixArray(operator: String, array: PtArrayIndexer): IRCodeChunks {
-        val eltSize = codeGen.program.memsizer.memorySize(array.type)
+        val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
         val result = mutableListOf<IRCodeChunkBase>()
         val vmDt = irType(array.type)
         val constIndex = array.index.asConstInteger()
@@ -336,7 +336,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     addToResult(result, tr, valueRegister, -1)
                     if(extendByteToWord) {
                         valueRegister = codeGen.registers.nextFree()
-                        val opcode = if(assignment.value.type in SignedDatatypes) Opcode.EXTS else Opcode.EXT
+                        val opcode = if(assignment.value.type.isSigned) Opcode.EXTS else Opcode.EXT
                         addInstr(result, IRInstruction(opcode, IRDataType.BYTE, reg1=valueRegister, reg2=tr.resultReg), null)
                     }
                 }
@@ -357,7 +357,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         }
         else if(targetArray!=null) {
             val variable = targetArray.variable.name
-            val itemsize = codeGen.program.memsizer.memorySize(targetArray.type)
+            val itemsize = codeGen.program.memsizer.memorySize(targetArray.type, null)
 
             val fixedIndex = targetArray.index.asConstInteger()
             val arrayLength = codeGen.symbolTable.getLength(targetArray.variable.name)
@@ -465,10 +465,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
                 val offsetTypecast = ptrWithOffset?.right as? PtTypeCast
                 if(ptrWithOffset!=null && ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier
-                    && (ptrWithOffset.right.type in ByteDatatypes || offsetTypecast?.value?.type in ByteDatatypes)) {
+                    && (ptrWithOffset.right.type.isByte || offsetTypecast?.value?.type?.isByte==true)) {
                     // STOREIX only works with byte index.
-                    val tr = if(offsetTypecast?.value?.type in ByteDatatypes)
-                        expressionEval.translateExpression(offsetTypecast!!.value)
+                    val tr = if(offsetTypecast?.value?.type?.isByte==true)
+                        expressionEval.translateExpression(offsetTypecast.value)
                     else
                         expressionEval.translateExpression(ptrWithOffset.right)
                     addToResult(result, tr, tr.resultReg, -1)
@@ -498,9 +498,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             addToResult(result, tr, tr.resultReg, -1)
             return Pair(result, tr.resultReg)
         }
-        val mult: PtExpression = PtBinaryExpression("*", DataType.UBYTE, array.position)
+        val mult: PtExpression = PtBinaryExpression("*", DataType.forDt(BaseDataType.UBYTE), array.position)
         mult.children += array.index
-        mult.children += PtNumber(DataType.UBYTE, itemsize.toDouble(), array.position)
+        mult.children += PtNumber(BaseDataType.UBYTE, itemsize.toDouble(), array.position)
         val tr = expressionEval.translateExpression(mult)
         addToResult(result, tr, tr.resultReg, -1)
         return Pair(result, tr.resultReg)
@@ -511,7 +511,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
-            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             if(constIndex!=null && constValue!=null) {
                 if(array.splitWords) {
                     val valueRegLsb = codeGen.registers.nextFree()
@@ -551,7 +551,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
-            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             if(constIndex!=null && constValue!=null) {
                 if(array.splitWords) {
                     val valueRegLsb = codeGen.registers.nextFree()
@@ -611,7 +611,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
-            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             if(constIndex!=null && constValue!=null) {
                 if(array.splitWords) {
                     val valueRegLsb = codeGen.registers.nextFree()
@@ -651,7 +651,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
-            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             if(constIndex!=null && constValue!=null) {
                 if(array.splitWords) {
                     val valueRegLsb = codeGen.registers.nextFree()
@@ -716,7 +716,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorRight = operand as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
-            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+            if(constFactorRight!=null && !constFactorRight.type.isFloat) {
                 val factor = constFactorRight.number
                 result += codeGen.divideByConstFloatInplace(constAddress, symbol, factor)
             } else {
@@ -737,7 +737,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 addInstr(result, ins, null)
             }
         } else {
-            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+            if(constFactorRight!=null && !constFactorRight.type.isFloat) {
                 val factor = constFactorRight.number.toInt()
                 result += codeGen.divideByConstInplace(vmDt, constAddress, symbol, factor, signed)
             } else {
@@ -763,7 +763,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorMultiplyInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             val result = mutableListOf<IRCodeChunkBase>()
             if(array.splitWords)
                 return operatorMultiplyInplaceSplitArray(array, operand)
@@ -801,7 +801,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     , null)
             }
         } else {
-            if(constFactorRight!=null && constFactorRight.type!=DataType.FLOAT) {
+            if(constFactorRight!=null && !constFactorRight.type.isFloat) {
                 val factor = constFactorRight.number.toInt()
                 result += codeGen.multiplyByConstInplace(vmDt, constAddress, symbol, factor)
             } else {
@@ -819,7 +819,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorMinusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             val result = mutableListOf<IRCodeChunkBase>()
             if(array.splitWords)
                 return operatorMinusInplaceSplitArray(array, operand)
@@ -915,7 +915,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val result = mutableListOf<IRCodeChunkBase>()
             if(array.splitWords)
                 return operatorPlusInplaceSplitArray(array, operand)
-            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             val elementDt = irType(array.type)
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
@@ -1055,7 +1055,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
-            val eltSize = codeGen.program.memsizer.memorySize(array.type)
+            val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             if(constIndex!=null && constValue!=null) {
                 if(array.splitWords) {
                     val valueRegLsb = codeGen.registers.nextFree()
@@ -1369,10 +1369,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun createInplaceArrayComparison(array: PtArrayIndexer, value: PtExpression, comparisonOperator: String): IRCodeChunks? {
-        if(array.type==DataType.FLOAT)
+        if(array.type.isFloat)
             return null  // TODO("optimized in-place compare on float arrays"))
 
-        val eltSize = codeGen.program.memsizer.memorySize(array.type)
+        val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
         val result = mutableListOf<IRCodeChunkBase>()
         if(array.splitWords)
             TODO("inplace compare for split word array")

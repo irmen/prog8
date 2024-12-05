@@ -150,9 +150,9 @@ open class IRStNode(val name: String,
 )
 
 class IRStMemVar(name: String,
-               val dt: DataType,
-               val address: UInt,
-               val length: Int?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                 val dt: DataType,
+                 val address: UInt,
+                 val length: Int?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                ) :  IRStNode(name, IRStNodeType.MEMVAR) {
     companion object {
         fun from(variable: StMemVar): IRStMemVar {
@@ -166,7 +166,7 @@ class IRStMemVar(name: String,
     }
 
     init {
-        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
+        require(!dt.isBool && !dt.isBoolArray)
     }
 
     val typeString: String = dt.typeString(length)
@@ -195,7 +195,7 @@ class IRStStaticVariable(name: String,
                        val onetimeInitializationArrayValue: IRStArray?,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
-                       val align: Int,
+                       val align: Int
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
     companion object {
         fun from(variable: StStaticVariable): IRStStaticVariable {
@@ -212,7 +212,7 @@ class IRStStaticVariable(name: String,
 
     init {
         if(align > 0) {
-            require(dt == DataType.STR || dt in ArrayDatatypes)
+            require(dt.isString || dt.isArray)
             require(zpwish != ZeropageWish.REQUIRE_ZEROPAGE && zpwish != ZeropageWish.PREFER_ZEROPAGE)
         }
     }

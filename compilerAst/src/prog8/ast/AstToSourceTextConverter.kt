@@ -116,28 +116,6 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         output("\n")
     }
 
-    private fun datatypeString(dt: DataType): String {
-        return when (dt) {
-            DataType.BOOL -> "bool"
-            DataType.UBYTE -> "ubyte"
-            DataType.BYTE -> "byte"
-            DataType.UWORD -> "uword"
-            DataType.WORD -> "word"
-            DataType.LONG -> "long"
-            DataType.FLOAT -> "float"
-            DataType.STR -> "str"
-            DataType.ARRAY_UB -> "ubyte["
-            DataType.ARRAY_B -> "byte["
-            DataType.ARRAY_UW -> "uword["
-            DataType.ARRAY_W -> "word["
-            DataType.ARRAY_F -> "float["
-            DataType.ARRAY_BOOL -> "bool["
-            DataType.ARRAY_UW_SPLIT -> "@split uword["
-            DataType.ARRAY_W_SPLIT -> "@split word["
-            DataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
-        }
-    }
-
     override fun visit(decl: VarDecl) {
         if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
@@ -148,7 +126,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             VarDeclType.MEMORY -> output("&")
         }
 
-        output(datatypeString(decl.datatype))
+        output(decl.datatype.sourceString())
         if(decl.arraysize!=null) {
             decl.arraysize!!.indexExpr.accept(this)
         }
@@ -201,7 +179,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
                             param.second.statusflag!=null -> param.second.statusflag.toString()
                             else -> "?????"
                         }
-                output("${datatypeString(param.first.type)} ${param.first.name} @$reg")
+                output("${param.first.type.sourceString()} ${param.first.name} @$reg")
                 if(param.first!==subroutine.parameters.last())
                     output(", ")
             }
@@ -210,7 +188,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output("sub ${subroutine.name} (")
             for(param in subroutine.parameters) {
                 val reg = if(param.registerOrPair!=null) " @${param.registerOrPair}" else ""
-                output("${datatypeString(param.type)} ${param.name}$reg")
+                output("${param.type} ${param.name}$reg")
                 if(param!==subroutine.parameters.last())
                     output(", ")
             }
@@ -229,7 +207,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(subroutine.returntypes.any()) {
             if(subroutine.asmReturnvaluesRegisters.isNotEmpty()) {
                 val rts = subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).joinToString(", ") {
-                    val dtstr = datatypeString(it.first)
+                    val dtstr = it.first.sourceString()
                     if(it.second.registerOrPair!=null)
                         "$dtstr @${it.second.registerOrPair}"
                     else
@@ -237,7 +215,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
                 }
                 output("-> $rts ")
             } else {
-                val rts = subroutine.returntypes.joinToString(", ") { datatypeString(it) }
+                val rts = subroutine.returntypes.joinToString(", ") { it.sourceString() }
                 output("-> $rts ")
             }
         }
@@ -325,8 +303,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     override fun visit(numLiteral: NumericLiteral) {
         when (numLiteral.type) {
-            DataType.BOOL -> output(if(numLiteral.number==0.0) "false" else "true")
-            DataType.FLOAT -> output(numLiteral.number.toString())
+            BaseDataType.BOOL -> output(if(numLiteral.number==0.0) "false" else "true")
+            BaseDataType.FLOAT -> output(numLiteral.number.toString())
             else -> output(numLiteral.number.toInt().toString())
         }
     }
@@ -472,7 +450,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     override fun visit(typecast: TypecastExpression) {
         output("(")
         typecast.expression.accept(this)
-        output(" as ${datatypeString(typecast.type)}) ")
+        output(" as ${DataType.forDt(typecast.type).sourceString()}) ")
     }
 
     override fun visit(memread: DirectMemoryRead) {

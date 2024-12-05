@@ -215,10 +215,10 @@ class TestNumbers: FunSpec({
         compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 6
         errors.errors[0] shouldContain "out of range"
-        errors.errors[1] shouldContain "WORD doesn't match"
+        errors.errors[1] shouldContain "word doesn't match"
         errors.errors[2] shouldContain "out of range"
-        errors.errors[3] shouldContain "BYTE doesn't match"
+        errors.errors[3] shouldContain "byte doesn't match"
         errors.errors[4] shouldContain "out of range"
-        errors.errors[5] shouldContain "BYTE doesn't match"
+        errors.errors[5] shouldContain "byte doesn't match"
     }
 })

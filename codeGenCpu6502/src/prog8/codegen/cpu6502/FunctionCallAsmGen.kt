@@ -17,8 +17,8 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
 
     internal fun optimizeIntArgsViaCpuRegisters(params: List<PtSubroutineParameter>) =
         when(params.size) {
-            1 -> params[0].type in IntegerDatatypesWithBoolean
-            2 -> params[0].type in ByteDatatypesWithBoolean && params[1].type in ByteDatatypesWithBoolean
+            1 -> params[0].type.isIntegerOrBool
+            2 -> params[0].type.isByteOrBool && params[1].type.isByteOrBool
             else -> false
         }
 
@@ -153,11 +153,11 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         val params = sub.parameters
         when(params.size) {
             1 -> {
-                val register = if (params[0].type in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
+                val register = if (params[0].type.isByteOrBool) RegisterOrPair.A else RegisterOrPair.AY
                 argumentViaRegister(sub, IndexedValue(0, params[0]), args[0], register)
             }
             2 -> {
-                if(params[0].type in ByteDatatypesWithBoolean && params[1].type in ByteDatatypesWithBoolean) {
+                if(params[0].type.isByteOrBool && params[1].type.isByteOrBool) {
                     // 2 byte params, second in Y, first in A
                     argumentViaRegister(sub, IndexedValue(0, params[0]), args[0], RegisterOrPair.A)
                     if(asmgen.needAsaveForExpr(args[1]))
@@ -259,7 +259,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         val register = paramRegister.registerOrPair
         val requiredDt = parameter.value.type
         if(requiredDt!=value.type) {
-            if(value.type largerThan requiredDt)
+            if(value.type.largerSizeThan(requiredDt))
                 throw AssemblyError("can only convert byte values to word param types")
         }
         if (statusflag!=null) {
@@ -298,21 +298,20 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         else {
             // via register or register pair
             register!!
-            if(requiredDt largerThan value.type) {
+            if(requiredDt.largerSizeThan(value.type)) {
                 // we need to sign extend the source, do this via temporary word variable
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE)
-                asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type)
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.forDt(BaseDataType.UBYTE))
+                asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type.base)
                 asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, Position.DUMMY)
             } else {
                 val scope = value.definingISub()
                 val target: AsmAssignTarget =
-                    if(parameter.value.type in ByteDatatypes && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
+                    if(parameter.value.type.isByte && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, scope, value.position, register = register)
                     else {
-                        val signed = parameter.value.type == DataType.BYTE || parameter.value.type == DataType.WORD
-                        AsmAssignTarget.fromRegisters(register, signed, value.position, scope, asmgen)
+                        AsmAssignTarget.fromRegisters(register, parameter.value.type.isSigned, value.position, scope, asmgen)
                     }
-                val src = if(value.type in PassByReferenceDatatypes) {
+                val src = if(value.type.isPassByRef) {
                     if(value is PtIdentifier) {
                         val addr = PtAddressOf(Position.DUMMY)
                         addr.add(value)
@@ -333,18 +332,18 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     private fun isArgumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
         if(argType isAssignableTo paramType)
             return true
-        if(argType==DataType.BOOL && paramType==DataType.BOOL)
+        if(argType.isBool && paramType.isBool)
             return true
-        if(argType in ByteDatatypes && paramType in ByteDatatypes)
+        if(argType.isByte && paramType.isByte)
             return true
-        if(argType in WordDatatypes && paramType in WordDatatypes)
+        if(argType.isWord && paramType.isWord)
             return true
 
         // we have a special rule for some types.
         // strings are assignable to UWORD, for example, and vice versa
-        if(argType==DataType.STR && paramType==DataType.UWORD)
+        if(argType.isString && paramType.isUnsignedWord)
             return true
-        if(argType==DataType.UWORD && paramType == DataType.STR)
+        if(argType.isUnsignedWord && paramType.isString)
             return true
 
         return false

@@ -70,28 +70,6 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
         }
     }
 
-    private fun datatypeString(dt: DataType): String {
-        return when (dt) {
-            DataType.BOOL -> "bool"
-            DataType.UBYTE -> "ubyte"
-            DataType.BYTE -> "byte"
-            DataType.UWORD -> "uword"
-            DataType.WORD -> "word"
-            DataType.LONG -> "long"
-            DataType.FLOAT -> "float"
-            DataType.STR -> "str"
-            DataType.ARRAY_UB -> "ubyte["
-            DataType.ARRAY_B -> "byte["
-            DataType.ARRAY_UW -> "uword["
-            DataType.ARRAY_W -> "word["
-            DataType.ARRAY_F -> "float["
-            DataType.ARRAY_BOOL -> "bool["
-            DataType.ARRAY_UW_SPLIT -> "@split uword["
-            DataType.ARRAY_W_SPLIT -> "@split word["
-            DataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
-        }
-    }
-
     override fun visit(decl: VarDecl) {
         if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
@@ -102,7 +80,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
             VarDeclType.MEMORY -> output("&")
         }
 
-        output(datatypeString(decl.datatype))
+        output(decl.datatype.sourceString())
         if(decl.arraysize!=null) {
             decl.arraysize!!.indexExpr.accept(this)
         }
@@ -134,7 +112,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
                             param.second.statusflag!=null -> param.second.statusflag.toString()
                             else -> "?????"
                         }
-                output("${datatypeString(param.first.type)} ${param.first.name} @$reg")
+                output("${param.first.type.sourceString()} ${param.first.name} @$reg")
                 if(param.first!==subroutine.parameters.last())
                     output(", ")
             }
@@ -142,7 +120,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
         else {
             output("${subroutine.name}  (")
             for(param in subroutine.parameters) {
-                output("${datatypeString(param.type)} ${param.name}")
+                output("${param.type.sourceString()} ${param.name}")
                 if(param!==subroutine.parameters.last())
                     output(", ")
             }
@@ -161,7 +139,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
         if(subroutine.returntypes.any()) {
             if(subroutine.asmReturnvaluesRegisters.isNotEmpty()) {
                 val rts = subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).joinToString(", ") {
-                    val dtstr = datatypeString(it.first)
+                    val dtstr = it.first.sourceString()
                     if(it.second.registerOrPair!=null)
                         "$dtstr @${it.second.registerOrPair}"
                     else
@@ -169,7 +147,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
                 }
                 output("-> $rts ")
             } else {
-                val rts = subroutine.returntypes.joinToString(", ") { datatypeString(it) }
+                val rts = subroutine.returntypes.joinToString(", ") { it.sourceString() }
                 output("-> $rts ")
             }
         }

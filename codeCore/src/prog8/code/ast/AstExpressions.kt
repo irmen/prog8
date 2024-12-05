@@ -1,7 +1,7 @@
 package prog8.code.ast
 
 import prog8.code.core.*
-import java.util.Objects
+import java.util.*
 import kotlin.math.abs
 import kotlin.math.truncate
 
@@ -9,7 +9,7 @@ import kotlin.math.truncate
 sealed class PtExpression(val type: DataType, position: Position) : PtNode(position) {
 
     init {
-        if(type==DataType.UNDEFINED) {
+        if(type.isUndefined) {
             @Suppress("LeakingThis")
             when(this) {
                 is PtBuiltinFunctionCall -> { /* void function call */ }
@@ -66,19 +66,17 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         }
     }
 
-    infix fun isSameAs(target: PtAssignTarget): Boolean {
-        return when {
-            target.memory != null && this is PtMemoryByte-> {
-                target.memory!!.address isSameAs this.address
-            }
-            target.identifier != null && this is PtIdentifier -> {
-                this.name == target.identifier!!.name
-            }
-            target.array != null && this is PtArrayIndexer -> {
-                this.variable.name == target.array!!.variable.name && this.index isSameAs target.array!!.index && this.splitWords==target.array!!.splitWords
-            }
-            else -> false
+    infix fun isSameAs(target: PtAssignTarget): Boolean = when {
+        target.memory != null && this is PtMemoryByte -> {
+            target.memory!!.address isSameAs this.address
         }
+        target.identifier != null && this is PtIdentifier -> {
+            this.name == target.identifier!!.name
+        }
+        target.array != null && this is PtArrayIndexer -> {
+            this.variable.name == target.array!!.variable.name && this.index isSameAs target.array!!.index && this.splitWords==target.array!!.splitWords
+        }
+        else -> false
     }
 
     fun asConstInteger(): Int? = (this as? PtNumber)?.number?.toInt() ?: (this as? PtBool)?.asInt()
@@ -139,7 +137,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     */
 }
 
-class PtAddressOf(position: Position) : PtExpression(DataType.UWORD, position) {
+class PtAddressOf(position: Position) : PtExpression(DataType.forDt(BaseDataType.UWORD), position) {
     val identifier: PtIdentifier
         get() = children[0] as PtIdentifier
     val arrayIndexExpr: PtExpression?
@@ -156,10 +154,10 @@ class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(el
     val index: PtExpression
         get() = children[1] as PtExpression
     val splitWords: Boolean
-        get() = variable.type in SplitWordArrayTypes
+        get() = variable.type.isSplitWordArray
 
     init {
-        require(elementType in NumericDatatypesWithBoolean)
+        require(elementType.isNumericOrBool)
     }
 }
 
@@ -185,7 +183,7 @@ class PtBuiltinFunctionCall(val name: String,
                             position: Position) : PtExpression(type, position) {
     init {
         if(!void)
-            require(type!=DataType.UNDEFINED)
+            require(!type.isUndefined)
     }
 
     val args: List<PtExpression>
@@ -201,9 +199,9 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
 
     init {
         if(operator in ComparisonOperators + LogicalOperators)
-            require(type==DataType.BOOL)
+            require(type.isBool)
         else
-            require(type!=DataType.BOOL) { "no bool allowed for this operator $operator"}
+            require(!type.isBool) { "no bool allowed for this operator $operator"}
     }
 }
 
@@ -218,7 +216,7 @@ class PtIfExpression(type: DataType, position: Position): PtExpression(type, pos
 }
 
 
-class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, position) {
+class PtContainmentCheck(position: Position): PtExpression(DataType.forDt(BaseDataType.BOOL), position) {
     val needle: PtExpression
         get() = children[0] as PtExpression
     val haystackHeapVar: PtIdentifier?
@@ -241,7 +239,7 @@ class PtFunctionCall(val name: String,
         get() = children.map { it as PtExpression }
 
     init {
-        if(void) require(type==DataType.UNDEFINED) {
+        if(void) require(type.isUndefined) {
             "void fcall should have undefined datatype"
         }
         // note: non-void calls can have UNDEFINED type: is if they return more than 1 value
@@ -258,13 +256,13 @@ class PtIdentifier(val name: String, type: DataType, position: Position) : PtExp
 }
 
 
-class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) {
+class PtMemoryByte(position: Position) : PtExpression(DataType.forDt(BaseDataType.UBYTE), position) {
     val address: PtExpression
         get() = children.single() as PtExpression
 }
 
 
-class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOOL, position) {
+class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.forDt(BaseDataType.BOOL), position) {
     override fun hashCode(): Int = Objects.hash(type, value)
 
     override fun equals(other: Any?): Boolean {
@@ -279,28 +277,28 @@ class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOO
 }
 
 
-class PtNumber(type: DataType, val number: Double, position: Position) : PtExpression(type, position) {
+class PtNumber(type: BaseDataType, val number: Double, position: Position) : PtExpression(DataType.forDt(type), position) {
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position): PtNumber =
-            PtNumber(DataType.UBYTE, if(bool) 1.0 else 0.0, position)
+            PtNumber(BaseDataType.UBYTE, if(bool) 1.0 else 0.0, position)
     }
 
     init {
-        if(type==DataType.BOOL)
+        if(type==BaseDataType.BOOL)
             throw IllegalArgumentException("use PtBool instead")
-        if(type!=DataType.FLOAT) {
+        if(type!=BaseDataType.FLOAT) {
             val trunc = truncate(number)
             if (trunc != number)
                 throw IllegalArgumentException("refused truncating of float to avoid loss of precision @$position")
         }
         when(type) {
-            DataType.UBYTE -> require(number in 0.0..255.0)
-            DataType.BYTE -> require(number in -128.0..127.0)
-            DataType.UWORD -> require(number in 0.0..65535.0)
-            DataType.WORD -> require(number in -32728.0..32767.0)
-            DataType.LONG -> require(number in -2147483647.0..2147483647.0)
-            else -> {}
+            BaseDataType.UBYTE -> require(number in 0.0..255.0)
+            BaseDataType.BYTE -> require(number in -128.0..127.0)
+            BaseDataType.UWORD -> require(number in 0.0..65535.0)
+            BaseDataType.WORD -> require(number in -32728.0..32767.0)
+            BaseDataType.LONG -> require(number in -2147483647.0..2147483647.0)
+            else ->  require(type.isNumeric) { "numeric literal type should be numeric: $type" }
         }
     }
 
@@ -309,7 +307,7 @@ class PtNumber(type: DataType, val number: Double, position: Position) : PtExpre
     override fun equals(other: Any?): Boolean {
         return if(other==null || other !is PtNumber)
             false
-        else if(type!=DataType.BOOL && other.type!=DataType.BOOL)
+        else if(!type.isBool && !other.type.isBool)
             number==other.number
         else
             type==other.type && number==other.number
@@ -368,7 +366,7 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
 }
 
 
-class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.STR, position) {
+class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.forDt(BaseDataType.STR), position) {
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is PtString)
@@ -378,7 +376,7 @@ class PtString(val value: String, val encoding: Encoding, position: Position) : 
 }
 
 
-class PtTypeCast(type: DataType, position: Position) : PtExpression(type, position) {
+class PtTypeCast(type: BaseDataType, position: Position) : PtExpression(DataType.forDt(type), position) {
     val value: PtExpression
         get() = children.single() as PtExpression
 }

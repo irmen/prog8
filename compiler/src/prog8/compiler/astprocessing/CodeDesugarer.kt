@@ -5,7 +5,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.ComparisonOperators
+import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 
 
 internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {
@@ -203,8 +206,8 @@ _after:
         // "array indexing is limited to byte size 0..255" error for pointervariables.
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
-        if(arrayVar!=null && arrayVar.datatype==DataType.UWORD) {
-            val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
+        if(arrayVar!=null && arrayVar.datatype.isUnsignedWord) {
+            val wordIndex = TypecastExpression(indexExpr, BaseDataType.UWORD, true, indexExpr.position)
             val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", wordIndex, arrayIndexedExpression.position)
             return if(parent is AssignTarget) {
                 // assignment to array
@@ -222,10 +225,10 @@ _after:
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         fun isStringComparison(leftDt: InferredTypes.InferredType, rightDt: InferredTypes.InferredType): Boolean =
-            if(leftDt istype DataType.STR && rightDt istype DataType.STR)
+            if(leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.STR)
                 true
             else
-                leftDt istype DataType.UWORD && rightDt istype DataType.STR || leftDt istype DataType.STR && rightDt istype DataType.UWORD
+                leftDt issimpletype BaseDataType.UWORD && rightDt issimpletype BaseDataType.STR || leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.UWORD
 
         if(expr.operator=="in") {
             val containment = ContainmentCheck(expr.left, expr.right, expr.position)

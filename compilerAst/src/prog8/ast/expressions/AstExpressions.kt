@@ -11,7 +11,7 @@ import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
 import prog8.code.target.encodings.JapaneseCharacterConverter
 import java.io.CharConversionException
-import java.util.Objects
+import java.util.*
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.truncate
@@ -68,9 +68,9 @@ sealed class Expression: Node {
         }
     }
 
-    fun typecastTo(targetDt: DataType, sourceDt: DataType, implicit: Boolean=false): Pair<Boolean, Expression> {
-        require(sourceDt!=DataType.UNDEFINED && targetDt!=DataType.UNDEFINED)
-        if(sourceDt==targetDt)
+    fun typecastTo(targetDt: BaseDataType, sourceDt: DataType, implicit: Boolean=false): Pair<Boolean, Expression> {
+        require(!sourceDt.isUndefined && targetDt!=BaseDataType.UNDEFINED)
+        if(sourceDt.base==targetDt && sourceDt.sub==null)
             return Pair(false, this)
         if(this is TypecastExpression) {
             this.type = targetDt
@@ -101,16 +101,16 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         val constval = expression.constValue(program) ?: return null
         val converted = when(operator) {
             "+" -> constval
-            "-" -> when (constval.type) {
-                in IntegerDatatypes -> NumericLiteral.optimalInteger(-constval.number.toInt(), constval.position)
-                DataType.FLOAT -> NumericLiteral(DataType.FLOAT, -constval.number, constval.position)
+            "-" -> when {
+                constval.type.isInteger -> NumericLiteral.optimalInteger(-constval.number.toInt(), constval.position)
+                constval.type == BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, -constval.number, constval.position)
                 else -> throw ExpressionError("can only take negative of int or float", constval.position)
             }
-            "~" -> when (constval.type) {
-                DataType.BYTE -> NumericLiteral(DataType.BYTE, constval.number.toInt().inv().toDouble(), constval.position)
-                DataType.UBYTE -> NumericLiteral(DataType.UBYTE, (constval.number.toInt().inv() and 255).toDouble(), constval.position)
-                DataType.WORD -> NumericLiteral(DataType.WORD, constval.number.toInt().inv().toDouble(), constval.position)
-                DataType.UWORD -> NumericLiteral(DataType.UWORD, (constval.number.toInt().inv() and 65535).toDouble(), constval.position)
+            "~" -> when {
+                constval.type == BaseDataType.BYTE -> NumericLiteral(BaseDataType.BYTE, constval.number.toInt().inv().toDouble(), constval.position)
+                constval.type == BaseDataType.UBYTE -> NumericLiteral(BaseDataType.UBYTE, (constval.number.toInt().inv() and 255).toDouble(), constval.position)
+                constval.type == BaseDataType.WORD -> NumericLiteral(BaseDataType.WORD, constval.number.toInt().inv().toDouble(), constval.position)
+                constval.type == BaseDataType.UWORD -> NumericLiteral(BaseDataType.UWORD, (constval.number.toInt().inv() and 65535).toDouble(), constval.position)
                 else -> throw ExpressionError("can only take bitwise inversion of int", constval.position)
             }
             "not" -> NumericLiteral.fromBoolean(constval.number==0.0, constval.position)
@@ -127,15 +127,15 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
         val inferred = expression.inferType(program)
         return when(operator) {
             "+" -> inferred
-            "not" -> InferredTypes.knownFor(DataType.BOOL)
+            "not" -> InferredTypes.knownFor(BaseDataType.BOOL)
             "~" -> {
-                if(inferred.isBytes) InferredTypes.knownFor(DataType.UBYTE)
-                else if(inferred.isWords) InferredTypes.knownFor(DataType.UWORD)
+                if(inferred.isBytes) InferredTypes.knownFor(BaseDataType.UBYTE)
+                else if(inferred.isWords) InferredTypes.knownFor(BaseDataType.UWORD)
                 else InferredTypes.InferredType.unknown()
             }
             "-" -> {
-                if(inferred.isBytes) InferredTypes.knownFor(DataType.BYTE)
-                else if(inferred.isWords) InferredTypes.knownFor(DataType.WORD)
+                if(inferred.isBytes) InferredTypes.knownFor(BaseDataType.BYTE)
+                else if(inferred.isWords) InferredTypes.knownFor(BaseDataType.WORD)
                 else inferred
             }
             else -> throw FatalAstException("weird prefix expression operator")
@@ -199,18 +199,18 @@ class BinaryExpression(
                     try {
                         val dt = InferredTypes.knownFor(
                             commonDatatype(
-                                leftDt.getOr(DataType.BYTE),
-                                rightDt.getOr(DataType.BYTE),
+                                leftDt.getOr(DataType.forDt(BaseDataType.BYTE)),
+                                rightDt.getOr(DataType.forDt(BaseDataType.BYTE)),
                                 null, null
                             ).first
                         )
                         if(operator=="*") {
                             // if both operands are the same, X*X is always positive.
                             if(left isSameAs right) {
-                                if(dt.istype(DataType.BYTE))
-                                    InferredTypes.knownFor(DataType.UBYTE)
-                                else if(dt.istype(DataType.WORD))
-                                    InferredTypes.knownFor(DataType.UWORD)
+                                if(dt istype DataType.forDt(BaseDataType.BYTE))
+                                    InferredTypes.knownFor(BaseDataType.UBYTE)
+                                else if(dt istype DataType.forDt(BaseDataType.WORD))
+                                    InferredTypes.knownFor(BaseDataType.UWORD)
                                 else
                                     dt
                             } else
@@ -222,16 +222,16 @@ class BinaryExpression(
                     }
                 }
             }
-            "&", "|", "^" -> when(leftDt.getOr(DataType.UNDEFINED)) {
-                DataType.BYTE -> InferredTypes.knownFor(DataType.UBYTE)
-                DataType.WORD -> InferredTypes.knownFor(DataType.UWORD)
-                DataType.BOOL -> InferredTypes.knownFor(DataType.UBYTE)
+            "&", "|", "^" -> when(leftDt.getOrUndef()) {
+                DataType.forDt(BaseDataType.BYTE) -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                DataType.forDt(BaseDataType.WORD) -> InferredTypes.knownFor(BaseDataType.UWORD)
+                DataType.forDt(BaseDataType.BOOL) -> InferredTypes.knownFor(BaseDataType.UBYTE)
                 else -> leftDt
             }
             "and", "or", "xor", "not", "in", "not in",
             "<", ">",
             "<=", ">=",
-            "==", "!=" -> InferredTypes.knownFor(DataType.BOOL)
+            "==", "!=" -> InferredTypes.knownFor(BaseDataType.BOOL)
             "<<", ">>" -> leftDt
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
@@ -250,71 +250,71 @@ class BinaryExpression(
             // if left or right is a numeric literal, and its value fits in the type of the other operand, use the other's operand type
             // EXCEPTION: if the numeric value is a word and the other operand is a byte type (to allow   v * $0008  for example)
             if (left is NumericLiteral) {
-                if(!(leftDt in WordDatatypes && rightDt in ByteDatatypes)) {
-                    val optimal = NumericLiteral.optimalNumeric(rightDt, null, left.number, left.position)
-                    if (optimal.type != leftDt && optimal.type isAssignableTo rightDt) {
-                        return optimal.type to left
+                if(!(leftDt.isWord && rightDt.isByte)) {
+                    val optimal = NumericLiteral.optimalNumeric(rightDt.base, null, left.number, left.position)
+                    if (optimal.type != leftDt.base && DataType.forDt(optimal.type) isAssignableTo rightDt) {
+                        return DataType.forDt(optimal.type) to left
                     }
                 }
             }
             if (right is NumericLiteral) {
-                if(!(rightDt in WordDatatypes && leftDt in ByteDatatypes)) {
-                    val optimal = NumericLiteral.optimalNumeric(leftDt, null, right.number, right.position)
-                    if (optimal.type != rightDt && optimal.type isAssignableTo leftDt) {
-                        return optimal.type to right
+                if(!(rightDt.isWord && leftDt.isByte)) {
+                    val optimal = NumericLiteral.optimalNumeric(leftDt.base, null, right.number, right.position)
+                    if (optimal.type != rightDt.base && DataType.forDt(optimal.type) isAssignableTo leftDt) {
+                        return DataType.forDt(optimal.type) to right
                     }
                 }
             }
 
-            return when (leftDt) {
-                DataType.BOOL -> {
-                    return if(rightDt==DataType.BOOL)
-                        Pair(DataType.BOOL, null)
+            return when (leftDt.base) {
+                BaseDataType.BOOL -> {
+                    return if(rightDt.isBool)
+                        Pair(DataType.forDt(BaseDataType.BOOL), null)
                     else
-                        Pair(DataType.BOOL, right)
+                        Pair(DataType.forDt(BaseDataType.BOOL), right)
                 }
-                DataType.UBYTE -> {
-                    when (rightDt) {
-                        DataType.UBYTE -> Pair(DataType.UBYTE, null)
-                        DataType.BYTE -> Pair(DataType.BYTE, left)
-                        DataType.UWORD -> Pair(DataType.UWORD, left)
-                        DataType.WORD -> Pair(DataType.WORD, left)
-                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                BaseDataType.UBYTE -> {
+                    when (rightDt.base) {
+                        BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.UBYTE), null)
+                        BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.BYTE), left)
+                        BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.UWORD), left)
+                        BaseDataType.WORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
+                        BaseDataType.FLOAT -> Pair(DataType.forDt(BaseDataType.FLOAT), left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
                 }
-                DataType.BYTE -> {
-                    when (rightDt) {
-                        DataType.UBYTE -> Pair(DataType.BYTE, right)
-                        DataType.BYTE -> Pair(DataType.BYTE, null)
-                        DataType.UWORD -> Pair(DataType.WORD, left)
-                        DataType.WORD -> Pair(DataType.WORD, left)
-                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                BaseDataType.BYTE -> {
+                    when (rightDt.base) {
+                        BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.BYTE), right)
+                        BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.BYTE), null)
+                        BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
+                        BaseDataType.WORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
+                        BaseDataType.FLOAT -> Pair(DataType.forDt(BaseDataType.FLOAT), left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
                 }
-                DataType.UWORD -> {
-                    when (rightDt) {
-                        DataType.UBYTE -> Pair(DataType.UWORD, right)
-                        DataType.BYTE -> Pair(DataType.WORD, right)
-                        DataType.UWORD -> Pair(DataType.UWORD, null)
-                        DataType.WORD -> Pair(DataType.WORD, left)
-                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                BaseDataType.UWORD -> {
+                    when (rightDt.base) {
+                        BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.UWORD), right)
+                        BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
+                        BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.UWORD), null)
+                        BaseDataType.WORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
+                        BaseDataType.FLOAT -> Pair(DataType.forDt(BaseDataType.FLOAT), left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
                 }
-                DataType.WORD -> {
-                    when (rightDt) {
-                        DataType.UBYTE -> Pair(DataType.WORD, right)
-                        DataType.BYTE -> Pair(DataType.WORD, right)
-                        DataType.UWORD -> Pair(DataType.WORD, right)
-                        DataType.WORD -> Pair(DataType.WORD, null)
-                        DataType.FLOAT -> Pair(DataType.FLOAT, left)
+                BaseDataType.WORD -> {
+                    when (rightDt.base) {
+                        BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
+                        BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
+                        BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.WORD), right)
+                        BaseDataType.WORD -> Pair(DataType.forDt(BaseDataType.WORD), null)
+                        BaseDataType.FLOAT -> Pair(DataType.forDt(BaseDataType.FLOAT), left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
                 }
-                DataType.FLOAT -> {
-                    Pair(DataType.FLOAT, right)
+                BaseDataType.FLOAT -> {
+                    Pair(DataType.forDt(BaseDataType.FLOAT), right)
                 }
                 else -> Pair(leftDt, null)      // non-numeric datatype
             }
@@ -351,9 +351,9 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun inferType(program: Program): InferredTypes.InferredType {
         val target = arrayvar.targetStatement(program)
         if (target is VarDecl) {
-            return when (target.datatype) {
-                DataType.STR, DataType.UWORD -> InferredTypes.knownFor(DataType.UBYTE)
-                in ArrayDatatypes -> InferredTypes.knownFor(ArrayToElementTypes.getValue(target.datatype))
+            return when {
+                target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
                 else -> InferredTypes.knownFor(target.datatype)
             }
         }
@@ -367,7 +367,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun copy() = ArrayIndexedExpression(arrayvar.copy(), indexer.copy(), position)
 }
 
-class TypecastExpression(var expression: Expression, var type: DataType, val implicit: Boolean, override val position: Position) : Expression() {
+class TypecastExpression(var expression: Expression, var type: BaseDataType, val implicit: Boolean, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -376,7 +376,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     }
 
     init {
-        if(type==DataType.BOOL) require(!implicit) {"no implicit cast to boolean allowed"}
+        if(type==BaseDataType.BOOL) require(!implicit) {"no implicit cast to boolean allowed"}
     }
 
     override val isSimple = expression.isSimple
@@ -447,15 +447,15 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
                     if (arrayIndex != null) {
                         val index = arrayIndex?.constIndex()
                         if (index != null) {
-                            address += when (targetVar.datatype) {
-                                DataType.UWORD -> index
-                                in ArrayDatatypes -> program.memsizer.memorySize(targetVar.datatype, index)
+                            address += when {
+                                target.datatype.isUnsignedWord -> index
+                                target.datatype.isArray -> program.memsizer.memorySize(targetVar.datatype, index)
                                 else -> throw FatalAstException("need array or uword ptr")
                             }
                         } else
                             return null
                     }
-                    return NumericLiteral(DataType.UWORD, address, position)
+                    return NumericLiteral(BaseDataType.UWORD, address, position)
                 }
             }
         }
@@ -464,12 +464,12 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
             val constAddress = targetAsmAddress.address.constValue(program)
             if(constAddress==null)
                 return null
-            return NumericLiteral(DataType.UWORD, constAddress.number, position)
+            return NumericLiteral(BaseDataType.UWORD, constAddress.number, position)
         }
         return null
     }
     override fun referencesIdentifier(nameInSource: List<String>) = identifier.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true
-    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UWORD)
+    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UWORD)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 }
@@ -495,7 +495,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun referencesIdentifier(nameInSource: List<String>) = addressExpression.referencesIdentifier(nameInSource)
-    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
+    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UBYTE)
     override fun constValue(program: Program): NumericLiteral? = null
 
     override fun toString(): String {
@@ -503,12 +503,12 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     }
 }
 
-class NumericLiteral(val type: DataType,    // only numerical types allowed
+class NumericLiteral(val type: BaseDataType,    // only numerical types allowed + bool (there is no separate BooleanLiteral node)
                      numbervalue: Double,    // can be byte, word or float depending on the type
                      override val position: Position) : Expression() {
     override lateinit var parent: Node
     val number: Double by lazy {
-        if(type==DataType.FLOAT)
+        if(type==BaseDataType.FLOAT)
             numbervalue
         else {
             val trunc = truncate(numbervalue)
@@ -520,13 +520,13 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     init {
         when(type) {
-            DataType.UBYTE -> require(numbervalue in 0.0..255.0)
-            DataType.BYTE -> require(numbervalue in -128.0..127.0)
-            DataType.UWORD -> require(numbervalue in 0.0..65535.0)
-            DataType.WORD -> require(numbervalue in -32768.0..32767.0)
-            DataType.LONG -> require(numbervalue in -2147483647.0..2147483647.0)
-            DataType.BOOL -> require(numbervalue==0.0 || numbervalue==1.0)
-            else -> {}
+            BaseDataType.UBYTE -> require(numbervalue in 0.0..255.0)
+            BaseDataType.BYTE -> require(numbervalue in -128.0..127.0)
+            BaseDataType.UWORD -> require(numbervalue in 0.0..65535.0)
+            BaseDataType.WORD -> require(numbervalue in -32768.0..32767.0)
+            BaseDataType.LONG -> require(numbervalue in -2147483647.0..2147483647.0)
+            BaseDataType.BOOL -> require(numbervalue==0.0 || numbervalue==1.0)
+            else ->  require(type.isNumericOrBool) { "numeric literal type should be numeric or bool: $type" }
         }
     }
 
@@ -535,27 +535,27 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     companion object {
         fun fromBoolean(bool: Boolean, position: Position) =
-                NumericLiteral(DataType.BOOL, if(bool) 1.0 else 0.0, position)
+                NumericLiteral(BaseDataType.BOOL, if(bool) 1.0 else 0.0, position)
 
-        fun optimalNumeric(origType1: DataType, origType2: DataType?, value: Number, position: Position) : NumericLiteral =
+        fun optimalNumeric(origType1: BaseDataType, origType2: BaseDataType?, value: Number, position: Position) : NumericLiteral =
             fromOptimal(optimalNumeric(value, position), origType1, origType2, position)
 
-        fun optimalInteger(origType1: DataType, origType2: DataType?, value: Int, position: Position): NumericLiteral =
+        fun optimalInteger(origType1: BaseDataType, origType2: BaseDataType?, value: Int, position: Position): NumericLiteral =
             fromOptimal(optimalInteger(value, position), origType1, origType2, position)
 
         fun optimalNumeric(value: Number, position: Position): NumericLiteral {
             val digits = floor(value.toDouble()) - value.toDouble()
             return if(value is Double && digits!=0.0) {
-                NumericLiteral(DataType.FLOAT, value, position)
+                NumericLiteral(BaseDataType.FLOAT, value, position)
             } else {
                 val dvalue = value.toDouble()
                 when (value.toInt()) {
-                    in 0..255 -> NumericLiteral(DataType.UBYTE, dvalue, position)
-                    in -128..127 -> NumericLiteral(DataType.BYTE, dvalue, position)
-                    in 0..65535 -> NumericLiteral(DataType.UWORD, dvalue, position)
-                    in -32768..32767 -> NumericLiteral(DataType.WORD, dvalue, position)
-                    in -2147483647..2147483647 -> NumericLiteral(DataType.LONG, dvalue, position)
-                    else -> NumericLiteral(DataType.FLOAT, dvalue, position)
+                    in 0..255 -> NumericLiteral(BaseDataType.UBYTE, dvalue, position)
+                    in -128..127 -> NumericLiteral(BaseDataType.BYTE, dvalue, position)
+                    in 0..65535 -> NumericLiteral(BaseDataType.UWORD, dvalue, position)
+                    in -32768..32767 -> NumericLiteral(BaseDataType.WORD, dvalue, position)
+                    in -2147483647..2147483647 -> NumericLiteral(BaseDataType.LONG, dvalue, position)
+                    else -> NumericLiteral(BaseDataType.FLOAT, dvalue, position)
                 }
             }
         }
@@ -563,32 +563,32 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         fun optimalInteger(value: Int, position: Position): NumericLiteral {
             val dvalue = value.toDouble()
             return when (value) {
-                in 0..255 -> NumericLiteral(DataType.UBYTE, dvalue, position)
-                in -128..127 -> NumericLiteral(DataType.BYTE, dvalue, position)
-                in 0..65535 -> NumericLiteral(DataType.UWORD, dvalue, position)
-                in -32768..32767 -> NumericLiteral(DataType.WORD, dvalue, position)
-                in -2147483647..2147483647 -> NumericLiteral(DataType.LONG, dvalue, position)
+                in 0..255 -> NumericLiteral(BaseDataType.UBYTE, dvalue, position)
+                in -128..127 -> NumericLiteral(BaseDataType.BYTE, dvalue, position)
+                in 0..65535 -> NumericLiteral(BaseDataType.UWORD, dvalue, position)
+                in -32768..32767 -> NumericLiteral(BaseDataType.WORD, dvalue, position)
+                in -2147483647..2147483647 -> NumericLiteral(BaseDataType.LONG, dvalue, position)
                 else -> throw FatalAstException("integer overflow: $dvalue")
             }
         }
 
         fun optimalInteger(value: UInt, position: Position): NumericLiteral {
             return when (value) {
-                in 0u..255u -> NumericLiteral(DataType.UBYTE, value.toDouble(), position)
-                in 0u..65535u -> NumericLiteral(DataType.UWORD, value.toDouble(), position)
-                in 0u..2147483647u -> NumericLiteral(DataType.LONG, value.toDouble(), position)
+                in 0u..255u -> NumericLiteral(BaseDataType.UBYTE, value.toDouble(), position)
+                in 0u..65535u -> NumericLiteral(BaseDataType.UWORD, value.toDouble(), position)
+                in 0u..2147483647u -> NumericLiteral(BaseDataType.LONG, value.toDouble(), position)
                 else -> throw FatalAstException("unsigned integer overflow: $value")
             }
         }
 
-        private fun fromOptimal(optimal: NumericLiteral, origType1: DataType, origType2: DataType?, position: Position): NumericLiteral {
-            var largestOrig = if(origType2==null) origType1 else if(origType1.largerThan(origType2)) origType1 else origType2
-            return if(largestOrig.largerThan(optimal.type)) {
-                if(optimal.number<0 && largestOrig !in SignedDatatypes) {
-                    when(largestOrig){
-                        DataType.BOOL -> {}
-                        DataType.UBYTE -> largestOrig = DataType.BYTE
-                        DataType.UWORD -> largestOrig = DataType.WORD
+        private fun fromOptimal(optimal: NumericLiteral, origType1: BaseDataType, origType2: BaseDataType?, position: Position): NumericLiteral {
+            var largestOrig = if(origType2==null) origType1 else if(origType1.largerSizeThan(origType2)) origType1 else origType2
+            return if(largestOrig.largerSizeThan(optimal.type)) {
+                if(optimal.number<0 && !largestOrig.isSigned) {
+                    when(largestOrig) {
+                        BaseDataType.BOOL -> {}
+                        BaseDataType.UBYTE -> largestOrig = BaseDataType.BYTE
+                        BaseDataType.UWORD -> largestOrig = BaseDataType.WORD
                         else -> throw FatalAstException("invalid dt")
                     }
                 }
@@ -622,14 +622,24 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
     override fun toString(): String = "NumericLiteral(${type.name}:$number)"
 
-    override fun inferType(program: Program) = InferredTypes.knownFor(type)
+    override fun inferType(program: Program): InferredTypes.InferredType = when(type) {
+        BaseDataType.UBYTE -> InferredTypes.knownFor(BaseDataType.UBYTE)
+        BaseDataType.BYTE -> InferredTypes.knownFor(BaseDataType.BYTE)
+        BaseDataType.UWORD -> InferredTypes.knownFor(BaseDataType.UWORD)
+        BaseDataType.WORD -> InferredTypes.knownFor(BaseDataType.WORD)
+        BaseDataType.LONG -> InferredTypes.knownFor(BaseDataType.LONG)
+        BaseDataType.FLOAT -> InferredTypes.knownFor(BaseDataType.FLOAT)
+        BaseDataType.BOOL -> InferredTypes.knownFor(BaseDataType.BOOL)
+        BaseDataType.STR -> InferredTypes.knownFor(BaseDataType.STR)
+        else -> throw IllegalArgumentException("invalid type for numeric literal: $type")
+    }
 
     override fun hashCode(): Int = Objects.hash(type, number)
 
     override fun equals(other: Any?): Boolean {
         return if(other==null || other !is NumericLiteral)
             false
-        else if(type!=DataType.BOOL && other.type!=DataType.BOOL)
+        else if(type!=BaseDataType.BOOL && other.type!=BaseDataType.BOOL)
             number==other.number
         else
             type==other.type && number==other.number
@@ -638,31 +648,31 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
     operator fun compareTo(other: NumericLiteral): Int = number.compareTo(other.number)
 
     class ValueAfterCast(val isValid: Boolean, val whyFailed: String?, private val value: NumericLiteral?) {
-        fun valueOrZero() = if(isValid) value!! else NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        fun valueOrZero() = if(isValid) value!! else NumericLiteral(BaseDataType.UBYTE, 0.0, Position.DUMMY)
         fun linkParent(parent: Node) {
             value?.linkParents(parent)
         }
     }
 
-    fun cast(targettype: DataType, implicit: Boolean): ValueAfterCast {
+    fun cast(targettype: BaseDataType, implicit: Boolean): ValueAfterCast {
         val result = internalCast(targettype, implicit)
         result.linkParent(this.parent)
         return result
     }
 
-    private fun internalCast(targettype: DataType, implicit: Boolean): ValueAfterCast {
+    private fun internalCast(targettype: BaseDataType, implicit: Boolean): ValueAfterCast {
 
         // NOTE: this MAY convert a value into another when switching from singed to unsigned!!!
 
         if(type==targettype)
             return ValueAfterCast(true, null, this)
-        if (implicit && targettype in IntegerDatatypes && type==DataType.BOOL)
+        if (implicit && targettype.isInteger && type== BaseDataType.BOOL)
             return ValueAfterCast(false, "no implicit cast from boolean to integer allowed", this)
 
-        if(targettype == DataType.BOOL) {
+        if(targettype == BaseDataType.BOOL) {
             return if(implicit)
                 ValueAfterCast(false, "no implicit cast to boolean allowed", this)
-            else if(type in NumericDatatypes)
+            else if(type.isNumeric)
                 ValueAfterCast(true, null, fromBoolean(number!=0.0, position))
             else
                 ValueAfterCast(false, "no cast available from $type to BOOL", null)
@@ -670,101 +680,101 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
 
 
         when(type) {
-            DataType.UBYTE -> {
-                if(targettype==DataType.BYTE && (number in 0.0..127.0 || !implicit))
+            BaseDataType.UBYTE -> {
+                if(targettype==BaseDataType.BYTE && (number in 0.0..127.0 || !implicit))
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toByte().toDouble(), position))
-                if(targettype==DataType.WORD || targettype==DataType.UWORD)
+                if(targettype==BaseDataType.WORD || targettype==BaseDataType.UWORD)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.FLOAT)
+                if(targettype==BaseDataType.FLOAT)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.LONG)
+                if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
-            DataType.BYTE -> {
-                if(targettype==DataType.UBYTE) {
+            BaseDataType.BYTE -> {
+                if(targettype==BaseDataType.UBYTE) {
                     if(number in -128.0..0.0 && !implicit)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
                     else if(number in 0.0..255.0)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 }
-                if(targettype==DataType.UWORD) {
+                if(targettype==BaseDataType.UWORD) {
                     if(number in -32768.0..0.0 && !implicit)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
                     else if(number in 0.0..65535.0)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 }
-                if(targettype==DataType.WORD)
+                if(targettype==BaseDataType.WORD)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.FLOAT)
+                if(targettype==BaseDataType.FLOAT)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.LONG)
+                if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
-            DataType.UWORD -> {
-                if(targettype==DataType.BYTE && number <= 127)
+            BaseDataType.UWORD -> {
+                if(targettype==BaseDataType.BYTE && number <= 127)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.UBYTE && number <= 255)
+                if(targettype==BaseDataType.UBYTE && number <= 255)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.WORD && (number <= 32767 || !implicit))
+                if(targettype==BaseDataType.WORD && (number <= 32767 || !implicit))
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toShort().toDouble(), position))
-                if(targettype==DataType.FLOAT)
+                if(targettype==BaseDataType.FLOAT)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.LONG)
+                if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
-            DataType.WORD -> {
-                if(targettype==DataType.BYTE && number >= -128 && number <=127)
+            BaseDataType.WORD -> {
+                if(targettype==BaseDataType.BYTE && number >= -128 && number <=127)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.UBYTE) {
+                if(targettype==BaseDataType.UBYTE) {
                     if(number in -128.0..0.0 && !implicit)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toUByte().toDouble(), position))
                     else if(number in 0.0..255.0)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 }
-                if(targettype==DataType.UWORD) {
+                if(targettype==BaseDataType.UWORD) {
                     if(number in -32768.0 .. 0.0 && !implicit)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number.toInt().toUShort().toDouble(), position))
                     else if(number in 0.0..65535.0)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 }
-                if(targettype==DataType.FLOAT)
+                if(targettype==BaseDataType.FLOAT)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                if(targettype==DataType.LONG)
+                if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
-            DataType.FLOAT -> {
+            BaseDataType.FLOAT -> {
                 try {
-                    if (targettype == DataType.BYTE && number >= -128 && number <= 127)
+                    if (targettype == BaseDataType.BYTE && number >= -128 && number <= 127)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == DataType.UBYTE && number >= 0 && number <= 255)
+                    if (targettype == BaseDataType.UBYTE && number >= 0 && number <= 255)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == DataType.WORD && number >= -32768 && number <= 32767)
+                    if (targettype == BaseDataType.WORD && number >= -32768 && number <= 32767)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
+                    if (targettype == BaseDataType.UWORD && number >= 0 && number <= 65535)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if(targettype==DataType.LONG && number >=0 && number <= 2147483647)
+                    if(targettype==BaseDataType.LONG && number >=0 && number <= 2147483647)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 } catch (x: ExpressionError) {
                     return ValueAfterCast(false, x.message,null)
                 }
             }
-            DataType.BOOL -> {
+            BaseDataType.BOOL -> {
                 if(implicit)
                     return ValueAfterCast(false, "no implicit cast from boolean to integer allowed", null)
-                else if(targettype in IntegerDatatypes)
+                else if(targettype.isInteger)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
             }
-            DataType.LONG -> {
+            BaseDataType.LONG -> {
                 try {
-                    if (targettype == DataType.BYTE && number >= -128 && number <= 127)
+                    if (targettype == BaseDataType.BYTE && number >= -128 && number <= 127)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == DataType.UBYTE && number >= 0 && number <= 255)
+                    if (targettype == BaseDataType.UBYTE && number >= 0 && number <= 255)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == DataType.WORD && number >= -32768 && number <= 32767)
+                    if (targettype == BaseDataType.WORD && number >= -32768 && number <= 32767)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == DataType.UWORD && number >= 0 && number <= 65535)
+                    if (targettype == BaseDataType.UWORD && number >= 0 && number <= 65535)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if(targettype==DataType.FLOAT)
+                    if(targettype==BaseDataType.FLOAT)
                         return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 } catch (x: ExpressionError) {
                     return ValueAfterCast(false, x.message, null)
@@ -777,44 +787,44 @@ class NumericLiteral(val type: DataType,    // only numerical types allowed
         return ValueAfterCast(false, "no cast available from $type to $targettype number=$number", null)
     }
 
-    fun convertTypeKeepValue(targetDt: DataType): ValueAfterCast {
+    fun convertTypeKeepValue(targetDt: BaseDataType): ValueAfterCast {
         if(type==targetDt)
             return ValueAfterCast(true, null, this)
 
         when(type) {
-            DataType.UBYTE -> {
+            BaseDataType.UBYTE -> {
                 when(targetDt) {
-                    DataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
-                    DataType.UWORD, DataType.WORD, DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
+                    BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
                     else -> {}
                 }
             }
-            DataType.BYTE -> {
+            BaseDataType.BYTE -> {
                 when(targetDt) {
-                    DataType.UBYTE, DataType.UWORD -> if(number>=0.0) return cast(targetDt, false)
-                    DataType.WORD, DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.UBYTE, BaseDataType.UWORD -> if(number>=0.0) return cast(targetDt, false)
+                    BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
                     else -> {}
                 }
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 when(targetDt) {
-                    DataType.UBYTE -> if(number<=255.0) return cast(targetDt, false)
-                    DataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
-                    DataType.WORD -> if(number<=32767.0) return cast(targetDt, false)
-                    DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.UBYTE -> if(number<=255.0) return cast(targetDt, false)
+                    BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
+                    BaseDataType.WORD -> if(number<=32767.0) return cast(targetDt, false)
+                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
                     else -> {}
                 }
             }
-            DataType.WORD -> {
+            BaseDataType.WORD -> {
                 when(targetDt) {
-                    DataType.UBYTE -> if(number in 0.0..255.0) return cast(targetDt, false)
-                    DataType.BYTE -> if(number in -128.0..127.0) return cast(targetDt, false)
-                    DataType.UWORD -> if(number in 0.0..32767.0) return cast(targetDt, false)
-                    DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.UBYTE -> if(number in 0.0..255.0) return cast(targetDt, false)
+                    BaseDataType.BYTE -> if(number in -128.0..127.0) return cast(targetDt, false)
+                    BaseDataType.UWORD -> if(number in 0.0..32767.0) return cast(targetDt, false)
+                    BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
                     else -> {}
                 }
             }
-            DataType.LONG, DataType.FLOAT -> return cast(targetDt, false)
+            BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
             else -> {}
         }
         return ValueAfterCast(false, "no type conversion possible from $type to $targetDt", null)
@@ -859,13 +869,13 @@ class CharLiteral private constructor(val value: Char,
     override fun referencesIdentifier(nameInSource: List<String>) = false
     override fun constValue(program: Program): NumericLiteral {
         val bytevalue = program.encoding.encodeString(value.toString(), encoding).single()
-        return NumericLiteral(DataType.UBYTE, bytevalue.toDouble(), position)
+        return NumericLiteral(BaseDataType.UBYTE, bytevalue.toDouble(), position)
     }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     override fun toString(): String = "'${value.escape()}'"
-    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.UBYTE)
+    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UBYTE)
     operator fun compareTo(other: CharLiteral): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
@@ -909,7 +919,7 @@ class StringLiteral private constructor(val value: String,
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
     override fun toString(): String = "'${value.escape()}'"
-    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.STR)
+    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.STR)
     operator fun compareTo(other: StringLiteral): Int = value.compareTo(other.value)
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
@@ -962,10 +972,10 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         if(forloop != null)  {
             val loopvarDt = forloop.loopVarDt(program)
             if(loopvarDt.isKnown) {
-                return if(!loopvarDt.isArrayElement)
+                return if(!loopvarDt.isNumericOrBool)
                     InferredTypes.InferredType.unknown()
                 else
-                    InferredTypes.InferredType.known(ElementToArrayTypes.getValue(loopvarDt.getOr(DataType.UNDEFINED)))
+                    InferredTypes.InferredType.known(loopvarDt.getOrUndef().elementToArray())
             }
         }
 
@@ -974,25 +984,21 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         val datatypesInArray = value.map { it.inferType(program) }
         if(datatypesInArray.any{ it.isUnknown })
             return InferredTypes.InferredType.unknown()
-        val dts = datatypesInArray.map { it.getOr(DataType.UNDEFINED) }
+        val dts = datatypesInArray.map { it.getOrUndef() }
         return when {
-            DataType.FLOAT in dts -> InferredTypes.InferredType.known(DataType.ARRAY_F)
-            DataType.STR in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
-            DataType.WORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_W)
-            DataType.UWORD in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
-            DataType.BYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_B)
-            DataType.BOOL in dts -> {
-                if(dts.all { it==DataType.BOOL})
-                    InferredTypes.InferredType.known(DataType.ARRAY_BOOL)
+            dts.any { it.isFloat } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.FLOAT).elementToArray())
+            dts.any { it.isString } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.UWORD).elementToArray())
+            dts.any { it.isSignedWord } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.WORD).elementToArray())
+            dts.any { it.isUnsignedWord } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.UWORD).elementToArray())
+            dts.any { it.isSignedByte } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.BYTE).elementToArray())
+            dts.any { it.isBool } -> {
+                if(dts.all { it.isBool})
+                    InferredTypes.InferredType.known(DataType.forDt(BaseDataType.BOOL).elementToArray())
                 else
                     InferredTypes.InferredType.unknown()
             }
-            DataType.UBYTE in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UB)
-            DataType.ARRAY_UW in dts ||
-                DataType.ARRAY_W in dts ||
-                DataType.ARRAY_UB in dts ||
-                DataType.ARRAY_B in dts ||
-                DataType.ARRAY_F in dts -> InferredTypes.InferredType.known(DataType.ARRAY_UW)
+            dts.any { it.isUnsignedByte } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.UBYTE).elementToArray())
+            dts.any { it.isArray } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.UWORD).elementToArray())
             else -> InferredTypes.InferredType.unknown()
         }
     }
@@ -1000,8 +1006,8 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
     fun cast(targettype: DataType): ArrayLiteral? {
         if(type istype targettype)
             return this
-        if(targettype in ArrayDatatypes) {
-            val elementType = ArrayToElementTypes.getValue(targettype)
+        if(targettype.isArray) {
+            val elementType = targettype.elementType()
 
             // if all values are numeric literals, just do the cast.
             // if not:
@@ -1010,16 +1016,17 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             // otherwise: return null (cast cannot be done)
 
             if(value.all { it is NumericLiteral }) {
-                val castArray = if(elementType==DataType.BOOL) {
+                val castArray = if(elementType.isBool) {
                     value.map {
-                        if((it as NumericLiteral).type==DataType.BOOL)
+                        if((it as NumericLiteral).type==BaseDataType.BOOL)
                             it
                         else
                             return null // abort
                     }
                 } else {
+                    require(elementType.isNumericOrBool)
                     value.map {
-                        val cast = (it as NumericLiteral).cast(elementType, true)
+                        val cast = (it as NumericLiteral).cast(elementType.base, true)
                         if(cast.isValid)
                             cast.valueOrZero()
                         else
@@ -1028,13 +1035,13 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 }
                 return ArrayLiteral(InferredTypes.InferredType.known(targettype), castArray.toTypedArray(), position = position)
             }
-            else if(elementType in WordDatatypes && value.all { it is NumericLiteral || it is AddressOf || it is IdentifierReference}) {
+            else if(elementType.isWord && value.all { it is NumericLiteral || it is AddressOf || it is IdentifierReference}) {
                 val castArray = value.map {
                     when(it) {
                         is AddressOf -> it
                         is IdentifierReference -> it
                         is NumericLiteral -> {
-                            val numcast = it.cast(elementType, true)
+                            val numcast = it.cast(elementType.base, true)
                             if(numcast.isValid)
                                 numcast.valueOrZero()
                             else
@@ -1089,18 +1096,18 @@ class RangeExpression(var from: Expression,
         val toDt=to.inferType(program)
         return when {
             !fromDt.isKnown || !toDt.isKnown -> InferredTypes.unknown()
-            fromDt istype DataType.UBYTE && toDt istype DataType.UBYTE -> InferredTypes.knownFor(DataType.ARRAY_UB)
-            fromDt istype DataType.UWORD && toDt istype DataType.UWORD -> InferredTypes.knownFor(DataType.ARRAY_UW)
-            fromDt istype DataType.STR && toDt istype DataType.STR -> InferredTypes.knownFor(DataType.STR)
-            fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.ARRAY_W)
-            fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.ARRAY_B)
+            fromDt istype DataType.forDt(BaseDataType.UBYTE) && toDt istype DataType.forDt(BaseDataType.UBYTE) -> InferredTypes.knownFor(DataType.forDt(BaseDataType.UBYTE).elementToArray())
+            fromDt istype DataType.forDt(BaseDataType.UWORD) && toDt istype DataType.forDt(BaseDataType.UWORD) -> InferredTypes.knownFor(DataType.forDt(BaseDataType.UWORD).elementToArray())
+            fromDt istype DataType.forDt(BaseDataType.STR) && toDt istype DataType.forDt(BaseDataType.STR) -> InferredTypes.knownFor(BaseDataType.STR)
+            fromDt istype DataType.forDt(BaseDataType.WORD) || toDt istype DataType.forDt(BaseDataType.WORD) -> InferredTypes.knownFor(DataType.forDt(BaseDataType.WORD).elementToArray())
+            fromDt istype DataType.forDt(BaseDataType.BYTE) || toDt istype DataType.forDt(BaseDataType.BYTE) -> InferredTypes.knownFor(DataType.forDt(BaseDataType.BYTE).elementToArray())
             else -> {
-                val fdt = fromDt.getOr(DataType.UNDEFINED)
-                val tdt = toDt.getOr(DataType.UNDEFINED)
-                if(fdt largerThan tdt)
-                    InferredTypes.knownFor(ElementToArrayTypes.getValue(fdt))
+                val fdt = fromDt.getOrUndef()
+                val tdt = toDt.getOrUndef()
+                if(fdt.largerSizeThan(tdt))
+                    InferredTypes.knownFor(fdt.elementToArray())
                 else
-                    InferredTypes.knownFor(ElementToArrayTypes.getValue(tdt))
+                    InferredTypes.knownFor(tdt.elementToArray())
             }
         }
     }
@@ -1167,7 +1174,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             "<builtin>.${target.name}"
         else
             target.scopedName.joinToString(".")
-        val type = inferType(program).getOr(DataType.UNDEFINED)
+        val type = inferType(program).getOrUndef()
         return Pair(targetname, type)
     }
 
@@ -1200,10 +1207,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         // the value of a variable can (temporarily) be a different type as the vardecl itself.
         // don't return the value if the types don't match yet!
         val value = vardecl.value?.constValue(program)
-        if(value==null || value.type==vardecl.datatype)
+        if(value==null || value.type==vardecl.datatype.base)
             return value
         val optimal = NumericLiteral.optimalNumeric(value.number, value.position)
-        if(optimal.type==vardecl.datatype)
+        if(optimal.type==vardecl.datatype.base)
             return optimal
         return null
     }
@@ -1220,7 +1227,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun inferType(program: Program): InferredTypes.InferredType {
         return when (val targetStmt = targetStatement(program)) {
             is VarDecl -> {
-                if(targetStmt.datatype==DataType.UNDEFINED)
+                if(targetStmt.datatype.isUndefined)
                     InferredTypes.unknown()
                 else
                     InferredTypes.knownFor(targetStmt.datatype)
@@ -1276,7 +1283,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
         val resultValue: NumericLiteral? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
-            if(resultValue==null || resultDt istype resultValue.type)
+            if(resultValue==null || resultDt istype DataType.forDt(resultValue.type))
                 return resultValue
             throw FatalAstException("evaluated const expression result value doesn't match expected datatype $resultDt, pos=$position")
         } else {
@@ -1338,7 +1345,7 @@ class ContainmentCheck(var element: Expression,
                     return NumericLiteral.fromBoolean(exists, position)
                 }
                 is StringLiteral -> {
-                    if(elementConst.type in ByteDatatypes) {
+                    if(elementConst.type.isByte) {
                         val stringval = iterable as StringLiteral
                         val exists = program.encoding.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
                         return NumericLiteral.fromBoolean(exists, position)
@@ -1368,7 +1375,7 @@ class ContainmentCheck(var element: Expression,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = element.referencesIdentifier(nameInSource) || iterable.referencesIdentifier(nameInSource)
 
-    override fun inferType(program: Program) = InferredTypes.knownFor(DataType.BOOL)
+    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.BOOL)
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(replacement !is Expression)
@@ -1435,5 +1442,5 @@ fun invertCondition(cond: Expression, program: Program): Expression {
     return if(cond.inferType(program).isBool)
         PrefixExpression("not", cond, cond.position)
     else
-        BinaryExpression(cond, "==", NumericLiteral(DataType.UBYTE, 0.0, cond.position), cond.position)
+        BinaryExpression(cond, "==", NumericLiteral(BaseDataType.UBYTE, 0.0, cond.position), cond.position)
 }

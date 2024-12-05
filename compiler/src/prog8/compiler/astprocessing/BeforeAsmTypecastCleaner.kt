@@ -7,7 +7,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.IErrorReporter
+import prog8.code.core.isByte
+import prog8.code.core.isWord
 
 
 internal class BeforeAsmTypecastCleaner(val program: Program,
@@ -19,20 +22,18 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
         // such as casting byte<->ubyte,  word<->uword  or even redundant casts (sourcetype = target type).
         // the special typecast of a reference type (str, array) to an UWORD will be changed into address-of,
         //   UNLESS it's a str parameter in the containing subroutine - then we remove the typecast altogether
-        val sourceDt = typecast.expression.inferType(program).getOr(DataType.UNDEFINED)
-        if (typecast.type in ByteDatatypes && sourceDt in ByteDatatypes
-            || typecast.type in WordDatatypes && sourceDt in WordDatatypes
-        ) {
+        val sourceDt = typecast.expression.inferType(program).getOrUndef()
+        if (typecast.type.isByte && sourceDt.isByte || typecast.type.isWord && sourceDt.isWord) {
             if(typecast.parent !is Expression) {
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
         }
 
-        if(typecast.type==sourceDt)
+        if(typecast.type==sourceDt.base)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
-        if(sourceDt in PassByReferenceDatatypes) {
-            if(typecast.type== DataType.UWORD) {
+        if(sourceDt.isPassByRef) {
+            if(typecast.type == BaseDataType.UWORD) {
                 val identifier = typecast.expression as? IdentifierReference
                 if(identifier!=null) {
                     return if(identifier.isSubroutineParameter(program)) {
@@ -74,20 +75,20 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             // if the datatype of the arguments of cmp() are different, cast the byte one to word.
             val arg1 = fcs.args[0]
             val arg2 = fcs.args[1]
-            val dt1 = arg1.inferType(program).getOr(DataType.UNDEFINED)
-            val dt2 = arg2.inferType(program).getOr(DataType.UNDEFINED)
-            if(dt1==DataType.BOOL && dt2==DataType.BOOL)
+            val dt1 = arg1.inferType(program).getOrUndef()
+            val dt2 = arg2.inferType(program).getOrUndef()
+            if(dt1.isBool && dt2.isBool)
                 return noModifications
-            else if(dt1 in ByteDatatypes) {
-                if(dt2 in ByteDatatypes)
+            else if(dt1.isByte) {
+                if(dt2.isByte)
                     return noModifications
-                val (replaced, cast) = arg1.typecastTo(if(dt1== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt1, true)
+                val (replaced, cast) = arg1.typecastTo(if(dt1.isUnsignedByte) BaseDataType.UWORD else BaseDataType.WORD, dt1, true)
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg1, cast, fcs))
             } else {
-                if(dt2 in WordDatatypes)
+                if(dt2.isWord)
                     return noModifications
-                val (replaced, cast) = arg2.typecastTo(if(dt2== DataType.UBYTE) DataType.UWORD else DataType.WORD, dt2, true)
+                val (replaced, cast) = arg2.typecastTo(if(dt2.isUnsignedByte) BaseDataType.UWORD else BaseDataType.WORD, dt2, true)
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg2, cast, fcs))
             }
@@ -100,12 +101,12 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             val shifts = expr.right.constValue(program)
             if(shifts!=null) {
                 val dt = expr.left.inferType(program)
-                if(dt.istype(DataType.UBYTE) && shifts.number>=8.0)
+                if(dt issimpletype BaseDataType.UBYTE && shifts.number>=8.0)
                     errors.info("shift always results in 0", expr.position)
-                if(dt.istype(DataType.UWORD) && shifts.number>=16.0)
+                if(dt issimpletype BaseDataType.UWORD && shifts.number>=16.0)
                     errors.info("shift always results in 0", expr.position)
-                if(shifts.number<=255.0 && shifts.type in WordDatatypes) {
-                    val byteVal = NumericLiteral(DataType.UBYTE, shifts.number, shifts.position)
+                if(shifts.number<=255.0 && shifts.type.isWord) {
+                    val byteVal = NumericLiteral(BaseDataType.UBYTE, shifts.number, shifts.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, byteVal, expr))
                 }
             }

@@ -31,8 +31,8 @@ class VarConstantValueTypeAdjuster(
         try {
             val declConstValue = decl.value?.constValue(program)
             if(declConstValue!=null && (decl.type== VarDeclType.VAR || decl.type==VarDeclType.CONST)
-                && declConstValue.type != decl.datatype) {
-                if(decl.datatype in IntegerDatatypes && declConstValue.type == DataType.FLOAT) {
+                && declConstValue.type != decl.datatype.base) {
+                if(decl.datatype.isInteger && declConstValue.type == BaseDataType.FLOAT) {
                     // avoid silent float roundings
                     errors.err("refused truncating of float to avoid loss of precision", decl.value!!.position)
                 }
@@ -43,7 +43,7 @@ class VarConstantValueTypeAdjuster(
 
         // replace variables by constants, if possible
         if(options.optimize) {
-            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE || decl.datatype !in NumericDatatypes)
+            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE || !decl.datatype.isNumeric)
                 return noModifications
             if (decl.value != null && decl.value!!.constValue(program) == null)
                 return noModifications
@@ -149,9 +149,9 @@ class VarConstantValueTypeAdjuster(
             val t1 = functionCallExpr.args[0].inferType(program)
             if(t1.isKnown) {
                 val replaceFunc = if(t1.isBytes) {
-                    if(t1.istype(DataType.BYTE)) "clamp__byte" else "clamp__ubyte"
+                    if(t1 issimpletype BaseDataType.BYTE) "clamp__byte" else "clamp__ubyte"
                 } else if(t1.isInteger) {
-                    if(t1.istype(DataType.WORD)) "clamp__word" else "clamp__uword"
+                    if(t1 issimpletype BaseDataType.WORD) "clamp__word" else "clamp__uword"
                 } else {
                     errors.err("clamp builtin not supported for floats, use floats.clamp", functionCallExpr.position)
                     return noModifications
@@ -168,12 +168,12 @@ class VarConstantValueTypeAdjuster(
                 val funcName = func[0]
                 val replaceFunc: String
                 if(t1.isBytes && t2.isBytes) {
-                    replaceFunc = if(t1.istype(DataType.BYTE) || t2.istype(DataType.BYTE))
+                    replaceFunc = if(t1 issimpletype BaseDataType.BYTE || t2 issimpletype BaseDataType.BYTE)
                         "${funcName}__byte"
                     else
                         "${funcName}__ubyte"
                 } else if(t1.isInteger && t2.isInteger) {
-                    replaceFunc = if(t1.istype(DataType.WORD) || t2.istype(DataType.WORD))
+                    replaceFunc = if(t1 issimpletype BaseDataType.WORD || t2 issimpletype BaseDataType.WORD)
                         "${funcName}__word"
                     else
                         "${funcName}__uword"
@@ -193,11 +193,11 @@ class VarConstantValueTypeAdjuster(
             val t1 = functionCallExpr.args[0].inferType(program)
             if(t1.isKnown) {
                 val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
-                val replaceFunc = when(dt) {
-                    DataType.BYTE -> "abs__byte"
-                    DataType.WORD -> "abs__word"
-                    DataType.FLOAT -> "abs__float"
-                    DataType.UBYTE, DataType.UWORD -> {
+                val replaceFunc = when {
+                    dt.isSignedByte -> "abs__byte"
+                    dt.isSignedWord -> "abs__word"
+                    dt.isFloat -> "abs__float"
+                    dt.isUnsignedByte || dt.isUnsignedWord -> {
                         return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
                     }
                     else -> {
@@ -214,10 +214,10 @@ class VarConstantValueTypeAdjuster(
             val t1 = functionCallExpr.args[0].inferType(program)
             if(t1.isKnown) {
                 val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
-                val replaceFunc = when(dt) {
-                    DataType.UBYTE -> "sqrt__ubyte"
-                    DataType.UWORD -> "sqrt__uword"
-                    DataType.FLOAT -> "sqrt__float"
+                val replaceFunc = when {
+                    dt.isUnsignedByte -> "sqrt__ubyte"
+                    dt.isUnsignedWord -> "sqrt__uword"
+                    dt.isFloat -> "sqrt__float"
                     else -> {
                         errors.err("expected unsigned or float numeric argument", functionCallExpr.args[0].position)
                         return noModifications
@@ -243,9 +243,9 @@ class VarConstantValueTypeAdjuster(
             val t1 = argTypes.single()
             if(t1.isKnown) {
                 val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
-                val replaceFunc = when(dt) {
-                    DataType.UBYTE -> "divmod__ubyte"
-                    DataType.UWORD -> "divmod__uword"
+                val replaceFunc = when {
+                    dt.isUnsignedByte -> "divmod__ubyte"
+                    dt.isUnsignedWord -> "divmod__uword"
                     else -> {
                         errors.err("expected all ubyte or all uword arguments", functionCallStatement.args[0].position)
                         return noModifications
@@ -294,7 +294,7 @@ internal class ConstantIdentifierReplacer(
         try {
             val cval = identifier.constValue(program) ?: return noModifications
             val arrayIdx = identifier.parent as? ArrayIndexedExpression
-            if(arrayIdx!=null && cval.type in NumericDatatypes) {
+            if(arrayIdx!=null && cval.type.isNumeric) {
                 // special case when the identifier is used as a pointer var
                 // var = constpointer[x] --> var = @(constvalue+x) [directmemoryread]
                 // constpointer[x] = var -> @(constvalue+x) [directmemorywrite] = var
@@ -308,8 +308,8 @@ internal class ConstantIdentifierReplacer(
                     listOf(IAstModification.ReplaceNode(arrayIdx, memread, arrayIdx.parent))
                 }
             }
-            when (cval.type) {
-                in NumericDatatypesWithBoolean -> {
+            when {
+                cval.type.isNumericOrBool -> {
                     if(parent is AddressOf)
                         return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
                     return listOf(
@@ -320,7 +320,7 @@ internal class ConstantIdentifierReplacer(
                         )
                     )
                 }
-                in PassByReferenceDatatypes -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
+                cval.type.isPassByRef -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
                 else -> return noModifications
             }
         } catch (x: UndefinedSymbolError) {
@@ -361,16 +361,16 @@ internal class ConstantIdentifierReplacer(
                 }
             }
 
-            when(decl.datatype) {
-                DataType.FLOAT -> {
+            when {
+                decl.datatype.isFloat -> {
                     // vardecl: for scalar float vars, promote constant integer initialization values to floats
                     val litval = decl.value as? NumericLiteral
-                    if (litval!=null && litval.type in IntegerDatatypesWithBoolean) {
-                        val newValue = NumericLiteral(DataType.FLOAT, litval.number, litval.position)
+                    if (litval!=null && litval.type.isIntegerOrBool) {
+                        val newValue = NumericLiteral(BaseDataType.FLOAT, litval.number, litval.position)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
                     }
                 }
-                in ArrayDatatypes -> {
+                decl.datatype.isArray -> {
                     val replacedArrayInitializer = createConstArrayInitializerValue(decl)
                     if(replacedArrayInitializer!=null)
                         return listOf(IAstModification.ReplaceNode(decl.value!!, replacedArrayInitializer, decl))
@@ -390,7 +390,7 @@ internal class ConstantIdentifierReplacer(
         if(range!=null) {
             val targetDatatype = assignment.target.inferType(program)
             if(targetDatatype.isArray) {
-                val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, targetDatatype.getOr(DataType.UNDEFINED),
+                val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, targetDatatype.getOrUndef(),
                     ZeropageWish.DONTCARE, null, "dummy", emptyList(),
                     assignment.value, false, false, 0u, false, Position.DUMMY)
                 val replaceValue = createConstArrayInitializerValue(decl)
@@ -424,29 +424,31 @@ internal class ConstantIdentifierReplacer(
             else if(constRange.first<constRange.last && constRange.step<=0)
                 errors.err("ascending range with negative step", decl.value?.position!!)
         }
-        when(decl.datatype) {
-            DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_UW_SPLIT -> {
+        val dt = decl.datatype
+        when {
+            dt.isUnsignedByteArray || dt.isSignedByteArray || dt.isUnsignedWordArray || dt.isSignedWordArray -> {
                 if(declArraySize!=null && declArraySize!=rangeExpr.size())
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
-                    val eltType = rangeExpr.inferType(program).getOr(DataType.UBYTE)
-                    return if(eltType in ByteDatatypes) {
+                    val rangeType = rangeExpr.inferType(program).getOr(DataType.forDt(BaseDataType.UBYTE))
+                    return if(rangeType.isByte) {
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                            constRange.map { NumericLiteral(eltType, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                            constRange.map { NumericLiteral(rangeType.base, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     } else {
+                        require(rangeType.sub!=null)
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                            constRange.map { NumericLiteral(eltType, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                            constRange.map { NumericLiteral(rangeType.sub!!.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     }
                 }
             }
-            DataType.ARRAY_F -> {
+            dt.isFloatArray -> {
                 if(declArraySize!=null && declArraySize!=rangeExpr.size())
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
-                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.ARRAY_F),
-                        constRange.map { NumericLiteral(DataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                    return ArrayLiteral(InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT)),
+                        constRange.map { NumericLiteral(BaseDataType.FLOAT, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                         position = decl.value!!.position)
                 }
             }

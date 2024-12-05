@@ -400,5 +400,24 @@ label:
         errors.errors[0] shouldContain "contains non-constant"
         errors.errors[1] shouldContain "contains non-constant"
     }
+
+    test("memsizing in codegen of array return values") {
+        val src="""
+main {
+    sub start() {
+        cx16.r1 = give_array1()
+        cx16.r2 = give_array2()
+    }
+
+    sub give_array1() -> uword {
+        return [1,2,3,4]
+    }
+    sub give_array2() -> uword {
+        return [1000,2000,3000,4000]
+    }
+}"""
+        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
 })
 

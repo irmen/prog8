@@ -258,7 +258,7 @@ class VarDecl(val type: VarDeclType,
         private var autoHeapValueSequenceNumber = 0
 
         fun fromParameter(param: SubroutineParameter): VarDecl {
-            val dt = if(param.type in ArrayDatatypes) DataType.UWORD else param.type
+            val dt = if(param.type.isArray) DataType.forDt(BaseDataType.UWORD) else param.type
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, null, param.name, emptyList(), null,
                 sharedWithAsm = false,
                 splitArray = false,
@@ -278,12 +278,12 @@ class VarDecl(val type: VarDeclType,
     }
 
     init {
-        if(datatype in SplitWordArrayTypes)
+        if(datatype.isSplitWordArray)
             require(splitArray)
     }
 
     val isArray: Boolean
-        get() = datatype in ArrayDatatypes
+        get() = datatype.isArray
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -304,8 +304,8 @@ class VarDecl(val type: VarDeclType,
 
     fun zeroElementValue(): NumericLiteral {
         if(allowInitializeWithZero) {
-            return if(datatype in ArrayDatatypes) defaultZero(ArrayToElementTypes.getValue(datatype), position)
-            else defaultZero(datatype, position)
+            return if(datatype.isArray) defaultZero(datatype.sub!!, position)
+                else defaultZero(datatype.base, position)
         }
         else
             throw IllegalArgumentException("attempt to get zero value for vardecl that shouldn't get it")
@@ -557,7 +557,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
         }
 
         if (memoryAddress != null)
-            return InferredTypes.knownFor(DataType.UBYTE)
+            return InferredTypes.knownFor(BaseDataType.UBYTE)
 
         // a multi-target has no 1 particular type
         return InferredTypes.unknown()

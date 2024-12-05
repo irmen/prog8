@@ -208,25 +208,25 @@ class StStaticVariable(name: String,
                 require(initializationArrayValue.isEmpty() ||initializationArrayValue.size==length)
         }
         if(initializationNumericValue!=null) {
-            require(dt in NumericDatatypes || dt==DataType.BOOL)
+            require(dt.isNumericOrBool)
         }
         if(initializationArrayValue!=null) {
-            require(dt in ArrayDatatypes)
-            require(length==initializationArrayValue.size)
+            require(dt.isArray)
+            require(length == initializationArrayValue.size)
         }
         if(initializationStringValue!=null) {
-            require(dt == DataType.STR)
-            require(length == initializationStringValue.first.length+1)
+            require(dt.isString)
+            require(length == initializationStringValue.first.length + 1)
         }
         if(align > 0) {
-            require(dt == DataType.STR || dt in ArrayDatatypes)
+            require(dt.isString || dt.isArray)
             require(zpwish != ZeropageWish.REQUIRE_ZEROPAGE && zpwish != ZeropageWish.PREFER_ZEROPAGE)
         }
     }
 }
 
 
-class StConstant(name: String, val dt: DataType, val value: Double, astNode: PtNode) :
+class StConstant(name: String, val dt: BaseDataType, val value: Double, astNode: PtNode) :
     StNode(name, StNodeType.CONSTANT, astNode)
 
 
@@ -238,8 +238,8 @@ class StMemVar(name: String,
     StNode(name, StNodeType.MEMVAR, astNode) {
 
     init{
-        require(dt!=DataType.BOOL && dt!=DataType.ARRAY_BOOL)
-        if(dt in ArrayDatatypes || dt == DataType.STR)
+        require(!dt.isBool && !dt.isBoolArray)
+        if(dt.isStringly && !dt.isWord)
             requireNotNull(length)
     }
 }

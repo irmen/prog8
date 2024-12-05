@@ -47,16 +47,16 @@ class TestVmCodeGen: FunSpec({
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         sub.add(PtVariable(
             "pi",
-            DataType.UBYTE,
+            DataType.forDt(BaseDataType.UBYTE),
             ZeropageWish.DONTCARE,
             0u,
-            PtNumber(DataType.UBYTE, 0.0, Position.DUMMY),
+            PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY),
             null,
             Position.DUMMY
         ))
         sub.add(PtVariable(
             "particleX",
-            DataType.ARRAY_UB,
+            DataType.arrayFor(BaseDataType.UBYTE),
             ZeropageWish.DONTCARE,
             0u,
             null,
@@ -65,7 +65,7 @@ class TestVmCodeGen: FunSpec({
         ))
         sub.add(PtVariable(
             "particleDX",
-            DataType.ARRAY_UB,
+            DataType.arrayFor(BaseDataType.UBYTE),
             ZeropageWish.DONTCARE,
             0u,
             null,
@@ -74,51 +74,55 @@ class TestVmCodeGen: FunSpec({
         ))
         sub.add(PtVariable(
             "xx",
-            DataType.WORD,
+            DataType.forDt(BaseDataType.WORD),
             ZeropageWish.DONTCARE,
             0u,
-            PtNumber(DataType.WORD, 1.0, Position.DUMMY),
+            PtNumber(BaseDataType.WORD, 1.0, Position.DUMMY),
             null,
             Position.DUMMY
         ))
 
         val assign = PtAugmentedAssign("+=", Position.DUMMY)
         val target = PtAssignTarget(false, Position.DUMMY).also {
-            val targetIdx = PtArrayIndexer(DataType.UBYTE, Position.DUMMY).also { idx ->
-                idx.add(PtIdentifier("main.start.particleX", DataType.ARRAY_UB, Position.DUMMY))
-                idx.add(PtNumber(DataType.UBYTE, 2.0, Position.DUMMY))
+            val targetIdx = PtArrayIndexer(DataType.forDt(BaseDataType.UBYTE), Position.DUMMY).also { idx ->
+                idx.add(PtIdentifier("main.start.particleX",
+                    DataType.arrayFor(BaseDataType.UBYTE),
+                    Position.DUMMY))
+                idx.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
             }
             it.add(targetIdx)
         }
-        val value = PtArrayIndexer(DataType.UBYTE, Position.DUMMY)
-        value.add(PtIdentifier("main.start.particleDX", DataType.ARRAY_UB, Position.DUMMY))
-        value.add(PtNumber(DataType.UBYTE, 2.0, Position.DUMMY))
+        val value = PtArrayIndexer(DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)
+        value.add(PtIdentifier("main.start.particleDX",
+            DataType.arrayFor(BaseDataType.UBYTE),
+            Position.DUMMY))
+        value.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))
         assign.add(target)
         assign.add(value)
         sub.add(assign)
 
         val prefixAssign = PtAugmentedAssign("-", Position.DUMMY)
         val prefixTarget = PtAssignTarget(false, Position.DUMMY).also {
-            it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
+            it.add(PtIdentifier("main.start.xx", DataType.forDt(BaseDataType.WORD), Position.DUMMY))
         }
         prefixAssign.add(prefixTarget)
-        prefixAssign.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
+        prefixAssign.add(PtIdentifier("main.start.xx", DataType.forDt(BaseDataType.WORD), Position.DUMMY))
         sub.add(prefixAssign)
 
         val numberAssign = PtAugmentedAssign("+=", Position.DUMMY)
         val numberAssignTarget = PtAssignTarget(false, Position.DUMMY).also {
-            it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
+            it.add(PtIdentifier("main.start.xx", DataType.forDt(BaseDataType.WORD), Position.DUMMY))
         }
         numberAssign.add(numberAssignTarget)
-        numberAssign.add(PtNumber(DataType.WORD, 42.0, Position.DUMMY))
+        numberAssign.add(PtNumber(BaseDataType.WORD, 42.0, Position.DUMMY))
         sub.add(numberAssign)
 
         val cxregAssign = PtAugmentedAssign("+=", Position.DUMMY)
         val cxregAssignTarget = PtAssignTarget(false, Position.DUMMY).also {
-            it.add(PtIdentifier("main.start.xx", DataType.WORD, Position.DUMMY))
+            it.add(PtIdentifier("main.start.xx", DataType.forDt(BaseDataType.WORD), Position.DUMMY))
         }
         cxregAssign.add(cxregAssignTarget)
-        cxregAssign.add(PtIdentifier("cx16.r0", DataType.UWORD, Position.DUMMY))
+        cxregAssign.add(PtIdentifier("cx16.r0", DataType.forDt(BaseDataType.UWORD), Position.DUMMY))
         sub.add(cxregAssign)
 
         block.add(sub)
@@ -126,7 +130,7 @@ class TestVmCodeGen: FunSpec({
 
         // define the "cx16.r0" virtual register
         val cx16block = PtBlock("cx16", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        cx16block.add(PtMemMapped("r0", DataType.UWORD, 100u, null, Position.DUMMY))
+        cx16block.add(PtMemMapped("r0", DataType.forDt(BaseDataType.UWORD), 100u, null, Position.DUMMY))
         program.add(cx16block)
 
         val options = getTestOptions()
@@ -158,7 +162,7 @@ class TestVmCodeGen: FunSpec({
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         sub.add(PtVariable(
             "f1",
-            DataType.FLOAT,
+            DataType.forDt(BaseDataType.FLOAT),
             ZeropageWish.DONTCARE,
             0u,
             null,
@@ -166,33 +170,33 @@ class TestVmCodeGen: FunSpec({
             Position.DUMMY
         ))
         val if1 = PtIfElse(Position.DUMMY)
-        val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
-        cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp1.add(PtNumber(DataType.FLOAT, 0.0, Position.DUMMY))
+        val cmp1 = PtBinaryExpression("==", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp1.add(PtNumber(BaseDataType.FLOAT, 0.0, Position.DUMMY))
         if1.add(cmp1)
         if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if1)
         val if2 = PtIfElse(Position.DUMMY)
-        val cmp2 = PtBinaryExpression("!=", DataType.BOOL, Position.DUMMY)
-        cmp2.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp2.add(PtNumber(DataType.FLOAT, 0.0, Position.DUMMY))
+        val cmp2 = PtBinaryExpression("!=", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp2.add(PtNumber(BaseDataType.FLOAT, 0.0, Position.DUMMY))
         if2.add(cmp2)
         if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if2)
         val if3 = PtIfElse(Position.DUMMY)
-        val cmp3 = PtBinaryExpression("<", DataType.BOOL, Position.DUMMY)
-        cmp3.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp3.add(PtNumber(DataType.FLOAT, 0.0, Position.DUMMY))
+        val cmp3 = PtBinaryExpression("<", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp3.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp3.add(PtNumber(BaseDataType.FLOAT, 0.0, Position.DUMMY))
         if3.add(cmp3)
         if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if3)
         val if4 = PtIfElse(Position.DUMMY)
-        val cmp4 = PtBinaryExpression(">", DataType.BOOL, Position.DUMMY)
-        cmp4.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp4.add(PtNumber(DataType.FLOAT, 0.0, Position.DUMMY))
+        val cmp4 = PtBinaryExpression(">", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp4.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp4.add(PtNumber(BaseDataType.FLOAT, 0.0, Position.DUMMY))
         if4.add(cmp4)
         if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
@@ -229,7 +233,7 @@ class TestVmCodeGen: FunSpec({
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         sub.add(PtVariable(
             "f1",
-            DataType.FLOAT,
+            DataType.forDt(BaseDataType.FLOAT),
             ZeropageWish.DONTCARE,
             0u,
             null,
@@ -237,33 +241,33 @@ class TestVmCodeGen: FunSpec({
             Position.DUMMY
         ))
         val if1 = PtIfElse(Position.DUMMY)
-        val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
-        cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp1.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        val cmp1 = PtBinaryExpression("==", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp1.add(PtNumber(BaseDataType.FLOAT, 42.0, Position.DUMMY))
         if1.add(cmp1)
         if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if1)
         val if2 = PtIfElse(Position.DUMMY)
-        val cmp2 = PtBinaryExpression("!=", DataType.BOOL, Position.DUMMY)
-        cmp2.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp2.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        val cmp2 = PtBinaryExpression("!=", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp2.add(PtNumber(BaseDataType.FLOAT, 42.0, Position.DUMMY))
         if2.add(cmp2)
         if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if2)
         val if3 = PtIfElse(Position.DUMMY)
-        val cmp3 = PtBinaryExpression("<", DataType.BOOL, Position.DUMMY)
-        cmp3.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp3.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        val cmp3 = PtBinaryExpression("<", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp3.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp3.add(PtNumber(BaseDataType.FLOAT, 42.0, Position.DUMMY))
         if3.add(cmp3)
         if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if3)
         val if4 = PtIfElse(Position.DUMMY)
-        val cmp4 = PtBinaryExpression(">", DataType.BOOL, Position.DUMMY)
-        cmp4.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp4.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        val cmp4 = PtBinaryExpression(">", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp4.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp4.add(PtNumber(BaseDataType.FLOAT, 42.0, Position.DUMMY))
         if4.add(cmp4)
         if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
@@ -296,7 +300,7 @@ class TestVmCodeGen: FunSpec({
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         sub.add(PtVariable(
             "f1",
-            DataType.FLOAT,
+            DataType.forDt(BaseDataType.FLOAT),
             ZeropageWish.DONTCARE,
             0u,
             null,
@@ -304,17 +308,17 @@ class TestVmCodeGen: FunSpec({
             Position.DUMMY
         ))
         val if1 = PtIfElse(Position.DUMMY)
-        val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
-        cmp1.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp1.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        val cmp1 = PtBinaryExpression("==", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp1.add(PtNumber(BaseDataType.FLOAT, 42.0, Position.DUMMY))
         if1.add(cmp1)
         if1.add(PtNodeGroup().also { it.add(PtJump(null, 0xc000u, Position.DUMMY)) })
         if1.add(PtNodeGroup())
         sub.add(if1)
         val if2 = PtIfElse(Position.DUMMY)
-        val cmp2 = PtBinaryExpression(">", DataType.BOOL, Position.DUMMY)
-        cmp2.add(PtIdentifier("main.start.f1", DataType.FLOAT, Position.DUMMY))
-        cmp2.add(PtNumber(DataType.FLOAT, 42.0, Position.DUMMY))
+        val cmp2 = PtBinaryExpression(">", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.f1", DataType.forDt(BaseDataType.FLOAT), Position.DUMMY))
+        cmp2.add(PtNumber(BaseDataType.FLOAT, 42.0, Position.DUMMY))
         if2.add(cmp2)
         if2.add(PtNodeGroup().also { it.add(PtJump(null, 0xc000u, Position.DUMMY)) })
         if2.add(PtNodeGroup())
@@ -351,7 +355,7 @@ class TestVmCodeGen: FunSpec({
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         sub.add(PtVariable(
             "sb1",
-            DataType.BYTE,
+            DataType.forDt(BaseDataType.BYTE),
             ZeropageWish.DONTCARE,
             0u,
             null,
@@ -359,33 +363,33 @@ class TestVmCodeGen: FunSpec({
             Position.DUMMY
         ))
         val if1 = PtIfElse(Position.DUMMY)
-        val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
-        cmp1.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
-        cmp1.add(PtNumber(DataType.BYTE, 0.0, Position.DUMMY))
+        val cmp1 = PtBinaryExpression("==", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.sb1", DataType.forDt(BaseDataType.BYTE), Position.DUMMY))
+        cmp1.add(PtNumber(BaseDataType.BYTE, 0.0, Position.DUMMY))
         if1.add(cmp1)
         if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if1)
         val if2 = PtIfElse(Position.DUMMY)
-        val cmp2 = PtBinaryExpression("!=", DataType.BOOL, Position.DUMMY)
-        cmp2.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
-        cmp2.add(PtNumber(DataType.BYTE, 0.0, Position.DUMMY))
+        val cmp2 = PtBinaryExpression("!=", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.sb1", DataType.forDt(BaseDataType.BYTE), Position.DUMMY))
+        cmp2.add(PtNumber(BaseDataType.BYTE, 0.0, Position.DUMMY))
         if2.add(cmp2)
         if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if2)
         val if3 = PtIfElse(Position.DUMMY)
-        val cmp3 = PtBinaryExpression("<", DataType.BOOL, Position.DUMMY)
-        cmp3.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
-        cmp3.add(PtNumber(DataType.BYTE, 0.0, Position.DUMMY))
+        val cmp3 = PtBinaryExpression("<", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp3.add(PtIdentifier("main.start.sb1", DataType.forDt(BaseDataType.BYTE), Position.DUMMY))
+        cmp3.add(PtNumber(BaseDataType.BYTE, 0.0, Position.DUMMY))
         if3.add(cmp3)
         if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if3)
         val if4 = PtIfElse(Position.DUMMY)
-        val cmp4 = PtBinaryExpression(">", DataType.BOOL, Position.DUMMY)
-        cmp4.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
-        cmp4.add(PtNumber(DataType.BYTE, 0.0, Position.DUMMY))
+        val cmp4 = PtBinaryExpression(">", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp4.add(PtIdentifier("main.start.sb1", DataType.forDt(BaseDataType.BYTE), Position.DUMMY))
+        cmp4.add(PtNumber(BaseDataType.BYTE, 0.0, Position.DUMMY))
         if4.add(cmp4)
         if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
@@ -422,7 +426,7 @@ class TestVmCodeGen: FunSpec({
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         sub.add(PtVariable(
             "sb1",
-            DataType.BYTE,
+            DataType.forDt(BaseDataType.BYTE),
             ZeropageWish.DONTCARE,
             0u,
             null,
@@ -430,33 +434,33 @@ class TestVmCodeGen: FunSpec({
             Position.DUMMY
         ))
         val if1 = PtIfElse(Position.DUMMY)
-        val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
-        cmp1.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
-        cmp1.add(PtNumber(DataType.BYTE, 42.0, Position.DUMMY))
+        val cmp1 = PtBinaryExpression("==", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.sb1", DataType.forDt(BaseDataType.BYTE), Position.DUMMY))
+        cmp1.add(PtNumber(BaseDataType.BYTE, 42.0, Position.DUMMY))
         if1.add(cmp1)
         if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if1.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if1)
         val if2 = PtIfElse(Position.DUMMY)
-        val cmp2 = PtBinaryExpression("!=", DataType.BOOL, Position.DUMMY)
-        cmp2.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
-        cmp2.add(PtNumber(DataType.BYTE, 42.0, Position.DUMMY))
+        val cmp2 = PtBinaryExpression("!=", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.sb1", DataType.forDt(BaseDataType.BYTE), Position.DUMMY))
+        cmp2.add(PtNumber(BaseDataType.BYTE, 42.0, Position.DUMMY))
         if2.add(cmp2)
         if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if2.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if2)
         val if3 = PtIfElse(Position.DUMMY)
-        val cmp3 = PtBinaryExpression("<", DataType.BOOL, Position.DUMMY)
-        cmp3.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
-        cmp3.add(PtNumber(DataType.BYTE, 42.0, Position.DUMMY))
+        val cmp3 = PtBinaryExpression("<", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp3.add(PtIdentifier("main.start.sb1", DataType.forDt(BaseDataType.BYTE), Position.DUMMY))
+        cmp3.add(PtNumber(BaseDataType.BYTE, 42.0, Position.DUMMY))
         if3.add(cmp3)
         if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if3.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         sub.add(if3)
         val if4 = PtIfElse(Position.DUMMY)
-        val cmp4 = PtBinaryExpression(">", DataType.BOOL, Position.DUMMY)
-        cmp4.add(PtIdentifier("main.start.sb1", DataType.BYTE, Position.DUMMY))
-        cmp4.add(PtNumber(DataType.BYTE, 42.0, Position.DUMMY))
+        val cmp4 = PtBinaryExpression(">", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp4.add(PtIdentifier("main.start.sb1", DataType.forDt(BaseDataType.BYTE), Position.DUMMY))
+        cmp4.add(PtNumber(BaseDataType.BYTE, 42.0, Position.DUMMY))
         if4.add(cmp4)
         if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
         if4.add(PtNodeGroup().also { it.add(PtNop(Position.DUMMY)) })
@@ -489,7 +493,7 @@ class TestVmCodeGen: FunSpec({
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
         sub.add(PtVariable(
             "ub1",
-            DataType.UBYTE,
+            DataType.forDt(BaseDataType.BYTE),
             ZeropageWish.DONTCARE,
             0u,
             null,
@@ -497,17 +501,17 @@ class TestVmCodeGen: FunSpec({
             Position.DUMMY
         ))
         val if1 = PtIfElse(Position.DUMMY)
-        val cmp1 = PtBinaryExpression("==", DataType.BOOL, Position.DUMMY)
-        cmp1.add(PtIdentifier("main.start.ub1", DataType.UBYTE, Position.DUMMY))
-        cmp1.add(PtNumber(DataType.UBYTE, 42.0, Position.DUMMY))
+        val cmp1 = PtBinaryExpression("==", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp1.add(PtIdentifier("main.start.ub1", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY))
+        cmp1.add(PtNumber(BaseDataType.UBYTE, 42.0, Position.DUMMY))
         if1.add(cmp1)
         if1.add(PtNodeGroup().also { it.add(PtJump(null, 0xc000u, Position.DUMMY)) })
         if1.add(PtNodeGroup())
         sub.add(if1)
         val if2 = PtIfElse(Position.DUMMY)
-        val cmp2 = PtBinaryExpression(">", DataType.BOOL, Position.DUMMY)
-        cmp2.add(PtIdentifier("main.start.ub1", DataType.UBYTE, Position.DUMMY))
-        cmp2.add(PtNumber(DataType.UBYTE, 42.0, Position.DUMMY))
+        val cmp2 = PtBinaryExpression(">", DataType.forDt(BaseDataType.BOOL), Position.DUMMY)
+        cmp2.add(PtIdentifier("main.start.ub1", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY))
+        cmp2.add(PtNumber(BaseDataType.UBYTE, 42.0, Position.DUMMY))
         if2.add(cmp2)
         if2.add(PtNodeGroup().also { it.add(PtJump(null, 0xc000u, Position.DUMMY)) })
         if2.add(PtNodeGroup())
@@ -537,7 +541,7 @@ class TestVmCodeGen: FunSpec({
         val extsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
         block.add(extsub)
         val sub = PtSub("start", emptyList(), null, Position.DUMMY)
-        val call = PtFunctionCall("main.routine", true, DataType.UNDEFINED, Position.DUMMY)
+        val call = PtFunctionCall("main.routine", true, DataType.forDt(BaseDataType.UNDEFINED), Position.DUMMY)
         sub.add(call)
         block.add(sub)
         program.add(block)

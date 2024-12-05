@@ -59,10 +59,13 @@ private fun oneIntArgOutputInt(args: List<Expression>, position: Position, progr
     if(args.size!=1)
         throw SyntaxError("built-in function requires one integer argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    val allowedDt = if(signed) IntegerDatatypes else arrayOf(DataType.UBYTE, DataType.UWORD)
-    if(constval.type !in allowedDt)
-        throw SyntaxError("built-in function requires one integer argument", position)
-
+    if(signed) {
+        if(!constval.type.isInteger)
+            throw SyntaxError("built-in function requires one integer argument", position)
+    } else {
+        if(constval.type!=BaseDataType.UBYTE && constval.type!=BaseDataType.UWORD)
+            throw SyntaxError("built-in function requires one integer argument", position)
+    }
     val integer = constval.number.toInt()
     return NumericLiteral.optimalInteger(function(integer).toInt(), args[0].position)
 }
@@ -71,10 +74,10 @@ private fun oneFloatArgOutputFloat(args: List<Expression>, position: Position, p
     if(args.size!=1)
         throw SyntaxError("built-in function requires one float argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    if(constval.type != DataType.FLOAT)
+    if(constval.type != BaseDataType.FLOAT)
         throw SyntaxError("built-in function requires one float argument", position)
 
-    return NumericLiteral(DataType.FLOAT, function(constval.number), args[0].position)
+    return NumericLiteral(BaseDataType.FLOAT, function(constval.number), args[0].position)
 }
 
 private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -83,10 +86,8 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
         throw SyntaxError("abs requires one integer argument", position)
 
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return when (constval.type) {
-        in IntegerDatatypes -> NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
-        else -> throw SyntaxError("abs requires one integer argument", position)
-    }
+    return if (constval.type.isInteger) NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
+    else throw SyntaxError("abs requires one integer argument", position)
 }
 
 private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -99,7 +100,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     val dt = args[0].inferType(program)
     if(dt.isKnown) {
         if(args[0] is NumericLiteral)
-            return NumericLiteral.optimalInteger(program.memsizer.memorySize(dt.getOr(DataType.UNDEFINED)), position)
+            return NumericLiteral.optimalInteger(program.memsizer.memorySize(dt.getOrUndef(), null), position)
 
         val target = (args[0] as IdentifierReference).targetStatement(program)
             ?: throw CannotEvaluateException("sizeof", "no target")
@@ -107,11 +108,11 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
         return when {
             dt.isArray -> {
                 val length = (target as VarDecl).arraysize?.constIndex() ?: throw CannotEvaluateException("sizeof", "unknown array size")
-                val elementDt = ArrayToElementTypes.getValue(dt.getOr(DataType.UNDEFINED))
-                NumericLiteral.optimalInteger(program.memsizer.memorySize(elementDt) * length, position)
+                val elementDt = dt.getOrUndef().elementType()
+                NumericLiteral.optimalInteger(program.memsizer.memorySize(elementDt, length), position)
             }
-            dt istype DataType.STR -> throw SyntaxError("sizeof(str) is undefined, did you mean len, or perhaps strings.length?", position)
-            else -> NumericLiteral(DataType.UBYTE, program.memsizer.memorySize(dt.getOr(DataType.UNDEFINED)).toDouble(), position)
+            dt.isString -> throw SyntaxError("sizeof(str) is undefined, did you mean len, or perhaps strings.length?", position)
+            else -> NumericLiteral(BaseDataType.UBYTE, program.memsizer.memorySize(dt.getOrUndef(), null).toDouble(), position)
         }
     } else {
         throw SyntaxError("sizeof invalid argument type", position)
@@ -136,18 +137,18 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
     val target = (args[0] as IdentifierReference).targetVarDecl(program)
         ?: throw CannotEvaluateException("len", "no target vardecl")
 
-    return when(target.datatype) {
-        in ArrayDatatypes -> {
+    return when  {
+        target.datatype.isArray -> {
             arraySize = target.arraysize?.constIndex()
             if(arraySize==null)
                 throw CannotEvaluateException("len", "arraysize unknown")
             NumericLiteral.optimalInteger(arraySize, args[0].position)
         }
-        DataType.STR -> {
+        target.datatype.isString -> {
             val refLv = target.value as? StringLiteral ?: throw CannotEvaluateException("len", "stringsize unknown")
             NumericLiteral.optimalInteger(refLv.value.length, args[0].position)
         }
-        in NumericDatatypes, DataType.BOOL -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
+        target.datatype.isNumericOrBool -> throw SyntaxError("cannot use len on numeric value, did you mean sizeof?", args[0].position)
         else -> throw InternalCompilerException("weird datatype")
     }
 }
@@ -158,14 +159,14 @@ private fun builtinMkword(args: List<Expression>, position: Position, program: P
     val constMsb = args[0].constValue(program) ?: throw NotConstArgumentException()
     val constLsb = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = (constMsb.number.toInt() shl 8) or constLsb.number.toInt()
-    return NumericLiteral(DataType.UWORD, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.UWORD, result.toDouble(), position)
 }
 
 private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 1)
         throw SyntaxError("sgn requires one argument", position)
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return NumericLiteral(DataType.BYTE, constval.number.sign, position)
+    return NumericLiteral(BaseDataType.BYTE, constval.number.sign, position)
 }
 
 private fun builtinMinByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -174,7 +175,7 @@ private fun builtinMinByte(args: List<Expression>, position: Position, program: 
     val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = min(val1.number.toInt(), val2.number.toInt())
-    return NumericLiteral(DataType.BYTE, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.BYTE, result.toDouble(), position)
 }
 
 private fun builtinMinUByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -183,7 +184,7 @@ private fun builtinMinUByte(args: List<Expression>, position: Position, program:
     val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = min(val1.number.toInt(), val2.number.toInt())
-    return NumericLiteral(DataType.UBYTE, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.UBYTE, result.toDouble(), position)
 }
 
 private fun builtinMinWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -192,7 +193,7 @@ private fun builtinMinWord(args: List<Expression>, position: Position, program: 
     val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = min(val1.number.toInt(), val2.number.toInt())
-    return NumericLiteral(DataType.WORD, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.WORD, result.toDouble(), position)
 }
 
 private fun builtinMinUWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -201,7 +202,7 @@ private fun builtinMinUWord(args: List<Expression>, position: Position, program:
     val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = min(val1.number.toInt(), val2.number.toInt())
-    return NumericLiteral(DataType.UWORD, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.UWORD, result.toDouble(), position)
 }
 
 private fun builtinMaxByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -210,7 +211,7 @@ private fun builtinMaxByte(args: List<Expression>, position: Position, program: 
     val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = max(val1.number.toInt(), val2.number.toInt())
-    return NumericLiteral(DataType.BYTE, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.BYTE, result.toDouble(), position)
 }
 
 private fun builtinMaxUByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -219,7 +220,7 @@ private fun builtinMaxUByte(args: List<Expression>, position: Position, program:
     val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = max(val1.number.toInt(), val2.number.toInt())
-    return NumericLiteral(DataType.UBYTE, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.UBYTE, result.toDouble(), position)
 }
 
 private fun builtinMaxWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -228,7 +229,7 @@ private fun builtinMaxWord(args: List<Expression>, position: Position, program: 
     val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = max(val1.number.toInt(), val2.number.toInt())
-    return NumericLiteral(DataType.WORD, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.WORD, result.toDouble(), position)
 }
 
 private fun builtinMaxUWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -237,7 +238,7 @@ private fun builtinMaxUWord(args: List<Expression>, position: Position, program:
     val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = max(val1.number.toInt(), val2.number.toInt())
-    return NumericLiteral(DataType.UWORD, result.toDouble(), position)
+    return NumericLiteral(BaseDataType.UWORD, result.toDouble(), position)
 }
 
 private fun builtinClampUByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -247,7 +248,7 @@ private fun builtinClampUByte(args: List<Expression>, position: Position, progra
     val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
     val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
     val result = min(max(value.number, minimum.number), maximum.number)
-    return NumericLiteral(DataType.UBYTE, result, position)
+    return NumericLiteral(BaseDataType.UBYTE, result, position)
 }
 
 private fun builtinClampByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -257,7 +258,7 @@ private fun builtinClampByte(args: List<Expression>, position: Position, program
     val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
     val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
     val result = min(max(value.number, minimum.number), maximum.number)
-    return NumericLiteral(DataType.BYTE, result, position)
+    return NumericLiteral(BaseDataType.BYTE, result, position)
 }
 
 private fun builtinClampUWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -267,7 +268,7 @@ private fun builtinClampUWord(args: List<Expression>, position: Position, progra
     val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
     val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
     val result = min(max(value.number, minimum.number), maximum.number)
-    return NumericLiteral(DataType.UWORD, result, position)
+    return NumericLiteral(BaseDataType.UWORD, result, position)
 }
 
 private fun builtinClampWord(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -277,6 +278,6 @@ private fun builtinClampWord(args: List<Expression>, position: Position, program
     val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
     val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
     val result = min(max(value.number, minimum.number), maximum.number)
-    return NumericLiteral(DataType.WORD, result, position)
+    return NumericLiteral(BaseDataType.WORD, result, position)
 }
 

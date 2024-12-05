@@ -1,6 +1,8 @@
 package prog8.code.core
 
-enum class DataType {
+import java.util.Objects
+
+enum class BaseDataType {
     UBYTE,              // pass by value            8 bits unsigned
     BYTE,               // pass by value            8 bits signed
     UWORD,              // pass by value            16 bits unsigned
@@ -9,54 +11,245 @@ enum class DataType {
     FLOAT,              // pass by value            machine dependent
     BOOL,               // pass by value            bit 0 of an 8-bit byte
     STR,                // pass by reference
-    ARRAY_UB,           // pass by reference
-    ARRAY_B,            // pass by reference
-    ARRAY_UW,           // pass by reference
-    ARRAY_UW_SPLIT,     // pass by reference, lo/hi byte split
-    ARRAY_W,            // pass by reference
-    ARRAY_W_SPLIT,      // pass by reference, lo/hi byte split
-    ARRAY_F,            // pass by reference
-    ARRAY_BOOL,         // pass by reference
+    ARRAY,              // pass by reference, subtype is the element type
+    ARRAY_SPLITW,       // pass by reference, split word layout, subtype is the element type (restricted to word types)
     UNDEFINED;
 
-    /**
-     * is the type assignable to the given other type (perhaps via a typecast) without loss of precision?
-     */
-    infix fun isAssignableTo(targetType: DataType) =
-        when(this) {
-            BOOL -> targetType == BOOL
-            UBYTE -> targetType.oneOf(UBYTE, WORD, UWORD, LONG, FLOAT)
-            BYTE -> targetType.oneOf(BYTE, WORD, LONG, FLOAT)
-            UWORD -> targetType.oneOf(UWORD, LONG, FLOAT)
-            WORD -> targetType.oneOf(WORD, LONG, FLOAT)
-            LONG -> targetType.oneOf(LONG, FLOAT)
-            FLOAT -> targetType.oneOf(FLOAT)
-            STR -> targetType.oneOf(STR, UWORD)
-            in ArrayDatatypes -> targetType == this
-            else -> false
-        }
 
-    fun oneOf(vararg types: DataType) = this in types
-
-    infix fun largerThan(other: DataType) =
+    fun largerSizeThan(other: BaseDataType) =
         when {
             this == other -> false
-            this in ByteDatatypesWithBoolean -> false
-            this in WordDatatypes -> other in ByteDatatypesWithBoolean
-            this == LONG -> other in ByteDatatypesWithBoolean+WordDatatypes
+            this.isByteOrBool -> false
+            this.isWord -> other.isByteOrBool
+            this == LONG -> other.isByteOrBool || other.isWord
             this == STR && other == UWORD || this == UWORD && other == STR -> false
+            this.isArray -> other != FLOAT
+            this == STR -> other != FLOAT
             else -> true
         }
 
-    infix fun equalsSize(other: DataType) =
+    fun equalsSize(other: BaseDataType) =
         when {
             this == other -> true
-            this in ByteDatatypesWithBoolean -> other in ByteDatatypesWithBoolean
-            this in WordDatatypes -> other in WordDatatypes
-            this== STR && other== UWORD || this== UWORD && other== STR -> true
+            this.isByteOrBool -> other.isByteOrBool
+            this.isWord -> other.isWord
+            this == STR && other== UWORD || this== UWORD && other== STR -> true
+            this == STR && other.isArray -> true
+            this.isArray && other == STR -> true
             else -> false
         }
 }
+
+val BaseDataType.isByte get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
+val BaseDataType.isByteOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL)
+val BaseDataType.isWord get() = this in arrayOf(BaseDataType.UWORD, BaseDataType.WORD)
+val BaseDataType.isInteger get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
+val BaseDataType.isIntegerOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.BOOL)
+val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger
+val BaseDataType.isNumericOrBool get() = this == BaseDataType.BOOL || this.isNumeric
+val BaseDataType.isSigned get() = this in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW
+val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW
+val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
+val BaseDataType.isPassByRef get() = this.isIterable
+val BaseDataType.isPassByValue get() = !this.isIterable
+
+
+sealed class SubType(val dt: BaseDataType) {
+    companion object {
+        private val types by lazy {
+            // lazy because of static initialization order
+            mapOf(
+                BaseDataType.UBYTE to SubUnsignedByte,
+                BaseDataType.BYTE to SubSignedByte,
+                BaseDataType.UWORD to SubUnsignedWord,
+                BaseDataType.WORD to SubSignedWord,
+                BaseDataType.FLOAT to SubFloat,
+                BaseDataType.BOOL to SubBool
+            )}
+
+        fun forDt(dt: BaseDataType) = types.getValue(dt)
+    }
+}
+
+private data object SubUnsignedByte: SubType(BaseDataType.UBYTE)
+private data object SubSignedByte: SubType(BaseDataType.BYTE)
+private data object SubUnsignedWord: SubType(BaseDataType.UWORD)
+private data object SubSignedWord: SubType(BaseDataType.WORD)
+private data object SubBool: SubType(BaseDataType.BOOL)
+private data object SubFloat: SubType(BaseDataType.FLOAT)
+
+
+class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
+
+    init {
+        if(base.isArray) {
+            require(sub != null)
+            if(base.isSplitWordArray)
+                require(sub.dt == BaseDataType.UWORD || sub.dt == BaseDataType.WORD)
+        }
+        else if(base==BaseDataType.STR)
+            require(sub?.dt==BaseDataType.UBYTE) { "STR subtype should be ubyte" }
+        else
+            require(sub == null)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is DataType) return false
+        return base == other.base && sub == other.sub
+    }
+
+    override fun hashCode(): Int = Objects.hash(base, sub)
+
+    companion object {
+        private val simpletypes = mapOf(
+            BaseDataType.UBYTE to DataType(BaseDataType.UBYTE, null),
+            BaseDataType.BYTE to DataType(BaseDataType.BYTE, null),
+            BaseDataType.UWORD to DataType(BaseDataType.UWORD, null),
+            BaseDataType.WORD to DataType(BaseDataType.WORD, null),
+            BaseDataType.LONG to DataType(BaseDataType.LONG, null),
+            BaseDataType.FLOAT to DataType(BaseDataType.FLOAT, null),
+            BaseDataType.BOOL to DataType(BaseDataType.BOOL, null),
+            BaseDataType.STR to DataType(BaseDataType.STR, SubUnsignedByte),
+            BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null)
+        )
+
+        fun forDt(dt: BaseDataType) = simpletypes.getValue(dt)
+
+        fun arrayFor(elementDt: BaseDataType, split: Boolean=false): DataType {
+            val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
+            if(split) return DataType(BaseDataType.ARRAY_SPLITW, SubType.forDt(actualElementDt))
+            else return DataType(BaseDataType.ARRAY, SubType.forDt(actualElementDt))
+        }
+    }
+
+    fun elementToArray(split: Boolean = false): DataType {
+        if(split) {
+            return if (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR) arrayFor(base, true)
+            else throw IllegalArgumentException("invalid split array elt dt")
+        }
+        return arrayFor(base)
+    }
+
+    fun elementType(): DataType =
+        if(base.isArray || base==BaseDataType.STR)
+            forDt(sub!!.dt)
+        else
+            throw IllegalArgumentException("not an array")
+
+    override fun toString(): String = when(base) {
+        BaseDataType.ARRAY -> {
+            when(sub) {
+                SubBool -> "bool[]"
+                SubFloat -> "float[]"
+                SubSignedByte -> "byte[]"
+                SubSignedWord -> "word[]"
+                SubUnsignedByte -> "ubyte[]"
+                SubUnsignedWord -> "uword[]"
+                null -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        BaseDataType.ARRAY_SPLITW -> {
+            when(sub) {
+                SubSignedWord -> "@split word[]"
+                SubUnsignedWord -> "@split uword[]"
+                else -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        else -> base.name.lowercase()
+    }
+
+    fun sourceString(): String = when (base) {
+        BaseDataType.BOOL -> "bool"
+        BaseDataType.UBYTE -> "ubyte"
+        BaseDataType.BYTE -> "byte"
+        BaseDataType.UWORD -> "uword"
+        BaseDataType.WORD -> "word"
+        BaseDataType.LONG -> "long"
+        BaseDataType.FLOAT -> "float"
+        BaseDataType.STR -> "str"
+        BaseDataType.ARRAY -> {
+            when(sub) {
+                SubUnsignedByte -> "ubyte["
+                SubUnsignedWord -> "uword["
+                SubBool -> "bool["
+                SubSignedByte -> "byte["
+                SubSignedWord -> "word["
+                SubFloat -> "float["
+                null -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        BaseDataType.ARRAY_SPLITW -> {
+            when(sub) {
+                SubUnsignedWord -> "@split uword["
+                SubSignedWord -> "@split word["
+                else -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        BaseDataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
+    }
+
+    // is the type assignable to the given other type (perhaps via a typecast) without loss of precision?
+    infix fun isAssignableTo(targetType: DataType) =
+        when(base) {
+            BaseDataType.BOOL -> targetType.base == BaseDataType.BOOL
+            BaseDataType.UBYTE -> targetType.base in arrayOf(BaseDataType.UBYTE, BaseDataType.WORD, BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.BYTE -> targetType.base in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.UWORD -> targetType.base in arrayOf(BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.WORD -> targetType.base in arrayOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.LONG -> targetType.base in arrayOf(BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
+            BaseDataType.STR -> targetType.base in arrayOf(BaseDataType.STR, BaseDataType.UWORD)
+            BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
+            BaseDataType.UNDEFINED -> false
+        }
+
+    fun largerSizeThan(other: DataType): Boolean {
+        if(isArray) throw IllegalArgumentException("cannot compare size of array types")
+        return base.largerSizeThan(other.base)
+    }
+    fun equalsSize(other: DataType): Boolean {
+        if(isArray) throw IllegalArgumentException("cannot compare size of array types")
+        return base.equalsSize(other.base)
+    }
+
+    val isUndefined = base == BaseDataType.UNDEFINED
+    val isByte = base.isByte
+    val isUnsignedByte = base == BaseDataType.UBYTE
+    val isSignedByte = base == BaseDataType.BYTE
+    val isByteOrBool = base.isByteOrBool
+    val isWord = base.isWord
+    val isUnsignedWord =  base == BaseDataType.UWORD
+    val isSignedWord =  base == BaseDataType.WORD
+    val isInteger = base.isInteger
+    val isIntegerOrBool = base.isIntegerOrBool
+    val isNumeric = base.isNumeric
+    val isNumericOrBool = base.isNumericOrBool
+    val isSigned = base.isSigned
+    val isUnsigned = !base.isSigned
+    val isArray = base.isArray
+    val isBoolArray = base.isArray && sub?.dt == BaseDataType.BOOL
+    val isByteArray = base.isArray && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE)
+    val isUnsignedByteArray = base.isArray && sub?.dt == BaseDataType.UBYTE
+    val isSignedByteArray = base.isArray && sub?.dt == BaseDataType.BYTE
+    val isWordArray = base.isArray && (sub?.dt == BaseDataType.UWORD || sub?.dt == BaseDataType.WORD)
+    val isUnsignedWordArray = base.isArray && sub?.dt == BaseDataType.UWORD
+    val isSignedWordArray = base.isArray && sub?.dt == BaseDataType.WORD
+    val isFloatArray = base.isArray && sub?.dt == BaseDataType.FLOAT
+    val isString = base == BaseDataType.STR
+    val isBool = base == BaseDataType.BOOL
+    val isFloat = base == BaseDataType.FLOAT
+    val isLong = base == BaseDataType.LONG
+    val isStringly = base == BaseDataType.STR || base == BaseDataType.UWORD || (base == BaseDataType.ARRAY && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE))
+    val isSplitWordArray = base.isSplitWordArray
+    val isSplitUnsignedWordArray = base.isSplitWordArray && sub?.dt == BaseDataType.UWORD
+    val isSplitSignedWordArray = base.isSplitWordArray && sub?.dt == BaseDataType.WORD
+    val isIterable =  base.isIterable
+    val isPassByRef = base.isPassByRef
+    val isPassByValue = base.isPassByValue
+}
+
 
 enum class CpuRegister {
     A,
@@ -97,11 +290,11 @@ enum class RegisterOrPair {
 
     fun asScopedNameVirtualReg(type: DataType?): List<String> {
         require(this in Cx16VirtualRegisters)
-        val suffix = when(type) {
-            DataType.UBYTE, DataType.BOOL -> "L"
-            DataType.BYTE -> "sL"
-            DataType.WORD -> "s"
-            DataType.UWORD, null -> ""
+        val suffix = when(type?.base) {
+            BaseDataType.UBYTE, BaseDataType.BOOL -> "L"
+            BaseDataType.BYTE -> "sL"
+            BaseDataType.WORD -> "s"
+            BaseDataType.UWORD, null -> ""
             else -> throw kotlin.IllegalArgumentException("invalid register param type")
         }
         return listOf("cx16", name.lowercase()+suffix)
@@ -133,48 +326,6 @@ enum class BranchCondition {
     VS,
     VC
 }
-
-
-val ByteDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE)
-val ByteDatatypesWithBoolean = ByteDatatypes + DataType.BOOL
-val WordDatatypes = arrayOf(DataType.UWORD, DataType.WORD)
-val IntegerDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG)
-val IntegerDatatypesWithBoolean = IntegerDatatypes + DataType.BOOL
-val NumericDatatypes = arrayOf(DataType.UBYTE, DataType.BYTE, DataType.UWORD, DataType.WORD, DataType.LONG, DataType.FLOAT)
-val NumericDatatypesWithBoolean = NumericDatatypes + DataType.BOOL
-val SignedDatatypes =  arrayOf(DataType.BYTE, DataType.WORD, DataType.LONG, DataType.FLOAT)
-val ArrayDatatypes = arrayOf(DataType.ARRAY_UB, DataType.ARRAY_B, DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W, DataType.ARRAY_W_SPLIT, DataType.ARRAY_F, DataType.ARRAY_BOOL)
-val StringlyDatatypes = arrayOf(DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B, DataType.UWORD)
-val SplitWordArrayTypes = arrayOf(DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT)
-val IterableDatatypes = arrayOf(
-    DataType.STR,
-    DataType.ARRAY_UB, DataType.ARRAY_B,
-    DataType.ARRAY_UW, DataType.ARRAY_W,
-    DataType.ARRAY_UW_SPLIT, DataType.ARRAY_W_SPLIT,
-    DataType.ARRAY_F, DataType.ARRAY_BOOL
-)
-val PassByValueDatatypes = NumericDatatypesWithBoolean
-val PassByReferenceDatatypes = IterableDatatypes
-val ArrayToElementTypes = mapOf(
-    DataType.STR to DataType.UBYTE,
-    DataType.ARRAY_B to DataType.BYTE,
-    DataType.ARRAY_UB to DataType.UBYTE,
-    DataType.ARRAY_W to DataType.WORD,
-    DataType.ARRAY_UW to DataType.UWORD,
-    DataType.ARRAY_W_SPLIT to DataType.WORD,
-    DataType.ARRAY_UW_SPLIT to DataType.UWORD,
-    DataType.ARRAY_F to DataType.FLOAT,
-    DataType.ARRAY_BOOL to DataType.BOOL
-)
-val ElementToArrayTypes = mapOf(
-    DataType.BYTE to DataType.ARRAY_B,
-    DataType.UBYTE to DataType.ARRAY_UB,
-    DataType.WORD to DataType.ARRAY_W,
-    DataType.UWORD to DataType.ARRAY_UW,
-    DataType.FLOAT to DataType.ARRAY_F,
-    DataType.BOOL to DataType.ARRAY_BOOL,
-    DataType.STR to DataType.ARRAY_UW          // array of str is just an array of pointers
-)
 
 val Cx16VirtualRegisters = arrayOf(
     RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,

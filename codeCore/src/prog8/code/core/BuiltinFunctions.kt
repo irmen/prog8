@@ -1,7 +1,7 @@
 package prog8.code.core
 
-class ReturnConvention(val dt: DataType?, val reg: RegisterOrPair?)
-class ParamConvention(val dt: DataType, val reg: RegisterOrPair?, val variable: Boolean)
+class ReturnConvention(val dt: BaseDataType?, val reg: RegisterOrPair?)
+class ParamConvention(val dt: BaseDataType, val reg: RegisterOrPair?, val variable: Boolean)
 class CallConvention(val params: List<ParamConvention>, val returns: ReturnConvention) {
     override fun toString(): String {
         val paramConvs =  params.mapIndexed { index, it ->
@@ -21,26 +21,34 @@ class CallConvention(val params: List<ParamConvention>, val returns: ReturnConve
     }
 }
 
-class FParam(val name: String, vararg val possibleDatatypes: DataType)
+class FParam(val name: String, vararg val possibleDatatypes: BaseDataType)
+
+
+private val IterableDatatypes = arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
+private val IntegerDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
+private val NumericDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+private val ByteDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
+private val ArrayDatatypes = arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
+
 
 class FSignature(val pure: Boolean,      // does it have side effects?
-                 val returnType: DataType?,
+                 val returnType: BaseDataType?,
                  vararg val parameters: FParam) {
 
-    fun callConvention(actualParamTypes: List<DataType>): CallConvention {
+    fun callConvention(actualParamTypes: List<BaseDataType>): CallConvention {
         val returns: ReturnConvention = when (returnType) {
-            DataType.UBYTE, DataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A)
-            DataType.UWORD, DataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY)
-            DataType.FLOAT -> ReturnConvention(returnType, RegisterOrPair.FAC1)
-            in PassByReferenceDatatypes -> ReturnConvention(returnType!!, RegisterOrPair.AY)
+            BaseDataType.UBYTE, BaseDataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A)
+            BaseDataType.UWORD, BaseDataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY)
+            BaseDataType.FLOAT -> ReturnConvention(returnType, RegisterOrPair.FAC1)
+            in IterableDatatypes -> ReturnConvention(returnType!!, RegisterOrPair.AY)
             null -> ReturnConvention(null, null)
             else -> {
                 // return type depends on arg type
                 when (val paramType = actualParamTypes.first()) {
-                    DataType.UBYTE, DataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A)
-                    DataType.UWORD, DataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY)
-                    DataType.FLOAT -> ReturnConvention(paramType, RegisterOrPair.FAC1)
-                    in PassByReferenceDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY)
+                    BaseDataType.UBYTE, BaseDataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A)
+                    BaseDataType.UWORD, BaseDataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY)
+                    BaseDataType.FLOAT -> ReturnConvention(paramType, RegisterOrPair.FAC1)
+                    in IterableDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY)
                     else -> ReturnConvention(paramType, null)
                 }
             }
@@ -53,21 +61,21 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                 // this avoids repeated code for every caller to store the value in the subroutine's argument variable.
                 // (that store is still done, but only coded once at the start at the subroutine itself rather than at every call site).
                 val paramConv = when(val paramType = actualParamTypes[0]) {
-                    DataType.UBYTE, DataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
-                    DataType.UWORD, DataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    DataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)      // NOTE: for builtin functions, floating point arguments are passed by reference (so you get a pointer in AY)
-                    in PassByReferenceDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
+                    BaseDataType.UBYTE, BaseDataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
+                    BaseDataType.UWORD, BaseDataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
+                    BaseDataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)      // NOTE: for builtin functions, floating point arguments are passed by reference (so you get a pointer in AY)
+                    in IterableDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
                     else -> ParamConvention(paramType, null, false)
                 }
                 CallConvention(listOf(paramConv), returns)
             }
-            actualParamTypes.size==2 && (actualParamTypes[0] in ByteDatatypes && actualParamTypes[1] in WordDatatypes) -> {
+            actualParamTypes.size==2 && (actualParamTypes[0] in ByteDatatypes && actualParamTypes[1].isWord) -> {
                 TODO("opportunity to pass word+byte arguments in A,Y and X registers but not implemented yet")
             }
-            actualParamTypes.size==2 && (actualParamTypes[0] in WordDatatypes && actualParamTypes[1] in ByteDatatypes) -> {
+            actualParamTypes.size==2 && (actualParamTypes[0].isWord && actualParamTypes[1].isByte) -> {
                 TODO("opportunity to pass word+byte arguments in A,Y and X registers but not implemented yet")
             }
-            actualParamTypes.size==3 && actualParamTypes.all { it in ByteDatatypes } -> {
+            actualParamTypes.size==3 && actualParamTypes.all { it.isByte } -> {
                 TODO("opportunity to pass 3 byte arguments in A,Y and X registers but not implemented yet")
             }
             else -> {
@@ -80,65 +88,65 @@ class FSignature(val pure: Boolean,      // does it have side effects?
 }
 
 val BuiltinFunctions: Map<String, FSignature> = mapOf(
-    "setlsb"  to FSignature(false, null, FParam("variable", DataType.WORD, DataType.UWORD), FParam("value", DataType.BYTE, DataType.UBYTE)),
-    "setmsb"  to FSignature(false, null, FParam("variable", DataType.WORD, DataType.UWORD), FParam("value", DataType.BYTE, DataType.UBYTE)),
-    "rol"     to FSignature(false, null, FParam("item", DataType.UBYTE, DataType.UWORD)),
-    "ror"     to FSignature(false, null, FParam("item", DataType.UBYTE, DataType.UWORD)),
-    "rol2"    to FSignature(false, null, FParam("item", DataType.UBYTE, DataType.UWORD)),
-    "ror2"    to FSignature(false, null, FParam("item", DataType.UBYTE, DataType.UWORD)),
+    "setlsb"  to FSignature(false, null, FParam("variable", BaseDataType.WORD, BaseDataType.UWORD), FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
+    "setmsb"  to FSignature(false, null, FParam("variable", BaseDataType.WORD, BaseDataType.UWORD), FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
+    "rol"     to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD)),
+    "ror"     to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD)),
+    "rol2"    to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD)),
+    "ror2"    to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD)),
     "cmp"     to FSignature(false, null, FParam("value1", *IntegerDatatypes), FParam("value2", *NumericDatatypes)),  // cmp returns a status in the carry flag, but not a proper return value
-    "prog8_lib_stringcompare"     to FSignature(true, DataType.BYTE, FParam("str1", DataType.STR), FParam("str2", DataType.STR)),
-    "prog8_lib_square_byte"       to FSignature(true, DataType.UBYTE, FParam("value", DataType.BYTE, DataType.UBYTE)),
-    "prog8_lib_square_word"       to FSignature(true, DataType.UWORD, FParam("value", DataType.WORD, DataType.UWORD)),
-    "prog8_ifelse_bittest_set"    to FSignature(true, DataType.BOOL, FParam("variable", *ByteDatatypes), FParam("bitnumber", DataType.UBYTE)),
-    "prog8_ifelse_bittest_notset" to FSignature(true, DataType.BOOL, FParam("variable", *ByteDatatypes), FParam("bitnumber", DataType.UBYTE)),
+    "prog8_lib_stringcompare"     to FSignature(true, BaseDataType.BYTE, FParam("str1", BaseDataType.STR), FParam("str2", BaseDataType.STR)),
+    "prog8_lib_square_byte"       to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
+    "prog8_lib_square_word"       to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.WORD, BaseDataType.UWORD)),
+    "prog8_ifelse_bittest_set"    to FSignature(true, BaseDataType.BOOL, FParam("variable", *ByteDatatypes), FParam("bitnumber", BaseDataType.UBYTE)),
+    "prog8_ifelse_bittest_notset" to FSignature(true, BaseDataType.BOOL, FParam("variable", *ByteDatatypes), FParam("bitnumber", BaseDataType.UBYTE)),
     "abs"           to FSignature(true, null, FParam("value", *NumericDatatypes)),
-    "abs__byte"     to FSignature(true, DataType.BYTE, FParam("value", DataType.BYTE)),
-    "abs__word"     to FSignature(true, DataType.WORD, FParam("value", DataType.WORD)),
-    "abs__float"    to FSignature(true, DataType.FLOAT, FParam("value", DataType.FLOAT)),
-    "len"           to FSignature(true, DataType.UWORD, FParam("values", *IterableDatatypes)),
-    "sizeof"        to FSignature(true, DataType.UBYTE, FParam("object", *DataType.entries.toTypedArray())),
-    "sgn"           to FSignature(true, DataType.BYTE, FParam("value", *NumericDatatypes)),
+    "abs__byte"     to FSignature(true, BaseDataType.BYTE, FParam("value", BaseDataType.BYTE)),
+    "abs__word"     to FSignature(true, BaseDataType.WORD, FParam("value", BaseDataType.WORD)),
+    "abs__float"    to FSignature(true, BaseDataType.FLOAT, FParam("value", BaseDataType.FLOAT)),
+    "len"           to FSignature(true, BaseDataType.UWORD, FParam("values", *IterableDatatypes)),
+    "sizeof"        to FSignature(true, BaseDataType.UBYTE, FParam("object", *BaseDataType.entries.toTypedArray())),
+    "sgn"           to FSignature(true, BaseDataType.BYTE, FParam("value", *NumericDatatypes)),
     "sqrt"          to FSignature(true, null, FParam("value", *NumericDatatypes)),
-    "sqrt__ubyte"   to FSignature(true, DataType.UBYTE, FParam("value", DataType.UBYTE)),
-    "sqrt__uword"   to FSignature(true, DataType.UBYTE, FParam("value", DataType.UWORD)),
-    "sqrt__float"   to FSignature(true, DataType.FLOAT, FParam("value", DataType.FLOAT)),
-    "divmod"        to FSignature(false, null, FParam("dividend", DataType.UBYTE, DataType.UWORD), FParam("divisor", DataType.UBYTE, DataType.UWORD), FParam("quotient", DataType.UBYTE, DataType.UWORD), FParam("remainder", DataType.UBYTE, DataType.UWORD)),
-    "divmod__ubyte" to FSignature(false, null, FParam("dividend", DataType.UBYTE), FParam("divisor", DataType.UBYTE), FParam("quotient", DataType.UBYTE), FParam("remainder", DataType.UBYTE)),
-    "divmod__uword" to FSignature(false, null, FParam("dividend", DataType.UWORD), FParam("divisor", DataType.UWORD), FParam("quotient", DataType.UWORD), FParam("remainder", DataType.UWORD)),
-    "lsb"           to FSignature(true, DataType.UBYTE, FParam("value", DataType.UWORD, DataType.WORD, DataType.LONG)),
-    "lsw"           to FSignature(true, DataType.UWORD, FParam("value", DataType.UWORD, DataType.WORD, DataType.LONG)),
-    "msb"           to FSignature(true, DataType.UBYTE, FParam("value", DataType.UWORD, DataType.WORD, DataType.LONG)),
-    "msw"           to FSignature(true, DataType.UWORD, FParam("value", DataType.UWORD, DataType.WORD, DataType.LONG)),
-    "mkword"        to FSignature(true, DataType.UWORD, FParam("msb", DataType.UBYTE), FParam("lsb", DataType.UBYTE)),
-    "clamp"         to FSignature(true, null, FParam("value", DataType.BYTE), FParam("minimum", DataType.BYTE), FParam("maximum", DataType.BYTE)),
-    "clamp__byte"   to FSignature(true, DataType.BYTE, FParam("value", DataType.BYTE), FParam("minimum", DataType.BYTE), FParam("maximum", DataType.BYTE)),
-    "clamp__ubyte"  to FSignature(true, DataType.UBYTE, FParam("value", DataType.UBYTE), FParam("minimum", DataType.UBYTE), FParam("maximum", DataType.UBYTE)),
-    "clamp__word"   to FSignature(true, DataType.WORD, FParam("value", DataType.WORD), FParam("minimum", DataType.WORD), FParam("maximum", DataType.WORD)),
-    "clamp__uword"  to FSignature(true, DataType.UWORD, FParam("value", DataType.UWORD), FParam("minimum", DataType.UWORD), FParam("maximum", DataType.UWORD)),
-    "min"           to FSignature(true, null, FParam("val1", DataType.BYTE), FParam("val2", DataType.BYTE)),
-    "min__byte"     to FSignature(true, DataType.BYTE, FParam("val1", DataType.BYTE), FParam("val2", DataType.BYTE)),
-    "min__ubyte"    to FSignature(true, DataType.UBYTE, FParam("val1", DataType.UBYTE), FParam("val2", DataType.UBYTE)),
-    "min__word"     to FSignature(true, DataType.WORD, FParam("val1", DataType.WORD), FParam("val2", DataType.WORD)),
-    "min__uword"    to FSignature(true, DataType.UWORD, FParam("val1", DataType.UWORD), FParam("val2", DataType.UWORD)),
-    "max"           to FSignature(true, null, FParam("val1", DataType.BYTE), FParam("val2", DataType.BYTE)),
-    "max__byte"     to FSignature(true, DataType.BYTE, FParam("val1", DataType.BYTE), FParam("val2", DataType.BYTE)),
-    "max__ubyte"    to FSignature(true, DataType.UBYTE, FParam("val1", DataType.UBYTE), FParam("val2", DataType.UBYTE)),
-    "max__word"     to FSignature(true, DataType.WORD, FParam("val1", DataType.WORD), FParam("val2", DataType.WORD)),
-    "max__uword"    to FSignature(true, DataType.UWORD, FParam("val1", DataType.UWORD), FParam("val2", DataType.UWORD)),
-    "peek"          to FSignature(true, DataType.UBYTE, FParam("address", DataType.UWORD)),
-    "peekw"         to FSignature(true, DataType.UWORD, FParam("address", DataType.UWORD)),
-    "peekf"         to FSignature(true, DataType.FLOAT, FParam("address", DataType.UWORD)),
-    "poke"          to FSignature(false, null, FParam("address", DataType.UWORD), FParam("value", DataType.UBYTE)),
-    "pokew"         to FSignature(false, null, FParam("address", DataType.UWORD), FParam("value", DataType.UWORD)),
-    "pokef"         to FSignature(false, null, FParam("address", DataType.UWORD), FParam("value", DataType.FLOAT)),
-    "pokemon"       to FSignature(false, DataType.UBYTE, FParam("address", DataType.UWORD), FParam("value", DataType.UBYTE)),
+    "sqrt__ubyte"   to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UBYTE)),
+    "sqrt__uword"   to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UWORD)),
+    "sqrt__float"   to FSignature(true, BaseDataType.FLOAT, FParam("value", BaseDataType.FLOAT)),
+    "divmod"        to FSignature(false, null, FParam("dividend", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("divisor", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("quotient", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("remainder", BaseDataType.UBYTE, BaseDataType.UWORD)),
+    "divmod__ubyte" to FSignature(false, null, FParam("dividend", BaseDataType.UBYTE), FParam("divisor", BaseDataType.UBYTE), FParam("quotient", BaseDataType.UBYTE), FParam("remainder", BaseDataType.UBYTE)),
+    "divmod__uword" to FSignature(false, null, FParam("dividend", BaseDataType.UWORD), FParam("divisor", BaseDataType.UWORD), FParam("quotient", BaseDataType.UWORD), FParam("remainder", BaseDataType.UWORD)),
+    "lsb"           to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
+    "lsw"           to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
+    "msb"           to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
+    "msw"           to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
+    "mkword"        to FSignature(true, BaseDataType.UWORD, FParam("msb", BaseDataType.UBYTE), FParam("lsb", BaseDataType.UBYTE)),
+    "clamp"         to FSignature(true, null, FParam("value", BaseDataType.BYTE), FParam("minimum", BaseDataType.BYTE), FParam("maximum", BaseDataType.BYTE)),
+    "clamp__byte"   to FSignature(true, BaseDataType.BYTE, FParam("value", BaseDataType.BYTE), FParam("minimum", BaseDataType.BYTE), FParam("maximum", BaseDataType.BYTE)),
+    "clamp__ubyte"  to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UBYTE), FParam("minimum", BaseDataType.UBYTE), FParam("maximum", BaseDataType.UBYTE)),
+    "clamp__word"   to FSignature(true, BaseDataType.WORD, FParam("value", BaseDataType.WORD), FParam("minimum", BaseDataType.WORD), FParam("maximum", BaseDataType.WORD)),
+    "clamp__uword"  to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.UWORD), FParam("minimum", BaseDataType.UWORD), FParam("maximum", BaseDataType.UWORD)),
+    "min"           to FSignature(true, null, FParam("val1", BaseDataType.BYTE), FParam("val2", BaseDataType.BYTE)),
+    "min__byte"     to FSignature(true, BaseDataType.BYTE, FParam("val1", BaseDataType.BYTE), FParam("val2", BaseDataType.BYTE)),
+    "min__ubyte"    to FSignature(true, BaseDataType.UBYTE, FParam("val1", BaseDataType.UBYTE), FParam("val2", BaseDataType.UBYTE)),
+    "min__word"     to FSignature(true, BaseDataType.WORD, FParam("val1", BaseDataType.WORD), FParam("val2", BaseDataType.WORD)),
+    "min__uword"    to FSignature(true, BaseDataType.UWORD, FParam("val1", BaseDataType.UWORD), FParam("val2", BaseDataType.UWORD)),
+    "max"           to FSignature(true, null, FParam("val1", BaseDataType.BYTE), FParam("val2", BaseDataType.BYTE)),
+    "max__byte"     to FSignature(true, BaseDataType.BYTE, FParam("val1", BaseDataType.BYTE), FParam("val2", BaseDataType.BYTE)),
+    "max__ubyte"    to FSignature(true, BaseDataType.UBYTE, FParam("val1", BaseDataType.UBYTE), FParam("val2", BaseDataType.UBYTE)),
+    "max__word"     to FSignature(true, BaseDataType.WORD, FParam("val1", BaseDataType.WORD), FParam("val2", BaseDataType.WORD)),
+    "max__uword"    to FSignature(true, BaseDataType.UWORD, FParam("val1", BaseDataType.UWORD), FParam("val2", BaseDataType.UWORD)),
+    "peek"          to FSignature(true, BaseDataType.UBYTE, FParam("address", BaseDataType.UWORD)),
+    "peekw"         to FSignature(true, BaseDataType.UWORD, FParam("address", BaseDataType.UWORD)),
+    "peekf"         to FSignature(true, BaseDataType.FLOAT, FParam("address", BaseDataType.UWORD)),
+    "poke"          to FSignature(false, null, FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.UBYTE)),
+    "pokew"         to FSignature(false, null, FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.UWORD)),
+    "pokef"         to FSignature(false, null, FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.FLOAT)),
+    "pokemon"       to FSignature(false, BaseDataType.UBYTE, FParam("address", BaseDataType.UWORD), FParam("value", BaseDataType.UBYTE)),
     "rsave"         to FSignature(false, null),
     "rrestore"      to FSignature(false, null),
-    "memory"        to FSignature(true, DataType.UWORD, FParam("name", DataType.STR), FParam("size", DataType.UWORD), FParam("alignment", DataType.UWORD)),
-    "callfar"       to FSignature(false, DataType.UWORD, FParam("bank", DataType.UBYTE), FParam("address", DataType.UWORD), FParam("arg", DataType.UWORD)),
-    "callfar2"      to FSignature(false, DataType.UWORD, FParam("bank", DataType.UBYTE), FParam("address", DataType.UWORD), FParam("argA", DataType.UBYTE), FParam("argX", DataType.UBYTE), FParam("argY", DataType.UBYTE), FParam("argC", DataType.BOOL)),
-    "call"          to FSignature(false, DataType.UWORD, FParam("address", DataType.UWORD)),
+    "memory"        to FSignature(true, BaseDataType.UWORD, FParam("name", BaseDataType.STR), FParam("size", BaseDataType.UWORD), FParam("alignment", BaseDataType.UWORD)),
+    "callfar"       to FSignature(false, BaseDataType.UWORD, FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("arg", BaseDataType.UWORD)),
+    "callfar2"      to FSignature(false, BaseDataType.UWORD, FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("argA", BaseDataType.UBYTE), FParam("argX", BaseDataType.UBYTE), FParam("argY", BaseDataType.UBYTE), FParam("argC", BaseDataType.BOOL)),
+    "call"          to FSignature(false, BaseDataType.UWORD, FParam("address", BaseDataType.UWORD)),
 )
 
 val InplaceModifyingBuiltinFunctions = setOf(

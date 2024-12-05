@@ -623,8 +623,8 @@ class TestProg8Parser: FunSpec( {
     }
 
     test("testLiteralValueComparisons") {
-        val ten = NumericLiteral(DataType.UWORD, 10.0, Position.DUMMY)
-        val nine = NumericLiteral(DataType.UBYTE, 9.0, Position.DUMMY)
+        val ten = NumericLiteral(BaseDataType.UWORD, 10.0, Position.DUMMY)
+        val nine = NumericLiteral(BaseDataType.UBYTE, 9.0, Position.DUMMY)
         ten shouldBe ten
         nine shouldNotBe ten
         (ten != ten) shouldBe false
@@ -754,9 +754,9 @@ class TestProg8Parser: FunSpec( {
         val expr = bb2.value as BinaryExpression
         println(expr)
         expr.operator shouldBe "or"
-        expr.left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
-        expr.right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        expr.left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UBYTE)
+        expr.right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UWORD)
+        expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
     }
 
     test("inferred type for typecasted expressions with logical operators") {
@@ -779,16 +779,16 @@ class TestProg8Parser: FunSpec( {
         val zz = (stmts[3] as VarDecl).value as BinaryExpression
         val bb2 = (stmts[4] as VarDecl).value as BinaryExpression
         val zz2 = (stmts[5] as VarDecl).value as BinaryExpression
-        qq.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        zz.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
-        bb2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        qq.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UWORD)
+        zz.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
+        bb2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
 
         zz2.operator shouldBe "or"
         val left = zz2.left as TypecastExpression
         val right = zz2.right as PrefixExpression
-        left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
-        zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UWORD)
+        right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
+        zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
     }
 
     test("type cast from byte to ubyte as desired target type") {
@@ -803,7 +803,7 @@ class TestProg8Parser: FunSpec( {
         val stmts = (module.statements.single() as Block).statements
         stmts.size shouldBe 2
         val ubexpr = (stmts[1] as VarDecl).value as TypecastExpression
-        ubexpr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+        ubexpr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UBYTE)
     }
 
     test("assignment isAugmented correctness") {
@@ -871,12 +871,12 @@ class TestProg8Parser: FunSpec( {
         }
         string.value[2].code shouldBe 65
         val zero = start.statements[2] as Assignment
-        zero.value shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        zero.value shouldBe NumericLiteral(BaseDataType.UBYTE, 0.0, Position.DUMMY)
         val ff = start.statements[4] as Assignment
-        ff.value shouldBe NumericLiteral(DataType.UBYTE, 255.0, Position.DUMMY)
+        ff.value shouldBe NumericLiteral(BaseDataType.UBYTE, 255.0, Position.DUMMY)
         val letter = start.statements[6] as Assignment
         val encodedletter = PetsciiEncoding.encodePetscii("A", true).getOrElse { fail("petscii error") }.single()
-        letter.value shouldBe NumericLiteral(DataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
+        letter.value shouldBe NumericLiteral(BaseDataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
     }
 
     test("`in` containment checks") {

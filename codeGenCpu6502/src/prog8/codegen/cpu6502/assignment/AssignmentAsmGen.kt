@@ -43,7 +43,7 @@ internal class AssignmentAsmGen(
             ?: throw AssemblyError("only asmsubs can return multiple values")
 
         require(sub.returns.size>=2)
-        if(sub.returns.any { it.type==DataType.FLOAT })
+        if(sub.returns.any { it.type.isFloat })
             TODO("deal with (multiple?) FP return registers")
 
         asmgen.translate(values)
@@ -129,15 +129,15 @@ internal class AssignmentAsmGen(
                 val targetMem = target.memory
                 if(targetIdent!=null || targetMem!=null) {
                     val tgt = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-                    when(returns.type) {
-                        in ByteDatatypesWithBoolean -> {
+                    when {
+                        returns.type.isByteOrBool -> {
                             if(returns.register.registerOrPair in Cx16VirtualRegisters) {
                                 assignVirtualRegister(tgt, returns.register.registerOrPair!!)
                             } else {
                                 assignRegisterByte(tgt, returns.register.registerOrPair!!.asCpuRegister(), false, false)
                             }
                         }
-                        in WordDatatypes -> {
+                        returns.type.isWord -> {
                             assignRegisterpairWord(tgt, returns.register.registerOrPair!!)
                         }
                         else -> throw AssemblyError("weird dt")
@@ -197,43 +197,46 @@ internal class AssignmentAsmGen(
         when(assign.source.kind) {
             SourceStorageKind.LITERALBOOLEAN -> {
                 // simple case: assign a constant boolean (0 or 1)
+                require(assign.target.datatype.isNumericOrBool)
                 val num = assign.source.boolean!!.asInt()
-                when (assign.target.datatype) {
-                    DataType.BOOL, DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num)
-                    DataType.UWORD, DataType.WORD -> assignConstantWord(assign.target, num)
-                    DataType.FLOAT -> assignConstantFloat(assign.target, num.toDouble())
+                when (assign.target.datatype.base) {
+                    BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> assignConstantByte(assign.target, num)
+                    BaseDataType.UWORD, BaseDataType.WORD -> assignConstantWord(assign.target, num)
+                    BaseDataType.FLOAT -> assignConstantFloat(assign.target, num.toDouble())
                     else -> throw AssemblyError("weird numval type")
                 }
             }
             SourceStorageKind.LITERALNUMBER -> {
                 // simple case: assign a constant number
+                require(assign.target.datatype.isNumericOrBool)
                 val num = assign.source.number!!.number
-                when (assign.target.datatype) {
-                    DataType.BOOL -> assignConstantByte(assign.target, if(num==0.0) 0 else 1)
-                    DataType.UBYTE, DataType.BYTE -> assignConstantByte(assign.target, num.toInt())
-                    DataType.UWORD, DataType.WORD -> assignConstantWord(assign.target, num.toInt())
-                    DataType.FLOAT -> assignConstantFloat(assign.target, num)
+                when (assign.target.datatype.base) {
+                    BaseDataType.BOOL -> assignConstantByte(assign.target, if(num==0.0) 0 else 1)
+                    BaseDataType.UBYTE, BaseDataType.BYTE -> assignConstantByte(assign.target, num.toInt())
+                    BaseDataType.UWORD, BaseDataType.WORD -> assignConstantWord(assign.target, num.toInt())
+                    BaseDataType.FLOAT -> assignConstantFloat(assign.target, num)
                     else -> throw AssemblyError("weird numval type")
                 }
             }
             SourceStorageKind.VARIABLE -> {
                 // simple case: assign from another variable
                 val variable = assign.source.asmVarname
-                when (assign.target.datatype) {
-                    DataType.BOOL -> {
-                        if (assign.source.datatype == DataType.BOOL) assignVariableByte(assign.target, variable)
+                val targetDt = assign.target.datatype
+                when {
+                    targetDt.isBool -> {
+                        if (assign.source.datatype.isBool) assignVariableByte(assign.target, variable)
                         else throw AssemblyError("assigning non-bool variable to boolean, should have been typecasted")
                     }
-                    DataType.UBYTE, DataType.BYTE -> assignVariableByte(assign.target, variable)
-                    DataType.WORD -> assignVariableWord(assign.target, variable, assign.source.datatype)
-                    DataType.UWORD -> {
-                        if(assign.source.datatype in PassByReferenceDatatypes)
+                    targetDt.isByte -> assignVariableByte(assign.target, variable)
+                    targetDt.isSignedWord -> assignVariableWord(assign.target, variable, assign.source.datatype)
+                    targetDt.isUnsignedWord -> {
+                        if(assign.source.datatype.isPassByRef)
                             assignAddressOf(assign.target, variable, null, null)
                         else
                             assignVariableWord(assign.target, variable, assign.source.datatype)
                     }
-                    DataType.FLOAT -> assignVariableFloat(assign.target, variable)
-                    DataType.STR -> assignVariableString(assign.target, variable)
+                    targetDt.isFloat -> assignVariableFloat(assign.target, variable)
+                    targetDt.isString -> assignVariableString(assign.target, variable)
                     else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype}")
                 }
             }
@@ -244,7 +247,7 @@ internal class AssignmentAsmGen(
                 val constIndex = value.index.asConstInteger()
 
                 if(value.splitWords) {
-                    require(elementDt in WordDatatypes)
+                    require(elementDt.isWord)
                     if(constIndex!=null) {
                         asmgen.out("  lda  ${arrayVarName}_lsb+$constIndex |  ldy  ${arrayVarName}_msb+$constIndex")
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
@@ -258,17 +261,17 @@ internal class AssignmentAsmGen(
 
                 if (constIndex!=null) {
                     // constant array index value
-                    val indexValue = constIndex * program.memsizer.memorySize(elementDt)
-                    when (elementDt) {
-                        in ByteDatatypesWithBoolean -> {
+                    val indexValue = program.memsizer.memorySize(elementDt, constIndex)
+                    when {
+                        elementDt.isByteOrBool -> {
                             asmgen.out("  lda  $arrayVarName+$indexValue")
-                            assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes, false)
+                            assignRegisterByte(assign.target, CpuRegister.A, elementDt.isSigned, false)
                         }
-                        in WordDatatypes -> {
+                        elementDt.isWord -> {
                             asmgen.out("  lda  $arrayVarName+$indexValue |  ldy  $arrayVarName+$indexValue+1")
                             assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         }
-                        DataType.FLOAT -> {
+                        elementDt.isFloat -> {
                             asmgen.out("  lda  #<($arrayVarName+$indexValue) |  ldy  #>($arrayVarName+$indexValue)")
                             assignFloatFromAY(assign.target)
                         }
@@ -276,18 +279,18 @@ internal class AssignmentAsmGen(
                             throw AssemblyError("weird array type")
                     }
                 } else {
-                    when (elementDt) {
-                        in ByteDatatypesWithBoolean -> {
+                    when {
+                        elementDt.isByteOrBool -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVarName,y")
-                            assignRegisterByte(assign.target, CpuRegister.A, elementDt in SignedDatatypes, true)
+                            assignRegisterByte(assign.target, CpuRegister.A, elementDt.isSigned, true)
                         }
-                        in WordDatatypes  -> {
+                        elementDt.isWord -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVarName,y |  ldx  $arrayVarName+1,y")
                             assignRegisterpairWord(assign.target, RegisterOrPair.AX)
                         }
-                        DataType.FLOAT -> {
+                        elementDt.isFloat -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.A)
                             asmgen.out("""
                                 ldy  #>$arrayVarName
@@ -335,7 +338,7 @@ internal class AssignmentAsmGen(
 
     private fun assignByteFromAddressExpression(address: PtExpression, target: AsmAssignTarget) {
         if(address is PtBinaryExpression) {
-            if(address.operator=="+" && address.right.type==DataType.UWORD) {
+            if(address.operator=="+" && address.right.type.isUnsignedWord) {
                 if (address.left is PtIdentifier) {
                     // use (zp),Y instead of explicitly calculating the full zp pointer value
                     val pointer = (address.left as PtIdentifier).name
@@ -376,7 +379,7 @@ internal class AssignmentAsmGen(
 //              // does this ever occur? we could optimize it too, but it seems like a pathological case
 //          }
         }
-        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.UWORD)
+        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
         assignRegisterByte(target, CpuRegister.A, false, true)
     }
@@ -384,7 +387,7 @@ internal class AssignmentAsmGen(
     private fun storeByteInAToAddressExpression(address: PtExpression, saveA: Boolean) {
         if(address is PtBinaryExpression) {
             if(address.operator=="+") {
-                if (address.left is PtIdentifier && address.right.type==DataType.UWORD) {
+                if (address.left is PtIdentifier && address.right.type.isUnsignedWord) {
                     // use (zp),Y instead of explicitly calculating the full zp pointer value
                     val pointer = (address.left as PtIdentifier).name
                     when(val index=address.right) {
@@ -427,7 +430,7 @@ internal class AssignmentAsmGen(
 //          }
         }
         if(saveA) asmgen.out("  pha")
-        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.UWORD)
+        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
         if(saveA) asmgen.out("  pla")
         asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
     }
@@ -451,29 +454,30 @@ internal class AssignmentAsmGen(
                 val sub = symbol!!.astNode as IPtSubroutine
                 asmgen.translateFunctionCall(value)
                 val returnValue = sub.returnsWhatWhere().singleOrNull { it.first.registerOrPair!=null } ?: sub.returnsWhatWhere().single { it.first.statusflag!=null }
-                when (returnValue.second) {
-                    DataType.STR -> {
-                        when(assign.target.datatype) {
-                            DataType.UWORD -> {
+                when {
+                    returnValue.second.isString -> {
+                        val targetDt = assign.target.datatype
+                        when {
+                            targetDt.isUnsignedWord -> {
                                 // assign the address of the string result value
                                 assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                             }
-                            DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                            targetDt.isString || targetDt.isUnsignedByteArray || targetDt.isByteArray -> {
                                 throw AssemblyError("stringvalue assignment should have been replaced by a call to strcpy")
                             }
                             else -> throw AssemblyError("weird target dt")
                         }
                     }
-                    DataType.FLOAT -> {
+                    returnValue.second.isFloat -> {
                         // float result from function sits in FAC1
                         assignFAC1float(assign.target)
                     }
                     else -> {
                         // do NOT restore X register before assigning the result values first
                         when (returnValue.first.registerOrPair) {
-                            RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A, returnValue.second in SignedDatatypes, true)
-                            RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X, returnValue.second in SignedDatatypes, true)
-                            RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y, returnValue.second in SignedDatatypes, true)
+                            RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A, returnValue.second.isSigned, true)
+                            RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X, returnValue.second.isSigned, true)
+                            RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y, returnValue.second.isSigned, true)
                             RegisterOrPair.AX -> assignVirtualRegister(assign.target, RegisterOrPair.AX)
                             RegisterOrPair.AY -> assignVirtualRegister(assign.target, RegisterOrPair.AY)
                             RegisterOrPair.XY -> assignVirtualRegister(assign.target, RegisterOrPair.XY)
@@ -508,12 +512,13 @@ internal class AssignmentAsmGen(
                 val returnDt = asmgen.translateBuiltinFunctionCallExpression(value, assign.target.register)
                 if(assign.target.register==null) {
                     // still need to assign the result to the target variable/etc.
-                    when(returnDt) {
-                        in ByteDatatypesWithBoolean -> assignRegisterByte(assign.target, CpuRegister.A, returnDt in SignedDatatypes, false)            // function's byte result is in A
-                        in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
-                        DataType.STR -> {
-                            when (assign.target.datatype) {
-                                DataType.STR -> {
+                    when {
+                        returnDt?.isByteOrBool==true -> assignRegisterByte(assign.target, CpuRegister.A, returnDt.isSigned, false)            // function's byte result is in A
+                        returnDt?.isWord==true -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
+                        returnDt==BaseDataType.STR -> {
+                            val targetDt = assign.target.datatype
+                            when {
+                                targetDt.isString -> {
                                     asmgen.out("""
                                         tax
                                         lda  #<${assign.target.asmVarname}
@@ -523,11 +528,11 @@ internal class AssignmentAsmGen(
                                         txa
                                         jsr  prog8_lib.strcpy""")
                                 }
-                                DataType.UWORD -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                targetDt.isUnsignedWord -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                                 else -> throw AssemblyError("str return value type mismatch with target")
                             }
                         }
-                        DataType.FLOAT -> {
+                        returnDt==BaseDataType.FLOAT -> {
                             // float result from function sits in FAC1
                             assignFAC1float(assign.target)
                         }
@@ -537,10 +542,10 @@ internal class AssignmentAsmGen(
             }
             is PtPrefix -> {
                 if(assign.target.array==null) {
-                    if(assign.source.datatype isAssignableTo assign.target.datatype || (assign.source.datatype==DataType.BOOL && assign.target.datatype in ByteDatatypes)) {
-                        if(assign.source.datatype in IntegerDatatypesWithBoolean) {
-                            val signed = assign.source.datatype in SignedDatatypes
-                            if(assign.source.datatype in ByteDatatypesWithBoolean) {
+                    if(assign.source.datatype isAssignableTo assign.target.datatype || (assign.source.datatype.isBool && assign.target.datatype.isByte)) {
+                        if(assign.source.datatype.isIntegerOrBool) {
+                            val signed = assign.source.datatype.isSigned
+                            if(assign.source.datatype.isByteOrBool) {
                                 assignExpressionToRegister(value.value, RegisterOrPair.A, signed)
                                 when(value.operator) {
                                     "+" -> {}
@@ -596,7 +601,7 @@ internal class AssignmentAsmGen(
                         }
                     } else {
                         // use a temporary variable
-                        val tempvar = if(value.type in ByteDatatypesWithBoolean) "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_W1"
+                        val tempvar = if(value.type.isByteOrBool) "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_W1"
                         assignExpressionToVariable(value.value, tempvar, value.type)
                         when (value.operator) {
                             "+" -> {}
@@ -619,7 +624,7 @@ internal class AssignmentAsmGen(
                             }
                             else -> throw AssemblyError("invalid prefix operator")
                         }
-                        if(value.type in ByteDatatypesWithBoolean)
+                        if(value.type.isByteOrBool)
                             assignVariableByte(assign.target, tempvar)
                         else
                             assignVariableWord(assign.target, tempvar, value.type)
@@ -646,28 +651,29 @@ internal class AssignmentAsmGen(
 
     private fun assignPrefixedExpressionToArrayElt(assign: AsmAssignment, scope: IPtSubroutine?) {
         require(assign.source.expression is PtPrefix)
-        if(assign.source.datatype==DataType.FLOAT) {
+        if(assign.source.datatype.isFloat) {
             // floatarray[x] = -value   ... just use FAC1 to calculate the expression into and then store that back into the array.
             assignExpressionToRegister(assign.source.expression, RegisterOrPair.FAC1, true)
             assignFAC1float(assign.target)
         } else {
-            val register = if(assign.source.datatype in ByteDatatypesWithBoolean) RegisterOrPair.A else RegisterOrPair.AY
+            val register = if(assign.source.datatype.isByteOrBool) RegisterOrPair.A else RegisterOrPair.AY
             val assignToRegister = AsmAssignment(assign.source,
                 AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, assign.target.datatype, assign.target.scope, assign.target.position,
                     register = register, origAstTarget = assign.target.origAstTarget), program.memsizer, assign.position)
             asmgen.translateNormalAssignment(assignToRegister, scope)
-            val signed = assign.target.datatype in SignedDatatypes
-            when(assign.target.datatype) {
-                in ByteDatatypesWithBoolean -> assignRegisterByte(assign.target, CpuRegister.A, signed, false)
-                in WordDatatypes -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+            val signed = assign.target.datatype.isSigned
+            val targetDt = assign.target.datatype
+            when {
+                targetDt.isByteOrBool -> assignRegisterByte(assign.target, CpuRegister.A, signed, false)
+                targetDt.isWord -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                 else -> throw AssemblyError("weird dt")
             }
         }
     }
 
     private fun assignVirtualRegister(target: AsmAssignTarget, register: RegisterOrPair) {
-        when(target.datatype) {
-            in ByteDatatypesWithBoolean -> {
+        when {
+            target.datatype.isByteOrBool -> {
                 if(register in Cx16VirtualRegisters) {
                     asmgen.out("  lda  cx16.${register.toString().lowercase()}L")
                 } else {
@@ -675,7 +681,7 @@ internal class AssignmentAsmGen(
                 }
                 assignRegisterByte(target, CpuRegister.A, false, false)
             }
-            in WordDatatypes -> assignRegisterpairWord(target, register)
+            target.datatype.isWord -> assignRegisterpairWord(target, register)
             else -> throw AssemblyError("expected byte or word")
         }
     }
@@ -702,16 +708,15 @@ internal class AssignmentAsmGen(
     private fun optimizedComparison(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         if(expr.right.asConstInteger() == 0) {
             if(expr.operator == "==" || expr.operator=="!=") {
-                when(assign.target.datatype) {
-                    in ByteDatatypesWithBoolean -> if(attemptAssignToByteCompareZero(expr, assign)) return true
-                    else -> {
-                        // do nothing, this is handled by a type cast.
-                    }
+                if (assign.target.datatype.isByteOrBool) {
+                    if(attemptAssignToByteCompareZero(expr, assign)) return true
+                } else {
+                    // do nothing, this is handled by a type cast.
                 }
             }
         }
 
-        if(expr.left.type==DataType.UBYTE) {
+        if(expr.left.type.isUnsignedByte) {
             if(expr.operator=="<") {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 when(val right = expr.right) {
@@ -826,7 +831,7 @@ internal class AssignmentAsmGen(
             val exprClone: PtBinaryExpression
             if(!asmgen.isTargetCpu(CpuType.VIRTUAL)
                 && (expr.operator==">" || expr.operator=="<=")
-                && expr.right.type in WordDatatypes) {
+                && expr.right.type.isWord) {
                 // word X>Y -> X<Y, X<=Y -> Y>=X  , easier to do in 6502  (codegen also expects these to no longe exist!)
                 exprClone = PtBinaryExpression(if(expr.operator==">") "<" else ">=", expr.type, expr.position)
                 exprClone.children.add(expr.children[1]) // doesn't seem to need a deep clone
@@ -855,7 +860,7 @@ internal class AssignmentAsmGen(
         } else {
             when(assign.target.kind) {
                 TargetStorageKind.VARIABLE -> {
-                    if(assign.target.datatype in WordDatatypes) {
+                    if(assign.target.datatype.isWord) {
                         assignTrue = if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
                             PtInlineAssembly("""  
   lda  #1
@@ -901,7 +906,7 @@ internal class AssignmentAsmGen(
         val exprClone: PtBinaryExpression
         if(!asmgen.isTargetCpu(CpuType.VIRTUAL)
             && (expr.operator==">" || expr.operator=="<=")
-            && expr.right.type in WordDatatypes) {
+            && expr.right.type.isWord) {
             // word X>Y -> X<Y, X<=Y -> Y>=X  , easier to do in 6502  (codegen also expects these to no longe exist!)
             exprClone = PtBinaryExpression(if(expr.operator==">") "<" else ">=", expr.type, expr.position)
             exprClone.children.add(expr.children[1]) // doesn't seem to need a deep clone
@@ -930,8 +935,8 @@ internal class AssignmentAsmGen(
     }
 
     private fun optimizedRemainderExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
-        when(expr.type) {
-            DataType.UBYTE -> {
+        when {
+            expr.type.isUnsignedByte -> {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
@@ -943,10 +948,10 @@ internal class AssignmentAsmGen(
                     assignRegisterByte(target, CpuRegister.A, false, true)
                 return true
             }
-            DataType.UWORD -> {
+            expr.type.isUnsignedWord -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
                 asmgen.out("  jsr  prog8_math.divmod_uw_asm")
-                assignVariableWord(target, "P8ZP_SCRATCH_W2", DataType.UWORD)
+                assignVariableWord(target, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                 return true
             }
             else -> return false
@@ -955,8 +960,8 @@ internal class AssignmentAsmGen(
 
     private fun optimizedDivideExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
         // replacing division by shifting is done in an optimizer step.
-        when(expr.type) {
-            DataType.UBYTE -> {
+        when {
+            expr.type.isUnsignedByte -> {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
                 if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
@@ -965,7 +970,7 @@ internal class AssignmentAsmGen(
                 assignRegisterByte(target, CpuRegister.Y, false, true)
                 return true
             }
-            DataType.BYTE -> {
+            expr.type.isSignedByte -> {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, true)
                 if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, true)
@@ -974,13 +979,13 @@ internal class AssignmentAsmGen(
                 assignRegisterByte(target, CpuRegister.Y, true, true)
                 return true
             }
-            DataType.UWORD -> {
+            expr.type.isUnsignedWord -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
                 asmgen.out("  jsr  prog8_math.divmod_uw_asm")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return true
             }
-            DataType.WORD -> {
+            expr.type.isSignedWord -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
                 asmgen.out("  jsr  prog8_math.divmod_w_asm")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -993,27 +998,27 @@ internal class AssignmentAsmGen(
     private fun optimizedMultiplyExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
         val value = expr.right.asConstInteger()
         if(value==null) {
-            when(expr.type) {
-                in ByteDatatypes -> {
-                    assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type in SignedDatatypes)
+            when {
+                expr.type.isByte -> {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type.isSigned)
                     if(!directIntoY(expr.right)) asmgen.out("  pha")
-                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, expr.type in SignedDatatypes)
+                    assignExpressionToRegister(expr.right, RegisterOrPair.Y, expr.type.isSigned)
                     if(!directIntoY(expr.right)) asmgen.out("  pla")
                     asmgen.out("  jsr  prog8_math.multiply_bytes")
                     assignRegisterByte(target, CpuRegister.A, false, true)
                     return true
                 }
-                in WordDatatypes -> {
+                expr.type.isWord -> {
                     if(expr.definingBlock()!!.options.veraFxMuls) {
                         // cx16 verafx hardware mul
                         if(expr.right.isSimple()) {
-                            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R0, expr.left.type in SignedDatatypes)
-                            asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R1, expr.left.type in SignedDatatypes)
+                            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R0, expr.left.type.isSigned)
+                            asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R1, expr.left.type.isSigned)
                         } else {
-                            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type in SignedDatatypes)
+                            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type.isSigned)
                             asmgen.out("  pha")
                             asmgen.saveRegisterStack(CpuRegister.Y, false)
-                            asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R1, expr.left.type in SignedDatatypes)
+                            asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R1, expr.left.type.isSigned)
                             asmgen.restoreRegisterStack(CpuRegister.Y, false)
                             asmgen.out("  pla")
                             asmgen.out("  sta  cx16.r0 |  sty  cx16.r0+1")
@@ -1031,9 +1036,9 @@ internal class AssignmentAsmGen(
                 else -> return false
             }
         } else {
-            when (expr.type) {
-                in ByteDatatypes -> {
-                    assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type in SignedDatatypes)
+            when {
+                expr.type.isByte -> {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type.isSigned)
                     if (value in asmgen.optimizedByteMultiplications)
                         asmgen.out("  jsr  prog8_math.mul_byte_${value}")
                     else
@@ -1041,9 +1046,9 @@ internal class AssignmentAsmGen(
                     assignRegisterByte(target, CpuRegister.A, false, true)
                     return true
                 }
-                in WordDatatypes -> {
+                expr.type.isWord -> {
                     if (value in asmgen.optimizedWordMultiplications) {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type in SignedDatatypes)
+                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type.isSigned)
                         asmgen.out("  jsr  prog8_math.mul_word_${value}")
                     }
                     else {
@@ -1068,16 +1073,16 @@ internal class AssignmentAsmGen(
     }
 
     private fun optimizedBitshiftExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
-        val signed = expr.left.type in SignedDatatypes
+        val signed = expr.left.type.isSigned
         val shifts = expr.right.asConstInteger()
         val dt = expr.left.type
         if(shifts==null) {
             // bit shifts with variable shifts
-            when(expr.right.type) {
-                in ByteDatatypes -> {
+            when {
+                expr.right.type.isByte -> {
                     assignExpressionToRegister(expr.right, RegisterOrPair.A, false)
                 }
-                in WordDatatypes -> {
+                expr.right.type.isWord -> {
                     assignExpressionToRegister(expr.right, RegisterOrPair.AY, false)
                     asmgen.out("""
                         cpy  #0
@@ -1088,7 +1093,7 @@ internal class AssignmentAsmGen(
                 else -> throw AssemblyError("weird shift value type")
             }
             asmgen.out("  pha")
-            if(dt in ByteDatatypes) {
+            if(dt.isByte) {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
                 asmgen.restoreRegisterStack(CpuRegister.Y, true)
                 if(expr.operator==">>")
@@ -1116,7 +1121,7 @@ internal class AssignmentAsmGen(
         }
         else {
             // bit shift with constant value
-            if(dt in ByteDatatypes) {
+            if(dt.isByte) {
                 assignExpressionToRegister(expr.left, RegisterOrPair.A, signed)
                 when (shifts) {
                     in 0..7 -> {
@@ -1149,7 +1154,7 @@ internal class AssignmentAsmGen(
                         return true
                     }
                 }
-            } else if(dt in WordDatatypes) {
+            } else if(dt.isWord) {
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
                 when (shifts) {
                     in 0..7 -> {
@@ -1224,20 +1229,20 @@ internal class AssignmentAsmGen(
         val dt = expr.type
         val left = expr.left
         val right = expr.right
-        if(dt in ByteDatatypes) {
+        if(dt.isByte) {
             when (right) {
                 is PtIdentifier -> {
-                    assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
+                    assignExpressionToRegister(left, RegisterOrPair.A, dt.isSigned)
                     val symname = asmgen.asmVariableName(right)
                     if(expr.operator=="+")
                         asmgen.out("  clc |  adc  $symname")
                     else
                         asmgen.out("  sec |  sbc  $symname")
-                    assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                    assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
                     return true
                 }
                 is PtNumber -> {
-                    assignExpressionToRegister(left, RegisterOrPair.A, dt==DataType.BYTE)
+                    assignExpressionToRegister(left, RegisterOrPair.A, dt.isSigned)
                     if(right.number==1.0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
                         if (expr.operator == "+")
                             asmgen.out("  inc  a")
@@ -1249,7 +1254,7 @@ internal class AssignmentAsmGen(
                         else
                             asmgen.out("  sec |  sbc  #${right.number.toHex()}")
                     }
-                    assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                    assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
                     return true
                 }
                 else -> {
@@ -1257,18 +1262,18 @@ internal class AssignmentAsmGen(
                     val rightMemByte = expr.right as? PtMemoryByte
                     val leftArrayIndexer = expr.left as? PtArrayIndexer
                     val rightArrayIndexer = expr.right as? PtArrayIndexer
-                    if(expr.operator=="+" && leftArrayIndexer!=null && leftArrayIndexer.type in ByteDatatypes && right.type in ByteDatatypes) {
+                    if(expr.operator=="+" && leftArrayIndexer!=null && leftArrayIndexer.type.isByte && right.type.isByte) {
                         // special optimization for  bytearray[y] + bytevalue :  no need to use a tempvar, just use adc array,y
-                        assignExpressionToRegister(right, RegisterOrPair.A, right.type==DataType.BYTE)
+                        assignExpressionToRegister(right, RegisterOrPair.A, right.type.isSigned)
                         if(!leftArrayIndexer.index.isSimple()) asmgen.out("  pha")
                         asmgen.assignExpressionToRegister(leftArrayIndexer.index, RegisterOrPair.Y, false)
                         if(!leftArrayIndexer.index.isSimple()) asmgen.out("  pla")
                         val arrayvarname = asmgen.asmSymbolName(leftArrayIndexer.variable)
                         asmgen.out("  clc |  adc  $arrayvarname,y")
-                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
-                    } else if(rightArrayIndexer!=null && rightArrayIndexer.type in ByteDatatypes && left.type in ByteDatatypes) {
+                        assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
+                    } else if(rightArrayIndexer!=null && rightArrayIndexer.type.isByte && left.type.isByte) {
                         // special optimization for  bytevalue +/- bytearray[y] :  no need to use a tempvar, just use adc array,y or sbc array,y
-                        assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
+                        assignExpressionToRegister(left, RegisterOrPair.A, left.type.isSigned)
                         if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pha")
                         asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y, false)
                         if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pla")
@@ -1277,17 +1282,17 @@ internal class AssignmentAsmGen(
                             asmgen.out("  clc |  adc  $arrayvarname,y")
                         else
                             asmgen.out("  sec |  sbc  $arrayvarname,y")
-                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
-                    } else if(expr.operator=="+" && leftMemByte!=null && right.type in ByteDatatypes && optimizedPointerIndexPlusMinusByteIntoA(right, "+", leftMemByte)) {
-                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                        assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
+                    } else if(expr.operator=="+" && leftMemByte!=null && right.type.isByte && optimizedPointerIndexPlusMinusByteIntoA(right, "+", leftMemByte)) {
+                        assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
                         return true
-                    } else if(rightMemByte!=null && left.type in ByteDatatypes && optimizedPointerIndexPlusMinusByteIntoA(left, expr.operator, rightMemByte)) {
-                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                    } else if(rightMemByte!=null && left.type.isByte && optimizedPointerIndexPlusMinusByteIntoA(left, expr.operator, rightMemByte)) {
+                        assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
                         return true
                     } else {
-                        assignExpressionToRegister(left, RegisterOrPair.A, left.type==DataType.BYTE)
+                        assignExpressionToRegister(left, RegisterOrPair.A, left.type.isSigned)
                         if(directIntoY(right)) {
-                            assignExpressionToRegister(right, RegisterOrPair.Y, left.type==DataType.BYTE)
+                            assignExpressionToRegister(right, RegisterOrPair.Y, left.type.isSigned)
                             asmgen.out("  sty  P8ZP_SCRATCH_B1")
                         } else {
                             asmgen.out("  pha")
@@ -1298,12 +1303,12 @@ internal class AssignmentAsmGen(
                             asmgen.out("  clc |  adc  P8ZP_SCRATCH_B1")
                         else
                             asmgen.out("  sec |  sbc  P8ZP_SCRATCH_B1")
-                        assignRegisterByte(target, CpuRegister.A, dt in SignedDatatypes, true)
+                        assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
                     }
                     return true
                 }
             }
-        } else if(dt in WordDatatypes) {
+        } else if(dt.isWord) {
 
             fun doAddOrSubWordExpr() {
                 asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
@@ -1334,7 +1339,7 @@ internal class AssignmentAsmGen(
                     if(right.isFromArrayElement) {
                         TODO("address-of array element $symbol at ${right.position}")
                     } else {
-                        assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
+                        assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                         if(expr.operator=="+")
                             asmgen.out("""
                                     clc
@@ -1359,7 +1364,7 @@ internal class AssignmentAsmGen(
                 }
                 is PtIdentifier -> {
                     val symname = asmgen.asmVariableName(right)
-                    assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
+                    assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                     if(expr.operator=="+")
                         asmgen.out("""
                                 clc
@@ -1382,7 +1387,7 @@ internal class AssignmentAsmGen(
                     return true
                 }
                 is PtNumber -> {
-                    assignExpressionToRegister(left, RegisterOrPair.AY, dt==DataType.WORD)
+                    assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                     if(right.number==1.0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
                         if(expr.operator=="+") {
                             asmgen.out("""
@@ -1398,7 +1403,7 @@ internal class AssignmentAsmGen(
                                 dey
 +""")
                         }
-                    } else if(dt!=DataType.WORD && right.number.toInt() in 0..255) {
+                    } else if(!dt.isSignedWord && right.number.toInt() in 0..255) {
                         if(expr.operator=="+") {
                             asmgen.out("""
                                 clc
@@ -1439,11 +1444,11 @@ internal class AssignmentAsmGen(
                 }
                 is PtTypeCast -> {
                     val castedValue = right.value
-                    if(right.type in WordDatatypes && castedValue.type in ByteDatatypes && castedValue is PtIdentifier) {
-                        if(right.type in SignedDatatypes) {
+                    if(right.type.isWord && castedValue.type.isByte && castedValue is PtIdentifier) {
+                        if(right.type.isSigned) {
                             // we need to sign extend, do this via temporary word variable
-                            asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.WORD)
-                            assignExpressionToRegister(left, RegisterOrPair.AY, dt == DataType.WORD)
+                            asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.forDt(BaseDataType.WORD))
+                            assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                             if(expr.operator=="+") {
                                 asmgen.out("""
                                 clc
@@ -1464,7 +1469,7 @@ internal class AssignmentAsmGen(
                                 txa""")
                             }
                         } else {
-                            assignExpressionToRegister(left, RegisterOrPair.AY, dt == DataType.WORD)
+                            assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                             val castedSymname = asmgen.asmVariableName(castedValue)
                             if (expr.operator == "+")
                                 asmgen.out(
@@ -1506,7 +1511,7 @@ internal class AssignmentAsmGen(
         if(address is PtBinaryExpression) {
             val constOffset = address.right.asConstInteger()
             // check that the offset is actually a byte (so that it fits in a single register)
-            if(constOffset==null && address.right.type !in ByteDatatypes)
+            if(constOffset==null && !address.right.type.isByte)
                 return false
             if(constOffset!=null && constOffset !in -128..255)
                 return false
@@ -1521,7 +1526,7 @@ internal class AssignmentAsmGen(
                         asmgen.out("  clc |  adc  ($pointername),y")
                     else
                         asmgen.out("  sec |  sbc  ($pointername),y")
-                } else if (address.right.type in ByteDatatypes) {
+                } else if (address.right.type.isByte) {
                     // we have @(ptr + bytevar) ++ , or  @(ptr+bytevar)--
                     asmgen.out("  pha")
                     assignExpressionToRegister(address.right, RegisterOrPair.Y, false)
@@ -1530,7 +1535,7 @@ internal class AssignmentAsmGen(
                         asmgen.out("  clc |  adc  ($pointername),y")
                     else
                         asmgen.out("  sec |  sbc  ($pointername),y")
-                } else if ((address.right as? PtTypeCast)?.value?.type in ByteDatatypes) {
+                } else if ((address.right as? PtTypeCast)?.value?.type?.isByte==true) {
                     // we have @(ptr + bytevar as uword) ++ , or  @(ptr+bytevar as uword)--
                     asmgen.out("  pha")
                     assignExpressionToRegister((address.right as PtTypeCast).value, RegisterOrPair.Y, false)
@@ -1547,7 +1552,7 @@ internal class AssignmentAsmGen(
     }
 
     private fun optimizedBitwiseExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
-        if (expr.left.type in ByteDatatypes && expr.right.type in ByteDatatypes) {
+        if (expr.left.type.isByte && expr.right.type.isByte) {
             if (expr.right.isSimple()) {
                 if (expr.right is PtNumber || expr.right is PtIdentifier) {
                     assignBitwiseWithSimpleRightOperandByte(target, expr.left, expr.operator, expr.right)
@@ -1563,7 +1568,7 @@ internal class AssignmentAsmGen(
                 val constIndex = rightArray.index.asConstInteger()
                 if(constIndex!=null) {
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-                    val valueVarname = "${asmgen.asmSymbolName(rightArray.variable)} + ${constIndex*program.memsizer.memorySize(rightArray.type)}"
+                    val valueVarname = "${asmgen.asmSymbolName(rightArray.variable)} + ${program.memsizer.memorySize(rightArray.type, constIndex)}"
                     when(expr.operator) {
                         "&" -> asmgen.out("  and  $valueVarname")
                         "|" -> asmgen.out("  ora  $valueVarname")
@@ -1581,7 +1586,7 @@ internal class AssignmentAsmGen(
                 asmgen.out("  sty  P8ZP_SCRATCH_B1")
             } else {
                 asmgen.out("  pha")
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                 asmgen.out("  pla")
             }
             when (expr.operator) {
@@ -1593,7 +1598,7 @@ internal class AssignmentAsmGen(
             assignRegisterByte(target, CpuRegister.A, false, true)
             return true
         }
-        else if (expr.left.type in WordDatatypes && expr.right.type in WordDatatypes) {
+        else if (expr.left.type.isWord && expr.right.type.isWord) {
             if (expr.right.isSimple()) {
                 if (expr.right is PtNumber || expr.right is PtIdentifier) {
                     assignBitwiseWithSimpleRightOperandWord(target, expr.left, expr.operator, expr.right)
@@ -1634,7 +1639,7 @@ internal class AssignmentAsmGen(
                     asmgen.out("  sty  P8ZP_SCRATCH_B1")
                 } else {
                     asmgen.out("  pha")
-                    assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
                     asmgen.out("  pla")
                 }
                 when (operator) {
@@ -1672,7 +1677,7 @@ internal class AssignmentAsmGen(
                 is PtArrayIndexer -> {
                     val constIndex = right.index.asConstInteger()
                     if(constIndex!=null) {
-                        val valueVarname = "${asmgen.asmSymbolName(right.variable)} + ${constIndex*program.memsizer.memorySize(right.type)}"
+                        val valueVarname = "${asmgen.asmSymbolName(right.variable)} + ${program.memsizer.memorySize(right.type, constIndex)}"
                         when(operator) {
                             "and" -> asmgen.out("  and  $valueVarname")
                             "or" -> asmgen.out("  ora  $valueVarname")
@@ -1763,10 +1768,11 @@ internal class AssignmentAsmGen(
     private fun attemptAssignToByteCompareZero(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         when (expr.operator) {
             "==" -> {
-                when(val dt = expr.left.type) {
-                    DataType.BOOL -> TODO("compare bool to 0")
-                    in ByteDatatypes -> {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
+                val dt = expr.left.type
+                when {
+                    dt.isBool -> TODO("compare bool to 0")
+                    dt.isByte -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.A, dt.isSigned)
                         asmgen.out("""
                             cmp  #0
                             beq  +
@@ -1775,8 +1781,8 @@ internal class AssignmentAsmGen(
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
                         return true
                     }
-                    in WordDatatypes -> {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt==DataType.WORD)
+                    dt.isWord -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt.isSigned)
                         asmgen.out("""
                             sty  P8ZP_SCRATCH_B1
                             ora  P8ZP_SCRATCH_B1
@@ -1786,7 +1792,7 @@ internal class AssignmentAsmGen(
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
                         return true
                     }
-                    DataType.FLOAT -> {
+                    dt.isFloat -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
                         asmgen.out("  jsr  floats.SIGN |  and  #1 |  eor  #1")
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
@@ -1798,24 +1804,25 @@ internal class AssignmentAsmGen(
                 }
             }
             "!=" -> {
-                when(val dt = expr.left.type) {
-                    DataType.BOOL -> TODO("compare bool to 0")
-                    in ByteDatatypes -> {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.A, dt==DataType.BYTE)
+                val dt = expr.left.type
+                when {
+                    dt.isBool -> TODO("compare bool to 0")
+                    dt.isByte -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.A, dt.isSigned)
                         asmgen.out("  beq  + |  lda  #1")
                         asmgen.out("+")
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
                         return true
                     }
-                    in WordDatatypes -> {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt==DataType.WORD)
+                    dt.isWord -> {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt.isSigned)
                         asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
                         asmgen.out("  beq  + |  lda  #1")
                         asmgen.out("+")
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
                         return true
                     }
-                    DataType.FLOAT -> {
+                    dt.isFloat -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.FAC1, true)
                         asmgen.out("  jsr  floats.SIGN")
                         assignRegisterByte(assign.target, CpuRegister.A, true, false)
@@ -1838,10 +1845,10 @@ internal class AssignmentAsmGen(
                 if(it is PtBool) it.asInt()
                 else (it as PtNumber).number.toInt()
             }
-            when(elementDt) {
-                in ByteDatatypesWithBoolean -> {
+            when {
+                elementDt.isByteOrBool -> {
                     require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
-                    assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt == DataType.BYTE)
+                    assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt.isSigned)
                     for(number in haystack) {
                         asmgen.out("""
                             cmp  #$number
@@ -1853,9 +1860,9 @@ internal class AssignmentAsmGen(
 +                       lda  #1
 +""")
                 }
-                in WordDatatypes -> {
+                elementDt.isWord -> {
                     require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD)
-                    assignExpressionToRegister(containment.needle, RegisterOrPair.AY, elementDt == DataType.WORD)
+                    assignExpressionToRegister(containment.needle, RegisterOrPair.AY, elementDt.isSigned)
                     val gottemLabel = asmgen.makeLabel("gottem")
                     val endLabel = asmgen.makeLabel("end")
                     for(number in haystack) {
@@ -1872,7 +1879,7 @@ internal class AssignmentAsmGen(
 $gottemLabel            lda  #1
 $endLabel""")
                 }
-                DataType.FLOAT -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
+                elementDt.isFloat -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
                 else -> throw AssemblyError("weird dt $elementDt")
             }
 
@@ -1884,34 +1891,34 @@ $endLabel""")
         val (dt, numElements) = when(symbol) {
             is StStaticVariable  -> symbol.dt to symbol.length!!
             is StMemVar -> symbol.dt to symbol.length!!
-            else -> DataType.UNDEFINED to 0
+            else -> DataType.forDt(BaseDataType.UNDEFINED) to 0
         }
-        when(dt) {
-            DataType.STR -> {
-                assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt == DataType.BYTE)
+        when {
+            dt.isString -> {
+                assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt.isSigned)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #${numElements-1}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
-            DataType.ARRAY_F -> {
+            dt.isFloatArray -> {
                 assignExpressionToRegister(containment.needle, RegisterOrPair.FAC1, true)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  floats.containment_floatarray")
             }
-            DataType.ARRAY_B, DataType.ARRAY_UB, DataType.ARRAY_BOOL -> {
-                assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt == DataType.BYTE)
+            dt.isByteArray -> {
+                assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt.isSigned)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
-            DataType.ARRAY_W, DataType.ARRAY_UW -> {
+            dt.isWordArray && !dt.isSplitWordArray -> {
                 assignExpressionToVariable(containment.needle, "P8ZP_SCRATCH_W1", elementDt)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_wordarray")
             }
@@ -1959,22 +1966,22 @@ $endLabel""")
 
         when(value) {
             is PtIdentifier -> {
-                if(targetDt in WordDatatypes) {
-                    if(valueDt==DataType.UBYTE || valueDt==DataType.BOOL) {
+                if(targetDt.isWord) {
+                    if(valueDt.isUnsignedByte || valueDt.isBool) {
                         assignVariableUByteIntoWord(target, value)
                         return
                     }
-                    if(valueDt==DataType.BYTE) {
+                    if(valueDt.isSignedByte) {
                         assignVariableByteIntoWord(target, value)
                         return
                     }
                 }
             }
             is PtMemoryByte -> {
-                if(targetDt in WordDatatypes) {
+                if(targetDt.isWord) {
 
                     fun assignViaExprEval(addressExpression: PtExpression) {
-                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD)
+                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
                         asmgen.out("  ldy  #0")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -2006,10 +2013,10 @@ $endLabel""")
             }
             is PtNumber, is PtBool -> throw AssemblyError("a cast of a literal value should have been const-folded away")
             is PtArrayIndexer -> {
-                if(targetDt in ByteDatatypes && valueDt in WordDatatypes) {
+                if(targetDt.isByte && valueDt.isWord) {
                     // just assign the lsb from the array value
                     return assignCastViaLsbFunc(value, target)
-                } else if(targetDt==DataType.BOOL && valueDt in WordDatatypes) {
+                } else if(targetDt.isBool && valueDt.isWord) {
                     return assignWordToBool(value, target)
                 }
             }
@@ -2019,12 +2026,12 @@ $endLabel""")
 
         // special case optimizations
         if(target.kind == TargetStorageKind.VARIABLE) {
-            if(value is PtIdentifier && valueDt != DataType.UNDEFINED)
+            if(value is PtIdentifier && !valueDt.isUndefined)
                 return assignTypeCastedIdentifier(target.asmVarname, targetDt, asmgen.asmVariableName(value), valueDt)
 
-            when (valueDt) {
-                DataType.BOOL -> {
-                    if(targetDt in IntegerDatatypes) {
+            when {
+                valueDt.isBool -> {
+                    if(targetDt.isInteger) {
                         // optimization to assign boolean expression to integer target (just assign the 0 or 1 directly)
                         val assignDirect = AsmAssignment(
                             AsmAssignSource.fromAstSource(value, program, asmgen),
@@ -2037,19 +2044,19 @@ $endLabel""")
                         TODO("assign bool to non-integer type $targetDt")
                     }
                 }
-                in ByteDatatypes -> {
-                    assignExpressionToRegister(value, RegisterOrPair.A, valueDt==DataType.BYTE)
-                    assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.A, valueDt)
+                valueDt.isByte -> {
+                    assignExpressionToRegister(value, RegisterOrPair.A, valueDt.isSigned)
+                    assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.A, valueDt.base)
                 }
-                in WordDatatypes -> {
-                    assignExpressionToRegister(value, RegisterOrPair.AY, valueDt==DataType.WORD)
-                    assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, valueDt)
+                valueDt.isWord -> {
+                    assignExpressionToRegister(value, RegisterOrPair.AY, valueDt.isSigned)
+                    assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.AY, valueDt.base)
                 }
-                DataType.FLOAT -> {
+                valueDt.isFloat -> {
                     assignExpressionToRegister(value, RegisterOrPair.FAC1, true)
-                    assignTypeCastedFloatFAC1(target.asmVarname, targetDt)
+                    assignTypeCastedFloatFAC1(target.asmVarname, targetDt.base)
                 }
-                in PassByReferenceDatatypes -> {
+                valueDt.isPassByRef -> {
                     // str/array value cast (most likely to UWORD, take address-of)
                     assignExpressionToVariable(value, target.asmVarname, targetDt)
                 }
@@ -2058,39 +2065,39 @@ $endLabel""")
             return
         }
 
-        if(valueDt in WordDatatypes && origTypeCastExpression.type == DataType.UBYTE) {
+        if(valueDt.isWord && origTypeCastExpression.type.isUnsignedByte) {
             val parentTc = origTypeCastExpression.parent as? PtTypeCast
-            if(parentTc!=null && parentTc.type==DataType.UWORD) {
+            if(parentTc!=null && parentTc.type.isUnsignedWord) {
                 // typecast a word value to ubyte and directly back to uword
                 // generate code for lsb(value) here instead of the ubyte typecast
                 return assignCastViaLsbFunc(value, target)
             }
         }
 
-        if(valueDt in ByteDatatypesWithBoolean) {
+        if(valueDt.isByteOrBool) {
             when(target.register) {
                 RegisterOrPair.A,
                 RegisterOrPair.X,
                 RegisterOrPair.Y -> {
                     // 'cast' an ubyte value to a byte register; no cast needed at all
-                    return assignExpressionToRegister(value, target.register, valueDt in SignedDatatypes)
+                    return assignExpressionToRegister(value, target.register, valueDt.isSigned)
                 }
                 RegisterOrPair.AX,
                 RegisterOrPair.AY,
                 RegisterOrPair.XY,
                 in Cx16VirtualRegisters -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, false)
-                    assignRegisterByte(target, CpuRegister.A, valueDt in SignedDatatypes, true)
+                    assignRegisterByte(target, CpuRegister.A, valueDt.isSigned, true)
                     return
                 }
                 else -> {}
             }
-        } else if(valueDt==DataType.UWORD) {
+        } else if(valueDt.isUnsignedWord) {
             when(target.register) {
                 RegisterOrPair.A,
                 RegisterOrPair.X,
                 RegisterOrPair.Y -> {
-                    return if(targetDt==DataType.BOOL)
+                    return if(targetDt.isBool)
                         assignWordToBool(value, target)
                     else
                         // cast an uword to a byte register, do this via lsb(value)
@@ -2102,86 +2109,86 @@ $endLabel""")
                 RegisterOrPair.XY,
                 in Cx16VirtualRegisters -> {
                     // 'cast' uword into a 16 bits register, just assign it
-                    return assignExpressionToRegister(value, target.register!!, targetDt in SignedDatatypes)
+                    return assignExpressionToRegister(value, target.register!!, targetDt.isSigned)
                 }
                 else -> {}
             }
         }
 
         if(target.kind==TargetStorageKind.REGISTER) {
-            if(valueDt==DataType.FLOAT && target.datatype!=DataType.FLOAT) {
+            if(valueDt.isFloat && !target.datatype.isFloat) {
                 // have to typecast the float number on the fly down to an integer
-                assignExpressionToRegister(value, RegisterOrPair.FAC1, targetDt in SignedDatatypes)
-                assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", targetDt)
-                assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, targetDt in SignedDatatypes, origTypeCastExpression.definingISub(), target.position)
+                assignExpressionToRegister(value, RegisterOrPair.FAC1, targetDt.isSigned)
+                assignTypeCastedFloatFAC1("P8ZP_SCRATCH_W1", targetDt.base)
+                assignVariableToRegister("P8ZP_SCRATCH_W1", target.register!!, targetDt.isSigned, origTypeCastExpression.definingISub(), target.position)
                 return
             } else {
                 if(!(valueDt isAssignableTo targetDt)) {
-                    return if(valueDt in WordDatatypes && targetDt in ByteDatatypes) {
+                    return if(valueDt.isWord && targetDt.isByte) {
                         // word to byte, just take the lsb
                         assignCastViaLsbFunc(value, target)
-                    } else if(valueDt in WordDatatypes && targetDt==DataType.BOOL) {
+                    } else if(valueDt.isWord && targetDt.isBool) {
                         // word to bool
                         assignWordToBool(value, target)
-                    } else if(valueDt in WordDatatypes && targetDt in WordDatatypes) {
+                    } else if(valueDt.isWord && targetDt.isWord) {
                         // word to word, just assign
-                        assignExpressionToRegister(value, target.register!!, valueDt in SignedDatatypes)
-                    } else if(valueDt in ByteDatatypesWithBoolean && targetDt in ByteDatatypes) {
+                        assignExpressionToRegister(value, target.register!!, valueDt.isSigned)
+                    } else if(valueDt.isByteOrBool && targetDt.isByte) {
                         // byte to byte, just assign
-                        assignExpressionToRegister(value, target.register!!, valueDt in SignedDatatypes)
-                    } else if(valueDt in ByteDatatypesWithBoolean && targetDt in WordDatatypes) {
+                        assignExpressionToRegister(value, target.register!!, valueDt.isSigned)
+                    } else if(valueDt.isByteOrBool && targetDt.isWord) {
                         // byte to word, just assign
-                        assignExpressionToRegister(value, target.register!!, valueDt==DataType.WORD)
+                        assignExpressionToRegister(value, target.register!!, valueDt.isSigned)
                     } else
                         throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker")
                 }
             }
         }
 
-        if(targetDt in IntegerDatatypes && valueDt in IntegerDatatypesWithBoolean && valueDt.isAssignableTo(targetDt)) {
-            require(targetDt in WordDatatypes && valueDt in ByteDatatypesWithBoolean) {
+        if(targetDt.isInteger && valueDt.isIntegerOrBool && valueDt.isAssignableTo(targetDt)) {
+            require(targetDt.isWord && valueDt.isByteOrBool) {
                 "should be byte to word assignment ${origTypeCastExpression.position}"
             }
             when(target.kind) {
 //                TargetStorageKind.VARIABLE -> {
 //                    This has been handled already earlier on line 961.
 //                    // byte to word, just assign to registers first, then assign to variable
-//                    assignExpressionToRegister(value, RegisterOrPair.AY, targetDt==DataType.WORD)
+//                    assignExpressionToRegister(value, RegisterOrPair.AY, targetDt==BaseDataType.WORD)
 //                    assignTypeCastedRegisters(target.asmVarname, targetDt, RegisterOrPair.AY, targetDt)
 //                    return
 //                }
                 TargetStorageKind.ARRAY -> {
                     // byte to word, just assign to registers first, then assign into array
-                    assignExpressionToRegister(value, RegisterOrPair.AY, targetDt==DataType.WORD)
+                    assignExpressionToRegister(value, RegisterOrPair.AY, targetDt.isSigned)
                     assignRegisterpairWord(target, RegisterOrPair.AY)
                     return
                 }
                 TargetStorageKind.REGISTER -> {
                     // byte to word, just assign to registers
-                    assignExpressionToRegister(value, target.register!!, targetDt==DataType.WORD)
+                    assignExpressionToRegister(value, target.register!!, targetDt.isSigned)
                     return
                 }
                 else -> throw AssemblyError("weird target")
             }
         }
 
-        if(targetDt==DataType.FLOAT && (target.register==RegisterOrPair.FAC1 || target.register==RegisterOrPair.FAC2)) {
+        if(targetDt.isFloat && (target.register==RegisterOrPair.FAC1 || target.register==RegisterOrPair.FAC2)) {
             if(target.register==RegisterOrPair.FAC2)
                 asmgen.pushFAC1()
-            when(valueDt) {
-                DataType.UBYTE -> {
+            when {
+                valueDt.isUnsignedByte -> {
                     assignExpressionToRegister(value, RegisterOrPair.Y, false)
                     asmgen.out("  jsr  floats.FREADUY")
                 }
-                DataType.BYTE -> {
+                valueDt.isSignedByte -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, true)
                     asmgen.out("  jsr  floats.FREADSA")
                 }
-                DataType.UWORD -> {
+                valueDt.isUnsignedWord -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, false)
                     asmgen.out("  jsr  floats.GIVUAYFAY")
                 }
-                DataType.WORD -> {
+                valueDt.isSignedWord -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, true)
                     asmgen.out("  jsr  floats.GIVAYFAY")
                 }
@@ -2201,10 +2208,10 @@ $endLabel""")
     }
 
     private fun assignCastViaLsbFunc(value: PtExpression, target: AsmAssignTarget) {
-        val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.UBYTE, value.position)
+        val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.forDt(BaseDataType.UBYTE), value.position)
         lsb.parent = value.parent
         lsb.add(value)
-        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
+        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.forDt(BaseDataType.UBYTE), expression = lsb)
         val assign = AsmAssignment(src, target, program.memsizer, value.position)
         translateNormalAssignment(assign, value.definingISub())
     }
@@ -2220,17 +2227,17 @@ $endLabel""")
         assignRegisterByte(target, CpuRegister.A, false, false)
     }
 
-    private fun assignTypeCastedFloatFAC1(targetAsmVarName: String, targetDt: DataType) {
+    private fun assignTypeCastedFloatFAC1(targetAsmVarName: String, targetDt: BaseDataType) {
 
-        if(targetDt==DataType.FLOAT)
+        if(targetDt==BaseDataType.FLOAT)
             throw AssemblyError("typecast to identical type")
 
         when(targetDt) {
-            DataType.BOOL -> asmgen.out("  jsr  floats.cast_FAC1_as_bool_into_a |  sta  $targetAsmVarName")
-            DataType.UBYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName")
-            DataType.BYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName")
-            DataType.UWORD -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
-            DataType.WORD -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+            BaseDataType.BOOL -> asmgen.out("  jsr  floats.cast_FAC1_as_bool_into_a |  sta  $targetAsmVarName")
+            BaseDataType.UBYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName")
+            BaseDataType.BYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName")
+            BaseDataType.UWORD -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
+            BaseDataType.WORD -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
             else -> throw AssemblyError("weird type")
         }
     }
@@ -2242,26 +2249,26 @@ $endLabel""")
             throw AssemblyError("typecast to identical type")
 
         // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)
-        when(sourceDt) {
-            DataType.UBYTE, DataType.BOOL -> {
-                when(targetDt) {
-                    DataType.BOOL -> {
+        when {
+            sourceDt.isUnsignedByte || sourceDt.isBool -> {
+                when(targetDt.base) {
+                    BaseDataType.BOOL -> {
                         asmgen.out("""
                         lda  $sourceAsmVarName
                         beq  +
                         lda  #1
 +                       sta  $targetAsmVarName""")
                     }
-                    DataType.UBYTE, DataType.BYTE -> {
+                    BaseDataType.UBYTE, BaseDataType.BYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
-                    DataType.UWORD, DataType.WORD -> {
+                    BaseDataType.UWORD, BaseDataType.WORD -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    DataType.FLOAT -> {
+                    BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
                             ldy  #>$targetAsmVarName
@@ -2273,22 +2280,22 @@ $endLabel""")
                     else -> throw AssemblyError("weird type $targetDt")
                 }
             }
-            DataType.BYTE -> {
-                when(targetDt) {
-                    DataType.UBYTE, DataType.BOOL -> {
+            sourceDt.isSignedByte -> {
+                when(targetDt.base) {
+                    BaseDataType.UBYTE, BaseDataType.BOOL -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
-                    DataType.UWORD -> {
+                    BaseDataType.UWORD -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    DataType.WORD -> {
+                    BaseDataType.WORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
-                        asmgen.signExtendVariableLsb(targetAsmVarName, DataType.BYTE)
+                        asmgen.signExtendVariableLsb(targetAsmVarName, BaseDataType.BYTE)
                     }
-                    DataType.FLOAT -> {
+                    BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
                             ldy  #>$targetAsmVarName
@@ -2300,9 +2307,9 @@ $endLabel""")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.UWORD -> {
-                when(targetDt) {
-                    DataType.BOOL -> {
+            sourceDt.isUnsignedWord -> {
+                when(targetDt.base) {
+                    BaseDataType.BOOL -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName
                             ora  $sourceAsmVarName+1
@@ -2310,13 +2317,13 @@ $endLabel""")
                             lda  #1
 +                           sta  $targetAsmVarName""")
                     }
-                    DataType.BYTE, DataType.UBYTE -> {
+                    BaseDataType.BYTE, BaseDataType.UBYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
-                    DataType.WORD -> {
+                    BaseDataType.WORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
-                    DataType.FLOAT -> {
+                    BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
                             ldy  #>$targetAsmVarName
@@ -2329,9 +2336,9 @@ $endLabel""")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.WORD -> {
-                when(targetDt) {
-                    DataType.BOOL -> {
+            sourceDt.isSignedWord -> {
+                when(targetDt.base) {
+                    BaseDataType.BOOL -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName
                             ora  $sourceAsmVarName+1
@@ -2339,13 +2346,13 @@ $endLabel""")
                             lda  #1
 +                           sta  $targetAsmVarName""")
                     }
-                    DataType.BYTE, DataType.UBYTE -> {
+                    BaseDataType.BYTE, BaseDataType.UBYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
-                    DataType.UWORD -> {
+                    BaseDataType.UWORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
-                    DataType.FLOAT -> {
+                    BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
                             ldy  #>$targetAsmVarName
@@ -2358,49 +2365,47 @@ $endLabel""")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.FLOAT -> {
+            sourceDt.isFloat -> {
                 asmgen.out("  lda  #<$sourceAsmVarName |  ldy  #>$sourceAsmVarName")
-                when(targetDt) {
-                    DataType.BOOL -> asmgen.out("  jsr  floats.cast_as_bool_into_a |  sta  $targetAsmVarName")
-                    DataType.UBYTE -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName")
-                    DataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")
-                    DataType.UWORD -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
-                    DataType.WORD -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                when(targetDt.base) {
+                    BaseDataType.BOOL -> asmgen.out("  jsr  floats.cast_as_bool_into_a |  sta  $targetAsmVarName")
+                    BaseDataType.UBYTE -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName")
+                    BaseDataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")
+                    BaseDataType.UWORD -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
+                    BaseDataType.WORD -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.STR -> throw AssemblyError("cannot typecast a string value")
+            sourceDt.isString -> throw AssemblyError("cannot typecast a string value")
             else -> throw AssemblyError("weird type")
         }
     }
 
 
-    private fun assignTypeCastedRegisters(targetAsmVarName: String, targetDt: DataType,
-                                          regs: RegisterOrPair, sourceDt: DataType) {
+    private fun assignTypeCastedRegisters(targetAsmVarName: String, targetDt: BaseDataType,
+                                          regs: RegisterOrPair, sourceDt: BaseDataType) {
         if(sourceDt == targetDt)
             throw AssemblyError("typecast to identical type")
 
         // also see: PtExpressionAsmGen,   fun translateExpression(typecast: PtTypeCast)
         when(sourceDt) {
-            DataType.BOOL -> {
-                when (targetDt) {
-                    in ByteDatatypesWithBoolean -> asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
-                    else -> throw AssemblyError("assign bool to non-byte variable")
-                }
+            BaseDataType.BOOL -> {
+                if (targetDt.isByteOrBool) asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
+                else throw AssemblyError("assign bool to non-byte variable")
             }
-            DataType.UBYTE -> {
+            BaseDataType.UBYTE -> {
                 when(targetDt) {
-                    DataType.BOOL -> {
+                    BaseDataType.BOOL -> {
                         asmgen.out("""
                             cp${regs.toString().lowercase()}  #0
                             beq  +
                             ld${regs.toString().lowercase()}  #1
 +                           st${regs.toString().lowercase()}  $targetAsmVarName""")
                     }
-                    DataType.BYTE -> {
+                    BaseDataType.BYTE -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
-                    DataType.UWORD, DataType.WORD -> {
+                    BaseDataType.UWORD, BaseDataType.WORD -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out(
                                 "  st${regs.toString().lowercase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
@@ -2408,7 +2413,7 @@ $endLabel""")
                             asmgen.out(
                                 "  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    DataType.FLOAT -> {
+                    BaseDataType.FLOAT -> {
                         when(regs) {
                             RegisterOrPair.A -> asmgen.out("  tay")
                             RegisterOrPair.X -> asmgen.out("  txa |  tay")
@@ -2425,13 +2430,13 @@ $endLabel""")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.BYTE -> {
+            BaseDataType.BYTE -> {
                 when(targetDt) {
-                    DataType.BOOL -> TODO("assign byte to bool")
-                    DataType.UBYTE -> {
+                    BaseDataType.BOOL -> TODO("assign byte to bool")
+                    BaseDataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
-                    DataType.UWORD -> {
+                    BaseDataType.UWORD -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out(
                                 "  st${
@@ -2443,7 +2448,7 @@ $endLabel""")
                                     regs.toString().lowercase()
                                 }  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    DataType.WORD -> {
+                    BaseDataType.WORD -> {
                         when(regs) {
                             RegisterOrPair.A -> {}
                             RegisterOrPair.X -> asmgen.out("  txa")
@@ -2453,7 +2458,7 @@ $endLabel""")
                         asmgen.signExtendAYlsb(sourceDt)
                         asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
                     }
-                    DataType.FLOAT -> {
+                    BaseDataType.FLOAT -> {
                         when(regs) {
                             RegisterOrPair.A -> {}
                             RegisterOrPair.X -> asmgen.out("  txa")
@@ -2470,13 +2475,13 @@ $endLabel""")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 when(targetDt) {
-                    DataType.BOOL -> TODO("assign uword to bool")
-                    DataType.BYTE, DataType.UBYTE -> {
+                    BaseDataType.BOOL -> TODO("assign uword to bool")
+                    BaseDataType.BYTE, BaseDataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase().first()}  $targetAsmVarName")
                     }
-                    DataType.WORD -> {
+                    BaseDataType.WORD -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
                             RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
@@ -2484,7 +2489,7 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
-                    DataType.FLOAT -> {
+                    BaseDataType.FLOAT -> {
                         if(regs!=RegisterOrPair.AY)
                             throw AssemblyError("only supports AY here")
                         asmgen.out("""
@@ -2499,13 +2504,13 @@ $endLabel""")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.WORD -> {
+            BaseDataType.WORD -> {
                 when(targetDt) {
-                    DataType.BOOL -> TODO("assign word to bool")
-                    DataType.BYTE, DataType.UBYTE -> {
+                    BaseDataType.BOOL -> TODO("assign word to bool")
+                    BaseDataType.BYTE, BaseDataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase().first()}  $targetAsmVarName")
                     }
-                    DataType.UWORD -> {
+                    BaseDataType.UWORD -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
                             RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
@@ -2513,7 +2518,7 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
-                    DataType.FLOAT -> {
+                    BaseDataType.FLOAT -> {
                         if(regs!=RegisterOrPair.AY)
                             throw AssemblyError("only supports AY here")
                         asmgen.out("""
@@ -2528,17 +2533,17 @@ $endLabel""")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.STR -> throw AssemblyError("cannot typecast a string value")
+            BaseDataType.STR -> throw AssemblyError("cannot typecast a string value")
             else -> throw AssemblyError("weird type")
         }
     }
 
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         if(arrayIndexExpr!=null) {
-            require(arrayDt !in SplitWordArrayTypes)
+            require(arrayDt?.isSplitWordArray!=true)
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
-                if (arrayDt == DataType.UWORD) {
+                if (arrayDt?.isUnsignedWord==true) {
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     if(constIndex>0)
                         asmgen.out("""
@@ -2559,11 +2564,11 @@ $endLabel""")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return
             } else {
-                if (arrayDt == DataType.UWORD) {
+                if (arrayDt?.isUnsignedWord==true) {
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     asmgen.saveRegisterStack(CpuRegister.A, false)
                     asmgen.saveRegisterStack(CpuRegister.Y, false)
-                    assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataType.UBYTE)
+                    assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataType.forDt(BaseDataType.UBYTE))
                     asmgen.restoreRegisterStack(CpuRegister.Y, false)
                     asmgen.restoreRegisterStack(CpuRegister.A, false)
                     asmgen.out("""
@@ -2625,8 +2630,8 @@ $endLabel""")
     private fun assignVariableString(target: AsmAssignTarget, sourceName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                when(target.datatype) {
-                    DataType.UWORD -> {
+                when {
+                    target.datatype.isUnsignedWord -> {
                         asmgen.out("""
                             lda  #<$sourceName
                             ldy  #>$sourceName
@@ -2634,7 +2639,7 @@ $endLabel""")
                             sty  ${target.asmVarname}+1
                         """)
                     }
-                    DataType.STR, DataType.ARRAY_UB, DataType.ARRAY_B -> {
+                    target.datatype.isString || target.datatype.isUnsignedByteArray || target.datatype.isByteArray -> {
                         asmgen.out("""
                             lda  #<${target.asmVarname}
                             ldy  #>${target.asmVarname}
@@ -2652,17 +2657,17 @@ $endLabel""")
     }
 
     private fun assignVariableWord(target: AsmAssignTarget, sourceName: String, sourceDt: DataType) {
-        if(sourceDt==DataType.BYTE) {
+        if(sourceDt.isSignedByte) {
             // need to sign extend
             asmgen.out("  lda  $sourceName")
-            asmgen.signExtendAYlsb(DataType.BYTE)
+            asmgen.signExtendAYlsb(BaseDataType.BYTE)
             assignRegisterpairWord(target, RegisterOrPair.AY)
             return
         }
-        require(sourceDt in WordDatatypes || sourceDt==DataType.UBYTE || sourceDt==DataType.BOOL) { "weird source dt for word variable" }
+        require(sourceDt.isWord || sourceDt.isUnsignedByte || sourceDt.isBool) { "weird source dt for word variable" }
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                if(sourceDt==DataType.UBYTE || sourceDt==DataType.BOOL) {
+                if(sourceDt.isUnsignedByte || sourceDt.isBool) {
                     asmgen.out("  lda  $sourceName |  sta  ${target.asmVarname}")
                     if(asmgen.isTargetCpu(CpuType.CPU65c02))
                         asmgen.out("  stz  ${target.asmVarname}+1")
@@ -2680,15 +2685,15 @@ $endLabel""")
                 throw AssemblyError("assign word to memory ${target.memory} should have gotten a typecast")
             }
             TargetStorageKind.ARRAY -> {
-                if(sourceDt==DataType.UBYTE) TODO("assign byte to word array")
+                if(sourceDt.isUnsignedByte) TODO("assign byte to word array")
                 target.array!!
                 if(target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
-                    when(target.datatype) {
-                        in ByteDatatypes -> {
+                    val scaledIdx = program.memsizer.memorySize(target.datatype, target.constArrayIndexValue!!.toInt())
+                    when {
+                        target.datatype.isByte -> {
                             asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                         }
-                        in WordDatatypes -> {
+                        target.datatype.isWord -> {
                             if(target.array.splitWords)
                                 asmgen.out("""
                                     lda  $sourceName
@@ -2707,12 +2712,12 @@ $endLabel""")
                 }
                 else
                 {
-                    when(target.datatype) {
-                        DataType.UBYTE, DataType.BYTE -> {
+                    when {
+                        target.datatype.isByte -> {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
                         }
-                        DataType.UWORD, DataType.WORD -> {
+                        target.datatype.isWord -> {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             if(target.array.splitWords)
                                 asmgen.out("""
@@ -2732,7 +2737,7 @@ $endLabel""")
                 }
             }
             TargetStorageKind.REGISTER -> {
-                if(sourceDt==DataType.UBYTE) {
+                if(sourceDt.isUnsignedByte) {
                     when(target.register!!) {
                         RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName")
                         RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName")
@@ -2889,7 +2894,7 @@ $endLabel""")
                 if(target.array!!.splitWords)
                     TODO("assign into split words ${target.position}")
                 if (target.constArrayIndexValue!=null) {
-                    val scaledIdx = target.constArrayIndexValue!! * program.memsizer.memorySize(target.datatype).toUInt()
+                    val scaledIdx = program.memsizer.memorySize(target.datatype, target.constArrayIndexValue!!.toInt())
                     asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                 }
                 else {
@@ -2940,13 +2945,13 @@ $endLabel""")
                 if (wordtarget.constArrayIndexValue!=null) {
                     val scaledIdx = wordtarget.constArrayIndexValue!! * 2u
                     asmgen.out("  lda  $sourceName")
-                    asmgen.signExtendAYlsb(DataType.BYTE)
+                    asmgen.signExtendAYlsb(BaseDataType.BYTE)
                     asmgen.out("  sta  ${wordtarget.asmVarname}+$scaledIdx |  sty  ${wordtarget.asmVarname}+$scaledIdx+1")
                 }
                 else {
                     asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, CpuRegister.X)
                     asmgen.out("  lda  $sourceName")
-                    asmgen.signExtendAYlsb(DataType.BYTE)
+                    asmgen.signExtendAYlsb(BaseDataType.BYTE)
                     asmgen.out("  sta  ${wordtarget.asmVarname},x |  inx |  tya |  sta  ${wordtarget.asmVarname},x")
                 }
             }
@@ -3080,16 +3085,16 @@ $endLabel""")
     }
 
     internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister, signed: Boolean, extendWord: Boolean) {
-        val assignAsWord = target.datatype in WordDatatypes
+        val assignAsWord = target.datatype.isWord
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("  st${register.name.lowercase()}  ${target.asmVarname}")
                 if(assignAsWord && extendWord) {
-                    if(target.datatype in SignedDatatypes) {
+                    if(target.datatype.isSigned) {
                         if(register!=CpuRegister.A)
                             asmgen.out("  t${register.name.lowercase()}a")
-                        asmgen.signExtendAYlsb(if(target.datatype in SignedDatatypes) DataType.BYTE else DataType.UBYTE)
+                        asmgen.signExtendAYlsb(if(target.datatype.isSigned) BaseDataType.BYTE else BaseDataType.UBYTE)
                         asmgen.out("  sty  ${target.asmVarname}+1")
                     } else {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -3115,7 +3120,7 @@ $endLabel""")
                         CpuRegister.Y -> asmgen.out("  tya")
                     }
                     if(extendWord) {
-                        asmgen.signExtendAYlsb(if(target.datatype in SignedDatatypes) DataType.BYTE else DataType.UBYTE)
+                        asmgen.signExtendAYlsb(if(target.datatype.isSigned) BaseDataType.BYTE else BaseDataType.UBYTE)
                     } else {
                         asmgen.out("  ldy  #0")
                     }
@@ -3310,7 +3315,7 @@ $endLabel""")
             if(indexVar!=null) {
                 asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  ${target.asmVarname},y")
             } else {
-                require(target.array.index.type in ByteDatatypesWithBoolean)
+                require(target.array.index.type.isByteOrBool)
                 asmgen.saveRegisterStack(register, false)
                 asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.Y, false)
                 asmgen.out("  pla |  sta  ${target.asmVarname},y")
@@ -3319,10 +3324,10 @@ $endLabel""")
     }
 
     internal fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
-        require(target.datatype in NumericDatatypes || target.datatype in PassByReferenceDatatypes) {
+        require(target.datatype.isNumeric || target.datatype.isPassByRef) {
             "assign target must be word type ${target.position}"
         }
-        if(target.datatype==DataType.FLOAT)
+        if(target.datatype.isFloat)
             throw AssemblyError("float value should be from FAC1 not from registerpair memory pointer")
 
         when(target.kind) {
@@ -3965,7 +3970,7 @@ $endLabel""")
     }
 
     internal fun assignExpressionToVariable(expr: PtExpression, asmVarName: String, dt: DataType) {
-        if(expr.type==DataType.FLOAT && dt!=DataType.FLOAT) {
+        if(expr.type.isFloat && !dt.isFloat) {
             throw AssemblyError("can't directly assign a FLOAT expression to an integer variable $expr")
         } else {
             val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
@@ -3984,9 +3989,10 @@ $endLabel""")
 
     internal fun inplaceInvert(assign: AsmAssignment, scope: IPtSubroutine?) {
         val target = assign.target
-        when (assign.target.datatype) {
-            DataType.UBYTE, DataType.BOOL -> {
-                val eorValue = if(assign.target.datatype==DataType.BOOL) 1 else 255
+        val targetDt = assign.target.datatype
+        when {
+            targetDt.isUnsignedByte || targetDt.isBool -> {
+                val eorValue = if(assign.target.datatype.isBool) 1 else 255
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
@@ -4010,7 +4016,7 @@ $endLabel""")
                                 asmgen.storeAIntoPointerVar(memory.address as PtIdentifier)
                             }
                             else -> {
-                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
+                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                                 if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
                                     asmgen.out("""
                                         lda  (P8ZP_SCRATCH_W2)
@@ -4034,12 +4040,12 @@ $endLabel""")
                         }
                     }
                     TargetStorageKind.ARRAY -> {
-                        val invertOperator = if(assign.target.datatype==DataType.BOOL) "not" else "~"
+                        val invertOperator = if(assign.target.datatype.isBool) "not" else "~"
                         assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign(invertOperator, assign), scope)
                     }
                 }
             }
-            DataType.UWORD -> {
+            targetDt.isUnsignedWord -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
@@ -4070,14 +4076,14 @@ $endLabel""")
     internal fun inplaceNegate(assign: AsmAssignment, ignoreDatatype: Boolean, scope: IPtSubroutine?) {
         val target = assign.target
         val datatype = if(ignoreDatatype) {
-            when(target.datatype) {
-                DataType.UBYTE, DataType.BYTE -> DataType.BYTE
-                DataType.UWORD, DataType.WORD -> DataType.WORD
+            when {
+                target.datatype.isByte -> DataType.forDt(BaseDataType.BYTE)
+                target.datatype.isWord -> DataType.forDt(BaseDataType.WORD)
                 else -> target.datatype
             }
         } else target.datatype
-        when (datatype) {
-            DataType.BYTE -> {
+        when {
+            datatype.isSignedByte -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
@@ -4110,7 +4116,7 @@ $endLabel""")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
                 }
             }
-            DataType.WORD -> {
+            datatype.isSignedWord -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
                         asmgen.out("""
@@ -4168,7 +4174,7 @@ $endLabel""")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
                 }
             }
-            DataType.FLOAT -> {
+            datatype.isFloat -> {
                 when (target.kind) {
                     TargetStorageKind.REGISTER -> {
                         when(target.register!!) {

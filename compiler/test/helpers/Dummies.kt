@@ -21,16 +21,25 @@ internal object DummyFunctions : IBuiltinFunctions {
 }
 
 internal object DummyMemsizer : IMemSizer {
-    override fun memorySize(dt: DataType) = when(dt) {
-        in ByteDatatypesWithBoolean -> 1
-        DataType.FLOAT -> 5
-        else -> 2
+    override fun memorySize(dt: DataType, numElements: Int?): Int {
+        if(dt.isArray || dt.isSplitWordArray) {
+            require(numElements!=null)
+            return when(dt.sub?.dt) {
+                BaseDataType.BOOL, BaseDataType.BYTE, BaseDataType.UBYTE -> numElements
+                BaseDataType.UWORD, BaseDataType.WORD -> numElements*2
+                BaseDataType.FLOAT -> numElements*5
+                else -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        return when {
+            dt.isByteOrBool -> 1 * (numElements ?: 1)
+            dt.isFloat -> 5 * (numElements ?: 1)
+            else -> 2 * (numElements ?: 1)
+        }
     }
-    override fun memorySize(arrayDt: DataType, numElements: Int) = when(arrayDt) {
-        DataType.ARRAY_UW -> numElements*2
-        DataType.ARRAY_W -> numElements*2
-        DataType.ARRAY_F -> numElements*5
-        else -> numElements
+
+    override fun memorySize(dt: SubType): Int {
+        return memorySize(DataType.forDt(dt.dt), null)
     }
 }
 
@@ -69,11 +78,11 @@ internal object DummyCompilationTarget : ICompilationTarget {
         throw NotImplementedError("dummy")
     }
 
-    override fun memorySize(dt: DataType): Int {
+    override fun memorySize(dt: DataType, numElements: Int?): Int {
         throw NotImplementedError("dummy")
     }
 
-    override fun memorySize(arrayDt: DataType, numElements: Int): Int {
+    override fun memorySize(dt: SubType): Int {
         throw NotImplementedError("dummy")
     }
 }

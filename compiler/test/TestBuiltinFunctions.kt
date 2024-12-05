@@ -1,15 +1,16 @@
 package prog8tests.compiler
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.inspectors.shouldForAll
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
+import prog8.code.core.BaseDataType
 import prog8.code.core.BuiltinFunctions
-import prog8.code.core.DataType
-import prog8.code.core.NumericDatatypes
 import prog8.code.core.RegisterOrPair
+import prog8.code.core.isNumeric
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.compileText
 
@@ -19,16 +20,16 @@ class TestBuiltinFunctions: FunSpec({
         val func = BuiltinFunctions.getValue("sgn")
         func.parameters.size shouldBe 1
         func.parameters[0].name shouldBe "value"
-        func.parameters[0].possibleDatatypes shouldBe NumericDatatypes
+        func.parameters[0].possibleDatatypes. shouldForAll { it.isNumeric }
         func.pure shouldBe true
-        func.returnType shouldBe DataType.BYTE
+        func.returnType shouldBe BaseDataType.BYTE
 
-        val conv = func.callConvention(listOf(DataType.UBYTE))
+        val conv = func.callConvention(listOf(BaseDataType.UBYTE))
         conv.params.size shouldBe 1
-        conv.params[0].dt shouldBe DataType.UBYTE
+        conv.params[0].dt shouldBe BaseDataType.UBYTE
         conv.params[0].reg shouldBe RegisterOrPair.A
         conv.params[0].variable shouldBe false
-        conv.returns.dt shouldBe DataType.BYTE
+        conv.returns.dt shouldBe BaseDataType.BYTE
         conv.returns.reg shouldBe RegisterOrPair.A
     }
 
@@ -38,7 +39,7 @@ class TestBuiltinFunctions: FunSpec({
         func.pure shouldBe false
         func.returnType shouldBe null
 
-        val conv = func.callConvention(listOf(DataType.UWORD, DataType.UWORD))
+        val conv = func.callConvention(listOf(BaseDataType.UWORD, BaseDataType.UWORD))
         conv.params.size shouldBe 2
         conv.returns.dt shouldBe null
         conv.returns.reg shouldBe null
@@ -48,9 +49,9 @@ class TestBuiltinFunctions: FunSpec({
         val func = BuiltinFunctions.getValue("poke")
         func.parameters.size shouldBe 2
         func.parameters[0].name shouldBe "address"
-        func.parameters[0].possibleDatatypes shouldBe arrayOf(DataType.UWORD)
+        func.parameters[0].possibleDatatypes shouldBe arrayOf(BaseDataType.UWORD)
         func.parameters[1].name shouldBe "value"
-        func.parameters[1].possibleDatatypes shouldBe arrayOf(DataType.UBYTE)
+        func.parameters[1].possibleDatatypes shouldBe arrayOf(BaseDataType.UBYTE)
         func.pure shouldBe false
         func.returnType shouldBe null
     }

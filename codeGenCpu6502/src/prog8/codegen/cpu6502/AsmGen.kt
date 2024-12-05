@@ -64,7 +64,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                 }
                 is PtIdentifier -> {
                     var lookupName = node.name
-                    if(node.type in SplitWordArrayTypes && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
+                    if(node.type.isSplitWordArray && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
                         lookupName = lookupName.dropLast(4)
                     }
                     val stNode = st.lookup(lookupName) ?: throw AssemblyError("unknown identifier $node")
@@ -413,17 +413,17 @@ class AsmGen6502Internal (
 
 
     internal val tempVarsCounters = mutableMapOf(
-        DataType.BOOL to 0,
-        DataType.BYTE to 0,
-        DataType.UBYTE to 0,
-        DataType.WORD to 0,
-        DataType.UWORD to 0,
-        DataType.FLOAT to 0
+        BaseDataType.BOOL to 0,
+        BaseDataType.BYTE to 0,
+        BaseDataType.UBYTE to 0,
+        BaseDataType.WORD to 0,
+        BaseDataType.UWORD to 0,
+        BaseDataType.FLOAT to 0
     )
 
-    internal fun buildTempVarName(dt: DataType, counter: Int): String = "prog8_tmpvar_${dt.toString().lowercase()}_$counter"
+    internal fun buildTempVarName(dt: BaseDataType, counter: Int): String = "prog8_tmpvar_${dt.toString().lowercase()}_$counter"
 
-    internal fun getTempVarName(dt: DataType): String {
+    internal fun getTempVarName(dt: BaseDataType): String {
         tempVarsCounters[dt] = tempVarsCounters.getValue(dt)+1
         return buildTempVarName(dt, tempVarsCounters.getValue(dt))
     }
@@ -627,7 +627,7 @@ class AsmGen6502Internal (
             val indexValue = if(expr.splitWords)
                 indexnum
             else
-                indexnum * options.compTarget.memorySize(expr.type)
+                indexnum * options.compTarget.memorySize(expr.type, null)
             out("  ld$reg  #$indexValue")
             return
         }
@@ -637,11 +637,11 @@ class AsmGen6502Internal (
             return
         }
 
-        when (expr.type) {
-            in ByteDatatypesWithBoolean -> {
+        when  {
+            expr.type.isByteOrBool -> {
                 assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register), false)
             }
-            in WordDatatypes -> {
+            expr.type.isWord -> {
                 assignExpressionToRegister(expr.index, RegisterOrPair.A, false)
                 out("  asl  a")
                 when (register) {
@@ -650,8 +650,8 @@ class AsmGen6502Internal (
                     CpuRegister.Y -> out(" tay")
                 }
             }
-            DataType.FLOAT -> {
-                require(options.compTarget.memorySize(DataType.FLOAT) == 5) {"invalid float size ${expr.position}"}
+            expr.type.isFloat -> {
+                require(options.compTarget.machine.FLOAT_MEM_SIZE == 5) {"invalid float size ${expr.position}"}
                 assignExpressionToRegister(expr.index, RegisterOrPair.A, false)
                 out("""
                     sta  P8ZP_SCRATCH_REG
@@ -670,7 +670,7 @@ class AsmGen6502Internal (
         }
     }
 
-    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?): DataType? =
+    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?): BaseDataType? =
             builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultRegister)
 
     internal fun translateFunctionCall(functionCallExpr: PtFunctionCall) =
@@ -692,7 +692,7 @@ class AsmGen6502Internal (
         when(reg) {
             RegisterOrPair.A,
             RegisterOrPair.X,
-            RegisterOrPair.Y -> assignmentAsmGen.assignRegisterByte(target, reg.asCpuRegister(), target.datatype in SignedDatatypes, true)
+            RegisterOrPair.Y -> assignmentAsmGen.assignRegisterByte(target, reg.asCpuRegister(), target.datatype.isSigned, true)
             RegisterOrPair.AX,
             RegisterOrPair.AY,
             RegisterOrPair.XY,
@@ -704,8 +704,8 @@ class AsmGen6502Internal (
     }
 
     internal fun assignExpressionTo(value: PtExpression, target: AsmAssignTarget) {
-        when (target.datatype) {
-            in ByteDatatypesWithBoolean -> {
+        when {
+            target.datatype.isByteOrBool -> {
                 if (value.asConstInteger()==0) {
                     when(target.kind) {
                         TargetStorageKind.VARIABLE -> {
@@ -725,7 +725,7 @@ class AsmGen6502Internal (
                             }
                         }
                         TargetStorageKind.REGISTER -> {
-                            val zero = PtNumber(DataType.UBYTE, 0.0, value.position)
+                            val zero = PtNumber(BaseDataType.UBYTE, 0.0, value.position)
                             zero.parent = value
                             assignExpressionToRegister(zero, target.register!!, false)
                             return
@@ -737,7 +737,7 @@ class AsmGen6502Internal (
                 assignExpressionToRegister(value, RegisterOrPair.A)
                 assignRegister(RegisterOrPair.A, target)
             }
-            in WordDatatypes, in PassByReferenceDatatypes -> {
+            target.datatype.isWord || target.datatype.isPassByRef -> {
                 assignExpressionToRegister(value, RegisterOrPair.AY)
                 translateNormalAssignment(
                     AsmAssignment(
@@ -746,7 +746,7 @@ class AsmGen6502Internal (
                     ), value.definingISub()
                 )
             }
-            DataType.FLOAT -> {
+            target.datatype.isFloat -> {
                 assignExpressionToRegister(value, RegisterOrPair.FAC1)
                 assignRegister(RegisterOrPair.FAC1, target)
             }
@@ -798,25 +798,25 @@ class AsmGen6502Internal (
                 val symbol = symbolTable.lookup((stmt.count as PtIdentifier).name)
                 val vardecl = symbol!!.astNode as IPtVariable
                 val name = asmVariableName(stmt.count as PtIdentifier)
-                when(vardecl.type) {
-                    DataType.UBYTE, DataType.BYTE -> {
+                when {
+                    vardecl.type.isByte -> {
                         assignVariableToRegister(name, RegisterOrPair.Y, stmt.definingISub(), stmt.count.position)
                         repeatCountInY(stmt, endLabel)
                     }
-                    DataType.UWORD, DataType.WORD -> {
+                    vardecl.type.isWord -> {
                         assignVariableToRegister(name, RegisterOrPair.AY, stmt.definingISub(), stmt.count.position)
                         repeatWordCountInAY(endLabel, stmt)
                     }
-                    else -> throw AssemblyError("invalid loop variable datatype $vardecl")
+                    else -> throw AssemblyError("invalid loop variable datatype ${vardecl.type}")
                 }
             }
             else -> {
-                when (stmt.count.type) {
-                    in ByteDatatypes -> {
+                when {
+                    stmt.count.type.isByte -> {
                         assignExpressionToRegister(stmt.count, RegisterOrPair.Y)
                         repeatCountInY(stmt, endLabel)
                     }
-                    in WordDatatypes -> {
+                    stmt.count.type.isWord -> {
                         assignExpressionToRegister(stmt.count, RegisterOrPair.AY)
                         repeatWordCountInAY(endLabel, stmt)
                     }
@@ -831,7 +831,7 @@ class AsmGen6502Internal (
     private fun repeatWordCount(iterations: Int, stmt: PtRepeatLoop) {
         require(iterations in 257..65536) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
-        val counterVar = createRepeatCounterVar(DataType.UWORD, isTargetCpu(CpuType.CPU65c02), stmt)
+        val counterVar = createRepeatCounterVar(BaseDataType.UWORD, isTargetCpu(CpuType.CPU65c02), stmt)
         val loopcount = if(iterations==65536) 0 else if(iterations and 0x00ff == 0) iterations else iterations + 0x0100   // so that the loop can simply use a double-dec
         out("""
             ldy  #>$loopcount
@@ -851,7 +851,7 @@ $repeatLabel""")
         // note: A/Y must have been loaded with the number of iterations!
         // the iny + double dec is microoptimization of the 16 bit loop
         val repeatLabel = makeLabel("repeat")
-        val counterVar = createRepeatCounterVar(DataType.UWORD, false, stmt)
+        val counterVar = createRepeatCounterVar(BaseDataType.UWORD, false, stmt)
         out("""
             cmp  #0
             beq  +
@@ -874,13 +874,13 @@ $repeatLabel""")
         require(count in 2..256) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65c02)) {
-            val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
+            val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, true, stmt)
             out("  lda  #${count and 255} |  sta  $counterVar")
             out(repeatLabel)
             translate(stmt.statements)
             out("  dec  $counterVar |  bne  $repeatLabel")
         } else {
-            val counterVar = createRepeatCounterVar(DataType.UBYTE, false, stmt)
+            val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, false, stmt)
             out("  lda  #${count and 255} |  sta  $counterVar")
             out(repeatLabel)
             translate(stmt.statements)
@@ -892,13 +892,13 @@ $repeatLabel""")
         val repeatLabel = makeLabel("repeat")
         out("  cpy  #0")
         if(isTargetCpu(CpuType.CPU65c02)) {
-            val counterVar = createRepeatCounterVar(DataType.UBYTE, true, stmt)
+            val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, true, stmt)
             out("  beq  $endLabel |  sty  $counterVar")
             out(repeatLabel)
             translate(stmt.statements)
             out("  dec  $counterVar |  bne  $repeatLabel")
         } else {
-            val counterVar = createRepeatCounterVar(DataType.UBYTE, false, stmt)
+            val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, false, stmt)
             out("  beq  $endLabel |  sty  $counterVar")
             out(repeatLabel)
             translate(stmt.statements)
@@ -907,7 +907,7 @@ $repeatLabel""")
         out(endLabel)
     }
 
-    private fun createRepeatCounterVar(dt: DataType, preferZeropage: Boolean, stmt: PtRepeatLoop): String {
+    private fun createRepeatCounterVar(dt: BaseDataType, preferZeropage: Boolean, stmt: PtRepeatLoop): String {
         val scope = stmt.definingISub()!!
         val asmInfo = subroutineExtra(scope)
         var parent = stmt.parent
@@ -929,8 +929,8 @@ $repeatLabel""")
 
         val counterVar = makeLabel("counter")
         when(dt) {
-            DataType.UBYTE, DataType.UWORD -> {
-                val result = zeropage.allocate(counterVar, dt, null, stmt.position, errors)
+            BaseDataType.UBYTE, BaseDataType.UWORD -> {
+                val result = zeropage.allocate(counterVar, DataType.forDt(dt), null, stmt.position, errors)
                 result.fold(
                     success = { (address, _, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
                     failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally
@@ -945,7 +945,7 @@ $repeatLabel""")
         val endLabel = makeLabel("choice_end")
         val choiceBlocks = mutableListOf<Pair<String, PtNodeGroup>>()
         val conditionDt = stmt.value.type
-        if(conditionDt in ByteDatatypes)
+        if(conditionDt.isByte)
             assignExpressionToRegister(stmt.value, RegisterOrPair.A)
         else
             assignExpressionToRegister(stmt.value, RegisterOrPair.AY)
@@ -959,7 +959,7 @@ $repeatLabel""")
                 choiceBlocks.add(choiceLabel to choice.statements)
                 for (cv in choice.values.children) {
                     val value = (cv as PtNumber).number.toInt()
-                    if(conditionDt in ByteDatatypes) {
+                    if(conditionDt.isByte) {
                         out("  cmp  #${value.toHex()} |  beq  $choiceLabel")
                     } else {
                         out("""
@@ -1051,17 +1051,15 @@ $repeatLabel""")
         ret.value?.let { returnvalue ->
             val sub = ret.definingSub()!!
             val returnReg = sub.returnRegister()!!
-            when (sub.returntype) {
-                in NumericDatatypes, DataType.BOOL -> {
-                    assignExpressionToRegister(returnvalue, returnReg.registerOrPair!!)
-                }
-                else -> {
-                    // all else take its address and assign that also to AY register pair
-                    val addrofValue = PtAddressOf(returnvalue.position)
-                    addrofValue.add(returnvalue as PtIdentifier)
-                    addrofValue.parent = ret.parent
-                    assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair!!, false)
-                }
+            if (sub.returntype?.isNumericOrBool==true) {
+                assignExpressionToRegister(returnvalue, returnReg.registerOrPair!!)
+            }
+            else {
+                // all else take its address and assign that also to AY register pair
+                val addrofValue = PtAddressOf(returnvalue.position)
+                addrofValue.add(returnvalue as PtIdentifier)
+                addrofValue.parent = ret.parent
+                assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair!!, false)
             }
         }
         out("  rts")
@@ -1098,11 +1096,11 @@ $repeatLabel""")
         }
     }
 
-    internal fun signExtendAYlsb(valueDt: DataType) {
+    internal fun signExtendAYlsb(valueDt: BaseDataType) {
         // sign extend signed byte in A to full word in AY
         when(valueDt) {
-            DataType.UBYTE -> out("  ldy  #0")
-            DataType.BYTE -> out("""
+            BaseDataType.UBYTE -> out("  ldy  #0")
+            BaseDataType.BYTE -> out("""
                 ldy  #0
                 cmp  #$80
                 bcc  +
@@ -1113,16 +1111,16 @@ $repeatLabel""")
         }
     }
 
-    internal fun signExtendVariableLsb(asmvar: String, valueDt: DataType) {
+    internal fun signExtendVariableLsb(asmvar: String, valueDt: BaseDataType) {
         // sign extend signed byte in a var to a full word in that variable
         when(valueDt) {
-            DataType.UBYTE -> {
+            BaseDataType.UBYTE -> {
                 if(isTargetCpu(CpuType.CPU65c02))
                     out("  stz  $asmvar+1")
                 else
                     out("  lda  #0 |  sta  $asmvar+1")
             }
-            DataType.BYTE -> {
+            BaseDataType.BYTE -> {
                 out("""
                     lda  $asmvar
                     ora  #$7f
@@ -1155,24 +1153,24 @@ $repeatLabel""")
         if (operator != "+") return null
         val leftDt = left.type
         val rightDt = right.type
-        if(leftDt == DataType.UWORD && rightDt == DataType.UBYTE)
+        if(leftDt.isUnsignedWord && rightDt.isUnsignedByte)
             return Pair(left, right)
-        if(leftDt == DataType.UBYTE && rightDt == DataType.UWORD)
+        if(leftDt.isUnsignedByte && rightDt.isUnsignedWord)
             return Pair(right, left)
-        if(leftDt == DataType.UWORD && rightDt == DataType.UWORD) {
+        if(leftDt.isUnsignedWord && rightDt.isUnsignedWord) {
             // could be that the index was a constant numeric byte but converted to word, check that
             val constIdx = right as? PtNumber
             if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
-                val num = PtNumber(DataType.UBYTE, constIdx.number, constIdx.position)
+                val num = PtNumber(BaseDataType.UBYTE, constIdx.number, constIdx.position)
                 num.parent = right.parent
                 return Pair(left, num)
             }
             // could be that the index was typecasted into uword, check that
             val rightTc = right as? PtTypeCast
-            if(rightTc!=null && rightTc.value.type == DataType.UBYTE)
+            if(rightTc!=null && rightTc.value.type.isUnsignedByte)
                 return Pair(left, rightTc.value)
             val leftTc = left as? PtTypeCast
-            if(leftTc!=null && leftTc.value.type == DataType.UBYTE)
+            if(leftTc!=null && leftTc.value.type.isUnsignedByte)
                 return Pair(right, leftTc.value)
         }
         return null
@@ -1182,8 +1180,7 @@ $repeatLabel""")
         // optimize pointer,indexregister if possible
 
         fun evalBytevalueWillClobberA(expr: PtExpression): Boolean {
-            val dt = expr.type
-            if(dt != DataType.UBYTE && dt != DataType.BYTE)
+            if(!expr.type.isByte)
                 return true
             return when(expr) {
                 is PtIdentifier -> false
@@ -1222,14 +1219,14 @@ $repeatLabel""")
                                 if(saveA)
                                     out("  pha")
                                 if(ptrAndIndex.second.isSimple()) {
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                                     assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                                     if(saveA)
                                         out("  pla")
                                     out("  sta  (P8ZP_SCRATCH_W2),y")
                                 } else {
-                                    pushCpuStack(DataType.UBYTE,  ptrAndIndex.second)
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
+                                    pushCpuStack(BaseDataType.UBYTE,  ptrAndIndex.second)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                                     restoreRegisterStack(CpuRegister.Y, true)
                                     if(saveA)
                                         out("  pla")
@@ -1243,12 +1240,12 @@ $repeatLabel""")
                             } else {
                                 // copy the pointer var to zp first
                                 if(ptrAndIndex.second.isSimple()) {
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                                     assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                                     out("  lda  (P8ZP_SCRATCH_W2),y")
                                 } else {
-                                    pushCpuStack(DataType.UBYTE, ptrAndIndex.second)
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
+                                    pushCpuStack(BaseDataType.UBYTE, ptrAndIndex.second)
+                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                                     restoreRegisterStack(CpuRegister.Y, false)
                                     out("  lda  (P8ZP_SCRATCH_W2),y")
                                 }
@@ -1273,22 +1270,22 @@ $repeatLabel""")
 
     internal fun assignByteOperandsToAAndVar(left: PtExpression, right: PtExpression, rightVarName: String) {
         if(left.isSimple()) {
-            assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
+            assignExpressionToVariable(right, rightVarName, DataType.forDt(BaseDataType.UBYTE))
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
-            pushCpuStack(DataType.UBYTE, left)
-            assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
+            pushCpuStack(BaseDataType.UBYTE, left)
+            assignExpressionToVariable(right, rightVarName, DataType.forDt(BaseDataType.UBYTE))
             out("  pla")
         }
     }
 
     internal fun assignWordOperandsToAYAndVar(left: PtExpression, right: PtExpression, rightVarname: String) {
         if(left.isSimple()) {
-            assignExpressionToVariable(right, rightVarname, DataType.UWORD)
+            assignExpressionToVariable(right, rightVarname, DataType.forDt(BaseDataType.UWORD))
             assignExpressionToRegister(left, RegisterOrPair.AY)
         }  else {
-            pushCpuStack(DataType.UWORD, left)
-            assignExpressionToVariable(right, rightVarname, DataType.UWORD)
+            pushCpuStack(BaseDataType.UWORD, left)
+            assignExpressionToVariable(right, rightVarname, DataType.forDt(BaseDataType.UWORD))
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -1297,7 +1294,7 @@ $repeatLabel""")
     internal fun translateDirectMemReadExpressionToRegA(expr: PtMemoryByte) {
 
         fun assignViaExprEval() {
-            assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
+            assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
             if (isTargetCpu(CpuType.CPU65c02)) {
                 out("  lda  (P8ZP_SCRATCH_W2)")
             } else {
@@ -1324,12 +1321,12 @@ $repeatLabel""")
         }
     }
 
-    internal fun pushCpuStack(dt: DataType, value: PtExpression) {
-        val signed = value.type.oneOf(DataType.BYTE, DataType.WORD)
-        if(dt in ByteDatatypesWithBoolean) {
+    internal fun pushCpuStack(dt: BaseDataType, value: PtExpression) {
+        val signed = value.type.isSigned
+        if(dt.isByteOrBool) {
             assignExpressionToRegister(value, RegisterOrPair.A, signed)
             out("  pha")
-        } else if(dt in WordDatatypes) {
+        } else if(dt.isWord) {
             assignExpressionToRegister(value, RegisterOrPair.AY, signed)
             if (isTargetCpu(CpuType.CPU65c02))
                 out("  pha |  phy")
@@ -1400,5 +1397,5 @@ internal class SubroutineExtraAsmInfo {
     var usedFloatEvalResultVar1 = false
     var usedFloatEvalResultVar2 = false
 
-    val extraVars = mutableListOf<Triple<DataType, String, UInt?>>()
+    val extraVars = mutableListOf<Triple<BaseDataType, String, UInt?>>()
 }

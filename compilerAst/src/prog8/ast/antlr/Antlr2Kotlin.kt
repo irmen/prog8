@@ -15,7 +15,7 @@ import kotlin.io.path.isRegularFile
 
 /***************** Antlr Extension methods to create AST ****************/
 
-private data class NumericLiteralNode(val number: Double, val datatype: DataType)
+private data class NumericLiteralNode(val number: Double, val datatype: BaseDataType)
 
 
 private fun ParserRuleContext.toPosition() : Position {
@@ -229,18 +229,20 @@ private fun Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
                     else -> throw SyntaxError("invalid register or status flag", toPosition())
                 }
             }
+            // asmsubs currently only return a base datatype
+            val returnBaseDt = it.datatype().toAst()
             AsmSubroutineReturn(
-                    it.datatype().toAst(),
+                    DataType.forDt(returnBaseDt),
                     registerorpair,
                     statusregister)
         }
 
-private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter>
-        = asmsub_param().map {
+private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter> = asmsub_param().map {
     val vardecl = it.vardecl()
-    var datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
+    val baseDt = vardecl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
+    var datatype = DataType.forDt(baseDt)
     if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
-        datatype = ElementToArrayTypes.getValue(datatype)
+        datatype = datatype.elementToArray()
     val (registerorpair, statusregister) = parseParamRegister(it.register, it.toPosition())
     val identifiers = vardecl.identifier()
     if(identifiers.size>1)
@@ -316,7 +318,7 @@ private fun SubroutineContext.toAst() : Subroutine {
     return Subroutine(
         identifier().text,
         sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
-        if (returntype == null) mutableListOf() else mutableListOf(returntype),
+        if (returntype == null) mutableListOf() else mutableListOf(DataType.forDt(returntype)),
         emptyList(),
         emptyList(),
         emptySet(),
@@ -337,9 +339,10 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             if(options.DIRTY().isNotEmpty())
                 throw SyntaxError("cannot use @dirty on parameters", it.toPosition())
             val zp = getZpOption(options)
-            var datatype = decl.datatype()?.toAst() ?: DataType.UNDEFINED
+            var baseDt = decl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
+            var datatype = DataType.forDt(baseDt)
             if(decl.ARRAYSIG()!=null || decl.arrayindex()!=null)
-                datatype = ElementToArrayTypes.getValue(datatype)
+                datatype = datatype.elementToArray()
 
             val identifiers = decl.identifier()
             if(identifiers.size>1)
@@ -421,11 +424,11 @@ private fun AugassignmentContext.toAst(): Assignment {
     return Assignment(assign_target().toAst(), expression, AssignmentOrigin.USERCODE, toPosition())
 }
 
-private fun DatatypeContext.toAst(): DataType {
+private fun DatatypeContext.toAst(): BaseDataType {
     return try {
-        DataType.valueOf(text.uppercase())
+        BaseDataType.valueOf(text.uppercase())
     } catch (_: IllegalArgumentException) {
-        DataType.UNDEFINED
+        BaseDataType.UNDEFINED
     }
 }
 
@@ -446,7 +449,7 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
     fun makeLiteral(literalTextWithGrouping: String, radix: Int): NumericLiteralNode {
         val literalText = literalTextWithGrouping.replace("_", "")
         val integer: Int
-        var datatype = DataType.UBYTE
+        var datatype = BaseDataType.UBYTE
         when (radix) {
             10 -> {
                 integer = try {
@@ -455,19 +458,19 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
                     throw SyntaxError("invalid decimal literal ${x.message}", toPosition())
                 }
                 datatype = when(integer) {
-                    in 0..255 -> DataType.UBYTE
-                    in -128..127 -> DataType.BYTE
-                    in 0..65535 -> DataType.UWORD
-                    in -32768..32767 -> DataType.WORD
-                    in -2147483647..2147483647 -> DataType.LONG
-                    else -> DataType.FLOAT
+                    in 0..255 -> BaseDataType.UBYTE
+                    in -128..127 -> BaseDataType.BYTE
+                    in 0..65535 -> BaseDataType.UWORD
+                    in -32768..32767 -> BaseDataType.WORD
+                    in -2147483647..2147483647 -> BaseDataType.LONG
+                    else -> BaseDataType.FLOAT
                 }
             }
             2 -> {
                 if(literalText.length>16)
-                    datatype = DataType.LONG
+                    datatype = BaseDataType.LONG
                 else if(literalText.length>8)
-                    datatype = DataType.UWORD
+                    datatype = BaseDataType.UWORD
                 try {
                     integer = literalText.toInt(2)
                 } catch(x: NumberFormatException) {
@@ -476,9 +479,9 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
             }
             16 -> {
                 if(literalText.length>4)
-                    datatype = DataType.LONG
+                    datatype = BaseDataType.LONG
                 else if(literalText.length>2)
-                    datatype = DataType.UWORD
+                    datatype = BaseDataType.UWORD
                 try {
                     integer = literalText.toInt(16)
                 } catch(x: NumberFormatException) {
@@ -511,15 +514,15 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
             val intLit = litval.integerliteral()?.toAst()
             when {
                 intLit!=null -> when(intLit.datatype) {
-                    DataType.UBYTE -> NumericLiteral(DataType.UBYTE, intLit.number, litval.toPosition())
-                    DataType.BYTE -> NumericLiteral(DataType.BYTE, intLit.number, litval.toPosition())
-                    DataType.UWORD -> NumericLiteral(DataType.UWORD, intLit.number, litval.toPosition())
-                    DataType.WORD -> NumericLiteral(DataType.WORD, intLit.number, litval.toPosition())
-                    DataType.LONG -> NumericLiteral(DataType.LONG, intLit.number, litval.toPosition())
-                    DataType.FLOAT -> NumericLiteral(DataType.FLOAT, intLit.number, litval.toPosition())
+                    BaseDataType.UBYTE -> NumericLiteral(BaseDataType.UBYTE, intLit.number, litval.toPosition())
+                    BaseDataType.BYTE -> NumericLiteral(BaseDataType.BYTE, intLit.number, litval.toPosition())
+                    BaseDataType.UWORD -> NumericLiteral(BaseDataType.UWORD, intLit.number, litval.toPosition())
+                    BaseDataType.WORD -> NumericLiteral(BaseDataType.WORD, intLit.number, litval.toPosition())
+                    BaseDataType.LONG -> NumericLiteral(BaseDataType.LONG, intLit.number, litval.toPosition())
+                    BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, intLit.number, litval.toPosition())
                     else -> throw FatalAstException("invalid datatype for numeric literal")
                 }
-                litval.floatliteral()!=null -> NumericLiteral(DataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
+                litval.floatliteral()!=null -> NumericLiteral(BaseDataType.FLOAT, litval.floatliteral().toAst(), litval.toPosition())
                 litval.stringliteral()!=null -> litval.stringliteral().toAst()
                 litval.charliteral()!=null -> litval.charliteral().toAst()
                 litval.arrayliteral()!=null -> {
@@ -569,8 +572,11 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
         return expression(0).toAst(insideParentheses=true)        // expression within ( )
 
-    if(typecast()!=null)
-        return TypecastExpression(expression(0).toAst(), typecast().datatype().toAst(), false, toPosition())
+    if(typecast()!=null) {
+        // typecast is always to a base datatype
+        val baseDt = typecast().datatype().toAst()
+        return TypecastExpression(expression(0).toAst(), baseDt, false, toPosition())
+    }
 
     if(directmemory()!=null)
         return DirectMemoryRead(directmemory().expression().toAst(), toPosition())
@@ -760,27 +766,18 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val alignpage = options.ALIGNPAGE().isNotEmpty()
     if(alignpage && alignword)
         throw SyntaxError("choose a single alignment option", toPosition())
-    val origDt = datatype()?.toAst() ?: DataType.UNDEFINED
+    val baseDt = datatype()?.toAst() ?: BaseDataType.UNDEFINED
+    val origDt = DataType.forDt(baseDt)
     val dt = if(isArray) {
-        val arrayDt = ElementToArrayTypes.getValue(origDt)
-        if(split) {
-            when(arrayDt) {
-                DataType.ARRAY_UW -> DataType.ARRAY_UW_SPLIT
-                DataType.ARRAY_W -> DataType.ARRAY_W_SPLIT
-                else -> arrayDt   // type error will be generated later in the ast check
-            }
-        } else arrayDt
+        if(split && origDt.isWord)
+            origDt.elementToArray(split)
+        else
+            origDt.elementToArray(false)    // type error will be generated later in the ast check
     } else origDt
-
-    val datatype = if(!split) dt else when(dt) {
-        DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> DataType.ARRAY_UW_SPLIT
-        DataType.ARRAY_W,DataType.ARRAY_W_SPLIT -> DataType.ARRAY_W_SPLIT
-        else -> dt
-    }
 
     return VarDecl(
             type, VarDeclOrigin.USERCODE,
-            datatype,
+            dt,
             zp,
             arrayindex()?.toAst(),
             name,

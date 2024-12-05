@@ -5,7 +5,10 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.*
+import prog8.code.core.AssociativeOperators
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataType
+import prog8.code.core.IErrorReporter
 
 internal class StatementReorderer(
     val program: Program,
@@ -46,7 +49,7 @@ internal class StatementReorderer(
             if(decl.dirty && decl.value!=null)
                 errors.err("dirty variable can't have initialization value", decl.position)
 
-            if (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL) {
+            if (decl.datatype.isNumericOrBool) {
                 if(decl !in declsProcessedWithInitAssignment) {
                     declsProcessedWithInitAssignment.add(decl)
                     if (decl.value == null) {
@@ -191,15 +194,15 @@ internal class StatementReorderer(
         }
 
         // change 'str' and 'ubyte[]' parameters into 'uword' (just treat it as an address)
-        val stringParams = subroutine.parameters.filter { it.type==DataType.STR || it.type==DataType.ARRAY_UB }
+        val stringParams = subroutine.parameters.filter { it.type.isString || it.type.isUnsignedByteArray }
         val parameterChanges = stringParams.map {
-            val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.zp, it.registerOrPair, it.position)
+            val uwordParam = SubroutineParameter(it.name, DataType.forDt(BaseDataType.UWORD), it.zp, it.registerOrPair, it.position)
             IAstModification.ReplaceNode(it, uwordParam, subroutine)
         }
         // change 'str' and 'ubyte[]' return types into 'uword' (just treat it as an address)
         subroutine.returntypes.withIndex().forEach { (index, type) ->
-            if(type==DataType.STR || type==DataType.ARRAY_UB)
-                subroutine.returntypes[index] = DataType.UWORD
+            if(type.isString || type.isUnsignedByteArray)
+                subroutine.returntypes[index] = DataType.forDt(BaseDataType.UWORD)
         }
 
         val varsChanges = mutableListOf<IAstModification>()
@@ -212,7 +215,7 @@ internal class StatementReorderer(
                         .filterIsInstance<VarDecl>()
                         .filter { it.origin==VarDeclOrigin.SUBROUTINEPARAM && it.name in stringParamsByNames }
                         .map {
-                            val newvar = VarDecl(it.type, it.origin, DataType.UWORD,
+                            val newvar = VarDecl(it.type, it.origin, DataType.forDt(BaseDataType.UWORD),
                                 it.zeropage,
                                 null,
                                 it.name,
@@ -269,7 +272,7 @@ internal class StatementReorderer(
         }
 
         if(!assignment.isAugmentable) {
-            if (valueType istype DataType.STR && targetType istype DataType.STR) {
+            if (valueType issimpletype BaseDataType.STR && targetType issimpletype BaseDataType.STR) {
                 // replace string assignment by a call to stringcopy
                 return copyStringValue(assignment)
             }
@@ -321,8 +324,8 @@ internal class StatementReorderer(
         } else {
             if (sourceVar.arraysize!!.constIndex() != targetVar.arraysize!!.constIndex())
                 errors.err("array size mismatch (expecting ${targetVar.arraysize!!.constIndex()}, got ${sourceVar.arraysize!!.constIndex()})", assign.value.position)
-            val sourceEltDt = ArrayToElementTypes.getValue(sourceVar.datatype)
-            val targetEltDt = ArrayToElementTypes.getValue(targetVar.datatype)
+            val sourceEltDt = sourceVar.datatype.elementType()
+            val targetEltDt = targetVar.datatype.elementType()
             if (!sourceEltDt.equalsSize(targetEltDt)) {
                 errors.err("element size mismatch", assign.position)
             }

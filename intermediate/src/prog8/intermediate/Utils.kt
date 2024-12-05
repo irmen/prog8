@@ -8,24 +8,34 @@ import prog8.code.right
 
 fun DataType.typeString(length: Int?): String {
     val lengthStr = if(length==0) "" else length.toString()
-    return when (this) {
-        DataType.BOOL -> "bool"                // in IR , a boolean is represented by an ubyte.
-        DataType.UBYTE -> "ubyte"
-        DataType.BYTE -> "byte"
-        DataType.UWORD -> "uword"
-        DataType.WORD -> "word"
-        DataType.LONG -> "long"
-        DataType.FLOAT -> "float"
-        DataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a seperate datatype anymore
-        DataType.ARRAY_BOOL -> "bool[$lengthStr]"      // in IR , a boolean is represented by an ubyte.
-        DataType.ARRAY_UB -> "ubyte[$lengthStr]"
-        DataType.ARRAY_B -> "byte[$lengthStr]"
-        DataType.ARRAY_UW -> "uword[$lengthStr]"
-        DataType.ARRAY_W -> "word[$lengthStr]"
-        DataType.ARRAY_F -> "float[$lengthStr]"
-        DataType.ARRAY_UW_SPLIT -> "@split uword[$lengthStr]"      // should be 2 separate byte arrays by now really
-        DataType.ARRAY_W_SPLIT -> "@split word[$lengthStr]"        // should be 2 separate byte arrays by now really
-        DataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
+    return when (this.base) {
+        BaseDataType.BOOL -> "bool"
+        BaseDataType.UBYTE -> "ubyte"
+        BaseDataType.BYTE -> "byte"
+        BaseDataType.UWORD -> "uword"
+        BaseDataType.WORD -> "word"
+        BaseDataType.LONG -> "long"
+        BaseDataType.FLOAT -> "float"
+        BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a seperate datatype anymore
+        BaseDataType.ARRAY -> {
+            when(this.sub?.dt) {
+                BaseDataType.UBYTE -> "ubyte[$lengthStr]"
+                BaseDataType.UWORD -> "uword[$lengthStr]"
+                BaseDataType.BYTE -> "byte[$lengthStr]"
+                BaseDataType.WORD -> "word[$lengthStr]"
+                BaseDataType.BOOL -> "bool[$lengthStr]"
+                BaseDataType.FLOAT -> "float[$lengthStr]"
+                else -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        BaseDataType.ARRAY_SPLITW -> {
+            when(this.sub?.dt) {
+                BaseDataType.UWORD -> "@split uword[$lengthStr]"       // should be 2 separate byte arrays by now really?
+                BaseDataType.WORD -> "@split word[$lengthStr]"          // should be 2 separate byte arrays by now really?
+                else -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        BaseDataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
     }
 }
 
@@ -332,14 +342,16 @@ internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag
 
 
 fun irType(type: DataType): IRDataType {
-    return when(type) {
-        DataType.BOOL,
-        DataType.UBYTE,
-        DataType.BYTE -> IRDataType.BYTE
-        DataType.UWORD,
-        DataType.WORD -> IRDataType.WORD
-        DataType.FLOAT -> IRDataType.FLOAT
-        in PassByReferenceDatatypes -> IRDataType.WORD
+    if(type.base.isPassByRef)
+        return IRDataType.WORD
+
+    return when(type.base) {
+        BaseDataType.BOOL,
+        BaseDataType.UBYTE,
+        BaseDataType.BYTE -> IRDataType.BYTE
+        BaseDataType.UWORD,
+        BaseDataType.WORD -> IRDataType.WORD
+        BaseDataType.FLOAT -> IRDataType.FLOAT
         else -> throw AssemblyError("no IR datatype for $type")
     }
 }

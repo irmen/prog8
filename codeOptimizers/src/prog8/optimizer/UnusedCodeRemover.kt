@@ -8,7 +8,6 @@ import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.DataType
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
 import prog8.code.core.internedStringsModuleName
@@ -291,7 +290,7 @@ class UnusedCodeRemover(private val program: Program,
                 val cvalue1 = assign1.value.constValue(program)
                 if(cvalue1!=null && cvalue1.number==0.0 && assign2.target.isSameAs(assign1.target, program) && assign2.isAugmentable) {
                     val value2 = assign2.value
-                    val zero = defaultZero(value2.inferType(program).getOr(DataType.UNDEFINED), value2.position)
+                    val zero = defaultZero(value2.inferType(program), value2.position)
                     when(value2) {
                         is BinaryExpression -> substituteZeroInBinexpr(value2, zero, assign1, assign2)
                         is PrefixExpression -> substituteZeroInPrefixexpr(value2, zero, assign1, assign2)

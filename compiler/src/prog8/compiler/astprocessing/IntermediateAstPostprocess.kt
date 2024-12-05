@@ -43,7 +43,7 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
         // define the bitmask variable and set it to zero
         val deferVariable = PtVariable(
             maskVarName,
-            DataType.UBYTE,
+            DataType.forDt(BaseDataType.UBYTE),
             ZeropageWish.NOT_IN_ZEROPAGE,
             0u,
             null,
@@ -52,9 +52,9 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
         )
         val assignZero = PtAssignment(sub.position)
         assignZero.add(PtAssignTarget(false, sub.position).also {
-            it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, sub.position))
+            it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.forDt(BaseDataType.UBYTE), sub.position))
         })
-        assignZero.add(PtNumber(DataType.UBYTE, 0.0, sub.position))
+        assignZero.add(PtNumber(BaseDataType.UBYTE, 0.0, sub.position))
         sub.add(0, assignZero)
         sub.add(0, deferVariable)
 
@@ -64,10 +64,10 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
             val idx = scope.children.indexOf(defer)
             val enableDefer = PtAugmentedAssign("|=", defer.position)
             val target = PtAssignTarget(true, defer.position)
-            target.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, defer.position))
+            target.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.forDt(BaseDataType.UBYTE), defer.position))
             enableDefer.add(target)
             // enable the bit for this defer (beginning with high bits so the handler can simply shift right to check them in reverse order)
-            enableDefer.add(PtNumber(DataType.UBYTE, (1 shl (defers.size-1 - deferIndex)).toDouble(), defer.position))
+            enableDefer.add(PtNumber(BaseDataType.UBYTE, (1 shl (defers.size-1 - deferIndex)).toDouble(), defer.position))
             enableDefer.parent = scope
             scope.children[idx] = enableDefer
         }
@@ -110,7 +110,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
 
     fun invokedeferbefore(node: PtNode) {
         val idx = node.parent.children.indexOf(node)
-        val invokedefer = PtFunctionCall(node.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true, DataType.UNDEFINED, node.position)
+        val invokedefer = PtFunctionCall(node.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true, DataType.forDt(BaseDataType.UNDEFINED), node.position)
         node.parent.add(idx, invokedefer)
     }
 
@@ -154,7 +154,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         newRet.add(popCall)
         val group = PtNodeGroup()
         group.add(pushCall)
-        group.add(PtFunctionCall(ret.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true, DataType.UNDEFINED, ret.position))
+        group.add(PtFunctionCall(ret.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true,DataType.forDt(BaseDataType.UNDEFINED), ret.position))
         group.add(newRet)
         group.parent = ret.parent
         val idx = ret.parent.children.indexOf(ret)
@@ -168,7 +168,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
             val idx = sub.children.indexOfLast { it !is PtDefer }
             val ret = PtReturn(sub.position)
             sub.add(idx+1, ret)
-            val invokedefer = PtFunctionCall(sub.scopedName+"."+invokeDefersRoutineName, true, DataType.UNDEFINED, sub.position)
+            val invokedefer = PtFunctionCall(sub.scopedName+"."+invokeDefersRoutineName, true, DataType.forDt(BaseDataType.UNDEFINED), sub.position)
             sub.add(idx+1, invokedefer)
         }
     }
@@ -181,14 +181,14 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         for((idx, defer) in defers.reversed().withIndex()) {
             val shift = PtAugmentedAssign(">>=", Position.DUMMY)
             shift.add(PtAssignTarget(false, sub.position).also {
-                it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, sub.position))
+                it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.forDt(BaseDataType.UBYTE), sub.position))
             })
-            shift.add(PtNumber(DataType.UBYTE, 1.0, sub.position))
+            shift.add(PtNumber(BaseDataType.UBYTE, 1.0, sub.position))
             defersRoutine.add(shift)
             val skiplabel = "prog8_defer_skip_${idx+1}"
             val branchcc = PtConditionalBranch(BranchCondition.CC, Position.DUMMY)
             branchcc.add(PtNodeGroup().also {
-                it.add(PtJump(PtIdentifier(defersRoutine.scopedName+"."+skiplabel, DataType.UNDEFINED, Position.DUMMY), null, Position.DUMMY))
+                it.add(PtJump(PtIdentifier(defersRoutine.scopedName+"."+skiplabel, DataType.forDt(BaseDataType.UBYTE), Position.DUMMY), null, Position.DUMMY))
             })
             branchcc.add(PtNodeGroup())
             defersRoutine.add(branchcc)

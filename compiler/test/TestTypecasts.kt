@@ -13,6 +13,7 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtSub
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -36,7 +37,7 @@ class TestTypecasts: FunSpec({
         val result = compileText(C64Target(), false, text, writeAssembly = false, errors=errors)
         result shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "type mismatch"
+        errors.errors[0] shouldContain "type mismatch, was: float expected one of: [UWORD, WORD, LONG]"
     }
 
     test("not casting bool operands to logical operators") {
@@ -125,9 +126,9 @@ main {
         right2.operator shouldBe "!="
         right3.operator shouldBe "!="
         right2.left shouldBe instanceOf<IFunctionCall>()
-        right2.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        right2.right shouldBe NumericLiteral(BaseDataType.UBYTE, 0.0, Position.DUMMY)
         right3.left shouldBe instanceOf<IFunctionCall>()
-        right3.right shouldBe NumericLiteral(DataType.UBYTE, 0.0, Position.DUMMY)
+        right3.right shouldBe NumericLiteral(BaseDataType.UBYTE, 0.0, Position.DUMMY)
         assignValue4.right shouldBe instanceOf<IFunctionCall>()
         assignValue5.right shouldBe instanceOf<IFunctionCall>()
     }
@@ -155,11 +156,11 @@ main {
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 7
         val fcall1 = ((stmts[4] as Assignment).value as IFunctionCall)
-        fcall1.args[0] shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
-        fcall1.args[1] shouldBe NumericLiteral(DataType.BOOL, 0.0, Position.DUMMY)
+        fcall1.args[0] shouldBe NumericLiteral(BaseDataType.BOOL, 1.0, Position.DUMMY)
+        fcall1.args[1] shouldBe NumericLiteral(BaseDataType.BOOL, 0.0, Position.DUMMY)
         val fcall2 = ((stmts[5] as Assignment).value as IFunctionCall)
-        fcall2.args[0] shouldBe NumericLiteral(DataType.BOOL, 0.0, Position.DUMMY)
-        fcall2.args[1] shouldBe NumericLiteral(DataType.BOOL, 1.0, Position.DUMMY)
+        fcall2.args[0] shouldBe NumericLiteral(BaseDataType.BOOL, 0.0, Position.DUMMY)
+        fcall2.args[1] shouldBe NumericLiteral(BaseDataType.BOOL, 1.0, Position.DUMMY)
         val ifCond = (stmts[6] as IfElse).condition as BinaryExpression
         ifCond.operator shouldBe "and" // no asm writing so logical expressions haven't been replaced with bitwise equivalents yet
         (ifCond.left as IdentifierReference).nameInSource shouldBe listOf("boolvalue1")
@@ -223,11 +224,11 @@ main {
         stmts.size shouldBe 4
         val assign1tc = (stmts[2] as Assignment).value as TypecastExpression
         val assign2tc = (stmts[3] as Assignment).value as TypecastExpression
-        assign1tc.type shouldBe DataType.WORD
-        assign2tc.type shouldBe DataType.WORD
+        assign1tc.type shouldBe BaseDataType.WORD
+        assign2tc.type shouldBe BaseDataType.WORD
         assign2tc.expression shouldBe instanceOf<IdentifierReference>()
         val assign1subtc = (assign1tc.expression as TypecastExpression)
-        assign1subtc.type shouldBe DataType.BYTE
+        assign1subtc.type shouldBe BaseDataType.BYTE
         assign1subtc.expression shouldBe instanceOf<IdentifierReference>()
     }
 
@@ -689,8 +690,8 @@ main {
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain("argument 1 type mismatch")
         errors.errors[1] shouldContain("argument 1 type mismatch")
-        errors.errors[2] shouldContain("type of value BOOL doesn't match target")
-        errors.errors[3] shouldContain("type of value BOOL doesn't match target")
+        errors.errors[2] shouldContain("type of value bool doesn't match target")
+        errors.errors[3] shouldContain("type of value bool doesn't match target")
     }
 
     test("bool function parameters correct typing") {
@@ -721,7 +722,7 @@ main {
         errors.errors[2] shouldContain("type mismatch")
         errors.errors[3] shouldContain("type mismatch")
         errors.errors[4] shouldContain("type mismatch")
-        errors.errors[5] shouldContain("type of value BOOL doesn't match target")
+        errors.errors[5] shouldContain("type of value bool doesn't match target")
     }
 
     test("no implicit bool-to-int cast") {
@@ -742,7 +743,7 @@ main {
         compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain(":5:14: argument 1 type mismatch")
-        errors.errors[1] shouldContain(":6:20: type of value BOOL doesn't match target")
+        errors.errors[1] shouldContain(":6:20: type of value bool doesn't match target")
     }
 
     test("no implicit int-to-bool cast") {
@@ -772,8 +773,8 @@ main {
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain(":4:15: no implicit cast")
         errors.errors[1] shouldContain(":5:15: no implicit cast")
-        errors.errors[2] shouldContain(":8:28: type of value UBYTE doesn't match target")
-        errors.errors[3] shouldContain(":9:28: type of value UWORD doesn't match target")
+        errors.errors[2] shouldContain(":8:28: type of value ubyte doesn't match target")
+        errors.errors[3] shouldContain(":9:28: type of value uword doesn't match target")
     }
 
     test("str replaced with uword in subroutine params and return types") {
@@ -801,11 +802,11 @@ main {
         val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
         val main = result.codegenAst!!.allBlocks().first()
         val derp = main.children.single { it is PtSub && it.name=="main.derp"} as PtSub
-        derp.returntype shouldBe DataType.UWORD
-        derp.parameters.single().type shouldBe DataType.UWORD
+        derp.returntype shouldBe DataType.forDt(BaseDataType.UWORD)
+        derp.parameters.single().type shouldBe DataType.forDt(BaseDataType.UWORD)
         val mult3 = main.children.single { it is PtAsmSub && it.name=="main.mult3"} as PtAsmSub
-        mult3.parameters.single().second.type shouldBe DataType.UWORD
-        mult3.returns.single().second shouldBe DataType.UWORD
+        mult3.parameters.single().second.type shouldBe DataType.forDt(BaseDataType.UWORD)
+        mult3.returns.single().second shouldBe DataType.forDt(BaseDataType.UWORD)
     }
 
     test("return 0 for str converted to uword") {
@@ -884,8 +885,8 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "17:16: type UBYTE of return value doesn't match subroutine's return type BYTE"
-        errors.errors[1] shouldContain "20:16: type UWORD of return value doesn't match subroutine's return type WORD"
+        errors.errors[0] shouldContain "17:16: type ubyte of return value doesn't match subroutine's return type byte"
+        errors.errors[1] shouldContain "20:16: type uword of return value doesn't match subroutine's return type word"
     }
 
     test("if-expression adjusts different value types to common type") {
@@ -901,10 +902,10 @@ main {
         val st = program.entrypoint.statements
         st.size shouldBe 1
         val assign = st[0] as Assignment
-        assign.target.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.BYTE
+        assign.target.inferType(program).getOrUndef().base shouldBe BaseDataType.BYTE
         val ifexpr = assign.value as IfExpression
-        ifexpr.truevalue.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.BYTE
-        ifexpr.falsevalue.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.BYTE
+        ifexpr.truevalue.inferType(program).getOrUndef().base shouldBe BaseDataType.BYTE
+        ifexpr.falsevalue.inferType(program).getOrUndef().base shouldBe BaseDataType.BYTE
         ifexpr.truevalue shouldBe instanceOf<NumericLiteral>()
         ifexpr.falsevalue shouldBe instanceOf<NumericLiteral>()
     }
@@ -928,29 +929,29 @@ main {
         val v1 = (st[2] as Assignment).value as BinaryExpression
         v1.operator shouldBe "+"
         (v1.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0")
-        (v1.right as NumericLiteral).type shouldBe DataType.UWORD
+        (v1.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v1.right as NumericLiteral).number shouldBe 39
 
         val v2 = (st[3] as Assignment).value as BinaryExpression
         v2.operator shouldBe "+"
         (v2.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0")
-        (v2.right as NumericLiteral).type shouldBe DataType.UWORD
+        (v2.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v2.right as NumericLiteral).number shouldBe 399
 
         val v3 = (st[4] as Assignment).value as TypecastExpression
-        v3.type shouldBe DataType.UWORD
+        v3.type shouldBe BaseDataType.UWORD
         val v3e = v3.expression as BinaryExpression
         v3e.operator shouldBe "*"
         (v3e.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0L")
-        (v3e.right as NumericLiteral).type shouldBe DataType.UBYTE
+        (v3e.right as NumericLiteral).type shouldBe BaseDataType.UBYTE
         (v3e.right as NumericLiteral).number shouldBe 5
 
         val v4 = (st[5] as Assignment).value as BinaryExpression
         v4.operator shouldBe "*"
         val v4t = v4.left as TypecastExpression
-        v4t.type shouldBe DataType.UWORD
+        v4t.type shouldBe BaseDataType.UWORD
         (v4t.expression as IdentifierReference).nameInSource shouldBe listOf("cx16","r0L")
-        (v4.right as NumericLiteral).type shouldBe DataType.UWORD
+        (v4.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v4.right as NumericLiteral).number shouldBe 5
     }
 })

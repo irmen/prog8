@@ -30,9 +30,9 @@ class PtSub(
 ) : PtNamedNode(name, position), IPtSubroutine, IPtStatementContainer {
     init {
         // params and return value should not be str
-        if(parameters.any{ it.type !in NumericDatatypes && it.type!=DataType.BOOL })
+        if(parameters.any{ !it.type.isNumericOrBool })
             throw AssemblyError("non-numeric/non-bool parameter")
-        if(returntype!=null && returntype !in NumericDatatypes && returntype!=DataType.BOOL)
+        if(returntype!=null && !returntype.isNumericOrBool)
             throw AssemblyError("non-numeric/non-bool returntype $returntype")
         parameters.forEach { it.parent=this }
     }
@@ -172,7 +172,7 @@ class PtConstant(name: String, override val type: DataType, val value: Double, p
 
 class PtMemMapped(name: String, override val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
     init {
-        require(type!=DataType.BOOL && type!=DataType.ARRAY_BOOL)
+        require(!type.isBool && !type.isBoolArray)
     }
 }
 

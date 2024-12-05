@@ -76,10 +76,10 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 return true
 
             // there are some exceptions that are considered compatible, such as STR <> UWORD
-            if(argDt==DataType.STR && paramDt==DataType.UWORD ||
-                    argDt==DataType.UWORD && paramDt==DataType.STR ||
-                    argDt==DataType.UWORD && paramDt==DataType.ARRAY_UB ||
-                    argDt==DataType.STR && paramDt==DataType.ARRAY_UB)
+            if(argDt.isString && paramDt.isUnsignedWord ||
+                    argDt.isUnsignedWord && paramDt.isString ||
+                    argDt.isUnsignedWord && paramDt.isUnsignedByteArray ||
+                    argDt.isString && paramDt.isUnsignedByteArray)
                 return true
 
             return false
@@ -95,7 +95,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 else
                     null
             }
-            val argtypes = argITypes.map { it.getOr(DataType.UNDEFINED) }
+            val argtypes = argITypes.map { it.getOrUndef() }
             val target = call.target.targetStatement(program)
             if (target is Subroutine) {
                 val consideredParamTypes: List<DataType> = target.parameters.map { it.type }
@@ -132,7 +132,12 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 if(argtypes.size != consideredParamTypes.size)
                     return Pair("invalid number of arguments", call.position)
                 argtypes.zip(consideredParamTypes).forEachIndexed { index, pair ->
-                    val anyCompatible = pair.second.any { argTypeCompatible(pair.first, it) }
+                    val anyCompatible = pair.second.any {
+                        if(it.isArray)
+                            pair.first.isArray
+                        else
+                            argTypeCompatible(pair.first, DataType.forDt(it))
+                    }
                     if (!anyCompatible) {
                         val actual = pair.first
                         return if(pair.second.size==1) {

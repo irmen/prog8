@@ -60,7 +60,7 @@ private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable, errors: I
                 if(node.children.dropLast(1).all { (it as PtAssignTarget).void }) {
                     // all targets are now void, the whole assignment can be discarded and replaced by just a (void) call to the subroutine
                     val index = node.parent.children.indexOf(node)
-                    val voidCall = PtFunctionCall(functionName, true, DataType.UNDEFINED, value.position)
+                    val voidCall = PtFunctionCall(functionName, true, DataType.forDt(BaseDataType.UNDEFINED), value.position)
                     value.children.forEach { voidCall.add(it) }
                     node.parent.children[index] = voidCall
                     voidCall.parent = node.parent
@@ -81,12 +81,12 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
     fun makeBittestCall(condition: PtBinaryExpression, and: PtBinaryExpression, variable: PtIdentifier, bitmask: Int): PtBuiltinFunctionCall {
         require(bitmask==128 || bitmask==64)
         val setOrNot = if(condition.operator=="!=") "set" else "notset"
-        val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataType.BOOL, condition.position)
+        val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataType.forDt(BaseDataType.BOOL), condition.position)
         bittestCall.add(variable)
         if(bitmask==128)
-            bittestCall.add(PtNumber(DataType.UBYTE, 7.0, and.right.position))
+            bittestCall.add(PtNumber(BaseDataType.UBYTE, 7.0, and.right.position))
         else
-            bittestCall.add(PtNumber(DataType.UBYTE, 6.0, and.right.position))
+            bittestCall.add(PtNumber(BaseDataType.UBYTE, 6.0, and.right.position))
         return bittestCall
     }
 
@@ -94,17 +94,17 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
         if(condition!=null && (condition.operator=="==" || condition.operator=="!=")) {
             if (condition.right.asConstInteger() == 0) {
                 val and = condition.left as? PtBinaryExpression
-                if (and != null && and.operator == "&" && and.type == DataType.UBYTE) {
+                if (and != null && and.operator == "&" && and.type.isUnsignedByte) {
                     val bitmask = and.right.asConstInteger()
                     if(bitmask==128 || bitmask==64) {
                         val variable = and.left as? PtIdentifier
-                        if (variable != null && variable.type in ByteDatatypes) {
+                        if (variable != null && variable.type.isByte) {
                             return Triple(and, variable, bitmask)
                         }
                         val typecast = and.left as? PtTypeCast
-                        if (typecast != null && typecast.type == DataType.UBYTE) {
+                        if (typecast != null && typecast.type.isUnsignedByte) {
                             val castedVariable = typecast.value as? PtIdentifier
-                            if(castedVariable!=null && castedVariable.type in ByteDatatypes)
+                            if(castedVariable!=null && castedVariable.type.isByte)
                                 return Triple(and, castedVariable, bitmask)
                         }
                     }
@@ -165,12 +165,12 @@ internal fun isSame(identifier: PtIdentifier, type: DataType, returnedRegister: 
             cx16.r?sL  BYTE
             cx16.r?sH  BYTE
          */
-        if(identifier.type in ByteDatatypes && type in ByteDatatypes) {
+        if(identifier.type.isByte && type.isByte) {
             if(identifier.name.startsWith("cx16.$regname") && identifierRegName.startsWith(regname)) {
                 return identifierRegName.substring(2) in arrayOf("", "L", "sL")     // note: not the -H (msb) variants!
             }
         }
-        else if(identifier.type in WordDatatypes && type in WordDatatypes) {
+        else if(identifier.type.isWord && type.isWord) {
             if(identifier.name.startsWith("cx16.$regname") && identifierRegName.startsWith(regname)) {
                 return identifierRegName.substring(2) in arrayOf("", "s")
             }

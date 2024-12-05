@@ -7,7 +7,10 @@ import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.*
+import prog8.code.core.BuiltinFunctions
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 import prog8.code.target.VMTarget
 
 /**
@@ -209,7 +212,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 }
             }
             is VarDecl -> {
-                if(target.type!=VarDeclType.VAR || target.datatype!=DataType.UWORD)
+                if(target.type!=VarDeclType.VAR || !target.datatype.isUnsignedWord)
                     errors.err("wrong address variable datatype, expected uword", call.target.position)
             }
             is Alias -> {}

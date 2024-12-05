@@ -1,7 +1,8 @@
 package prog8.ast.expressions
 
-import prog8.code.core.*
-import java.util.Objects
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataType
+import java.util.*
 
 
 object InferredTypes {
@@ -10,18 +11,23 @@ object InferredTypes {
             require(!(datatype!=null && (isUnknown || isVoid))) { "invalid combination of args" }
         }
 
-        val isKnown = datatype!=null && datatype!=DataType.UNDEFINED
+        val isKnown get() = datatype!=null && !datatype!!.isUndefined
         fun getOr(default: DataType) = if(isUnknown || isVoid) default else datatype!!
+        fun getOrUndef() = if(isUnknown || isVoid) DataType.forDt(BaseDataType.UNDEFINED) else datatype!!
         fun getOrElse(transform: (InferredType) -> DataType): DataType =
             if(isUnknown || isVoid) transform(this) else datatype!!
-        infix fun istype(type: DataType): Boolean = if(isUnknown || isVoid) false else this.datatype==type      // strict equality if known
-        infix fun isnot(type: DataType): Boolean = if(isUnknown || isVoid) true else this.datatype!=type
-        fun oneOf(vararg types: DataType) = if(isUnknown || isVoid) false else this.datatype in types
+        infix fun istype(type: DataType): Boolean = if(isUnknown || isVoid) false else this.datatype==type     // strict equality if known
+        infix fun issimpletype(type: BaseDataType): Boolean = if (isUnknown || isVoid)
+                false
+            else if(type==BaseDataType.STR && this.datatype?.base==BaseDataType.STR)
+                true
+            else (this.datatype?.base == type && this.datatype?.sub == null)     // strict equality if known
 
         companion object {
             fun unknown() = InferredType(isUnknown = true, isVoid = false, datatype = null)
             fun void() = InferredType(isUnknown = false, isVoid = true, datatype = null)
             fun known(type: DataType) = InferredType(isUnknown = false, isVoid = false, datatype = type)
+            fun known(basicdt: BaseDataType) = InferredType(isUnknown = false, isVoid = false, datatype = DataType.forDt(basicdt))
         }
 
         override fun equals(other: Any?): Boolean {
@@ -47,41 +53,46 @@ object InferredTypes {
         infix fun isNotAssignableTo(targetDt: InferredType): Boolean = !this.isAssignableTo(targetDt)
         infix fun isNotAssignableTo(targetDt: DataType): Boolean = !this.isAssignableTo(targetDt)
 
-        val isBool = datatype == DataType.BOOL
-        val isBytes = datatype in ByteDatatypes
-        val isWords = datatype in WordDatatypes
-        val isInteger = datatype in IntegerDatatypes
-        val isNumeric = datatype in NumericDatatypes
-        val isArray = datatype in ArrayDatatypes
-        val isString = datatype in StringlyDatatypes
-        val isIterable = datatype in IterableDatatypes
-        val isPassByReference = datatype in PassByReferenceDatatypes
-        val isPassByValue = datatype in PassByValueDatatypes
-        val isArrayElement = datatype in ElementToArrayTypes
+        val isBool = datatype?.isBool==true
+        val isBytes = datatype?.isByte==true
+        val isWords = datatype?.isWord==true
+        val isInteger = datatype?.isInteger==true
+        val isNumeric = datatype?.isNumeric==true
+        val isNumericOrBool = datatype?.isNumericOrBool==true
+        val isArray = datatype?.isArray==true
+        val isFloatArray = datatype?.isFloatArray==true
+        val isByteArray = datatype?.isByteArray==true
+        val isString = datatype?.isString==true
+        val isStringLy = datatype?.isStringly==true
+        val isIterable = datatype?.isIterable==true
     }
 
     private val unknownInstance = InferredType.unknown()
     private val voidInstance = InferredType.void()
-    private val knownInstances = mapOf(
-            DataType.UBYTE to InferredType.known(DataType.UBYTE),
-            DataType.BYTE to InferredType.known(DataType.BYTE),
-            DataType.UWORD to InferredType.known(DataType.UWORD),
-            DataType.WORD to InferredType.known(DataType.WORD),
-            DataType.LONG to InferredType.known(DataType.LONG),
-            DataType.FLOAT to InferredType.known(DataType.FLOAT),
-            DataType.BOOL to InferredType.known(DataType.BOOL),
-            DataType.STR to InferredType.known(DataType.STR),
-            DataType.ARRAY_UB to InferredType.known(DataType.ARRAY_UB),
-            DataType.ARRAY_B to InferredType.known(DataType.ARRAY_B),
-            DataType.ARRAY_UW to InferredType.known(DataType.ARRAY_UW),
-            DataType.ARRAY_UW_SPLIT to InferredType.known(DataType.ARRAY_UW_SPLIT),
-            DataType.ARRAY_W to InferredType.known(DataType.ARRAY_W),
-            DataType.ARRAY_W_SPLIT to InferredType.known(DataType.ARRAY_W_SPLIT),
-            DataType.ARRAY_F to InferredType.known(DataType.ARRAY_F),
-            DataType.ARRAY_BOOL to InferredType.known(DataType.ARRAY_BOOL)
-    )
 
     fun void() = voidInstance
     fun unknown() = unknownInstance
-    fun knownFor(type: DataType) = knownInstances.getValue(type)
+    fun knownFor(baseDt: BaseDataType): InferredType = InferredType.known(baseDt)
+    fun knownFor(type: DataType): InferredType = when {
+        type.isUnsignedByte -> InferredType.known(BaseDataType.UBYTE)
+        type.isSignedByte -> InferredType.known(BaseDataType.BYTE)
+        type.isUnsignedWord -> InferredType.known(BaseDataType.UWORD)
+        type.isSignedWord -> InferredType.known(BaseDataType.WORD)
+        type.isBool -> InferredType.known(BaseDataType.BOOL)
+        type.isFloat -> InferredType.known(BaseDataType.FLOAT)
+        type.isString -> InferredType.known(BaseDataType.STR)
+        type.isLong -> InferredType.known(BaseDataType.LONG)
+        type.isSplitWordArray -> {
+            when(type.sub?.dt) {
+                BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD, true))
+                BaseDataType.WORD -> InferredType.known(DataType.arrayFor(BaseDataType.WORD, true))
+                BaseDataType.STR -> InferredType.known(DataType.arrayFor(BaseDataType.STR, true))
+                else -> throw IllegalArgumentException("invalid sub type")
+            }
+        }
+        type.isArray -> {
+            InferredType.known(DataType.arrayFor(type.sub!!.dt))
+        }
+        else -> throw IllegalArgumentException("invalid type")
+    }
 }

@@ -121,7 +121,7 @@ class TestAstChecks: FunSpec({
             main {
                 sub start() {
                     &ubyte a = 10000
-                    uword z = 500
+                    uword @shared z = 500
                     a[4] = (z % 3) as ubyte
                 }
             }

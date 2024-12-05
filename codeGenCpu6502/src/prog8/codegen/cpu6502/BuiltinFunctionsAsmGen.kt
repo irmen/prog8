@@ -9,7 +9,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                       private val asmgen: AsmGen6502Internal,
                                       private val assignAsmGen: AssignmentAsmGen) {
 
-    internal fun translateFunctioncallExpression(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?): DataType? {
+    internal fun translateFunctioncallExpression(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?): BaseDataType? {
         return translateFunctioncall(fcall, discardResult = false, resultRegister = resultRegister)
     }
 
@@ -17,7 +17,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         translateFunctioncall(fcall, discardResult = true, resultRegister = null)
     }
 
-    private fun translateFunctioncall(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultRegister: RegisterOrPair?): DataType? {
+    private fun translateFunctioncall(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultRegister: RegisterOrPair?): BaseDataType? {
         if (discardResult && fcall.hasNoSideEffects)
             return null  // can just ignore the whole function call altogether
 
@@ -55,7 +55,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 memread.parent = fcall
                 asmgen.assignExpressionToRegister(memread, RegisterOrPair.A, false)
                 asmgen.out("  pha")
-                val memtarget = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.position, memory=memread)
+                val memtarget = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingISub(), fcall.position, memory=memread)
                 asmgen.assignExpressionTo(fcall.args[1], memtarget)
                 asmgen.out("  pla")
             }
@@ -69,25 +69,25 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "prog8_ifelse_bittest_set" -> throw AssemblyError("prog8_ifelse_bittest_set() should have been translated as part of an ifElse statement")
             "prog8_ifelse_bittest_notset" -> throw AssemblyError("prog8_ifelse_bittest_notset() should have been translated as part of an ifElse statement")
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
-            "prog8_lib_square_byte" -> funcSquare(fcall, DataType.UBYTE, resultRegister)
-            "prog8_lib_square_word" -> funcSquare(fcall, DataType.UWORD, resultRegister)
+            "prog8_lib_square_byte" -> funcSquare(fcall, BaseDataType.UBYTE, resultRegister)
+            "prog8_lib_square_word" -> funcSquare(fcall, BaseDataType.UWORD, resultRegister)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
     }
 
-    private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: DataType, resultRegister: RegisterOrPair?) {
+    private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: BaseDataType, resultRegister: RegisterOrPair?) {
         // square of word value is faster with dedicated routine, square of byte just use the regular multiplication routine.
         when (resultType) {
-            DataType.UBYTE -> {
+            BaseDataType.UBYTE -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
                 asmgen.out("  tay  |  jsr  prog8_math.multiply_bytes")
                 if(resultRegister!=null)  {
                     assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister, false, fcall.position, null, asmgen), CpuRegister.A, false, false)
                 }
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
                 asmgen.out("  jsr  prog8_math.square")
                 if(resultRegister!=null)  {
@@ -109,8 +109,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.out("  jsr  prog8_math.divmod_ub_asm")
         val var2name = asmgen.asmVariableName(fcall.args[2] as PtIdentifier)
         val var3name = asmgen.asmVariableName(fcall.args[3] as PtIdentifier)
-        val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[2].position, var2name)
-        val remainderTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[3].position, var3name)
+        val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingISub(), fcall.args[2].position, var2name)
+        val remainderTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingISub(), fcall.args[3].position, var3name)
         assignAsmGen.assignRegisterByte(remainderTarget, CpuRegister.A, false, false)
         assignAsmGen.assignRegisterByte(divisionTarget, CpuRegister.Y, false, false)
     }
@@ -122,7 +122,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         //    output: P8ZP_SCRATCH_W2 in ZP: 16-bit remainder, A/Y: 16 bit division result
         asmgen.out("  jsr  prog8_math.divmod_uw_asm")
         val var2name = asmgen.asmVariableName(fcall.args[2] as PtIdentifier)
-        val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.args[2].position, var2name)
+        val divisionTarget = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingISub(), fcall.args[2].position, var2name)
         val remainderVar = asmgen.asmVariableName(fcall.args[3] as PtIdentifier)
         assignAsmGen.assignRegisterpairWord(divisionTarget, RegisterOrPair.AY)
         asmgen.out("""
@@ -198,7 +198,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             return
         }
 
-        asmgen.assignExpressionToVariable(fcall.args[0], asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.UWORD)     // jump address
+        asmgen.assignExpressionToVariable(fcall.args[0], asmgen.asmVariableName("P8ZP_SCRATCH_W2"), DataType.forDt(BaseDataType.UWORD))     // jump address
         asmgen.out("""
                 ; push a return address so the jmp becomes indirect jsr
                 lda  #>((+)-1)
@@ -305,8 +305,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcCmp(fcall: PtBuiltinFunctionCall) {
         val arg1 = fcall.args[0]
         val arg2 = fcall.args[1]
-        if(arg1.type in ByteDatatypes) {
-            if(arg2.type in ByteDatatypes) {
+        if(arg1.type.isByte) {
+            if(arg2.type.isByte) {
                 when (arg2) {
                     is PtIdentifier -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.A)
@@ -338,7 +338,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 throw AssemblyError("args for cmp() should have same dt")
         } else {
             // arg1 is a word
-            if(arg2.type in WordDatatypes) {
+            if(arg2.type.isWord) {
                 when (arg2) {
                     is PtIdentifier -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
@@ -376,11 +376,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val name = (fcall.args[0] as PtString).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name ${fcall.position}"}
-        val slabname = PtIdentifier("prog8_slabs.prog8_memoryslab_$name", DataType.UWORD, fcall.position)
+        val slabname = PtIdentifier("prog8_slabs.prog8_memoryslab_$name", DataType.forDt(BaseDataType.UWORD), fcall.position)
         val addressOf = PtAddressOf(fcall.position)
         addressOf.add(slabname)
         addressOf.parent = fcall
-        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = addressOf)
+        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.forDt(BaseDataType.UWORD), expression = addressOf)
         val target = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, null, asmgen)
         val assign = AsmAssignment(src, target, program.memsizer, fcall.position)
         asmgen.translateNormalAssignment(assign, fcall.definingISub())
@@ -388,16 +388,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
-        when(fcall.args[0].type) {
-            DataType.UBYTE -> {
+        when(fcall.args[0].type.base) {
+            BaseDataType.UBYTE -> {
                 asmgen.out("  ldy  #0 |  jsr  prog8_lib.func_sqrt16_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
-            DataType.FLOAT -> {
+            BaseDataType.FLOAT -> {
                 asmgen.out("  jsr  floats.func_sqrt_into_FAC1")
                 assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, fcall.position, scope, asmgen))
             }
@@ -407,8 +407,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcRor2(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
-        when (what.type) {
-            DataType.UBYTE -> {
+        when (what.type.base) {
+            BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
@@ -431,7 +431,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
@@ -454,8 +454,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcRor(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
-        when (what.type) {
-            DataType.UBYTE -> {
+        when (what.type.base) {
+            BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
                         if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
@@ -498,7 +498,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
                         if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
@@ -523,8 +523,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcRol2(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
-        when (what.type) {
-            DataType.UBYTE -> {
+        when (what.type.base) {
+            BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
@@ -547,7 +547,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
@@ -570,8 +570,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcRol(fcall: PtBuiltinFunctionCall) {
         val what = fcall.args.single()
-        when (what.type) {
-            DataType.UBYTE -> {
+        when (what.type.base) {
+            BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
                         if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
@@ -614,7 +614,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("weird type")
                 }
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
                         if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
@@ -642,27 +642,27 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         when(fcall.args[0]) {
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(fcall.args[0] as PtIdentifier) + if(msb) "+1" else ""
-                target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, variableAsmName = varname)
+                target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingSub(), fcall.position, variableAsmName = varname)
             }
             is PtNumber -> {
                 val num = (fcall.args[0] as PtNumber).number + if(msb) 1 else 0
                 val mem = PtMemoryByte(fcall.position)
-                mem.add(PtNumber(DataType.UBYTE, num, fcall.position))
-                target = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, memory = mem)
+                mem.add(PtNumber(BaseDataType.UBYTE, num, fcall.position))
+                target = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingSub(), fcall.position, memory = mem)
             }
             is PtAddressOf -> {
                 val mem = PtMemoryByte(fcall.position)
                 if((fcall.args[0] as PtAddressOf).isFromArrayElement)
                     TODO("address-of arrayelement")
                 if(msb) {
-                    val address = PtBinaryExpression("+", DataType.UWORD, fcall.args[0].position)
+                    val address = PtBinaryExpression("+", DataType.forDt(BaseDataType.UWORD), fcall.args[0].position)
                     address.add(fcall.args[0])
-                    address.add(PtNumber(address.type, 1.0, fcall.args[0].position))
+                    address.add(PtNumber(address.type.base, 1.0, fcall.args[0].position))
                     mem.add(address)
                 } else {
                     mem.add(fcall.args[0])
                 }
-                target = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, memory = mem)
+                target = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingSub(), fcall.position, memory = mem)
             }
             is PtArrayIndexer -> {
                 val indexer = fcall.args[0] as PtArrayIndexer
@@ -670,7 +670,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val msbAdd: Int
                 if(indexer.splitWords) {
                     val arrayVariable = indexer.variable
-                    indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.ARRAY_UB, arrayVariable.position)
+                    indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.arrayFor(BaseDataType.UBYTE), arrayVariable.position)
                     indexer.children[0].parent = indexer
                     elementSize = 1
                     msbAdd = 0
@@ -682,7 +682,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 // double the index because of word array (if not split), add one if msb (if not split)
                 val constIndexNum = (indexer.index as? PtNumber)?.number
                 if(constIndexNum!=null) {
-                    indexer.children[1] = PtNumber(indexer.index.type, constIndexNum*elementSize + msbAdd, indexer.position)
+                    indexer.children[1] = PtNumber(indexer.index.type.base, constIndexNum*elementSize + msbAdd, indexer.position)
                     indexer.children[1].parent = indexer
                 } else {
                     val multipliedIndex: PtExpression
@@ -691,12 +691,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     } else {
                         multipliedIndex = PtBinaryExpression("<<", indexer.index.type, indexer.position)
                         multipliedIndex.add(indexer.index)
-                        multipliedIndex.add(PtNumber(DataType.UBYTE, 1.0, indexer.position))
+                        multipliedIndex.add(PtNumber(BaseDataType.UBYTE, 1.0, indexer.position))
                     }
                     if(msbAdd>0) {
                         val msbIndex = PtBinaryExpression("+", indexer.index.type, indexer.position)
                         msbIndex.add(multipliedIndex)
-                        msbIndex.add(PtNumber(DataType.UBYTE, msbAdd.toDouble(), indexer.position))
+                        msbIndex.add(PtNumber(BaseDataType.UBYTE, msbAdd.toDouble(), indexer.position))
                         indexer.children[1] = msbIndex
                         msbIndex.parent = indexer
                     } else {
@@ -704,7 +704,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         multipliedIndex.parent=indexer
                     }
                 }
-                target = AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, array = indexer)
+                target = AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingSub(), fcall.position, array = indexer)
             }
             else -> throw AssemblyError("setlsb/setmsb on weird target ${fcall.args[0]}")
         }
@@ -719,12 +719,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcSgn(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
-        when (val dt = fcall.args.single().type) {
-            DataType.UBYTE -> asmgen.out("  jsr  prog8_lib.func_sign_ub_into_A")
-            DataType.BYTE -> asmgen.out("  jsr  prog8_lib.func_sign_b_into_A")
-            DataType.UWORD -> asmgen.out("  jsr  prog8_lib.func_sign_uw_into_A")
-            DataType.WORD -> asmgen.out("  jsr  prog8_lib.func_sign_w_into_A")
-            DataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
+        when (val dt = fcall.args.single().type.base) {
+            BaseDataType.UBYTE -> asmgen.out("  jsr  prog8_lib.func_sign_ub_into_A")
+            BaseDataType.BYTE -> asmgen.out("  jsr  prog8_lib.func_sign_b_into_A")
+            BaseDataType.UWORD -> asmgen.out("  jsr  prog8_lib.func_sign_uw_into_A")
+            BaseDataType.WORD -> asmgen.out("  jsr  prog8_lib.func_sign_w_into_A")
+            BaseDataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
             else -> throw AssemblyError("weird type $dt")
         }
         assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, true, true)
@@ -732,24 +732,24 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcAbs(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)
-        val dt = fcall.args.single().type
+        val dt = fcall.args.single().type.base
         when (dt) {
-            DataType.BYTE -> {
+            BaseDataType.BYTE -> {
                 asmgen.out("  jsr  prog8_lib.abs_b_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A,false, true)
             }
-            DataType.WORD -> {
+            BaseDataType.WORD -> {
                 asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
                 assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, scope, asmgen), RegisterOrPair.AY)
             }
-            DataType.FLOAT -> {
+            BaseDataType.FLOAT -> {
                 asmgen.out("  jsr  floats.func_abs_f_into_FAC1")
                 assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, fcall.position, scope, asmgen))
             }
-            DataType.UBYTE -> {
+            BaseDataType.UBYTE -> {
                 asmgen.assignRegister(RegisterOrPair.A, AsmAssignTarget.fromRegisters(resultRegister?:RegisterOrPair.A, false, fcall.position, scope, asmgen))
             }
-            DataType.UWORD -> {
+            BaseDataType.UWORD -> {
                 asmgen.assignRegister(RegisterOrPair.AY, AsmAssignTarget.fromRegisters(resultRegister?:RegisterOrPair.AY, false, fcall.position, scope, asmgen))
             }
             else -> throw AssemblyError("weird type")
@@ -775,8 +775,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 asmgen.assignConstFloatToPointerAY(number)
             }
             else -> {
-                val tempvar = asmgen.getTempVarName(DataType.FLOAT)
-                asmgen.assignExpressionToVariable(fcall.args[1], tempvar, DataType.FLOAT)
+                val tempvar = asmgen.getTempVarName(BaseDataType.FLOAT)
+                asmgen.assignExpressionToVariable(fcall.args[1], tempvar, DataType.forDt(BaseDataType.FLOAT))
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
                 asmgen.out("""
                     pha
@@ -851,7 +851,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.out("  jsr  floats.MOVFM")
         if(resultRegister!=null) {
             assignAsmGen.assignFAC1float(
-                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position, null, null, null, resultRegister, null))
+                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.FLOAT), fcall.definingISub(), fcall.position, null, null, null, resultRegister, null))
         }
     }
 
@@ -919,9 +919,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcClamp(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
-        val signed = fcall.type in SignedDatatypes
-        when(fcall.type) {
-            in ByteDatatypes -> {
+        val signed = fcall.type.isSigned
+        when {
+            fcall.type.isByte -> {
                 assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
                 assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W1+1", fcall.args[2].type)  // maximum
                 assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A, signed)    // value
@@ -929,7 +929,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
                 assignAsmGen.assignRegisterByte(targetReg, CpuRegister.A, signed, true)
             }
-            in WordDatatypes -> {
+            fcall.type.isWord -> {
                 assignAsmGen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W1", fcall.args[1].type)  // minimum
                 assignAsmGen.assignExpressionToVariable(fcall.args[2], "P8ZP_SCRATCH_W2", fcall.args[2].type)  // maximum
                 assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY, signed)    // value
@@ -942,9 +942,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcMin(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
-        val signed = fcall.type in SignedDatatypes
-        when (fcall.type) {
-            in ByteDatatypes -> {
+        val signed = fcall.type.isSigned
+        when {
+            fcall.type.isByte -> {
                 asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left
                 asmgen.out("  cmp  P8ZP_SCRATCH_B1")
@@ -955,7 +955,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
                 asmgen.assignRegister(RegisterOrPair.A, targetReg)
             }
-            in WordDatatypes -> {
+            fcall.type.isWord -> {
                 asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
                 asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
                 if(signed) {
@@ -1000,8 +1000,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcMax(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
-        val signed = fcall.type in SignedDatatypes
-        if(fcall.type in ByteDatatypes) {
+        val signed = fcall.type.isSigned
+        if(fcall.type.isByte) {
             asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
             asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)          // right
             asmgen.out("  cmp  P8ZP_SCRATCH_B1")
@@ -1011,7 +1011,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 +""")
             val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, signed, fcall.position, fcall.definingISub(), asmgen)
             asmgen.assignRegister(RegisterOrPair.A, targetReg)
-        } else if(fcall.type in WordDatatypes) {
+        } else if(fcall.type.isWord) {
             asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", fcall.type)     // left
             asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_W2", fcall.type)     // right
             if(signed) {
@@ -1102,7 +1102,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcMsb(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         val arg = fcall.args.single()
-        if (arg.type !in WordDatatypes)
+        if (!arg.type.isWord)
             throw AssemblyError("msb required word argument")
         if (arg is PtNumber)
             throw AssemblyError("msb(const) should have been const-folded away")
@@ -1201,7 +1201,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcLsb(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         val arg = fcall.args.single()
-        if (arg.type !in WordDatatypes)
+        if (!arg.type.isWord)
             throw AssemblyError("lsb required word argument")
         if (arg is PtNumber)
             throw AssemblyError("lsb(const) should have been const-folded away")
@@ -1284,7 +1284,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun translateArguments(call: PtBuiltinFunctionCall, scope: IPtSubroutine?) {
         val signature = BuiltinFunctions.getValue(call.name)
-        val callConv = signature.callConvention(call.args.map { it.type})
+        val callConv = signature.callConvention(call.args.map {
+            require(it.type.isNumericOrBool)
+            it.type.base
+        })
 
         fun getSourceForFloat(value: PtExpression): AsmAssignSource {
             return when (value) {
@@ -1302,11 +1305,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         throw AssemblyError("cannot use float arguments outside of a subroutine scope")
 
                     asmgen.subroutineExtra(scope).usedFloatEvalResultVar2 = true
-                    val variable = PtIdentifier(subroutineFloatEvalResultVar2, DataType.FLOAT, value.position)
+                    val variable = PtIdentifier(subroutineFloatEvalResultVar2, DataType.forDt(BaseDataType.FLOAT), value.position)
                     val addr = PtAddressOf(value.position)
                     addr.add(variable)
                     addr.parent = call
-                    asmgen.assignExpressionToVariable(value, asmgen.asmVariableName(variable), DataType.FLOAT)
+                    asmgen.assignExpressionToVariable(value, asmgen.asmVariableName(variable), DataType.forDt(BaseDataType.FLOAT))
                     AsmAssignSource.fromAstSource(addr, program, asmgen)
                 }
             }
@@ -1319,9 +1322,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             when {
                 conv.variable -> {
                     val varname = "prog8_lib.func_${call.name}._arg_${paramName}"
-                    val src = when (conv.dt) {
-                        DataType.FLOAT -> getSourceForFloat(value)
-                        in PassByReferenceDatatypes -> {
+                    val src = when  {
+                        conv.dt==BaseDataType.FLOAT -> getSourceForFloat(value)
+                        conv.dt.isPassByRef -> {
                             // put the address of the argument in AY
                             val addr = PtAddressOf(value.position)
                             addr.add(value)
@@ -1332,14 +1335,14 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             AsmAssignSource.fromAstSource(value, program, asmgen)
                         }
                     }
-                    val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, conv.dt, null, value.position, variableAsmName = varname)
+                    val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(conv.dt), null, value.position, variableAsmName = varname)
                     val assign = AsmAssignment(src, tgt, program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign, scope)
                 }
                 conv.reg != null -> {
-                    val src = when (conv.dt) {
-                        DataType.FLOAT -> getSourceForFloat(value)
-                        in PassByReferenceDatatypes -> {
+                    val src = when {
+                        conv.dt==BaseDataType.FLOAT -> getSourceForFloat(value)
+                        conv.dt.isPassByRef -> {
                             // put the address of the argument in AY
                             val addr = PtAddressOf(value.position)
                             addr.add(value)

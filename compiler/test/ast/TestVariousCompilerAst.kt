@@ -1,5 +1,6 @@
 package prog8tests.ast
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
@@ -11,8 +12,10 @@ import prog8.ast.IFunctionCall
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
+import prog8.code.core.SubType
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -557,10 +560,10 @@ main {
         val assign2expr = (stmts[5] as Assignment).value as BinaryExpression
         assign1expr.operator shouldBe "<<"
         val leftval1 = assign1expr.left.constValue(result.compilerAst)!!
-        leftval1.type shouldBe DataType.UWORD
+        leftval1.type shouldBe BaseDataType.UWORD
         leftval1.number shouldBe 1.0
         val leftval2 = assign2expr.left.constValue(result.compilerAst)!!
-        leftval2.type shouldBe DataType.UWORD
+        leftval2.type shouldBe BaseDataType.UWORD
         leftval2.number shouldBe 1.0
     }
 
@@ -834,13 +837,13 @@ main {
         val result = compileText(VMTarget(), optimize=true, src, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
-        val assignUbb = ((st[5] as Assignment).value as TypecastExpression)
-        assignUbb.type shouldBe DataType.UBYTE
-        assignUbb.expression shouldBe instanceOf<IdentifierReference>()
+        val assignUbbVal = ((st[5] as Assignment).value as TypecastExpression)
+        assignUbbVal.type shouldBe BaseDataType.UBYTE
+        assignUbbVal.expression shouldBe instanceOf<IdentifierReference>()
         val assignVaddr = (st[7] as Assignment).value as FunctionCallExpression
         assignVaddr.target.nameInSource shouldBe listOf("mkword")
         val tc = assignVaddr.args[0] as TypecastExpression
-        tc.type shouldBe DataType.UBYTE
+        tc.type shouldBe BaseDataType.UBYTE
         tc.expression shouldBe instanceOf<ArrayIndexedExpression>()
     }
 
@@ -867,6 +870,88 @@ main {
         errors.errors[0] shouldEndWith "cannot assign to 'void'"
         errors.errors[1] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
         errors.errors[2] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
+    }
+
+    test("datatype subtype consistencies") {
+        shouldThrow<NoSuchElementException> {
+            SubType.forDt(BaseDataType.STR)
+        }
+        shouldThrow<NoSuchElementException> {
+            SubType.forDt(BaseDataType.UNDEFINED)
+        }
+        shouldThrow<NoSuchElementException> {
+            SubType.forDt(BaseDataType.ARRAY_SPLITW)
+        }
+        shouldThrow<NoSuchElementException> {
+            SubType.forDt(BaseDataType.ARRAY)
+        }
+        SubType.forDt(BaseDataType.FLOAT).dt shouldBe BaseDataType.FLOAT
+    }
+
+    test("datatype consistencies") {
+        shouldThrow<NoSuchElementException> {
+            DataType.forDt(BaseDataType.ARRAY)
+        }
+        shouldThrow<NoSuchElementException> {
+            DataType.forDt(BaseDataType.ARRAY_SPLITW)
+        }
+        DataType.forDt(BaseDataType.UNDEFINED).isUndefined shouldBe true
+        DataType.forDt(BaseDataType.LONG).isLong shouldBe true
+        DataType.forDt(BaseDataType.WORD).isWord shouldBe true
+        DataType.forDt(BaseDataType.UWORD).isWord shouldBe true
+        DataType.forDt(BaseDataType.BYTE).isByte shouldBe true
+        DataType.forDt(BaseDataType.UBYTE).isByte shouldBe true
+
+        shouldThrow<NoSuchElementException> {
+            DataType.arrayFor(BaseDataType.ARRAY)
+        }
+        shouldThrow<NoSuchElementException> {
+            DataType.arrayFor(BaseDataType.LONG)
+        }
+        shouldThrow<NoSuchElementException> {
+            DataType.arrayFor(BaseDataType.UNDEFINED)
+        }
+        shouldThrow<IllegalArgumentException> {
+            DataType.arrayFor(BaseDataType.UBYTE, true)
+        }
+
+        DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe false
+        DataType.arrayFor(BaseDataType.UWORD, true).isArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, true).isSplitWordArray shouldBe true
+    }
+
+    test("array of strings becomes array of uword pointers") {
+        val src="""
+            main {
+                sub start() {
+                    str variable = "name1"
+                    str[2] @shared names = [ variable, "name2" ]
+                }
+            }"""
+
+        val result = compileText(C64Target(), false, src, writeAssembly = true)
+        result shouldNotBe null
+
+        val st1 = result!!.compilerAst.entrypoint.statements
+        st1.size shouldBe 3
+        st1[0] shouldBe instanceOf<VarDecl>()
+        st1[1] shouldBe instanceOf<VarDecl>()
+        (st1[0] as VarDecl).name shouldBe "variable"
+        (st1[1] as VarDecl).name shouldBe "names"
+        val array1 = (st1[1] as VarDecl).value as ArrayLiteral
+        array1.type.isArray shouldBe true
+        array1.type.getOrUndef() shouldBe DataType.arrayFor(BaseDataType.UWORD, false)
+
+        val ast2 = result.codegenAst!!
+        val st2 = ast2.entrypoint()!!.children
+        st2.size shouldBe 3
+        (st2[0] as PtVariable).name shouldBe "p8v_variable"
+        (st2[1] as PtVariable).name shouldBe "p8v_names"
+        val array2 = (st2[1] as PtVariable).value as PtArray
+        array2.type shouldBe DataType.arrayFor(BaseDataType.UWORD, false)
     }
 
     test("defer syntactic sugaring") {

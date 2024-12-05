@@ -138,7 +138,7 @@ class AstPreprocessor(val program: Program,
                         }
                     } else {
                         // handle declaration of a single variable
-                        if(decl.value!=null && (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL)) {
+                        if(decl.value!=null && decl.datatype.isNumericOrBool) {
                             val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, null, false, decl.position)
                             val assign = Assignment(target, decl.value!!, AssignmentOrigin.VARINIT, decl.position)
                             replacements.add(IAstModification.ReplaceNode(decl, assign, scope))
@@ -185,7 +185,7 @@ class AstPreprocessor(val program: Program,
             return makeSplitArray(decl)
         }
 
-        if(decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW) {
+        if(decl.datatype.isWordArray) {
             if ("splitarrays" in decl.definingBlock.options())
                 return makeSplitArray(decl)
             if ("splitarrays" in decl.definingModule.options())
@@ -196,14 +196,10 @@ class AstPreprocessor(val program: Program,
     }
 
     private fun shouldSplitArray(decl: VarDecl): Boolean =
-        options.splitWordArrays && (decl.datatype==DataType.ARRAY_W || decl.datatype==DataType.ARRAY_UW) && !decl.definingBlock.isInLibrary
+        options.splitWordArrays && (decl.datatype.isWordArray && !decl.datatype.isSplitWordArray) && !decl.definingBlock.isInLibrary
 
     private fun makeSplitArray(decl: VarDecl): Iterable<IAstModification> {
-        val splitDt = when(decl.datatype) {
-            DataType.ARRAY_UW, DataType.ARRAY_UW_SPLIT -> DataType.ARRAY_UW_SPLIT
-            DataType.ARRAY_W,DataType.ARRAY_W_SPLIT -> DataType.ARRAY_W_SPLIT
-            else -> throw FatalAstException("invalid dt")
-        }
+        val splitDt = DataType.arrayFor(decl.datatype.sub!!.dt, true)
         val newDecl = VarDecl(
             decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name, emptyList(),
             decl.value?.copy(), decl.sharedWithAsm, true, decl.alignment, false, decl.position
@@ -276,7 +272,7 @@ class AstPreprocessor(val program: Program,
         if(targetStatement!=null) {
             if(targetStatement is Subroutine) {
                 for(arg in call.args.zip(targetStatement.parameters)) {
-                    if(arg.first.inferType(program).isBytes && arg.second.type==DataType.STR) {
+                    if(arg.first.inferType(program).isBytes && arg.second.type.isString) {
                         errors.err("cannot use byte value for string parameter", arg.first.position)
                     }
                 }

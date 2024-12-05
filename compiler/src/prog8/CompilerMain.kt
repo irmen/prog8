@@ -3,7 +3,9 @@ package prog8
 import kotlinx.cli.*
 import prog8.ast.base.AstException
 import prog8.code.core.CbmPrgLauncherType
-import prog8.code.target.*
+import prog8.code.target.CompilationTargets
+import prog8.code.target.Cx16Target
+import prog8.code.target.getCompilationTargetByName
 import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments

@@ -4,7 +4,6 @@ import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -41,7 +40,7 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
         if(vardecl!=null) {
             // adjust the datatype of the array (to an educated guess from the vardecl type)
             val arrayDt = array.type
-            if(arrayDt isnot vardecl.datatype) {
+            if(!(arrayDt istype vardecl.datatype)) {
                 val cast = array.cast(vardecl.datatype)
                 if(cast!=null && cast !== array)
                     return listOf(IAstModification.ReplaceNode(vardecl.value!!, cast, vardecl))
@@ -50,10 +49,10 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
             val arrayDt = array.guessDatatype(program)
             if(arrayDt.isUnknown)
                 return noModifications
-            val elementDt = ArrayToElementTypes.getValue(arrayDt.getOr(DataType.UNDEFINED))
-            val maxSize = when(elementDt) {
-                in ByteDatatypesWithBoolean -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE
-                in WordDatatypes -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD
+            val elementDt = arrayDt.getOrUndef().elementType()
+            val maxSize = when {
+                elementDt.isByteOrBool -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE
+                elementDt.isWord -> PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD
                 else -> 0
             }
             if(parent is ContainmentCheck && array.value.size <= maxSize) {
@@ -65,9 +64,9 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
                     val parentAssign = parent as? Assignment
                     val targetDt = parentAssign?.target?.inferType(program) ?: arrayDt
                     // turn the array literal it into an identifier reference
-                    val litval2 = array.cast(targetDt.getOr(DataType.UNDEFINED))
+                    val litval2 = array.cast(targetDt.getOrUndef())
                     if (litval2 != null) {
-                        val vardecl2 = VarDecl.createAuto(litval2, targetDt.getOr(DataType.UNDEFINED) in SplitWordArrayTypes)
+                        val vardecl2 = VarDecl.createAuto(litval2, targetDt.getOrUndef().isSplitWordArray)
                         val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                         return listOf(
                             IAstModification.ReplaceNode(array, identifier, parent),
@@ -107,7 +106,7 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
 
             // note: the desugaring of a multi-variable vardecl has to be done here
             // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
-            if(decl.datatype !in NumericDatatypesWithBoolean)
+            if(!decl.datatype.isNumericOrBool)
                 errors.err("can only multi declare numeric and boolean variables", decl.position)
             if(decl.alignment != 0u) {
                 errors.err("only single variable declarations can have alignment", decl.position)
@@ -172,11 +171,7 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
     }
 
     private fun makeNormalArrayFromSplit(variable: VarDecl): VarDecl {
-        val normalDt = when(variable.datatype) {
-            DataType.ARRAY_UW_SPLIT -> DataType.ARRAY_UW
-            DataType.ARRAY_W_SPLIT -> DataType.ARRAY_W
-            else -> throw FatalAstException("invalid dt")
-        }
+        val normalDt = DataType.arrayFor(variable.datatype.sub!!.dt, false)
         return VarDecl(
             variable.type, variable.origin, normalDt, variable.zeropage, variable.arraysize, variable.name, emptyList(),
             variable.value?.copy(), variable.sharedWithAsm, false, variable.alignment, variable.dirty, variable.position

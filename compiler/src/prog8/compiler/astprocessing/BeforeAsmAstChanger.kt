@@ -26,7 +26,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if (decl.type == VarDeclType.VAR && decl.value != null && (decl.datatype in NumericDatatypes || decl.datatype==DataType.BOOL)) {
+        if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype.isNumericOrBool) {
             throw InternalCompilerException("vardecls with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
         }
 
@@ -158,11 +158,11 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             }
         }
 
-        if(rightNum!=null && rightNum.type in IntegerDatatypes && rightNum.number!=0.0) {
+        if(rightNum!=null && rightNum.type.isInteger && rightNum.number!=0.0) {
             when(expr.operator) {
                 ">" -> {
                     // X>N  ->  X>=N+1,   easier to do in 6502
-                    val maximum = if(rightNum.type in ByteDatatypes) 255 else 65535
+                    val maximum = if(rightNum.type.isByte) 255 else 65535
                     if(rightNum.number<maximum) {
                         val numPlusOne = rightNum.number.toInt()+1
                         val newExpr = BinaryExpression(expr.left, ">=", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)
@@ -171,7 +171,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 }
                 "<=" -> {
                     // X<=N ->  X<N+1,    easier to do in 6502
-                    val maximum = if(rightNum.type in ByteDatatypes) 255 else 65535
+                    val maximum = if(rightNum.type.isByte) 255 else 65535
                     if(rightNum.number<maximum) {
                         val numPlusOne = rightNum.number.toInt()+1
                         val newExpr = BinaryExpression(expr.left, "<", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)

@@ -12,10 +12,7 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
-import prog8.code.core.DataType
-import prog8.code.core.Position
-import prog8.code.core.SourceCode
-import prog8.code.core.ZeropageWish
+import prog8.code.core.*
 import prog8.code.target.*
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
@@ -114,7 +111,7 @@ class TestMemory: FunSpec({
     }
 
     fun createTestProgramForMemoryRefViaVar(address: UInt, vartype: VarDeclType): AssignTarget {
-        val decl = VarDecl(vartype, VarDeclOrigin.USERCODE, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
+        val decl = VarDecl(vartype, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.BYTE), ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
         val memexpr = IdentifierReference(listOf("address"), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -152,7 +149,7 @@ class TestMemory: FunSpec({
     }
 
     test("regular variable not in mapped IO ram on C64") {
-        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.BYTE, ZeropageWish.DONTCARE, null, "address", emptyList(), null, false, false, 0u, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.BYTE), ZeropageWish.DONTCARE, null, "address", emptyList(), null, false, false, 0u, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
@@ -164,7 +161,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped variable not in mapped IO ram on C64") {
         val address = 0x1000u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.UBYTE), ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
@@ -176,7 +173,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped variable in mapped IO ram on C64") {
         val address = 0xd020u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.UBYTE), ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         val subroutine = Subroutine("test", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, mutableListOf(decl, assignment), Position.DUMMY)
@@ -187,7 +184,7 @@ class TestMemory: FunSpec({
     }
 
     test("array not in mapped IO ram") {
-        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), null, false, false, 0u, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.arrayFor(BaseDataType.UBYTE), ZeropageWish.DONTCARE, null, "address", emptyList(), null, false, false, 0u, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -200,7 +197,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped array not in mapped IO ram") {
         val address = 0x1000u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.arrayFor(BaseDataType.UBYTE), ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -213,7 +210,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped array in mapped IO ram") {
         val address = 0xd800u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.ARRAY_UB, ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
+        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.arrayFor(BaseDataType.UBYTE), ZeropageWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, false, 0u, false, Position.DUMMY)
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -249,31 +246,43 @@ class TestMemory: FunSpec({
 
     context("memsizer") {
         withData(VMTarget(), AtariTarget(), C64Target(), PETTarget(), AtariTarget(), C128Target()) { target ->
-            shouldThrow<IllegalArgumentException> {
-                target.memorySize(DataType.UNDEFINED)
-            }
-            shouldThrow<IllegalArgumentException> {
-                target.memorySize(DataType.LONG)
-            }
-            target.memorySize(DataType.BOOL) shouldBe 1
-            target.memorySize(DataType.BYTE) shouldBe 1
-            target.memorySize(DataType.WORD) shouldBe 2
-            target.memorySize(DataType.FLOAT) shouldBe target.machine.FLOAT_MEM_SIZE
-            target.memorySize(DataType.STR) shouldBe 2
-            target.memorySize(DataType.ARRAY_UB) shouldBe 2
-            target.memorySize(DataType.ARRAY_UW) shouldBe 2
-            target.memorySize(DataType.ARRAY_F) shouldBe 2
-
             shouldThrow<NoSuchElementException> {
-                target.memorySize(DataType.UBYTE, 10)
+                target.memorySize(SubType.forDt(BaseDataType.UNDEFINED))
             }
-            target.memorySize(DataType.UWORD, 10) shouldBe 10   // uword is pointer to array of bytes
-            target.memorySize(DataType.ARRAY_B, 10) shouldBe 10
-            target.memorySize(DataType.ARRAY_UB, 10) shouldBe 10
-            target.memorySize(DataType.ARRAY_F, 10) shouldBe 10*target.machine.FLOAT_MEM_SIZE
-            target.memorySize(DataType.ARRAY_UW, 10) shouldBe 20
-            target.memorySize(DataType.ARRAY_W_SPLIT, 10) shouldBe 20
-            target.memorySize(DataType.ARRAY_UW_SPLIT, 10) shouldBe 20
+            shouldThrow<NoSuchElementException> {
+                target.memorySize(SubType.forDt(BaseDataType.LONG))
+            }
+            shouldThrow<NoSuchElementException> {
+                target.memorySize(SubType.forDt(BaseDataType.STR))
+            }
+            shouldThrow<NoSuchElementException> {
+                target.memorySize(SubType.forDt(BaseDataType.ARRAY))
+            }
+            shouldThrow<NoSuchElementException> {
+                target.memorySize(SubType.forDt(BaseDataType.ARRAY_SPLITW))
+            }
+            target.memorySize(SubType.forDt(BaseDataType.BOOL)) shouldBe 1
+            target.memorySize(SubType.forDt(BaseDataType.BYTE)) shouldBe 1
+            target.memorySize(SubType.forDt(BaseDataType.WORD)) shouldBe 2
+            target.memorySize(SubType.forDt(BaseDataType.FLOAT)) shouldBe target.machine.FLOAT_MEM_SIZE
+
+            target.memorySize(DataType.forDt(BaseDataType.UNDEFINED), null) shouldBe 2
+            target.memorySize(DataType.forDt(BaseDataType.BOOL), null) shouldBe 1
+            target.memorySize(DataType.forDt(BaseDataType.WORD), null) shouldBe 2
+            target.memorySize(DataType.forDt(BaseDataType.FLOAT), null) shouldBe target.machine.FLOAT_MEM_SIZE
+            target.memorySize(DataType.forDt(BaseDataType.STR), null) shouldBe 2
+
+            target.memorySize(DataType.arrayFor(BaseDataType.BOOL), 10) shouldBe 10
+            target.memorySize(DataType.arrayFor(BaseDataType.BYTE), 10) shouldBe 10
+            target.memorySize(DataType.arrayFor(BaseDataType.WORD), 10) shouldBe 20
+            target.memorySize(DataType.arrayFor(BaseDataType.WORD), 10) shouldBe 20
+            target.memorySize(DataType.arrayFor(BaseDataType.FLOAT), 10) shouldBe 10*target.machine.FLOAT_MEM_SIZE
+            target.memorySize(DataType.arrayFor(BaseDataType.WORD, true), 10) shouldBe 20
+            target.memorySize(DataType.arrayFor(BaseDataType.UWORD, true), 10) shouldBe 20
+
+            target.memorySize(DataType.forDt(BaseDataType.BOOL), 10) shouldBe 10
+            target.memorySize(DataType.forDt(BaseDataType.UWORD), 10) shouldBe 20
+            target.memorySize(DataType.forDt(BaseDataType.FLOAT), 10) shouldBe 10*target.machine.FLOAT_MEM_SIZE
         }
     }
 })

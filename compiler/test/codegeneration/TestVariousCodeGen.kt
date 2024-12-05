@@ -13,6 +13,7 @@ import prog8.code.ast.PtFunctionCall
 import prog8.code.ast.PtIfElse
 import prog8.code.ast.PtPrefix
 import prog8.code.ast.PtVariable
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.*
 import prog8tests.helpers.ErrorReporterForTests
@@ -77,7 +78,7 @@ main {
         val seed = start.children[0] as PtVariable
         seed.name shouldBe "p8v_seed"
         seed.value shouldBe null
-        seed.type shouldBe DataType.ARRAY_UW
+        seed.type shouldBe DataType.arrayFor(BaseDataType.UWORD)
         val assign = start.children[1] as PtAssignment
         assign.target.identifier!!.name shouldBe "cx16.r0"
         assign.value shouldBe instanceOf<PtBinaryExpression>()

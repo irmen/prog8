@@ -32,13 +32,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 errors.err("value has incompatible type for ${decl.datatype}", decl.value!!.position)
                 return noModifications
             }
-            val valueDt = valueType.getOr(DataType.UNDEFINED)
+            val valueDt = valueType.getOrUndef()
             when(decl.type) {
                 VarDeclType.VAR -> {
                     if(decl.isArray) {
                         errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
                     } else {
-                        if (valueDt.largerThan(decl.datatype)) {
+                        if (valueDt.largerSizeThan(decl.datatype)) {
                             val constValue = decl.value?.constValue(program)
                             if (constValue != null)
                                 errors.err("value '$constValue' out of range for ${decl.datatype}", constValue.position)
@@ -51,13 +51,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 }
                 VarDeclType.CONST -> {
                     // change the vardecl type itself as well, but only if new type is smaller
-                    if(valueDt.largerThan(decl.datatype)) {
+                    if(valueDt.largerSizeThan(decl.datatype)) {
                         val constValue = decl.value!!.constValue(program)!!
                         errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                     } else {
                         // don't make it signed if it was unsigned and vice versa
-                        if(valueDt in SignedDatatypes && decl.datatype !in SignedDatatypes ||
-                            valueDt !in SignedDatatypes && decl.datatype in SignedDatatypes) {
+                        if(valueDt.isSigned && decl.datatype.isUnsigned ||
+                            valueDt.isUnsigned && decl.datatype.isSigned) {
                             val constValue = decl.value!!.constValue(program)!!
                             errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                         } else {
@@ -105,12 +105,12 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         val sourceDt = typecast.expression.inferType(program)
-        if(sourceDt istype typecast.type)
+        if(sourceDt issimpletype typecast.type)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {
-            val targetDt = parent.target.inferType(program).getOr(DataType.UNDEFINED)
-            if(targetDt!=DataType.UNDEFINED && sourceDt istype targetDt) {
+            val targetDt = parent.target.inferType(program).getOrUndef()
+            if(!targetDt.isUndefined && sourceDt istype targetDt) {
                 // we can get rid of this typecast because the type is already the target type
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
             }
@@ -160,7 +160,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             // ^ X --> 0  (X is word or byte)
             val valueDt = expr.expression.inferType(program)
             if(valueDt.isBytes || valueDt.isWords) {
-                val zero = NumericLiteral(DataType.UBYTE, 0.0, expr.expression.position)
+                val zero = NumericLiteral(BaseDataType.UBYTE, 0.0, expr.expression.position)
                 return listOf(IAstModification.ReplaceNode(expr, zero, parent))
             }
         }
@@ -204,17 +204,17 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if(isMultiComparisonRecurse(leftBinExpr1)) {
                     val elementIType = needle.inferType(program)
                     if(elementIType.isUnknown) return noModifications
-                    val elementType = elementIType.getOrElse { DataType.UNDEFINED }
-                    if(values.size==2 || values.size==3 && (elementType==DataType.UBYTE || elementType==DataType.UWORD)) {
+                    val elementType = elementIType.getOrUndef()
+                    if(values.size==2 || values.size==3 && (elementType.isUnsignedByte || elementType.isUnsignedWord)) {
                         val numbers = values.map{it.number}.toSet()
                         if(numbers == setOf(0.0, 1.0)) {
                             // we can replace unsigned  x==0 or x==1 with x<2
-                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType, 2.0, expr.position), expr.position)
+                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.base, 2.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
                         if(numbers == setOf(0.0, 1.0, 2.0)) {
                             // we can replace unsigned  x==0 or x==1 or x==2 with x<3
-                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType, 3.0, expr.position), expr.position)
+                            val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.base, 3.0, expr.position), expr.position)
                             return listOf(IAstModification.ReplaceNode(expr, compare, parent))
                         }
                     }
@@ -223,7 +223,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
                     // replace x==1 or x==2 or x==3  with a containment check  x in [1,2,3]
                     val valueCopies = values.sortedBy { it.number }.map { it.copy() }
-                    val arrayType = ElementToArrayTypes.getValue(elementType)
+                    val arrayType = DataType.arrayFor(elementType.base)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
                     val containment = ContainmentCheck(needle, valuesArray, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, containment, parent))
@@ -265,7 +265,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         fun replaceWithFalse(): Iterable<IAstModification> {
             errors.warn("condition is always false", containment.position)
-            return listOf(IAstModification.ReplaceNode(containment, NumericLiteral(DataType.UBYTE, 0.0, containment.position), parent))
+            return listOf(IAstModification.ReplaceNode(containment, NumericLiteral(BaseDataType.UBYTE, 0.0, containment.position), parent))
         }
 
         fun checkArray(array: Array<Expression>): Iterable<IAstModification> {
@@ -301,7 +301,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 return replaceWithFalse()
             if(stringVal.value.length==1) {
                 val string = program.encoding.encodeString(stringVal.value, stringVal.encoding)
-                return replaceWithEquals(NumericLiteral(DataType.UBYTE, string[0].toDouble(), stringVal.position))
+                return replaceWithEquals(NumericLiteral(BaseDataType.UBYTE, string[0].toDouble(), stringVal.position))
             }
             return noModifications
         }
@@ -370,7 +370,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         if(name==listOf("msw")) {
             val valueDt = functionCallExpr.args[0].inferType(program)
             if(valueDt.isWords || valueDt.isBytes) {
-                val zero = NumericLiteral(DataType.UWORD, 0.0, functionCallExpr.position)
+                val zero = NumericLiteral(BaseDataType.UWORD, 0.0, functionCallExpr.position)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, zero, parent))
             }
         } else if(name==listOf("lsw")) {
@@ -378,7 +378,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(valueDt.isWords)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
             if(valueDt.isBytes) {
-                val cast = TypecastExpression(functionCallExpr.args[0], DataType.UWORD, true, functionCallExpr.position)
+                val cast = TypecastExpression(functionCallExpr.args[0], BaseDataType.UWORD, true, functionCallExpr.position)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
             }
         }

@@ -8,6 +8,7 @@ import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.SourceCode
 import prog8.code.target.C64Target
@@ -37,10 +38,10 @@ class TestSubroutines: FunSpec({
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.parameters.single().type shouldBe DataType.STR
+        asmfunc.parameters.single().type shouldBe DataType.forDt(BaseDataType.STR)
         asmfunc.statements.isEmpty() shouldBe true
         func.isAsmSubroutine shouldBe false
-        func.parameters.single().type shouldBe DataType.STR
+        func.parameters.single().type shouldBe DataType.forDt(BaseDataType.STR)
         func.statements.isEmpty() shouldBe true
     }
 
@@ -62,10 +63,10 @@ class TestSubroutines: FunSpec({
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.parameters.single().type shouldBe DataType.ARRAY_UB
+        asmfunc.parameters.single().type shouldBe DataType.arrayFor(BaseDataType.UBYTE)
         asmfunc.statements.isEmpty() shouldBe true
         func.isAsmSubroutine shouldBe false
-        func.parameters.single().type shouldBe DataType.ARRAY_UB
+        func.parameters.single().type shouldBe DataType.arrayFor(BaseDataType.UBYTE)
         func.statements.isEmpty() shouldBe true
     }
 

@@ -13,6 +13,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.Position
@@ -35,8 +36,7 @@ class TestCompilerOnRanges: FunSpec({
         val result = compileText(platform, false, """
             main {
                 sub start() {
-                    ubyte[] cs = sc:'a' to 'z' ; values are computed at compile time 
-                    cs[0] = 23 ; keep optimizer from removing it
+                    ubyte[] @shared cs = sc:'a' to sc:'z' ; values are computed at compile time 
                 }
             }
         """)!!
@@ -49,7 +49,7 @@ class TestCompilerOnRanges: FunSpec({
             .value // Array<Expression>
             .map { (it as NumericLiteral).number.toInt() }
         val expectedStart = platform.encodeString("a", Encoding.SCREENCODES)[0].toInt()
-        val expectedEnd = platform.encodeString("z", Encoding.PETSCII)[0].toInt()
+        val expectedEnd = platform.encodeString("z", Encoding.SCREENCODES)[0].toInt()
         val expectedStr = "$expectedStart .. $expectedEnd"
 
         val actualStr = "${rhsValues.first()} .. ${rhsValues.last()}"
@@ -67,8 +67,7 @@ class TestCompilerOnRanges: FunSpec({
             %import floats
             main {
                 sub start() {
-                    float[] cs = 'a' to 'z' ; values are computed at compile time 
-                    cs[0] = 23 ; keep optimizer from removing it
+                    float[] @shared cs = 'a' to 'z' ; values are computed at compile time 
                 }
             }
         """)!!
@@ -117,8 +116,7 @@ class TestCompilerOnRanges: FunSpec({
                     $optEnableFloats
                     main {
                         sub start() {
-                            float[$sizeInDecl] cs = 1 to 42 ; values are computed at compile time
-                            cs[0] = 23 ; keep optimizer from removing it
+                            float[$sizeInDecl] @shared cs = 1 to 42 ; values are computed at compile time
                         }
                     }
                 """)
@@ -227,7 +225,7 @@ class TestCompilerOnRanges: FunSpec({
             .map { it.iterable }
             .filterIsInstance<IdentifierReference>()[0]
 
-        iterable.inferType(program).getOr(DataType.UNDEFINED) shouldBe DataType.STR
+        iterable.inferType(program).getOrUndef() shouldBe DataType.forDt(BaseDataType.STR)
     }
 
     test("testRangeExprNumericSize") {
@@ -266,7 +264,7 @@ class TestCompilerOnRanges: FunSpec({
         (array as ArrayLiteral).value.size shouldBe 26
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
-        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.BYTE, -2.0, Position.DUMMY)
+        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(BaseDataType.BYTE, -2.0, Position.DUMMY)
     }
 
     test("range with start/end variables should be ok") {
@@ -285,7 +283,7 @@ class TestCompilerOnRanges: FunSpec({
         val statements = result.compilerAst.entrypoint.statements
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
-        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(DataType.BYTE, -2.0, Position.DUMMY)
+        (forloop.iterable as RangeExpression).step shouldBe NumericLiteral(BaseDataType.BYTE, -2.0, Position.DUMMY)
     }
 
 
