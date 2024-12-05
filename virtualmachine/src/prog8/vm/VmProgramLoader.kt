@@ -1,7 +1,6 @@
 package prog8.vm
 
 import prog8.code.Either
-import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.left
 import prog8.code.right

@@ -19,14 +19,14 @@ internal class AssemblyProgram(
     private val binFile = outputDir.resolve("$name.bin")
     private val viceMonListFile = outputDir.resolve(C64Target.viceMonListName(name))
     private val listFile = outputDir.resolve("$name.list")
-    private val targetWithoutBreakpointsForEmulator = setOf(AtariTarget.NAME, Neo6502Target.NAME)
+    private val targetWithoutBreakpointsForEmulator = arrayOf(AtariTarget.NAME, Neo6502Target.NAME)
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
 
         val assemblerCommand: List<String>
 
         when (compTarget.name) {
-            in setOf("c64", "c128", "cx16", "pet32") -> {
+            in arrayOf("c64", "c128", "cx16", "pet32") -> {
                 // CBM machines .prg generation.
 
                 // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)

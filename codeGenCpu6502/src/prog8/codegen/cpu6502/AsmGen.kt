@@ -228,8 +228,8 @@ class AsmGen6502Internal (
     private var generatedLabelSequenceNumber: Int
 ) {
 
-    internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
-    internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
+    internal val optimizedByteMultiplications = arrayOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
+    internal val optimizedWordMultiplications = arrayOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.machine.zeropage
     private val allocator = VariableAllocator(symbolTable, options, errors)
@@ -241,7 +241,8 @@ class AsmGen6502Internal (
     private val anyExprGen = AnyExprAsmGen(this)
     private val assignmentAsmGen = AssignmentAsmGen(program, this, anyExprGen, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
-    private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, allocator, assignmentAsmGen, errors)
+    private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, assignmentAsmGen, errors)
+    private val ifExpressionAsmgen = IfExpressionAsmGen(this, assignmentAsmGen, errors)
 
     fun compileToAssembly(): IAssemblyProgram? {
 
@@ -1370,7 +1371,7 @@ $repeatLabel""")
         return "${PtLabel.GeneratedLabelPrefix}${generatedLabelSequenceNumber}_$postfix"
     }
 
-    fun assignConstFloatToPointerAY(number: PtNumber) {
+    internal fun assignConstFloatToPointerAY(number: PtNumber) {
         val floatConst = allocator.getFloatAsmConst(number.number)
         out("""
             pha
@@ -1383,7 +1384,158 @@ $repeatLabel""")
     }
 
     internal fun assignIfExpression(target: AsmAssignTarget, value: PtIfExpression) {
-        ifElseAsmgen.assignIfExpression(target, value)
+        ifExpressionAsmgen.assignIfExpression(target, value)
+    }
+
+    internal fun cmpAwithByteValue(value: PtExpression, useSbc: Boolean) {
+        val compare = if(useSbc) "sec |  sbc" else "cmp"
+        fun cmpViaScratch() {
+            if(assignmentAsmGen.directIntoY(value)) {
+                assignExpressionToRegister(value, RegisterOrPair.Y, false)
+                out("  sty  P8ZP_SCRATCH_REG")
+            } else {
+                out("  pha")
+                assignExpressionToVariable(value, "P8ZP_SCRATCH_REG", value.type)
+                out("  pla")
+            }
+            out("  $compare  P8ZP_SCRATCH_REG")
+        }
+
+        when(value) {
+            is PtArrayIndexer -> {
+                val constIndex = value.index.asConstInteger()
+                if(constIndex!=null) {
+                    val offset = program.memsizer.memorySize(value.type, constIndex)
+                    if(offset<256) {
+                        return out("  ldy  #$offset |  $compare  ${asmVariableName(value.variable)},y")
+                    }
+                }
+                cmpViaScratch()
+            }
+            is PtMemoryByte -> {
+                val constAddr = value.address.asConstInteger()
+                if(constAddr!=null) {
+                    out("  $compare  ${constAddr.toHex()}")
+                } else {
+                    cmpViaScratch()
+                }
+            }
+            is PtIdentifier -> {
+                out("  $compare  ${asmVariableName(value)}")
+            }
+            is PtNumber -> {
+                if(value.number!=0.0)
+                    out("  $compare  #${value.number.toInt()}")
+            }
+            else -> {
+                cmpViaScratch()
+            }
+        }
+    }
+
+    internal fun assignConditionValueToRegisterAndTest(condition: PtExpression) {
+        assignExpressionToRegister(condition, RegisterOrPair.A, false)
+        when(condition) {
+            is PtNumber,
+            is PtBool,
+            is PtIdentifier,
+            is PtIrRegister,
+            is PtArrayIndexer,
+            is PtPrefix,
+            is PtIfExpression,
+            is PtBinaryExpression -> { /* no cmp necessary the lda has been done just prior */ }
+            is PtTypeCast -> {
+                if(!condition.value.type.isByte && !condition.value.type.isWord)
+                    out("  cmp  #0")
+            }
+            else -> out("  cmp  #0")
+        }
+    }
+
+    internal fun translateFloatsEqualsConditionIntoA(left: PtExpression, right: PtExpression) {
+        fun equalf(leftName: String, rightName: String) {
+            out("""
+                    lda  #<$leftName
+                    ldy  #>$leftName
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<$rightName
+                    ldy  #>$rightName
+                    jsr  floats.vars_equal_f""")
+        }
+        fun equalf(expr: PtExpression, rightName: String) {
+            assignExpressionToRegister(expr, RegisterOrPair.FAC1, true)
+            out("""
+                    lda  #<$rightName
+                    ldy  #>$rightName
+                    jsr  floats.var_fac1_equal_f""")
+        }
+        if(left is PtIdentifier) {
+            when (right) {
+                is PtIdentifier -> equalf(asmVariableName(left), asmVariableName(right))
+                is PtNumber -> equalf(asmVariableName(left), allocator.getFloatAsmConst(right.number))
+                else -> {
+                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
+                    equalf(asmVariableName(left), subroutineFloatEvalResultVar1)
+                    subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
+                }
+            }
+        } else {
+            when (right) {
+                is PtIdentifier -> equalf(left, asmVariableName(right))
+                is PtNumber -> equalf(left, allocator.getFloatAsmConst(right.number))
+                else -> {
+                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
+                    equalf(left, subroutineFloatEvalResultVar1)
+                    subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
+                }
+            }
+        }
+    }
+
+    internal fun translateFloatsLessConditionIntoA(left: PtExpression, right: PtExpression, lessOrEquals: Boolean) {
+        fun lessf(leftName: String, rightName: String) {
+            out("""
+                lda  #<$rightName
+                ldy  #>$rightName
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  #<$leftName
+                ldy  #>$leftName""")
+            if(lessOrEquals)
+                out("jsr  floats.vars_lesseq_f")
+            else
+                out("jsr  floats.vars_less_f")
+        }
+        fun lessf(expr: PtExpression, rightName: String) {
+            assignExpressionToRegister(expr, RegisterOrPair.FAC1, true)
+            out("  lda  #<$rightName |  ldy  #>$rightName")
+            if(lessOrEquals)
+                out("  jsr  floats.var_fac1_lesseq_f")
+            else
+                out("  jsr  floats.var_fac1_less_f")
+        }
+        if(left is PtIdentifier) {
+            when (right) {
+                is PtIdentifier -> lessf(asmVariableName(left), asmVariableName(right))
+                is PtNumber -> lessf(asmVariableName(left), allocator.getFloatAsmConst(right.number))
+                else -> {
+                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
+                    lessf(asmVariableName(left), subroutineFloatEvalResultVar1)
+                    subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
+                }
+            }
+        } else {
+            when (right) {
+                is PtIdentifier -> lessf(left, asmVariableName(right))
+                is PtNumber -> lessf(left, allocator.getFloatAsmConst(right.number))
+                else -> {
+                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
+                    lessf(left, subroutineFloatEvalResultVar1)
+                    subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
+                }
+            }
+        }
     }
 }
 

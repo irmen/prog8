@@ -1125,7 +1125,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            if(arg is PtArrayIndexer && resultRegister in setOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
+            if(arg is PtArrayIndexer && resultRegister in arrayOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
                 // just read the msb byte out of the word array
                 if(arg.splitWords) {
                     val arrayVar = asmgen.asmVariableName(arg.variable)+"_msb"
@@ -1225,7 +1225,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            if(arg is PtArrayIndexer && resultRegister in setOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
+            if(arg is PtArrayIndexer && resultRegister in arrayOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
                 // just read the lsb byte out of the word array
                 val arrayVar = if(arg.splitWords) asmgen.asmVariableName(arg.variable)+"_lsb" else asmgen.asmVariableName(arg.variable)
                 when(resultRegister) {

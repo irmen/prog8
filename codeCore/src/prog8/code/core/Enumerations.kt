@@ -334,7 +334,7 @@ val Cx16VirtualRegisters = arrayOf(
     RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15
 )
 
-val CpuRegisters = setOf(
+val CpuRegisters = arrayOf(
     RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y,
     RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY
 )

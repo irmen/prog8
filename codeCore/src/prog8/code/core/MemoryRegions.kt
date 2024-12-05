@@ -38,7 +38,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
             for (reserved in options.zpReserved)
                 reserve(reserved)
 
-            free.removeAll(setOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u))
+            free.removeAll(arrayOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u))
         }
     }
 

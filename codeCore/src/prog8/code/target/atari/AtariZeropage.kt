@@ -28,7 +28,7 @@ class AtariZeropage(options: CompilationOptions) : Zeropage(options) {
             ZeropageType.FULL -> {
                 // TODO all atari usable zero page locations, except the ones used by the system's IRQ routine
                 free.addAll(0x00u..0xffu)
-                // TODO atari  free.removeAll(setOf(0xa0u, 0xa1u, 0xa2u, 0x91u, 0xc0u, 0xc5u, 0xcbu, 0xf5u, 0xf6u))        // these are updated by IRQ
+                // TODO atari  free.removeAll(arrayOf(0xa0u, 0xa1u, 0xa2u, 0x91u, 0xc0u, 0xc5u, 0xcbu, 0xf5u, 0xf6u))        // these are updated by IRQ
             }
             ZeropageType.KERNALSAFE -> {
                 free.addAll(0x80u..0xffu)       // TODO

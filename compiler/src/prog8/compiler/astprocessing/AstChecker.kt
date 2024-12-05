@@ -442,7 +442,7 @@ internal class AstChecker(private val program: Program,
                     if (!pair.first.isByteOrBool)
                         err("return type #${index + 1} should be (u)byte")
                 }
-                else if(pair.second.registerOrPair in setOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                else if(pair.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
                     if (!pair.first.isWord && !pair.first.isString && !pair.first.isArray)
                         err("return type #${index + 1} should be (u)word/address")
                 }
@@ -1289,7 +1289,7 @@ internal class AstChecker(private val program: Program,
         if(leftDt.isBool || rightDt.isBool ||
             (expr.left as? TypecastExpression)?.expression?.inferType(program)?.isBool==true ||
             (expr.right as? TypecastExpression)?.expression?.inferType(program)?.isBool==true) {
-            if(expr.operator in setOf("<", "<=", ">", ">=")) {
+            if(expr.operator in arrayOf("<", "<=", ">", ">=")) {
                 errors.err("can't use boolean operand with this comparison operator", expr.position)
             }
 // for now, don't enforce bool type with only logical operators...
@@ -1528,10 +1528,10 @@ internal class AstChecker(private val program: Program,
                     if(ident!=null && ident.nameInSource[0] == "cx16" && ident.nameInSource[1].startsWith("r")) {
                         var regname = ident.nameInSource[1].uppercase()
                         val lastLetter = regname.last().lowercaseChar()
-                        if(lastLetter in setOf('l', 'h', 's')) {
+                        if(lastLetter in arrayOf('l', 'h', 's')) {
                             regname = regname.substring(0, regname.length - 1)
                             val lastLetter2 = regname.last().lowercaseChar()
-                            if(lastLetter2 in setOf('l', 'h', 's')) {
+                            if(lastLetter2 in arrayOf('l', 'h', 's')) {
                                 regname = regname.substring(0, regname.length - 1)
                             }
                         }

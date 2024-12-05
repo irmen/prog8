@@ -21,11 +21,11 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         if (options.zeropage == ZeropageType.FULL) {
             free.addAll(0x02u..0xffu)
-            free.removeAll(setOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1+1u, SCRATCH_W2, SCRATCH_W2+1u))
-            free.removeAll(setOf(0xa0u, 0xa1u, 0xa2u, 0x91u, 0xc0u, 0xc5u, 0xcbu, 0xf5u, 0xf6u))        // these are updated by IRQ
+            free.removeAll(arrayOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1+1u, SCRATCH_W2, SCRATCH_W2+1u))
+            free.removeAll(arrayOf(0xa0u, 0xa1u, 0xa2u, 0x91u, 0xc0u, 0xc5u, 0xcbu, 0xf5u, 0xf6u))        // these are updated by IRQ
         } else {
             if (options.zeropage == ZeropageType.KERNALSAFE || options.zeropage == ZeropageType.FLOATSAFE) {
-                free.addAll(listOf(
+                free.addAll(arrayOf(
                         0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
                         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
                         0x20, 0x21, 0x22, 0x23, 0x24, 0x25,
@@ -43,7 +43,7 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
             if (options.zeropage == ZeropageType.FLOATSAFE) {
                 // remove the zeropage locations used for floating point operations from the free list
-                free.removeAll(listOf(
+                free.removeAll(arrayOf(
                         0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12,
                         0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a,
                         0x57, 0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f, 0x60,
@@ -56,7 +56,7 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
             if(options.zeropage != ZeropageType.DONTUSE) {
                 // add the free Zp addresses
                 // these are valid for the C-64 but allow BASIC to keep running fully *as long as you don't use tape I/O*
-                free.addAll(listOf(0x02, 0x03, 0x04, 0x05, 0x06, 0x0a, 0x0e,
+                free.addAll(arrayOf(0x02, 0x03, 0x04, 0x05, 0x06, 0x0a, 0x0e,
                         0x92, 0x96, 0x9b, 0x9c, 0x9e, 0x9f, 0xa6,
                         0xb0, 0xb1, 0xbe, 0xbf, 0xf9).map{it.toUInt()})
             } else {
