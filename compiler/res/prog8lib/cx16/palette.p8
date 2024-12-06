@@ -5,55 +5,86 @@
 palette {
     %option ignore_unused
 
-    uword vera_palette_ptr
-
     sub set_color(ubyte index, uword color) {
-        vera_palette_ptr = $fa00+(index as uword * 2)
-        cx16.vpoke(1, vera_palette_ptr, lsb(color))
-        vera_palette_ptr++
-        cx16.vpoke(1, vera_palette_ptr, msb(color))
+        cx16.vaddr(1, $fa00+(index as uword * 2), 0, 1)
+        cx16.VERA_DATA0 = lsb(color)
+        cx16.VERA_DATA0 = msb(color)
+        cx16.VERA_ADDR_H &= 1
     }
 
     sub get_color(ubyte index) -> uword {
-        vera_palette_ptr = $fa00+(index as uword * 2)
-        return mkword(cx16.vpeek(1, vera_palette_ptr+1), cx16.vpeek(1, vera_palette_ptr))
+        cx16.vaddr(1, $fa00+(index as uword * 2), 0, 1)
+        cx16.r0L = cx16.VERA_DATA0
+        cx16.r0H = cx16.VERA_DATA0
+        cx16.VERA_ADDR_H &= 1
+        return cx16.r0
     }
 
-    sub set_rgb_be(uword palette_ptr, uword num_colors) {
+    sub set_rgb_be(uword palette_ptr, uword num_colors, ubyte startindex) {
         ; 1 word per color entry, $0rgb in big endian format
-        vera_palette_ptr = $fa00
+        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
         repeat num_colors {
-            cx16.vpoke(1, vera_palette_ptr+1, @(palette_ptr))
-            palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, @(palette_ptr))
-            palette_ptr++
-            vera_palette_ptr+=2
+            cx16.VERA_DATA0 = @(palette_ptr+1)
+            cx16.VERA_DATA0 = @(palette_ptr)
+            palette_ptr += 2
         }
+        cx16.VERA_ADDR_H &= 1
     }
 
-    sub set_rgb(uword palette_words_ptr, uword num_colors) {
+    sub set_rgb(uword palette_words_ptr, uword num_colors, ubyte startindex) {
         ; 1 word per color entry (in little endian format as layed out in video memory, so $gb;$0r)
-        vera_palette_ptr = $fa00
-        repeat num_colors*2 {
-            cx16.vpoke(1, vera_palette_ptr, @(palette_words_ptr))
+        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        repeat num_colors {
+            cx16.VERA_DATA0 = @(palette_words_ptr)
             palette_words_ptr++
-            vera_palette_ptr++
+            cx16.VERA_DATA0 = @(palette_words_ptr)
+            palette_words_ptr++
         }
+        cx16.VERA_ADDR_H &= 1
     }
 
-    sub set_rgb8(uword palette_bytes_ptr, uword num_colors) {
+    sub set_rgb8(uword palette_bytes_ptr, uword num_colors, ubyte startindex) {
         ; 3 bytes per color entry, adjust color depth from 8 to 4 bits per channel.
-        vera_palette_ptr = $fa00
+        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
         ubyte red
         ubyte greenblue
         repeat num_colors {
             cx16.r1 = color8to4(palette_bytes_ptr)
             palette_bytes_ptr+=3
-            cx16.vpoke(1, vera_palette_ptr, cx16.r1H)       ; $GB
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, cx16.r1L)       ; $0R
-            vera_palette_ptr++
+            cx16.VERA_DATA0 = cx16.r1H  ; $GB
+            cx16.VERA_DATA0 = cx16.r1L  ; $0R
         }
+        cx16.VERA_ADDR_H &= 1
+    }
+
+    sub set_all_black() {
+        cx16.vaddr(1, $fa00, 0, 1)
+        repeat 256 {
+            cx16.VERA_DATA0 = 0
+            cx16.VERA_DATA0 = 0
+        }
+        cx16.VERA_ADDR_H &= 1
+    }
+
+    sub set_all_white() {
+        cx16.vaddr(1, $fa00, 0, 1)
+        repeat 256 {
+            cx16.VERA_DATA0 = $ff
+            cx16.VERA_DATA0 = $0f
+        }
+        cx16.VERA_ADDR_H &= 1
+    }
+
+    sub set_grayscale(ubyte startindex) {
+        ; set 16 consecutive colors to a grayscale gradient from black to white
+        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        cx16.r0L=0
+        repeat 16 {
+            cx16.VERA_DATA0 = cx16.r0L
+            cx16.VERA_DATA0 = cx16.r0L
+            cx16.r0L += $11
+        }
+        cx16.VERA_ADDR_H &= 1
     }
 
     sub color8to4(uword colorpointer) -> uword {
@@ -68,42 +99,6 @@ palette {
     sub channel8to4(ubyte channelvalue) -> ubyte {
         ; accurately convert a single 8 bit color channel value to 4 bits,  see https://threadlocalmutex.com/?p=48
         return msb(channelvalue * $000f + 135)
-    }
-
-
-    sub set_monochrome(uword screencolorRGB, uword drawcolorRGB) {
-        vera_palette_ptr = $fa00
-        cx16.vpoke(1, vera_palette_ptr, lsb(screencolorRGB))   ; G,B
-        vera_palette_ptr++
-        cx16.vpoke(1, vera_palette_ptr, msb(screencolorRGB))   ; R
-        vera_palette_ptr++
-        repeat 255 {
-            cx16.vpoke(1, vera_palette_ptr, lsb(drawcolorRGB)) ; G,B
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, msb(drawcolorRGB)) ; R
-            vera_palette_ptr++
-        }
-    }
-
-    sub set_all_black() {
-        set_monochrome($000, $000)
-    }
-
-    sub set_all_white() {
-        set_monochrome($fff, $fff)
-    }
-
-    sub set_grayscale() {
-        ; set first 16 colors to a grayscale gradient from black to white
-        vera_palette_ptr = $fa00
-        cx16.r2L=0
-        repeat 16 {
-            cx16.vpoke(1, vera_palette_ptr, cx16.r2L)
-            vera_palette_ptr++
-            cx16.vpoke(1, vera_palette_ptr, cx16.r2L)
-            vera_palette_ptr++
-            cx16.r2L += $11
-        }
     }
 
     sub fade_step_multi(ubyte startindex, ubyte endindex, uword target_rgb) -> bool {
@@ -210,7 +205,7 @@ palette {
             $76e,  ; 14 = light blue
             $bbb   ; 15 = light grey
         ]
-        set_rgb(colors, len(colors))
+        set_rgb(colors, len(colors), 0)
     }
 
     sub set_c64ntsc() {
@@ -233,7 +228,7 @@ palette {
             $36f,   ; 14 = light blue
             $ccc    ; 15 = light grey
         ]
-        set_rgb(colors, len(colors))
+        set_rgb(colors, len(colors), 0)
     }
 
     sub set_default16() {
@@ -256,6 +251,6 @@ palette {
             $08f,   ; 14 = light blue
             $bbb    ; 15 = light grey
         ]
-        set_rgb(colors, len(colors))
+        set_rgb(colors, len(colors), 0)
     }
 }

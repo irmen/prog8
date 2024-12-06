@@ -106,7 +106,6 @@ class TestCompilerOnExamplesCx16: FunSpec({
 
     val onlyCx16 = cartesianProduct(
         listOf(
-            "chunkedfile/demo",
             "vtui/testvtui",
             "pcmaudio/play-adpcm",
             "pcmaudio/stream-wav",

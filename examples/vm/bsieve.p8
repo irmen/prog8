@@ -1,6 +1,9 @@
-%import textio
 
 ; The "Byte Sieve" test.  https://en.wikipedia.org/wiki/Byte_Sieve
+
+%import textio
+%zeropage basicsafe
+%option no_sysinit
 
 main {
     sub start() {
@@ -24,8 +27,8 @@ main {
                     flags_ptr[k] = 0    ; false
                     k += prime
                 }
-                txt.print_uw(prime)
-                txt.nl()
+                ; txt.print_uw(prime)
+                ; txt.nl()
                 count++
             }
         }

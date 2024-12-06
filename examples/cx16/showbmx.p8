@@ -33,7 +33,7 @@ main {
                     ; (you could do a soft fade-in effect with this for instance)
                     bmx.palette_buffer_ptr = memory("palette", 512, 0)
                     sys.memset(bmx.palette_buffer_ptr, 512, 0)
-                    palette.set_rgb(bmx.palette_buffer_ptr, 256)
+                    palette.set_rgb(bmx.palette_buffer_ptr, 256, 0)
 
                     ; switch to bitmap screen mode and color depth:  320*240
                     void cx16.screen_mode($80, false)       ; we're lazy and just use a kernal routine to set up the basics

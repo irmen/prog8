@@ -21,7 +21,7 @@ main {
             $312,  $211,  $100
         ]
 
-        palette.set_rgb(&colors, len(colors))
+        palette.set_rgb(&colors, len(colors), 0)
         gfx_lores.graphics_mode()       ; lores 256 colors
         cx16.VERA_DC_VSCALE = 0   ; display trick spoiler.......: stretch 1 line of display all the way to the bottom
         cx16.enable_irq_handlers(true)
