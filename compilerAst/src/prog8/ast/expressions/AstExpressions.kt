@@ -241,6 +241,10 @@ class BinaryExpression(
     companion object {
         fun commonDatatype(leftDt: DataType, rightDt: DataType,
                            left: Expression?, right: Expression?): Pair<DataType, Expression?> {
+
+            if(leftDt.isUndefined || rightDt.isUndefined)
+                return DataType.forDt(BaseDataType.UNDEFINED) to null
+
             // byte + byte -> byte
             // byte + word -> word
             // word + byte -> word

@@ -186,7 +186,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        val iterableDt = forLoop.iterable.inferType(program).getOr(DataType.forDt(BaseDataType.BYTE))
+        val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
 
         if(iterableDt.isNumeric) TODO("iterable type should not be simple numeric!? "+forLoop.position) // TODO
 

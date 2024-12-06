@@ -1015,6 +1015,24 @@ main {
         val handler = sub.children[8] as PtSub
         handler.name shouldBe "p8s_prog8_invoke_defers"
     }
+
+    test("unknown variable in for loop gives proper errors") {
+        val src="""
+main {
+    sub start() {
+        ubyte i
+        for i in 0 to count - 1 {
+            break
+        }
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "loop variable can only loop over"
+        errors.errors[1] shouldContain "undefined symbol"
+    }
 }
 
 })
