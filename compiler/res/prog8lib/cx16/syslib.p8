@@ -1172,7 +1172,6 @@ _default_aflow_handler
 
 asmsub set_vsync_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the VSYNC irq handler to use with enable_irq_handlers().  Also enables VSYNC irqs.
-    ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
     %asm {{
         php
         sei
@@ -1188,7 +1187,6 @@ asmsub set_vsync_irq_handler(uword address @AY) clobbers(A) {
 asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,Y) {
     ; Sets the LINE irq handler to use with enable_irq_handlers(), for the given rasterline.  Also enables LINE irqs.
     ; You can use sys.set_rasterline() later to adjust the rasterline on which to trigger.
-    ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
     %asm {{
         php
         sei
@@ -1206,7 +1204,6 @@ asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,
 
 asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the SPRCOL irq handler to use with enable_irq_handlers().  Also enables SPRCOL irqs.
-    ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
     %asm {{
         php
         sei
@@ -1221,7 +1218,6 @@ asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
 
 asmsub set_aflow_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the AFLOW irq handler to use with enable_irq_handlers().  Also enables AFLOW irqs.
-    ; NOTE: unless a proper irq handler is already running, you should enclose this call in set_irqd() / clear_irqd() to avoid system crashes.
     ; NOTE: the handler itself must fill the audio fifo buffer to at least 25% full again (1 KB) or the aflow irq will keep triggering!
     %asm {{
         php

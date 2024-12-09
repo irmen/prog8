@@ -301,6 +301,17 @@ internal class StatementReorderer(
         return noModifications
     }
 
+    override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+        if(whileLoop.body.isEmpty()) {
+            // convert   while C {}   to   do {} until not C    (because codegen of the latter is more optimized)
+            val invertedCondition = invertCondition(whileLoop.condition, program)
+            val until = UntilLoop(whileLoop.body, invertedCondition, whileLoop.position)
+            return listOf(IAstModification.ReplaceNode(whileLoop, until, parent))
+        }
+
+        return noModifications
+    }
+
     private fun checkCopyArrayValue(assign: Assignment) {
         val identifier = assign.target.identifier!!
         val targetVar = identifier.targetVarDecl(program)!!
