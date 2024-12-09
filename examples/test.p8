@@ -1,68 +1,69 @@
+%import textio
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
 
-        while cx16.r0L & 1 == 0 {
+        cx16.r0L = %11111110
+        while cx16.r0L &32 == 32 {
+            cx16.r0L <<= 1
+            txt.print_ubbin(cx16.r0L, true)
+            txt.nl()
         }
+        txt.nl()
 
-        while cx16.r0L & 1 == 1 {
+        cx16.r0L = %11111110
+        while cx16.r0L &32 != 0 {
+            cx16.r0L <<= 1
+            txt.print_ubbin(cx16.r0L, true)
+            txt.nl()
         }
+        txt.nl()
 
-        while cx16.r0L & 64 == 0 {
+        ; this one must not be changed and stop after 3 iterations instead of 5!
+        cx16.r0L = %11111110
+        while cx16.r0L &40 == 40 {
+            cx16.r0L <<= 1
+            txt.print_ubbin(cx16.r0L, true)
+            txt.nl()
         }
+        txt.nl()
+        txt.nl()
 
-        while cx16.r0L & 64 == 64 {
-        }
-
-        do { }
-        until cx16.r0L & 1 == 0
-
-        do { }
-        until cx16.r0L & 1 == 1
-
-        do { }
-        until cx16.r0L & 64 == 0
-
-        do { }
-        until cx16.r0L & 64 == 64
-
-        while cx16.r0L & 1 == 0 {
-            cx16.r0L++
-        }
-
-        while cx16.r0L & 1 == 1 {
-            cx16.r0L++
-        }
-
-        while cx16.r0L & 64 == 0 {
-            cx16.r0L++
-        }
-
-        while cx16.r0L & 64 == 64 {
-            cx16.r0L++
-        }
-
+        cx16.r0L = %11111110
         do {
-            cx16.r0L++
-        }
-        until cx16.r0L & 1 == 0
+            cx16.r0L <<= 1
+            txt.print_ubbin(cx16.r0L, true)
+            txt.nl()
+        } until cx16.r0L &32 != 32
+        txt.nl()
 
+        cx16.r0L = %11111110
         do {
-            cx16.r0L++
-        }
-        until cx16.r0L & 1 == 1
+            cx16.r0L <<= 1
+            txt.print_ubbin(cx16.r0L, true)
+            txt.nl()
+        } until cx16.r0L &32 == 0
+        txt.nl()
 
+        ; this one must not be changed and stop after 3 iterations instead of 5!
+        cx16.r0L = %11111110
         do {
-            cx16.r0L++
-        }
-        until cx16.r0L & 64 == 0
+            cx16.r0L <<= 1
+            txt.print_ubbin(cx16.r0L, true)
+            txt.nl()
+        } until cx16.r0L &40 != 40
+        txt.nl()
 
-        do {
-            cx16.r0L++
-        }
-        until cx16.r0L & 64 == 64
+
+;        while cx16.r0L & cx16.r1L == 0 {
+;            cx16.r0L++
+;        }
+;
+;        while cx16.r0L & cx16.r1L == cx16.r1L {
+;            cx16.r0L++
+;        }
 
 /*
         sys.set_irqd()

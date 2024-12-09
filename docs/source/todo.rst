@@ -4,12 +4,10 @@ TODO
 Halloween is stuck on a black screen
 
 
-Optimize bitwise operations on word values where only the msb or lsb is touched:  (already done for simple expressions!)
+Optimize 6502 bitwise operations on word values where only the msb or lsb is touched:  (already done for simple augmented expressions!)
         cx16.r0 = (cx16.r0 & $a000) | $0055
         cx16.r0 = (cx16.r0 | $a000) ^ $0055
         cx16.r0 = (cx16.r0 ^ $a000) & $0055
-
-Optimize (x & y) == y expressions especially in loop conditions
 
 
 update zsmkit to newest version that includes the on_deck routines when stabilized

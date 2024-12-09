@@ -378,30 +378,44 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
         if (rightVal!=null && (expr.operator == "==" || expr.operator == "!=")) {
             val bitwise = expr.left as? BinaryExpression
-            if(bitwise!=null && bitwise.operator=="&" && bitwise.inferType(program).isWords) {
-                val andNum = (bitwise.right as? NumericLiteral)?.number?.toInt()
-                if (andNum!=null) {
-                    if ((andNum and 0x00ff) == 0) {
-                        // (WORD & $xx00)==y  ->  (msb(WORD) & $xx)==y
-                        val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
-                        val bytevalue = NumericLiteral(BaseDataType.UBYTE, (andNum shr 8).toDouble(), bitwise.right.position)
-                        val rightvalByte = NumericLiteral(BaseDataType.UBYTE, (rightVal.number.toInt() shr 8).toDouble(), rightVal.position)
-                        return listOf(
-                            IAstModification.ReplaceNode(bitwise.left, msb, bitwise),
-                            IAstModification.ReplaceNode(bitwise.right, bytevalue, bitwise),
-                            IAstModification.ReplaceNode(expr.right, rightvalByte, expr)
-                        )
+            if (bitwise!=null && bitwise.operator=="&") {
+
+                if(rightVal.number in powersOfTwoFloat && bitwise.right.constValue(program) == rightVal) {
+                    if(expr.operator=="==") {
+                        //  x & const == const   ->  x & const != 0   (if const has only a single bit set!)
+                        val notZero = BinaryExpression(bitwise, "!=", NumericLiteral(rightDt.base, 0.0, rightVal.position), expr.position)
+                        return listOf(IAstModification.ReplaceNode(expr, notZero, parent))
+                    } else  {
+                        //  x & const != const   ->  x & const == 0   (if const has only a single bit set!)
+                        val equalsZero = BinaryExpression(bitwise, "==", NumericLiteral(rightDt.base, 0.0, rightVal.position), expr.position)
+                        return listOf(IAstModification.ReplaceNode(expr, equalsZero, parent))
                     }
-                    else if((andNum and 0xff00) == 0) {
-                        // (WORD & $00xx)==y  ->  (lsb(WORD) & $xx)==y
-                        val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
-                        val bytevalue = NumericLiteral(BaseDataType.UBYTE, andNum.toDouble(), bitwise.right.position)
-                        val rightvalByte = NumericLiteral(BaseDataType.UBYTE, (rightVal.number.toInt() and 255).toDouble(), rightVal.position)
-                        return listOf(
-                            IAstModification.ReplaceNode(bitwise.left, lsb, bitwise),
-                            IAstModification.ReplaceNode(bitwise.right, bytevalue, bitwise),
-                            IAstModification.ReplaceNode(expr.right, rightvalByte, expr)
-                        )
+                }
+
+                if (bitwise.inferType(program).isWords) {
+                    val andNum = (bitwise.right as? NumericLiteral)?.number?.toInt()
+                    if (andNum!=null) {
+                        if ((andNum and 0x00ff) == 0) {
+                            // (WORD & $xx00)==y  ->  (msb(WORD) & $xx)==y
+                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
+                            val bytevalue = NumericLiteral(BaseDataType.UBYTE, (andNum shr 8).toDouble(), bitwise.right.position)
+                            val rightvalByte = NumericLiteral(BaseDataType.UBYTE, (rightVal.number.toInt() shr 8).toDouble(), rightVal.position)
+                            return listOf(
+                                IAstModification.ReplaceNode(bitwise.left, msb, bitwise),
+                                IAstModification.ReplaceNode(bitwise.right, bytevalue, bitwise),
+                                IAstModification.ReplaceNode(expr.right, rightvalByte, expr)
+                            )
+                        } else if((andNum and 0xff00) == 0) {
+                            // (WORD & $00xx)==y  ->  (lsb(WORD) & $xx)==y
+                            val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), bitwise.left.position), mutableListOf(bitwise.left), bitwise.left.position)
+                            val bytevalue = NumericLiteral(BaseDataType.UBYTE, andNum.toDouble(), bitwise.right.position)
+                            val rightvalByte = NumericLiteral(BaseDataType.UBYTE, (rightVal.number.toInt() and 255).toDouble(), rightVal.position)
+                            return listOf(
+                                IAstModification.ReplaceNode(bitwise.left, lsb, bitwise),
+                                IAstModification.ReplaceNode(bitwise.right, bytevalue, bitwise),
+                                IAstModification.ReplaceNode(expr.right, rightvalByte, expr)
+                            )
+                        }
                     }
                 }
             }
