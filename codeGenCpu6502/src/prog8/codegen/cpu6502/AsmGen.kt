@@ -1433,6 +1433,22 @@ $repeatLabel""")
         }
     }
 
+    internal fun immediateAndInplace(name: String, value: Int) {
+        if(isTargetCpu(CpuType.CPU65c02)) {
+            out(" lda  #${value xor 255} |  trb  $name")     // reset bit
+        } else  {
+            out(" lda  $name |  and  #$value |  sta  $name")
+        }
+    }
+
+    internal fun immediateOrInplace(name: String, value: Int) {
+        if(isTargetCpu(CpuType.CPU65c02)) {
+            out(" lda  #$value |  tsb  $name")       // set bit
+        } else  {
+            out(" lda  $name |  ora  #$value |  sta  $name")
+        }
+    }
+
     internal fun assignConditionValueToRegisterAndTest(condition: PtExpression) {
         assignExpressionToRegister(condition, RegisterOrPair.A, false)
         when(condition) {

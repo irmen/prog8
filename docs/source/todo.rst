@@ -1,15 +1,6 @@
 TODO
 ====
 
-Halloween is stuck on a black screen
-
-
-Optimize 6502 bitwise operations on word values where only the msb or lsb is touched:  (already done for simple augmented expressions!)
-        cx16.r0 = (cx16.r0 & $a000) | $0055
-        cx16.r0 = (cx16.r0 | $a000) ^ $0055
-        cx16.r0 = (cx16.r0 ^ $a000) & $0055
-
-
 update zsmkit to newest version that includes the on_deck routines when stabilized
 
 
@@ -38,14 +29,6 @@ Future Things and Ideas
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
 - [much work:] more support for (64tass) SEGMENTS ?
-    - (What, how, isn't current BSS support enough?)
-    - Add a mechanism to allocate variables into golden ram (or segments really) (see GoldenRam class)
-    - maybe treat block "golden" in a special way: can only contain vars, every var will be allocated in the Golden ram area?
-    - maybe or may not needed: the variables can NOT have initialization values, they will all be set to zero on startup (simple memset)
-      just initialize them yourself in start() if you need a non-zero value .
-    - OR.... do all this automatically if 'golden' is enabled as a compiler option? So compiler allocates in ZP first, then Golden Ram, then regular ram
-    - OR.... make all this more generic and use some %segment option to create real segments for 64tass?
-    - (need separate step in codegen and IR to write the "golden" variables)
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)

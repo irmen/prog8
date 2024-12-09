@@ -1743,11 +1743,34 @@ internal class AssignmentAsmGen(
         assignExpressionToRegister(left, RegisterOrPair.AY, false)
         when(right) {
             is PtNumber -> {
-                val number = right.number.toHex()
+                val value = right.number.toInt()
                 when (operator) {
-                    "&" -> asmgen.out("  and  #<$number |  tax |  tya |  and  #>$number |  tay |  txa")
-                    "|" -> asmgen.out("  ora  #<$number |  tax |  tya |  ora  #>$number |  tay |  txa")
-                    "^" -> asmgen.out("  eor  #<$number |  tax |  tya |  eor  #>$number |  tay |  txa")
+                    "&" -> {
+                        when {
+                            value == 0 -> asmgen.out("  lda  #0 |  tay")
+                            value == 0x00ff -> asmgen.out("  lda  #0")
+                            value == 0xff00 -> asmgen.out("  ldy  #0")
+                            value and 255 == 0 -> asmgen.out("  tya |  and  #>$value |  tay |  lda  #0")
+                            value < 0x0100 -> asmgen.out("  and  #<$value |  ldy  #0")
+                            else -> asmgen.out("  and  #<$value |  tax |  tya |  and  #>$value |  tay |  txa")
+                        }
+                    }
+                    "|" -> {
+                        when {
+                            value == 0 -> {}
+                            value and 255 == 0 -> asmgen.out("  tax |  tya |  ora  #>$value |  tay |  txa")
+                            value < 0x0100 -> asmgen.out("  ora  #$value")
+                            else -> asmgen.out("  ora  #<$value |  tax |  tya |  ora  #>$value |  tay |  txa")
+                        }
+                    }
+                    "^" -> {
+                        when {
+                            value == 0 -> {}
+                            value and 255 == 0 -> asmgen.out("  tax |  tya |  eor  #>$value |  tay |  txa")
+                            value < 0x0100 -> asmgen.out("  eor  #$value")
+                            else -> asmgen.out("  eor  #<$value |  tax |  tya |  eor  #>$value |  tay |  txa")
+                        }
+                    }
                     else -> throw AssemblyError("invalid bitwise operator")
                 }
             }

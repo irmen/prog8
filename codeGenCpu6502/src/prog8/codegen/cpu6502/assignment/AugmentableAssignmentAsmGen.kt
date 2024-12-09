@@ -1538,8 +1538,8 @@ $shortcutLabel:""")
                     }
                 }
             }
-            "&", "and" -> immediateAndInplace(name, value)
-            "|", "or" -> immediateOrInplace(name, value)
+            "&", "and" -> asmgen.immediateAndInplace(name, value)
+            "|", "or" -> asmgen.immediateOrInplace(name, value)
             "^", "xor" -> asmgen.out(" lda  $name |  eor  #$value |  sta  $name")
             "==" -> {
                 asmgen.out("""
@@ -1657,22 +1657,6 @@ $shortcutLabel:""")
                 }
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-    }
-
-    private fun immediateAndInplace(name: String, value: Int) {
-        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
-            asmgen.out(" lda  #${value xor 255} |  trb  $name")     // reset bit
-        } else  {
-            asmgen.out(" lda  $name |  and  #$value |  sta  $name")
-        }
-    }
-
-    private fun immediateOrInplace(name: String, value: Int) {
-        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
-            asmgen.out(" lda  #$value |  tsb  $name")       // set bit
-        } else  {
-            asmgen.out(" lda  $name |  ora  #$value |  sta  $name")
         }
     }
 
@@ -1998,7 +1982,7 @@ $shortcutLabel:""")
                         asmgen.out("  lda  $msb |  and  #>$value |  sta  $msb")
                     }
                     value < 0x0100 -> {
-                        immediateAndInplace(lsb, value)
+                        asmgen.immediateAndInplace(lsb, value)
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
                             asmgen.out("  stz  $msb")
                         else
@@ -2011,7 +1995,7 @@ $shortcutLabel:""")
                 when {
                     value == 0 -> {}
                     value and 255 == 0 -> asmgen.out("  lda  $msb |  ora  #>$value |  sta  $msb")
-                    value < 0x0100 -> immediateOrInplace(lsb, value)
+                    value < 0x0100 -> asmgen.immediateOrInplace(lsb, value)
                     else -> asmgen.out("  lda  $lsb |  ora  #<$value |  sta  $lsb |  lda  $msb |  ora  #>$value |  sta  $msb")
                 }
             }

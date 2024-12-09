@@ -1,6 +1,7 @@
 ; Manipulate the Commander X16's display color palette.
 ; Should you want to restore the full default palette, you can call cbm.CINT()
 ; The first 16 colors can be restored to their default with set_default16()
+; NOTE: assume R0, R1 and R2 are clobbered when using routines in this library!
 
 palette {
     %option ignore_unused

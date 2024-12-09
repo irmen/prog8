@@ -185,7 +185,8 @@ sizeof (name)  ;  sizeof (number)
 
 memory (name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
-    with the given name. The block is uninitialized memory, it is *not* set to zero!
+    with the given name. The block is *uninitialized memory*; unlike other variables in Prog8 it is *not* set to zero at the start of the program!
+    (if that is required, you can do so yourself using ``memset``).
     If you specify an alignment value >1, it means the block of memory will
     be aligned to such a dividable address in memory, for instance an alignment of $100 means the
     memory block is aligned on a page boundary, and $2 means word aligned (even addresses).
@@ -195,8 +196,7 @@ memory (name, size, alignment)
     otherwise you'll get a compilation error.
     This routine can be used to "reserve" parts of the memory where a normal byte array variable would
     not suffice; for instance if you need more than 256 consecutive bytes.
-    The return value is just a simple uword address so it cannot be used as an array in your program.
-    You can only treat it as a pointer or use it in inline assembly.
+    The return value is an uword address, and you can use that like a pointer to the memory buffer.
 
 call (address) -> uword
     Calls a subroutine given by its memory address. You cannot pass arguments directly,
