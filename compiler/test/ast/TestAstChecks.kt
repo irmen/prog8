@@ -350,4 +350,26 @@ main {
         errors.warnings[0] shouldContain "footgun"
         errors.warnings[1] shouldContain "footgun"
     }
+
+    test("reg params R0-R15 cannot be used for non integer types") {
+        val src="""
+main {
+    sub func(bool flag @R1) {
+        if flag
+            return
+    }
+
+    extsub ${'$'}2000 = extok(bool flag @R0)
+
+    sub start() {
+        func(true)
+        extok(true)
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.warnings.size shouldBe 0
+        errors.errors[0] shouldContain "requires integer type"
+    }
 })
