@@ -6,7 +6,7 @@ Prog8 targets the following hardware:
 
 - 8 bit MOS 6502/65c02/6510 CPU
 - 64 Kb addressable memory (RAM or ROM)
-- optional use of memory mapped I/O registers
+- optional use of memory-mapped I/O registers
 - optional use of system ROM routines
 
 Currently these machines can be selected as a compilation target (via the ``-target`` compiler argument):

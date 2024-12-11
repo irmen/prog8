@@ -172,7 +172,7 @@ class PtConstant(name: String, override val type: DataType, val value: Double, p
 
 class PtMemMapped(name: String, override val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
     init {
-        require(!type.isBool && !type.isBoolArray)
+        require(!type.isString)
     }
 }
 

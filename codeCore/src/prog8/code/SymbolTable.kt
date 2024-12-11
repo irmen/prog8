@@ -238,7 +238,7 @@ class StMemVar(name: String,
     StNode(name, StNodeType.MEMVAR, astNode) {
 
     init{
-        require(!dt.isBool && !dt.isBoolArray)
+        require(!dt.isString)
         if(dt.isStringly && !dt.isWord)
             requireNotNull(length)
     }

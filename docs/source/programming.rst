@@ -948,7 +948,8 @@ address of:  ``&``
     Sometimes the compiler silently inserts this operator to make it easier for instance
     to pass strings or arrays as subroutine call arguments.
     This operator can also be used as a prefix to a variable's data type keyword to indicate that
-    it is a memory mapped variable (for instance: ``&ubyte screencolor = $d021``)
+    it is a memory-mapped variable (for instance: ``&ubyte screencolor = $d021``). This is explained
+    in the :ref:`variables` chapter.
 
 ternary:
     Prog8 doesn't have a ternary operator to choose one of two values (``x? y : z`` in many other languages)
@@ -1055,8 +1056,8 @@ so pay attention to any jumps and rts instructions in the inlined code!
     one or more parameters in those 'registers'. You can just list the arguments directly.
     *This also works on the Commodore 64!*  (however they are not as efficient there because they're not in zeropage)
     In prog8 and assembly code these 'registers' are directly accessible too via
-    ``cx16.r0`` .. ``cx16.r15``  (these are memory mapped uword values),
-    ``cx16.r0s`` .. ``cx16.r15s``  (these are memory mapped word values),
+    ``cx16.r0`` .. ``cx16.r15``  (these are memory-mapped uword values),
+    ``cx16.r0s`` .. ``cx16.r15s``  (these are memory-mapped word values),
     and ``L`` / ``H`` variants are also available to directly access the low and high bytes of these.
     You can use them directly but their name isn't very descriptive, so it may be useful to define
     an alias for them when using them regularly.

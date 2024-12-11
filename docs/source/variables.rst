@@ -16,7 +16,7 @@ There is *no dynamic memory allocation*. The storage size of all variables
 is fixed and is determined at compile time.
 Variable declarations tend to appear at the top of the code block that uses them, but this is not mandatory.
 They define the name and type of the variable, and its initial value.
-Prog8 supports a small list of data types, including special 'memory mapped' types
+Prog8 supports a small list of data types, including special memory-mapped types
 that don't allocate storage but instead point to a fixed location in the address space.
 
 
@@ -466,8 +466,8 @@ Range expressions are most often used in for loops, but can be also be used to c
 	byte[] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
 
 
-Special types: const and memory-mapped
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Constants
+^^^^^^^^^
 
 When using ``const``, the value of the 'variable' cannot be changed; it has become a compile-time constant value instead.
 You'll have to specify the initial value expression. This value is then used
@@ -478,24 +478,30 @@ Variables on the other hand can't be optimized as much, need memory, and more co
 Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
 compile time expressions. For example, the compiler knows what ``math.sin8u(12)`` is and replaces it with the computed result.
 
-When using ``&`` (the address-of operator but now applied to a datatype), the variable will point to specific location in memory,
-rather than being newly allocated. The initial value (mandatory) must be a valid
-memory address.  Reading the variable will read the given data type from the
-address you specified, and setting the variable will directly modify that memory location(s)::
+
+Memory-mapped
+^^^^^^^^^^^^^
+When using ``&`` (the address-of operator but now applied to the datatype in the variable's declaration),
+the variable will be placed at a designated position in memory rather than being newly allocated somewhere.
+The initial value in the declaration should be the valid memory address where the variable should be placed.
+Reading the variable will then read its value from that address, and setting the variable will directly modify those memory location(s)::
 
 	const  byte  max_age = 2000 - 1974      ; max_age will be the constant value 26
 	&word  SCREENCOLORS = $d020             ; a 16-bit word at the address $d020-$d021
+
+If you need to use the variable's memory address instead of the value placed there, you can still use `&variable` as usual.
+You can memory map all datatypes except strings.
 
 
 .. _pointervars:
 
 Direct access to memory locations ('peek' and 'poke')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Normally memory locations are accessed by a *memory mapped* name, such as ``cbm.BGCOL0`` that is defined
-as the memory mapped address $d021 (on the c64 target).
+Usually specific memory locations are accessed through a memory-mapped variable, such as ``cbm.BGCOL0`` that is defined
+as the background color register at the memory address $d021 (on the c64 target).
 
-If you want to access a memory location directly (by using the address itself or via an uword pointer variable),
-without defining a memory mapped location, you can do so by enclosing the address in ``@(...)``::
+If you want to access any memory location directly (by using the address itself or via an uword pointer variable),
+without defining a memory-mapped location, you can do so by enclosing the address in ``@(...)``::
 
     color = @($d020)  ; set the variable 'color' to the current c64 screen border color ("peek(53280)")
     @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")

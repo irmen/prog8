@@ -726,8 +726,8 @@ internal class AstChecker(private val program: Program,
         if(decl.datatype.isLong && decl.type!=VarDeclType.CONST)
             errors.err("cannot use long type for variables; only for constants", decl.position)
         if(decl.type==VarDeclType.MEMORY) {
-            if (decl.datatype.isBool || decl.datatype.isBoolArray)
-                errors.err("variables mapped in memory should be numeric", decl.position)
+            if (decl.datatype.isString)
+                errors.err("strings cannot be memory-mapped", decl.position)
         }
 
         fun err(msg: String) = errors.err(msg, decl.position)

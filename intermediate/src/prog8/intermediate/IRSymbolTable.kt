@@ -166,7 +166,7 @@ class IRStMemVar(name: String,
     }
 
     init {
-        require(!dt.isBool && !dt.isBoolArray)
+        require(!dt.isString)
     }
 
     val typeString: String = dt.typeString(length)

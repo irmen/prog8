@@ -40,7 +40,7 @@ RAM, ROM, I/O
 #. what part(s) of the address space is RAM?  What parts of the RAM can be used by user programs?
 #. what is the usual starting memory address of programs?
 #. what part(s) of the address space is ROM?
-#. what part(s) of the address space is memory mapped I/O registers?
+#. what part(s) of the address space is memory-mapped I/O registers?
 #. is there a block of "high ram" available (ram that is not the main ram used to load programs in) that could be used for variables?
 #. is there a banking system? How does it work (how do you select Ram/Rom banks)? How is the default bank configuration set?
    Note that prog8 itself has no notion of banking, but this knowledge may be required for proper system initialization.

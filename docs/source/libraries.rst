@@ -944,7 +944,7 @@ It's way too much to include here, you have to study the
 `syslib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/syslib.p8>`_
 to see what is there.
 
-On the other targets, it only contains the definition of the 16 memory mapped virtual registers
+On the other targets, it only contains the definition of the 16 memory-mapped virtual registers
 (cx16.r0 - cx16.r15) and the following utility routines:
 
 ``save_virtual_registers()``
