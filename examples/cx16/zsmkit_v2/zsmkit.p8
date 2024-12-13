@@ -34,4 +34,11 @@ zsmkit {
 	extsub @bank ZSMKitBank $A054 = zsmkit_setisr() clobbers(A)
 	extsub @bank ZSMKitBank $A057 = zsmkit_clearisr() clobbers(A)
 	extsub @bank ZSMKitBank $A05A = zsmkit_version() -> ubyte @A, ubyte @X
+
+	extsub @bank ZSMKitBank $A05D = zsm_set_ondeck_bank(ubyte prio @X, ubyte bank @A)
+	extsub @bank ZSMKitBank $A060 = zsm_set_ondeck_mem(ubyte prio @X, uword data_ptr @AY) clobbers(A, X, Y)
+	extsub @bank ZSMKitBank $A063 = zsm_clear_ondeck(ubyte prio @X) clobbers(A, X, Y)
+	extsub @bank ZSMKitBank $A066 = zsm_midi_init(ubyte iobase @A, bool parallel @X, bool callback @Pc) clobbers(A, X, Y)
+	extsub @bank ZSMKitBank $A069 = zsm_psg_suspend(ubyte channel @Y, bool suspend @Pc) clobbers(A, X, Y)
+	extsub @bank ZSMKitBank $A06C = zsm_opm_suspend(ubyte channel @Y, bool suspend @Pc) clobbers(A, X, Y)
 }
