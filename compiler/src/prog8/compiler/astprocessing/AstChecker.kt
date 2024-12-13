@@ -259,7 +259,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(jump: Jump) {
-        val ident = jump.identifier
+        val ident = jump.target as? IdentifierReference
         if(ident!=null) {
             val targetStatement = ident.checkFunctionOrLabelExists(program, jump, errors)
             if(targetStatement!=null) {
@@ -269,11 +269,15 @@ internal class AstChecker(private val program: Program,
             if(targetStatement is Subroutine && targetStatement.parameters.any()) {
                 errors.err("can't jump to a subroutine that takes parameters", jump.position)
             }
-        }
+        } else {
+            val addr = jump.target.constValue(program)?.number
+            if (addr!=null && (addr<0 || addr > 65535))
+                errors.err("goto address must be uword", jump.position)
 
-        val addr = jump.address
-        if(addr!=null && addr > 65535u)
-            errors.err("jump address must be valid integer 0..\$ffff", jump.position)
+            val addressDt = jump.target.inferType(program).getOrUndef()
+            if(!(addressDt.isUnsignedByte || addressDt.isUnsignedWord))
+                errors.err("goto address must be uword", jump.position)
+        }
         super.visit(jump)
     }
 
@@ -340,7 +344,7 @@ internal class AstChecker(private val program: Program,
                 count++
             }
             override fun visit(jump: Jump) {
-                val jumpTarget = jump.identifier?.targetStatement(program)
+                val jumpTarget = (jump.target as? IdentifierReference)?.targetStatement(program)
                 if(jumpTarget!=null) {
                     val sub = jump.definingSubroutine
                     val targetSub = jumpTarget as? Subroutine ?: jumpTarget.definingSubroutine
@@ -1177,7 +1181,7 @@ internal class AstChecker(private val program: Program,
                 count++
             }
             override fun visit(jump: Jump) {
-                val jumpTarget = jump.identifier?.targetStatement(program)
+                val jumpTarget = (jump.target as? IdentifierReference)?.targetStatement(program)
                 if(jumpTarget!=null) {
                     val sub = jump.definingSubroutine
                     val targetSub = jumpTarget as? Subroutine ?: jumpTarget.definingSubroutine

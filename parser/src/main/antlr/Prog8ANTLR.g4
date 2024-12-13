@@ -147,7 +147,7 @@ defer: 'defer' (statement | statement_block) ;
 
 labeldef :  identifier ':'  ;
 
-unconditionaljump :  'goto'  (integerliteral | scoped_identifier) ;
+unconditionaljump :  'goto'  expression ;
 
 directive :
 	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%memtop' | '%import' |

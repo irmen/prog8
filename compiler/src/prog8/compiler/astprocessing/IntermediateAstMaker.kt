@@ -377,7 +377,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 val scopedEndLabel = (srcIf.definingScope.scopedName + endLabel).joinToString(".")
                 val elseLbl = PtIdentifier(scopedElseLabel, DataType.forDt(BaseDataType.UNDEFINED), srcIf.position)
                 val endLbl = PtIdentifier(scopedEndLabel, DataType.forDt(BaseDataType.UNDEFINED), srcIf.position)
-                ifScope.add(PtJump(elseLbl, null, srcIf.position))
+                ifScope.add(PtJump(elseLbl, srcIf.position))
                 val elseScope = PtNodeGroup()
                 branch.add(ifScope)
                 branch.add(elseScope)
@@ -385,7 +385,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 for (stmt in srcIf.truepart.statements)
                     nodes.add(transformStatement(stmt))
                 if(srcIf.elsepart.isNotEmpty())
-                    nodes.add(PtJump(endLbl, null, srcIf.position))
+                    nodes.add(PtJump(endLbl, srcIf.position))
                 nodes.add(PtLabel(elseLabel, srcIf.position))
                 if(srcIf.elsepart.isNotEmpty()) {
                     for (stmt in srcIf.elsepart.statements)
@@ -449,8 +449,8 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     }
 
     private fun transform(srcJump: Jump): PtJump {
-        val identifier = if(srcJump.identifier!=null) transform(srcJump.identifier!!) else null
-        return PtJump(identifier, srcJump.address, srcJump.position)
+        val target = transformExpression(srcJump.target)
+        return PtJump(target, srcJump.position)
     }
 
     private fun transform(label: Label): PtLabel =

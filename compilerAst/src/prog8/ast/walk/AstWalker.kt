@@ -299,7 +299,7 @@ abstract class AstWalker {
 
     fun visit(jump: Jump, parent: Node) {
         track(before(jump, parent), jump, parent)
-        jump.identifier?.accept(this, jump)
+        jump.target.accept(this, jump)
         track(after(jump, parent), jump, parent)
     }
 

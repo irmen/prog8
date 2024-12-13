@@ -95,7 +95,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(jump: Jump) {
-        val otherSub = jump.identifier?.targetSubroutine(program)
+        val otherSub = (jump.target as? IdentifierReference)?.targetSubroutine(program)
         if (otherSub != null) {
             jump.definingSubroutine?.let { thisSub ->
                 calls[thisSub] = calls.getValue(thisSub) + otherSub

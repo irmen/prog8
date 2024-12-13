@@ -301,9 +301,7 @@ private fun ReturnstmtContext.toAst() : Return {
 }
 
 private fun UnconditionaljumpContext.toAst(): Jump {
-    val address = integerliteral()?.toAst()?.number?.toUInt()
-    val identifier = scoped_identifier()?.toAst()
-    return Jump(address, identifier, toPosition())
+    return Jump(expression().toAst(), toPosition())
 }
 
 private fun LabeldefContext.toAst(): Statement =

@@ -679,30 +679,28 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
 }
 
-class Jump(var address: UInt?,
-           val identifier: IdentifierReference?,
-           override val position: Position) : Statement() {
+class Jump(var target: Expression, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        identifier?.linkParents(this)
+        target.linkParents(this)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        if(node===identifier && replacement is NumericLiteral) {
-            address = replacement.number.toUInt()
+        if(node===target && replacement is Expression) {
+            target = replacement
         }
         else
             throw FatalAstException("can't replace $node")
     }
-    override fun copy() = Jump(address, identifier?.copy(), position)
+    override fun copy() = Jump(target.copy(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = identifier?.referencesIdentifier(nameInSource)==true
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = target.referencesIdentifier(nameInSource)
 
     override fun toString() =
-        "Jump(addr: $address, identifier: $identifier, pos=$position)"
+        "Jump($target, pos=$position)"
 }
 
 class FunctionCallStatement(override var target: IdentifierReference,

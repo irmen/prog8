@@ -74,8 +74,9 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                     }
                 }
                 is PtJump -> {
-                    if(node.address==null) {
-                        val stNode = st.lookup(node.identifier!!.name) ?: throw AssemblyError("name not found ${node.identifier}")
+                    val identifier = node.target as? PtIdentifier
+                    if(identifier!=null) {
+                        val stNode = st.lookup(identifier.name) ?: throw AssemblyError("name not found $identifier")
                         if (stNode.astNode.definingBlock()?.options?.noSymbolPrefixing != true) {
                             val index = node.parent.children.indexOf(node)
                             nodesToPrefix += node.parent to index
@@ -177,10 +178,14 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
 }
 
 private fun PtJump.prefix(parent: PtNode, st: SymbolTable): PtJump {
-    val prefixedIdent = identifier!!.prefix(this, st)
-    val jump = PtJump(prefixedIdent, address, position)
-    jump.parent = parent
-    return jump
+    val identifier = target as? PtIdentifier
+    if(identifier!=null) {
+        val prefixedIdent = identifier.prefix(this, st)
+        val jump = PtJump(prefixedIdent, position)
+        jump.parent = parent
+        return jump
+    }
+    return this
 }
 
 private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {
@@ -1034,20 +1039,18 @@ $repeatLabel""")
     }
 
     internal fun getJumpTarget(jump: PtJump): Pair<String, Boolean> {
-        val ident = jump.identifier
-        val addr = jump.address
-        return when {
-            ident!=null -> {
-                // can be a label, or a pointer variable
-                val symbol = symbolTable.lookup(ident.name)
-                if(symbol?.type in arrayOf(StNodeType.STATICVAR, StNodeType.MEMVAR, StNodeType.CONSTANT))
-                    Pair(asmSymbolName(ident), true)        // indirect jump if the jump symbol is a variable
-                else
-                    Pair(asmSymbolName(ident), false)
-            }
-            addr!=null -> Pair(addr.toHex(), false)
-            else -> Pair("????", false)
+        val ident = jump.target as? PtIdentifier
+        if(ident!=null) {
+            // can be a label, or a pointer variable
+            val symbol = symbolTable.lookup(ident.name)
+            return if(symbol?.type in arrayOf(StNodeType.STATICVAR, StNodeType.MEMVAR, StNodeType.CONSTANT))
+                Pair(asmSymbolName(ident), true)        // indirect jump if the jump symbol is a variable
+            else
+                Pair(asmSymbolName(ident), false)
         }
+        val addr = jump.target.asConstInteger()
+        if(addr!=null) return Pair(addr.toHex(), false)
+        else TODO("GOTO TARGET ${jump.target}")
     }
 
     private fun translate(ret: PtReturn) {

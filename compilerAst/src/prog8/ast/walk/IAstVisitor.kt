@@ -63,7 +63,7 @@ interface IAstVisitor {
     }
 
     fun visit(jump: Jump) {
-        jump.identifier?.accept(this)
+        jump.target.accept(this)
     }
 
     fun visit(ifElse: IfElse) {

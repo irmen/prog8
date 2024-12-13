@@ -68,12 +68,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     "%asm {{ ...${node.assembly.length} characters... }}"
             }
             is PtJump -> {
-                if(node.identifier!=null)
-                    "goto ${node.identifier.name}"
-                else if(node.address!=null)
-                    "goto ${node.address.toHex()}"
-                else
-                    "???"
+                "goto ${txt(node.target)}"
             }
             is PtAsmSub -> {
                 val params = node.parameters.joinToString(", ") {

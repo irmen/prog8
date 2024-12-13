@@ -1,12 +1,16 @@
 TODO
 ====
 
+goto can now accept any expression (instead of just a constant address or an identifier).
+document this.  + FIX code gen for the case where the target is a non-constant expression! See TODOs with "GOTO TARGET"
+
 ...
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- make word arrays split by default (remove @split tag) and use new @notsplit or @linear tag to make an array use the old storage format?  Also remove -splitarrays command line option. Document this (also that word arrays can then have length 256 by default as well, and that @linear will reduce it to half.)
 - a syntax to access specific bits in a variable, to avoid manually shifts&ands, something like  variable[4:8] ?  (or something else this may be too similar to regular array indexing)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
