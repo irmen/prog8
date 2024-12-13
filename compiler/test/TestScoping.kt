@@ -364,7 +364,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
     }
 
     test("various wrong goto targets") {

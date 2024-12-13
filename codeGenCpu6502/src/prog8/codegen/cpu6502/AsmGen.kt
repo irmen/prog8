@@ -74,10 +74,12 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                     }
                 }
                 is PtJump -> {
-                    val stNode = st.lookup(node.identifier!!.name) ?: throw AssemblyError("name not found ${node.identifier}")
-                    if(stNode.astNode.definingBlock()?.options?.noSymbolPrefixing!=true) {
-                        val index = node.parent.children.indexOf(node)
-                        nodesToPrefix += node.parent to index
+                    if(node.address==null) {
+                        val stNode = st.lookup(node.identifier!!.name) ?: throw AssemblyError("name not found ${node.identifier}")
+                        if (stNode.astNode.definingBlock()?.options?.noSymbolPrefixing != true) {
+                            val index = node.parent.children.indexOf(node)
+                            nodesToPrefix += node.parent to index
+                        }
                     }
                 }
                 is PtBlock -> prefixNamedNode(node)
