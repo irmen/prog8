@@ -1,10 +1,6 @@
 TODO
 ====
 
-@R0 parameters in normal subs are currently done via injected alias statements.
-This means a bool parameter cannot be put into r0 because it is defined as a byte. (error: "using R0-R15 as register param requires integer type")
-Can we inject them as regular memory mapped variables instead?  &bool param = $02  (where $02 is the zp location of r0L)
-
 ...
 
 

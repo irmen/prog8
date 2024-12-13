@@ -258,8 +258,20 @@ class VarDecl(val type: VarDeclType,
         private var autoHeapValueSequenceNumber = 0
 
         fun fromParameter(param: SubroutineParameter): VarDecl {
+            val decltype: VarDeclType
+            val value: Expression?
+            if(param.registerOrPair==null) {
+                // regular parameter variable
+                decltype = VarDeclType.VAR
+                value = null
+            } else {
+                // parameter variable memory mapped to a R0-R15 virtual register
+                val regname = param.registerOrPair.asScopedNameVirtualReg(param.type)
+                decltype = VarDeclType.MEMORY
+                value = AddressOf(IdentifierReference(regname, param.position), null, param.position)
+            }
             val dt = if(param.type.isArray) DataType.forDt(BaseDataType.UWORD) else param.type
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, null, param.name, emptyList(), null,
+            return VarDecl(decltype, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, null, param.name, emptyList(), value,
                 sharedWithAsm = false,
                 splitArray = false,
                 alignment = 0u,

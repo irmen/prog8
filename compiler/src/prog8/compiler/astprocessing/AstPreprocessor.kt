@@ -232,12 +232,11 @@ class AstPreprocessor(val program: Program,
                         .filter { it.name !in namesInSub && it.name !in existingAliases }
                         .forEach {
                             if (it.registerOrPair in Cx16VirtualRegisters) {
-                                if(it.type.isInteger) {
-                                    val regname = it.registerOrPair!!.asScopedNameVirtualReg(it.type)
-                                    var alias = Alias(it.name, IdentifierReference(regname, it.position), it.position)
-                                    mods += IAstModification.InsertFirst(alias, subroutine)
+                                if(it.type.isIntegerOrBool) {
+                                    val mappedParamVar = VarDecl.fromParameter(it)
+                                    mods += IAstModification.InsertFirst(mappedParamVar, subroutine)
                                 } else {
-                                    errors.err("using R0-R15 as register param requires integer type", it.position)
+                                    errors.err("using R0-R15 as register param requires integer or boolean type", it.position)
                                 }
                             } else
                                 errors.err("can only use R0-R15 as register param for normal subroutines", it.position)
