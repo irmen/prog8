@@ -843,7 +843,12 @@ internal class ProgramAndVarsGen(
                     "$" + it.number!!.toInt().toString(16).padStart(4, '0')
                 }
                 else if(it.addressOfSymbol!=null) {
-                    asmgen.asmSymbolName(it.addressOfSymbol!!)
+                    val addrOfSymbol = it.addressOfSymbol!!
+                    val symbol = symboltable.lookup(addrOfSymbol)!!
+                    if(symbol is StStaticVariable && symbol.dt.isSplitWordArray)
+                        asmgen.asmSymbolName(addrOfSymbol+"_lsb")  // the _lsb split array comes first in memory
+                    else
+                        asmgen.asmSymbolName(addrOfSymbol)
                 }
                 else
                     throw AssemblyError("weird array elt")

@@ -1,16 +1,20 @@
 TODO
 ====
 
-- DONE: make word arrays split by default (remove @split tag) and use new @nosplit tag to make an array use the old storage format?  Also invert -splitarrays command line option.
+- DONE: make word arrays split by default (remove @split tag) and use new @nosplit tag to make an array use the old storage format?
+- DONE: invert -splitarrays command line option to -dontsplitarrays
 - DONE: remove "splitarrays" %option switch
-- fix IR compilation errors
-- Regular & will just return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
-- check this for 6502 codegen: split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
-- add &< and &> operators to get the address of the lsb-array and msb-array, respectively.
-- fix sprites.pos_batch
+- DONE: added sprites.pos_batch_nosplit  when the x/y arrays are linear instead of split word arrays
 - update Syntax files + Document all of this  (also that word arrays can then have length 256 by default as well, and that @linear will reduce it to half.)
-- test all examples and projects   (paint has wrong palette colors)
+- test all examples and projects
+    - (paint has wrong palette colors)
+    - cx16/balloonflight is black
+    - cx16/bubbleunivers,kefrenbars has wrong colors
+    - cx16 stream-wav has broken playback?
 - benchmark program became slower!?  (did get smaller, just slower????)
+- showbmx example has wrong colors and doesn't center the picture correctly (robocat4.bmx)  (imageviewer is fine?)
+- cx16/tehtriz should be better centered vertically
+- add &< and &> operators to get the address of the lsb-array and msb-array, respectively.
 
 
 ...
@@ -19,6 +23,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- Fix missing cases where regular & has to return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
 - a syntax to access specific bits in a variable, to avoid manually shifts&ands, something like  variable[4:8] ?  (or something else this may be too similar to regular array indexing)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
@@ -69,6 +74,7 @@ IR/VM
 
 Libraries
 ---------
+- monogfx: flood fill should be able to fill stippled
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 - fix the problems in atari target, and flesh out its libraries.

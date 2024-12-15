@@ -18,7 +18,7 @@ main {
         txt.print("calculating...\n")
 
         sys.memset(flags_ptr, SIZEPL, 1)
-        count = 0
+        count = 1
         for i in 0 to SIZEPL-1 {
             if flags_ptr[i]!=0 {
                 prime = i + i + 3
@@ -34,7 +34,10 @@ main {
         }
 
         txt.nl()
+        txt.print("last prime: ")
+        txt.print_uw(prime)
+        txt.print("\nnumber of primes: ")
         txt.print_uw(count)
-        txt.print(" primes\n")
+        txt.nl()
     }
 }

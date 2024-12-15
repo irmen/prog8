@@ -83,7 +83,27 @@ sprites {
     }
 
     sub pos_batch(ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr) {
-        ; -- note: the x and y positions word arrays must be regular arrays, they cannot be split arrays! TODO FIX THIS
+        ; -- note: the x and y positions word arrays must both be split word arrays in this version of the routine! (the default)
+        sprite_reg = VERA_SPRITEREGS + 2 + first_spritenum*$0008
+        cx16.vaddr_autoincr(1, sprite_reg, 0, 8)
+        cx16.vaddr_autoincr(1, sprite_reg+1, 1, 8)
+        repeat num_sprites {
+            cx16.VERA_DATA0 = @(xpositions_ptr)
+            cx16.VERA_DATA1 = @(xpositions_ptr+num_sprites)
+            xpositions_ptr ++
+        }
+        sprite_reg += 2
+        cx16.vaddr_autoincr(1, sprite_reg, 0, 8)
+        cx16.vaddr_autoincr(1, sprite_reg+1, 1, 8)
+        repeat num_sprites {
+            cx16.VERA_DATA0 = @(ypositions_ptr)
+            cx16.VERA_DATA1 = @(ypositions_ptr+num_sprites)
+            ypositions_ptr ++
+        }
+    }
+
+    sub pos_batch_nosplit(ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr) {
+        ; -- note: the x and y positions word arrays must both be regular linear arrays in this version of the routine!
         sprite_reg = VERA_SPRITEREGS + 2 + first_spritenum*$0008
         cx16.vaddr_autoincr(1, sprite_reg, 0, 8)
         cx16.vaddr_autoincr(1, sprite_reg+1, 1, 8)

@@ -67,9 +67,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                 } else {
                     // for strings and arrays etc., load the *address* of the value instead
+                    // for arrays this could mean a split word array, in which case we take the address of the _lsb array which comes first
                     val vmDt = if(expr.type.isUndefined) IRDataType.WORD else irType(expr.type)
                     val resultRegister = codeGen.registers.nextFree()
-                    code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = expr.name)
+                    val labelsymbol = if(expr.type.isSplitWordArray) expr.name+"_lsb" else expr.name
+                    code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = labelsymbol)
                     ExpressionCodeResult(code, vmDt, resultRegister, -1)
                 }
             }

@@ -60,22 +60,19 @@ main {
 
         ; palette.set_color(0, $f00)          ; debug rastertime
 
-        ; draw 2 bobs per frame to speed up bob count
-        ubyte vmembase = blitbuffer*4               ; 2048 * 4 per backbuffer
-        blit(vmembase)
-        blitbuffer++
-        if blitbuffer==num_backbuffers
-            blitbuffer=0
-        vmembase = blitbuffer*4                     ; 2048 * 4 per backbuffer
-        blit(vmembase)
-        blitbuffer++
-        if blitbuffer==num_backbuffers
-            blitbuffer=0
+        ; draw 4 bobs per frame to speed up bob count
+        repeat 4 {
+            ubyte vmembase = blitbuffer*4               ; 2048 * 4 per backbuffer
+            blit(vmembase)
+            blitbuffer++
+            if blitbuffer==num_backbuffers
+                blitbuffer=0
+        }
 
         backbuffer++
         if backbuffer==num_backbuffers {
             backbuffer=0
-            num_bobs+=2
+            num_bobs+=4
         }
 
         vmembase = backbuffer*4                     ; 2048 * 4 per backbuffer

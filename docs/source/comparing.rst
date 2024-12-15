@@ -61,6 +61,7 @@ Subroutines
 - Subroutines can be nested. Inner subroutines can directly access variables from their parent.
 - Subroutine parameters are just local variables in the subroutine. (you can access them directly as such via their scoped name, if you want)
 - There is no call stack. So subroutine parameters are overwritten when called again. Thus recursion is not easily possible, but you can do it with manual stack manipulations.
+  There are a couple of example programs that show how to solve this in different ways, among which are fractal-tree.p8, maze.p8 and queens.p8
 - There is no function overloading (except for a couple of builtin functions).
 - Some subroutine types can return multiple return values, and you can multi-assign those in a single statement.
 - Because every declared variable allocates some memory, it might be beneficial to share the same variables over different subroutines
