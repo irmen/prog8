@@ -304,7 +304,7 @@ class IRCodeGen(
                 }
                 addInstr(result, branchIns, null)
             } else {
-                TODO("GOTO TARGET ${goto.target}")
+                TODO("JUMP to expression address ${goto.target}")
             }
             if(branch.falseScope.children.isNotEmpty())
                 result += translateNode(branch.falseScope)
@@ -1031,7 +1031,7 @@ class IRCodeGen(
                 if(identifier!=null) {
                     it += IRInstruction(Opcode.JUMPI, labelSymbol = identifier.name)
                 } else {
-                    TODO("GOTO TARGET ${goto.target}")
+                    TODO("JUMP to expression address ${goto.target}")
                 }
             } else {
                 // normal jump, directly to target with branch opcode
@@ -1057,7 +1057,7 @@ class IRCodeGen(
                         else if(goto.target is PtIdentifier)
                             IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = (goto.target as PtIdentifier).name)
                         else
-                            TODO("GOTO TARGET ${goto.target}")
+                            TODO("JUMP to expression address ${goto.target}")
                     }
                 }
             }
@@ -1076,7 +1076,7 @@ class IRCodeGen(
             if(identifier!=null)
                 IRInstruction(branchOpcode, labelSymbol = identifier.name)
             else
-                TODO("GOTO TARGET ${goto.target}")
+                TODO("JUMP to expression address ${goto.target}")
         }
     }
 
@@ -1086,7 +1086,7 @@ class IRCodeGen(
         val afterIfLabel = createLabelName()
         val identifier = goto.target as? PtIdentifier
         if(identifier==null) {
-            TODO("GOTO TARGET ${goto.target}")
+            TODO("JUMP to expression address ${goto.target}")
         }
         val gotoSymbol = identifier.name
 
@@ -1257,7 +1257,7 @@ class IRCodeGen(
                         else if(goto.target is PtIdentifier)
                             addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, labelSymbol = (goto.target as PtIdentifier).name), null)
                         else
-                            TODO("GOTO TARGET ${goto.target}")
+                            TODO("JUMP to expression address ${goto.target}")
                     }
                 }
             } else {
@@ -1316,7 +1316,7 @@ class IRCodeGen(
                     else if(goto.target is PtIdentifier)
                         addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, labelSymbol = (goto.target as PtIdentifier).name), null)
                     else
-                        TODO("GOTO TARGET ${goto.target}")
+                        TODO("JUMP to expression address ${goto.target}")
                 }
             }
         }
@@ -1660,7 +1660,7 @@ class IRCodeGen(
                     IRInstruction(Opcode.JUMP, labelSymbol = identifier.name)
                 }
             } else {
-                TODO("GOTO TARGET ${jump.target}")
+                TODO("JUMP to expression address ${jump.target}")
             }
         }
         result += chunk

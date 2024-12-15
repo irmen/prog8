@@ -1,8 +1,9 @@
 TODO
 ====
 
-goto can now accept any expression (instead of just a constant address or an identifier).
-document this.  + FIX code gen for the case where the target is a non-constant expression! See TODOs with "GOTO TARGET"
+- make word arrays split by default (remove @split tag) and use new @nosplit tag to make an array use the old storage format?  Also invert -splitarrays command line option.
+- add &< and &> operators to get the address of the lsb-array and msb-array, respectively.  Regular & will just return the start of the split array in memory whatever byte comes first.
+- update Syntax files + Document all of this  (also that word arrays can then have length 256 by default as well, and that @linear will reduce it to half.)
 
 ...
 
@@ -10,7 +11,6 @@ document this.  + FIX code gen for the case where the target is a non-constant e
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- make word arrays split by default (remove @split tag) and use new @notsplit or @linear tag to make an array use the old storage format?  Also remove -splitarrays command line option. Document this (also that word arrays can then have length 256 by default as well, and that @linear will reduce it to half.)
 - a syntax to access specific bits in a variable, to avoid manually shifts&ands, something like  variable[4:8] ?  (or something else this may be too similar to regular array indexing)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
@@ -46,6 +46,7 @@ IR/VM
 - fix call() return value handling
 - fix float register parameters (FAC1,FAC2) for extsubs, search for TODO("floating point register parameters not supported")
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
+- make it possible to jump and branch to a computed address (expression), see TODO("JUMP to expression address
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.

@@ -608,8 +608,9 @@ class AsmGen6502Internal (
             }
             is PtAugmentedAssign -> assignmentAsmGen.translate(stmt)
             is PtJump -> {
-                val (asmLabel, indirect) = getJumpTarget(stmt)
-                jmp(asmLabel, indirect)
+                val target = getJumpTarget(stmt)
+                require(!target.needsExpressionEvaluation)
+                jmp(target.asmLabel, target.indirect)
             }
             is PtLabel -> translate(stmt)
             is PtConditionalBranch -> translate(stmt)
@@ -1003,16 +1004,17 @@ $repeatLabel""")
         if(jump!=null) {
             // branch with only a jump (goto)
             val instruction = branchInstruction(stmt.condition, false)
-            val (asmLabel, indirect) = getJumpTarget(jump)
-            if(indirect) {
+            val target = getJumpTarget(jump)
+            require(!target.needsExpressionEvaluation)
+            if(target.indirect) {
                 val complementedInstruction = branchInstruction(stmt.condition, true)
                 out("""
                     $complementedInstruction +
-                    jmp  ($asmLabel)
+                    jmp  (${target.asmLabel})
 +""")
             }
             else {
-                out("  $instruction  $asmLabel")
+                out("  $instruction  ${target.asmLabel}")
             }
             translate(stmt.falseScope)
         } else {
@@ -1038,19 +1040,30 @@ $repeatLabel""")
         }
     }
 
-    internal fun getJumpTarget(jump: PtJump): Pair<String, Boolean> {
+    class JumpTarget(val asmLabel: String, val indirect: Boolean, val needsExpressionEvaluation: Boolean)
+
+    internal fun getJumpTarget(jump: PtJump, evaluateAddressExpression: Boolean = true): JumpTarget {
         val ident = jump.target as? PtIdentifier
         if(ident!=null) {
             // can be a label, or a pointer variable
             val symbol = symbolTable.lookup(ident.name)
             return if(symbol?.type in arrayOf(StNodeType.STATICVAR, StNodeType.MEMVAR, StNodeType.CONSTANT))
-                Pair(asmSymbolName(ident), true)        // indirect jump if the jump symbol is a variable
+                JumpTarget(asmSymbolName(ident), true, false)        // indirect jump if the jump symbol is a variable
             else
-                Pair(asmSymbolName(ident), false)
+                JumpTarget(asmSymbolName(ident), false, false)
         }
         val addr = jump.target.asConstInteger()
-        if(addr!=null) return Pair(addr.toHex(), false)
-        else TODO("GOTO TARGET ${jump.target}")
+        if(addr!=null)
+            return JumpTarget(addr.toHex(), false, false)
+        else {
+            if(evaluateAddressExpression) {
+                // we can do the address evaluation right now and just use a temporary pointer variable
+                assignExpressionToVariable(jump.target, "P8ZP_SCRATCH_W1", DataType.forDt(BaseDataType.UWORD))
+                return JumpTarget("P8ZP_SCRATCH_W1", true, false)
+            } else {
+                return JumpTarget("PROG8_JUMP_TARGET_IS_UNEVALUATED_ADDRESS_EXPRESSION", true, true)
+            }
+        }
     }
 
     private fun translate(ret: PtReturn) {

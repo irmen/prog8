@@ -83,25 +83,27 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     asmgen.out("  bit  ${variable.name}")
                     if(testForBitSet) {
                         if(jumpAfterIf!=null) {
-                            val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
-                            if(indirect)
+                            val target = asmgen.getJumpTarget(jumpAfterIf)
+                            require(!target.needsExpressionEvaluation)
+                            if(target.indirect)
                                 throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
                             if(ifElse.hasElse())
                                 throw AssemblyError("didn't expect else part here ${ifElse.position}")
                             else
-                                asmgen.out("  bmi  $asmLabel")
+                                asmgen.out("  bmi  ${target.asmLabel}")
                         }
                         else
                             translateIfElseBodies("bpl", ifElse)
                     } else {
                         if(jumpAfterIf!=null) {
-                            val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
-                            if(indirect)
+                            val target = asmgen.getJumpTarget(jumpAfterIf)
+                            require(!target.needsExpressionEvaluation)
+                            if(target.indirect)
                                 throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
                             if(ifElse.hasElse())
                                 throw AssemblyError("didn't expect else part here ${ifElse.position}")
                             else
-                                asmgen.out("  bpl  $asmLabel")
+                                asmgen.out("  bpl  ${target.asmLabel}")
                         }
                         else
                             translateIfElseBodies("bmi", ifElse)
@@ -113,25 +115,27 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     asmgen.out("  bit  ${variable.name}")
                     if(testForBitSet) {
                         if(jumpAfterIf!=null) {
-                            val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
-                            if(indirect)
+                            val target = asmgen.getJumpTarget(jumpAfterIf)
+                            require(!target.needsExpressionEvaluation)
+                            if(target.indirect)
                                 throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
                             if(ifElse.hasElse())
                                 throw AssemblyError("didn't expect else part here ${ifElse.position}")
                             else
-                                asmgen.out("  bvs  $asmLabel")
+                                asmgen.out("  bvs  ${target.asmLabel}")
                         }
                         else
                             translateIfElseBodies("bvc", ifElse)
                     } else {
                         if(jumpAfterIf!=null) {
-                            val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
-                            if(indirect)
+                            val target = asmgen.getJumpTarget(jumpAfterIf)
+                            require(!target.needsExpressionEvaluation)
+                            if(target.indirect)
                                 throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
                             if(ifElse.hasElse())
                                 throw AssemblyError("didn't expect else part here ${ifElse.position}")
                             else
-                                asmgen.out("  bvc  $asmLabel")
+                                asmgen.out("  bvc  ${target.asmLabel}")
                         }
                         else
                             translateIfElseBodies("bvs", ifElse)
@@ -171,14 +175,17 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
     private fun translateJumpElseBodies(branchInstr: String, falseBranch: String, jump: PtJump, elseBlock: PtNodeGroup) {
         // comparison value is already in A
-        val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-        if(indirect) {
+        var target = asmgen.getJumpTarget(jump, false)
+        if(target.indirect) {
+            asmgen.out("  $falseBranch  +")
+            if(target.needsExpressionEvaluation)
+                target = asmgen.getJumpTarget(jump, true)
             asmgen.out("""
-                $falseBranch  +
-                jmp  ($asmLabel)
+                jmp  (${target.asmLabel})
 +""")
         } else {
-            asmgen.out("  $branchInstr  $asmLabel")
+            require(!target.needsExpressionEvaluation)
+            asmgen.out("  $branchInstr  ${target.asmLabel}")
         }
         asmgen.translate(elseBlock)
     }
@@ -283,17 +290,19 @@ internal class IfElseAsmGen(private val program: PtProgram,
             ">" -> {
                 if(signed) {
                     return if (jumpAfterIf != null) {
-                        val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
-                        if(indirect) {
+                        var target = asmgen.getJumpTarget(jumpAfterIf, false)
+                        if(target.indirect) {
+                            asmgen.out("  bmi  + |  beq +")
+                            if(target.needsExpressionEvaluation)
+                                target = asmgen.getJumpTarget(jumpAfterIf, true)
                             asmgen.out("""
-                                    bmi  +
-                                    beq  +
-                                    jmp  ($asmLabel)
+                                jmp  (${target.asmLabel})
 +""")
                         } else {
+                            require(!target.needsExpressionEvaluation)
                             asmgen.out("""
                                     beq  +
-                                    bpl  $asmLabel
+                                    bpl  ${target.asmLabel}
 +""")
                         }
                         asmgen.translate(stmt.elseScope)
@@ -348,17 +357,19 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 if(signed) {
                     // inverted '>'
                     return if (jumpAfterIf != null) {
-                        val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
-                        if(indirect) {
+                        var target = asmgen.getJumpTarget(jumpAfterIf, false)
+                        if(target.indirect) {
+                            asmgen.out("  bmi  + |  bne  ++")
+                            if(target.needsExpressionEvaluation)
+                                target = asmgen.getJumpTarget(jumpAfterIf, true)
                             asmgen.out("""
-                                    bmi  +
-                                    bne  ++
-+                                   jmp  ($asmLabel)
++                               jmp  (${target.asmLabel})
 +""")
                         } else {
+                            require(!target.needsExpressionEvaluation)
                             asmgen.out("""
-                                    bmi  $asmLabel
-                                    beq  $asmLabel""")
+                                    bmi  ${target.asmLabel}
+                                    beq  ${target.asmLabel}""")
                         }
                         asmgen.translate(stmt.elseScope)
                     }
@@ -427,17 +438,19 @@ internal class IfElseAsmGen(private val program: PtProgram,
             asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, false)
             asmgen.cmpAwithByteValue(condition.right, false)
             if(jumpAfterIf!=null) {
-                val (asmLabel, indirect) = asmgen.getJumpTarget(jumpAfterIf)
-                if(indirect) {
+                var target = asmgen.getJumpTarget(jumpAfterIf, false)
+                if(target.indirect) {
+                    asmgen.out("  bcc  + |  beq  +")
+                    if(target.needsExpressionEvaluation)
+                        target = asmgen.getJumpTarget(jumpAfterIf, true)
                     asmgen.out("""
-                        bcc  +
-                        beq  +
-                        jmp  ($asmLabel)
+                        jmp  (${target.asmLabel})
 +""")
                 } else {
+                    require(!target.needsExpressionEvaluation)
                     asmgen.out("""
                         beq  +
-                        bcs  $asmLabel
+                        bcs  ${target.asmLabel}
 +""")
                 }
                 asmgen.translate(stmt.elseScope)
@@ -520,25 +533,29 @@ internal class IfElseAsmGen(private val program: PtProgram,
             if(signed) {
                 // word < X
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             cmp  $valueLsb
                             tya
                             sbc  $valueMsb
                             bvc  +
                             eor  #128
-+                           bpl  +
-                            jmp  ($asmLabel)
++                           bpl  +""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
+                            jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             cmp  $valueLsb
                             tya
                             sbc  $valueMsb
                             bvc  +
                             eor  #128
-+                           bmi  $asmLabel""")
++                           bmi  ${target.asmLabel}""")
                     }
                 } else {
                     val afterIfLabel = asmgen.makeLabel("afterif")
@@ -572,23 +589,27 @@ internal class IfElseAsmGen(private val program: PtProgram,
             } else {
                 // uword < X
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             cpy  $valueMsb
                             bcc  _jump
 +                           bne  +
                             cmp  $valueLsb
-                            bcs  +
-_jump                       jmp  ($asmLabel)
+                            bcs  +""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
+_jump                       jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             cpy  $valueMsb
-                            bcc  $asmLabel
+                            bcc  ${target.asmLabel}
                             bne  +
                             cmp  $valueLsb
-                            bcc  $asmLabel
+                            bcc  ${target.asmLabel}
 +""")
                     }
                 } else {
@@ -644,25 +665,29 @@ _jump                       jmp  ($asmLabel)
             if(signed) {
                 // word >= X
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             cmp  $valueLsb
                             tya
                             sbc  $valueMsb
                             bvs  +
                             eor  #128
-+                           bpl  +
-                            jmp  ($asmLabel)
++                           bpl  +""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
+                           jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             cmp  $valueLsb
                             tya
                             sbc  $valueMsb
                             bvs  +
                             eor  #128
-+                           bmi  $asmLabel""")
++                           bmi  ${target.asmLabel}""")
                     }
                 } else {
                     val afterIfLabel = asmgen.makeLabel("afterif")
@@ -696,21 +721,25 @@ _jump                       jmp  ($asmLabel)
             } else {
                 // uword >= X
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             cmp  $valueLsb
                             tya
                             sbc  $valueMsb
-                            bcc  +
-                            jmp  ($asmLabel)
+                            bcc  +""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
+                            jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             cmp  $valueLsb
                             tya
                             sbc  $valueMsb
-                            bcs  $asmLabel""")
+                            bcs  ${target.asmLabel}""")
                     }
                 } else {
                     val afterIfLabel = asmgen.makeLabel("afterif")
@@ -795,23 +824,27 @@ _jump                       jmp  ($asmLabel)
 
             fun compareLsbMsb(valueLsb: String, valueMsb: String) {
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  +
                             bne  ++
                             lda  $valueLsb
-                            bne  ++
-+                           jmp  ($asmLabel)
+                            bne  ++""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
++                           jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             lda  $valueMsb
-                            bmi  $asmLabel
+                            bmi  ${target.asmLabel}
                             bne  +
                             lda  $valueLsb
-                            beq  $asmLabel
+                            beq  ${target.asmLabel}
 +""")
                     }
                     asmgen.translate(stmt.elseScope)
@@ -870,23 +903,27 @@ _jump                       jmp  ($asmLabel)
                 
             asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
             if(jump!=null) {
-                val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                if(indirect) {
+                var target = asmgen.getJumpTarget(jump, false)
+                if(target.indirect) {
                     asmgen.out("""
                         cpy  #0
                         bmi  +
                         bne  ++
                         cmp  #0
-                        bne  ++
-+                       jmp  ($asmLabel)
+                        bne  ++""")
+                    if(target.needsExpressionEvaluation)
+                        target = asmgen.getJumpTarget(jump, true)
+                    asmgen.out("""
++                       jmp  (${target.asmLabel})
 +""")
                 } else {
+                    require(!target.needsExpressionEvaluation)
                     asmgen.out("""
                         cpy  #0
-                        bmi  $asmLabel
+                        bmi  ${target.asmLabel}
                         bne  +
                         cmp  #0
-                        beq  $asmLabel
+                        beq  ${target.asmLabel}
 +""")
                 }
                 asmgen.translate(stmt.elseScope)
@@ -931,23 +968,27 @@ _jump                       jmp  ($asmLabel)
 
             fun compareLsbMsb(valueLsb: String, valueMsb: String) {
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  ++
                             bne  +
                             lda  $valueLsb
-                            beq  ++
-+                           jmp  ($asmLabel)
+                            beq  ++""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
++                           jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  +
-                            bne  $asmLabel
+                            bne  ${target.asmLabel}
                             lda  $valueLsb
-                            bne  $asmLabel
+                            bne  ${target.asmLabel}
 +""")
                     }
                     asmgen.translate(stmt.elseScope)
@@ -1007,23 +1048,27 @@ _jump                       jmp  ($asmLabel)
 
             asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
             if(jump!=null) {
-                val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                if(indirect) {
+                var target = asmgen.getJumpTarget(jump, false)
+                if(target.indirect) {
                     asmgen.out("""
-                            cpy  #0
-                            bmi  ++
-                            bne  +
-                            cmp  #0
-                            beq  ++
-+                           jmp  ($asmLabel)
+                        cpy  #0
+                        bmi  ++
+                        bne  +
+                        cmp  #0
+                        beq  ++""")
+                    if(target.needsExpressionEvaluation)
+                        target = asmgen.getJumpTarget(jump, true)
+                    asmgen.out("""
++                       jmp  (${target.asmLabel})
 +""")
                 } else {
+                    require(!target.needsExpressionEvaluation)
                     asmgen.out("""
-                            cpy  #0
-                            bmi  +
-                            bne  $asmLabel
-                            cmp  #0
-                            bne  $asmLabel
+                        cpy  #0
+                        bmi  +
+                        bne  ${target.asmLabel}
+                        cmp  #0
+                        bne  ${target.asmLabel}
 +""")
                 }
                 asmgen.translate(stmt.elseScope)
@@ -1147,21 +1192,25 @@ _jump                       jmp  ($asmLabel)
 
         fun translateAYNotEquals(valueLsb: String, valueMsb: String) {
             if(jump!=null) {
-                val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                if(indirect) {
+                var target = asmgen.getJumpTarget(jump, false)
+                if(target.indirect) {
                     asmgen.out("""
                         cmp  $valueLsb
                         bne  +
                         cpy  $valueMsb
-                        beq  ++
-+                       jmp  ($asmLabel)
+                        beq  ++""")
+                    if(target.needsExpressionEvaluation)
+                        target = asmgen.getJumpTarget(jump, true)
+                    asmgen.out("""
++                       jmp  (${target.asmLabel})
 +""")
                 } else {
+                    require(!target.needsExpressionEvaluation)
                     asmgen.out("""
                         cmp  $valueLsb
-                        bne  $asmLabel
+                        bne  ${target.asmLabel}
                         cpy  $valueMsb
-                        bne  $asmLabel""")
+                        bne  ${target.asmLabel}""")
                 }
                 asmgen.translate(stmt.elseScope)
             } else {
@@ -1195,21 +1244,25 @@ _jump                       jmp  ($asmLabel)
 
         fun translateAYEquals(valueLsb: String, valueMsb: String) {
             if(jump!=null) {
-                val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                if(indirect) {
+                var target = asmgen.getJumpTarget(jump, false)
+                if(target.indirect) {
                     asmgen.out("""
                         cmp  $valueLsb
                         bne  +
                         cpy  $valueMsb
-                        bne  +
-                        jmp  ($asmLabel)
+                        bne  +""")
+                    if(target.needsExpressionEvaluation)
+                        target = asmgen.getJumpTarget(jump, true)
+                    asmgen.out("""
+                        jmp  (${target.asmLabel})
 +""")
                 } else {
+                    require(!target.needsExpressionEvaluation)
                     asmgen.out("""
                         cmp  $valueLsb
                         bne  +
                         cpy  $valueMsb
-                        beq  $asmLabel
+                        beq  ${target.asmLabel}
 +""")
                 }
                 asmgen.translate(stmt.elseScope)
@@ -1243,25 +1296,29 @@ _jump                       jmp  ($asmLabel)
         fun translateEqualsVarVar(left: PtIdentifier, right: PtIdentifier) {
             if(notEquals) {
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             lda  ${left.name}
                             cmp  ${right.name}
                             bne  +
                             lda  ${left.name}+1
                             cmp  ${right.name}+1
-                            beq  ++
-+                           jmp  ($asmLabel)
+                            beq  ++""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
++                           jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             lda  ${left.name}
                             cmp  ${right.name}
-                            bne  $asmLabel
+                            bne  ${target.asmLabel}
                             lda  ${left.name}+1
                             cmp  ${right.name}+1
-                            bne  $asmLabel""")
+                            bne  ${target.asmLabel}""")
                     }
                     asmgen.translate(stmt.elseScope)
                 } else {
@@ -1298,25 +1355,29 @@ _jump                       jmp  ($asmLabel)
             } else {
                 // XXX translateAYEquals(right.name, right.name + "+1")
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             lda  ${left.name}
                             cmp  ${right.name}
                             bne  +
                             lda  ${left.name}+1
                             cmp  ${right.name}+1
-                            bne  +
-                            jmp  ($asmLabel)
+                            bne  +""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
+                            jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             lda  ${left.name}
                             cmp  ${right.name}
                             bne  +
                             lda  ${left.name}+1
                             cmp  ${right.name}+1
-                            beq  $asmLabel
+                            beq  ${target.asmLabel}
 +""")
                     }
                     asmgen.translate(stmt.elseScope)
@@ -1356,25 +1417,29 @@ _jump                       jmp  ($asmLabel)
             val value = right.number.toInt()
             if(notEquals) {
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             lda  ${left.name}
                             cmp  #<$value
                             bne  +
                             lda  ${left.name}+1
                             cmp  #>$value
-                            beq  ++
-+                           jmp  ($asmLabel)
+                            beq  ++""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
++                           jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             lda  ${left.name}
                             cmp  #<$value
-                            bne  $asmLabel
+                            bne  ${target.asmLabel}
                             lda  ${left.name}+1
                             cmp  #>$value
-                            bne  $asmLabel""")
+                            bne  ${target.asmLabel}""")
                     }
                     asmgen.translate(stmt.elseScope)
                 } else {
@@ -1410,25 +1475,29 @@ _jump                       jmp  ($asmLabel)
                 }
             } else {
                 if(jump!=null) {
-                    val (asmLabel, indirect) = asmgen.getJumpTarget(jump)
-                    if(indirect) {
+                    var target = asmgen.getJumpTarget(jump, false)
+                    if(target.indirect) {
                         asmgen.out("""
                             lda  ${left.name}
                             cmp  #<$value
                             bne  +
                             lda  ${left.name}+1
                             cmp  #>$value
-                            bne  +
-                            jmp  ($asmLabel)
+                            bne  +""")
+                        if(target.needsExpressionEvaluation)
+                            target = asmgen.getJumpTarget(jump, true)
+                        asmgen.out("""
+                            jmp  (${target.asmLabel})
 +""")
                     } else {
+                        require(!target.needsExpressionEvaluation)
                         asmgen.out("""
                             lda  ${left.name}
                             cmp  #<$value
                             bne  +
                             lda  ${left.name}+1
                             cmp  #>$value
-                            beq  $asmLabel
+                            beq  ${target.asmLabel}
 +""")
                     }
                     asmgen.translate(stmt.elseScope)
