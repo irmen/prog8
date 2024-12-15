@@ -3,7 +3,6 @@
 %import strings
 %import syslib
 %import math
-%import anyall
 %zeropage basicsafe
 
 main {
@@ -350,62 +349,6 @@ main {
         ww = -1000
         ww = zero+(abs(ww) as word)*1+zero
         txt.print_w(ww)
-        txt.nl()
-        
-        ub = anyall.any(ubarr, len(ubarr)) as ubyte
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+(anyall.any(ubarr, len(ubarr)) as ubyte)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = anyall.any(barr, len(barr)) as ubyte
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+(anyall.any(barr, len(barr)) as ubyte)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = anyall.any(uwarr, len(uwarr)) as ubyte
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+(anyall.any(uwarr, len(uwarr)) as ubyte)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = anyall.any(warr, len(warr)) as ubyte
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+(anyall.any(warr, len(warr)) as ubyte)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = anyall.all(ubarr, len(ubarr)) as ubyte
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+(anyall.all(ubarr, len(ubarr)) as ubyte)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = anyall.all(barr, len(barr)) as ubyte
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+(anyall.all(barr, len(barr)) as ubyte)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = anyall.all(uwarr, len(uwarr)) as ubyte
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+(anyall.all(uwarr, len(uwarr)) as ubyte)*1+zero
-        txt.print_ub(ub)
-        txt.nl()
-
-        ub = anyall.all(warr, len(warr)) as ubyte
-        txt.print_ub(ub)
-        txt.nl()
-        ub = zero+(anyall.all(warr, len(warr)) as ubyte)*1+zero
-        txt.print_ub(ub)
         txt.nl()
     }
 

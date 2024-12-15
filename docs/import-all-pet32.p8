@@ -1,6 +1,5 @@
 ; all library modules for the pet32 compiler target
 
-%import anyall
 %import buffers
 %import compression
 %import conv

@@ -1,7 +1,6 @@
 %import floats
 %import textio
 %import strings
-%import anyall
 %zeropage basicsafe
 
 main {
@@ -29,39 +28,6 @@ main {
         name[3] = 0
         length=strings.length(name)
         if length!=3 txt.print("error strlen2\n")
-
-        ; ANY
-        ub = anyall.any(ubarr, len(ubarr)) as ubyte
-        if ub==0 txt.print("error any1\n")
-        ub = anyall.any(barr, len(barr)) as ubyte
-        if ub==0 txt.print("error any2\n")
-        ub = anyall.anyw(uwarr, len(uwarr)) as ubyte
-        if ub==0 txt.print("error any3\n")
-        ub = anyall.anyw(warr, len(warr)) as ubyte
-        if ub==0 txt.print("error any4\n")
-
-        ; ALL
-        ub = anyall.all(ubarr, len(ubarr)) as ubyte
-        if ub==1 txt.print("error all1\n")
-        ub = anyall.all(barr, len(barr)) as ubyte
-        if ub==1 txt.print("error all2\n")
-        ub = anyall.allw(uwarr, len(uwarr)) as ubyte
-        if ub==1 txt.print("error all3\n")
-        ub = anyall.allw(warr, len(warr)) as ubyte
-        if ub==1 txt.print("error all4\n")
-        ubarr[1]=$40
-        barr[1]=$40
-        uwarr[1]=$4000
-        warr[1]=$4000
-        farr[1]=1.1
-        ub = anyall.all(ubarr, len(ubarr)) as ubyte
-        if ub==0 txt.print("error all6\n")
-        ub = anyall.all(barr, len(barr)) as ubyte
-        if ub==0 txt.print("error all7\n")
-        ub = anyall.allw(uwarr, len(uwarr)) as ubyte
-        if ub==0 txt.print("error all8\n")
-        ub = anyall.allw(warr, len(warr)) as ubyte
-        if ub==0 txt.print("error all9\n")
 
         txt.print("\nyou should see no errors printed above (first run only).")
     }

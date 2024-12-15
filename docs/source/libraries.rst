@@ -393,25 +393,6 @@ sys (part of syslib)
     Low-level function that should normally not be used.
 
 
-anyall
-------
-Routines to check if any or all values in an array or memory buffer are not zero.
-
-``any (arrayptr, num_elements)``
-    true if any of the byte values in the array is not zero, else false.
-
-``all (arrayptr, num_elements)``
-    true if all of the byte values in the array are not zero, else false.
-
-``anyw (arrayptr, num_elements)``
-    true if any of the word values in the array is not zero, else false.
-    Doesn't work on split arrays.
-
-``allw (arrayptr, num_elements)``
-    true if all of the word values in the array are not zero, else false.
-    Doesn't work on split arrays.
-
-
 buffers (experimental)
 ----------------------
 A small library providing a 8 KB stack, an 8 KB ringbuffer, and a fast 256 bytes ringbuffer.
