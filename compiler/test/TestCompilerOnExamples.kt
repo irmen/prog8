@@ -39,7 +39,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         slabsHighBank = null,
         slabsGolden = false,
         compilationTarget = target.name,
-        splitWordArrays = false,
+        dontSplitWordArrays = false,
         breakpointCpuInstruction = null,
         printAst1 = false,
         printAst2 = false,

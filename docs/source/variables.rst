@@ -61,7 +61,7 @@ Tag         Effect
 @requirezp  force the variable into Zero page. If ZP is full, compilation will fail.
 @nozp       force the variable to normal system ram, never place it into zeropage.
 @shared     means the variable is shared with some assembly code and that it cannot be optimized away if not used elsewhere.
-@split      (only valid on (u)word arrays) Makes the array to be placed in memory as 2 separate byte arrays; one with the LSBs one with the MSBs of the word values. Usually improves performance and code size.
+@nosplit    (only valid on (u)word arrays) Store the array as a single inear array instead of a separate array for lsb and msb values
 @alignword  aligns string or array variable on an even memory address
 @align64    aligns string or array variable on a 64 byte address interval (example: for C64 sprite data)
 @alignpage  aligns string or array variable on a 256 byte address interval (example: to avoid page boundaries)

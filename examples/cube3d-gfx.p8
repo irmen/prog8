@@ -7,14 +7,14 @@
 main {
 
     ; vertices
-    word[] @split xcoor = [ -100, -100, -100, -100,  100,  100,  100, 100 ]
-    word[] @split ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
-    word[] @split zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
+    word[] xcoor = [ -100, -100, -100, -100,  100,  100,  100, 100 ]
+    word[] ycoor = [ -100, -100,  100,  100, -100, -100,  100, 100 ]
+    word[] zcoor = [ -100,  100, -100,  100, -100,  100, -100, 100 ]
 
     ; storage for rotated coordinates
-    word[len(xcoor)] @split rotatedx
-    word[len(ycoor)] @split rotatedy
-    word[len(zcoor)] @split rotatedz
+    word[len(xcoor)] rotatedx
+    word[len(ycoor)] rotatedy
+    word[len(zcoor)] rotatedz
 
     ; edges
     ubyte[] edgesFrom = [ 0, 2, 6, 4, 1, 3, 7, 5, 0, 2, 6, 4]

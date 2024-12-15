@@ -18,10 +18,10 @@ main {
         const ubyte CIRCLE_SKIP = 256/NUM_STARS
 
         ubyte[NUM_STARS] color
-        uword[NUM_STARS] @split radius
-        uword[NUM_STARS] @split accel
-        uword[NUM_STARS] @split speed
-        uword[NUM_STARS] @split prev_x
+        uword[NUM_STARS] radius
+        uword[NUM_STARS] accel
+        uword[NUM_STARS] speed
+        uword[NUM_STARS] prev_x
         ubyte[NUM_STARS] prev_y
 
         gfx_lores.graphics_mode()

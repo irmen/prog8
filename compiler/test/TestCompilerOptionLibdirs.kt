@@ -37,7 +37,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             slabsHighBank = null,
             slabsGolden = false,
             compilationTarget = Cx16Target.NAME,
-            splitWordArrays = false,
+            dontSplitWordArrays = false,
             breakpointCpuInstruction = null,
             printAst1 = false,
             printAst2 = false,

@@ -88,7 +88,7 @@ class Program(val name: String,
             val varName = "string_${internedStringsBlock.statements.size}"
             val decl = VarDecl(
                 VarDeclType.VAR, VarDeclOrigin.STRINGLITERAL, DataType.forDt(BaseDataType.STR), ZeropageWish.NOT_IN_ZEROPAGE, null, varName, emptyList(), string,
-                sharedWithAsm = false, splitArray = false, alignment = 0u, dirty = false, position = string.position
+                sharedWithAsm = false, alignment = 0u, dirty = false, position = string.position
             )
             internedStringsBlock.statements.add(decl)
             decl.linkParents(internedStringsBlock)

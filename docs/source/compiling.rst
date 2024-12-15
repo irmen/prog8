@@ -156,6 +156,10 @@ One or more .p8 module files
     Add this user-defined symbol directly to the beginning of the generated assembly file.
     Can be repeated to define multiple symbols.
 
+``-dontsplitarrays``
+    Treat all word arrays as tagged with @nosplit so they are all stored linearly in memory,
+    instead of splitting them in separate lsb and msb arrays.
+
 ``-dumpsymbols``
     print a dump of the variable declarations and subroutine signatures
 
@@ -218,11 +222,6 @@ One or more .p8 module files
     Also include the original prog8 source code lines as comments in the generated assembly code file,
     mixed in between the actual generated assembly code.
     This can be useful for debugging purposes to see what assembly was generated for what prog8 source code.
-
-``-splitarrays``
-    Treat all word arrays as tagged with @split so they are all lsb/msb split into memory.
-    This removes the need to add @split yourself but some programs may fail to compile with
-    this option as not all array operations are implemented yet on split arrays.
 
 ``-srcdirs <pathlist>``
     Specify a list of extra paths (separated with ':'), to search in for imported modules.

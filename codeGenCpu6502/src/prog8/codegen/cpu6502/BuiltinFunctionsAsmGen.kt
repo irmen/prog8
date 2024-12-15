@@ -670,7 +670,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val msbAdd: Int
                 if(indexer.splitWords) {
                     val arrayVariable = indexer.variable
-                    indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.arrayFor(BaseDataType.UBYTE), arrayVariable.position)
+                    indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.arrayFor(BaseDataType.UBYTE, false), arrayVariable.position)
                     indexer.children[0].parent = indexer
                     elementSize = 1
                     msbAdd = 0

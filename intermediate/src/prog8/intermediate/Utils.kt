@@ -30,8 +30,8 @@ fun DataType.typeString(length: Int?): String {
         }
         BaseDataType.ARRAY_SPLITW -> {
             when(this.sub?.dt) {
-                BaseDataType.UWORD -> "@split uword[$lengthStr]"       // should be 2 separate byte arrays by now really?
-                BaseDataType.WORD -> "@split word[$lengthStr]"          // should be 2 separate byte arrays by now really?
+                BaseDataType.UWORD -> "uword[$lengthStr]"       // should be 2 separate byte arrays by now really?
+                BaseDataType.WORD -> "word[$lengthStr]"          // should be 2 separate byte arrays by now really?
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }

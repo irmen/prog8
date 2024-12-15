@@ -117,19 +117,18 @@ class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
 
         fun forDt(dt: BaseDataType) = simpletypes.getValue(dt)
 
-        fun arrayFor(elementDt: BaseDataType, split: Boolean=false): DataType {
+        fun arrayFor(elementDt: BaseDataType, splitwordarray: Boolean=true): DataType {
             val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
-            if(split) return DataType(BaseDataType.ARRAY_SPLITW, SubType.forDt(actualElementDt))
-            else return DataType(BaseDataType.ARRAY, SubType.forDt(actualElementDt))
+            return if(splitwordarray && elementDt.isWord)
+                DataType(BaseDataType.ARRAY_SPLITW, SubType.forDt(actualElementDt))
+            else
+                DataType(BaseDataType.ARRAY, SubType.forDt(actualElementDt))
         }
     }
 
-    fun elementToArray(split: Boolean = false): DataType {
-        if(split) {
-            return if (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR) arrayFor(base, true)
-            else throw IllegalArgumentException("invalid split array elt dt")
-        }
-        return arrayFor(base)
+    fun elementToArray(splitwords: Boolean = true): DataType {
+        return if (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR) arrayFor(base, splitwords)
+        else arrayFor(base, false)
     }
 
     fun elementType(): DataType =
@@ -152,8 +151,8 @@ class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
         }
         BaseDataType.ARRAY_SPLITW -> {
             when(sub) {
-                SubSignedWord -> "@split word[]"
-                SubUnsignedWord -> "@split uword[]"
+                SubSignedWord -> "word[] (split)"
+                SubUnsignedWord -> "uword[] (split)"
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
@@ -172,18 +171,18 @@ class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
         BaseDataType.ARRAY -> {
             when(sub) {
                 SubUnsignedByte -> "ubyte["
-                SubUnsignedWord -> "uword["
+                SubUnsignedWord -> "@nosplit uword["
                 SubBool -> "bool["
                 SubSignedByte -> "byte["
-                SubSignedWord -> "word["
+                SubSignedWord -> "@nosplit word["
                 SubFloat -> "float["
                 null -> throw IllegalArgumentException("invalid sub type")
             }
         }
         BaseDataType.ARRAY_SPLITW -> {
             when(sub) {
-                SubUnsignedWord -> "@split uword["
-                SubSignedWord -> "@split word["
+                SubUnsignedWord -> "uword["
+                SubSignedWord -> "word["
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }

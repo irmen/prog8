@@ -188,7 +188,7 @@ c64 {
         &ubyte  SP7X            = $d00e
         &ubyte  SP7Y            = $d00f
         &ubyte[16]  SPXY        = $d000        ; the 8 sprite X and Y registers as an array.
-        &uword[8]  SPXYW        = $d000        ; the 8 sprite X and Y registers as a combined xy word array.
+        &uword[8] @nosplit SPXYW  = $d000        ; the 8 sprite X and Y registers as a combined xy word array.
 
         &ubyte  MSIGX           = $d010
         &ubyte  SCROLY          = $d011

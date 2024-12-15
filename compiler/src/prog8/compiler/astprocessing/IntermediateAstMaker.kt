@@ -202,7 +202,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                     "no_symbol_prefixing" -> noSymbolPrefixing = true
                     "ignore_unused" -> ignoreUnused = true
                     "force_output" -> forceOutput = true
-                    "merge", "splitarrays"  -> { /* ignore this one */ }
+                    "merge" -> { /* ignore this one */ }
                     "verafxmuls" -> veraFxMuls = true
                     else -> throw FatalAstException("weird directive option: ${arg.name}")
                 }

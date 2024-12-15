@@ -174,7 +174,7 @@ psg {
     }
 
     ubyte[16] envelope_states
-    uword[16] @split envelope_volumes      ; scaled by 256
+    uword[16] envelope_volumes      ; scaled by 256
     ubyte[16] envelope_attacks
     ubyte[16] envelope_sustains
     ubyte[16] envelope_releases

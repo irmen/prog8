@@ -61,7 +61,7 @@ ZEROPAGENOT: '@nozp' ;
 
 SHARED : '@shared' ;
 
-SPLIT: '@split' ;
+NOSPLIT: '@nosplit' ;
 
 ALIGNWORD: '@alignword' ;
 
@@ -159,7 +159,7 @@ directivearg : stringliteral | identifier | integerliteral ;
 
 vardecl: datatype (arrayindex | ARRAYSIG)? decloptions identifier (',' identifier)* ;
 
-decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | SPLIT | ALIGNWORD | ALIGN64 | ALIGNPAGE | DIRTY)* ;
+decloptions: (SHARED | ZEROPAGE | ZEROPAGEREQUIRE | ZEROPAGENOT | NOSPLIT | ALIGNWORD | ALIGN64 | ALIGNPAGE | DIRTY)* ;
 
 varinitializer : vardecl '=' expression ;
 

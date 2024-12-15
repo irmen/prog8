@@ -247,7 +247,6 @@ class VarDecl(val type: VarDeclType,
               val names: List<String>,
               var value: Expression?,
               val sharedWithAsm: Boolean,
-              val splitArray: Boolean,
               val alignment: UInt,
               val dirty: Boolean,
               override val position: Position) : Statement(), INamedStatement {
@@ -273,25 +272,19 @@ class VarDecl(val type: VarDeclType,
             val dt = if(param.type.isArray) DataType.forDt(BaseDataType.UWORD) else param.type
             return VarDecl(decltype, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, null, param.name, emptyList(), value,
                 sharedWithAsm = false,
-                splitArray = false,
                 alignment = 0u,
                 dirty = false,
                 position = param.position
             )
         }
 
-        fun createAuto(array: ArrayLiteral, splitArray: Boolean): VarDecl {
+        fun createAuto(array: ArrayLiteral): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, emptyList(), array,
-                    sharedWithAsm = false, splitArray = splitArray, alignment = 0u, dirty = false, position = array.position)
+                    sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)
         }
-    }
-
-    init {
-        if(datatype.isSplitWordArray)
-            require(splitArray)
     }
 
     val isArray: Boolean
@@ -329,7 +322,7 @@ class VarDecl(val type: VarDeclType,
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
         val copy = VarDecl(type, origin, newDatatype, zeropage, arraysize?.copy(), name, names, value?.copy(),
-            sharedWithAsm, splitArray, alignment, dirty, position)
+            sharedWithAsm, alignment, dirty, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
@@ -344,19 +337,19 @@ class VarDecl(val type: VarDeclType,
             // just copy the initialization value to a separate vardecl for each component
             return names.map {
                 val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), value?.copy(),
-                    sharedWithAsm, splitArray, alignment, dirty, position)
+                    sharedWithAsm, alignment, dirty, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
         } else {
             // evaluate the value once in the vardecl for the first component, and set the other components to the first
             val first = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), names[0], emptyList(), value?.copy(),
-                sharedWithAsm, splitArray, alignment, dirty, position)
+                sharedWithAsm, alignment, dirty, position)
             first.allowInitializeWithZero = this.allowInitializeWithZero
             val firstVar = firstVarAsValue(first)
             return listOf(first) + names.drop(1 ).map {
                 val copy = VarDecl(type, origin, datatype, zeropage, arraysize?.copy(), it, emptyList(), firstVar.copy(),
-                    sharedWithAsm, splitArray, alignment, dirty, position)
+                    sharedWithAsm, alignment, dirty, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }

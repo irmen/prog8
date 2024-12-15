@@ -289,7 +289,7 @@ class IRFileReader {
                 val (name, size, align) = match.destructured
                 val dummyNode = PtVariable(
                     name,
-                    DataType.arrayFor(BaseDataType.UBYTE),
+                    DataType.arrayFor(BaseDataType.UBYTE, false),
                     ZeropageWish.NOT_IN_ZEROPAGE,
                     0u,
                     null,
@@ -514,14 +514,12 @@ class IRFileReader {
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
             return when(type) {
-                "bool" -> DataType.arrayFor(BaseDataType.BOOL)
-                "byte" -> DataType.arrayFor(BaseDataType.BYTE)
-                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE)
-                "word" -> DataType.arrayFor(BaseDataType.WORD)
-                "uword" -> DataType.arrayFor(BaseDataType.UWORD)
-                "float" -> DataType.arrayFor(BaseDataType.FLOAT)
-                "uword_split" -> DataType.arrayFor(BaseDataType.UWORD, true)
-                "word_split" -> DataType.arrayFor(BaseDataType.WORD, true)
+                "bool" -> DataType.arrayFor(BaseDataType.BOOL, false)
+                "byte" -> DataType.arrayFor(BaseDataType.BYTE, false)
+                "ubyte", "str" -> DataType.arrayFor(BaseDataType.UBYTE, false)
+                "word" -> DataType.arrayFor(BaseDataType.WORD, false)
+                "uword" -> DataType.arrayFor(BaseDataType.UWORD, false)
+                "float" -> DataType.arrayFor(BaseDataType.FLOAT, false)
                 else -> throw IRParseException("invalid dt  $type")
             }
         } else {

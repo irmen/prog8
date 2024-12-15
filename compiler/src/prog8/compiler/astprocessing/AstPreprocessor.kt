@@ -112,8 +112,8 @@ class AstPreprocessor(val program: Program,
             val replacements = mutableListOf<IAstModification>()
 
             for(decl in vars) {
-                if(shouldSplitArray(decl))
-                    continue  // splitting must be done first
+                if(shouldUnSplitArray(decl))
+                    continue  // unsplitting must be done first
                 if(decl.type != VarDeclType.VAR) {
                     movements.add(IAstModification.InsertFirst(decl, parentscope))
                     replacements.add(IAstModification.Remove(decl, scope))
@@ -181,28 +181,21 @@ class AstPreprocessor(val program: Program,
             }
         }
 
-        if(shouldSplitArray(decl)) {
-            return makeSplitArray(decl)
-        }
-
-        if(decl.datatype.isWordArray) {
-            if ("splitarrays" in decl.definingBlock.options())
-                return makeSplitArray(decl)
-            if ("splitarrays" in decl.definingModule.options())
-                return makeSplitArray(decl)
+        if(shouldUnSplitArray(decl)) {
+            return makeUnSplitArray(decl)
         }
 
         return noModifications
     }
 
-    private fun shouldSplitArray(decl: VarDecl): Boolean =
-        options.splitWordArrays && (decl.datatype.isWordArray && !decl.datatype.isSplitWordArray) && !decl.definingBlock.isInLibrary
+    private fun shouldUnSplitArray(decl: VarDecl): Boolean =
+        options.dontSplitWordArrays && decl.datatype.isSplitWordArray
 
-    private fun makeSplitArray(decl: VarDecl): Iterable<IAstModification> {
-        val splitDt = DataType.arrayFor(decl.datatype.sub!!.dt, true)
+    private fun makeUnSplitArray(decl: VarDecl): Iterable<IAstModification> {
+        val splitDt = DataType.arrayFor(decl.datatype.sub!!.dt, false)
         val newDecl = VarDecl(
             decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name, emptyList(),
-            decl.value?.copy(), decl.sharedWithAsm, true, decl.alignment, false, decl.position
+            decl.value?.copy(), decl.sharedWithAsm, decl.alignment, false, decl.position
         )
         return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))
     }

@@ -5,8 +5,8 @@
 main  {
 
     sub start() {
-        word[128] @split particleX
-        word[128] @split particleY
+        word[128] particleX
+        word[128] particleY
         byte[128] particleDX
         byte[128] particleDY
 

@@ -1939,11 +1939,14 @@ $endLabel""")
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
-            dt.isWordArray && !dt.isSplitWordArray -> {
+            dt.isWordArray -> {
                 assignExpressionToVariable(containment.needle, "P8ZP_SCRATCH_W1", elementDt)
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
                 asmgen.out("  ldy  #$numElements")
-                asmgen.out("  jsr  prog8_lib.containment_wordarray")
+                if(dt.isSplitWordArray)
+                    asmgen.out("  jsr  prog8_lib.containment_splitwordarray")
+                else
+                    asmgen.out("  jsr  prog8_lib.containment_wordarray")
             }
             else -> throw AssemblyError("invalid dt")
         }

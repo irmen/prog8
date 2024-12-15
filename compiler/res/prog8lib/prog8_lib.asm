@@ -318,9 +318,37 @@ containment_bytearray	.proc
 		.pend
 
 containment_wordarray	.proc
-	; -- check if a value exists in a word array.
-	;    parameters: P8ZP_SCRATCH_W1: value to check, P8ZP_SCRATCH_W2: address of the word array, Y = length of array (>=1).
+	; -- check if a value exists in a linear word array.
+	;    parameters: P8ZP_SCRATCH_W1: value to check, P8ZP_SCRATCH_W2: address of the word array, Y = number of elements in the array (>=1).
 	;    returns boolean 0/1 in A.
+		dey
+		tya
+		asl  a
+		tay
+-		lda  P8ZP_SCRATCH_W1
+		cmp  (P8ZP_SCRATCH_W2),y
+		bne  +
+		lda  P8ZP_SCRATCH_W1+1
+		iny
+		cmp  (P8ZP_SCRATCH_W2),y
+		beq  _found
+		dey
++		dey
+		dey
+		cpy  #254
+		bne  -
+		lda  #0
+		rts
+_found		lda  #1
+		rts
+		.pend
+
+containment_splitwordarray	.proc
+	; -- check if a value exists in a split lsb/msb word array. (Assuming lsb array comes first, immediately followed by msb array)
+	;    parameters: P8ZP_SCRATCH_W1: value to check, P8ZP_SCRATCH_W2: start address of the lsb word array, Y = number of elements in the array (>=1).
+	;    returns boolean 0/1 in A.
+
+	; TODO FIX THIS!
 		dey
 		tya
 		asl  a

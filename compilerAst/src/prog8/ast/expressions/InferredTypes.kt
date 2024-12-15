@@ -91,7 +91,7 @@ object InferredTypes {
             }
         }
         type.isArray -> {
-            InferredType.known(DataType.arrayFor(type.sub!!.dt))
+            InferredType.known(DataType.arrayFor(type.sub!!.dt, false))
         }
         else -> throw IllegalArgumentException("invalid type")
     }

@@ -339,6 +339,7 @@ class TestCompilerOnRanges: FunSpec({
                     str name = "irmen"
                     ubyte[] values = [1,2,3,4,5,6,7]
                     uword[] wvalues = [1000,2000,3000]
+                    uword[] @nosplit wnsvalues = [1000,2000,3000]
             
                     if 'm' in name {
                         xx++
@@ -376,6 +377,10 @@ class TestCompilerOnRanges: FunSpec({
                         xx++
                     }                    
                     
+                    if ww in wnsvalues {
+                        xx++
+                    }                    
+
                     if xx in 10 to 20 {
                         xx++
                     }
@@ -387,7 +392,7 @@ class TestCompilerOnRanges: FunSpec({
             }""", writeAssembly = true) shouldNotBe null
     }
 
-    test("containment check in expressions") {
+    test("containment check expressions") {
         compileText(
             C64Target(), false, """
             main {
@@ -397,6 +402,7 @@ class TestCompilerOnRanges: FunSpec({
                     str name = "irmen"
                     ubyte[] values = [1,2,3,4,5,6,7]
                     uword[] wvalues = [1000,2000,3000]
+                    uword[] @nosplit wnsvalues = [1000,2000,3000]
             
                     xx = 'm' in name
                     xx = 5 in values
@@ -408,6 +414,7 @@ class TestCompilerOnRanges: FunSpec({
                     xx = xx in [2,4,6,8]
                     xx = ww in [9000,8000,7000]
                     xx = ww in wvalues
+                    xx = ww in wnsvalues
                 }
             }""", writeAssembly = true) shouldNotBe null
     }

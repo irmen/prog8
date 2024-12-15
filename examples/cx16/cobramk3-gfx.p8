@@ -165,9 +165,9 @@ matrix_math {
     %option verafxmuls      ; accellerate all word-multiplications in this block using Vera FX hardware muls
 
     ; storage for rotated coordinates
-    word[shipdata.totalNumberOfPoints] @split rotatedx
-    word[shipdata.totalNumberOfPoints] @split rotatedy
-    word[shipdata.totalNumberOfPoints] @split rotatedz
+    word[shipdata.totalNumberOfPoints] rotatedx
+    word[shipdata.totalNumberOfPoints] rotatedy
+    word[shipdata.totalNumberOfPoints] rotatedz
 
     sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {
         ; rotate around origin (0,0,0)
@@ -230,9 +230,9 @@ const ubyte totalNumberOfFaces = 22
 const ubyte totalNumberOfPoints = 34
 str shipName = "cobra-mk3"
 ; vertices
-word[totalNumberOfPoints] @split xcoor = [ 32,-32,0,-120,120,-88,88,128,-128,0,-32,32,-36,-8,8,36,36,8,-8,-36,-1,-1,-80,-80,-88,80,88,80,1,1,1,1,-1,-1 ]
-word[totalNumberOfPoints] @split ycoor = [ 0,0,26,-3,-3,16,16,-8,-8,26,-24,-24,8,12,12,8,-12,-16,-16,-12,-1,-1,-6,6,0,6,0,-6,-1,-1,1,1,1,1 ]
-word[totalNumberOfPoints] @split zcoor = [ 76,76,24,-8,-8,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,76,90,-40,-40,-40,-40,-40,-40,76,90,76,90,76,90 ]
+word[totalNumberOfPoints] xcoor = [ 32,-32,0,-120,120,-88,88,128,-128,0,-32,32,-36,-8,8,36,36,8,-8,-36,-1,-1,-80,-80,-88,80,88,80,1,1,1,1,-1,-1 ]
+word[totalNumberOfPoints] ycoor = [ 0,0,26,-3,-3,16,16,-8,-8,26,-24,-24,8,12,12,8,-12,-16,-16,-12,-1,-1,-6,6,0,6,0,-6,-1,-1,1,1,1,1 ]
+word[totalNumberOfPoints] zcoor = [ 76,76,24,-8,-8,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,-40,76,90,-40,-40,-40,-40,-40,-40,76,90,76,90,76,90 ]
 ; edges and faces
 ubyte[totalNumberOfEdges] edgesFrom = [ 0,1,0,10,1,0,2,0,4,0,4,7,2,1,1,3,8,3,2,5,6,5,6,16,15,14,14,18,13,12,12,26,25,25,22,23,22,20,28,21,20,28,29,30,31,30,32,20,21,20,20 ]
 ubyte[totalNumberOfEdges] edgesTo = [ 1,2,2,11,10,11,6,6,6,4,7,11,5,5,3,5,10,8,9,9,9,8,7,17,16,15,17,19,18,13,19,27,26,27,23,24,24,28,29,29,21,30,31,31,33,32,33,32,33,33,29 ]

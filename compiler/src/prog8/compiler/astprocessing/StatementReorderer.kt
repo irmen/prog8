@@ -222,7 +222,6 @@ internal class StatementReorderer(
                                 emptyList(),
                                 null,
                                 it.sharedWithAsm,
-                                it.splitArray,
                                 it.alignment,
                                 it.dirty,
                                 it.position

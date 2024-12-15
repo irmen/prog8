@@ -758,20 +758,14 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
     val name = if(identifiers.size==1) identifiername.text else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
-    val split = options.SPLIT().isNotEmpty()
+    val nosplit = options.NOSPLIT().isNotEmpty()
     val alignword = options.ALIGNWORD().isNotEmpty()
     val align64 = options.ALIGN64().isNotEmpty()
     val alignpage = options.ALIGNPAGE().isNotEmpty()
     if(alignpage && alignword)
         throw SyntaxError("choose a single alignment option", toPosition())
     val baseDt = datatype()?.toAst() ?: BaseDataType.UNDEFINED
-    val origDt = DataType.forDt(baseDt)
-    val dt = if(isArray) {
-        if(split && origDt.isWord)
-            origDt.elementToArray(split)
-        else
-            origDt.elementToArray(false)    // type error will be generated later in the ast check
-    } else origDt
+    val dt = if(isArray) DataType.arrayFor(baseDt, nosplit!=true) else DataType.forDt(baseDt)
 
     return VarDecl(
             type, VarDeclOrigin.USERCODE,
@@ -785,7 +779,6 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             },
             value,
             options.SHARED().isNotEmpty(),
-            split,
             if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,
             options.DIRTY().isNotEmpty(),
             toPosition()

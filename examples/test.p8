@@ -1,18 +1,15 @@
+%import textio
+%zeropage basicsafe
+
 main {
+    uword[]  array = [1000, 2000, 9000, 8000, 5000]
     sub start() {
-        goto $3000
-        goto labeltje
-
-        goto cx16.r0
-
-        goto cx16.r0+cx16.r1
-
-        if cx16.r0==0
-            goto cx16.r0+cx16.r1
-
-        if cx16.r0>2000
-            goto cx16.r0+cx16.r1
-
-labeltje:
+        txt.print_bool(1000 in array)
+        txt.spc()
+        txt.print_bool(9000 in array)
+        txt.spc()
+        txt.print_bool(5000 in array)
+        txt.spc()
+        txt.print_bool(9001 in array)
     }
 }

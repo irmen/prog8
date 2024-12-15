@@ -261,9 +261,9 @@ main {
         val src="""
 main {
     sub start() {
-        &uword[30] wb = ${'$'}2000
-        &uword[100] array1 = ${'$'}9e00
-        &uword[30] array2 = &array1[len(wb)]
+        &uword[30] @nosplit wb = ${'$'}2000
+        &uword[100] @nosplit array1 = ${'$'}9e00
+        &uword[30] @nosplit array2 = &array1[len(wb)]
 
         cx16.r0 = &array1           ; ${'$'}9e00
         cx16.r1 = &array1[len(wb)]  ; ${'$'}9e3c
@@ -291,7 +291,7 @@ main {
         cx16.r0 = &array
         
         const uword HIGH_MEMORY_START = 40960
-        &uword[20] @shared wa = HIGH_MEMORY_START
+        &uword[20] @shared @nosplit wa = HIGH_MEMORY_START
     }
 }"""
         val result = compileText(Cx16Target(), optimize=false, src, writeAssembly=true)!!

@@ -703,7 +703,7 @@ internal class AstChecker(private val program: Program,
         if (variable!=null) {
             if (variable.type == VarDeclType.CONST && addressOf.arrayIndex == null)
                 errors.err("invalid pointer-of operand type",addressOf.position)
-            if (variable.splitArray)
+            if (variable.datatype.isSplitWordArray)
                 errors.err("cannot take address of split word array",addressOf.position)
         }
         super.visit(addressOf)
@@ -888,8 +888,8 @@ internal class AstChecker(private val program: Program,
                 }
             }
 
-            if(decl.splitArray && decl.type==VarDeclType.MEMORY)
-                err("@split can't be used on memory mapped arrays")
+            if(decl.datatype.isSplitWordArray && decl.type==VarDeclType.MEMORY)
+                err("memory mapped word arrays cannot be split, should have @nosplit")
         }
 
         if(decl.datatype.isString) {
@@ -911,7 +911,7 @@ internal class AstChecker(private val program: Program,
         if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)
             err("zeropage usage has been disabled by options")
 
-        if(decl.splitArray) {
+        if(decl.datatype.isSplitWordArray) {
             if (!decl.datatype.isWordArray) {
                 errors.err("split can only be used on word arrays", decl.position)
             }
@@ -1044,14 +1044,14 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "splitarrays", "no_symbol_prefixing", "ignore_unused")}.any { !it })
+                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.parent is Block) {
-                    if(directive.args.any {it.name !in arrayOf("force_output", "merge", "verafxmuls", "splitarrays", "no_symbol_prefixing", "ignore_unused")})
+                    if(directive.args.any {it.name !in arrayOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")})
                         err("using an option that is not valid for blocks")
                 }
                 if(directive.parent is Module) {
-                    if(directive.args.any {it.name !in arrayOf("enable_floats", "no_sysinit", "splitarrays", "no_symbol_prefixing", "ignore_unused")})
+                    if(directive.args.any {it.name !in arrayOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused")})
                         err("using an option that is not valid for modules")
                 }
                 if(directive.args.any { it.name=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)

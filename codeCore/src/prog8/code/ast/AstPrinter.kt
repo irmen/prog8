@@ -127,7 +127,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 str
             }
             is PtVariable -> {
-                val split = if(node.type.isSplitWordArray) "@split" else ""
+                val split = if(node.type.isSplitWordArray) "" else "@nosplit"
                 val align = when(node.align) {
                     0u -> ""
                     2u -> "@alignword"

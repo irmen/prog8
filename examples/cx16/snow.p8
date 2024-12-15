@@ -5,9 +5,9 @@ main {
     sub start() {
         gfx_lores.graphics_mode()
 
-        uword[128] @split flakes1_xx
+        uword[128] flakes1_xx
         ubyte[128] flakes1_yy
-        uword[128] @split flakes2_xx
+        uword[128] flakes2_xx
         ubyte[128] flakes2_yy
 
         ubyte @zp idx

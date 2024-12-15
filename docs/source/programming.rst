@@ -403,7 +403,6 @@ Directives
       Overriding (monkeypatching) happens only if the signature of the subroutine exactly matches the original subroutine, including the exact names and types of the parameters.
       Where blocks with this option are merged into is intricate: it looks for the first other block with the same name that does not have %option merge,
       if that can't be found, select the first occurrence regardless. If no other blocks are found, no merge is done. Blocks in libraries are considered first to merge into.
-    - ``splitarrays`` (block or module) makes all word-arrays in this scope lsb/msb split arrays (as if they all have the @split tag). See Arrays.
     - ``no_symbol_prefixing`` (block or module) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
       Only use this if you know what you're doing because it could result in invalid assembly code being generated.
       This option can be useful when writing library modules that you don't want to be exposing prefixed assembly symbols.

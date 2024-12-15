@@ -87,32 +87,6 @@ main {
 }"""
             compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
         }
-
-        test("split arrays back to normal when address is taken") {
-            val src="""
-main {
-    sub start() {
-        cx16.r0L=0
-        if cx16.r0L==0 {
-            uword[] addresses = [scores2, start]
-            uword[] @split scores1 = [10, 25, 50, 100]
-            uword[] @split scores2 = [100, 250, 500, 1000]
-
-            cx16.r0 = &scores1
-            cx16.r1 = &scores2
-            cx16.r2 = &addresses
-        }
-    }
-}"""
-            val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-            compileText(C64Target(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
-            errors.errors.size shouldBe 0
-            errors.warnings.size shouldBe 2
-            errors.warnings[0] shouldContain("address")
-            errors.warnings[1] shouldContain("address")
-            errors.warnings[0] shouldContain("split")
-            errors.warnings[1] shouldContain("split")
-        }
     }
 
     context("alias") {
@@ -911,16 +885,12 @@ main {
         shouldThrow<NoSuchElementException> {
             DataType.arrayFor(BaseDataType.UNDEFINED)
         }
-        shouldThrow<IllegalArgumentException> {
-            DataType.arrayFor(BaseDataType.UBYTE, true)
-        }
-
+        DataType.arrayFor(BaseDataType.UBYTE, true).isUnsignedByteArray shouldBe true
         DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe false
-        DataType.arrayFor(BaseDataType.UWORD, true).isArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD, true).isSplitWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, false).isSplitWordArray shouldBe false
     }
 
     test("array of strings becomes array of uword pointers") {
