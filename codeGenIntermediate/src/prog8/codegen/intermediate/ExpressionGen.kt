@@ -154,7 +154,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
         } else {
-            addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
+            if(expr.identifier.type.isSplitWordArray) {
+                // the _lsb split array comes first in memory
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol+"_lsb"), null)
+            } else
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
         }
         return ExpressionCodeResult(result, vmDt, resultRegister, -1)
     }

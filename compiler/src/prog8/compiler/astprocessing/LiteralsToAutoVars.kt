@@ -77,18 +77,6 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
             }
         }
 
-        if(array.type.isArray) {
-            val mods = mutableListOf<IAstModification>()
-            for(elt in array.value.filterIsInstance<IdentifierReference>()) {
-                val decl = elt.targetVarDecl(program)
-                if(decl!=null && decl.datatype.isSplitWordArray) {
-                    // you can't take the adress of a split-word array.
-                    errors.err("cannot take address of split word array", decl.position)
-                }
-            }
-            return mods
-        }
-        
         return noModifications
     }
 
@@ -149,17 +137,6 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
 //                }
 //            }
 //        }
-        return noModifications
-    }
-
-    override fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
-        val variable=addressOf.identifier.targetVarDecl(program)
-        if (variable!=null) {
-            if (variable.datatype.isSplitWordArray) {
-                // you can't take the adress of a split-word array.
-                errors.err("cannot take address of split word array", addressOf.position)
-            }
-        }
         return noModifications
     }
 }

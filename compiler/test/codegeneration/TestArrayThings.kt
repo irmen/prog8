@@ -385,7 +385,7 @@ main {
         compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
     }
 
-    test("taking address of split arrays") {
+    test("taking address of split arrays works") {
         val src="""
 main {
     sub start() {
@@ -404,11 +404,7 @@ main {
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(C64Target(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
-        errors.warnings.size shouldBe 2
-        errors.warnings[0] shouldContain("address")
-        errors.warnings[1] shouldContain("address")
-        errors.warnings[0] shouldContain("split")
-        errors.warnings[1] shouldContain("split")
+        errors.warnings.size shouldBe 0
     }
 })
 

@@ -3,12 +3,16 @@ TODO
 
 - DONE: make word arrays split by default (remove @split tag) and use new @nosplit tag to make an array use the old storage format?  Also invert -splitarrays command line option.
 - DONE: remove "splitarrays" %option switch
-- Regular & will just return the start of the split array in memory whatever byte comes first. Search "cannot take address of split word array"
+- fix anyall.anyw/allw , optimize any/all in asm? make sure it still works for virtual
+- fix IR compilation errors
+- Regular & will just return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
+- check this for 6502 codegen: split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
 - add &< and &> operators to get the address of the lsb-array and msb-array, respectively.
 - fix sprites.pos_batch
-- fix anyall.anyw/allw
 - update Syntax files + Document all of this  (also that word arrays can then have length 256 by default as well, and that @linear will reduce it to half.)
-- test all examples
+- test all examples and projects   (paint has wrong palette colors)
+- benchmark program became slower!?  (did get smaller, just slower????)
+
 
 ...
 

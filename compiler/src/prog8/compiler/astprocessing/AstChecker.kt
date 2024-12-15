@@ -223,9 +223,9 @@ internal class AstChecker(private val program: Program,
                             errors.err("byte loop variable can only loop over bytes", forLoop.position)
                     }
                     BaseDataType.WORD -> {
-                        if(!iterableDt.isSignedByte && !iterableDt.isSignedWord &&      // TODO remove byte and word check?
+                        if(!iterableDt.isSignedByte && !iterableDt.isSignedWord &&
                                 !iterableDt.isSignedByteArray && !iterableDt.isUnsignedByteArray &&
-                                !iterableDt.isSignedWordArray && !iterableDt.isSplitWordArray)
+                                !iterableDt.isSignedWordArray && !iterableDt.isUnsignedWordArray)
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }
                     BaseDataType.FLOAT -> {
@@ -703,8 +703,6 @@ internal class AstChecker(private val program: Program,
         if (variable!=null) {
             if (variable.type == VarDeclType.CONST && addressOf.arrayIndex == null)
                 errors.err("invalid pointer-of operand type",addressOf.position)
-            if (variable.datatype.isSplitWordArray)
-                errors.err("cannot take address of split word array",addressOf.position)
         }
         super.visit(addressOf)
     }

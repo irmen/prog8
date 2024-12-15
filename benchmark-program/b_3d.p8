@@ -64,14 +64,14 @@ rotate3d {
 
 matrix_math {
     ; vertices
-    word[] @split xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
-    word[] @split ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
-    word[] @split zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
+    word[] xcoor = [ -40, -40, -40, -40,  40,  40,  40, 40 ]
+    word[] ycoor = [ -40, -40,  40,  40, -40, -40,  40, 40 ]
+    word[] zcoor = [ -40,  40, -40,  40, -40,  40, -40, 40 ]
 
     ; storage for rotated coordinates
-    word[len(xcoor)] @split rotatedx
-    word[len(ycoor)] @split rotatedy
-    word[len(zcoor)] @split rotatedz
+    word[len(xcoor)] rotatedx
+    word[len(ycoor)] rotatedy
+    word[len(zcoor)] rotatedz
 
     sub rotate_vertices(ubyte ax, ubyte ay, ubyte az) {
         ; rotate around origin (0,0,0)

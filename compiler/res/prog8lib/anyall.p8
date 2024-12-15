@@ -42,7 +42,7 @@ anyall {
 
     sub anyw(uword arrayptr, uword num_elements) -> bool {
         ; -- returns true if any word in the array is not zero.
-        ;    TODO FIX: doesn't work on @split arrays.
+        ;    TODO FIX: doesn't work on split arrays. Just always test every byte !
         cx16.r1 = arrayptr
         if msb(num_elements)==0 {
             repeat lsb(num_elements) {
@@ -62,7 +62,7 @@ anyall {
 
     sub allw(uword arrayptr, uword num_elements) -> bool {
         ; -- returns true if all words in the array are not zero.
-        ;    TODO FIX: doesn't work on @split arrays.
+        ;    TODO FIX: doesn't work on split arrays. Just always test every byte !
         cx16.r1 = arrayptr
         if msb(num_elements)==0 {
             repeat lsb(num_elements) {

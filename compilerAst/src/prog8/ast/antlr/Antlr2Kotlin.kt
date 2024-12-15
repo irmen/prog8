@@ -758,6 +758,8 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
     val name = if(identifiers.size==1) identifiername.text else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
+    if(options.SPLIT().isNotEmpty())
+        throw SyntaxError("@split is now the default for word arrays. Use @nosplit if you don't want to split it.", toPosition())
     val nosplit = options.NOSPLIT().isNotEmpty()
     val alignword = options.ALIGNWORD().isNotEmpty()
     val align64 = options.ALIGN64().isNotEmpty()

@@ -4,8 +4,8 @@
 circles {
     const ubyte MAX_NUM_CIRCLES = 80
     const ubyte GROWTH_RATE = 4
-    uword[MAX_NUM_CIRCLES] @split circle_x
-    uword[MAX_NUM_CIRCLES] @split circle_y
+    uword[MAX_NUM_CIRCLES] circle_x
+    uword[MAX_NUM_CIRCLES] circle_y
     ubyte[MAX_NUM_CIRCLES] circle_radius
     ubyte color
     uword total_num_circles

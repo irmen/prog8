@@ -382,13 +382,13 @@ _lp2        lda  $ffff,y
         %asm {{
             ; copy to vera PSG fifo buffer
             ldy  #0
--           lda  p8v_left,y
+-           lda  p8v_left_lsb,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8v_left+1,y
+            lda  p8v_left_msb,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8v_right,y
+            lda  p8v_right_lsb,y
             sta  cx16.VERA_AUDIO_DATA
-            lda  p8v_right+1,y
+            lda  p8v_right_msb,y
             sta  cx16.VERA_AUDIO_DATA
             iny
             iny

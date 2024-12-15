@@ -16,11 +16,32 @@ import prog8.intermediate.IRFileReader
 import prog8.intermediate.IRSubroutine
 import prog8.intermediate.Opcode
 import prog8.vm.VmRunner
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestCompilerVirtual: FunSpec({
-    test("compile virtual: array with pointers") {
+    test("linear words array with pointers") {
+        val src = """
+main {
+    sub start() {
+        str localstr = "hello"
+        ubyte[] otherarray = [1,2,3]
+        uword[] @nosplit words = [1111,2222,"three",&localstr,&otherarray]
+        uword @shared zz = &words
+        bool result = 2222 in words
+        zz = words[2]
+        zz++
+        zz = words[3]
+    }
+}"""
+        val target = VMTarget()
+        val result = compileText(target, false, src, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runProgram(virtfile.readText())
+    }
+
+    test("split words array with pointers") {
         val src = """
 main {
     sub start() {
@@ -35,9 +56,31 @@ main {
     }
 }"""
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true)!!
+        val result = compileText(target, false, src, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
+    }
+
+    test("taking address of split arrays works") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0L=0
+        if cx16.r0L==0 {
+            uword[] addresses = [scores2, start]
+            uword[] scores1 = [10, 25, 50, 100]
+            uword[] scores2 = [100, 250, 500, 1000]
+
+            cx16.r0 = &scores1
+            cx16.r1 = &scores2
+            cx16.r2 = &addresses
+        }
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 0
     }
 
     test("compile virtual: str args and return type, and global var init") {

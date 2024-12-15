@@ -83,7 +83,7 @@ sprites {
     }
 
     sub pos_batch(ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr) {
-        ; -- note: the x and y positions word arrays must be regular arrays, they cannot be @split arrays!
+        ; -- note: the x and y positions word arrays must be regular arrays, they cannot be split arrays! TODO FIX THIS
         sprite_reg = VERA_SPRITEREGS + 2 + first_spritenum*$0008
         cx16.vaddr_autoincr(1, sprite_reg, 0, 8)
         cx16.vaddr_autoincr(1, sprite_reg+1, 1, 8)

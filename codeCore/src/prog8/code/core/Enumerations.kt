@@ -72,12 +72,12 @@ sealed class SubType(val dt: BaseDataType) {
     }
 }
 
-private data object SubUnsignedByte: SubType(BaseDataType.UBYTE)
-private data object SubSignedByte: SubType(BaseDataType.BYTE)
-private data object SubUnsignedWord: SubType(BaseDataType.UWORD)
-private data object SubSignedWord: SubType(BaseDataType.WORD)
-private data object SubBool: SubType(BaseDataType.BOOL)
-private data object SubFloat: SubType(BaseDataType.FLOAT)
+data object SubUnsignedByte: SubType(BaseDataType.UBYTE)
+data object SubSignedByte: SubType(BaseDataType.BYTE)
+data object SubUnsignedWord: SubType(BaseDataType.UWORD)
+data object SubSignedWord: SubType(BaseDataType.WORD)
+data object SubBool: SubType(BaseDataType.BOOL)
+data object SubFloat: SubType(BaseDataType.FLOAT)
 
 
 class DataType private constructor(val base: BaseDataType, val sub: SubType?) {

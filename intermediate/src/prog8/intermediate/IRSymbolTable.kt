@@ -68,7 +68,7 @@ class IRSymbolTable {
                 val newArray = mutableListOf<IRStArrayElement>()
                 array.forEach {
                     if(it.addressOfSymbol!=null) {
-                        val target = variable.lookup(it.addressOfSymbol!!)!!
+                        val target = variable.lookup(it.addressOfSymbol!!) ?: throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
                         newArray.add(IRStArrayElement(null, null, target.scopedName))
                     } else {
                         newArray.add(IRStArrayElement.from(it))

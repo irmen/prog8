@@ -280,7 +280,15 @@ class VarDecl(val type: VarDeclType,
 
         fun createAuto(array: ArrayLiteral): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
-            val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
+            var arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
+            if(arrayDt.isSplitWordArray) {
+                // autovars for array literals are NOT stored as a split word array!
+                when(arrayDt.sub) {
+                    is SubSignedWord -> arrayDt = DataType.arrayFor(BaseDataType.WORD, false)
+                    is SubUnsignedWord -> arrayDt = DataType.arrayFor(BaseDataType.UWORD, false)
+                    else -> { }
+                }
+            }
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE, arraysize, autoVarName, emptyList(), array,
                     sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)

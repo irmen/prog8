@@ -439,8 +439,11 @@ internal class AssignmentAsmGen(
     private fun assignExpression(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(val value = assign.source.expression!!) {
             is PtAddressOf -> {
-                val sourceName = asmgen.asmSymbolName(value.identifier)
                 val arrayDt = value.identifier.type
+                val sourceName = if(arrayDt.isSplitWordArray)
+                    asmgen.asmSymbolName(value.identifier) + "_lsb"  // the _lsb split array comes first in memory
+                else
+                    asmgen.asmSymbolName(value.identifier)
                 assignAddressOf(assign.target, sourceName, arrayDt, value.arrayIndexExpr)
             }
             is PtBool -> throw AssemblyError("source kind should have been literalboolean")
@@ -1339,6 +1342,10 @@ internal class AssignmentAsmGen(
                     if(right.isFromArrayElement) {
                         TODO("address-of array element $symbol at ${right.position}")
                     } else {
+                        if(right.identifier.type.isSplitWordArray) {
+                            TODO("address of split word array")
+                            return true
+                        }
                         assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                         if(expr.operator=="+")
                             asmgen.out("""

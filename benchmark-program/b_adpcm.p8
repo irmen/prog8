@@ -25,8 +25,8 @@ adpcm {
 
     ; IMA ADPCM decoder.  Supports mono and stereo streams.
 
-    ubyte[] t_index = [ -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
-    uword[] @split t_step = [
+    byte[] t_index = [ -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
+    uword[] t_step = [
             7, 8, 9, 10, 11, 12, 13, 14,
             16, 17, 19, 21, 23, 25, 28, 31,
             34, 37, 41, 45, 50, 55, 60, 66,
@@ -79,7 +79,7 @@ adpcm {
         ; elif predicted < -32767:
         ;    predicted = - 32767
 
-        index += t_index[nibble]
+        index += t_index[nibble] as ubyte
         if_neg
             index = 0
         else if index >= len(t_step)-1

@@ -136,7 +136,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtAddressOf -> {
                     if(it.isFromArrayElement)
                         TODO("address-of array element $it in initial array value")
-                    StArrayElement(null, it.identifier.name, null)
+                    if(it.identifier.type.isSplitWordArray)
+                        StArrayElement(null, it.identifier.name + "_lsb", null)  // the _lsb split array comes first in memory
+                    else
+                        StArrayElement(null, it.identifier.name, null)
                 }
                 is PtNumber -> StArrayElement(it.number, null, null)
                 is PtBool -> StArrayElement(null, null, it.value)

@@ -1,7 +1,6 @@
 %import textio
 %import conv
-%import string
-%import string
+%import strings
 
 
 textelite {
@@ -172,7 +171,7 @@ textelite {
 
     sub next_input(str buffer) -> ubyte {
         input_index++
-        return string.copy(inputs[input_index], buffer)
+        return strings.copy(inputs[input_index], buffer)
     }
 }
 
@@ -571,7 +570,7 @@ elite_galaxy {
             ubyte distance = elite_planet.distance(px, py)
             if distance <= max_distance {
                 elite_planet.name = make_current_planet_name()
-                elite_planet.name[0] = string.upperchar(elite_planet.name[0])
+                elite_planet.name[0] = strings.upperchar(elite_planet.name[0])
                 uword tx = elite_planet.x
                 uword ty = elite_planet.y
                 if local {
@@ -840,7 +839,7 @@ elite_planet {
             }
         }
         randname[nx] = 0
-        randname[0] = string.upperchar(randname[0])
+        randname[0] = strings.upperchar(randname[0])
         return randname
     }
 
@@ -912,12 +911,12 @@ elite_planet {
                         source_ptr = source_stack[stack_ptr]
                     } else {
                         if c == $b0 {
-                            @(result_ptr) = string.upperchar(name[0])
+                            @(result_ptr) = strings.upperchar(name[0])
                             result_ptr++
                             concat_string(&name + 1)
                         }
                         else if c == $b1 {
-                            @(result_ptr) = string.upperchar(name[0])
+                            @(result_ptr) = strings.upperchar(name[0])
                             result_ptr++
                             ubyte ni
                             for ni in 1 to len(name) {
@@ -981,7 +980,7 @@ elite_util {
             if pc == 0
                 return true
             ; to lowercase for case insensitive compare:
-            if string.lowerchar(pc)!=string.lowerchar(sc)
+            if strings.lowerchar(pc)!=strings.lowerchar(sc)
                 return false
             prefixptr++
             stringptr++

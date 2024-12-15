@@ -730,7 +730,15 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcRange: RangeExpression): PtRange {
         require(srcRange.from.inferType(program)==srcRange.to.inferType(program))
-        val type = srcRange.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        var type = srcRange.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        if(type.isSplitWordArray) {
+            // ranges are never a split word array!
+            when(type.sub) {
+                is SubSignedWord -> type = DataType.arrayFor(BaseDataType.WORD, false)
+                is SubUnsignedWord -> type = DataType.arrayFor(BaseDataType.UWORD, false)
+                else -> { }
+            }
+        }
         val range=PtRange(type, srcRange.position)
         range.add(transformExpression(srcRange.from))
         range.add(transformExpression(srcRange.to))
