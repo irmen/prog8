@@ -83,10 +83,7 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
                 val decl = elt.targetVarDecl(program)
                 if(decl!=null && decl.datatype.isSplitWordArray) {
                     // you can't take the adress of a split-word array.
-                    // instead of a fatal error, we give a warning and turn it back into a regular array.
-                    errors.warn("cannot take address of split word array - the array is turned back into a regular word array", decl.position)
-                    val normalArray = makeNormalArrayFromSplit(decl)
-                    mods.add(IAstModification.ReplaceNode(decl, normalArray, decl.parent))
+                    errors.err("cannot take address of split word array", decl.position)
                 }
             }
             return mods
@@ -160,22 +157,9 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
         if (variable!=null) {
             if (variable.datatype.isSplitWordArray) {
                 // you can't take the adress of a split-word array.
-                // instead of giving a fatal error, we remove the
-                // instead of a fatal error, we give a warning and turn it back into a regular array.
-                errors.warn("cannot take address of split word array - the array is turned back into a regular word array", addressOf.position)
-                val normalArray = makeNormalArrayFromSplit(variable)
-                return listOf(IAstModification.ReplaceNode(variable, normalArray, variable.parent))
+                errors.err("cannot take address of split word array", addressOf.position)
             }
         }
         return noModifications
     }
-
-    private fun makeNormalArrayFromSplit(variable: VarDecl): VarDecl {
-        val normalDt = DataType.arrayFor(variable.datatype.sub!!.dt, false)
-        return VarDecl(
-            variable.type, variable.origin, normalDt, variable.zeropage, variable.arraysize, variable.name, emptyList(),
-            variable.value?.copy(), variable.sharedWithAsm, variable.alignment, variable.dirty, variable.position
-        )
-    }
-
 }

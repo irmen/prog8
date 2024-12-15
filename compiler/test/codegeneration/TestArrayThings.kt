@@ -95,43 +95,6 @@ main {
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 
-    test("split only for word arrays") {
-        val srcGood = """
-main {
-  uword[10] @nosplit sw
-  word[10] @nosplit sw2
-
-  sub start() {
-  }
-}"""
-        compileText(C64Target(), false, srcGood, writeAssembly = false) shouldNotBe null
-
-        val srcWrong1 = """
-main {
-  ubyte[10] @nosplit sb
-
-  sub start() {
-  }
-}"""
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, srcWrong1, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "nosplit can only be used on word arrays"
-
-        val srcWrong2 = """
-%option enable_floats
-main {
-  float[10] @nosplit sf
-
-  sub start() {
-  }
-}"""
-        errors.clear()
-        compileText(C64Target(), false, srcWrong2, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "nosplit can only be used on word arrays"
-    }
-
     test("split word arrays in asm as lsb/msb, nosplit as single linear") {
         val text = """
 main {

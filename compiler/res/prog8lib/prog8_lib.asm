@@ -317,7 +317,7 @@ containment_bytearray	.proc
 		rts
 		.pend
 
-containment_wordarray	.proc
+containment_linearwordarray	.proc
 	; -- check if a value exists in a linear word array.
 	;    parameters: P8ZP_SCRATCH_W1: value to check, P8ZP_SCRATCH_W2: address of the word array, Y = number of elements in the array (>=1).
 	;    returns boolean 0/1 in A.
@@ -348,28 +348,37 @@ containment_splitwordarray	.proc
 	;    parameters: P8ZP_SCRATCH_W1: value to check, P8ZP_SCRATCH_W2: start address of the lsb word array, Y = number of elements in the array (>=1).
 	;    returns boolean 0/1 in A.
 
-	; TODO FIX THIS!
-		dey
-		tya
-		asl  a
-		tay
--		lda  P8ZP_SCRATCH_W1
-		cmp  (P8ZP_SCRATCH_W2),y
-		bne  +
+	; store the needle value in SCRATCH_B1(lsb) and SCRATCH_REG(msb)
+		lda  P8ZP_SCRATCH_W1
+		sta  P8ZP_SCRATCH_B1
 		lda  P8ZP_SCRATCH_W1+1
-		iny
+		sta  P8ZP_SCRATCH_REG
+
+	; calculate where the msb array starts and put this in P8ZP_SCRATCH_W1  (_W2 is the start of the lsb array)
+		tya
+		clc
+		adc  P8ZP_SCRATCH_W2
+		sta  P8ZP_SCRATCH_W1
+		lda  P8ZP_SCRATCH_W2+1
+		adc  #0
+		sta  P8ZP_SCRATCH_W1+1
+
+	; search needle
+		dey
+-               lda  P8ZP_SCRATCH_REG
+		cmp  (P8ZP_SCRATCH_W1),y
+		bne  +
+		lda  P8ZP_SCRATCH_B1
 		cmp  (P8ZP_SCRATCH_W2),y
 		beq  _found
-		dey
-+		dey
-		dey
-		cpy  #254
++               dey
+		cpy  #255
 		bne  -
 		lda  #0
 		rts
-_found		lda  #1
+_found          lda  #1
 		rts
-		.pend
+	.pend
 
 
 arraycopy_split_to_normal_words .proc

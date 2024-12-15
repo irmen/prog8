@@ -3,9 +3,8 @@ TODO
 
 - DONE: make word arrays split by default (remove @split tag) and use new @nosplit tag to make an array use the old storage format?  Also invert -splitarrays command line option.
 - DONE: remove "splitarrays" %option switch
-- Regular & will just return the start of the split array in memory whatever byte comes first.
+- Regular & will just return the start of the split array in memory whatever byte comes first. Search "cannot take address of split word array"
 - add &< and &> operators to get the address of the lsb-array and msb-array, respectively.
-- fix containment_splitwordarray
 - fix sprites.pos_batch
 - fix anyall.anyw/allw
 - update Syntax files + Document all of this  (also that word arrays can then have length 256 by default as well, and that @linear will reduce it to half.)
