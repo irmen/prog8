@@ -124,9 +124,9 @@ spritedata {
         for cx16.r0 in 0 to 32*32/2-1
             cx16.VERA_DATA0 = @(&moonsprite + cx16.r0)
 
-        for cx16.r1L in 0 to 15 {
-            palette.set_color(cx16.r1L + 16, balloon_pallette[cx16.r1L])
-            palette.set_color(cx16.r1L + 32, moon_pallette[cx16.r1L])
+        for cx16.r4L in 0 to 15 {
+            palette.set_color(cx16.r4L + 16, balloon_pallette[cx16.r4L])
+            palette.set_color(cx16.r4L + 32, moon_pallette[cx16.r4L])
         }
     }
 

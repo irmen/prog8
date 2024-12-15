@@ -58,6 +58,12 @@ main {
                         ; need to use the slower load routine that does padding
                         ; center the image on the screen nicely
                         uword offset = (320-bmx.width)/2 + (240-bmx.height)/2*320
+                        when(bmx.bitsperpixel) {
+                            1 -> offset /= 8
+                            2 -> offset /= 4
+                            4 -> offset /= 2
+                            else -> {}
+                        }
                         if bmx.continue_load_stamp(0, offset, 320) {
                             activate_palette()
                             void txt.waitkey()
@@ -78,16 +84,16 @@ main {
     }
 
     sub activate_palette() {
-        ; copies the pallette data from the memory buffer into vram
+        ; copies the palette data from the memory buffer into vram
         cx16.VERA_DC_BORDER = bmx.border
-        cx16.r1 = bmx.palette_buffer_ptr
-        cx16.r2L = bmx.palette_start
-        cx16.r3L = lsb(bmx.palette_entries)
+        cx16.r4 = bmx.palette_buffer_ptr
+        cx16.r5L = bmx.palette_start
+        cx16.r6L = lsb(bmx.palette_entries)
         do {
-            palette.set_color(cx16.r2L, peekw(cx16.r1))
-            cx16.r1+=2
-            cx16.r2L++
-            cx16.r3L--
-        } until cx16.r3L==0
+            palette.set_color(cx16.r5L, peekw(cx16.r4))
+            cx16.r4+=2
+            cx16.r5L++
+            cx16.r6L--
+        } until cx16.r6L==0
     }
 }

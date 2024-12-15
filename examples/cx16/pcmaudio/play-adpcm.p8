@@ -278,8 +278,7 @@ stereo {
             lda  p8v_right_msb,y
             sta  cx16.VERA_AUDIO_DATA
             iny
-            iny
-            cpy  #16
+            cpy  #8
             bne  -
         }}
     }

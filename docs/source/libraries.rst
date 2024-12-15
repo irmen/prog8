@@ -950,9 +950,9 @@ On the other targets, it only contains the definition of the 16 memory-mapped vi
 
 bmx  (cx16 only)
 ----------------
-Routines to load and save "BMX" files, the CommanderX16 bitmap file format.
-Specification available here: https://cx16forum.com/forum/viewtopic.php?t=6945
-Only *uncompressed* bitmaps are supported in this library for now.
+Routines to load and save "BMX" files, the CommanderX16 bitmap file format:
+`BMX file format specification <https://cx16forum.com/forum/viewtopic.php?t=6945>`_
+Only the *uncompressed* bitmaps variant is supported in this library for now.
 
 The routines are designed to be fast and bulk load/save the data directly into or from vram,
 without the need to buffer something in main memory.

@@ -285,7 +285,7 @@ _lp2        lda  $ffff,y
             inc  _lp2+2
             dex
             bne  _loop
-            ; !notreached!
+            rts
         }}
 ; original prog8 code:
 ;        uword @requirezp ptr = main.start.buffer
@@ -391,8 +391,7 @@ _lp2        lda  $ffff,y
             lda  p8v_right_msb,y
             sta  cx16.VERA_AUDIO_DATA
             iny
-            iny
-            cpy  #16
+            cpy  #8
             bne  -
         }}
     }

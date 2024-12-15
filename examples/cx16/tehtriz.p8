@@ -15,7 +15,7 @@
 main {
 
     const ubyte boardOffsetX = 14
-    const ubyte boardOffsetY = 3
+    const ubyte boardOffsetY = 5
     const ubyte boardWidth = 10
     const ubyte boardHeight = 20
     const ubyte startXpos = boardOffsetX + 3
@@ -306,25 +306,26 @@ waitkey:
     }
 
     sub gameOver() {
+        const ubyte yoffset = 7
         sound.gameover()
-        txt.plot(7, 7)
+        txt.plot(7, yoffset)
         txt.chrout('U')
         txt.print("────────────────────────")
         txt.chrout('I')
-        txt.plot(7, 8)
+        txt.plot(7, yoffset+1)
         txt.print("│*** g a m e  o v e r ***│")
-        txt.plot(7, 9)
+        txt.plot(7, yoffset+2)
         txt.chrout('J')
         txt.print("────────────────────────")
         txt.chrout('K')
 
-        txt.plot(7, 18)
+        txt.plot(7, yoffset+11)
         txt.chrout('U')
         txt.print("────────────────────────")
         txt.chrout('I')
-        txt.plot(7, 19)
+        txt.plot(7, yoffset+12)
         txt.print("│ f1/start for new game  │")
-        txt.plot(7, 20)
+        txt.plot(7, yoffset+13)
         txt.chrout('J')
         txt.print("────────────────────────")
         txt.chrout('K')
@@ -367,36 +368,37 @@ waitkey:
     }
 
     sub drawBoard() {
+        const ubyte yoffset = 2
         txt.clear_screen()
         txt.color(7)
-        txt.plot(1,1)
+        txt.plot(1,1+yoffset)
         txt.print("* tehtriz *")
         txt.color(5)
-        txt.plot(6,4)
+        txt.plot(6,4+yoffset)
         txt.print("hold:")
-        txt.plot(2,22)
+        txt.plot(2,22+yoffset)
         txt.print("speed: ")
-        txt.plot(28,3)
+        txt.plot(28,3+yoffset)
         txt.print("next:")
-        txt.plot(28,10)
+        txt.plot(28,10+yoffset)
         txt.print("lines:")
-        txt.plot(28,14)
+        txt.plot(28,14+yoffset)
         txt.print("score:")
         txt.color(12)
-        txt.plot(27,18)
+        txt.plot(27,18+yoffset)
         txt.print("controls:")
         txt.color(11)
-        txt.plot(28,19)
+        txt.plot(28,19+yoffset)
         txt.print(",/  move")
-        txt.plot(28,20)
+        txt.plot(28,20+yoffset)
         txt.print("zx  rotate")
-        txt.plot(29,21)
+        txt.plot(29,21+yoffset)
         txt.print(".  descend")
-        txt.plot(27,22)
+        txt.plot(27,22+yoffset)
         txt.print("spc  drop")
-        txt.plot(29,23)
+        txt.plot(29,23+yoffset)
         txt.print("c  hold")
-        txt.plot(25,24)
+        txt.plot(25,24+yoffset)
         txt.print("or joystick #1")
 
         txt.setcc(boardOffsetX-1, boardOffsetY-2, 255, 0)           ; invisible barrier
@@ -423,25 +425,26 @@ waitkey:
         for i in len(colors)-1 downto 0 {
             ubyte x
             for x in 5 downto 0 {
-                txt.setcc(6+x-i, 11+2*i, 102, colors[i])
+                txt.setcc(6+x-i, 11+2*i+yoffset, 102, colors[i])
             }
         }
         drawScore()
     }
 
     sub drawScore() {
+        const ubyte yoffset=2
         txt.color(1)
-        txt.plot(30,11)
+        txt.plot(30,11+yoffset)
         txt.print_uw(lines)
-        txt.plot(30,15)
+        txt.plot(30,15+yoffset)
         txt.print_uw(score)
-        txt.plot(9,22)
+        txt.plot(9,22+yoffset)
         txt.print_ub(speedlevel)
     }
 
     sub drawNextBlock() {
         const ubyte nextBlockXpos = 29
-        const ubyte nextBlockYpos = 5
+        const ubyte nextBlockYpos = 7
         ubyte x
         for x in nextBlockXpos+3 downto nextBlockXpos {
             txt.setcc2(x, nextBlockYpos, ' ', 0)
@@ -457,7 +460,7 @@ waitkey:
 
     sub drawHoldBlock() {
         const ubyte holdBlockXpos = 7
-        const ubyte holdBlockYpos = 6
+        const ubyte holdBlockYpos = 8
         ubyte x
         for x in holdBlockXpos+3 downto holdBlockXpos {
             txt.setcc2(x, holdBlockYpos, '@', 0)

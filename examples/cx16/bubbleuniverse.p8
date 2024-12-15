@@ -15,7 +15,7 @@ main {
         const ubyte s = 60
         float t
 
-        uword[] palette = [$000, $000, $00f, $f0f, $0ff, $fff]
+        uword[] @nosplit palette = [$000, $000, $00f, $f0f, $0ff, $fff]
         cx16.FB_set_palette(palette, 0, len(palette))
 
         repeat {

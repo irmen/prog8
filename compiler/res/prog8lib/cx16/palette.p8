@@ -22,7 +22,18 @@ palette {
     }
 
     sub set_rgb_be(uword palette_ptr, uword num_colors, ubyte startindex) {
-        ; 1 word per color entry, $0rgb in big endian format
+        ; 1 word per color entry, $0rgb in big endian format (split arrays)
+        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        repeat num_colors {
+            cx16.VERA_DATA0 = @(palette_ptr+num_colors)
+            cx16.VERA_DATA0 = @(palette_ptr)
+            palette_ptr++
+        }
+        cx16.VERA_ADDR_H &= 1
+    }
+
+    sub set_rgb_be_nosplit(uword palette_ptr, uword num_colors, ubyte startindex) {
+        ; 1 word per color entry, $0rgb in big endian format (linear arrays)
         cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
         repeat num_colors {
             cx16.VERA_DATA0 = @(palette_ptr+1)
@@ -33,7 +44,18 @@ palette {
     }
 
     sub set_rgb(uword palette_words_ptr, uword num_colors, ubyte startindex) {
-        ; 1 word per color entry (in little endian format as layed out in video memory, so $gb;$0r)
+        ; 1 word per color entry (in little endian format as layed out in video memory, so $gb;$0r)  (split arrays)
+        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        repeat num_colors {
+            cx16.VERA_DATA0 = @(palette_words_ptr)
+            cx16.VERA_DATA0 = @(palette_words_ptr+num_colors)
+            palette_words_ptr++
+        }
+        cx16.VERA_ADDR_H &= 1
+    }
+
+    sub set_rgb_nosplit(uword palette_words_ptr, uword num_colors, ubyte startindex) {
+        ; 1 word per color entry (in little endian format as layed out in video memory, so $gb;$0r)  (linear arrays)
         cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
         repeat num_colors {
             cx16.VERA_DATA0 = @(palette_words_ptr)
@@ -188,7 +210,7 @@ palette {
 
     sub set_c64pepto() {
         ; set first 16 colors to the "Pepto" PAL commodore-64 palette  http://www.pepto.de/projects/colorvic/
-        uword[] colors = [
+        uword[] @nosplit colors = [
             $000,  ; 0 = black
             $FFF,  ; 1 = white
             $833,  ; 2 = red
@@ -206,12 +228,12 @@ palette {
             $76e,  ; 14 = light blue
             $bbb   ; 15 = light grey
         ]
-        set_rgb(colors, len(colors), 0)
+        set_rgb_nosplit(colors, len(colors), 0)
     }
 
     sub set_c64ntsc() {
         ; set first 16 colors to a NTSC commodore-64 palette
-        uword[] colors = [
+        uword[] @nosplit colors = [
             $000,   ; 0 = black
             $FFF,   ; 1 = white
             $934,   ; 2 = red
@@ -229,12 +251,12 @@ palette {
             $36f,   ; 14 = light blue
             $ccc    ; 15 = light grey
         ]
-        set_rgb(colors, len(colors), 0)
+        set_rgb_nosplit(colors, len(colors), 0)
     }
 
     sub set_default16() {
         ; set first 16 colors to the defaults on the X16
-        uword[] colors = [
+        uword[] @nosplit colors = [
             $000,   ; 0 = black
             $fff,   ; 1 = white
             $800,   ; 2 = red
@@ -252,6 +274,6 @@ palette {
             $08f,   ; 14 = light blue
             $bbb    ; 15 = light grey
         ]
-        set_rgb(colors, len(colors), 0)
+        set_rgb_nosplit(colors, len(colors), 0)
     }
 }
