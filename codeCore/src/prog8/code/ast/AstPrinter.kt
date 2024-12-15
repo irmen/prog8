@@ -30,7 +30,8 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                         is PtBool -> it.toString()
                         is PtNumber -> it.number.toString()
                         is PtIdentifier -> it.name
-                        else -> "?"
+                        is PtAddressOf -> "& ${it.identifier.name}"
+                        else -> "invalid array element $it"
                     }
                 }
                 "array len=${node.children.size} ${type(node.type)} [ $valuelist ]"
