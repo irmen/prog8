@@ -123,6 +123,8 @@ peek (address)
 
 peekw (address)
     reads the word value at the given address in memory. Word is read as usual little-endian lsb/msb byte order.
+    Caution: when using peekw to get words out of an array pointer, make sure the array is *not* a split word array
+    (peekw requires the LSB and MSB of the word value to be consecutive in memory).
 
 peekf (address)
     reads the float value at the given address in memory. On CBM machines, this reads 5 bytes.

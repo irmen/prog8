@@ -182,6 +182,10 @@ interface IAstVisitor {
         addressOf.arrayIndex?.accept(this)
     }
 
+    fun visit(addressOfMsb: AddressOfMsb) {
+        addressOfMsb.identifier.accept(this)
+    }
+
     fun visit(inlineAssembly: InlineAssembly) {
     }
 

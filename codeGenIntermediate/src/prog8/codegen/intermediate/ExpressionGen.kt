@@ -156,7 +156,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
         } else {
-            if(expr.identifier.type.isSplitWordArray) {
+            if(expr.isMsbForSplitArray) {
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol+"_msb"), null)
+            } else if(expr.identifier.type.isSplitWordArray) {
                 // the _lsb split array comes first in memory
                 addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol+"_lsb"), null)
             } else

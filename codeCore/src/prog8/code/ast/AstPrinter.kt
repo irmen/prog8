@@ -19,7 +19,9 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtBreakpoint -> "%breakpoint"
             is PtConditionalBranch -> "if_${node.condition.name.lowercase()}"
             is PtAddressOf -> {
-                if(node.isFromArrayElement)
+                if(node.isMsbForSplitArray)
+                    "&>"
+                else if(node.isFromArrayElement)
                     "& array-element"
                 else
                     "&"

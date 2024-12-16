@@ -478,6 +478,47 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 }
 
+data class AddressOfMsb(var identifier: IdentifierReference, override val position: Position) : Expression() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        identifier.linkParents(this)
+    }
+
+    override val isSimple = true
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(node===identifier) {
+            require(replacement is IdentifierReference)
+            identifier = replacement
+            replacement.parent = this
+        } else {
+            throw FatalAstException("invalid replace, no child node $node")
+        }
+    }
+
+    override fun copy() = AddressOfMsb(identifier.copy(), position)
+    override fun constValue(program: Program): NumericLiteral? {
+        val target = this.identifier.targetStatement(program)
+        val targetVar = target as? VarDecl
+        if(targetVar!=null) {
+            if (targetVar.type == VarDeclType.MEMORY || targetVar.type == VarDeclType.CONST) {
+                var address = targetVar.value?.constValue(program)?.number
+                if (address != null) {
+                    TODO("RETURN CONSTVALUE ADDROF_MSB ")
+                    // return NumericLiteral(BaseDataType.UWORD, address, position)
+                }
+            }
+        }
+        return null
+    }
+    override fun referencesIdentifier(nameInSource: List<String>) = identifier.nameInSource==nameInSource
+    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UWORD)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
+}
+
 class DirectMemoryRead(var addressExpression: Expression, override val position: Position) : Expression() {
     override lateinit var parent: Node
 

@@ -592,11 +592,21 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
     if(addressof()!=null) {
         val addressOf = addressof()
         val identifier = addressOf.scoped_identifier()
-        val array = addressOf.arrayindexed()
-        return if(identifier!=null)
-            AddressOf(addressof().scoped_identifier().toAst(), null, toPosition())
-        else
-            AddressOf(array.scoped_identifier().toAst(), array.arrayindex().toAst(), toPosition())
+        if(addressOf.ADDRESS_OF_LSB()!=null && identifier==null)
+            throw SyntaxError("&< is only valid on array variables", toPosition())
+        if(addressOf.ADDRESS_OF_MSB()!=null) {
+            return if (identifier != null)
+                AddressOfMsb(addressof().scoped_identifier().toAst(), toPosition())
+            else
+                throw SyntaxError("&> is only valid on array variables", toPosition())
+        } else {
+            return if (identifier != null)
+                AddressOf(addressof().scoped_identifier().toAst(), null, toPosition())
+            else {
+                val array = addressOf.arrayindexed()
+                AddressOf(array.scoped_identifier().toAst(), array.arrayindex().toAst(), toPosition())
+            }
+        }
     }
 
     if(if_expression()!=null) {

@@ -13,7 +13,7 @@
             <Keywords name="Numbers, suffix1"></Keywords>
             <Keywords name="Numbers, suffix2"></Keywords>
             <Keywords name="Numbers, range"></Keywords>
-            <Keywords name="Operators1">@ &amp; | ^ ~ &gt;&gt; &lt;&lt; += -= *= = **= &amp;= |= ^= &lt;&lt;= &gt;&gt;= -&gt; = == != &lt; &gt; &lt;= &gt;= , + ++ - -- * ** / ( ) [ ]</Keywords>
+            <Keywords name="Operators1">@ &amp; &amp;&lt; &amp;&gt; | ^ ~ &gt;&gt; &lt;&lt; += -= *= = **= &amp;= |= ^= &lt;&lt;= &gt;&gt;= -&gt; = == != &lt; &gt; &lt;= &gt;= , + ++ - -- * ** / ( ) [ ]</Keywords>
             <Keywords name="Operators2"></Keywords>
             <Keywords name="Folders in code1, open">{ {{</Keywords>
             <Keywords name="Folders in code1, middle"></Keywords>
@@ -24,7 +24,7 @@
             <Keywords name="Folders in comment, open"></Keywords>
             <Keywords name="Folders in comment, middle"></Keywords>
             <Keywords name="Folders in comment, close"></Keywords>
-            <Keywords name="Keywords1">void const&#x000D;&#x000A;str&#x000D;&#x000A;byte ubyte bool&#x000D;&#x000A;long word uword&#x000D;&#x000A;float&#x000D;&#x000A;zp shared split requirezp nozp</Keywords>
+            <Keywords name="Keywords1">void const&#x000D;&#x000A;str&#x000D;&#x000A;byte ubyte bool&#x000D;&#x000A;long word uword&#x000D;&#x000A;float&#x000D;&#x000A;zp shared split nosplit requirezp nozp</Keywords>
             <Keywords name="Keywords2">%address&#x000D;&#x000A;%asm&#x000D;&#x000A;%ir&#x000D;&#x000A;%asmbinary&#x000D;&#x000A;%asminclude&#x000D;&#x000A;%align&#x000D;&#x000A;%breakpoint&#x000D;&#x000A;%encoding&#x000D;&#x000A;%import&#x000D;&#x000A;%memtop&#x000D;&#x000A;%launcher&#x000D;&#x000A;%option&#x000D;&#x000A;%output&#x000D;&#x000A;%zeropage&#x000D;&#x000A;%zpreserved&#x000D;&#x000A;%zpallowed</Keywords>
             <Keywords name="Keywords3">inline sub asmsub extsub&#x000D;&#x000A;clobbers&#x000D;&#x000A;asm&#x000D;&#x000A;if&#x000D;&#x000A;when else&#x000D;&#x000A;if_cc if_cs if_eq if_mi if_neg if_nz if_pl if_pos if_vc if_vs if_z&#x000D;&#x000A;for in step do while repeat unroll&#x000D;&#x000A;break continue return goto</Keywords>
             <Keywords name="Keywords4">alias abs call callfar callfar2 clamp cmp defer divmod len lsb lsw lsl lsr memory mkword min max msb msw peek peekw peekf poke pokew pokef rsave rsavex rrestore rrestorex rnd rndw rol rol2 ror ror2 setlsb setmsb sgn sizeof sqrtw</Keywords>

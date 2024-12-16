@@ -79,6 +79,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
     private fun transformExpression(expr: Expression): PtExpression {
         return when(expr) {
             is AddressOf -> transform(expr)
+            is AddressOfMsb -> transform(expr)
             is ArrayIndexedExpression -> transform(expr)
             is ArrayLiteral -> transform(expr)
             is BinaryExpression -> transform(expr)
@@ -603,6 +604,12 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         addr.add(transform(src.identifier))
         if(src.arrayIndex!=null)
             addr.add(transformExpression(src.arrayIndex!!.indexExpr))
+        return addr
+    }
+
+    private fun transform(src: AddressOfMsb): PtAddressOf {
+        val addr = PtAddressOf(src.position, true)
+        addr.add(transform(src.identifier))
         return addr
     }
 

@@ -440,10 +440,13 @@ internal class AssignmentAsmGen(
         when(val value = assign.source.expression!!) {
             is PtAddressOf -> {
                 val arrayDt = value.identifier.type
-                val sourceName = if(arrayDt.isSplitWordArray)
-                    asmgen.asmSymbolName(value.identifier) + "_lsb"  // the _lsb split array comes first in memory
-                else
-                    asmgen.asmSymbolName(value.identifier)
+                val sourceName =
+                    if(value.isMsbForSplitArray)
+                        asmgen.asmSymbolName(value.identifier) + "_msb"
+                    else if(arrayDt.isSplitWordArray)
+                        asmgen.asmSymbolName(value.identifier) + "_lsb"  // the _lsb split array comes first in memory
+                    else
+                        asmgen.asmSymbolName(value.identifier)
                 assignAddressOf(assign.target, sourceName, arrayDt, value.arrayIndexExpr)
             }
             is PtBool -> throw AssemblyError("source kind should have been literalboolean")

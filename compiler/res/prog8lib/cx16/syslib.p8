@@ -422,7 +422,7 @@ extsub $ff41 = GRAPH_put_next_char(ubyte character @A)  clobbers(A,X,Y)     ; al
 ; framebuffer
 extsub $fef6 = FB_init()  clobbers(A,X,Y)
 extsub $fef9 = FB_get_info()  clobbers(X,Y) -> byte @A, uword @R0, uword @R1    ; width=r0, height=r1
-extsub $fefc = FB_set_palette(uword pointer @R0, ubyte index @A, ubyte colorcount @X)  clobbers(A,X,Y)
+extsub $fefc = FB_set_palette(uword pointer @R0, ubyte index @A, ubyte colorcount @X)  clobbers(A,X,Y)      ; note: palette array must be @nosplit
 extsub $feff = FB_cursor_position(uword x @R0, uword y @R1)  clobbers(A,X,Y)
 extsub $ff02 = FB_cursor_next_line(uword x @R0)  clobbers(A,X,Y)
 extsub $ff05 = FB_get_pixel()  clobbers(X,Y) -> ubyte @A

@@ -942,7 +942,7 @@ containment check:  ``in``
         }
 
 
-address of:  ``&``
+address of:  ``&``,   ``&<``,   ``&>``
     This is a prefix operator that can be applied to a string or array variable or literal value.
     It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``
     Sometimes the compiler silently inserts this operator to make it easier for instance
@@ -950,6 +950,11 @@ address of:  ``&``
     This operator can also be used as a prefix to a variable's data type keyword to indicate that
     it is a memory-mapped variable (for instance: ``&ubyte screencolor = $d021``). This is explained
     in the :ref:`variables` chapter.
+
+    ``&<`` and ``&>`` are for use on split word arrays, they give you the address of the LSB byte array
+    and MSB byte array separately, respectively.   Note that ``&<`` is just the same as ``&`` in this case.
+    For more details on split word arrays, see :ref:`arrayvars`.
+
 
 ternary:
     Prog8 doesn't have a ternary operator to choose one of two values (``x? y : z`` in many other languages)

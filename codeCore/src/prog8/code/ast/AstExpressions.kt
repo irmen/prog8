@@ -137,7 +137,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     */
 }
 
-class PtAddressOf(position: Position) : PtExpression(DataType.forDt(BaseDataType.UWORD), position) {
+class PtAddressOf(position: Position, val isMsbForSplitArray: Boolean=false) : PtExpression(DataType.forDt(BaseDataType.UWORD), position) {
     val identifier: PtIdentifier
         get() = children[0] as PtIdentifier
     val arrayIndexExpr: PtExpression?

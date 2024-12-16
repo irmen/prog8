@@ -707,6 +707,13 @@ internal class AstChecker(private val program: Program,
         super.visit(addressOf)
     }
 
+    override fun visit(addressOfMsb: AddressOfMsb) {
+        val target = addressOfMsb.identifier.targetVarDecl(program)
+        if(target==null || !target.datatype.isSplitWordArray) {
+            errors.err("&> can only be used on split word arrays", addressOfMsb.position)
+        }
+    }
+
     override fun visit(ifExpr: IfExpression) {
         if(!ifExpr.condition.inferType(program).isBool)
             errors.err("condition should be a boolean", ifExpr.condition.position)

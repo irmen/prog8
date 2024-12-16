@@ -40,6 +40,7 @@ Data types
 - strings and arrays are allocated once, statically, and never resized.
 - strings and arrays are mutable: you can change their contents, but always keep the original storage size in mind to avoid overwriting memory outside of the buffer.
 - maximum string length is 255 characters + a trailing 0 byte.
+- word arrays are split into 2 separate arrays by default (this is configurable): one for the LSBs and one for the MSBs of the words. This enables efficient 6502 instructions to access the words.
 - maximum storage size for arrays is 256 bytes (512 for split word arrays) , the maximum number of elements in the array depends on the size of a single element value.
   you can use larger "arrays" via pointer indexing, see below at Pointers.  One way of obtaining a piece of memory to store
   such an "array" is by using  ``memory()`` builtin function.

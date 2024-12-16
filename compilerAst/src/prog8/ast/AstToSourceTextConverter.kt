@@ -472,6 +472,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
+    override fun visit(addressOfMsb: AddressOfMsb) {
+        output("&>")
+        addressOfMsb.identifier.accept(this)
+    }
+
     override fun visit(inlineAssembly: InlineAssembly) {
         outputlni("%asm {{")
         outputln(inlineAssembly.assembly)

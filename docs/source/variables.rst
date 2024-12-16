@@ -258,6 +258,7 @@ You can use underscores to group digits in floating point literals to make long 
 any underscores in the number are ignored by the compiler.
 For instance ``30_000.999_999`` is a valid floating point number 30000.999999.
 
+.. _arrayvars:
 
 Arrays
 ^^^^^^
@@ -278,9 +279,11 @@ always have to be constants. Here are some examples of arrays::
     char = string[-2]           ; the second-to-last character in the string (Python-style indexing from the end)
 
 .. note::
-    Right now, the array should be small enough to be indexable by a single byte index.
-    This means byte arrays should be <= 256 elements, word arrays <= 128 elements (256 if
-    it's a split array - see below), and float arrays <= 51 elements.
+    To allow the 6502 CPU to efficiently access values in an array, the array should be small enough to be
+    indexable by a single byte index.
+    This means byte arrays should be <= 256 elements, word arrays <= 256 elements as well (if split, which
+    is the default. When not split, the maximum length is 128. See below for details about this disctinction).t
+    Float arrays should be <= 51 elements.
 
 Arrays can be initialized with a range expression or an array literal value.
 You can write out such an initializer value over several lines if you want to improve readability.
@@ -302,6 +305,7 @@ Using the ``in`` operator you can easily check if a value is present in an array
 example: ``if choice in [1,2,3,4] {....}``
 
 **Arrays at a specific memory location:**
+
 Using the memory-mapped syntax it is possible to define an array to be located at a specific memory location.
 For instance to reference the first 5 rows of the Commodore 64's screen matrix as an array, you can define::
 
@@ -312,6 +316,7 @@ This way you can set the second character on the second row from the top like th
     top5screenrows[41] = '!'
 
 **Array indexing on a pointer variable:**
+
 An uword variable can be used in limited scenarios as a 'pointer' to a byte in memory at a specific,
 dynamic, location. You can use array indexing on a pointer variable to use it as a byte array at
 a dynamic location in memory: currently this is equivalent to directly referencing the bytes in
@@ -321,16 +326,38 @@ Instead, it simply addresses memory that lies *before* the pointer variable.
 See also :ref:`pointervars`
 
 **LSB/MSB split word arrays:**
-For (u)word arrays, you can make the compiler layout the array in memory as two separate arrays,
-one with the LSBs and one with the MSBs of the word values. This makes it more efficient to access
-values from the array (smaller and faster code). It also doubles the maximum size of the array from 128 words to 256 words!
-The ``@split`` tag should be added to the variable declaration to do this.
-In the assembly code, the array will then be generated as two byte arrays namely ``name_lsb`` and ``name_msb``.
+
+As an optimization, (u)word arrays are split by the compiler in memory as two separate arrays,
+one with the LSBs and one with the MSBs of the word values. This is more efficient to access by the 6502 cpu.
+It also enables a maximum length of 256 for word arrays, where normally it would have been 128.
+In the assembly code, the array is generated as two byte arrays namely ``name_lsb`` and ``name_msb``, immediately following eachother in memory.
+
+The ``@split`` tag can be added to the variable declaration to *always* split the array even when the command line option -dontsplitarrays is set
+The ``@nosplit`` tag can be added to the variable declaration to *never* split the array. This is useful for compatibility with
+code that expects the words to be sequentially in memory (such as the cx16.FB_set_palette routine).
+
+There is a command line option ``-dontsplitarrays`` that avoids splitting word arrays by default,
+so every word array is layed out sequentially in memory (this is what older versions of Prog8 used to do).immediately
+It reduces the maximum word array length to 128. You can still override this by adding ``@split`` explicitly.
+
+.. note::
+    Most but not all array operations are supported yet on "split word arrays".
+    If you get a compiler error message, simply revert to a regular sequential word array using ``@nosplit``,
+    and please report the issue.
+
+.. note::
+    Array literals are stored as split arrays if they're initializing a split word array, otherwise,
+    they are stored as sequential words!  So if you pass one directly to a subroutine (like ``func([1111,2222,3333])``),
+    the array values are sequential in memory.  If this is undesiarable (i.e. the subroutine expects a split word array),
+    you have to create a normal array variable first and then pass that to the subroutine.
 
 .. caution::
-    Not all array operations are supported yet on "split word arrays".
-    If you get an error message, simply revert to a regular word array and please report the issue,
-    so that more support can be added in the future where it is needed.
+    Be aware that the default is to split word arrays. Normal array access is taken care of by Prog8, so you won't
+    notice this optimization. However if you are accessing the array's values using other ways (for example via a pointer,
+    and then using ``peekw`` to get the value) you have to be aware of this. In that ``peekw`` example you have
+    to make sure to use ``@nosplit`` on the word array so that the words stay sequentially in memory which is what ``peekw`` needs.
+    Also be careful when passing arrays to library routines (this is via a pointer!): you have to make sure
+    the library routine can deal with the split array otherwise you have to use ``@nosplit`` as well.
 
 
 .. _encodings:

@@ -30,6 +30,8 @@ DEC_INTEGER :  DEC_DIGIT (DEC_DIGIT | '_')* ;
 HEX_INTEGER :  '$' HEX_DIGIT (HEX_DIGIT | '_')* ;
 BIN_INTEGER :  '%' BIN_DIGIT (BIN_DIGIT | '_')* ;
 ADDRESS_OF: '&' ;
+ADDRESS_OF_MSB: '&>' ;
+ADDRESS_OF_LSB: '&<' ;
 INVALID_AND_COMPOSITE: '&&' ;
 
 fragment HEX_DIGIT: ('a'..'f') | ('A'..'F') | ('0'..'9') ;
@@ -230,7 +232,7 @@ typecast : 'as' datatype;
 
 directmemory : '@' '(' expression ')';
 
-addressof : <assoc=right> ADDRESS_OF (scoped_identifier | arrayindexed) ;
+addressof : <assoc=right> (ADDRESS_OF | ADDRESS_OF_LSB | ADDRESS_OF_MSB) (scoped_identifier | arrayindexed) ;
 
 functioncall : scoped_identifier '(' expression_list? ')'  ;
 

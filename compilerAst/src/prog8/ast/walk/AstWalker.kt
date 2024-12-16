@@ -95,6 +95,7 @@ abstract class AstWalker {
     protected val noModifications = emptyList<IAstModification>()
 
     open fun before(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(addressOfMsb: AddressOfMsb, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(array: ArrayLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
@@ -140,6 +141,7 @@ abstract class AstWalker {
     open fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
 
     open fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(addressOfMsb: AddressOfMsb, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
@@ -468,6 +470,12 @@ abstract class AstWalker {
         addressOf.identifier.accept(this, addressOf)
         addressOf.arrayIndex?.accept(this)
         track(after(addressOf, parent), addressOf, parent)
+    }
+
+    fun visit(addressOfMsb: AddressOfMsb, parent: Node) {
+        track(before(addressOfMsb, parent), addressOfMsb, parent)
+        addressOfMsb.identifier.accept(this, addressOfMsb)
+        track(after(addressOfMsb, parent), addressOfMsb, parent)
     }
 
     fun visit(ifExpr: IfExpression, parent: Node) {
