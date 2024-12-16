@@ -364,3 +364,9 @@ enum class ZeropageWish {
     DONTCARE,
     NOT_IN_ZEROPAGE
 }
+
+enum class SplitWish {
+    DONTCARE,
+    SPLIT,
+    NOSPLIT
+}

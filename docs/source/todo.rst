@@ -1,17 +1,17 @@
 TODO
 ====
 
-- DONE: make word arrays split by default (remove @split tag) and use new @nosplit tag to make an array use the old storage format?
+- add &< and &> operators to get the address of the lsb-array and msb-array, respectively.
+
+- DONE: make word arrays split by default (remove @split tag) and use new @nosplit tag to make an array use the old storage format
 - DONE: &splitarray  will give you the start address of the lsb-array (which is immediately followed by the msb-array)
 - DONE: invert -splitarrays command line option: -dontsplitarrays   and remove "splitarrays" %option switch
 - DONE: added sprites.pos_batch_nosplit  when the x/y arrays are linear instead of split word arrays
 - DONE: add palette.set_rgb_nosplit() and set_rbg_be_nosplit()  for linear instead of split word arrays
-- update Syntax files + Document all of this  (also that word arrays can then have length 256 by default as well, and that @nosplit will reduce it to half.)
+- DONE: removed anyall module
+- DONE: @split does now always splits a word array even when the dontsplit option is enabled (and @nosplit does the inverse)
+- update Syntax files + Document all of this  (also that word arrays can then have length 256 by default as well, and that @nosplit will reduce it to half.) + warning about using peekw that it may depend on array storage format
 - also document that kernal routines such as FB_set_palette() expect a @nosplit word array otherwise colors turn up bad
-- benchmark program became slower!?  (did get smaller)
-- add &< and &> operators to get the address of the lsb-array and msb-array, respectively.
-
-- remove the error when using @split and make it so that @split always splits the array even when the dontsplit option is enabled.  (ast check that you can only put this on word arrays)
 
 - announce prog8 on the 6502.org site?
 

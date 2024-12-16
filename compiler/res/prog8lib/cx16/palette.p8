@@ -145,8 +145,9 @@ palette {
     sub fade_step_colors(ubyte startindex, ubyte endindex, uword target_colors) -> bool {
         ; Perform one color fade step for multiple consecutive palette entries, to different target colors.
         ;   startindex = palette index of first color to fade
-        ;   endindex = palette index of last color to fade
-        ;   target_colors = address of uword $RGB array of colors to fade towards
+        ;   endindex = palette index of last color to fade, inclusive
+        ;   target_colors = address of uword $RGB array of colors to fade towards,
+        ;                   in *linear* storage format (@nosplit) which is usually how palette blobs are loaded from disk.
         ; Returns true if one or more colors were changed, false if no fade steps were done anymore.
         ; So you usually keep calling this until it returns false.
         bool changed = false

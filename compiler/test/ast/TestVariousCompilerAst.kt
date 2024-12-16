@@ -913,7 +913,7 @@ main {
         (st1[1] as VarDecl).name shouldBe "names"
         val array1 = (st1[1] as VarDecl).value as ArrayLiteral
         array1.type.isArray shouldBe true
-        array1.type.getOrUndef() shouldBe DataType.arrayFor(BaseDataType.UWORD, false)
+        array1.type.getOrUndef() shouldBe DataType.arrayFor(BaseDataType.UWORD, true)
 
         val ast2 = result.codegenAst!!
         val st2 = ast2.entrypoint()!!.children
@@ -921,7 +921,7 @@ main {
         (st2[0] as PtVariable).name shouldBe "p8v_variable"
         (st2[1] as PtVariable).name shouldBe "p8v_names"
         val array2 = (st2[1] as PtVariable).value as PtArray
-        array2.type shouldBe DataType.arrayFor(BaseDataType.UWORD, false)
+        array2.type shouldBe DataType.arrayFor(BaseDataType.UWORD, true)
     }
 
     test("defer syntactic sugaring") {

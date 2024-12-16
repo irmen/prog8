@@ -36,6 +36,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             when(decl.type) {
                 VarDeclType.VAR -> {
                     if(decl.isArray) {
+                        if(decl.datatype.isSplitWordArray)
                         errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
                     } else {
                         if (valueDt.largerSizeThan(decl.datatype)) {
@@ -72,6 +73,43 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         }
 
+        // check splitting of word arrays
+        if(!decl.datatype.isWordArray && decl.splitwordarray != SplitWish.DONTCARE) {
+            if(decl.origin != VarDeclOrigin.ARRAYLITERAL)
+                errors.err("@split and @nosplit are for word arrays only", decl.position)
+        }
+        else if(decl.datatype.isWordArray) {
+            var changeDataType: DataType? = null
+            var changeSplit: SplitWish = decl.splitwordarray
+            when(decl.splitwordarray) {
+                SplitWish.DONTCARE -> {
+                    if(options.dontSplitWordArrays) {
+                        changeDataType = if(decl.datatype.isSplitWordArray) DataType.arrayFor(decl.datatype.elementType().base, false) else null
+                        changeSplit = SplitWish.NOSPLIT
+                    }
+                    else {
+                        changeDataType = if(decl.datatype.isSplitWordArray) null else DataType.arrayFor(decl.datatype.elementType().base, true)
+                        changeSplit = SplitWish.SPLIT
+                    }
+                }
+                SplitWish.SPLIT -> {
+                    changeDataType = if(decl.datatype.isSplitWordArray) null else DataType.arrayFor(decl.datatype.elementType().base, true)
+                }
+                SplitWish.NOSPLIT -> {
+                    changeDataType = if(decl.datatype.isSplitWordArray) DataType.arrayFor(decl.datatype.elementType().base, false) else null
+                }
+            }
+            if(changeDataType!=null) {
+                var value = decl.value
+                if(value is ArrayLiteral && !(value.type istype changeDataType)) {
+                    value = ArrayLiteral(InferredTypes.knownFor(changeDataType), value.value, value.position)
+                }
+                val newDecl = VarDecl(decl.type, decl.origin, changeDataType, decl.zeropage,
+                    changeSplit, decl.arraysize, decl.name, decl.names,
+                    value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
+                return listOf(IAstModification.ReplaceNode(decl, newDecl, parent))
+            }
+        }
         return noModifications
     }
 

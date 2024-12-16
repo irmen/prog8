@@ -365,6 +365,16 @@ private fun getZpOption(options: DecloptionsContext?): ZeropageWish {
     }
 }
 
+private fun getSplitOption(options: DecloptionsContext?): SplitWish {
+    if(options==null)
+        return SplitWish.DONTCARE
+    return when {
+        options.NOSPLIT().isNotEmpty() -> SplitWish.NOSPLIT
+        options.SPLIT().isNotEmpty() -> SplitWish.SPLIT
+        else -> SplitWish.DONTCARE
+    }
+}
+
 private fun Assign_targetContext.toAst() : AssignTarget {
     return when(this) {
         is IdentifierTargetContext -> {
@@ -754,25 +764,24 @@ private fun When_choiceContext.toAst(): WhenChoice {
 private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl {
     val options = decloptions()
     val zp = getZpOption(options)
+    val split = getSplitOption(options)
     val identifiers = identifier()
     val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
     val name = if(identifiers.size==1) identifiername.text else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
-    if(options.SPLIT().isNotEmpty())
-        throw SyntaxError("@split is now the default for word arrays. Use @nosplit if you don't want to split it.", toPosition())
-    val nosplit = options.NOSPLIT().isNotEmpty()
     val alignword = options.ALIGNWORD().isNotEmpty()
     val align64 = options.ALIGN64().isNotEmpty()
     val alignpage = options.ALIGNPAGE().isNotEmpty()
     if(alignpage && alignword)
         throw SyntaxError("choose a single alignment option", toPosition())
     val baseDt = datatype()?.toAst() ?: BaseDataType.UNDEFINED
-    val dt = if(isArray) DataType.arrayFor(baseDt, nosplit!=true) else DataType.forDt(baseDt)
+    val dt = if(isArray) DataType.arrayFor(baseDt, split!=SplitWish.NOSPLIT) else DataType.forDt(baseDt)
 
     return VarDecl(
             type, VarDeclOrigin.USERCODE,
             dt,
             zp,
+            split,
             arrayindex()?.toAst(),
             name,
             if(identifiers.size==1) emptyList() else identifiers.map {

@@ -1017,6 +1017,9 @@ There are also a few better looking Commodore 64 color palettes available here,
 because the Commander X16's default colors for this (the first 16 colors) are too saturated
 and are quite different than how they looked on a VIC-II chip in a C64.
 
+Some routines may require a colors array as @nosplit (such as fade_step_colors), otherwise wrong colors come out.
+(this is the same for some kernal routines such as cx16.FB_set_palette)
+
 Read the `palette source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/palette.p8>`_
 to see what's in there.
 

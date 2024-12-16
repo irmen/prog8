@@ -194,7 +194,7 @@ class AstPreprocessor(val program: Program,
     private fun makeUnSplitArray(decl: VarDecl): Iterable<IAstModification> {
         val splitDt = DataType.arrayFor(decl.datatype.sub!!.dt, false)
         val newDecl = VarDecl(
-            decl.type, decl.origin, splitDt, decl.zeropage, decl.arraysize, decl.name, emptyList(),
+            decl.type, decl.origin, splitDt, decl.zeropage, decl.splitwordarray, decl.arraysize, decl.name, emptyList(),
             decl.value?.copy(), decl.sharedWithAsm, decl.alignment, false, decl.position
         )
         return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))
