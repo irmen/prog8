@@ -3,6 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.CharLiteral
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
@@ -79,6 +80,18 @@ internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, err
                 target.encodeString(string.value, string.encoding)
             } catch (x: CharConversionException) {
                 errors.err(x.message ?: "can't encode string", string.position)
+            }
+            return noModifications
+        }
+
+        override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+            if(decl.datatype.isString) {
+                val initvalue = decl.value
+                if(initvalue!=null && initvalue is BinaryExpression) {
+                    if(initvalue.left is CharLiteral || initvalue.right is CharLiteral) {
+                        errors.err("using a char literal in a string initialization expression, should probably be a string literal with one character in it instead", initvalue.position)
+                    }
+                }
             }
             return noModifications
         }

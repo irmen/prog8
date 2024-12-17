@@ -22,6 +22,8 @@ Future Things and Ideas
   Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
   Add a -library $xxxx command line option (and/or some directive) to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
   Need to add some way to generate a stable jump table at a given address.
+  Need library to not call init_system AND init_system_phase2 not either.
+  Library must not include prog8_program_start stuff either.
 - Fix missing cases where regular & has to return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
 - Add a syntax to access specific bits in a variable, to avoid manually shifts&ands, something like  variable[4:8] ?  (or something else this may be too similar to regular array indexing)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?

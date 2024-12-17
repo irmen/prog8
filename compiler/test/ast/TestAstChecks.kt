@@ -368,4 +368,19 @@ main {
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "requires integer or boolean type"
     }
+
+    test("missing address of in expression operand") {
+        val src="""
+main {
+    sub start() {
+        str name = "foo"
+        cx16.r0 =  name+2
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.warnings.size shouldBe 0
+        errors.errors[0] shouldContain "missing &"
+    }
 })
