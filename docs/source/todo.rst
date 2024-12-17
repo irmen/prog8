@@ -1,10 +1,6 @@
 TODO
 ====
 
-- FIX:   uword[] @nosplit tasklist = [&start-1]    "initialisation value has incompatible type"
-- FIX:   goto  pointers[4]-1
-
-
 - DONE: make word arrays split by default and add new @nosplit tag to make an array use the old linear storage format
 - DONE: &splitarray  will give you the start address of the lsb-array (which is immediately followed by the msb-array)
 - DONE: add &< and &> operators to get the address of the lsb-array and msb-array, respectively.  (&< is just syntactic sugar for &)
@@ -58,7 +54,7 @@ IR/VM
 - fix call() return value handling
 - fix float register parameters (FAC1,FAC2) for extsubs, search for TODO("floating point register parameters not supported")
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
-- make it possible to jump and branch to a computed address (expression), see TODO("JUMP to expression address
+- make it possible to jump and branch to a computed address (expression), see TODO("JUMP to expression address"   .  This needs a change in the JUMPI instruction: it has to take a register instead (like CALLI)
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.

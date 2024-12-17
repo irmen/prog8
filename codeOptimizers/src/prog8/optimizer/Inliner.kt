@@ -102,7 +102,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                         inline
                                     }
 
-                                    is Jump -> true
+                                    is Jump -> stmt.target is NumericLiteral || stmt.target is IdentifierReference
                                     else -> false
                                 }
                         }

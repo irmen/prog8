@@ -1660,6 +1660,7 @@ class IRCodeGen(
                     IRInstruction(Opcode.JUMP, labelSymbol = identifier.name)
                 }
             } else {
+                // val tr = expressionEval.translateExpression(jump.target)
                 TODO("JUMP to expression address ${jump.target}")
             }
         }

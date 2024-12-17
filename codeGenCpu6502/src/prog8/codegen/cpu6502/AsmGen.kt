@@ -73,16 +73,6 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                         nodesToPrefix += node.parent to index
                     }
                 }
-                is PtJump -> {
-                    val identifier = node.target as? PtIdentifier
-                    if(identifier!=null) {
-                        val stNode = st.lookup(identifier.name) ?: throw AssemblyError("name not found $identifier")
-                        if (stNode.astNode.definingBlock()?.options?.noSymbolPrefixing != true) {
-                            val index = node.parent.children.indexOf(node)
-                            nodesToPrefix += node.parent to index
-                        }
-                    }
-                }
                 is PtBlock -> prefixNamedNode(node)
                 is PtConstant -> prefixNamedNode(node)
                 is PtLabel -> prefixNamedNode(node)
@@ -107,7 +97,6 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
             when(val node = parent.children[index]) {
                 is PtIdentifier -> parent.children[index] = node.prefix(parent, st)
                 is PtFunctionCall ->  throw AssemblyError("PtFunctionCall should be processed in their own list, last")
-                is PtJump -> parent.children[index] = node.prefix(parent, st)
                 is PtVariable -> parent.children[index] = node.prefix(parent, st)
                 else -> throw AssemblyError("weird node to prefix $node")
             }
@@ -175,17 +164,6 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
         result
     }
     else this
-}
-
-private fun PtJump.prefix(parent: PtNode, st: SymbolTable): PtJump {
-    val identifier = target as? PtIdentifier
-    if(identifier!=null) {
-        val prefixedIdent = identifier.prefix(this, st)
-        val jump = PtJump(prefixedIdent, position)
-        jump.parent = parent
-        return jump
-    }
-    return this
 }
 
 private fun PtFunctionCall.prefix(parent: PtNode): PtFunctionCall {

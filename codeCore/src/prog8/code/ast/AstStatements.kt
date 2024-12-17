@@ -116,10 +116,9 @@ class PtIfElse(position: Position) : PtNode(position) {
 }
 
 
-class PtJump(val target: PtExpression, position: Position) : PtNode(position) {
-    init {
-        target.parent = this
-    }
+class PtJump(position: Position) : PtNode(position) {
+    val target: PtExpression
+        get() = children.single() as PtExpression
 }
 
 
