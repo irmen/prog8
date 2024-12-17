@@ -1,6 +1,10 @@
 TODO
 ====
 
+- FIX:   uword[] @nosplit tasklist = [&start-1]    "initialisation value has incompatible type"
+- FIX:   goto  pointers[4]-1
+
+
 - DONE: make word arrays split by default and add new @nosplit tag to make an array use the old linear storage format
 - DONE: &splitarray  will give you the start address of the lsb-array (which is immediately followed by the msb-array)
 - DONE: add &< and &> operators to get the address of the lsb-array and msb-array, respectively.  (&< is just syntactic sugar for &)
@@ -18,13 +22,13 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Fix missing cases where regular & has to return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
-- a syntax to access specific bits in a variable, to avoid manually shifts&ands, something like  variable[4:8] ?  (or something else this may be too similar to regular array indexing)
-- something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
-- Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
+- Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
   Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
-  Add a -library $xxxx command line option to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
+  Add a -library $xxxx command line option (and/or some directive) to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
   Need to add some way to generate a stable jump table at a given address.
+- Fix missing cases where regular & has to return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
+- Add a syntax to access specific bits in a variable, to avoid manually shifts&ands, something like  variable[4:8] ?  (or something else this may be too similar to regular array indexing)
+- something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
   in certain situations, the "wrong" order of evaluation of function call arguments is done which results
   in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

@@ -37,7 +37,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 VarDeclType.VAR -> {
                     if(decl.isArray) {
                         if(decl.datatype.isSplitWordArray)
-                        errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
+                            errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
                     } else {
                         if (valueDt.largerSizeThan(decl.datatype)) {
                             val constValue = decl.value?.constValue(program)

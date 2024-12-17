@@ -21,6 +21,20 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val declValue = decl.value
         if(decl.type== VarDeclType.VAR && declValue!=null) {
+
+            if(declValue is ArrayLiteral && declValue.type.isUnknown) {
+                var guessed = declValue.inferType(program)
+                if(guessed.isKnown) {
+                    if(decl.datatype.isWordArray && guessed.getOrUndef().isWordArray) {
+                        // just follow the type of the vardecl
+                        guessed = InferredTypes.knownFor(decl.datatype)
+                    }
+                    val typedArray = ArrayLiteral(guessed, declValue.value, declValue.position)
+                    return listOf(IAstModification.ReplaceNode(declValue, typedArray, decl))
+                }
+            }
+
+
             val valueDt = declValue.inferType(program)
             if(!(valueDt istype decl.datatype)) {
 
@@ -34,6 +48,17 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         }
                     } else {
                         return noModifications
+                    }
+                }
+                if(valueDt.isArray && decl.isArray) {
+                    // if the only difference in their array types is split vs non-split word arrays,
+                    // we accept that (a cleanup of this is done elsewhere)
+                    if(valueDt.getOrUndef().isWordArray && decl.datatype.isWordArray) {
+                        val valueIsSplit = valueDt.getOrUndef().isSplitWordArray
+                        val declIsSplit = decl.datatype.isSplitWordArray
+                        if (valueIsSplit != declIsSplit) {
+                            return noModifications
+                        }
                     }
                 }
 

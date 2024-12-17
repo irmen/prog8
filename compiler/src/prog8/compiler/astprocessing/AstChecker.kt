@@ -808,7 +808,7 @@ internal class AstChecker(private val program: Program,
                                 err("split word array length must be 1-256")
                         dt.isWordArray ->
                             if(arraySize > 128)
-                                err("word array length must be 1-128")
+                                err("regular word array length must be 1-128, use split array to get to 256")
                         dt.isFloatArray ->
                             if(arraySize > 51)
                                 err("float array length must be 1-51")
@@ -882,7 +882,7 @@ internal class AstChecker(private val program: Program,
                     }
                     decl.datatype.isWordArray -> {
                         if (length == 0 || length > 128)
-                            err("word array length must be 1-128")
+                            err("regular word array length must be 1-128, use split array to get to 256")
                     }
                     decl.datatype.isFloatArray -> {
                         if (length == 0 || length > 51)
@@ -1936,8 +1936,12 @@ internal class AstChecker(private val program: Program,
             targetDt.isFloatArray -> correct = true
             else -> throw FatalAstException("invalid type $targetDt")
         }
-        if (!correct)
-            errors.err("array element out of range for type $targetDt", value.position)
+        if (!correct) {
+            if (value.parent is VarDecl && !value.value.all { it is NumericLiteral || it is AddressOf })
+                errors.err("array literal for variable initialization contains non-constant elements", value.position)
+            else
+                errors.err("array element out of range for type $targetDt", value.position)
+        }
         return correct
     }
 
