@@ -22,7 +22,8 @@ main {
     }
 
     sub setup() {
-        void cx16.screen_mode(128, false)
+        cx16.set_screen_mode(128)
+        cx16.GRAPH_init(0)
         cx16.GRAPH_set_colors(0,0,0)
         cx16.GRAPH_clear()
 

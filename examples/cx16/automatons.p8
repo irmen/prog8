@@ -14,7 +14,7 @@ main {
     bool[256] cells
 
     sub start() {
-        void cx16.screen_mode(128, false)
+        cx16.set_screen_mode(128)
         setup()
         txt.clear_screen()
         print_title(rulenumber)

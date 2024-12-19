@@ -6,9 +6,10 @@
 
 main {
     sub start() {
+        cx16.set_screen_mode(3)
+
         ; make palette color 1 black so we can print black letters over the background color 0
-        void cx16.screen_mode(3, false)
-        txt.color2(1,0)           ; make sure correct screen colors are (re)set
+        txt.color2(1,0)
         txt.clear_screen()
 
         cx16.vpoke(1, $fa02, $0)

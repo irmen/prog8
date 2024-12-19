@@ -15,7 +15,7 @@ main  {
 
         uword xx
         ubyte yy
-        void cx16.screen_mode(128, false)
+        cx16.set_screen_mode(128)
         cx16.mouse_config2(1)
         txt.print("move the mouse for the spotlight.")
 

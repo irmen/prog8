@@ -32,7 +32,7 @@ main {
     ubyte ticks_since_previous_move
 
     sub start() {
-        void cx16.screen_mode(3, false)     ; low res
+        cx16.set_screen_mode(3)
         txt.color2(7,0)                     ; make sure correct screen colors are (re)set
         txt.clear_screen()
 

@@ -9,7 +9,7 @@
 main {
 
     sub start() {
-        void cx16.screen_mode(3, false)
+        cx16.set_screen_mode(3)
         txt.color2(14,0)           ; make sure correct screen colors are (re)set
         txt.clear_screen()
 

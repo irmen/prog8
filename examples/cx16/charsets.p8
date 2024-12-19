@@ -42,7 +42,7 @@ main {
 
     sub ibmpc() {
         txt.color2(5,0)
-        void cx16.screen_mode(1,false)
+        cx16.set_screen_mode(1)
         txt.cp437()
         repeat 3 txt.nl()
         write_screencodes(cp437:"≈ IBM Pc ≈ ÇüéâäàåçêëèïîìÄ ░▒▓│┤╡╢╖╕╣║╗╝╜╛┐ ☺☻♥♦♣♠•◘○◙♂♀♪♫☼ ►◄↕‼¶§▬↨↑↓→←∟↔▲▼")

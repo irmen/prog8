@@ -36,7 +36,7 @@ main {
                     palette.set_rgb(bmx.palette_buffer_ptr, 256, 0)
 
                     ; switch to bitmap screen mode and color depth:  320*240
-                    void cx16.screen_mode($80, false)       ; we're lazy and just use a kernal routine to set up the basics
+                    cx16.set_screen_mode($80)
                     cx16.VERA_L0_CONFIG = cx16.VERA_L0_CONFIG & %11111100 | bmx.vera_colordepth
 
                     ; now load the image
