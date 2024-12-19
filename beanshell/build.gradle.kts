@@ -5,15 +5,6 @@ plugins {
     kotlin("jvm")
 }
 
-java {
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
-}
-
-kotlin {
-    compilerOptions.jvmTarget = JvmTarget.JVM_11
-}
-
 val serverMainClassName = "prog8lsp.MainKt"
 val applicationName = "prog8-beanshell"
 

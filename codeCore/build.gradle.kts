@@ -4,18 +4,9 @@ plugins {
     kotlin("jvm")
 }
 
-java {
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
-}
-
-kotlin {
-    compilerOptions.jvmTarget = JvmTarget.JVM_11
-}
-
 dependencies {
     // should have no dependencies to other modules
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.0.0")
 }
 

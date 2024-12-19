@@ -8,15 +8,6 @@ plugins {
     id("com.peterabeles.gversion") version "1.10.3"
 }
 
-java {
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
-}
-
-kotlin {
-    compilerOptions.jvmTarget = JvmTarget.JVM_11
-}
-
 dependencies {
     implementation(project(":codeCore"))
     implementation(project(":codeOptimizers"))
@@ -27,7 +18,7 @@ dependencies {
     implementation(project(":virtualmachine"))
     // implementation(project(":beanshell"))
     implementation("org.antlr:antlr4-runtime:4.13.2")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     // implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.0.0")
@@ -36,7 +27,7 @@ dependencies {
     testImplementation(project(":intermediate"))
     testImplementation("io.kotest:kotest-runner-junit5-jvm:5.9.1")
     testImplementation("io.kotest:kotest-framework-datatest:5.9.1")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.9.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
