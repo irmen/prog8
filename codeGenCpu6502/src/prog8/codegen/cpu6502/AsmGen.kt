@@ -929,7 +929,7 @@ $repeatLabel""")
     }
 
     private fun translate(stmt: PtWhen) {
-        val endLabel = makeLabel("choice_end")
+        val endLabel = makeLabel("when_end")
         val choiceBlocks = mutableListOf<Pair<String, PtNodeGroup>>()
         val conditionDt = stmt.value.type
         if(conditionDt.isByte)
@@ -939,23 +939,28 @@ $repeatLabel""")
 
         for(choiceNode in stmt.choices.children) {
             val choice = choiceNode as PtWhenChoice
-            val choiceLabel = makeLabel("choice")
+            var choiceLabel = makeLabel("choice")
             if(choice.isElse) {
                 translate(choice.statements)
             } else {
-                choiceBlocks.add(choiceLabel to choice.statements)
+                if(choice.statements.children.isEmpty()) {
+                    // no statements for this choice value, jump to the end immediately
+                    choiceLabel = endLabel
+                } else {
+                    choiceBlocks.add(choiceLabel to choice.statements)
+                }
                 for (cv in choice.values.children) {
                     val value = (cv as PtNumber).number.toInt()
                     if(conditionDt.isByte) {
                         out("  cmp  #${value.toHex()} |  beq  $choiceLabel")
                     } else {
                         out("""
-                            cmp  #<${value.toHex()}
-                            bne  +
-                            cpy  #>${value.toHex()}
-                            beq  $choiceLabel
+                        cmp  #<${value.toHex()}
+                        bne  +
+                        cpy  #>${value.toHex()}
+                        beq  $choiceLabel
 +
-                            """)
+                        """)
                     }
                 }
             }
@@ -964,7 +969,7 @@ $repeatLabel""")
         for(choiceBlock in choiceBlocks.withIndex()) {
             out(choiceBlock.value.first)
             translate(choiceBlock.value.second)
-            if(choiceBlock.index<choiceBlocks.size-1)
+            if (choiceBlock.index < choiceBlocks.size - 1)
                 jmp(endLabel)
         }
         out(endLabel)

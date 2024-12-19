@@ -565,8 +565,8 @@ const ubyte  EXTAPI16_stack_enter_kernal_stack = $03
 const ubyte  EXTAPI16_stack_leave_kernal_stack = $04
 
 
-asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) -> bool @Pc {
-    ; -- convenience wrapper for screen_mode() to just set a new mode (and return success)
+asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) {
+    ; -- convenience wrapper for screen_mode() to just set a new mode and ignore any return values
     %asm {{
         clc
         jmp  screen_mode

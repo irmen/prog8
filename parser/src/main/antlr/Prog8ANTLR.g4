@@ -256,7 +256,7 @@ integerliteral :  intpart=(DEC_INTEGER | HEX_INTEGER | BIN_INTEGER) ;
 
 booleanliteral :  'true' | 'false' ;
 
-arrayliteral :  '[' EOL? expression (',' EOL? expression)* EOL? ']' ;       // you can split the values over several lines
+arrayliteral :  '[' EOL? expression (',' EOL? expression)* ','? EOL? ']' ;       // you can split the values over several lines, trailing comma allowed
 
 stringliteral : (encoding=NAME ':')? STRING ;
 

@@ -15,7 +15,7 @@ main {
     uword mx, my
 
     sub start() {
-        void cx16.set_screen_mode(3)
+        cx16.set_screen_mode(3)
         cx16.mouse_config2(1)
         sprites.set_mousepointer_hand()
 

@@ -264,7 +264,8 @@ Arrays
 ^^^^^^
 Arrays can be created from a list of booleans, bytes, words, floats, or addresses of other variables
 (such as explicit address-of expressions, strings, or other array variables) - values in an array literal
-always have to be constants. Here are some examples of arrays::
+always have to be constants. A trailing comma is allowed, sometimes this is easier when copying values
+or when adding more stuff to the array later. Here are some examples of arrays::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0
     byte[]  array = [1, 2, 3, 4]      ; initialize the array, size taken from value

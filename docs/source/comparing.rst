@@ -21,6 +21,7 @@ The language
 - Ternary operator ``x ? value1 : value2`` is available in the form of an *if-expression*: ``if x  value1 else value2``
 - There's a Swift/Zig/Go style ``defer`` statement for delayed cleanup is available in the subroutine scope.
 - Qualified names are searched from within the top level namespace (so you have to provide the full qualified name). Unqualified names are locally scoped.
+- A trailing comma is allowed optionally in array literals:  [1,2,3,]  is a valid array of values 1, 2 and 3.
 
 
 No linker
