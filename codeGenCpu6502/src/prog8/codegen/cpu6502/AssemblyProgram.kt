@@ -148,7 +148,7 @@ internal class AssemblyProgram(
     }
 
     private fun removeGeneratedLabelsFromMonlist() {
-        val pattern = Regex("""al (\w+) \S+${PtLabel.GeneratedLabelPrefix}.+?""")
+        val pattern = Regex("""al (\w+) \S+${PtLabel.GENERATED_LABEL_PREFIX}.+?""")
         val lines = viceMonListFile.toFile().readLines()
         viceMonListFile.toFile().outputStream().bufferedWriter().use {
             for (line in lines) {

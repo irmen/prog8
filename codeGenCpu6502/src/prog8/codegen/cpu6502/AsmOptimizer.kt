@@ -362,7 +362,7 @@ or *_afterif labels.
 This gets generated after certain if conditions, and only the branch instruction is needed in these cases.
          */
 
-        val autoLabelPrefix = PtLabel.GeneratedLabelPrefix
+        val autoLabelPrefix = PtLabel.GENERATED_LABEL_PREFIX
         if(first=="beq  +" && second=="lda  #1" && third=="+") {
             if((fourth.startsWith("beq  $autoLabelPrefix") || fourth.startsWith("bne  $autoLabelPrefix")) &&
                 (fourth.endsWith("_shortcut") || fourth.endsWith("_afterif") || fourth.endsWith("_shortcut:") || fourth.endsWith("_afterif:"))) {

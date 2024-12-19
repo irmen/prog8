@@ -317,23 +317,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return noModifications
         }
 
-        fun checkArray(variable: VarDecl): Iterable<IAstModification> {
-            return when (variable.value) {
-                null -> {
-                    val arraySpec = variable.arraysize!!
-                    val size = arraySpec.indexExpr.constValue(program)?.number?.toInt() ?: throw FatalAstException("no array size")
-                    return if(size==0)
-                        replaceWithFalse()
-                    else
-                        noModifications
-                }
-                is ArrayLiteral -> {
-                    checkArray((variable.value as ArrayLiteral).value)
-                }
-                else -> noModifications
-            }
-        }
-
         fun checkString(stringVal: StringLiteral): Iterable<IAstModification> {
             if(stringVal.value.isEmpty())
                 return replaceWithFalse()

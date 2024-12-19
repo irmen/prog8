@@ -423,7 +423,7 @@ object SysCalls {
                 returnValue(callspec.returns.single(), result, vm)
             }
             Syscall.MUL16_LAST_UPPER -> {
-                returnValue(callspec.returns.single(), vm.mul16_last_upper, vm)
+                returnValue(callspec.returns.single(), vm.mul16LastUpper, vm)
             }
             Syscall.FLOAT_TO_STR -> {
                 val (buffer, number) = getArgValues(callspec.arguments, vm)

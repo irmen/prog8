@@ -1799,7 +1799,7 @@ class IRCodeGen(
     private var labelSequenceNumber = 0
     internal fun createLabelName(): String {
         labelSequenceNumber++
-        return "${PtLabel.GeneratedLabelPrefix}$labelSequenceNumber"
+        return "${PtLabel.GENERATED_LABEL_PREFIX}$labelSequenceNumber"
     }
 
     internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall): ExpressionCodeResult

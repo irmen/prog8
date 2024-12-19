@@ -151,7 +151,7 @@ class Program(val name: String,
 
     fun makeLabel(postfix: String): String {
         generatedLabelSequenceNumber++
-        return "${PtLabel.GeneratedLabelPrefix}${generatedLabelSequenceNumber}_$postfix"
+        return "${PtLabel.GENERATED_LABEL_PREFIX}${generatedLabelSequenceNumber}_$postfix"
     }
 
     fun makeLabel(postfix: String, position: Position): Label {
