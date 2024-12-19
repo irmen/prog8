@@ -291,7 +291,7 @@ class IRCodeGen(
                     BranchCondition.VS -> IRInstruction(Opcode.BSTVS, address = address)
                 }
                 addInstr(result, branchIns, null)
-            } else if(label!=null) {
+            } else if(label!=null && !isIndirectJump(goto)) {
                 val branchIns = when(branch.condition) {
                     BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
                     BranchCondition.CC -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
@@ -304,7 +304,7 @@ class IRCodeGen(
                 }
                 addInstr(result, branchIns, null)
             } else {
-                TODO("JUMP to expression address ${goto.target}")
+                TODO("JUMP to expression address ${goto.target}")  // keep in mind the branch insruction that may need to precede this!
             }
             if(branch.falseScope.children.isNotEmpty())
                 result += translateNode(branch.falseScope)
@@ -1027,12 +1027,12 @@ class IRCodeGen(
                         it += IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = afterIfLabel)
                     }
                 }
-                val identifier = goto.target as? PtIdentifier
-                if(identifier!=null) {
-                    it += IRInstruction(Opcode.JUMPI, labelSymbol = identifier.name)
-                } else {
-                    TODO("JUMP to expression address ${goto.target}")
+                // evaluate jump address expression into a register and jump indirectly to it
+                val tr = expressionEval.translateExpression(goto.target)
+                for(i in tr.chunks.flatMap { it.instructions }) {
+                    it += i
                 }
+                it += IRInstruction(Opcode.JUMPI, reg1 = tr.resultReg)
             } else {
                 // normal jump, directly to target with branch opcode
                 when(condition.operator) {
@@ -1054,10 +1054,10 @@ class IRCodeGen(
                         }
                         it += if (goto.target.asConstInteger() != null)
                             IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, address = goto.target.asConstInteger())
-                        else if(goto.target is PtIdentifier)
+                        else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                             IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = (goto.target as PtIdentifier).name)
                         else
-                            TODO("JUMP to expression address ${goto.target}")
+                            TODO("JUMP to expression address ${goto.target}")  // keep in mind the branch insruction that may need to precede this!
                     }
                 }
             }
@@ -1073,10 +1073,10 @@ class IRCodeGen(
         else {
             require(!isIndirectJump(goto)) { "indirect jumps cannot be expressed using a branch opcode"}
             val identifier = goto.target as? PtIdentifier
-            if(identifier!=null)
+            if(identifier!=null && !isIndirectJump(goto))
                 IRInstruction(branchOpcode, labelSymbol = identifier.name)
             else
-                TODO("JUMP to expression address ${goto.target}")
+                TODO("JUMP to expression address ${goto.target}")  // keep in mind the branch insruction that may need to precede this!
         }
     }
 
@@ -1084,11 +1084,6 @@ class IRCodeGen(
         // indirect jump to target so the if has to jump past it instead
         val result = mutableListOf<IRCodeChunkBase>()
         val afterIfLabel = createLabelName()
-        val identifier = goto.target as? PtIdentifier
-        if(identifier==null) {
-            TODO("JUMP to expression address ${goto.target}")
-        }
-        val gotoSymbol = identifier.name
 
         fun ifNonZeroIntThenJump_BinExpr(condition: PtBinaryExpression) {
             if(condition.operator in LogicalOperators) {
@@ -1210,7 +1205,10 @@ class IRCodeGen(
             else -> throw AssemblyError("weird if condition ${ifElse.condition}")
         }
 
-        addInstr(result, IRInstruction(Opcode.JUMPI, labelSymbol = gotoSymbol), null)
+        // indirect jump to some computed address
+        val tr = expressionEval.translateExpression(goto.target)
+        result += tr.chunks
+        addInstr(result, IRInstruction(Opcode.JUMPI, reg1 = tr.resultReg), null)
         result += IRCodeChunk(afterIfLabel, null)
         return result
     }
@@ -1254,10 +1252,10 @@ class IRCodeGen(
                         }
                         if (goto.target.asConstInteger() != null)
                             addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, address = goto.target.asConstInteger()), null)
-                        else if(goto.target is PtIdentifier)
+                        else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                             addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, labelSymbol = (goto.target as PtIdentifier).name), null)
                         else
-                            TODO("JUMP to expression address ${goto.target}")
+                            TODO("JUMP to expression address ${goto.target}")   // keep in mind the branch insruction that may need to precede this!
                     }
                 }
             } else {
@@ -1313,10 +1311,10 @@ class IRCodeGen(
                 } else {
                     if (goto.target.asConstInteger() != null)
                         addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, address = goto.target.asConstInteger()), null)
-                    else if(goto.target is PtIdentifier)
+                    else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                         addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, labelSymbol = (goto.target as PtIdentifier).name), null)
                     else
-                        TODO("JUMP to expression address ${goto.target}")
+                        TODO("JUMP to expression address ${goto.target}")  // keep in mind the branch insruction that may need to precede this!
                 }
             }
         }
@@ -1649,23 +1647,26 @@ class IRCodeGen(
     private fun translate(jump: PtJump): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
-        chunk += if(jump.target.asConstInteger()!=null) {
-            IRInstruction(Opcode.JUMP, address = jump.target.asConstInteger())
+        if(jump.target.asConstInteger()!=null) {
+            chunk += IRInstruction(Opcode.JUMP, address = jump.target.asConstInteger())
+            result += chunk
+            return result
         } else {
             val identifier = jump.target as? PtIdentifier
-            if (identifier != null) {
-                if(isIndirectJump(jump)) {
-                    IRInstruction(Opcode.JUMPI, labelSymbol = identifier.name)
-                } else {
-                    IRInstruction(Opcode.JUMP, labelSymbol = identifier.name)
-                }
-            } else {
-                // val tr = expressionEval.translateExpression(jump.target)
-                TODO("JUMP to expression address ${jump.target}")
+            if (identifier != null && !isIndirectJump(jump)) {
+                // jump to label
+                chunk += IRInstruction(Opcode.JUMP, labelSymbol = identifier.name)
+                result += chunk
+                return result
             }
+            // evaluate jump address expression into a register and jump indirectly to it
+            val tr = expressionEval.translateExpression(jump.target)
+            result += tr.chunks
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.JUMPI, reg1=tr.resultReg)
+            }
+            return result
         }
-        result += chunk
-        return result
     }
 
     private fun isIndirectJump(jump: PtJump): Boolean {

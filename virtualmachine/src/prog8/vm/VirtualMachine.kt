@@ -624,7 +624,9 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsJUMPI(i: IRInstruction) {
-        val artificialAddress = memory.getUW(i.address!!).toInt()
+        val artificialAddress = registers.getUW(i.reg1!!).toInt()
+        if(!artificialLabelAddresses.contains(artificialAddress))
+            throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${artificialAddress.toHex()})")
         pcChunk = artificialLabelAddresses.getValue(artificialAddress)
         pcIndex = 0
     }

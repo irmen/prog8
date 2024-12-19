@@ -397,7 +397,7 @@ cx16 {
 extsub $ff4a = CLOSE_ALL(ubyte device @A)  clobbers(A,X,Y)
 extsub $ff59 = LKUPLA(ubyte la @A)  clobbers(A,X,Y)
 extsub $ff5c = LKUPSA(ubyte sa @Y)  clobbers(A,X,Y)
-extsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc) -> ubyte @A, ubyte @X, ubyte @Y, bool @Pc        ; also see SCREEN or get_screen_mode()
+extsub $ff5f = screen_mode(ubyte mode @A, bool getCurrent @Pc) -> ubyte @A, ubyte @X, ubyte @Y, bool @Pc        ; also see SCREEN or get/set_screen_mode()
 extsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobbers(A,X,Y)
 extsub $ff6e = JSRFAR()  ; following word = address to call, byte after that=rom/ram bank it is in
 extsub $ff74 = fetch(ubyte zp_startaddr @A, ubyte bank @X, ubyte index @Y)  clobbers(X) -> ubyte @A

@@ -123,7 +123,7 @@ class VmProgramLoader {
                 }
 
                 val label = ins.labelSymbol
-                if (label != null && (ins.opcode !in OpcodesThatBranch || ins.opcode==Opcode.JUMPI)) {
+                if (label != null && (ins.opcode !in OpcodesThatBranch)) {
                     placeholders[Pair(chunk, index)] = label
                 }
             }

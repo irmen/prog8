@@ -65,7 +65,7 @@ storehxy    reg1                      - store reg1.w into cpu hardware register 
 CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction at 'location' (label/memory address)
-jumpi                   pointervar    - continue running at memory address contained in the pointer variable  (indirect jump)
+jumpi       rqg1                      - continue running at memory address in reg1  (indirect jump)
 preparecall numparams                 - indicator that the next instructions are the param setup and function call/syscall with <numparams> parameters
 calli       reg1                      - calls a subroutine (without arguments and without return valus) at memory addres in reg1 (indirect jsr)
 call   label(argument register list) [: resultreg.type]
@@ -645,7 +645,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREHAY   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHXY   to InstructionFormat.from("W,<r1"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
-    Opcode.JUMPI      to InstructionFormat.from("N,<a"),
+    Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
     Opcode.PREPARECALL to InstructionFormat.from("N,<i"),
     Opcode.CALLI      to InstructionFormat.from("N,<r1"),
     Opcode.CALL       to InstructionFormat.from("N,call"),
