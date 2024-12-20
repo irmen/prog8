@@ -421,6 +421,7 @@ is available. This is the compression that was also used in Amiga IFF images and
     Like ``encode_rle`` but not with an output buffer, but with an 'output_function' argument.
     This is the address of a routine that gets a byte arg in A,
     which is the next RLE byte to write to the compressed output buffer or file.
+    This avoids having to buffer the compressed result first.
 
 ``decode_rle (uword compressed, uword target, uword maxsize) -> uword``
     Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
@@ -430,14 +431,32 @@ is available. This is the compression that was also used in Amiga IFF images and
     Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
     Also stops decompressing when the maxsize has been reached. Returns the size of the decompressed data.
     Instead of a source buffer, you provide a callback function that must return the next byte to compress in A.
+    This is useful if the compressed data is read from a disk file for instance as this avoids having to buffer it first.
 
 ``decode_rle_vram (uword compressed, ubyte vbank, uword vaddr)``  (cx16 only)
-    Decodes "ByteRun1" (aka PackBits) RLE compressed data directly into Vera VRAM.
+    Decodes "ByteRun1" (aka PackBits) RLE compressed data directly into Vera VRAM, without needing an intermediate buffer.
     Control byte value 128 ends the decoding.
-    While the X16 has pretty fast lzsa decompression in the kernal, RLE is still a lot faster to decode.
+    While the X16 has pretty fast LZSA decompression in the kernal, RLE is still about 5 times faster to decode.
     However it also doesn't compress data nearly as well, but that's the usual tradeoff.
     There is a *compression* routine as well for RLE that you can run on the X16 itself,
     something that the lzsa compression lacks.
+
+``decode_tscrunch (uword compressed, uword target)``
+    Decompress a block of data compressed in the TSCrunch format.
+    It has extremely fast decompression (approaching RLE speeds),
+    better compression as RLE, but slightly worse compression ration than LZSA.
+    See https://github.com/tonysavon/TSCrunch for the compression format and compressor tool.
+    **NOTE:** for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
+    it only outputs to a memory buffer somewhere in the active 64 Kb address range.
+
+``decode_zx0 (uword compressed, uword target)``
+    Decompress a block of data compressed in the ZX0 format.
+    This has faster decompression than LZSA, and a slightly better compression ratio as well.
+    See https://github.com/einar-saukas/ZX0  for the compression format
+    See https://github.com/emmanuel-marty/salvador for the compressor tool.
+    **NOTE:** You have to use it with the "-classic" option to produce a data format that this decoder can handle!
+    **NOTE:** for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
+    it only outputs to a memory buffer somewhere in the active 64 Kb address range.
 
 
 conv

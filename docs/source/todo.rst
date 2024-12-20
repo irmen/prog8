@@ -10,6 +10,8 @@ TODO
 - DONE: removed anyall module (unoptimized and didn't work on split arrays)
 - DONE: @split does now always splits a word array even when the dontsplit option is enabled (and @nosplit does the inverse)
 
+- bump version and renegerate symbol dumps
+
 - announce prog8 on the 6502.org site?
 
 ...
@@ -72,9 +74,7 @@ IR/VM
 Libraries
 ---------
 - monogfx: flood fill should be able to fill stippled
-- Add a LZSA decompressor to the compression library to be able to decompress lzsa when you don't have it in ROM or when the ROM is banked out or unavailable
-  Problem is: on the X16, it should replicate the Kernal's behavior with decompressing to Vram / not incrementing the output address
-- Add TSCrunch or ZX0 decruncher to compression lib.  Same requirement on X16 again to be able to decompress into vram.
+- Add in-place TSCrunch decoder routine as well to compression lib?  May come in handy where you load a block of compressed data, decompress it in place in the same buffer/memory bank
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 - fix the problems in atari target, and flesh out its libraries.
