@@ -3,7 +3,7 @@ package prog8.intermediate
 import prog8.code.core.InternalCompilerException
 import prog8.code.core.Position
 import prog8.code.core.toHex
-import prog8.code.source.SourceLineCache
+import prog8.code.source.ImportFileSystem
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
@@ -149,10 +149,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 xml.writeStartElement("P8SRC")
                 val sourceTxt = StringBuilder("\n")
                 code.sourceLinesPositions.forEach { pos ->
-                    val line = SourceLineCache.retrieveLine(pos)
-                    if(line!=null) {
-                        sourceTxt.append("$pos  $line\n")
-                    }
+                    val line = ImportFileSystem.retrieveSourceLine(pos)
+                    sourceTxt.append("$pos  $line\n")
                 }
                 xml.writeCData(sourceTxt.toString())
                 xml.writeEndElement()

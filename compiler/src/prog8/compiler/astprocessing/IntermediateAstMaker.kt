@@ -10,6 +10,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
 import prog8.compiler.builtinFunctionReturnType
 import java.io.File
@@ -769,14 +770,14 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         return if (SourceCode.isLibraryResource(filename)) {
             return com.github.michaelbull.result.runCatching {
                 val physFilename = SourceCode.withoutPrefix(filename)
-                SourceCode.Resource("/prog8lib/$physFilename").text
+                ImportFileSystem.getResource("/prog8lib/$physFilename").text
             }.mapError { NoSuchFileException(File(filename)) }
         } else {
             val sib = Path(source.origin).resolveSibling(filename)
             if (sib.isRegularFile())
-                Ok(SourceCode.File(sib).text)
+                Ok(ImportFileSystem.getFile(sib).text)
             else
-                Ok(SourceCode.File(Path(filename)).text)
+                Ok(ImportFileSystem.getFile(Path(filename)).text)
         }
     }
 

@@ -82,12 +82,13 @@ sealed class SourceCode {
     /**
      * Get [SourceCode] from the file represented by the specified Path.
      * This immediately reads the file fully into memory.
+     * You can only get an instance of this via the ImportFileSystem object.
      *
      * [origin] will be the given path in absolute and normalized form.
      * @throws NoSuchFileException if the file does not exist
      * @throws FileSystemException if the file cannot be read
      */
-    class File(path: Path): SourceCode() {
+    internal class File(path: Path): SourceCode() {
         override val text: String
         override val origin: String
         override val name: String
@@ -111,8 +112,9 @@ sealed class SourceCode {
 
     /**
      * [origin]: `library:/x/y/z.p8` for a given `pathString` of "x/y/z.p8"
+     * You can only get an instance of this via the ImportFileSystem object.
      */
-    class Resource(pathString: String): SourceCode() {
+    internal class Resource(pathString: String): SourceCode() {
         private val normalized = "/" + Path(pathString).normalize().toMutableList().joinToString("/")
 
         override val isFromResources = true

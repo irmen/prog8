@@ -7,8 +7,8 @@ import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
-import prog8.code.source.SourceLineCache
 import prog8.code.target.Cx16Target
 import prog8.codegen.cpu6502.assignment.*
 import kotlin.io.path.Path
@@ -337,11 +337,8 @@ class AsmGen6502Internal (
 
         lastSourceLineNumber = node.position.line
         val srcComment = "\t; source: ${node.position.file}:${node.position.line}"
-        val line = SourceLineCache.retrieveLine(node.position)
-        if(line==null)
-            out(srcComment, false)
-        else
-            out("$srcComment   $line", false)
+        val line = ImportFileSystem.retrieveSourceLine(node.position)
+        out("$srcComment   $line", false)
     }
 
     internal fun out(str: String, splitlines: Boolean = true) {

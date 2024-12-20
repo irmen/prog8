@@ -17,6 +17,7 @@ import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
+import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
@@ -191,7 +192,7 @@ class TestProg8Parser: FunSpec( {
 
         test("from an empty file should result in empty Module") {
             val path = assumeReadableFile(fixturesDir, "ast_empty.p8")
-            val module = parseModule(SourceCode.File(path))
+            val module = parseModule(ImportFileSystem.getFile(path))
             module.statements.size shouldBe 0
         }
     }
@@ -210,7 +211,7 @@ class TestProg8Parser: FunSpec( {
 
         test("parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
-            val module = parseModule(SourceCode.File(path))
+            val module = parseModule(ImportFileSystem.getFile(path))
             module.name shouldBe path.nameWithoutExtension
         }
     }
@@ -274,7 +275,7 @@ class TestProg8Parser: FunSpec( {
         test("in ParseError from bad file source code") {
             val path = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
-            val e = shouldThrow<ParseError> { parseModule(SourceCode.File(path)) }
+            val e = shouldThrow<ParseError> { parseModule(ImportFileSystem.getFile(path)) }
             assertPosition(e.position, SourceCode.relative(path).toString(), 2, 4)
         }
 
@@ -289,14 +290,14 @@ class TestProg8Parser: FunSpec( {
 
         test("of Module parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
-            val module = parseModule(SourceCode.File(path))
+            val module = parseModule(ImportFileSystem.getFile(path))
             assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
         }
 
         test("of non-root Nodes parsed from file") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
 
-            val module = parseModule(SourceCode.File(path))
+            val module = parseModule(ImportFileSystem.getFile(path))
             val mpf = module.position.file
             assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
@@ -359,7 +360,7 @@ class TestProg8Parser: FunSpec( {
 
         test("isn't absolute for filesystem paths") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
-            val module = parseModule(SourceCode.File(path))
+            val module = parseModule(ImportFileSystem.getFile(path))
             assertSomethingForAllNodes(module) {
                 Path(it.position.file).isAbsolute shouldBe false
                 Path(it.position.file).isRegularFile() shouldBe true
@@ -385,7 +386,7 @@ class TestProg8Parser: FunSpec( {
 
         test("is library prefixed path for resources")
         {
-            val resource = SourceCode.Resource("prog8lib/math.p8")
+            val resource = ImportFileSystem.getResource("prog8lib/math.p8")
             val module = parseModule(resource)
             assertSomethingForAllNodes(module) {
                 SourceCode.isLibraryResource(it.position.file) shouldBe true

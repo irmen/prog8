@@ -8,6 +8,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
+import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
 import prog8.parser.Prog8Parser
 import java.io.File
@@ -32,7 +33,7 @@ class ModuleImporter(private val program: Program,
             if(programPath.exists()) {
                 println("Compiling program ${Path("").absolute().relativize(programPath)}")
                 println("Compiler target: $compilationTargetName")
-                val source = SourceCode.File(programPath)
+                val source = ImportFileSystem.getFile(programPath)
                 return Ok(importModule(source))
             }
         }
@@ -122,8 +123,8 @@ class ModuleImporter(private val program: Program,
 
     private fun getModuleFromResource(name: String, compilationTargetName: String): Result<SourceCode, NoSuchFileException> {
         val result =
-            runCatching { SourceCode.Resource("/prog8lib/$compilationTargetName/$name") }
-            .orElse { runCatching { SourceCode.Resource("/prog8lib/$name") }  }
+            runCatching { ImportFileSystem.getResource("/prog8lib/$compilationTargetName/$name") }
+            .orElse { runCatching { ImportFileSystem.getResource("/prog8lib/$name") }  }
 
         return result.mapError { NoSuchFileException(File(name)) }
     }
@@ -140,7 +141,7 @@ class ModuleImporter(private val program: Program,
 
         locations.forEach {
             try {
-                return Ok(SourceCode.File(it.resolve(fileName)))
+                return Ok(ImportFileSystem.getFile(it.resolve(fileName)))
             } catch (_: NoSuchFileException) {
             }
         }
