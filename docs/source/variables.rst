@@ -372,9 +372,10 @@ but they have some special properties because they are considered to be *text*.
 Strings (without encoding prefix) will be encoded (translated from ASCII/UTF-8) into bytes via the
 *default encoding* for the target platform. On the CBM machines, this is CBM PETSCII.
 
-Strings in the default encoding are stored in the machine's default character encoding (which is PETSCII on the CBM machines).
-You can choose to store it in another encodings such as ``sc`` (screencodes) or ``iso`` (iso-8859-15).
-Here are examples of the possible encodings:
+Strings without an encoding prefix are stored in the machine's default character encoding (which is PETSCII on the CBM machines,
+but can be something else on other targets).
+There are ways to change the encoding: prefix the string with an encoding name, or use the ``%encoding`` directive to
+change it for the whole file at once. Here are examples of the possible encodings:
 
     - ``"hello"``   a string translated into the default character encoding (PETSCII on the CBM machines)
     - ``petscii:"hello"``               string in CBM PETSCII encoding
@@ -386,9 +387,9 @@ Here are examples of the possible encodings:
     - ``cp437:"≈ IBM Pc ≈ ♂♀♪☺¶"``     string in "cp437" encoding (IBM PC codepage 437)
     - ``kata:"ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ｡ # が # ガ"``  string in "kata" encoding (Katakana)
 
-So the following is a string literal that will be encoded into memory bytes using the iso encoding.
+So what follows below is a string literal that will be encoded into memory bytes using the iso encoding.
 It can be correctly displayed on the screen only if a iso-8859-15 charset has been activated first
-(the Commander X16 has this feature built in)::
+(the Commander X16 has this capability)::
 
     iso:"Käse, Straße"
 

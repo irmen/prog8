@@ -7,6 +7,8 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.ast.PtLabel
 import prog8.code.core.*
+import prog8.code.internedStringsModuleName
+import prog8.code.source.SourceCode
 
 /*********** Everything starts from here, the Program; zero or more modules *************/
 

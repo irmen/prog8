@@ -10,7 +10,7 @@ import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
-import prog8.code.core.SourceCode
+import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8.compiler.CallGraph

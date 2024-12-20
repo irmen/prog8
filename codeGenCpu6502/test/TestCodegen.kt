@@ -8,6 +8,7 @@ import io.kotest.matchers.shouldBe
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.codegen.cpu6502.AsmGen6502
 import java.nio.file.Files

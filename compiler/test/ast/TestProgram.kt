@@ -14,8 +14,8 @@ import prog8.ast.Program
 import prog8.ast.statements.Block
 import prog8.code.ast.PtBlock
 import prog8.code.core.Position
-import prog8.code.core.SourceCode
-import prog8.code.core.internedStringsModuleName
+import prog8.code.source.SourceCode
+import prog8.code.internedStringsModuleName
 import prog8.code.target.C64Target
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer

@@ -78,7 +78,7 @@ class Memory {
         return Double.fromBits(bits)
     }
 
-    // for now, no LONG 32-bits and no FLOAT support.
+// for now, no LONG 32-bits support
 //    fun getL(address: Int): UInt {
 //        return mem[address+3] + 256u*mem[address+2] + 65536u*mem[address+1] + 16777216u*mem[address]
 //    }

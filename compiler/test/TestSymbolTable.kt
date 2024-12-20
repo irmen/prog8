@@ -8,6 +8,7 @@ import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.code.*
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.source.SourceCode
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
 

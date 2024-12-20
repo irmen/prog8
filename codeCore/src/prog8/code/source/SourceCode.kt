@@ -1,15 +1,10 @@
-package prog8.code.core
+package prog8.code.source
 
-import java.io.File
 import java.io.IOException
 import java.nio.file.Path
 import java.text.Normalizer
 import kotlin.io.path.Path
 import kotlin.io.path.readText
-
-
-const val internedStringsModuleName = "prog8_interned_strings"
-
 
 /**
  * Encapsulates - and ties together - actual source code (=text) and its [origin].
@@ -55,14 +50,21 @@ sealed class SourceCode {
         /**
          * filename prefix to designate library files that will be retreived from internal resources rather than disk
          */
-        const val LIBRARYFILEPREFIX = "library:"
-        const val STRINGSOURCEPREFIX = "string:"
+        private const val LIBRARYFILEPREFIX = "library:"
+        private const val STRINGSOURCEPREFIX = "string:"
         val curdir: Path = Path(".").toAbsolutePath()
         fun relative(path: Path): Path = curdir.relativize(path.toAbsolutePath())
-        fun isRegularFilesystemPath(pathString: String) =
-            !(pathString.startsWith(LIBRARYFILEPREFIX) || pathString.startsWith(STRINGSOURCEPREFIX))
-
+        fun isRegularFilesystemPath(pathString: String) = !isLibraryResource(pathString) && !isStringResource(pathString)
         fun isLibraryResource(path: String) = path.startsWith(LIBRARYFILEPREFIX)
+        fun isStringResource(path: String) = path.startsWith(STRINGSOURCEPREFIX)
+        fun withoutPrefix(path: String): String {
+            return if(isLibraryResource(path))
+                path.removePrefix(LIBRARYFILEPREFIX)
+            else if(isStringResource(path))
+                path.removePrefix(STRINGSOURCEPREFIX)
+            else
+                path
+        }
     }
 
     /**
@@ -124,7 +126,7 @@ sealed class SourceCode {
             if (rscURL == null) {
                 val rscRoot = object {}.javaClass.getResource("/")
                 throw NoSuchFileException(
-                    File(normalized),
+                    java.io.File(normalized),
                     reason = "looked in resources rooted at $rscRoot"
                 )
             }
@@ -143,35 +145,5 @@ sealed class SourceCode {
         override val isFromFilesystem: Boolean = false
         override val origin: String = name
         override val text: String = "<generated code node, no text representation>"
-    }
-}
-
-
-object SourceLineCache {
-    private val cache = mutableMapOf<String, List<String>>()
-
-    private fun getCachedFile(file: String): List<String> {
-        val existing = cache[file]
-        if(existing!=null)
-            return existing
-        if (SourceCode.isRegularFilesystemPath(file)) {
-            val source = SourceCode.File(Path(file))
-            cache[file] = source.text.split('\n', '\r').map { it.trim() }
-            return cache.getValue(file)
-        } else if(file.startsWith(SourceCode.LIBRARYFILEPREFIX)) {
-            val source = SourceCode.Resource(file.drop(SourceCode.LIBRARYFILEPREFIX.length))
-            cache[file] = source.text.split('\n', '\r').map { it.trim()}
-            return cache.getValue(file)
-        }
-        return emptyList()
-    }
-
-    fun retrieveLine(position: Position): String? {
-        if (position.line>0) {
-            val lines = getCachedFile(position.file)
-            if(lines.isNotEmpty())
-                return lines[position.line-1]
-        }
-        return null
     }
 }

@@ -4,6 +4,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.source.SourceCode
 import java.io.PrintStream
 
 

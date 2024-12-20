@@ -6,6 +6,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.internedStringsModuleName
 
 internal class VerifyFunctionArgTypes(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : IAstVisitor {
 
@@ -21,7 +22,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
         }
 
         // remove unused strings from interned strings block
-        val internedBlock = program.allBlocks.singleOrNull { it.name== internedStringsModuleName }
+        val internedBlock = program.allBlocks.singleOrNull { it.name == internedStringsModuleName }
         internedBlock?.statements?.withIndex()?.reversed()?.forEach { (index, st) ->
             if(st is VarDecl && st.scopedName !in allStringRefs) {
                 internedBlock.statements.removeAt(index)

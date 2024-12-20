@@ -10,7 +10,7 @@ import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
-import prog8.code.core.SourceCode
+import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.parser.Prog8Parser.parseModule

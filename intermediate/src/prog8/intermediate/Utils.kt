@@ -6,7 +6,7 @@ import prog8.code.left
 import prog8.code.right
 
 
-fun DataType.typeString(length: Int?): String {
+fun DataType.irTypeString(length: Int?): String {
     val lengthStr = if(length==0) "" else length.toString()
     return when (this.base) {
         BaseDataType.BOOL -> "bool"

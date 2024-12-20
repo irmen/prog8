@@ -2,8 +2,8 @@ package prog8.intermediate
 
 import prog8.code.core.InternalCompilerException
 import prog8.code.core.Position
-import prog8.code.core.SourceLineCache
 import prog8.code.core.toHex
+import prog8.code.source.SourceLineCache
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
@@ -102,12 +102,12 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     is IRSubroutine -> {
                         xml.writeStartElement("SUB")
                         xml.writeAttribute("NAME", child.label)
-                        xml.writeAttribute("RETURNTYPE", child.returnType?.typeString(null)?.lowercase() ?: "")
+                        xml.writeAttribute("RETURNTYPE", child.returnType?.irTypeString(null)?.lowercase() ?: "")
                         xml.writeAttribute("POS", child.position.toString())
                         xml.writeCharacters("\n")
                         xml.writeStartElement("PARAMS")
                         xml.writeCharacters("\n")
-                        child.parameters.forEach { param -> xml.writeCharacters("${param.dt.typeString(null)} ${param.name}\n") }
+                        child.parameters.forEach { param -> xml.writeCharacters("${param.dt.irTypeString(null)} ${param.name}\n") }
                         xml.writeEndElement()
                         xml.writeCharacters("\n")
                         child.chunks.forEach { chunk ->

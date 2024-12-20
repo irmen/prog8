@@ -6,8 +6,8 @@ import io.kotest.matchers.string.shouldContain
 import prog8.ast.AstToSourceTextConverter
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.code.core.SourceCode
-import prog8.code.core.internedStringsModuleName
+import prog8.code.source.SourceCode
+import prog8.code.internedStringsModuleName
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.DummyFunctions

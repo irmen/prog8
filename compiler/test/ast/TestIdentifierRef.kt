@@ -13,7 +13,7 @@ import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.ast.statements.VarDecl
 import prog8.code.core.Position
-import prog8.code.core.SourceCode
+import prog8.code.source.SourceCode
 import prog8.parser.Prog8Parser
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer

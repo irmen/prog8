@@ -9,6 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.source.SourceCode
 
 
 object ParentSentinel : Node {

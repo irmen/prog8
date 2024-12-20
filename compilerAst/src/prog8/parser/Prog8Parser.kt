@@ -6,7 +6,7 @@ import prog8.ast.antlr.toAst
 import prog8.ast.statements.Block
 import prog8.ast.statements.Directive
 import prog8.code.core.Position
-import prog8.code.core.SourceCode
+import prog8.code.source.SourceCode
 
 
 class ParseError(override var message: String, val position: Position, cause: RuntimeException): Exception(message, cause)

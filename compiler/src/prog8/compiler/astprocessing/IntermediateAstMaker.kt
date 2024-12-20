@@ -10,6 +10,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.source.SourceCode
 import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
@@ -765,9 +766,10 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
 
     private fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
-        return if (filename.startsWith(SourceCode.LIBRARYFILEPREFIX)) {
+        return if (SourceCode.isLibraryResource(filename)) {
             return com.github.michaelbull.result.runCatching {
-                SourceCode.Resource("/prog8lib/${filename.substring(SourceCode.LIBRARYFILEPREFIX.length)}").text
+                val physFilename = SourceCode.withoutPrefix(filename)
+                SourceCode.Resource("/prog8lib/$physFilename").text
             }.mapError { NoSuchFileException(File(filename)) }
         } else {
             val sib = Path(source.origin).resolveSibling(filename)

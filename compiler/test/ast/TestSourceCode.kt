@@ -5,8 +5,7 @@ import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.code.core.SourceCode
-import prog8.code.core.SourceCode.Companion.LIBRARYFILEPREFIX
+import prog8.code.source.SourceCode
 import prog8tests.helpers.*
 import kotlin.io.path.Path
 
@@ -99,7 +98,7 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.Resource(pathString)
 
-        src.origin shouldBe "$LIBRARYFILEPREFIX/$pathString"
+        src.origin shouldBe "library:/$pathString"
         src.text shouldBe normalizeLineEndings(srcFile.readText())
         src.isFromResources shouldBe true
         src.isFromFilesystem shouldBe false
@@ -111,7 +110,7 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
-        src.origin shouldBe "$LIBRARYFILEPREFIX$pathString"
+        src.origin shouldBe "library:$pathString"
         src.text shouldBe normalizeLineEndings(srcFile.readText())
     }
 
@@ -121,7 +120,7 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = SourceCode.Resource(pathString)
 
-        src.origin shouldBe "$LIBRARYFILEPREFIX/$pathString"
+        src.origin shouldBe "library:/$pathString"
         src.text shouldBe normalizeLineEndings(srcFile.readText())
         src.isFromResources shouldBe true
     }
@@ -132,7 +131,7 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
-        src.origin shouldBe "$LIBRARYFILEPREFIX$pathString"
+        src.origin shouldBe "library:$pathString"
         src.text shouldBe normalizeLineEndings(srcFile.readText())
     }
 
@@ -142,7 +141,7 @@ class TestSourceCode: AnnotationSpec() {
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = SourceCode.Resource(pathString)
 
-        src.origin shouldBe "$LIBRARYFILEPREFIX/prog8lib/math.p8"
+        src.origin shouldBe "library:/prog8lib/math.p8"
         src.text shouldBe normalizeLineEndings(srcFile.readText())
         src.isFromResources shouldBe true
     }

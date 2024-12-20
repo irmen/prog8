@@ -9,6 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.internedStringsModuleName
 import prog8.code.target.encodings.JapaneseCharacterConverter
 import java.io.CharConversionException
 import java.util.*

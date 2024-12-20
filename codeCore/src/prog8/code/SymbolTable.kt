@@ -6,6 +6,9 @@ import prog8.code.ast.PtProgram
 import prog8.code.core.*
 
 
+const val internedStringsModuleName = "prog8_interned_strings"
+
+
 /**
  * Tree structure containing all symbol definitions in the program
  * (blocks, subroutines, variables (all types), memoryslabs, and labels).

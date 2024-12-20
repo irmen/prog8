@@ -3,7 +3,7 @@ package prog8.code.ast
 import prog8.code.core.IMemSizer
 import prog8.code.core.IStringEncoding
 import prog8.code.core.Position
-import prog8.code.core.SourceCode
+import prog8.code.source.SourceCode
 import java.nio.file.Path
 
 // New simplified AST for the code generator.

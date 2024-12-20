@@ -169,7 +169,7 @@ class IRStMemVar(name: String,
         require(!dt.isString)
     }
 
-    val typeString: String = dt.typeString(length)
+    val typeString: String = dt.irTypeString(length)
 }
 
 class IRStMemorySlab(
@@ -219,7 +219,7 @@ class IRStStaticVariable(name: String,
 
     val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null
 
-    val typeString: String = dt.typeString(length)
+    val typeString: String = dt.irTypeString(length)
 }
 
 class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSymbol: String?) {

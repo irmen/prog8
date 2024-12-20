@@ -9,7 +9,6 @@ import io.kotest.matchers.or
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.Module
@@ -18,6 +17,7 @@ import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
+import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8.code.target.encodings.PetsciiEncoding
@@ -379,7 +379,7 @@ class TestProg8Parser: FunSpec( {
             """.trimIndent()
             val module = parseModule(SourceCode.Text(srcText))
             assertSomethingForAllNodes(module) {
-                it.position.file shouldStartWith SourceCode.STRINGSOURCEPREFIX
+                SourceCode.isStringResource(it.position.file) shouldBe true
             }
         }
 
@@ -388,7 +388,7 @@ class TestProg8Parser: FunSpec( {
             val resource = SourceCode.Resource("prog8lib/math.p8")
             val module = parseModule(resource)
             assertSomethingForAllNodes(module) {
-                it.position.file shouldStartWith SourceCode.LIBRARYFILEPREFIX
+                SourceCode.isLibraryResource(it.position.file) shouldBe true
             }
         }
     }

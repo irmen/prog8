@@ -8,6 +8,7 @@ import prog8.ast.base.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*
+import prog8.code.source.SourceCode
 import prog8.parser.Prog8ANTLRParser.*
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
