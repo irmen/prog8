@@ -3,7 +3,7 @@
 
 compression {
 
-    %option no_symbol_prefixing, ignore_unused, merge
+    %option ignore_unused, merge
 
     sub encode_rle_outfunc(uword data, uword size, uword output_function, bool is_last_block) {
         ; -- Compress the given data block using ByteRun1 aka PackBits RLE encoding.

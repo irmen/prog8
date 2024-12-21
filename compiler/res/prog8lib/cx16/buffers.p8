@@ -1,6 +1,6 @@
 ; **experimental** buffer data structures, API subject to change!!
 
-%option no_symbol_prefixing, ignore_unused
+%option ignore_unused
 
 smallringbuffer {
     ; -- A ringbuffer (FIFO queue) that occupies 256 bytes in memory.

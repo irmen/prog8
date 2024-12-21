@@ -3,6 +3,6 @@
 %import shared_compression
 
 compression {
-    %option no_symbol_prefixing, ignore_unused
+    %option ignore_unused
 
 }

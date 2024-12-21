@@ -1,8 +1,6 @@
 TODO
 ====
 
-various library modules: remove %option no_symbol_prefixing?
-
 - DONE: make word arrays split by default and add new @nosplit tag to make an array use the old linear storage format
 - DONE: &splitarray  will give you the start address of the lsb-array (which is immediately followed by the msb-array)
 - DONE: add &< and &> operators to get the address of the lsb-array and msb-array, respectively.  (&< is just syntactic sugar for &)

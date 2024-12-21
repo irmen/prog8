@@ -3,7 +3,7 @@
 %import shared_compression
 
 compression {
-    %option no_symbol_prefixing, ignore_unused
+    %option ignore_unused
 
      asmsub decode_rle_vram(uword compressed @R0, ubyte vbank @X, uword vaddr @AY) {
          ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data directly into Vera VRAM.

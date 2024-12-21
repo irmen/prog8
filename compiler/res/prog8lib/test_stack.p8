@@ -3,7 +3,7 @@
 %import textio
 
 test_stack {
-    %option no_symbol_prefixing, ignore_unused
+    %option ignore_unused
 
     asmsub test() {
         %asm {{
