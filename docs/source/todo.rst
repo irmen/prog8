@@ -1,7 +1,6 @@
 TODO
 ====
 
-diskio:  in 1 routine also save Y not only A? it's when it calls CLRCHN
 various library modules: remove %option no_symbol_prefixing?
 
 - DONE: make word arrays split by default and add new @nosplit tag to make an array use the old linear storage format

@@ -391,7 +391,11 @@ _line_end   dey     ; get rid of the trailing end-of-line char
             sta  (P8ZP_SCRATCH_W1),y
 _end        jsr  cbm.READST
             pha
+            tya
+            pha
             jsr  cbm.CLRCHN
+            pla
+            tay
             pla
             rts
         }}

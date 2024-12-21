@@ -405,7 +405,7 @@ Directives
       if that can't be found, select the first occurrence regardless. If no other blocks are found, no merge is done. Blocks in libraries are considered first to merge into.
     - ``no_symbol_prefixing`` (block or module) makes the compiler *not* use symbol-prefixing when translating prog8 code into assembly.
       Only use this if you know what you're doing because it could result in invalid assembly code being generated.
-      This option can be useful when writing library modules that you don't want to be exposing prefixed assembly symbols.
+      This option can be useful when writing library modules that you don't want to be exposing prefixed assembly symbols. Various standard library modules use it for this purpose.
     - ``ignore_unused`` (block or module) suppress warnings about unused variables and subroutines. Instead, these will be silently stripped.
       This option is useful in library modules that contain many more routines beside the ones that you actually use.
     - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
