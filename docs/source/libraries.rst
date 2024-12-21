@@ -254,150 +254,24 @@ Grouped per compilation target.
 * `virtual <_static/symboldumps/skeletons-virtual.txt>`_
 
 
-syslib
-------
-The "system library" for your target machine. It contains many system-specific definitions such
-as ROM/Kernal subroutine definitions, memory location constants, and utility subroutines.
+bmx  (cx16 only)
+----------------
+Routines to load and save "BMX" files, the CommanderX16 bitmap file format:
+`BMX file format specification <https://cx16forum.com/forum/viewtopic.php?t=6945>`_
+Only the *uncompressed* bitmaps variant is supported in this library for now.
 
+The routines are designed to be fast and bulk load/save the data directly into or from vram,
+without the need to buffer something in main memory.
 
-Many of these definitions overlap for the C64 and Commander X16 targets so it is still possible
-to write programs that work on both targets without modifications.
-
-This module is usually imported automatically and can provide definitions in the ``sys``, ``cbm``, ``c64``, ``cx16``, ``c128``, ``atari`` blocks
-depending on the chosen compilation target. Read the `sys lib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib>`_ for the correct compilation target to see exactly what is there.
-
-
-sys (part of syslib)
---------------------
-``target``
-    A constant ubyte value designating the target machine that the program is compiled for.
-    Notice that this is a compile-time constant value and is not determined on the
-    system when the program is running.
-    The following return values are currently defined:
-
-    - 8 = Atari 8 bits
-    - 16 = Commander X16
-    - 64 = Commodore 64
-    - 128 = Commodore 128
-    - 255 = Virtual machine
-
-
-``exit (returncode)``
-    Immediately stops the program and exits it, with the returncode in the A register.
-    Note: custom interrupt handlers remain active unless manually cleared first!
-
-``exit2 (resultA, resultX, resultY)``
-    Immediately stops the program and exits it, with the result values in the A, X and Y registers.
-    Note: custom interrupt handlers remain active unless manually cleared first!
-
-``exit3 (resultA, resultX, resultY, carry)``
-    Immediately stops the program and exits it, with the result values in the A, X and Y registers, and the carry flag in the status register.
-    Note: custom interrupt handlers remain active unless manually cleared first!
-
-``memcopy (from, to, numbytes)``
-    Efficiently copy a number of bytes from a memory location to another.
-    *Warning:* can only copy *non-overlapping* memory areas correctly!
-    Because this function imposes some overhead to handle the parameters,
-    it is only faster if the number of bytes is larger than a certain threshold.
-    Compare the generated code to see if it was beneficial or not.
-    The most efficient will often be to write a specialized copy routine in assembly yourself!
-
-``memset (address, numbytes, bytevalue)``
-    Efficiently set a part of memory to the given (u)byte value.
-    But the most efficient will always be to write a specialized fill routine in assembly yourself!
-    Note that for clearing the screen, very fast specialized subroutines are
-    available in the ``textio`` and ``graphics`` library modules.
-
-``memsetw (address, numwords, wordvalue)``
-    Efficiently set a part of memory to the given (u)word value.
-    But the most efficient will always be to write a specialized fill routine in assembly yourself!
-
-``memcmp (address1, address2, size)``
-    Compares two blocks of memory of up to 65535 bytes in size.
-    Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
-
-``read_flags () -> ubyte``
-    Returns the current value of the CPU status register.
-
-``set_carry ()``
-    Sets the CPU status register Carry flag.
-
-``clear_carry ()``
-    Clears the CPU status register Carry flag.
-
-``set_irqd ()``
-    Sets the CPU status register Interrupt Disable flag.
-
-``clear_irqd ()``
-    Clears the CPU status register Interrupt Disable flag.
-
-``irqsafe_set_irqd ()``
-    Sets the CPU status register Interrupt Disable flag, in a way that is safe to be used inside a IRQ handler.
-    Pair with ``irqsafe_clear_irqd()``.
-
-``irqsafe_clear_irqd ()``
-    Clears the CPU status register Interrupt Disable flag, in a way that is safe to be used inside a IRQ handler.
-    Pair with ``irqsafe_set_irqd()``.   Inside an IRQ handler this makes sure it doesn't inadvertently
-    clear the irqd status bit, and it can still be used inside normal code as well (where it *does* clear
-    the irqd status bit if it was cleared before entering).
-
-``progend ()``
-    Returns the last address of the program in memory + 1. This means: the memory address directly after all the program code and variables,
-    including the uninitialized ones ("BSS" variables) and the uninitialized memory blocks reserved by the `memory()` function.
-    Can be used to load dynamic data after the program, instead of hardcoding something.
-    On the assembly level: it returns the address of the symbol "``prog8_program_end``".
-
-``progstart ()``
-    Returns the first address of the program in memory. This usually is $0801 on the C64 and the X16, for example.
-    On the assembly level: it returns the address of the symbol "``prog8_program_start``".
-
-``wait (uword jiffies)``
-    wait approximately the given number of jiffies (1/60th seconds)
-    Note: the regular system irq handler has run for this to work as it depends on the system jiffy clock.
-    If this is is not possible (for instance because your program is running its own irq handler logic *and* no longer calls
-    the kernal's handler routine), you'll have to write your own wait routine instead.
-
-``waitvsync ()``
-    busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
-    can be used to avoid screen flicker/tearing when updating screen contents.
-    note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
-    note for cx16: the regular system irq handler has to run for this to work (this is not required on C64 and C128)
-
-``waitrastborder ()`` (c64/c128 targets only)
-    busy wait till the raster position has reached the bottom screen border (approximately)
-    can be used to avoid screen flicker/tearing when updating screen contents.
-    note: a more accurate way to do this is by using a raster irq handler instead.
-
-``reset_system ()``
-    Soft-reset the system back to initial power-on BASIC prompt.
-    (called automatically by Prog8 when the main subroutine returns and the program is not using basicsafe zeropage option)
-
-``disable_caseswitch()`` and ``enable_caseswitch()``
-    Disable or enable the ability to switch character set case using a keyboard combination.
-
-``save_prog8_internals()`` and ``restore_prog8_internals()``
-    Normally not used in user code, the compiler utilizes these for the internal interrupt logic.
-    It stores and restores the values of the internal prog8 variables.
-    This allows other code to run that might clobber these values temporarily.
-
-``push (value)``
-    pushes a byte value on the CPU hardware stack. Low-level function that should normally not be used.
-
-``pushw (value)``
-    pushes a 16-bit word value on the CPU hardware stack. Low-level function that should normally not be used.
-
-``pop ()``
-    pops a byte value off the CPU hardware stack and returns it.
-    Low-level function that should normally not be used.
-
-``popw ()``
-    pops a 16-bit word value off the CPU hardware stack and returns it.
-    Low-level function that should normally not be used.
+For details about what routines are available, have a look at
+the `bmx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/bmx.p8>`_ .
+There's also the "showbmx" example to look at.
 
 
 buffers (experimental)
 ----------------------
 A small library providing a 8 KB stack, an 8 KB ringbuffer, and a fast 256 bytes ringbuffer.
+API is experimental and may change or disappear in a future version.
 Stack is a LIFO container, ringbuffers are FIFO containers.
 On the Commander X16 the stack and ringbuffer will use a HiRAM bank instead of system ram,
 you have to initialize that via the init(bank) routine.
@@ -406,10 +280,11 @@ Read the `buffers source code <https://github.com/irmen/prog8/tree/master/compil
 to see what's in there. Note that the init() routines have that extra bank parameter on the cx16.
 
 
-compression
------------
+compression (slightly experimental)
+-----------------------------------
 Routines for data compression and decompression. Currently only the 'ByteRun1' aka 'PackBits' RLE encoding
 is available. This is the compression that was also used in Amiga IFF images and in old MacPaint images.
+API is slightly experimental and may change in a future version.
 
 ``encode_rle (uword data, uword size, uword target, bool is_last_block) -> uword``
     Compress the given data block using ByteRun1 aka PackBits RLE encoding.
@@ -470,23 +345,46 @@ Read the `conv source code <https://github.com/irmen/prog8/tree/master/compiler/
 to see what's in there.
 
 
-textio (txt.*)
---------------
-This will probably be the most used library module. It contains a whole lot of routines
-dealing with text-based input and output (to the screen). Such as
+cx16
+----
+This is available on *all targets*, it is always imported as part of syslib.
+On the Commander X16 this module contains a *whole bunch* of things specific to that machine.
+It's way too much to include here, you have to study the
+`syslib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/syslib.p8>`_
+to see what is there.
 
-- printing strings, numbers and booleans
-- reading text input from the user via the keyboard
-- filling or clearing the screen and colors
-- scrolling the text on the screen
-- placing individual characters on the screen
-- convert petscii to screencode characters
+On the other targets, it only contains the definition of the 16 memory-mapped virtual registers
+(cx16.r0 - cx16.r15) and the following utility routines:
 
-All routines work with Screencode character encoding, except `print`, `chrout` and `input_chars`,
-these work with PETSCII encoding instead.
+``save_virtual_registers()``
+    save the values of all 16 virtual registers r0 - r15 in a buffer. Might be useful in an IRQ handler to avoid clobbering them.
 
-Read the `textio source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/textio.p8>`_
-to see what's in there. (Note: slight variations for different compiler targets)
+``restore_virtual_registers()``
+    restore the values of all 16 virtual registers r0 - r15 from the buffer. Might be useful in an IRQ handler to avoid clobbering them.
+
+``cpu_is_65816()``
+    Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
+    Note that Prog8 itself has no support yet for this CPU other than detecting its presence.
+
+``reset_system ()``
+    Soft-reset the system back to initial power-on BASIC prompt. (same as the routine in sys)
+
+``poweroff_system ()``
+    Powers down the computer.
+
+``set_led_brightness (ubyte brightness)``
+    Sets the brightness of the activity led on the computer.
+
+
+cx16logo
+--------
+Just a fun module that contains the Commander X16 logo in PETSCII graphics
+and allows you to print it anywhere on the screen.
+
+``logo ()``
+    prints the logo at the current cursor position
+``logo_at (column, row)``
+    printss the logo at the given position
 
 
 diskio
@@ -538,126 +436,16 @@ to see what's in there. (Note: slight variations for different compiler targets)
     descriptions for the various methods in this library for details and tips.
 
 
-strings
--------
-Provides string manipulation routines.
+emudbg  (cx16 only)
+-------------------
+X16Emu Emulator debug routines, for Cx16 only.
+Allows you to interface with the emulator's debug routines/registers.
+There's stuff like ``is_emulator`` to detect if running in the emulator,
+and ``console_write`` to write a (iso) string to the emulator's console (stdout) etc.
 
-``length (str) -> ubyte length``
-    Number of bytes in the string. This value is determined during runtime and counts upto
-    the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
-    Don't confuse this with ``len`` and ``sizeof``!
-
-``left (source, length, target)``
-    Copies the left side of the source string of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-``right (source, length, target)``
-    Copies the right side of the source string of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-``slice (source, start, length, target)``
-    Copies a segment from the source string, starting at the given index,
-    and of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that start and length are within bounds of the strings.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
-
-``find (string, char) -> ubyte index, bool found``
-    Locates the first index of the given character in the string, and a boolean (in Carry flag)
-    to say if it was found at all. If the character is not found, index 255 (and false) is returned.
-    You can consider this a safer way of checking if a character occurs
-    in a string than using an `in` containment check - because this find routine
-    properly stops at the first 0-byte string terminator it encounters in case the string was modified.
-
-``rfind (string, char) -> ubyte index, bool found``
-    Like ``find``, but now looking from the *right* of the string instead.
-
-``contains (string, char) -> bool``
-    Just returns true if the character is in the given string, or false if it's not.
-    For string literals, you can use a containment check expression instead: ``char in "hello world"``.
-
-``compare (string1, string2) -> ubyte result``
-    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
-    Note that you can also directly compare strings and string values with each other
-    using ``==``, ``<`` etcetera (it will use strings.compare for you under water automatically).
-    This even works when dealing with uword (pointer) variables when comparing them to a string type.
-
-``copy (from, to) -> ubyte length``
-    Copy a string to another, overwriting that one. Returns the length of the string that was copied.
-    Often you don't have to call this explicitly and can just write ``string1 = string2``
-    but this function is useful if you're dealing with addresses for instance.
-
-``append (string, suffix) -> ubyte length``
-    Appends the suffix string to the other string (make sure the memory buffer is large enough!)
-    Returns the length of the combined string.
-
-``lower (string)``
-    Lowercases the PETSCII-string in place.
-
-``upper (string)``
-    Uppercases the PETSCII-string in place.
-
-``lowerchar (char)``
-    Returns lowercased PETSCII character.
-
-``upperchar (char)``
-    Returns uppercased PETSCII character.
-
-``strip (string)``
-    Gets rid of whitespace and other non-visible characters at the edges of the string. (destructive)
-
-``rstrip (string)``
-    Gets rid of whitespace and other non-visible characters at the end of the string. (destructive)
-
-``lstrip (string)``
-    Gets rid of whitespace and other non-visible characters at the start of the string. (destructive)
-
-``lstripped (string) -> str``
-    Returns pointer to first non-whitespace and non-visible character at the start of the string (non-destructive lstrip)
-
-``trim (string)``
-    Gets rid of whitespace characters at the edges of the string. (destructive)
-
-``rtrim (string)``
-    Gets rid of whitespace characters at the end of the string. (destructive)
-
-``ltrim (string)``
-    Gets rid of whitespace characters at the start of the string. (destructive)
-
-``ltrimmed (string) -> str``
-    Returns pointer to first non-whitespace character at the start of the string (non-destructive ltrim)
-
-``isdigit (char)``
-    Returns boolean if the character is a numerical digit 0-9
-
-``islower (char)``, ``isupper (char)``, ``isletter (char)``
-    Returns true if the character is a shifted-PETSCII lowercase letter, uppercase letter, or any letter, respectively.
-
-``isspace (char)``
-    Returns true if the PETSCII character is a whitespace (tab, space, return, and shifted versions)
-
-``isprint (char)``
-    Returns true if the PETSCII character is a "printable" character (space or any visible symbol)
-
-``startswith (string, prefix) -> bool``
-    Returns true if string starts with prefix, otherwise false
-
-``endswith (string, suffix) -> bool``
-    Returns true if string ends with suffix, otherwise false
-
-``pattern_match (string, pattern) -> bool`` (not on Virtual target)
-    Returns true if the string matches the pattern, false if not.
-    '?' in the pattern matches any one character. '*' in the pattern matches any substring.
-
-``hash (string) -> ubyte``
-    Returns a simple 8 bit hash value for the given string.
-    The formula is: hash(-1)=179; clear carry; hash(i) = ROL hash(i-1) XOR string[i]
-    (where ROL is the cpu ROL instruction)
-    On the English word list in /usr/share/dict/words it seems to have a pretty even distribution.
+Read the `emudbg source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/emudbg.p8>`_
+to see what's in there.
+Information about the exposed debug registers is in the `emulator's documentation <https://github.com/X16Community/x16-emulator#debug-io-registers>`_.
 
 
 floats
@@ -758,6 +546,25 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 
 ``interpolate(v, inputMin, inputMax, outputMin, outputMax)``
     Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
+
+
+gfx_lores and gfx_hires (cx16 only)
+-----------------------------------
+Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
+
+- gfx_lores: optimized routines for 320x240  256 color bitmap graphics mode. Compatible with X16 screen mode 128.
+- gfx_hires: optimized routines for 640x480  4 color bitmap graphics mode
+- enable bitmap graphics mode, also back to text mode
+- drawing and reading individual pixels
+- drawing lines, rectangles, filled rectangles, circles, discs
+- flood fill
+- drawing text inside the bitmap
+
+Read the `gfx_lores source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_lores.p8>`_
+or `gfx_hires source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_hires.p8>`_
+to see what's in there.
+
+They share the same routines.
 
 
 graphics
@@ -921,80 +728,6 @@ but perhaps the provided ones can be of service too.
     (there is no version for word values because of lack of precision in the fixed point calculation there).
 
 
-cx16logo
---------
-Just a fun module that contains the Commander X16 logo in PETSCII graphics
-and allows you to print it anywhere on the screen.
-
-``logo ()``
-    prints the logo at the current cursor position
-``logo_at (column, row)``
-    printss the logo at the given position
-
-
-prog8_lib
----------
-Low-level language support. You should not normally have to bother with this directly.
-The compiler needs it for various built-in system routines.
-
-
-cx16
-----
-This is available on *all targets*, it is always imported as part of syslib.
-On the Commander X16 this module contains a *whole bunch* of things specific to that machine.
-It's way too much to include here, you have to study the
-`syslib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/syslib.p8>`_
-to see what is there.
-
-On the other targets, it only contains the definition of the 16 memory-mapped virtual registers
-(cx16.r0 - cx16.r15) and the following utility routines:
-
-``save_virtual_registers()``
-    save the values of all 16 virtual registers r0 - r15 in a buffer. Might be useful in an IRQ handler to avoid clobbering them.
-
-``restore_virtual_registers()``
-    restore the values of all 16 virtual registers r0 - r15 from the buffer. Might be useful in an IRQ handler to avoid clobbering them.
-
-``cpu_is_65816()``
-    Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
-    Note that Prog8 itself has no support yet for this CPU other than detecting its presence.
-
-``reset_system ()``
-    Soft-reset the system back to initial power-on BASIC prompt. (same as the routine in sys)
-
-``poweroff_system ()``
-    Powers down the computer.
-
-``set_led_brightness (ubyte brightness)``
-    Sets the brightness of the activity led on the computer.
-
-
-bmx  (cx16 only)
-----------------
-Routines to load and save "BMX" files, the CommanderX16 bitmap file format:
-`BMX file format specification <https://cx16forum.com/forum/viewtopic.php?t=6945>`_
-Only the *uncompressed* bitmaps variant is supported in this library for now.
-
-The routines are designed to be fast and bulk load/save the data directly into or from vram,
-without the need to buffer something in main memory.
-
-For details about what routines are available, have a look at
-the `bmx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/bmx.p8>`_ .
-There's also the "showbmx" example to look at.
-
-
-emudbg  (cx16 only)
--------------------
-X16Emu Emulator debug routines, for Cx16 only.
-Allows you to interface with the emulator's debug routines/registers.
-There's stuff like ``is_emulator`` to detect if running in the emulator,
-and ``console_write`` to write a (iso) string to the emulator's console (stdout) etc.
-
-Read the `emudbg source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/emudbg.p8>`_
-to see what's in there.
-Information about the exposed debug registers is in the `emulator's documentation <https://github.com/X16Community/x16-emulator#debug-io-registers>`_.
-
-
 monogfx  (cx16 and virtual)
 ---------------------------
 Full-screen lores or hires monochrome bitmap graphics routines, available on the Cx16 machine only.
@@ -1012,25 +745,6 @@ Read the `monogfx source code <https://github.com/irmen/prog8/tree/master/compil
 to see what's in there.
 
 
-gfx_lores and gfx_hires (cx16 only)
------------------------------------
-Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
-
-- gfx_lores: optimized routines for 320x240  256 color bitmap graphics mode. Compatible with X16 screen mode 128.
-- gfx_hires: optimized routines for 640x480  4 color bitmap graphics mode
-- enable bitmap graphics mode, also back to text mode
-- drawing and reading individual pixels
-- drawing lines, rectangles, filled rectangles, circles, discs
-- flood fill
-- drawing text inside the bitmap
-
-Read the `gfx_lores source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_lores.p8>`_
-or `gfx_hires source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/gfx_hires.p8>`_
-to see what's in there.
-
-They share the same routines.
-
-
 palette  (cx16 only)
 --------------------
 Available for the Cx16 target. Various routines to set the display color palette.
@@ -1045,6 +759,12 @@ Read the `palette source code <https://github.com/irmen/prog8/tree/master/compil
 to see what's in there.
 
 
+prog8_lib
+---------
+Low-level language support. You should not normally have to bother with this directly.
+The compiler needs it for various built-in system routines.
+
+
 psg  (cx16 only)
 ----------------
 Available for the Cx16 target.
@@ -1053,6 +773,16 @@ It includes an interrupt routine to handle simple Attack/Release envelopes as we
 See the examples/cx16/bdmusic.p8  program for ideas how to use it.
 
 Read the `psg source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/psg.p8>`_
+to see what's in there.
+
+
+sorting (experimental)
+----------------------
+Various sorting routines (gnome sort and shell sort variants) for byte, word and string arrays.
+API is experimental and may change or disappear in a future version.
+**NOTE:** all word arrays are assumed to be @nosplit, words and pointers need to be consecutive in memory.
+**NOTE:** sorting is done in ascending order.
+Read the `sorting source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/sorting.p8>`_
 to see what's in there.
 
 
@@ -1066,6 +796,288 @@ See the examples/cx16/sprites/dragon.p8 and dragons.p8 programs for ideas how to
 
 Read the `sprites source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/sprites.p8>`_
 to see what's in there.
+
+
+strings
+-------
+Provides string manipulation routines.
+
+``length (str) -> ubyte length``
+    Number of bytes in the string. This value is determined during runtime and counts upto
+    the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
+    Don't confuse this with ``len`` and ``sizeof``!
+
+``left (source, length, target)``
+    Copies the left side of the source string of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+``right (source, length, target)``
+    Copies the right side of the source string of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+``slice (source, start, length, target)``
+    Copies a segment from the source string, starting at the given index,
+    and of the given length to target string.
+    It is assumed the target string buffer is large enough to contain the result.
+    Also, you have to make sure yourself that start and length are within bounds of the strings.
+    Modifies in-place, doesn't return a value (so can't be used in an expression).
+
+``find (string, char) -> ubyte index, bool found``
+    Locates the first index of the given character in the string, and a boolean (in Carry flag)
+    to say if it was found at all. If the character is not found, index 255 (and false) is returned.
+    You can consider this a safer way of checking if a character occurs
+    in a string than using an `in` containment check - because this find routine
+    properly stops at the first 0-byte string terminator it encounters in case the string was modified.
+
+``rfind (string, char) -> ubyte index, bool found``
+    Like ``find``, but now looking from the *right* of the string instead.
+
+``contains (string, char) -> bool``
+    Just returns true if the character is in the given string, or false if it's not.
+    For string literals, you can use a containment check expression instead: ``char in "hello world"``.
+
+``compare (string1, string2) -> ubyte result``
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
+    Note that you can also directly compare strings and string values with each other
+    using ``==``, ``<`` etcetera (it will use strings.compare for you under water automatically).
+    This even works when dealing with uword (pointer) variables when comparing them to a string type.
+
+``copy (from, to) -> ubyte length``
+    Copy a string to another, overwriting that one. Returns the length of the string that was copied.
+    Often you don't have to call this explicitly and can just write ``string1 = string2``
+    but this function is useful if you're dealing with addresses for instance.
+
+``append (string, suffix) -> ubyte length``
+    Appends the suffix string to the other string (make sure the memory buffer is large enough!)
+    Returns the length of the combined string.
+
+``lower (string)``
+    Lowercases the PETSCII-string in place.
+
+``upper (string)``
+    Uppercases the PETSCII-string in place.
+
+``lowerchar (char)``
+    Returns lowercased PETSCII character.
+
+``upperchar (char)``
+    Returns uppercased PETSCII character.
+
+``strip (string)``
+    Gets rid of whitespace and other non-visible characters at the edges of the string. (destructive)
+
+``rstrip (string)``
+    Gets rid of whitespace and other non-visible characters at the end of the string. (destructive)
+
+``lstrip (string)``
+    Gets rid of whitespace and other non-visible characters at the start of the string. (destructive)
+
+``lstripped (string) -> str``
+    Returns pointer to first non-whitespace and non-visible character at the start of the string (non-destructive lstrip)
+
+``trim (string)``
+    Gets rid of whitespace characters at the edges of the string. (destructive)
+
+``rtrim (string)``
+    Gets rid of whitespace characters at the end of the string. (destructive)
+
+``ltrim (string)``
+    Gets rid of whitespace characters at the start of the string. (destructive)
+
+``ltrimmed (string) -> str``
+    Returns pointer to first non-whitespace character at the start of the string (non-destructive ltrim)
+
+``isdigit (char)``
+    Returns boolean if the character is a numerical digit 0-9
+
+``islower (char)``, ``isupper (char)``, ``isletter (char)``
+    Returns true if the character is a shifted-PETSCII lowercase letter, uppercase letter, or any letter, respectively.
+
+``isspace (char)``
+    Returns true if the PETSCII character is a whitespace (tab, space, return, and shifted versions)
+
+``isprint (char)``
+    Returns true if the PETSCII character is a "printable" character (space or any visible symbol)
+
+``startswith (string, prefix) -> bool``
+    Returns true if string starts with prefix, otherwise false
+
+``endswith (string, suffix) -> bool``
+    Returns true if string ends with suffix, otherwise false
+
+``pattern_match (string, pattern) -> bool`` (not on Virtual target)
+    Returns true if the string matches the pattern, false if not.
+    '?' in the pattern matches any one character. '*' in the pattern matches any substring.
+
+``hash (string) -> ubyte``
+    Returns a simple 8 bit hash value for the given string.
+    The formula is: hash(-1)=179; clear carry; hash(i) = ROL hash(i-1) XOR string[i]
+    (where ROL is the cpu ROL instruction)
+    On the English word list in /usr/share/dict/words it seems to have a pretty even distribution.
+
+
+syslib
+------
+The "system library" for your target machine. It contains many system-specific definitions such
+as ROM/Kernal subroutine definitions, memory location constants, and utility subroutines.
+
+
+Many of these definitions overlap for the C64 and Commander X16 targets so it is still possible
+to write programs that work on both targets without modifications.
+
+This module is usually imported automatically and can provide definitions in the ``sys``, ``cbm``, ``c64``, ``cx16``, ``c128``, ``atari`` blocks
+depending on the chosen compilation target. Read the `sys lib source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib>`_ for the correct compilation target to see exactly what is there.
+
+
+sys (part of syslib)
+--------------------
+``target``
+    A constant ubyte value designating the target machine that the program is compiled for.
+    Notice that this is a compile-time constant value and is not determined on the
+    system when the program is running.
+    The following return values are currently defined:
+
+    - 8 = Atari 8 bits
+    - 16 = Commander X16
+    - 64 = Commodore 64
+    - 128 = Commodore 128
+    - 255 = Virtual machine
+
+
+``exit (returncode)``
+    Immediately stops the program and exits it, with the returncode in the A register.
+    Note: custom interrupt handlers remain active unless manually cleared first!
+
+``exit2 (resultA, resultX, resultY)``
+    Immediately stops the program and exits it, with the result values in the A, X and Y registers.
+    Note: custom interrupt handlers remain active unless manually cleared first!
+
+``exit3 (resultA, resultX, resultY, carry)``
+    Immediately stops the program and exits it, with the result values in the A, X and Y registers, and the carry flag in the status register.
+    Note: custom interrupt handlers remain active unless manually cleared first!
+
+``memcopy (from, to, numbytes)``
+    Efficiently copy a number of bytes from a memory location to another.
+    *Warning:* can only copy *non-overlapping* memory areas correctly!
+    Because this function imposes some overhead to handle the parameters,
+    it is only faster if the number of bytes is larger than a certain threshold.
+    Compare the generated code to see if it was beneficial or not.
+    The most efficient will often be to write a specialized copy routine in assembly yourself!
+
+``memset (address, numbytes, bytevalue)``
+    Efficiently set a part of memory to the given (u)byte value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
+    Note that for clearing the screen, very fast specialized subroutines are
+    available in the ``textio`` and ``graphics`` library modules.
+
+``memsetw (address, numwords, wordvalue)``
+    Efficiently set a part of memory to the given (u)word value.
+    But the most efficient will always be to write a specialized fill routine in assembly yourself!
+
+``memcmp (address1, address2, size)``
+    Compares two blocks of memory of up to 65535 bytes in size.
+    Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
+
+``read_flags () -> ubyte``
+    Returns the current value of the CPU status register.
+
+``set_carry ()``
+    Sets the CPU status register Carry flag.
+
+``clear_carry ()``
+    Clears the CPU status register Carry flag.
+
+``set_irqd ()``
+    Sets the CPU status register Interrupt Disable flag.
+
+``clear_irqd ()``
+    Clears the CPU status register Interrupt Disable flag.
+
+``irqsafe_set_irqd ()``
+    Sets the CPU status register Interrupt Disable flag, in a way that is safe to be used inside a IRQ handler.
+    Pair with ``irqsafe_clear_irqd()``.
+
+``irqsafe_clear_irqd ()``
+    Clears the CPU status register Interrupt Disable flag, in a way that is safe to be used inside a IRQ handler.
+    Pair with ``irqsafe_set_irqd()``.   Inside an IRQ handler this makes sure it doesn't inadvertently
+    clear the irqd status bit, and it can still be used inside normal code as well (where it *does* clear
+    the irqd status bit if it was cleared before entering).
+
+``progend ()``
+    Returns the last address of the program in memory + 1. This means: the memory address directly after all the program code and variables,
+    including the uninitialized ones ("BSS" variables) and the uninitialized memory blocks reserved by the `memory()` function.
+    Can be used to load dynamic data after the program, instead of hardcoding something.
+    On the assembly level: it returns the address of the symbol "``prog8_program_end``".
+
+``progstart ()``
+    Returns the first address of the program in memory. This usually is $0801 on the C64 and the X16, for example.
+    On the assembly level: it returns the address of the symbol "``prog8_program_start``".
+
+``wait (uword jiffies)``
+    wait approximately the given number of jiffies (1/60th seconds)
+    Note: the regular system irq handler has run for this to work as it depends on the system jiffy clock.
+    If this is is not possible (for instance because your program is running its own irq handler logic *and* no longer calls
+    the kernal's handler routine), you'll have to write your own wait routine instead.
+
+``waitvsync ()``
+    busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
+    can be used to avoid screen flicker/tearing when updating screen contents.
+    note: a more accurate way to wait for vsync is to set up a vsync irq handler instead.
+    note for cx16: the regular system irq handler has to run for this to work (this is not required on C64 and C128)
+
+``waitrastborder ()`` (c64/c128 targets only)
+    busy wait till the raster position has reached the bottom screen border (approximately)
+    can be used to avoid screen flicker/tearing when updating screen contents.
+    note: a more accurate way to do this is by using a raster irq handler instead.
+
+``reset_system ()``
+    Soft-reset the system back to initial power-on BASIC prompt.
+    (called automatically by Prog8 when the main subroutine returns and the program is not using basicsafe zeropage option)
+
+``disable_caseswitch()`` and ``enable_caseswitch()``
+    Disable or enable the ability to switch character set case using a keyboard combination.
+
+``save_prog8_internals()`` and ``restore_prog8_internals()``
+    Normally not used in user code, the compiler utilizes these for the internal interrupt logic.
+    It stores and restores the values of the internal prog8 variables.
+    This allows other code to run that might clobber these values temporarily.
+
+``push (value)``
+    pushes a byte value on the CPU hardware stack. Low-level function that should normally not be used.
+
+``pushw (value)``
+    pushes a 16-bit word value on the CPU hardware stack. Low-level function that should normally not be used.
+
+``pop ()``
+    pops a byte value off the CPU hardware stack and returns it.
+    Low-level function that should normally not be used.
+
+``popw ()``
+    pops a 16-bit word value off the CPU hardware stack and returns it.
+    Low-level function that should normally not be used.
+
+
+textio (txt.*)
+--------------
+This will probably be the most used library module. It contains a whole lot of routines
+dealing with text-based input and output (to the screen). Such as
+
+- printing strings, numbers and booleans
+- reading text input from the user via the keyboard
+- filling or clearing the screen and colors
+- scrolling the text on the screen
+- placing individual characters on the screen
+- convert petscii to screencode characters
+
+All routines work with Screencode character encoding, except `print`, `chrout` and `input_chars`,
+these work with PETSCII encoding instead.
+
+Read the `textio source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/textio.p8>`_
+to see what's in there. (Note: slight variations for different compiler targets)
 
 
 verafx  (cx16 only)

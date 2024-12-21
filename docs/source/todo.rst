@@ -1,6 +1,9 @@
 TODO
 ====
 
+diskio:  in 1 routine also save Y not only A? it's when it calls CLRCHN
+various library modules: remove %option no_symbol_prefixing?
+
 - DONE: make word arrays split by default and add new @nosplit tag to make an array use the old linear storage format
 - DONE: &splitarray  will give you the start address of the lsb-array (which is immediately followed by the msb-array)
 - DONE: add &< and &> operators to get the address of the lsb-array and msb-array, respectively.  (&< is just syntactic sugar for &)
@@ -75,6 +78,8 @@ Libraries
 ---------
 - monogfx: flood fill should be able to fill stippled
 - Add in-place TSCrunch decoder routine as well to compression lib?  May come in handy where you load a block of compressed data, decompress it in place in the same buffer/memory bank
+- Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
+- Add split-word array sorting routines to sorting module?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 - fix the problems in atari target, and flesh out its libraries.

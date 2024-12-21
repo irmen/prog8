@@ -144,6 +144,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "rasterbars",
             "showbmx",
             "snow",
+            "sortingbench",
             "spotlight",
             "starszoom",
             "tehtriz",
