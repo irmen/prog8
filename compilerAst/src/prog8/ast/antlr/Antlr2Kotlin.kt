@@ -332,12 +332,13 @@ private fun SubroutineContext.toAst() : Subroutine {
 private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
         sub_param().map {
             val decl = it.vardecl()
-            val options = decl.decloptions()
-            if(options.ALIGNPAGE().isNotEmpty() || options.ALIGNWORD().isNotEmpty())
-                throw SyntaxError("cannot use alignments on parameters", it.toPosition())
-            if(options.DIRTY().isNotEmpty())
-                throw SyntaxError("cannot use @dirty on parameters", it.toPosition())
-            val zp = getZpOption(options)
+            val tags = decl.TAG().map { it.text }
+            val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@split", "@nosplit", "@shared")
+            for(tag in tags) {
+                if(tag !in validTags)
+                    throw SyntaxError("invalid parameter tag '$tag'", toPosition())
+            }
+            val zp = getZpOption(tags)
             var baseDt = decl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
             var datatype = DataType.forDt(baseDt)
             if(decl.ARRAYSIG()!=null || decl.arrayindex()!=null)
@@ -355,23 +356,17 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             SubroutineParameter(identifiername.text, datatype, zp, registerorpair, it.toPosition())
         }
 
-private fun getZpOption(options: DecloptionsContext?): ZeropageWish {
-    if(options==null)
-        return ZeropageWish.DONTCARE
-    return when {
-        options.ZEROPAGEREQUIRE().isNotEmpty() -> ZeropageWish.REQUIRE_ZEROPAGE
-        options.ZEROPAGE().isNotEmpty() -> ZeropageWish.PREFER_ZEROPAGE
-        options.ZEROPAGENOT().isNotEmpty() -> ZeropageWish.NOT_IN_ZEROPAGE
-        else -> ZeropageWish.DONTCARE
-    }
+private fun getZpOption(tags: List<String>): ZeropageWish = when {
+    "@requirezp" in tags -> ZeropageWish.REQUIRE_ZEROPAGE
+    "@zp" in tags -> ZeropageWish.PREFER_ZEROPAGE
+    "@nozp" in tags -> ZeropageWish.NOT_IN_ZEROPAGE
+    else -> ZeropageWish.DONTCARE
 }
 
-private fun getSplitOption(options: DecloptionsContext?): SplitWish {
-    if(options==null)
-        return SplitWish.DONTCARE
+private fun getSplitOption(tags: List<String>): SplitWish {
     return when {
-        options.NOSPLIT().isNotEmpty() -> SplitWish.NOSPLIT
-        options.SPLIT().isNotEmpty() -> SplitWish.SPLIT
+        "@nosplit" in tags -> SplitWish.NOSPLIT
+        "@split" in tags -> SplitWish.SPLIT
         else -> SplitWish.DONTCARE
     }
 }
@@ -773,16 +768,21 @@ private fun When_choiceContext.toAst(): WhenChoice {
 }
 
 private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl {
-    val options = decloptions()
-    val zp = getZpOption(options)
-    val split = getSplitOption(options)
+    val tags = TAG().map { it.text }
+    val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@split", "@nosplit", "@shared", "@alignword", "@alignpage", "@align64", "@dirty")
+    for(tag in tags) {
+        if(tag !in validTags)
+            throw SyntaxError("invalid variable tag '$tag'", toPosition())
+    }
+    val zp = getZpOption(tags)
+    val split = getSplitOption(tags)
     val identifiers = identifier()
     val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
     val name = if(identifiers.size==1) identifiername.text else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
-    val alignword = options.ALIGNWORD().isNotEmpty()
-    val align64 = options.ALIGN64().isNotEmpty()
-    val alignpage = options.ALIGNPAGE().isNotEmpty()
+    val alignword = "@alignword" in tags
+    val align64 = "@align64" in tags
+    val alignpage = "@alignpage" in tags
     if(alignpage && alignword)
         throw SyntaxError("choose a single alignment option", toPosition())
     val baseDt = datatype()?.toAst() ?: BaseDataType.UNDEFINED
@@ -800,9 +800,9 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
                 idname.text
             },
             value,
-            options.SHARED().isNotEmpty(),
+            "@shared" in tags,
             if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,
-            options.DIRTY().isNotEmpty(),
+            "@dirty" in tags,
             toPosition()
     )
 }

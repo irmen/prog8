@@ -56,6 +56,12 @@ class AstPreprocessor(val program: Program,
         vardecl.value = NumericLiteral(oldAddr.type, address.toDouble(), oldAddr.position)
     }
 
+    override fun before(directive: Directive, parent: Node): Iterable<IAstModification> {
+        if(directive.parent is Expression)
+            errors.err("${directive.directive} is ambiguous here as an operand for the % operator and a directive. Add spaces around the operator % to distinguish it.", directive.position)
+        return noModifications
+    }
+
     override fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> {
         if(char.encoding== Encoding.DEFAULT)
             char.encoding = char.definingModule.textEncoding

@@ -756,9 +756,9 @@ main {
         val src="""
 main {
     sub start() {
-        ubyte bb1 = 199
-        ubyte bb2 = 12
-        ubyte @shared bb3 = bb1%bb2
+        ubyte @shared bb = 199
+        ubyte @shared cc = 12
+        ubyte @shared bb2 = bb%cc
     }
 }"""
 

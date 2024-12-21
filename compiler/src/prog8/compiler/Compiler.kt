@@ -414,7 +414,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
     program.preprocessAst(errors, compilerOptions)
 
-    if(compilerOptions.dumpSymbols) {
+    if(errors.noErrors() && compilerOptions.dumpSymbols) {
         printSymbols(program)
         exitProcess(0)
     }
