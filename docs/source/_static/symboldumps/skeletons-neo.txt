@@ -117,8 +117,9 @@ math  {
     crc16_update  (ubyte value @A) 
     crc32  (uword data, uword length) 
     crc32_end  () 
+    crc32_end_result  () -> uword @R15, uword @R14 
     crc32_start  () 
-    crc32_update  (ubyte value @A) 
+    crc32_update  (ubyte value) 
     diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 
     diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY 
     direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 

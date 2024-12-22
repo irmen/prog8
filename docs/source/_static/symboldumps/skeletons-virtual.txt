@@ -122,6 +122,7 @@ diskio  {
     f_read_all  (uword bufferpointer) -> uword 
     f_readline  (uword bufptr) -> ubyte 
     f_write  (uword bufferpointer, uword num_bytes) -> bool 
+    get_loadaddress  (str filename) -> uword 
     lf_end_list  () 
     lf_next_entry  () -> bool 
     lf_start_list  (uword pattern_ptr) -> bool 
