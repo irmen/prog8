@@ -1,6 +1,8 @@
 TODO
 ====
 
+- diskio: if loading a hiram bank exactly fills the bank, then end adress is reset to $a000 still and the bank is increased by 1. that should probably not happen
+
 - DONE: make word arrays split by default and add new @nosplit tag to make an array use the old linear storage format
 - DONE: &splitarray  will give you the start address of the lsb-array (which is immediately followed by the msb-array)
 - DONE: add &< and &> operators to get the address of the lsb-array and msb-array, respectively.  (&< is just syntactic sugar for &)
@@ -74,7 +76,6 @@ IR/VM
 Libraries
 ---------
 - monogfx: flood fill should be able to fill stippled
-- Add in-place TSCrunch decoder routine as well to compression lib?  May come in handy where you load a block of compressed data, decompress it in place in the same buffer/memory bank
 - Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
 - pet32 target: make syslib more complete (missing kernal routines)?

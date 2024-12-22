@@ -651,4 +651,22 @@ io_error:
         cbm.CLRCHN()
         cbm.CLOSE(15)
     }
+
+    sub get_loadaddress(str filename) -> uword {
+        ; get the load adress from a PRG file (usually $0801 but it can be different)
+
+        cbm.SETNAM(strings.length(filename), filename)
+        cbm.SETLFS(READ_IO_CHANNEL, drivenumber, READ_IO_CHANNEL)
+        void cbm.OPEN()          ; open 12,8,12,"filename"
+        cx16.r0 = 0
+        if_cc {
+            cbm.CHKIN(READ_IO_CHANNEL)
+            cx16.r0L = cbm.CHRIN()
+            cx16.r0H = cbm.CHRIN()
+            if cbm.READST()!=0
+                cx16.r0 = 0
+        }
+        cbm.CLOSE(READ_IO_CHANNEL)
+        return cx16.r0
+    }
 }

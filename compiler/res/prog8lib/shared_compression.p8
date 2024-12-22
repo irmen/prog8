@@ -624,8 +624,6 @@ zx0_gamma_done: tax                             ; Preserve bit-buffer.
         ;
         ; NOTE: for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
         ;       it only outputs to a memory buffer somewhere in the active 64 Kb address range
-        ;
-        ; TODO: include the in-place decompression version as well?
 
         %asm {{
 
@@ -856,6 +854,265 @@ lzput 	= cx16.r3	; 2 bytes
             ; !notreached!
         }}
 
+    }
+
+
+    asmsub decode_tscrunch_inplace(uword compressed @R0) clobbers(A,X,Y) {
+        ; Decompress a block of data compressed by TSCRUNCH *in place*
+        ; This can save an extra memory buffer if you are reading crunched data from a file into a buffer.
+        ; see https://github.com/tonysavon/TSCrunch
+        ; It has extremely fast decompression (approaching RLE speeds),
+        ; better compression as RLE, but slightly worse compression ration than LZSA
+        ;
+        ; NOTE: to allow in-place decompression you need to use -i switch when crunching.
+        ;       also, both the input data file and compressed data file are PRG files with a load header!
+        ; NOTE: for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
+        ;       it only outputs to a memory buffer somewhere in the active 64 Kb address range
+        %asm {{
+
+; NMOS 6502 decompressor for data stored in TSCrunch format.
+;
+; Copyright Antonio Savona 2022.
+; Distributed under the Apache software License v2.0 https://www.apache.org/licenses/LICENSE-2.0
+;
+; Adapted for Prog8 and 6502 CMOS by Irmen de Jong.
+
+
+
+.if cx16.r0 < $100
+    ; r0-r15 registers are in zeropage just use those
+tsget 	= cx16.r0	; 2 bytes
+tsput 	= cx16.r1	; 2 bytes
+tstemp	= cx16.r2
+lzput 	= cx16.r3	; 2 bytes
+.else
+    .error "in decode_tscrunch: r0-15 are not in zeropage and no alternatives have been set up yet"     ; TODO
+.endif
+
+
+.if cx16.r0>=$100
+            ; set up the source and destination pointer
+            lda  cx16.r0L
+            sta  tsget
+            lda  cx16.r0H
+            sta  tsget+1
+.endif
+
+
+			ldy #$ff
+		-	iny
+			lda (tsget),y
+			sta tsput , y	; last iteration trashes lzput, with no effect.
+			cpy #3
+			bne -
+
+			pha
+
+			lda lzput
+			sta optRun + 1
+
+			tya
+			ldy #0
+			beq update_getonly
+
+	entry2:
+			; ILLEGAL lax (tsget),y
+			lda (tsget),y
+			tax
+
+			bmi rleorlz
+
+			cmp #$20
+			bcs lz2
+
+	; literal
+
+			inc tsget
+			beq updatelit_hi
+		return_from_updatelit:
+
+		ts_delit_loop:
+
+			lda (tsget),y
+			sta (tsput),y
+			iny
+			dex
+
+			bne ts_delit_loop
+
+			tya
+			tax
+			; carry is clear
+			ldy #0
+
+	updatezp_noclc:
+			adc tsput
+			sta tsput
+			bcs updateput_hi
+		putnoof:
+			txa
+		update_getonly:
+			adc tsget
+			sta tsget
+			bcc entry2
+			inc tsget+1
+			bcs entry2
+
+	updatelit_hi:
+			inc tsget+1
+			bcc return_from_updatelit
+	updateput_hi:
+			inc tsput+1
+			clc
+			bcc putnoof
+
+	rleorlz:
+
+			; ILLEGAL: alr #$7f
+			and #$7f
+			lsr a
+			bcc ts_delz
+
+		; RLE
+			beq optRun
+
+		plain:
+			ldx #2
+			iny
+			sta tstemp		; number of bytes to de-rle
+
+			lda (tsget),y	; fetch rle byte
+			ldy tstemp
+		runStart:
+			sta (tsput),y
+
+		ts_derle_loop:
+
+			dey
+			sta (tsput),y
+
+			bne ts_derle_loop
+
+			; update zero page with a = runlen, x = 2 , y = 0
+			lda tstemp
+
+			bcs updatezp_noclc
+
+	   done:
+	   		pla
+	   		sta (tsput),y
+			rts
+	; LZ2
+		lz2:
+			beq done
+
+			ora #$80
+			adc tsput
+			sta lzput
+			lda tsput + 1
+			sbc #$00
+			sta lzput + 1
+
+			; y already zero
+			lda (lzput),y
+			sta (tsput),y
+			iny
+			lda (lzput),y
+			sta (tsput),y
+
+			tya
+			dey
+
+			adc tsput
+			sta tsput
+			bcs lz2_put_hi
+		skp:
+			inc tsget
+			bne entry2
+			inc tsget + 1
+			bne entry2
+
+		lz2_put_hi:
+			inc tsput + 1
+			bcs skp
+
+	; LZ
+	ts_delz:
+
+			lsr a
+			sta lzto + 1
+
+			iny
+
+			lda tsput
+			bcc long
+
+			sbc (tsget),y
+			sta lzput
+			lda tsput+1
+
+			sbc #$00
+
+			ldx #2
+			; lz MUST decrunch forward
+	lz_put:
+			sta lzput+1
+
+			ldy #0
+
+			lda (lzput),y
+			sta (tsput),y
+
+			iny
+			lda (lzput),y
+			sta (tsput),y
+
+	ts_delz_loop:
+
+			iny
+
+			lda (lzput),y
+			sta (tsput),y
+
+	lzto:	cpy #0
+			bne ts_delz_loop
+
+			tya
+
+			; update zero page with a = runlen, x = 2, y = 0
+			ldy #0
+			; clc not needed as we have len - 1 in A (from the encoder) and C = 1
+
+			jmp updatezp_noclc
+
+	optRun:
+			ldy #255
+			sty tstemp
+
+			ldx #1
+			; A is zero
+
+			bne runStart
+
+	long:
+			; carry is clear and compensated for from the encoder
+			adc (tsget),y
+			sta lzput
+			iny
+			; ILLEGAL lax (tsget),y
+			lda (tsget),y
+			tax
+			ora #$80
+			adc tsput + 1
+
+			cpx #$80
+			rol lzto + 1
+			ldx #3
+
+			bne lz_put
+
+	        ; !notreached!
+        }}
     }
 
 

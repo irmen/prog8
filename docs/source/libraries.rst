@@ -324,6 +324,30 @@ API is slightly experimental and may change in a future version.
     **NOTE:** for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
     it only outputs to a memory buffer somewhere in the active 64 Kb address range.
 
+``decode_tscrunch_inplace (uword compressed)``
+    Decompress a block of data compressed in the TSCrunch format *inplace*.
+    This can save an extra memory buffer if you are reading crunched data from a file into a buffer.
+    It has extremely fast decompression (approaching RLE speeds),
+    better compression as RLE, but slightly worse compression ration than LZSA.
+    See https://github.com/tonysavon/TSCrunch for the compression format and compressor tool.
+    **NOTE:** for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
+    it only outputs to a memory buffer somewhere in the active 64 Kb address range.
+
+    .. note::
+        The TSCrunch in-place format is a bit different than regular memory decompression.
+        It works with PRG files (so with a 2 byte load-address header) for both the *source* and *compressed* data files.
+        So if you want to compress and decompress a block of data from $a000-$c000 your source file has to start with
+        the bytes $00 $0a, then followed by the 8192 data byes, for a total of 8194 bytes.
+        Then you need to call the compressor program with the '-i' argument to tell it to create an in-place compressed data file.
+        The data file will *not* be loaded at $a000 but have its own load address closer to the end of the memory buffer.
+        If all is well, you can then load and decompress it like so::
+
+            uword tsi_start_addr = diskio.get_loadaddress("data8kb.tsi")
+            cx16.rambank(2)     ; or whatever ram bank you want on the X16
+            void diskio.load("data8kb.tsi", 0)      ; not load_raw!
+            cx16.rambank(2)     ; make sure the ram bank is still the same
+            compression.decode_tscrunch_inplace(tsi_start_addr)
+
 ``decode_zx0 (uword compressed, uword target)``
     Decompress a block of data compressed in the ZX0 format.
     This has faster decompression than LZSA, and a slightly better compression ratio as well.
