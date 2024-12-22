@@ -1,8 +1,6 @@
 TODO
 ====
 
-- write something in the docs about how to optimize your program on the x16 using the -dumpvars option,
-  the emulator's memory profiler + the profiler.py script to find hotspots for routines and variables that could be placed into zeropage
 - announce prog8 on the 6502.org site?
 
 ...
@@ -24,6 +22,7 @@ Future Things and Ideas
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 
+- Allow normal subroutines to return multiple values as well (just as asmsubs already can)
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
 - Fix missing cases where regular & has to return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?

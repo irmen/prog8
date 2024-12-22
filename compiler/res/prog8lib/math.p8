@@ -536,11 +536,9 @@ log2_tab
             eor  cx16.r15H
             sta  cx16.r15H
             ldy  #8
--           lda  cx16.r15H
-            asl  cx16.r15L
+-           asl  cx16.r15L
             rol  cx16.r15H
-            and  #$80
-            beq  +
+            bcc  +
             lda  cx16.r15H
             eor  #$10
             sta  cx16.r15H
@@ -554,11 +552,9 @@ log2_tab
 ; orignal prog8 code was:
 ;        cx16.r15H ^= value
 ;        repeat 8 {
-;            if cx16.r15H & $80 !=0 {
-;                cx16.r15 <<=1
+;            cx16.r15<<=1
+;            if_cs
 ;                cx16.r15 ^= $1021
-;            } else
-;                cx16.r15<<=1
 ;        }
     }
 
@@ -568,7 +564,7 @@ log2_tab
     }
 
     sub crc32(uword data, uword length) {
-        ; Calculates the CRC-32 (POSIX) checksum of the buffer.
+        ; Calculates the CRC-32 (ISO-HDLC/PKZIP) checksum of the buffer.
         ; because prog8 doesn't have 32 bits integers, we have to split up the calculation over 2 words.
         ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
         ; There are also "streaming" crc32_start/update/end routines below, that allow you to calculate crc32 for data that doesn't fit in a single memory block.
@@ -586,62 +582,75 @@ log2_tab
         ; start the "streaming" crc32
         ; note: tracks the crc32 checksum in cx16.r14 and cx16.r15!
         ;       if your code uses these, it must save/restore them before calling this routine
-        cx16.r14 = cx16.r15 = 0
+        cx16.r14 = cx16.r15 = $ffff
     }
 
-    asmsub crc32_update(ubyte value @A) {
+    sub crc32_update(ubyte value) {
         ; update the "streaming" crc32 with next byte value
         ; note: tracks the crc32 checksum in cx16.r14 and cx16.r15!
         ;       if your code uses these, it must save/restore them before calling this routine
+        ; implementation detail: see https://stackoverflow.com/a/75951866  , the zlib crc32 is the "reflected" variant
         %asm {{
-            eor  cx16.r15H
-            sta  cx16.r15H
+            eor  cx16.r14L
+            sta  cx16.r14L
             ldy  #8
--           lda  cx16.r15H
-            asl  cx16.r14L
-            rol  cx16.r14H
-            rol  cx16.r15L
-            rol  cx16.r15H
-            and  #$80
-            beq  +
+-           lsr  cx16.r15H
+            ror  cx16.r15L
+            ror  cx16.r14H
+            ror  cx16.r14L
+            bcc  +
             lda  cx16.r15H
-            eor  #$04
+            eor  #$ed
             sta  cx16.r15H
             lda  cx16.r15L
-            eor  #$c1
+            eor  #$b8
             sta  cx16.r15L
             lda  cx16.r14H
-            eor  #$1d
+            eor  #$83
             sta  cx16.r14H
             lda  cx16.r14L
-            eor  #$b7
+            eor  #$20
             sta  cx16.r14L
 +           dey
             bne  -
             rts
         }}
 ; original prog8 code:
-;        cx16.r15H ^= value
+;        cx16.r14L ^= value
 ;        repeat 8 {
-;            if cx16.r15H & $80 !=0 {
-;                cx16.r14 <<= 1
-;                rol(cx16.r15)
-;                cx16.r15 ^= $04c1
-;                cx16.r14 ^= $1db7
-;            }
-;            else {
-;                cx16.r14 <<= 1
-;                rol(cx16.r15)
+;            cx16.r15 >>= 1
+;            ror(cx16.r14)
+;            if_cs {
+;                cx16.r15 ^= $edb8
+;                cx16.r14 ^= $8320
 ;            }
 ;        }
-
     }
 
     sub crc32_end() {
         ; finalize the "streaming" crc32
         ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
-        cx16.r15 ^= $ffff
-        cx16.r14 ^= $ffff
+        void crc32_end_result()
+    }
+
+    asmsub crc32_end_result() -> uword @R15, uword @R14 {
+        ; finalize the "streaming" crc32
+        ; returns the result value in cx16.r15 (high word) and r14 (low word)
+        %asm {{
+            lda  cx16.r15H
+            eor  #255
+            sta  cx16.r15H
+            lda  cx16.r15L
+            eor  #255
+            sta  cx16.r15L
+            lda  cx16.r14H
+            eor  #255
+            sta  cx16.r14H
+            lda  cx16.r14L
+            eor  #255
+            sta  cx16.r14L
+            rts
+        }}
     }
 
 

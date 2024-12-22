@@ -339,10 +339,9 @@ math {
         ;       if your code uses that, it must save/restore it before calling this routine
         cx16.r15H ^= value
         repeat 8 {
-            if cx16.r15H & $80 !=0
-                cx16.r15 = (cx16.r15<<1)^$1021
-            else
-                cx16.r15<<=1
+            cx16.r15<<=1
+            if_cs
+                cx16.r15 ^= $1021
         }
     }
 
@@ -352,7 +351,7 @@ math {
     }
 
     sub crc32(uword data, uword length) {
-        ; Calculates the CRC-32 (POSIX) checksum of the buffer.
+        ; Calculates the CRC-32 (ISO-HDLC/PKZIP) checksum of the buffer.
         ; because prog8 doesn't have 32 bits integers, we have to split up the calculation over 2 words.
         ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
         ; There are also "streaming" crc32_start/update/end routines below, that allow you to calculate crc32 for data that doesn't fit in a single memory block.
@@ -370,24 +369,21 @@ math {
         ; start the "streaming" crc32
         ; note: tracks the crc32 checksum in cx16.r14 and cx16.r15!
         ;       if your code uses these, it must save/restore them before calling this routine
-        cx16.r14 = cx16.r15 = 0
+        cx16.r14 = cx16.r15 = $ffff
     }
 
     sub crc32_update(ubyte value) {
         ; update the "streaming" crc32 with next byte value
         ; note: tracks the crc32 checksum in cx16.r14 and cx16.r15!
         ;       if your code uses these, it must save/restore them before calling this routine
-        cx16.r15H ^= value
+        ; implementation detail: see https://stackoverflow.com/a/75951866  , the zlib crc32 is the "reflected" variant
+        cx16.r14L ^= value
         repeat 8 {
-            if cx16.r15H & $80 !=0 {
-                cx16.r14 <<= 1
-                rol(cx16.r15)
-                cx16.r15 ^= $04c1
-                cx16.r14 ^= $1db7
-            }
-            else {
-                cx16.r14 <<= 1
-                rol(cx16.r15)
+            cx16.r15 >>= 1
+            ror(cx16.r14)
+            if_cs {
+                cx16.r15 ^= $edb8
+                cx16.r14 ^= $8320
             }
         }
     }
@@ -399,6 +395,7 @@ math {
         cx16.r14 ^= $ffff
     }
 
+    ; there's no crc32_end_result() here because IR cannot return multiple values yet
 
     sub lerp(ubyte v0, ubyte v1, ubyte t) -> ubyte {
         ; Linear interpolation (LERP)

@@ -725,16 +725,20 @@ but perhaps the provided ones can be of service too.
     "streaming" crc16 calculation routines, when the data doesn't fit in a single buffer.
     Tracks the crc16 checksum in cx16.r15! If your code uses that, it must save/restore it before calling this routine!
     Call the start() routine first, feed it bytes with the update() routine, finalize with calling the end() routine which returns the crc16 value.
+    Note: after calling the crc16_end() routine you must start over.
 
 ``crc32 (uword data, uword length)``
-    Calculates a CRC-32 (POSIX) checksum over the given data buffer.
+    Calculates a CRC-32 (ISO-HDLC/PKZIP) checksum over the given data buffer.
     The 32 bits result is stored in cx16.r14 (low word) and cx16.r15 (high word).
 
-``crc32_start() / crc32_update(ubyte value) / crc32_end()``
+``crc32_start() / crc32_update(ubyte value) / crc32_end() / crc32_end_result()``
     "streaming" crc32 calculation routines, when the data doesn't fit in a single buffer.
     Tracks the crc32 checksum in cx16.r14 and cx16.r15! If your code uses these, it must save/restore them before calling this routine!
     Call the start() routine first, feed it bytes with the update() routine, finalize with calling the end() routine.
     The 32 bits result is stored in cx16.r14 (low word) and cx16.r15 (high word).
+    Instead of the normal end() routine you can also call crc32_end_result() which finalizes the calculation,
+    and actually returns the high and low words of the 32 bits result value as two return word values.
+    Note: after calling the crc32_end() or crc32_end_result() routine you must start over.
 
 ``lerp(v0, v1, t)``
     Linear interpolation routine for unsigned byte values.

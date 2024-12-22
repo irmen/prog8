@@ -7,6 +7,9 @@ a memory access statistics dump file (produced by the X16 emulator's -memorystat
 and prints out what assembly lines and variables were read from and written to the most.
 These may indicate hot paths or even bottlenecks in your program,
 and what variables in system ram might be better placed in Zeropage.
+
+Also see https://prog8.readthedocs.io/en/latest/technical.html#run-time-memory-profiling-with-the-x16-emulator
+for an example of how to use this tool together with the X16 emulator.
 """
 
 
@@ -26,7 +29,7 @@ class AsmList:
             if not line or line == '\n' or line[0] == ';':
                 continue
             if line[0] == '=':
-                value, symbol, _ = line.split(maxsplit=2)
+                value, symbol = line.split(maxsplit=2)[:2]
                 value = value[1:]
                 if value:
                     try:
