@@ -63,7 +63,7 @@ Subroutines
 -----------
 - Subroutines can be nested. Inner subroutines can directly access variables from their parent.
 - Subroutine parameters are just local variables in the subroutine. (you can access them directly as such via their scoped name, if you want)
-- There is no call stack. So subroutine parameters are overwritten when called again. Thus recursion is not easily possible, but you can do it with manual stack manipulations.
+- There is no call stack for subroutine arguments: subroutine parameters are overwritten when called again. Thus recursion is not easily possible, but you can do it with manual stack manipulations.
   There are a couple of example programs that show how to solve this in different ways, among which are fractal-tree.p8, maze.p8 and queens.p8
 - There is no function overloading (except for a couple of builtin functions).
 - Some subroutine types can return multiple return values, and you can multi-assign those in a single statement.
@@ -72,7 +72,9 @@ Subroutines
   This reduces the memory needed for variables. A convenient way to do this is by using nested subroutines - these can easily access the
   variables declared in their parent subroutine(s).
 - Everything in prog8 is publicly accessible from everywhere else (via fully scoped names) - there is no notion of private or public symbol accessibility.
-
+- Because there is no callstack for subroutine arguments, it becomes very easy to manipulate the return address that *does* get pushed on the stack by the cpu.
+  With only a little bit of code it is possible to implement a simple cooperative multitasking system that runs multiple tasks simultaneously. See the "coroutines" example.
+  Each task is a subroutine and it simply has its state stored in its statically allocated variables so it can resume after a yield, without doing anything special.
 
 Pointers
 --------

@@ -321,7 +321,7 @@ API is slightly experimental and may change in a future version.
     It has extremely fast decompression (approaching RLE speeds),
     better compression as RLE, but slightly worse compression ration than LZSA.
     See https://github.com/tonysavon/TSCrunch for the compression format and compressor tool.
-    **NOTE:** for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
+    **NOTE:** for speed reasons this decompressor is *not* bank-aware and *not* I/O register aware;
     it only outputs to a memory buffer somewhere in the active 64 Kb address range.
 
 ``decode_tscrunch_inplace (uword compressed)``
@@ -330,7 +330,7 @@ API is slightly experimental and may change in a future version.
     It has extremely fast decompression (approaching RLE speeds),
     better compression as RLE, but slightly worse compression ration than LZSA.
     See https://github.com/tonysavon/TSCrunch for the compression format and compressor tool.
-    **NOTE:** for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
+    **NOTE:** for speed reasons this decompressor is *not* bank-aware and *not* I/O register aware;
     it only outputs to a memory buffer somewhere in the active 64 Kb address range.
 
     .. note::
@@ -354,7 +354,7 @@ API is slightly experimental and may change in a future version.
     See https://github.com/einar-saukas/ZX0  for the compression format
     See https://github.com/emmanuel-marty/salvador for the compressor tool.
     **NOTE:** You have to use it with the "-classic" option to produce a data format that this decoder can handle!
-    **NOTE:** for speed reasons this decompressor is NOT bank-aware and NOT I/O register aware;
+    **NOTE:** for speed reasons this decompressor is *not* bank-aware and *not* I/O register aware;
     it only outputs to a memory buffer somewhere in the active 64 Kb address range.
 
 

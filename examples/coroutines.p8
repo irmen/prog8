@@ -1,13 +1,25 @@
 
 ; Cooperative multitasking / Coroutines
-; Uses stack return address juggling to cycle between the different tasks when they call yield().
+;
+; Uses cpu stack return address juggling to cycle between the different tasks when they call yield().
+; Super simplistic implementation here to just show the core idea.
+;
+; To make it actually useful, we probably have to:
+; - make the list of tasks dynamic;
+; - allow tasks to finish, allow new tasks to be added
+; - return a unique value (pointer that you had to provide when adding the task to the list?)
+;   from yield() that the subroutine could use to access unique state,
+;   because right now a single task == a single subroutine; right now you cannot re-use a subroutine to run
+;   the same task multiple times for different things.
+
 
 %import textio
 
 
 main {
     sub start() {
-        txt.print("cooperative multitasking / coroutines")
+        txt.print("cooperative multitasking / coroutines\n\n")
+        txt.print("here are 4 subroutines that each run\nan endless loop bouncing a digit around.")
         coroutines.start()
     }
 }

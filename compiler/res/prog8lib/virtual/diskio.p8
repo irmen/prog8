@@ -310,4 +310,14 @@ diskio {
         return false
     }
 
+    sub get_loadaddress(str filename) -> uword {
+        ; get the load adress from a PRG file (usually $0801 but it can be different)
+        if f_open(filename) {
+            uword address
+            f_read(&address, 2)
+            f_close()
+            return address
+        }
+        return 0
+    }
 }

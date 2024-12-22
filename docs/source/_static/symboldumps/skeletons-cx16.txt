@@ -1,21 +1,9 @@
 
-Prog8 compiler v10.6-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 7a647300 in branch nextversion
+Prog8 compiler v11.0 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
 Compiler target: cx16
-
-
-LIBRARY MODULE NAME: anyall
----------------------------
-
-anyall  {
-    all  (uword arrayptr, uword num_elements) -> bool 
-    allw  (uword arrayptr, uword num_elements) -> bool 
-    any  (uword arrayptr, uword num_elements) -> bool 
-    anyw  (uword arrayptr, uword num_elements) -> bool 
-}
 
 
 LIBRARY MODULE NAME: bmx
@@ -65,25 +53,45 @@ smallringbuffer  {
     ubyte  fill 
     ubyte  head 
     ubyte  tail 
+    free  () -> ubyte 
     get  () -> ubyte 
     getw  () -> uword 
     init  () 
-    put  (ubyte value) -> bool 
-    putw  (uword value) -> bool 
+    isempty  () -> bool 
+    isfull  () -> bool 
+    put  (ubyte value) 
+    putw  (uword value) 
+    size  () -> ubyte 
+}
+
+stack  {
+    ubyte  bank 
+    uword  sp 
+    free  () -> uword 
+    init  (ubyte rambank) 
+    isempty  () -> bool 
+    isfull  () -> bool 
+    pop  () -> ubyte 
+    popw  () -> uword 
+    push  (ubyte value) 
+    pushw  (uword value) 
+    size  () -> uword 
 }
 
 ringbuffer  {
-    uword  buffer_ptr 
-    uword  fill 
-    uword  head 
-    uword  tail 
+    uword  fill, head, tail
+    ubyte  bank 
+    free  () -> uword 
     get  () -> ubyte 
     getw  () -> uword 
     inc_head  () 
     inc_tail  () 
-    init  () 
-    put  (ubyte value) -> bool 
-    putw  (uword value) -> bool 
+    init  (ubyte rambank) 
+    isempty  () -> bool 
+    isfull  () -> bool 
+    put  (ubyte value) 
+    putw  (uword value) 
+    size  () -> uword 
 }
 
 
@@ -93,6 +101,10 @@ LIBRARY MODULE NAME: compression
 compression  {
     decode_rle  (uword compressed @AY, uword target @R0, uword maxsize @R1) -> clobbers (X) -> uword @AY 
     decode_rle_srcfunc  (uword source_function @AY, uword target @R0, uword maxsize @R1) -> clobbers (X) -> uword @AY 
+    decode_rle_vram  (uword compressed @R0, ubyte vbank @X, uword vaddr @AY) 
+    decode_tscrunch  (uword compressed @R0, uword target @R1) -> clobbers (A,X,Y) 
+    decode_tscrunch_inplace  (uword compressed @R0) -> clobbers (A,X,Y) 
+    decode_zx0  (uword compressed @R0, uword target @R1) -> clobbers (A,X,Y) 
     encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword 
     encode_rle_outfunc  (uword data, uword size, uword output_function, bool is_last_block) 
 }
@@ -132,7 +144,7 @@ LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    uword[]  logo_lines 
+    @nosplit uword[]  logo_lines 
     logo  () 
     logo_at  (ubyte column, ubyte row) 
 }
@@ -171,6 +183,7 @@ diskio  {
     f_tell  () -> uword @R0, uword @R1, uword @R2, uword @R3 
     f_write  (uword bufferpointer, uword num_bytes) -> bool 
     fastmode  (ubyte mode) -> bool 
+    get_loadaddress  (str filename) -> uword 
     internal_f_open_w  (str filename, bool open_for_seeks) -> bool 
     internal_f_tell  () 
     internal_load_routine  (uword filenameptr, uword address_override, bool headerless) -> uword 
@@ -308,6 +321,7 @@ floats  {
     csc  (float value) -> float 
     deg  (float angle) -> float 
     floor  (float value) -> float 
+    interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float 
     lerp  (float v0, float v1, float t) -> float 
     lerp_fast  (float v0, float v1, float t) -> float 
     ln  (float value) -> float 
@@ -345,7 +359,7 @@ gfx_hires  {
     clear_screen  (ubyte color) 
     cs_innerloop640  (ubyte color @A) -> clobbers (Y) 
     disc  (uword xcenter, uword ycenter, ubyte radius, ubyte color) 
-    fill  (uword x, uword y, ubyte new_color) 
+    fill  (uword x, uword y, ubyte new_color, ubyte stack_rambank) 
     fillrect  (uword xx, uword yy, uword rwidth, uword rheight, ubyte color) 
     graphics_mode  () 
     horizontal_line  (uword xx, uword yy, uword length, ubyte color) 
@@ -385,7 +399,7 @@ gfx_lores  {
     clear_screen  (ubyte color) 
     disc  (uword xcenter, ubyte ycenter, ubyte radius, ubyte color) 
     drawmode_eor  (bool enabled) 
-    fill  (uword x, ubyte y, ubyte new_color) 
+    fill  (uword x, ubyte y, ubyte new_color, ubyte stack_rambank) 
     fillrect  (uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color) 
     graphics_mode  () 
     horizontal_line  (uword xx, ubyte yy, uword length, ubyte color) 
@@ -459,6 +473,7 @@ math  {
     direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte 
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
     lerpw  (uword v0, uword v1, uword t) -> uword 
     log2  (ubyte value @A) -> ubyte @Y 
@@ -493,7 +508,7 @@ monogfx  {
     cs_innerloop640  (bool draw @A) -> clobbers (Y) 
     disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
     drawmode  (ubyte dm) 
-    fill  (uword x, uword y, bool draw) 
+    fill  (uword x, uword y, bool draw, ubyte stack_rambank) 
     fillrect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
     hires  () 
     horizontal_line  (uword xx, uword yy, uword length, bool draw) 
@@ -519,7 +534,6 @@ LIBRARY MODULE NAME: palette
 ----------------------------
 
 palette  {
-    uword  vera_palette_ptr 
     channel8to4  (ubyte channelvalue) -> ubyte 
     color8to4  (uword colorpointer) -> uword 
     fade_step  (ubyte index, uword target_rgb) -> bool 
@@ -532,11 +546,12 @@ palette  {
     set_c64pepto  () 
     set_color  (ubyte index, uword color) 
     set_default16  () 
-    set_grayscale  () 
-    set_monochrome  (uword screencolorRGB, uword drawcolorRGB) 
-    set_rgb  (uword palette_words_ptr, uword num_colors) 
-    set_rgb8  (uword palette_bytes_ptr, uword num_colors) 
-    set_rgb_be  (uword palette_ptr, uword num_colors) 
+    set_grayscale  (ubyte startindex) 
+    set_rgb  (uword palette_words_ptr, uword num_colors, ubyte startindex) 
+    set_rgb8  (uword palette_bytes_ptr, uword num_colors, ubyte startindex) 
+    set_rgb_be  (uword palette_ptr, uword num_colors, ubyte startindex) 
+    set_rgb_be_nosplit  (uword palette_ptr, uword num_colors, ubyte startindex) 
+    set_rgb_nosplit  (uword palette_words_ptr, uword num_colors, ubyte startindex) 
 }
 
 
@@ -555,7 +570,7 @@ psg  {
     ubyte[]  envelope_releases 
     ubyte[]  envelope_states 
     ubyte[]  envelope_sustains 
-    @split uword[]  envelope_volumes 
+    uword[]  envelope_volumes 
     envelope  (ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release) 
     envelopes_irq  () -> bool 
     freq  (ubyte voice_num, uword vera_freq) 
@@ -592,6 +607,7 @@ sprites  {
     movey  (ubyte spritenum, word dy) 
     pos  (ubyte spritenum, word xpos, word ypos) 
     pos_batch  (ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr) 
+    pos_batch_nosplit  (ubyte first_spritenum, ubyte num_sprites, uword xpositions_ptr, uword ypositions_ptr) 
     reset  (ubyte spritenum_start, ubyte count) 
     set_mousepointer_hand  () 
     set_mousepointer_image  (uword data, bool compressed) 
@@ -1093,7 +1109,7 @@ cx16  {
     set_led_state  (bool on) 
     set_line_irq_handler  (uword rasterline @R0, uword address @AY) -> clobbers (A,Y) 
     set_program_args  (uword args_ptr, ubyte args_size) 
-    set_screen_mode  (ubyte mode @A) -> clobbers (A,X,Y) -> bool @Pc 
+    set_screen_mode  (ubyte mode @A) -> clobbers (A,X,Y) 
     set_sprcol_irq_handler  (uword address @AY) -> clobbers (A) 
     set_vsync_irq_handler  (uword address @AY) -> clobbers (A) 
     sprite_set_image  (uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte number @A, ubyte width @X, ubyte height @Y, bool apply_mask @Pc) -> clobbers (A,X,Y) -> bool @Pc  = $fef0

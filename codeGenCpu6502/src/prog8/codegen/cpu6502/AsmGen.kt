@@ -337,8 +337,10 @@ class AsmGen6502Internal (
 
         lastSourceLineNumber = node.position.line
         val srcComment = "\t; source: ${node.position.file}:${node.position.line}"
-        val line = ImportFileSystem.retrieveSourceLine(node.position)
-        out("$srcComment   $line", false)
+        if(node.position.line>0) {
+            val line = ImportFileSystem.retrieveSourceLine(node.position)
+            out("$srcComment   $line", false)
+        }
     }
 
     internal fun out(str: String, splitlines: Boolean = true) {

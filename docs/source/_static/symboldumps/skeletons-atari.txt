@@ -1,21 +1,9 @@
 
-Prog8 compiler v10.6-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 7a647300 in branch nextversion
+Prog8 compiler v11.0 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-atari.p8
 Compiler target: atari
-
-
-LIBRARY MODULE NAME: anyall
----------------------------
-
-anyall  {
-    all  (uword arrayptr, uword num_elements) -> bool 
-    allw  (uword arrayptr, uword num_elements) -> bool 
-    any  (uword arrayptr, uword num_elements) -> bool 
-    anyw  (uword arrayptr, uword num_elements) -> bool 
-}
 
 
 LIBRARY MODULE NAME: buffers
@@ -26,11 +14,29 @@ smallringbuffer  {
     ubyte  fill 
     ubyte  head 
     ubyte  tail 
+    free  () -> ubyte 
     get  () -> ubyte 
     getw  () -> uword 
     init  () 
-    put  (ubyte value) -> bool 
-    putw  (uword value) -> bool 
+    isempty  () -> bool 
+    isfull  () -> bool 
+    put  (ubyte value) 
+    putw  (uword value) 
+    size  () -> ubyte 
+}
+
+stack  {
+    uword  buffer_ptr 
+    uword  sp 
+    free  () -> uword 
+    init  () 
+    isempty  () -> bool 
+    isfull  () -> bool 
+    pop  () -> ubyte 
+    popw  () -> uword 
+    push  (ubyte value) 
+    pushw  (uword value) 
+    size  () -> uword 
 }
 
 ringbuffer  {
@@ -38,13 +44,17 @@ ringbuffer  {
     uword  fill 
     uword  head 
     uword  tail 
+    free  () -> uword 
     get  () -> ubyte 
     getw  () -> uword 
     inc_head  () 
     inc_tail  () 
     init  () 
-    put  (ubyte value) -> bool 
-    putw  (uword value) -> bool 
+    isempty  () -> bool 
+    isfull  () -> bool 
+    put  (ubyte value) 
+    putw  (uword value) 
+    size  () -> uword 
 }
 
 
@@ -54,6 +64,9 @@ LIBRARY MODULE NAME: compression
 compression  {
     decode_rle  (uword compressed @AY, uword target @R0, uword maxsize @R1) -> clobbers (X) -> uword @AY 
     decode_rle_srcfunc  (uword source_function @AY, uword target @R0, uword maxsize @R1) -> clobbers (X) -> uword @AY 
+    decode_tscrunch  (uword compressed @R0, uword target @R1) -> clobbers (A,X,Y) 
+    decode_tscrunch_inplace  (uword compressed @R0) -> clobbers (A,X,Y) 
+    decode_zx0  (uword compressed @R0, uword target @R1) -> clobbers (A,X,Y) 
     encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword 
     encode_rle_outfunc  (uword data, uword size, uword output_function, bool is_last_block) 
 }
@@ -93,7 +106,7 @@ LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    uword[]  logo_lines 
+    @nosplit uword[]  logo_lines 
     logo  () 
     logo_at  (ubyte column, ubyte row) 
 }
@@ -121,6 +134,7 @@ math  {
     direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte 
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
     lerpw  (uword v0, uword v1, uword t) -> uword 
     log2  (ubyte value @A) -> ubyte @Y 

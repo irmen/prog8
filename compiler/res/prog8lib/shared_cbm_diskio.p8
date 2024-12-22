@@ -660,7 +660,7 @@ io_error:
         void cbm.OPEN()          ; open 12,8,12,"filename"
         cx16.r0 = 0
         if_cc {
-            cbm.CHKIN(READ_IO_CHANNEL)
+            void cbm.CHKIN(READ_IO_CHANNEL)
             cx16.r0L = cbm.CHRIN()
             cx16.r0H = cbm.CHRIN()
             if cbm.READST()!=0

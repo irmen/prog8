@@ -1,19 +1,8 @@
 TODO
 ====
 
-- diskio: if loading a hiram bank exactly fills the bank, then end adress is reset to $a000 still and the bank is increased by 1. that should probably not happen
-
-- DONE: make word arrays split by default and add new @nosplit tag to make an array use the old linear storage format
-- DONE: &splitarray  will give you the start address of the lsb-array (which is immediately followed by the msb-array)
-- DONE: add &< and &> operators to get the address of the lsb-array and msb-array, respectively.  (&< is just syntactic sugar for &)
-- DONE: invert -splitarrays command line option: -dontsplitarrays   and remove "splitarrays" %option switch
-- DONE: added sprites.pos_batch_nosplit  when the x/y arrays are linear instead of split word arrays
-- DONE: add palette.set_rgb_nosplit() and set_rbg_be_nosplit()  for linear instead of split word arrays
-- DONE: removed anyall module (unoptimized and didn't work on split arrays)
-- DONE: @split does now always splits a word array even when the dontsplit option is enabled (and @nosplit does the inverse)
-
-- bump version and renegerate symbol dumps
-
+- write something in the docs about how to optimize your program on the x16 using the -dumpvars option,
+  the emulator's memory profiler + the profiler.py script to find hotspots for routines and variables that could be placed into zeropage
 - announce prog8 on the 6502.org site?
 
 ...
@@ -22,20 +11,26 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
+
 - Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
   Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
   Add a -library $xxxx command line option (and/or some directive) to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
   Need to add some way to generate a stable jump table at a given address.
   Need library to not call init_system AND init_system_phase2 not either.
   Library must not include prog8_program_start stuff either.
+- [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
+  Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
+  But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
+  Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
+
+- Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
 - Fix missing cases where regular & has to return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
-- Add a syntax to access specific bits in a variable, to avoid manually shifts&ands, something like  variable[4:8] ?  (or something else this may be too similar to regular array indexing)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
-  in certain situations, the "wrong" order of evaluation of function call arguments is done which results
+  in certain situations (need examples!), the "wrong" order of evaluation of function call arguments is done which results
   in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
   Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
-- Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
 - Can we support signed % (remainder) somehow?
 - instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
@@ -44,10 +39,6 @@ Future Things and Ideas
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
 - [much work:] more support for (64tass) SEGMENTS ?
-- [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
-  Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
-  But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
-  Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 
 
@@ -75,7 +66,7 @@ IR/VM
 
 Libraries
 ---------
-- monogfx: flood fill should be able to fill stippled
+- monogfx: flood fill should be able to fill stippled (it could do this in the past? vm version does it?)
 - Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
 - pet32 target: make syslib more complete (missing kernal routines)?
