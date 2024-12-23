@@ -8,7 +8,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - Code is in the Public Domain.
 Requirements: Pillow  (pip install pillow)
 """
 
-from PIL import Image, PyAccess
+from PIL import Image
 from typing import TypeAlias, Tuple, Optional
 
 RGBList: TypeAlias = list[tuple[int, int, int]]
@@ -93,15 +93,12 @@ class BitmapImage:
         Get a rectangle of pixel values from the image, returns the bytes as a flat array
         """
         assert self.has_palette()
-        try:
-            access = PyAccess.new(self.img, readonly=True)
-        except AttributeError:
-            access = self.img
         data = bytearray(width * height)
         index = 0
+        pix = self.img.load()
         for py in range(y, y + height):
             for px in range(x, x + width):
-                data[index] = access.getpixel((px, py))
+                data[index] = pix[px, py]
                 index += 1
         return data
 
@@ -112,17 +109,6 @@ class BitmapImage:
         """
         assert self.has_palette()
         return self.img.tobytes()
-        # try:
-        #     access = PyAccess.new(self.img, readonly=True)
-        # except AttributeError:
-        #     access = self.img
-        # data = bytearray(self.width * self.height)
-        # index = 0
-        # for py in range(self.height):
-        #     for px in range(self.width):
-        #         data[index] = access.getpixel((px, py))
-        #         index += 1
-        # return data
 
     def get_pixels_4bpp(self, x: int, y: int, width: int, height: int) -> bytearray:
         """
@@ -131,16 +117,13 @@ class BitmapImage:
         Every byte encodes 2 pixels (4+4 bits).
         """
         assert self.has_palette()
-        try:
-            access = PyAccess.new(self.img, readonly=True)
-        except AttributeError:
-            access = self.img
         data = bytearray(width // 2 * height)
         index = 0
+        pix = self.img.load()
         for py in range(y, y + height):
             for px in range(x, x + width, 2):
-                pix1 = access.getpixel((px, py))
-                pix2 = access.getpixel((px + 1, py))
+                pix1 = pix[px, py]
+                pix2 = pix[px + 1, py]
                 data[index] = pix1 << 4 | pix2
                 index += 1
         return data
@@ -152,16 +135,13 @@ class BitmapImage:
         Every byte encodes 2 pixels (4+4 bits).
         """
         assert self.has_palette()
-        try:
-            access = PyAccess.new(self.img, readonly=True)
-        except AttributeError:
-            access = self.img
         data = bytearray(self.width // 2 * self.height)
         index = 0
+        pix = self.img.load()
         for py in range(self.height):
             for px in range(0, self.width, 2):
-                pix1 = access.getpixel((px, py))
-                pix2 = access.getpixel((px + 1, py))
+                pix1 = pix[px, py]
+                pix2 = pix[px + 1, py]
                 data[index] = pix1 << 4 | pix2
                 index += 1
         return data
