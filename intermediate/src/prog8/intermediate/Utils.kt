@@ -18,7 +18,7 @@ fun DataType.irTypeString(length: Int?): String {
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a seperate datatype anymore
         BaseDataType.ARRAY -> {
-            when(this.sub?.dt) {
+            when(this.sub) {
                 BaseDataType.UBYTE -> "ubyte[$lengthStr]"
                 BaseDataType.UWORD -> "uword[$lengthStr]"
                 BaseDataType.BYTE -> "byte[$lengthStr]"
@@ -29,7 +29,7 @@ fun DataType.irTypeString(length: Int?): String {
             }
         }
         BaseDataType.ARRAY_SPLITW -> {
-            when(this.sub?.dt) {
+            when(this.sub) {
                 BaseDataType.UWORD -> "uword[$lengthStr]"       // should be 2 separate byte arrays by now really?
                 BaseDataType.WORD -> "word[$lengthStr]"          // should be 2 separate byte arrays by now really?
                 else -> throw IllegalArgumentException("invalid sub type")

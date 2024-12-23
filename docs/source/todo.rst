@@ -1,6 +1,7 @@
 TODO
 ====
 
+- add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
 ...
@@ -9,6 +10,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 
 - Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
@@ -20,6 +22,7 @@ Future Things and Ideas
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
+  Maybe propose a patch to 64tass itself that will treat .proc as .block ?
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 
 - Allow normal subroutines to return multiple values as well (just as asmsubs already can)

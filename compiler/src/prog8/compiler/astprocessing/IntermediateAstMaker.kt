@@ -743,8 +743,8 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
         if(type.isSplitWordArray) {
             // ranges are never a split word array!
             when(type.sub) {
-                is SubSignedWord -> type = DataType.arrayFor(BaseDataType.WORD, false)
-                is SubUnsignedWord -> type = DataType.arrayFor(BaseDataType.UWORD, false)
+                BaseDataType.WORD -> type = DataType.arrayFor(BaseDataType.WORD, false)
+                BaseDataType.UWORD -> type = DataType.arrayFor(BaseDataType.UWORD, false)
                 else -> { }
             }
         }

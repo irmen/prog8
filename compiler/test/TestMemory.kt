@@ -253,32 +253,27 @@ class TestMemory: FunSpec({
     }
 
     context("memsizer") {
-        withData(VMTarget(), AtariTarget(), C64Target(), PETTarget(), AtariTarget(), C128Target()) { target ->
-            shouldThrow<NoSuchElementException> {
-                target.memorySize(SubType.forDt(BaseDataType.UNDEFINED))
+        withData(VMTarget(), AtariTarget(), C64Target(), PETTarget(), AtariTarget(), C128Target(), Neo6502Target()) { target ->
+            shouldThrow<IllegalArgumentException> {
+                target.memorySize(BaseDataType.UNDEFINED)
             }
-            shouldThrow<NoSuchElementException> {
-                target.memorySize(SubType.forDt(BaseDataType.LONG))
+            shouldThrow<IllegalArgumentException> {
+                target.memorySize(BaseDataType.LONG)
             }
-            shouldThrow<NoSuchElementException> {
-                target.memorySize(SubType.forDt(BaseDataType.STR))
-            }
-            shouldThrow<NoSuchElementException> {
-                target.memorySize(SubType.forDt(BaseDataType.ARRAY))
-            }
-            shouldThrow<NoSuchElementException> {
-                target.memorySize(SubType.forDt(BaseDataType.ARRAY_SPLITW))
-            }
-            target.memorySize(SubType.forDt(BaseDataType.BOOL)) shouldBe 1
-            target.memorySize(SubType.forDt(BaseDataType.BYTE)) shouldBe 1
-            target.memorySize(SubType.forDt(BaseDataType.WORD)) shouldBe 2
-            target.memorySize(SubType.forDt(BaseDataType.FLOAT)) shouldBe target.machine.FLOAT_MEM_SIZE
+            target.memorySize(BaseDataType.BOOL) shouldBe 1
+            target.memorySize(BaseDataType.BYTE) shouldBe 1
+            target.memorySize(BaseDataType.WORD) shouldBe 2
+            target.memorySize(BaseDataType.FLOAT) shouldBe target.machine.FLOAT_MEM_SIZE
 
-            target.memorySize(DataType.forDt(BaseDataType.UNDEFINED), null) shouldBe 2
             target.memorySize(DataType.forDt(BaseDataType.BOOL), null) shouldBe 1
             target.memorySize(DataType.forDt(BaseDataType.WORD), null) shouldBe 2
             target.memorySize(DataType.forDt(BaseDataType.FLOAT), null) shouldBe target.machine.FLOAT_MEM_SIZE
+
             target.memorySize(DataType.forDt(BaseDataType.STR), null) shouldBe 2
+            target.memorySize(DataType.forDt(BaseDataType.STR), 50) shouldBe 50
+            target.memorySize(BaseDataType.STR) shouldBe 2
+            target.memorySize(BaseDataType.ARRAY) shouldBe 2
+            target.memorySize(BaseDataType.ARRAY_SPLITW) shouldBe 2
 
             target.memorySize(DataType.arrayFor(BaseDataType.BOOL), 10) shouldBe 10
             target.memorySize(DataType.arrayFor(BaseDataType.BYTE), 10) shouldBe 10

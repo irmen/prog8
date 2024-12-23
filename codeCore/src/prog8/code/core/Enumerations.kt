@@ -55,43 +55,18 @@ val BaseDataType.isPassByRef get() = this.isIterable
 val BaseDataType.isPassByValue get() = !this.isIterable
 
 
-sealed class SubType(val dt: BaseDataType) {
-    companion object {
-        private val types by lazy {
-            // lazy because of static initialization order
-            mapOf(
-                BaseDataType.UBYTE to SubUnsignedByte,
-                BaseDataType.BYTE to SubSignedByte,
-                BaseDataType.UWORD to SubUnsignedWord,
-                BaseDataType.WORD to SubSignedWord,
-                BaseDataType.FLOAT to SubFloat,
-                BaseDataType.BOOL to SubBool
-            )}
-
-        fun forDt(dt: BaseDataType) = types.getValue(dt)
-    }
-}
-
-data object SubUnsignedByte: SubType(BaseDataType.UBYTE)
-data object SubSignedByte: SubType(BaseDataType.BYTE)
-data object SubUnsignedWord: SubType(BaseDataType.UWORD)
-data object SubSignedWord: SubType(BaseDataType.WORD)
-data object SubBool: SubType(BaseDataType.BOOL)
-data object SubFloat: SubType(BaseDataType.FLOAT)
-
-
-class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
+class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?) {
 
     init {
         if(base.isArray) {
             require(sub != null)
             if(base.isSplitWordArray)
-                require(sub.dt == BaseDataType.UWORD || sub.dt == BaseDataType.WORD)
+                require(sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
         }
         else if(base==BaseDataType.STR)
-            require(sub?.dt==BaseDataType.UBYTE) { "STR subtype should be ubyte" }
+            require(sub==BaseDataType.UBYTE) { "string subtype should be ubyte" }
         else
-            require(sub == null)
+            require(sub == null) { "only string and array base types can have a subtype"}
     }
 
     override fun equals(other: Any?): Boolean {
@@ -111,7 +86,7 @@ class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
             BaseDataType.LONG to DataType(BaseDataType.LONG, null),
             BaseDataType.FLOAT to DataType(BaseDataType.FLOAT, null),
             BaseDataType.BOOL to DataType(BaseDataType.BOOL, null),
-            BaseDataType.STR to DataType(BaseDataType.STR, SubUnsignedByte),
+            BaseDataType.STR to DataType(BaseDataType.STR, BaseDataType.UBYTE),
             BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null)
         )
 
@@ -119,10 +94,14 @@ class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
 
         fun arrayFor(elementDt: BaseDataType, splitwordarray: Boolean=true): DataType {
             val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
-            return if(splitwordarray && elementDt.isWord)
-                DataType(BaseDataType.ARRAY_SPLITW, SubType.forDt(actualElementDt))
-            else
-                DataType(BaseDataType.ARRAY, SubType.forDt(actualElementDt))
+            return if(splitwordarray && actualElementDt.isWord)
+                DataType(BaseDataType.ARRAY_SPLITW, actualElementDt)
+            else {
+                if(actualElementDt.isNumericOrBool && actualElementDt != BaseDataType.LONG)
+                    DataType(BaseDataType.ARRAY, actualElementDt)
+                else
+                    throw NoSuchElementException("invalid element dt "+elementDt)
+            }
         }
     }
 
@@ -133,26 +112,26 @@ class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
 
     fun elementType(): DataType =
         if(base.isArray || base==BaseDataType.STR)
-            forDt(sub!!.dt)
+            forDt(sub!!)
         else
             throw IllegalArgumentException("not an array")
 
     override fun toString(): String = when(base) {
         BaseDataType.ARRAY -> {
             when(sub) {
-                SubBool -> "bool[]"
-                SubFloat -> "float[]"
-                SubSignedByte -> "byte[]"
-                SubSignedWord -> "word[]"
-                SubUnsignedByte -> "ubyte[]"
-                SubUnsignedWord -> "uword[]"
-                null -> throw IllegalArgumentException("invalid sub type")
+                BaseDataType.BOOL -> "bool[]"
+                BaseDataType.FLOAT -> "float[]"
+                BaseDataType.BYTE -> "byte[]"
+                BaseDataType.WORD -> "word[]"
+                BaseDataType.UBYTE -> "ubyte[]"
+                BaseDataType.UWORD -> "uword[]"
+                else -> throw IllegalArgumentException("invalid sub type")
             }
         }
         BaseDataType.ARRAY_SPLITW -> {
             when(sub) {
-                SubSignedWord -> "word[] (split)"
-                SubUnsignedWord -> "uword[] (split)"
+                BaseDataType.WORD -> "word[] (split)"
+                BaseDataType.UWORD -> "uword[] (split)"
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
@@ -170,19 +149,19 @@ class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
         BaseDataType.STR -> "str"
         BaseDataType.ARRAY -> {
             when(sub) {
-                SubUnsignedByte -> "ubyte["
-                SubUnsignedWord -> "@nosplit uword["
-                SubBool -> "bool["
-                SubSignedByte -> "byte["
-                SubSignedWord -> "@nosplit word["
-                SubFloat -> "float["
-                null -> throw IllegalArgumentException("invalid sub type")
+                BaseDataType.UBYTE -> "ubyte["
+                BaseDataType.UWORD -> "@nosplit uword["
+                BaseDataType.BOOL -> "bool["
+                BaseDataType.BYTE -> "byte["
+                BaseDataType.WORD -> "@nosplit word["
+                BaseDataType.FLOAT -> "float["
+                else -> throw IllegalArgumentException("invalid sub type")
             }
         }
         BaseDataType.ARRAY_SPLITW -> {
             when(sub) {
-                SubUnsignedWord -> "uword["
-                SubSignedWord -> "word["
+                BaseDataType.UWORD -> "uword["
+                BaseDataType.WORD -> "word["
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
@@ -228,22 +207,22 @@ class DataType private constructor(val base: BaseDataType, val sub: SubType?) {
     val isSigned = base.isSigned
     val isUnsigned = !base.isSigned
     val isArray = base.isArray
-    val isBoolArray = base.isArray && sub?.dt == BaseDataType.BOOL
-    val isByteArray = base.isArray && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE)
-    val isUnsignedByteArray = base.isArray && sub?.dt == BaseDataType.UBYTE
-    val isSignedByteArray = base.isArray && sub?.dt == BaseDataType.BYTE
-    val isWordArray = base.isArray && (sub?.dt == BaseDataType.UWORD || sub?.dt == BaseDataType.WORD)
-    val isUnsignedWordArray = base.isArray && sub?.dt == BaseDataType.UWORD
-    val isSignedWordArray = base.isArray && sub?.dt == BaseDataType.WORD
-    val isFloatArray = base.isArray && sub?.dt == BaseDataType.FLOAT
+    val isBoolArray = base.isArray && sub == BaseDataType.BOOL
+    val isByteArray = base.isArray && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE)
+    val isUnsignedByteArray = base.isArray && sub == BaseDataType.UBYTE
+    val isSignedByteArray = base.isArray && sub == BaseDataType.BYTE
+    val isWordArray = base.isArray && (sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
+    val isUnsignedWordArray = base.isArray && sub == BaseDataType.UWORD
+    val isSignedWordArray = base.isArray && sub == BaseDataType.WORD
+    val isFloatArray = base.isArray && sub == BaseDataType.FLOAT
     val isString = base == BaseDataType.STR
     val isBool = base == BaseDataType.BOOL
     val isFloat = base == BaseDataType.FLOAT
     val isLong = base == BaseDataType.LONG
-    val isStringly = base == BaseDataType.STR || base == BaseDataType.UWORD || (base == BaseDataType.ARRAY && (sub?.dt == BaseDataType.UBYTE || sub?.dt == BaseDataType.BYTE))
+    val isStringly = base == BaseDataType.STR || base == BaseDataType.UWORD || (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
     val isSplitWordArray = base.isSplitWordArray
-    val isSplitUnsignedWordArray = base.isSplitWordArray && sub?.dt == BaseDataType.UWORD
-    val isSplitSignedWordArray = base.isSplitWordArray && sub?.dt == BaseDataType.WORD
+    val isSplitUnsignedWordArray = base.isSplitWordArray && sub == BaseDataType.UWORD
+    val isSplitSignedWordArray = base.isSplitWordArray && sub == BaseDataType.WORD
     val isIterable =  base.isIterable
     val isPassByRef = base.isPassByRef
     val isPassByValue = base.isPassByValue

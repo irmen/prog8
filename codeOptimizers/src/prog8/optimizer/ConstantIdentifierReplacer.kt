@@ -438,7 +438,7 @@ internal class ConstantIdentifierReplacer(
                     } else {
                         require(rangeType.sub!=null)
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                            constRange.map { NumericLiteral(rangeType.sub!!.dt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                            constRange.map { NumericLiteral(rangeType.sub!!, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     }
                 }

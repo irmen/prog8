@@ -385,6 +385,4 @@ fun defaultZero(dt: BaseDataType, position: Position) = when(dt) {
     else -> throw FatalAstException("can only determine default zero value for a numeric type")
 }
 
-fun defaultZero(dt: SubType, position: Position) = defaultZero(dt.dt, position)
-
 fun defaultZero(idt: InferredTypes.InferredType, position: Position) = defaultZero(idt.getOrUndef().base, position)

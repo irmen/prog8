@@ -24,7 +24,7 @@ internal object DummyMemsizer : IMemSizer {
     override fun memorySize(dt: DataType, numElements: Int?): Int {
         if(dt.isArray || dt.isSplitWordArray) {
             require(numElements!=null)
-            return when(dt.sub?.dt) {
+            return when(dt.sub) {
                 BaseDataType.BOOL, BaseDataType.BYTE, BaseDataType.UBYTE -> numElements
                 BaseDataType.UWORD, BaseDataType.WORD -> numElements*2
                 BaseDataType.FLOAT -> numElements*5
@@ -38,8 +38,8 @@ internal object DummyMemsizer : IMemSizer {
         }
     }
 
-    override fun memorySize(dt: SubType): Int {
-        return memorySize(DataType.forDt(dt.dt), null)
+    override fun memorySize(dt: BaseDataType): Int {
+        return memorySize(DataType.forDt(dt), null)
     }
 }
 
@@ -82,7 +82,7 @@ internal object DummyCompilationTarget : ICompilationTarget {
         throw NotImplementedError("dummy")
     }
 
-    override fun memorySize(dt: SubType): Int {
+    override fun memorySize(dt: BaseDataType): Int {
         throw NotImplementedError("dummy")
     }
 }

@@ -15,7 +15,6 @@ import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
-import prog8.code.core.SubType
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -846,29 +845,7 @@ main {
         errors.errors[2] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
     }
 
-    test("datatype subtype consistencies") {
-        shouldThrow<NoSuchElementException> {
-            SubType.forDt(BaseDataType.STR)
-        }
-        shouldThrow<NoSuchElementException> {
-            SubType.forDt(BaseDataType.UNDEFINED)
-        }
-        shouldThrow<NoSuchElementException> {
-            SubType.forDt(BaseDataType.ARRAY_SPLITW)
-        }
-        shouldThrow<NoSuchElementException> {
-            SubType.forDt(BaseDataType.ARRAY)
-        }
-        SubType.forDt(BaseDataType.FLOAT).dt shouldBe BaseDataType.FLOAT
-    }
-
     test("datatype consistencies") {
-        shouldThrow<NoSuchElementException> {
-            DataType.forDt(BaseDataType.ARRAY)
-        }
-        shouldThrow<NoSuchElementException> {
-            DataType.forDt(BaseDataType.ARRAY_SPLITW)
-        }
         DataType.forDt(BaseDataType.UNDEFINED).isUndefined shouldBe true
         DataType.forDt(BaseDataType.LONG).isLong shouldBe true
         DataType.forDt(BaseDataType.WORD).isWord shouldBe true
@@ -876,6 +853,19 @@ main {
         DataType.forDt(BaseDataType.BYTE).isByte shouldBe true
         DataType.forDt(BaseDataType.UBYTE).isByte shouldBe true
 
+        DataType.arrayFor(BaseDataType.UBYTE, true).isUnsignedByteArray shouldBe true
+        DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe true
+        DataType.arrayFor(BaseDataType.UWORD, false).isSplitWordArray shouldBe false
+
+        shouldThrow<NoSuchElementException> {
+            DataType.forDt(BaseDataType.ARRAY)
+        }
+        shouldThrow<NoSuchElementException> {
+            DataType.forDt(BaseDataType.ARRAY_SPLITW)
+        }
         shouldThrow<NoSuchElementException> {
             DataType.arrayFor(BaseDataType.ARRAY)
         }
@@ -885,12 +875,6 @@ main {
         shouldThrow<NoSuchElementException> {
             DataType.arrayFor(BaseDataType.UNDEFINED)
         }
-        DataType.arrayFor(BaseDataType.UBYTE, true).isUnsignedByteArray shouldBe true
-        DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD).isSplitWordArray shouldBe true
-        DataType.arrayFor(BaseDataType.UWORD, false).isSplitWordArray shouldBe false
     }
 
     test("array of strings becomes array of uword pointers") {

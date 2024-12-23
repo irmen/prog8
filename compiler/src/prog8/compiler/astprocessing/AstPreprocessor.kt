@@ -198,7 +198,7 @@ class AstPreprocessor(val program: Program,
         options.dontSplitWordArrays && decl.datatype.isSplitWordArray
 
     private fun makeUnSplitArray(decl: VarDecl): Iterable<IAstModification> {
-        val splitDt = DataType.arrayFor(decl.datatype.sub!!.dt, false)
+        val splitDt = DataType.arrayFor(decl.datatype.sub!!, false)
         val newDecl = VarDecl(
             decl.type, decl.origin, splitDt, decl.zeropage, decl.splitwordarray, decl.arraysize, decl.name, emptyList(),
             decl.value?.copy(), decl.sharedWithAsm, decl.alignment, false, decl.position

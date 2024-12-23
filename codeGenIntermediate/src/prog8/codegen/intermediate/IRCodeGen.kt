@@ -477,9 +477,8 @@ class IRCodeGen(
                     }
                     else -> {
                         // iterate over regular array
-                        val element = iterable.type.sub!!
-                        val elementDt = element.dt
-                        val elementSize = program.memsizer.memorySize(element)
+                        val elementDt = iterable.type.sub!!
+                        val elementSize = program.memsizer.memorySize(elementDt)
                         val lengthBytes = iterableLength!! * elementSize
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
