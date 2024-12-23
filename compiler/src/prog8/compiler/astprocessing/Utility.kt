@@ -1,6 +1,6 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.base.FatalAstException
+import prog8.ast.FatalAstException
 import prog8.code.ast.PtExpression
 import prog8.code.ast.PtFunctionCall
 import prog8.code.ast.PtTypeCast

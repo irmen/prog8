@@ -1,9 +1,9 @@
 package prog8.compiler
 
 import com.github.michaelbull.result.onFailure
+import prog8.ast.AstException
 import prog8.ast.IBuiltinFunctions
 import prog8.ast.Program
-import prog8.ast.base.AstException
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.printProgram

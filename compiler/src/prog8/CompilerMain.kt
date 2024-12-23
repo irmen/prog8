@@ -1,7 +1,7 @@
 package prog8
 
 import kotlinx.cli.*
-import prog8.ast.base.AstException
+import prog8.ast.AstException
 import prog8.code.core.CbmPrgLauncherType
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target

@@ -5,7 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import prog8.ast.base.ExpressionError
+import prog8.ast.ExpressionError
 import prog8.ast.expressions.ArrayLiteral
 import prog8.ast.expressions.InferredTypes
 import prog8.ast.expressions.NumericLiteral

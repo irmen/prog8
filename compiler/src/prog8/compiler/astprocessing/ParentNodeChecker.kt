@@ -2,7 +2,7 @@ package prog8.compiler.astprocessing
 
 import prog8.ast.Module
 import prog8.ast.Node
-import prog8.ast.base.FatalAstException
+import prog8.ast.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker

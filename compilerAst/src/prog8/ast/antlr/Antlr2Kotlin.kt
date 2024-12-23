@@ -3,8 +3,8 @@ package prog8.ast.antlr
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
-import prog8.ast.base.FatalAstException
-import prog8.ast.base.SyntaxError
+import prog8.ast.FatalAstException
+import prog8.ast.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.*

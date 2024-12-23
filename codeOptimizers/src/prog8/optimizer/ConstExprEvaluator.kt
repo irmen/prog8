@@ -1,8 +1,8 @@
 package prog8.optimizer
 
+import prog8.ast.ExpressionError
+import prog8.ast.FatalAstException
 import prog8.ast.Program
-import prog8.ast.base.ExpressionError
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.code.core.BaseDataType

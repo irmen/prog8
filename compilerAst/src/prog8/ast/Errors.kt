@@ -1,4 +1,4 @@
-package prog8.ast.base
+package prog8.ast
 
 import prog8.ast.expressions.IdentifierReference
 import prog8.code.core.Position

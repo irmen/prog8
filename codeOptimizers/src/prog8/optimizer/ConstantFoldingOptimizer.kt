@@ -1,8 +1,8 @@
 package prog8.optimizer
 
+import prog8.ast.FatalAstException
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.base.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.*
