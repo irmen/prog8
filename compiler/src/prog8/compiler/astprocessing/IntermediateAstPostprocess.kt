@@ -94,7 +94,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
                     val identifier = node.target as? PtIdentifier
                     if (identifier != null) {
                         val stNode = st.lookup(identifier.name)!!
-                        val targetSub = stNode.astNode.definingSub()
+                        val targetSub = stNode.astNode!!.definingSub()
                         if (targetSub != node.definingSub())
                             jumpsAndCallsToAugment.add(node)
                     }

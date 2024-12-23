@@ -42,6 +42,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
     }
 
     val allVariables: Collection<StStaticVariable> by lazy {
+        // can't be done with a generic function because those don't support local recursive functions yet
         val vars = mutableListOf<StStaticVariable>()
         fun collect(node: StNode) {
             for(child in node.children) {
@@ -56,6 +57,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
     }
 
     val allMemMappedVariables: Collection<StMemVar> by lazy {
+        // can't be done with a generic function because those don't support local recursive functions yet
         val vars = mutableListOf<StMemVar>()
         fun collect(node: StNode) {
             for(child in node.children) {
@@ -70,6 +72,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
     }
 
     val allMemorySlabs: Collection<StMemorySlab> by lazy {
+        // can't be done with a generic function because those don't support local recursive functions yet
         val vars = mutableListOf<StMemorySlab>()
         fun collect(node: StNode) {
             for(child in node.children) {
@@ -113,7 +116,7 @@ enum class StNodeType {
 
 open class StNode(val name: String,
                   val type: StNodeType,
-                  val astNode: PtNode,
+                  val astNode: PtNode?,
                   val children: MutableMap<String, StNode> = mutableMapOf()
 ) {
 
@@ -187,7 +190,7 @@ class StStaticVariable(name: String,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
                        val align: Int,
-                       astNode: PtNode) : StNode(name, StNodeType.STATICVAR, astNode) {
+                       astNode: PtNode?) : StNode(name, StNodeType.STATICVAR, astNode) {
 
     var initializationNumericValue: Double? = null
         private set
@@ -229,7 +232,7 @@ class StStaticVariable(name: String,
 }
 
 
-class StConstant(name: String, val dt: BaseDataType, val value: Double, astNode: PtNode) :
+class StConstant(name: String, val dt: BaseDataType, val value: Double, astNode: PtNode?) :
     StNode(name, StNodeType.CONSTANT, astNode)
 
 
@@ -237,7 +240,7 @@ class StMemVar(name: String,
                val dt: DataType,
                val address: UInt,
                val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
-               astNode: PtNode) :
+               astNode: PtNode?) :
     StNode(name, StNodeType.MEMVAR, astNode) {
 
     init{
@@ -251,7 +254,7 @@ class StMemorySlab(
     name: String,
     val size: UInt,
     val align: UInt,
-    astNode: PtNode
+    astNode: PtNode?
 ):
     StNode(name, StNodeType.MEMORYSLAB, astNode)
 

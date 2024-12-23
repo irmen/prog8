@@ -25,7 +25,7 @@ class IRCodeGen(
         verifyNameScoping(program, symbolTable)
         changeGlobalVarInits(symbolTable)
 
-        val irSymbolTable = IRSymbolTable.fromStDuringCodegen(symbolTable)
+        val irSymbolTable = IRSymbolTable.fromAstSymboltable(symbolTable)
         val irProg = IRProgram(program.name, irSymbolTable, options, program.encoding)
 
         // collect global variables initializers
@@ -486,7 +486,7 @@ class IRCodeGen(
                             it += IRInstruction(Opcode.STOREM, irType(DataType.forDt(elementDt)), reg1=tmpReg, labelSymbol = loopvarSymbol)
                         }
                         result += translateNode(forLoop.statements)
-                        result += addConstReg(IRDataType.BYTE, indexReg, elementSize)
+                        result += addConstIntToReg(IRDataType.BYTE, indexReg, elementSize)
                         result += IRCodeChunk(null, null).also {
                             if(lengthBytes!=256) {
                                 // for length 256, the compare is actually against 0, which doesn't require a separate CMP instruction
@@ -639,7 +639,7 @@ class IRCodeGen(
         return result
     }
 
-    private fun addConstReg(dt: IRDataType, reg: Int, value: Int): IRCodeChunk {
+    private fun addConstIntToReg(dt: IRDataType, reg: Int, value: Int): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         when(value) {
             0 -> { /* do nothing */ }

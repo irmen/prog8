@@ -46,8 +46,9 @@ Future Things and Ideas
 
 IR/VM
 -----
+- cx16.r0-r15 should not be translated to their (fake) addresses but remain symbolical, so they can be translated to what the actual target system specifies for them.
+- prefix immediate values with '#' for readability reasons (no technical reason)
 - ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers?
-- constants are not retained in the IR file, they should. (need to be able to make asm labels from them eventually)
 - implement missing operators in AssignmentGen  (array shifts etc)
 - support %align on code chunks
 - fix call() return value handling

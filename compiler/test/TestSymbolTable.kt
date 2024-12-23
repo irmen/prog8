@@ -21,7 +21,7 @@ class TestSymbolTable: FunSpec({
         st.type shouldBe StNodeType.GLOBAL
         st.children shouldBe mutableMapOf()
         st.astNode shouldBeSameInstanceAs astNode
-        st.astNode.position shouldBe Position.DUMMY
+        st.astNode!!.position shouldBe Position.DUMMY
     }
 
     test("symboltable flatten") {

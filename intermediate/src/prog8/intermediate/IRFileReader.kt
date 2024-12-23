@@ -1,6 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.*
+import prog8.code.ast.PtConstant
 import prog8.code.ast.PtVariable
 import prog8.code.core.*
 import prog8.code.target.VMTarget
@@ -52,6 +53,7 @@ class IRFileReader {
         val asmsymbols = parseAsmSymbols(reader)
         val varsWithoutInit = parseVarsWithoutInit(reader)
         val variables = parseVariables(reader)
+        val constants = parseConstants(reader)
         val memorymapped = parseMemMapped(reader)
         val slabs = parseSlabs(reader)
         val initGlobals = parseInitGlobals(reader)
@@ -61,6 +63,7 @@ class IRFileReader {
         asmsymbols.forEach { (name, value) -> st.addAsmSymbol(name, value)}
         varsWithoutInit.forEach { st.add(it) }
         variables.forEach { st.add(it) }
+        constants.forEach { st.add(it) }
         memorymapped.forEach { st.add(it) }
         slabs.forEach { st.add(it) }
 
@@ -165,16 +168,42 @@ class IRFileReader {
                 val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLESNOINIT $line")
                 val (type, arrayspec, name, zpwish, alignment) = match.destructured
                 if('.' !in name)
-                    throw IRParseException("unscoped varname: $name")
+                    throw IRParseException("unscoped name: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
-                val dummyNode = PtVariable(name, dt, zp, align, null, null, Position.DUMMY)
-                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, align.toInt(), dummyNode)
+                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, align.toInt(), null)
                 variables.add(newVar)
             }
             return variables
+        }
+    }
+
+    private fun parseConstants(reader: XMLEventReader): List<StConstant> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart=="CONSTANTS") { "missing CONSTANTS" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if(text.isBlank())
+            emptyList()
+        else {
+            val constantPattern = Regex("(.+?) (.+)=(.*?)")
+            val constants = mutableListOf<StConstant>()
+            text.lineSequence().forEach { line ->
+                // examples:
+                // uword main.start.qq2=0
+                val match = constantPattern.matchEntire(line) ?: throw IRParseException("invalid CONSTANT $line")
+                val (type, name, valueStr) = match.destructured
+                if('.' !in name)
+                    throw IRParseException("unscoped name: $name")
+                val dt = parseDatatype(type, false)
+                val value = parseIRValue(valueStr)
+                constants.add(StConstant(name, dt.base, value, null))
+            }
+            return constants
         }
     }
 
@@ -223,11 +252,10 @@ class IRFileReader {
                     dt.isString -> throw IRParseException("STR should have been converted to byte array")
                     else -> throw IRParseException("weird dt")
                 }
-                val dummyNode = PtVariable(name, dt, zp, align, null, null, Position.DUMMY)
                 if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
-                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, align.toInt(), dummyNode)
+                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, align.toInt(), null)
                 if(initNumeric!=null)
                     stVar.setOnetimeInitNumeric(initNumeric)
                 variables.add(stVar)
@@ -256,16 +284,7 @@ class IRFileReader {
                 val (type, arrayspec, name, address) = match.destructured
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
-                val dummyNode = PtVariable(
-                    name,
-                    dt,
-                    ZeropageWish.NOT_IN_ZEROPAGE,
-                    0u,
-                    null,
-                    null,
-                    Position.DUMMY
-                )
-                memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, dummyNode))
+                memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, null))
             }
             memvars
         }
@@ -287,16 +306,7 @@ class IRFileReader {
                 // example: "slabname 4096 0"
                 val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid slab $line")
                 val (name, size, align) = match.destructured
-                val dummyNode = PtVariable(
-                    name,
-                    DataType.arrayFor(BaseDataType.UBYTE, false),
-                    ZeropageWish.NOT_IN_ZEROPAGE,
-                    0u,
-                    null,
-                    null,
-                    Position.DUMMY
-                )
-                slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), dummyNode))
+                slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), null))
             }
             slabs
         }
@@ -520,6 +530,7 @@ class IRFileReader {
                 "word" -> DataType.arrayFor(BaseDataType.WORD, false)
                 "uword" -> DataType.arrayFor(BaseDataType.UWORD, false)
                 "float" -> DataType.arrayFor(BaseDataType.FLOAT, false)
+                "long" -> DataType.arrayFor(BaseDataType.LONG, false)
                 else -> throw IRParseException("invalid dt  $type")
             }
         } else {
@@ -530,6 +541,7 @@ class IRFileReader {
                 "word" -> DataType.forDt(BaseDataType.WORD)
                 "uword" -> DataType.forDt(BaseDataType.UWORD)
                 "float" -> DataType.forDt(BaseDataType.FLOAT)
+                "long" -> DataType.forDt(BaseDataType.LONG)
                 // note: 'str' should not occur anymore in IR. Should be 'uword'
                 else -> throw IRParseException("invalid dt  $type")
             }

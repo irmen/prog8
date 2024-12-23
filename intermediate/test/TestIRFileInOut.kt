@@ -58,6 +58,9 @@ uword sys.bssvar zp=DONTCARE align=0
 uword sys.wait.jiffies=10 zp=DONTCARE align=0
 ubyte[3] sys.emptystring=0,0,0 zp=DONTCARE align=0
 </VARIABLESWITHINIT>
+<CONSTANTS>
+ubyte main.thing=42
+</CONSTANTS>
 
 <MEMORYMAPPEDVARIABLES>
 @uword cx16.r0=65282
@@ -104,6 +107,7 @@ return
         program.name shouldBe "test-ir-reader"
         program.blocks.size shouldBe 2
         program.st.allVariables().count() shouldBe 3
+        program.st.allConstants().count() shouldBe 1
         val var1 = program.st.lookup("sys.wait.jiffies") as IRStStaticVariable
         val var2 = program.st.lookup("sys.bssvar") as IRStStaticVariable
         val var3 = program.st.lookup("sys.emptystring") as IRStStaticVariable

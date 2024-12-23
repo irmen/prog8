@@ -11,6 +11,7 @@ PROGRAM:
     OPTIONS                 (from CompilationOptions)
     ASMSYMBOLS              (from command line defined symbols)
     VARIABLES               (from Symboltable)
+    CONSTANTS               (form Symboltable)
     MEMORYMAPPEDVARIABLES   (from Symboltable)
     MEMORYSLABS             (from Symboltable)
     INITGLOBALS

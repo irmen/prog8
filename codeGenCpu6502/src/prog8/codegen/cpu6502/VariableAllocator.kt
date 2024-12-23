@@ -60,7 +60,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                 variable.scopedName,
                 variable.dt,
                 variable.length,
-                variable.astNode.position,
+                variable.astNode?.position ?: Position.DUMMY,
                 errors
             )
             result.fold(
@@ -68,7 +68,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                     numVariablesAllocatedInZP++
                 },
                 failure = {
-                    errors.err(it.message!!, variable.astNode.position)
+                    errors.err(it.message!!, variable.astNode?.position ?: Position.DUMMY)
                 }
             )
         }
@@ -79,7 +79,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                     variable.scopedName,
                     variable.dt,
                     variable.length,
-                    variable.astNode.position,
+                    variable.astNode?.position ?: Position.DUMMY,
                     errors
                 )
                 result.onSuccess { numVariablesAllocatedInZP++ }
@@ -99,7 +99,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                                 variable.scopedName,
                                 variable.dt,
                                 variable.length,
-                                variable.astNode.position,
+                                variable.astNode?.position ?: Position.DUMMY,
                                 errors
                             )
                             result.onSuccess { numVariablesAllocatedInZP++ }

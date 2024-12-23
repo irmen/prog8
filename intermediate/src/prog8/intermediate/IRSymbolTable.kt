@@ -13,17 +13,17 @@ class IRSymbolTable {
     private val asmSymbols = mutableMapOf<String, String>()
 
     companion object {
-        fun fromStDuringCodegen(sourceSt: SymbolTable?): IRSymbolTable {
+        fun fromAstSymboltable(sourceSt: SymbolTable?): IRSymbolTable {
             val st = IRSymbolTable()
             if (sourceSt != null) {
-                sourceSt.allVariables.forEach {
-                    st.add(it)
-                }
-                sourceSt.allMemMappedVariables.forEach {
-                    st.add(it)
-                }
-                sourceSt.allMemorySlabs.forEach {
-                    st.add(it)
+                sourceSt.flat.forEach {
+                    when(it.value.type) {
+                        StNodeType.STATICVAR -> st.add(it.value as StStaticVariable)
+                        StNodeType.MEMVAR -> st.add(it.value as StMemVar)
+                        StNodeType.CONSTANT -> st.add(it.value as StConstant)
+                        StNodeType.MEMORYSLAB -> st.add(it.value as StMemorySlab)
+                        else -> { }
+                    }
                 }
 
                 require(st.table.all { it.key == it.value.name })
@@ -44,6 +44,9 @@ class IRSymbolTable {
         }
     }
 
+    fun allConstants(): Sequence<IRStConstant> =
+        table.asSequence().map { it.value }.filterIsInstance<IRStConstant>()
+
     fun allVariables(): Sequence<IRStStaticVariable> =
         table.asSequence().map { it.value }.filterIsInstance<IRStStaticVariable>()
 
@@ -60,7 +63,14 @@ class IRSymbolTable {
         val varToadd: IRStStaticVariable
         if('.' in variable.name) {
             scopedName = variable.name
-            varToadd = IRStStaticVariable.from(variable)
+            varToadd = IRStStaticVariable(variable.name,
+                variable.dt,
+                variable.initializationNumericValue,
+                variable.initializationStringValue,
+                variable.initializationArrayValue?.map { convertArrayElt(it) },
+                variable.length,
+                variable.zpwish,
+                variable.align)
         } else {
             fun fixupAddressOfInArray(array: List<StArrayElement>?): List<IRStArrayElement>? {
                 if(array==null)
@@ -71,7 +81,7 @@ class IRSymbolTable {
                         val target = variable.lookup(it.addressOfSymbol!!) ?: throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
                         newArray.add(IRStArrayElement(null, null, target.scopedName))
                     } else {
-                        newArray.add(IRStArrayElement.from(it))
+                        newArray.add(convertArrayElt(it))
                     }
                 }
                 return newArray
@@ -90,13 +100,17 @@ class IRSymbolTable {
         table[scopedName] = varToadd
     }
 
-
     fun add(variable: StMemVar) {
         val scopedName: String
         val varToadd: IRStMemVar
         if('.' in variable.name) {
             scopedName = variable.name
-            varToadd = IRStMemVar.from(variable)
+            varToadd = IRStMemVar(
+                variable.name,
+                variable.dt,
+                variable.address,
+                variable.length
+            )
         } else {
             scopedName = try {
                 variable.scopedName
@@ -110,11 +124,26 @@ class IRSymbolTable {
 
     fun add(variable: StMemorySlab) {
         val varToadd = if('.' in variable.name)
-            IRStMemorySlab.from(variable)
+            IRStMemorySlab(variable.name, variable.size, variable.align)
         else {
             IRStMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align)
         }
         table[varToadd.name] = varToadd
+    }
+
+    fun add(constant: StConstant) {
+        val scopedName: String
+        val dt = DataType.forDt(constant.dt)
+        if('.' in constant.name) {
+            scopedName = constant.name
+        } else {
+            scopedName = try {
+                constant.scopedName
+            } catch (_: UninitializedPropertyAccessException) {
+                constant.name
+            }
+        }
+        table[scopedName] = IRStConstant(scopedName, dt, constant.value)
     }
 
     fun addAsmSymbol(name: String, value: String) {
@@ -133,15 +162,20 @@ class IRSymbolTable {
             }
         }
     }
+
+
+    private fun convertArrayElt(elt: StArrayElement): IRStArrayElement = if(elt.boolean!=null)
+        IRStArrayElement(elt.boolean, null, elt.addressOfSymbol)
+    else
+        IRStArrayElement(null, elt.number, elt.addressOfSymbol)
 }
 
 
 enum class IRStNodeType {
     STATICVAR,
     MEMVAR,
-    MEMORYSLAB
-    // the other StNodeType types aren't used here anymore.
-    // this symbol table only contains variables.
+    MEMORYSLAB,
+    CONST
 }
 
 open class IRStNode(val name: String,
@@ -154,17 +188,6 @@ class IRStMemVar(name: String,
                  val address: UInt,
                  val length: Int?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                ) :  IRStNode(name, IRStNodeType.MEMVAR) {
-    companion object {
-        fun from(variable: StMemVar): IRStMemVar {
-            return IRStMemVar(
-                variable.name,
-                variable.dt,
-                variable.address,
-                variable.length
-            )
-        }
-    }
-
     init {
         require(!dt.isString)
     }
@@ -176,17 +199,13 @@ class IRStMemorySlab(
     name: String,
     val size: UInt,
     val align: UInt
-):  IRStNode(name, IRStNodeType.MEMORYSLAB) {
-    companion object {
-        fun from(variable: StMemorySlab): IRStMemorySlab {
-            return IRStMemorySlab(
-                variable.name,
-                variable.size,
-                variable.align
-            )
-        }
-    }
+):  IRStNode(name, IRStNodeType.MEMORYSLAB)
+
+
+class IRStConstant(name: String, val dt: DataType, val value: Double) : IRStNode(name, IRStNodeType.CONST) {
+    val typeString: String = dt.irTypeString(null)
 }
+
 
 class IRStStaticVariable(name: String,
                        val dt: DataType,
@@ -197,19 +216,6 @@ class IRStStaticVariable(name: String,
                        val zpwish: ZeropageWish,    // used in the variable allocator
                        val align: Int
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
-    companion object {
-        fun from(variable: StStaticVariable): IRStStaticVariable {
-            return IRStStaticVariable(variable.name,
-                variable.dt,
-                variable.initializationNumericValue,
-                variable.initializationStringValue,
-                variable.initializationArrayValue?.map { IRStArrayElement.from(it) },
-                variable.length,
-                variable.zpwish,
-                variable.align)
-        }
-    }
-
     init {
         if(align > 0) {
             require(dt.isString || dt.isArray)
@@ -223,15 +229,6 @@ class IRStStaticVariable(name: String,
 }
 
 class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSymbol: String?) {
-    companion object {
-        fun from(elt: StArrayElement): IRStArrayElement {
-            return if(elt.boolean!=null)
-                IRStArrayElement(elt.boolean, null, elt.addressOfSymbol)
-            else
-                IRStArrayElement(null, elt.number, elt.addressOfSymbol)
-        }
-    }
-
     init {
         if(bool!=null) require(number==null && addressOfSymbol==null)
         if(number!=null) require(bool==null && addressOfSymbol==null)

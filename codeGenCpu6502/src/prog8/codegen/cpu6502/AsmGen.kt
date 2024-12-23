@@ -59,7 +59,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                 }
                 is PtFunctionCall -> {
                     val stNode = st.lookup(node.name)!!
-                    if(stNode.astNode.definingBlock()?.options?.noSymbolPrefixing!=true) {
+                    if(stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
                         functionCallsToPrefix += node.parent to index
                     }
@@ -70,7 +70,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                         lookupName = lookupName.dropLast(4)
                     }
                     val stNode = st.lookup(lookupName) ?: throw AssemblyError("unknown identifier $node")
-                    if(stNode.astNode.definingBlock()?.options?.noSymbolPrefixing!=true) {
+                    if(stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
                         nodesToPrefix += node.parent to index
                     }
@@ -1268,7 +1268,7 @@ $repeatLabel""")
         val node = stScope.astNode
         if(node is PtSubroutineParameter)
             return node
-        return node.definingSub()?.parameters?.singleOrNull { it.name===name }
+        return node!!.definingSub()?.parameters?.singleOrNull { it.name===name }
     }
 
     internal fun assignByteOperandsToAAndVar(left: PtExpression, right: PtExpression, rightVarName: String) {
