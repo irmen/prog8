@@ -60,7 +60,6 @@ IR/VM
 - implement missing operators in AssignmentGen  (array shifts etc)
 - fix call() return value handling
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
-- make it possible to jump and branch to a computed address (expression) in all cases, see TODO("JUMP to expression address"
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.

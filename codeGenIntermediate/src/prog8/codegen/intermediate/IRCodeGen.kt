@@ -284,31 +284,23 @@ class IRCodeGen(
             val address = goto.target.asConstInteger()
             val label = (goto.target as? PtIdentifier)?.name
             if(address!=null) {
-                val branchIns = when(branch.condition) {
-                    BranchCondition.CS -> IRInstruction(Opcode.BSTCS, address = address)
-                    BranchCondition.CC -> IRInstruction(Opcode.BSTCC, address = address)
-                    BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, address = address)
-                    BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, address = address)
-                    BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, address = address)
-                    BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, address = address)
-                    BranchCondition.VC -> IRInstruction(Opcode.BSTVC, address = address)
-                    BranchCondition.VS -> IRInstruction(Opcode.BSTVS, address = address)
-                }
+                val branchIns = IRBranchInstr(branch.condition, address=address)
                 addInstr(result, branchIns, null)
             } else if(label!=null && !isIndirectJump(goto)) {
-                val branchIns = when(branch.condition) {
-                    BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
-                    BranchCondition.CC -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
-                    BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, labelSymbol = label)
-                    BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, labelSymbol = label)
-                    BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, labelSymbol = label)
-                    BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, labelSymbol = label)
-                    BranchCondition.VC -> IRInstruction(Opcode.BSTVC, labelSymbol = label)
-                    BranchCondition.VS -> IRInstruction(Opcode.BSTVS, labelSymbol = label)
-                }
+                val branchIns = IRBranchInstr(branch.condition, label = label)
                 addInstr(result, branchIns, null)
             } else {
-                TODO("JUMP to expression address ${goto.target}")  // keep in mind the branch insruction that may need to precede this!
+                val skipJumpLabel = createLabelName()
+                // note that the branch opcode used is the opposite as the branch condition, because it needs to skip the indirect jump
+                val branchIns = IRInvertedBranchInstr(branch.condition, label = skipJumpLabel)
+                // evaluate jump address expression into a register and jump indirectly to it
+                addInstr(result, branchIns, null)
+                val tr = expressionEval.translateExpression(goto.target)
+                result += tr.chunks
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.JUMPI, reg1=tr.resultReg)
+                }
+                result += IRCodeChunk(skipJumpLabel, null)
             }
             if(branch.falseScope.children.isNotEmpty())
                 result += translateNode(branch.falseScope)
@@ -317,16 +309,7 @@ class IRCodeGen(
 
         val elseLabel = createLabelName()
         // note that the branch opcode used is the opposite as the branch condition, because the generated code jumps to the 'else' part
-        val branchIns = when(branch.condition) {
-            BranchCondition.CS -> IRInstruction(Opcode.BSTCC, labelSymbol = elseLabel)
-            BranchCondition.CC -> IRInstruction(Opcode.BSTCS, labelSymbol = elseLabel)
-            BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTNE, labelSymbol = elseLabel)
-            BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTEQ, labelSymbol = elseLabel)
-            BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTPOS, labelSymbol = elseLabel)
-            BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTNEG, labelSymbol = elseLabel)
-            BranchCondition.VC -> IRInstruction(Opcode.BSTVS, labelSymbol = elseLabel)
-            BranchCondition.VS -> IRInstruction(Opcode.BSTVC, labelSymbol = elseLabel)
-        }
+        val branchIns = IRInvertedBranchInstr(branch.condition, label = elseLabel)
         addInstr(result, branchIns, null)
         result += translateNode(branch.trueScope)
         if(branch.falseScope.children.isNotEmpty()) {
@@ -339,6 +322,60 @@ class IRCodeGen(
             result += IRCodeChunk(elseLabel, null)
         }
         return result
+    }
+
+    private fun IRBranchInstr(condition: BranchCondition, label: String?=null, address: Int?=null): IRInstruction {
+        if(label!=null)
+            return when(condition) {
+                BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
+                BranchCondition.CC -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
+                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, labelSymbol = label)
+                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, labelSymbol = label)
+                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, labelSymbol = label)
+                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, labelSymbol = label)
+                BranchCondition.VC -> IRInstruction(Opcode.BSTVC, labelSymbol = label)
+                BranchCondition.VS -> IRInstruction(Opcode.BSTVS, labelSymbol = label)
+            }
+        else if(address!=null) {
+            return when(condition) {
+                BranchCondition.CS -> IRInstruction(Opcode.BSTCS, address = address)
+                BranchCondition.CC -> IRInstruction(Opcode.BSTCC, address = address)
+                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, address = address)
+                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, address = address)
+                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, address = address)
+                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, address = address)
+                BranchCondition.VC -> IRInstruction(Opcode.BSTVC, address = address)
+                BranchCondition.VS -> IRInstruction(Opcode.BSTVS, address = address)
+            }
+        }
+        else throw AssemblyError("need label or address for branch")
+    }
+
+    private fun IRInvertedBranchInstr(condition: BranchCondition, label: String?=null, address: Int?=null): IRInstruction {
+        if(label!=null)
+            return when(condition) {
+                BranchCondition.CS -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
+                BranchCondition.CC -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
+                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTNE, labelSymbol = label)
+                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTEQ, labelSymbol = label)
+                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTPOS, labelSymbol = label)
+                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTNEG, labelSymbol = label)
+                BranchCondition.VC -> IRInstruction(Opcode.BSTVS, labelSymbol = label)
+                BranchCondition.VS -> IRInstruction(Opcode.BSTVC, labelSymbol = label)
+            }
+        else if(address!=null) {
+            return when(condition) {
+                BranchCondition.CS -> IRInstruction(Opcode.BSTCC, address = address)
+                BranchCondition.CC -> IRInstruction(Opcode.BSTCS, address = address)
+                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTNE, address = address)
+                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTEQ, address = address)
+                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTPOS, address = address)
+                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTNEG, address = address)
+                BranchCondition.VC -> IRInstruction(Opcode.BSTVS, address = address)
+                BranchCondition.VS -> IRInstruction(Opcode.BSTVC, address = address)
+            }
+        }
+        else throw AssemblyError("need label or address for branch")
     }
 
     private fun labelFirstChunk(chunks: IRCodeChunks, label: String): IRCodeChunks {
@@ -990,6 +1027,7 @@ class IRCodeGen(
                 ifWithOnlyNormalJump_IntegerCond(ifElse, goto)
         }
 
+        // floating-point condition only from here!
         // we assume only a binary expression can contain a floating point.
         val result = mutableListOf<IRCodeChunkBase>()
         val leftTr = expressionEval.translateExpression(condition.left)
@@ -1060,7 +1098,7 @@ class IRCodeGen(
                         else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                             IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = (goto.target as PtIdentifier).name)
                         else
-                            TODO("JUMP to expression address ${goto.target}")  // keep in mind the branch insruction that may need to precede this!
+                            throw AssemblyError("non-indirect jump shouldn't have an expression as target")
                     }
                 }
             }
@@ -1079,7 +1117,7 @@ class IRCodeGen(
             if(identifier!=null && !isIndirectJump(goto))
                 IRInstruction(branchOpcode, labelSymbol = identifier.name)
             else
-                TODO("JUMP to expression address ${goto.target}")  // keep in mind the branch insruction that may need to precede this!
+                TODO("JUMP to expression address ${goto.target}")
         }
     }
 
@@ -1128,7 +1166,6 @@ class IRCodeGen(
                     }
                 }
             } else {
-
                 val rightTr = expressionEval.translateExpression(condition.right)
                 addToResult(result, rightTr, rightTr.resultReg, -1)
                 val firstReg: Int
@@ -1258,7 +1295,7 @@ class IRCodeGen(
                         else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                             addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, labelSymbol = (goto.target as PtIdentifier).name), null)
                         else
-                            TODO("JUMP to expression address ${goto.target}")   // keep in mind the branch insruction that may need to precede this!
+                            throw AssemblyError("non-indirect jump shouldn't have an expression as target")
                     }
                 }
             } else {
@@ -1317,7 +1354,7 @@ class IRCodeGen(
                     else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                         addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, labelSymbol = (goto.target as PtIdentifier).name), null)
                     else
-                        TODO("JUMP to expression address ${goto.target}")  // keep in mind the branch insruction that may need to precede this!
+                        throw AssemblyError("non-indirect jump shouldn't have an expression as target")
                 }
             }
         }
