@@ -666,4 +666,12 @@ asmsub print_lit(str text @ AY) clobbers(A,Y)  {
     }}
 }
 
+sub t256c(bool enable) {
+    ; set 256 color tile mode on or off
+    if enable
+        cx16.VERA_L1_CONFIG |= 8
+    else
+        cx16.VERA_L1_CONFIG &= ~8
+}
+
 }

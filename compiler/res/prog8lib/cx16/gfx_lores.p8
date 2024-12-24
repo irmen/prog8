@@ -640,6 +640,7 @@ gfx_lores {
         ; Non-recursive scanline flood fill.
         ; based loosely on code found here https://www.codeproject.com/Articles/6017/QuickFill-An-efficient-flood-fill-algorithm
         ; with the fixes applied to the seedfill_4 routine as mentioned in the comments.
+        ; Also see https://lodev.org/cgtutor/floodfill.html
         word @zp xx = x as word
         word @zp yy = y as word
         word x1
