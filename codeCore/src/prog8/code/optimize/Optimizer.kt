@@ -75,9 +75,6 @@ private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable): Int {
 
 
 private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): Int {
-    if(options.compTarget.machine.cpu == CpuType.VIRTUAL)
-        return 0        // the special bittest optimization is not yet valid for the IR
-
     fun makeBittestCall(condition: PtBinaryExpression, and: PtBinaryExpression, variable: PtIdentifier, bitmask: Int): PtBuiltinFunctionCall {
         require(bitmask==128 || bitmask==64)
         val setOrNot = if(condition.operator=="!=") "set" else "notset"

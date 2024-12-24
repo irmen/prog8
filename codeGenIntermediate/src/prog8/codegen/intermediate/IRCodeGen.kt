@@ -1454,8 +1454,51 @@ class IRCodeGen(
 
         fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode, addCmpiZero: Boolean) {
 
-            if(condition is PtBuiltinFunctionCall && condition.name.startsWith("prog8_ifelse_bittest_"))
-                throw AssemblyError("IR codegen doesn't have special instructions for dedicated BIT tests and should just still use normal AND")
+            fun ifElseUsingBIT(testBitSet: Boolean, value: PtIdentifier, bitnumber: Int) {
+                addInstr(result, IRInstruction(Opcode.BIT, IRDataType.BYTE, labelSymbol = value.name), null)
+                val bitBranchOpcode = when(testBitSet) {
+                    true -> when(bitnumber) {
+                        6 -> Opcode.BSTVC
+                        7 -> Opcode.BSTPOS
+                        else -> throw AssemblyError("need bit 6 or 7")
+                    }
+                    false -> when(bitnumber) {
+                        6 -> Opcode.BSTVS
+                        7 -> Opcode.BSTNEG
+                        else -> throw AssemblyError("need bit 6 or 7")
+                    }
+                }
+
+                if(ifElse.hasElse()) {
+                    val elseLabel = createLabelName()
+                    val afterIfLabel = createLabelName()
+                    addInstr(result, IRInstruction(bitBranchOpcode, labelSymbol = elseLabel), null)
+                    result += translateNode(ifElse.ifScope)
+                    addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
+                    result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+                    result += IRCodeChunk(afterIfLabel, null)
+                } else {
+                    val afterIfLabel = createLabelName()
+                    addInstr(result, IRInstruction(bitBranchOpcode, labelSymbol = afterIfLabel), null)
+                    result += translateNode(ifElse.ifScope)
+                    result += IRCodeChunk(afterIfLabel, null)
+                }
+            }
+
+            if(condition is PtBuiltinFunctionCall && condition.name.startsWith("prog8_ifelse_bittest_")) {
+                // use a BIT instruction to test for bit 8 or 7
+                when(condition.name) {
+                    "prog8_ifelse_bittest_set" -> {
+                        ifElseUsingBIT(true, condition.args[0] as PtIdentifier, condition.args[1].asConstInteger()!!)
+                        return
+                    }
+                    "prog8_ifelse_bittest_notset" -> {
+                        ifElseUsingBIT(false, condition.args[0] as PtIdentifier, condition.args[1].asConstInteger()!!)
+                        return
+                    }
+                    else -> throw AssemblyError("weird bittest")
+                }
+            }
 
             val tr = expressionEval.translateExpression(condition)
             if(addCmpiZero)

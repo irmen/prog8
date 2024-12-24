@@ -215,6 +215,7 @@ rorm                     address             - rotate memory right by 1 bits, no
 roxrm                    address             - rotate memory right by 1 bits, using carry  + set Carry to shifted bit
 rolm                     address             - rotate memory left by 1 bits, not using carry  + set Carry to shifted bit
 roxlm                    address             - rotate memory left by 1 bits, using carry,  + set Carry to shifted bit
+bit                      address             - test bits in byte value at address, this is a special instruction available on other systems to optimize testing and branching on bits 7 and 6
 
 
 FLOATING POINT CONVERSIONS AND FUNCTIONS
@@ -400,6 +401,7 @@ enum class Opcode {
     ROLM,
     ROXL,
     ROXLM,
+    BIT,
 
     FFROMUB,
     FFROMSB,
@@ -476,6 +478,7 @@ val OpcodesThatBranch = arrayOf(
 )
 
 val OpcodesThatSetStatusbitsIncludingCarry = arrayOf(
+    Opcode.BIT,
     Opcode.CMP,
     Opcode.CMPI
 )
@@ -764,6 +767,7 @@ val instructionFormats = mutableMapOf(
     Opcode.ROLM       to InstructionFormat.from("BW,<>a"),
     Opcode.ROXL       to InstructionFormat.from("BW,<>r1"),
     Opcode.ROXLM      to InstructionFormat.from("BW,<>a"),
+    Opcode.BIT        to InstructionFormat.from("B,<a"),
 
     Opcode.FFROMUB    to InstructionFormat.from("F,>fr1,<r1"),
     Opcode.FFROMSB    to InstructionFormat.from("F,>fr1,<r1"),

@@ -22,7 +22,6 @@ Future Things and Ideas
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 
-- don't do BIT instruction tests via makeBittestCall()  fake builtin function. Just do it in the code generator when it encounters the correct bitwise and sequence. (also IR)
 - Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
   Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
   Add a -library $xxxx command line option (and/or some directive) to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
@@ -36,6 +35,7 @@ Future Things and Ideas
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 
 - Allow normal subroutines to return multiple values as well (just as asmsubs already can)
+- don't do BIT instruction tests via optimizeBitTest()  using a fake builtin function. Do it in the code generator when it encounters the correct bitwise and sequence. (also IR)
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
@@ -55,6 +55,8 @@ Future Things and Ideas
 
 IR/VM
 -----
+- make a liast in the P8IR file of the data type of every used virtual register (it should have 1 unique type assigned to it when it is allocated, and never used for other types)
+- getting it in shape for code generation...
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"
 - implement missing operators in AssignmentGen  (array shifts etc)
@@ -67,9 +69,6 @@ IR/VM
 - the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
 - split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
-- getting it in shape for code generation...
-- make optimizeBitTest work for IR too to use the BIT instruction?
-- make sure that a 6502 codegen based off the IR, still generates BIT instructions when testing bit 7 or 6 of a byte var.
 - ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change
 
 

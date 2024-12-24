@@ -56,6 +56,7 @@ class VirtualMachine(irProgram: IRProgram) {
     var statusCarry = false
     var statusZero = false
     var statusNegative = false
+    var statusOverflow = false
     internal var randomGenerator = Random(0xa55a7653)
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
     internal var mul16LastUpper = 0u
@@ -224,7 +225,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BSTNE -> InsBSTNE(ins)
             Opcode.BSTNEG -> InsBSTNEG(ins)
             Opcode.BSTPOS -> InsBSTPOS(ins)
-            Opcode.BSTVC, Opcode.BSTVS -> TODO("overflow status flag not yet supported in VM (BSTVC,BSTVS)")
+            Opcode.BSTVC -> InsBSTVC(ins)
+            Opcode.BSTVS -> InsBSTVS(ins)
             Opcode.BGTR -> InsBGTR(ins)
             Opcode.BGTSR -> InsBGTSR(ins)
             Opcode.BGER -> InsBGER(ins)
@@ -324,6 +326,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.CLC -> { statusCarry = false; nextPc() }
             Opcode.SEC -> { statusCarry = true; nextPc() }
             Opcode.CLI, Opcode.SEI -> throw IllegalArgumentException("VM doesn't support interrupt status bit")
+            Opcode.BIT -> InsBIT(ins)
 
             Opcode.FFROMUB -> InsFFROMUB(ins)
             Opcode.FFROMSB -> InsFFROMSB(ins)
@@ -781,6 +784,20 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsBSTPOS(i: IRInstruction) {
         if(!statusNegative)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBSTVS(i: IRInstruction) {
+        if(statusOverflow)
+            branchTo(i)
+        else
+            nextPc()
+    }
+
+    private fun InsBSTVC(i: IRInstruction) {
+        if(!statusOverflow)
             branchTo(i)
         else
             nextPc()
@@ -1749,6 +1766,17 @@ class VirtualMachine(irProgram: IRProgram) {
             else left % right
         }
         else -> throw IllegalArgumentException("operator word $operator")
+    }
+
+    private fun InsBIT(i: IRInstruction) {
+        if (i.type!! == IRDataType.BYTE) {
+            val value = memory.getUB(i.address!!)
+            statusNegative = value.toInt() and 0x80 != 0
+            statusOverflow = value.toInt() and 0x40 != 0
+            // NOTE: the 'AND' part of the BIT instruction as it does on the 6502 CPU, is not utilized in prog8 so we don't implement it here
+        }
+        else throw IllegalArgumentException("bit needs byte")
+        nextPc()
     }
 
     private fun InsEXT(i: IRInstruction) {

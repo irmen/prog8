@@ -566,4 +566,35 @@ main {
         ifelse.hasElse() shouldBe true
         ifelse.condition shouldBe instanceOf<PtFunctionCall>()
     }
+
+    test("bit instruction is used for testing bits 6 and 7 of a byte") {
+        val text = """
+main {
+    sub start() {
+        if cx16.r0L & ${'$'}80 != 0
+            return
+        if cx16.r1L & ${'$'}80 == 0
+            return
+        if cx16.r2L & ${'$'}40 != 0
+            return
+        if cx16.r3L & ${'$'}40 == 0
+            return
+    } 
+}"""
+        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
+        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+        assembly shouldContain "bit  cx16.r0L"
+        assembly shouldContain "bit  cx16.r1L"
+        assembly shouldContain "bit  cx16.r2L"
+        assembly shouldContain "bit  cx16.r3L"
+
+        val resultIR = compileText(VMTarget(), true, text, writeAssembly = true)!!
+        val irFile = resultIR.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val ir = irFile.readText()
+        ir shouldContain "bit.b ${'$'}ff02"     // r0
+        ir shouldContain "bit.b ${'$'}ff04"     // r1
+        ir shouldContain "bit.b ${'$'}ff06"     // f2
+        ir shouldContain "bit.b ${'$'}ff08"     // r3
+    }
 })

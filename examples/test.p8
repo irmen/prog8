@@ -1,22 +1,40 @@
+%import floats
 %import textio
 %zeropage basicsafe
 %option no_sysinit
 
+
 main {
     sub start() {
-        bool bb
-        ubyte ub
-        uword uw
-        uw, void = thing2()
-        uw, bb = thing2()
-        uw, ub = thing2()
-    }
+        if cx16.r0L & $80 != 0
+            return
+        if cx16.r1L & $80 == 0
+            return
+        if cx16.r2L & $40 != 0
+            return
+        if cx16.r3L & $40 == 0
+            return
 
-    asmsub thing2() -> ubyte @A, bool @Pc {
-        %asm {{
-            lda #$aa
-            clc
-            rts
-        }}
+        cx16.r0L = 0
+        test()
+        txt.nl()
+        cx16.r0L = 255
+        test()
+        txt.nl()
+
+        sub test() {
+            if cx16.r0L & $80 != 0
+                txt.chrout('1')
+            if cx16.r0L & $80 == 0
+                txt.chrout('2')
+            if cx16.r0L & $40 != 0
+                txt.chrout('3')
+            if cx16.r0L & $40 == 0
+                txt.chrout('4')
+            if cx16.r0L & $20 != 0
+                txt.chrout('5')
+            if cx16.r0L & $20 == 0
+                txt.chrout('6')
+        }
     }
 }
