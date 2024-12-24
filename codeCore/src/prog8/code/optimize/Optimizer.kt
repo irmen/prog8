@@ -90,7 +90,7 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
         return bittestCall
     }
 
-    fun isAndByteCondition(condition: PtBinaryExpression?): Triple<PtBinaryExpression, PtIdentifier, Int>? {
+    fun isAndByteConditionForBRK(condition: PtBinaryExpression?): Triple<PtBinaryExpression, PtIdentifier, Int>? {
         if(condition!=null && (condition.operator=="==" || condition.operator=="!=")) {
             if (condition.right.asConstInteger() == 0) {
                 val and = condition.left as? PtBinaryExpression
@@ -119,7 +119,7 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
     walkAst(program) { node: PtNode, depth: Int ->
         if(node is PtIfElse) {
             val condition = node.condition as? PtBinaryExpression
-            val check = isAndByteCondition(condition)
+            val check = isAndByteConditionForBRK(condition)
             if(check!=null) {
                 val (and, variable, bitmask) = check
                 val bittestCall = makeBittestCall(condition!!, and, variable, bitmask)
@@ -137,7 +137,7 @@ private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): In
         }
         if (node is PtIfExpression) {
             val condition = node.condition as? PtBinaryExpression
-            val check = isAndByteCondition(condition)
+            val check = isAndByteConditionForBRK(condition)
             if(check!=null) {
                 val (and, variable, bitmask) = check
                 val bittestCall = makeBittestCall(condition!!, and, variable, bitmask)

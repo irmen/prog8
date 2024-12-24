@@ -233,8 +233,8 @@ sys {
 
 cx16 {
 
-    ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
-    ; they are simulated on the VirtualMachine as well but their location in memory is different
+    ; the sixteen virtual 16-bit registers that the Commander X16 has defined in the zeropage
+    ; they are on the VirtualMachine as well, but their location in memory is different
     &uword r0  = $ff02
     &uword r1  = $ff04
     &uword r2  = $ff06

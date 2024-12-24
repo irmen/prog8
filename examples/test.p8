@@ -1,14 +1,22 @@
+%import textio
 %zeropage basicsafe
 %option no_sysinit
 
 
 main {
     sub start() {
-        const ubyte CVALUE = 123
-        const long CLONG = 555555
-        ubyte @shared vvalue = 99
+        &ubyte mmvar = $2000
 
-        cx16.r0L = CVALUE + 100
-        cx16.r1L = vvalue + 100
+        txt.print_ub(@($2000))
+        txt.nl()
+        @($2000) = 123
+        txt.print_ub(@($2000))
+        txt.nl()
+
+        mmvar = 42
+        txt.print_ub(@($2000))
+        txt.nl()
+
+        cx16.r0 = 123
     }
 }

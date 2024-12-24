@@ -1348,7 +1348,7 @@ class IRCodeGen(
 
         val condition = ifElse.condition as? PtBinaryExpression
         if(condition==null || !condition.left.type.isFloat) {
-            return ifWithElse_IntegerCond(ifElse)
+            return ifElse_IntegerCond(ifElse)
         }
 
         // we assume only a binary expression can contain a floating point.
@@ -1408,7 +1408,7 @@ class IRCodeGen(
         return result
     }
 
-    private fun ifWithElse_IntegerCond(ifElse: PtIfElse): List<IRCodeChunkBase> {
+    private fun ifElse_IntegerCond(ifElse: PtIfElse): List<IRCodeChunkBase> {
         val result = mutableListOf<IRCodeChunkBase>()
 
         fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode, addCmpiZero: Boolean) {
