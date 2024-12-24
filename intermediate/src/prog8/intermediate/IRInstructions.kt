@@ -1106,11 +1106,11 @@ data class IRInstruction(
                 result.add(",")
             }
             immediate?.let {
-                result.add(it.toHex())
+                result.add("#${it.toHex()}")
                 result.add(",")
             }
             immediateFp?.let {
-                result.add(it.toString())
+                result.add("#${it}")
                 result.add(",")
             }
             address?.let {

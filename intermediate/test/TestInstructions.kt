@@ -34,7 +34,7 @@ class TestInstructions: FunSpec({
         ins.immediate shouldBe 0
         ins.immediateFp shouldBe null
         ins.labelSymbol shouldBe null
-        ins.toString() shouldBe "add.b r42,0,$63"
+        ins.toString() shouldBe "add.b r42,#0,$63"
     }
 
     test("with label") {
@@ -49,7 +49,7 @@ class TestInstructions: FunSpec({
         ins.immediate shouldBe 0
         ins.immediateFp shouldBe null
         ins.labelSymbol shouldBe "a.b.c"
-        ins.toString() shouldBe "add.w r11,0,a.b.c"
+        ins.toString() shouldBe "add.w r11,#0,a.b.c"
     }
 
     test("with output registers") {

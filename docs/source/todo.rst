@@ -46,9 +46,6 @@ Future Things and Ideas
 
 IR/VM
 -----
-- cx16.r0-r15 should not be translated to their (fake) addresses but remain symbolical, so they can be translated to what the actual target system specifies for them.
-- prefix immediate values with '#' for readability reasons (no technical reason)
-- ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers?
 - implement missing operators in AssignmentGen  (array shifts etc)
 - support %align on code chunks
 - fix call() return value handling
@@ -65,6 +62,7 @@ IR/VM
 - getting it in shape for code generation...
 - make optimizeBitTest work for IR too to use the BIT instruction?
 - make sure that a 6502 codegen based off the IR, still generates BIT instructions when testing bit 7 or 6 of a byte var.
+- ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change
 
 
 Libraries
