@@ -47,6 +47,8 @@ loadhy      reg1                      - load cpu hardware register Y into reg1.b
 loadhax     reg1                      - load cpu hardware register pair AX into reg1.w
 loadhay     reg1                      - load cpu hardware register pair AY into reg1.w
 loadhxy     reg1                      - load cpu hardware register pair XY into reg1.w
+loadfaczero       fpreg1              - load "cpu hardware register" fac0 into freg1.f
+loadfacone        fpreg1              - load "cpu hardware register" fac1 into freg1.f
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (only the lsb part used for indexing)
@@ -60,6 +62,8 @@ storehy     reg1                      - store reg1.b into cpu hardware register 
 storehax    reg1                      - store reg1.w into cpu hardware register pair AX
 storehay    reg1                      - store reg1.w into cpu hardware register pair AY
 storehxy    reg1                      - store reg1.w into cpu hardware register pair XY
+storehfaczero        fpreg1           - store fpreg1.f into "cpu register" fac0
+storehfacone         fpreg1           - store fpreg1.f into "cpu register" fac1
 
 
 CONTROL FLOW
@@ -246,6 +250,7 @@ cli                                       - clear interrupt disable flag
 sei                                       - set interrupt disable flag
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
+align        alignmentvalue               - represents a memory alignment directive
 msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
 concat [b, w] reg1, reg2, reg3            - reg1.w = 'concatenate' two registers: lsb/lsw of reg2 (as msb) and lsb/lsw of reg3 (as lsb) into word or int (int not yet implemented; requires 32bits regs)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
@@ -268,6 +273,8 @@ enum class Opcode {
     LOADHAX,
     LOADHAY,
     LOADHXY,
+    LOADHFACZERO,
+    LOADHFACONE,
     STOREM,
     STOREI,
     STOREX,
@@ -281,6 +288,8 @@ enum class Opcode {
     STOREHAX,
     STOREHAY,
     STOREHXY,
+    STOREHFACZERO,
+    STOREHFACONE,
 
     JUMP,
     JUMPI,
@@ -423,7 +432,8 @@ enum class Opcode {
     POPST,
     MSIG,
     CONCAT,
-    BREAKPOINT
+    BREAKPOINT,
+    ALIGN
 }
 
 val OpcodesThatJump = arrayOf(
@@ -630,6 +640,8 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADHAX    to InstructionFormat.from("W,>r1"),
     Opcode.LOADHAY    to InstructionFormat.from("W,>r1"),
     Opcode.LOADHXY    to InstructionFormat.from("W,>r1"),
+    Opcode.LOADHFACZERO to InstructionFormat.from("F,>fr1"),
+    Opcode.LOADHFACONE  to InstructionFormat.from("F,>fr1"),
     Opcode.STOREM     to InstructionFormat.from("BW,<r1,>a     | F,<fr1,>a"),
     Opcode.STOREI     to InstructionFormat.from("BW,<r1,<r2    | F,<fr1,<r1"),
     Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
@@ -644,6 +656,8 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREHAX   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHAY   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHXY   to InstructionFormat.from("W,<r1"),
+    Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
+    Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
     Opcode.PREPARECALL to InstructionFormat.from("N,<i"),
@@ -783,6 +797,7 @@ val instructionFormats = mutableMapOf(
     Opcode.CLI        to InstructionFormat.from("N"),
     Opcode.SEI        to InstructionFormat.from("N"),
     Opcode.BREAKPOINT to InstructionFormat.from("N"),
+    Opcode.ALIGN      to InstructionFormat.from("N,<i"),
 )
 
 

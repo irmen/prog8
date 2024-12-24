@@ -191,7 +191,9 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADHY,
             Opcode.LOADHAX,
             Opcode.LOADHAY,
-            Opcode.LOADHXY -> throw IllegalArgumentException("VM cannot access actual CPU hardware register")
+            Opcode.LOADHXY,
+            Opcode.LOADHFACZERO,
+            Opcode.LOADHFACONE -> throw IllegalArgumentException("VM cannot access actual CPU hardware register")
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREIX -> InsSTOREIX(ins)
@@ -204,7 +206,9 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREHY,
             Opcode.STOREHAX,
             Opcode.STOREHAY,
-            Opcode.STOREHXY -> throw IllegalArgumentException("VM cannot access actual CPU hardware register")
+            Opcode.STOREHXY,
+            Opcode.STOREHFACZERO,
+            Opcode.STOREHFACONE-> throw IllegalArgumentException("VM cannot access actual CPU hardware register")
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.PREPARECALL -> nextPc()
@@ -341,6 +345,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.FFLOOR -> InsFFLOOR(ins)
             Opcode.FCEIL -> InsFCEIL(ins)
             Opcode.FCOMP -> InsFCOMP(ins)
+            Opcode.ALIGN -> nextPc()   // actual alignment ignored in the VM
 
             else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }

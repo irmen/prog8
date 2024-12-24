@@ -58,9 +58,7 @@ IR/VM
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"
 - implement missing operators in AssignmentGen  (array shifts etc)
-- support %align on code chunks
 - fix call() return value handling
-- fix float register parameters (FAC1,FAC2) for extsubs, search for TODO("floating point register parameters not supported")
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - make it possible to jump and branch to a computed address (expression) in all cases, see TODO("JUMP to expression address"
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)

@@ -256,7 +256,7 @@ private class ParsedCall(
 private fun parseCall(rest: String): ParsedCall {
 
     fun parseRegspec(reg: String): FunctionCallArgs.RegSpec {
-        val pattern = Regex("f?r([0-9]+)\\.(.)(@.{1,2})?$")
+        val pattern = Regex("f?r([0-9]+)\\.(.)(@.{1,4})?$")
         val match = pattern.matchEntire(reg) ?: throw IRParseException("invalid regspec $reg")
         val num =  match.groups[1]!!.value.toInt()
         val type = when(match.groups[2]!!.value) {

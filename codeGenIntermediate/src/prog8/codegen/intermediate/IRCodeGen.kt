@@ -231,7 +231,11 @@ class IRCodeGen(
                 chunk += IRInstruction(Opcode.BREAKPOINT)
                 listOf(chunk)
             }
-            is PtAlign -> TODO("ir support for inline %align")
+            is PtAlign -> {
+                val chunk = IRCodeChunk(null, null)
+                chunk += IRInstruction(Opcode.ALIGN, immediate = node.align.toInt())
+                listOf(chunk)
+            }
             is PtConditionalBranch -> translate(node)
             is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, null))
             is PtIncludeBinary -> listOf(IRInlineBinaryChunk(null, readBinaryData(node), null))
