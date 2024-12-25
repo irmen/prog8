@@ -5,18 +5,17 @@
 
 main {
     sub start() {
-        &ubyte mmvar = $2000
+        uword[2] array1
 
-        txt.print_ub(@($2000))
+        array1[1] = $0122
+        txt.print_uwhex(array1[1], true)
         txt.nl()
-        @($2000) = 123
-        txt.print_ub(@($2000))
+        rol(array1[1])
+        txt.print_uwhex(array1[1], true)
         txt.nl()
-
-        mmvar = 42
-        txt.print_ub(@($2000))
+        sys.set_carry()
+        ror(array1[1])
+        txt.print_uwhex(array1[1], true)
         txt.nl()
-
-        cx16.r0 = 123
     }
 }

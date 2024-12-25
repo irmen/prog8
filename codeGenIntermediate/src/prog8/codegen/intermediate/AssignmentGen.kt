@@ -904,10 +904,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
                 return result
             } else {
-                return null  // TODO("inplace split word array +")
+                return null  // TODO("inplace split word array -")
             }
         }
-        return null  // TODO("inplace split word array +")
+        return null  // TODO("inplace split word array -")
     }
 
     private fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {

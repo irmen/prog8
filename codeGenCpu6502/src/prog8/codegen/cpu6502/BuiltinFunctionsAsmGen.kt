@@ -644,32 +644,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val varname = asmgen.asmVariableName(fcall.args[0] as PtIdentifier) + if(msb) "+1" else ""
                 target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingSub(), fcall.position, variableAsmName = varname)
             }
-            is PtNumber -> {
-                val num = (fcall.args[0] as PtNumber).number + if(msb) 1 else 0
-                val mem = PtMemoryByte(fcall.position)
-                mem.add(PtNumber(BaseDataType.UBYTE, num, fcall.position))
-                target = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingSub(), fcall.position, memory = mem)
-            }
-            is PtAddressOf -> {
-                val addrof = fcall.args[0] as PtAddressOf
-                if(addrof.identifier.type.isSplitWordArray) {
-                    TODO("address of split word array")
-                } else {
-                    val mem = PtMemoryByte(fcall.position)
-                    if(addrof.isFromArrayElement)
-                        TODO("address-of arrayelement")
-                    if(msb) {
-                        val address = PtBinaryExpression("+", DataType.forDt(BaseDataType.UWORD), addrof.position)
-                        address.add(addrof)
-                        address.add(PtNumber(address.type.base, 1.0, addrof.position))
-                        mem.add(address)
-                    } else {
-                        mem.add(addrof)
-                    }
-                    target = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.forDt(BaseDataType.UBYTE), fcall.definingSub(), fcall.position, memory = mem)
-                }
-
-            }
             is PtArrayIndexer -> {
                 val indexer = fcall.args[0] as PtArrayIndexer
                 val elementSize: Int

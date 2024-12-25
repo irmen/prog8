@@ -703,7 +703,12 @@ internal class AstChecker(private val program: Program,
         if (variable!=null) {
             if (variable.type == VarDeclType.CONST && addressOf.arrayIndex == null)
                 errors.err("invalid pointer-of operand type",addressOf.position)
+
+            if(addressOf.arrayIndex!=null && variable.datatype.isSplitWordArray) {
+                errors.err("cannot take the adress of a word element that is in a split-word array", addressOf.position)
+            }
         }
+
         super.visit(addressOf)
     }
 
@@ -1467,18 +1472,18 @@ internal class AstChecker(private val program: Program,
             }
 
             if(funcName[0] in InplaceModifyingBuiltinFunctions) {
-                // in-place modification, can't be done on literals
+                // in-place modification, can be done on specific types of arguments only (variables, array elements)
                 if(funcName[0]=="setlsb" || funcName[0]=="setmsb") {
                     val firstArg = functionCallStatement.args[0]
                     if(firstArg !is IdentifierReference && firstArg !is ArrayIndexedExpression)
-                        errors.err("invalid argument to a in-place modifying function", firstArg.position)
+                        errors.err("this function can only act on an identifier or array element", firstArg.position)
                 } else if(funcName[0]=="divmod" || funcName[0].startsWith("divmod__")) {
                     val thirdArg = functionCallStatement.args[2]
                     val fourthArg = functionCallStatement.args[3]
                     if(thirdArg !is IdentifierReference && thirdArg !is ArrayIndexedExpression)
-                        errors.err("invalid argument to a in-place modifying function", thirdArg.position)
+                        errors.err("this function can only act on an identifier or array element", thirdArg.position)
                     if(fourthArg !is IdentifierReference && fourthArg !is ArrayIndexedExpression)
-                        errors.err("invalid argument to a in-place modifying function", fourthArg.position)
+                        errors.err("this function can only act on an identifier or array element", fourthArg.position)
                 } else {
                     if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead })
                         errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)

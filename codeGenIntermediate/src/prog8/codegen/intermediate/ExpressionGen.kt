@@ -133,7 +133,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val resultRegister = codeGen.registers.nextFree()
         if(expr.isFromArrayElement) {
-            require(!expr.identifier.type.isSplitWordArray)
+            if(expr.identifier.type.isSplitWordArray)
+                TODO("address of element of a split word array")
             addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
             val indexTr2 = translateExpression(expr.arrayIndexExpr!!)
             addToResult(result, indexTr2, indexTr2.resultReg, -1)

@@ -10,6 +10,9 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- support &, &< and &> on array elements from split word arrays too not just the array as a whole  (to get rid of the error "&< is only valid on array variables"
+  and "cannot take the adress of a word element that is in a split-word array" and the TODOS "address of element of a split word array")
+- fix leftover asmgen split word array todo's
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 
@@ -28,7 +31,6 @@ Future Things and Ideas
 
 - Allow normal subroutines to return multiple values as well (just as asmsubs already can)
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
-- Fix missing cases where regular & has to return the start of the split array in memory whatever byte comes first. Search TODO("address of split word array")
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
   in certain situations (need examples!), the "wrong" order of evaluation of function call arguments is done which results
@@ -47,6 +49,8 @@ Future Things and Ideas
 
 IR/VM
 -----
+- fix TODO("IR rol/ror on split words array")
+- fix "<< in array" / ">> in array"
 - implement missing operators in AssignmentGen  (array shifts etc)
 - support %align on code chunks
 - fix call() return value handling

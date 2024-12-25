@@ -1341,13 +1341,12 @@ internal class AssignmentAsmGen(
 
             when (right) {
                 is PtAddressOf -> {
-                    val symbol = asmgen.asmVariableName(right.identifier)
+                    var symbol = asmgen.asmVariableName(right.identifier)
                     if(right.isFromArrayElement) {
                         TODO("address-of array element $symbol at ${right.position}")
                     } else {
                         if(right.identifier.type.isSplitWordArray) {
-                            TODO("address of split word array")
-                            return true
+                            symbol = if(right.isMsbForSplitArray) symbol+"_msb" else symbol+"_lsb"
                         }
                         assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                         if(expr.operator=="+")
@@ -2579,7 +2578,8 @@ $endLabel""")
 
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         if(arrayIndexExpr!=null) {
-            require(arrayDt?.isSplitWordArray!=true)
+            if(arrayDt?.isSplitWordArray==true)
+                TODO("address of element of a split word array")
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
                 if (arrayDt?.isUnsignedWord==true) {
@@ -2930,14 +2930,12 @@ $endLabel""")
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                if(target.array!!.splitWords)
-                    TODO("assign into split words ${target.position}")
                 if (target.constArrayIndexValue!=null) {
                     val scaledIdx = program.memsizer.memorySize(target.datatype, target.constArrayIndexValue!!.toInt())
                     asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
                 }
                 else {
-                    asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
                     asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
                 }
             }
@@ -2979,19 +2977,33 @@ $endLabel""")
                     """)
             }
             TargetStorageKind.ARRAY -> {
-                if(wordtarget.array!!.splitWords)
-                    TODO("assign byte into split words ${wordtarget.position}")
-                if (wordtarget.constArrayIndexValue!=null) {
-                    val scaledIdx = wordtarget.constArrayIndexValue!! * 2u
-                    asmgen.out("  lda  $sourceName")
-                    asmgen.signExtendAYlsb(BaseDataType.BYTE)
-                    asmgen.out("  sta  ${wordtarget.asmVarname}+$scaledIdx |  sty  ${wordtarget.asmVarname}+$scaledIdx+1")
+                if(wordtarget.array!!.splitWords) {
+                    // signed byte, we must sign-extend
+                    if (wordtarget.constArrayIndexValue!=null) {
+                        val scaledIdx = wordtarget.constArrayIndexValue!!
+                        asmgen.out("  lda  $sourceName |  sta  ${wordtarget.asmVarname}_lsb+$scaledIdx")
+                        asmgen.signExtendAYlsb(BaseDataType.BYTE)
+                        asmgen.out("  sty  ${wordtarget.asmVarname}_msb+$scaledIdx")
+                    }
+                    else {
+                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, CpuRegister.X)
+                        asmgen.out("  lda  $sourceName |  sta  ${wordtarget.asmVarname}_msb,x")
+                        asmgen.signExtendAYlsb(BaseDataType.BYTE)
+                        asmgen.out("  tya |  sta  ${wordtarget.asmVarname}_msb,x")
+                    }
                 }
                 else {
-                    asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, CpuRegister.X)
-                    asmgen.out("  lda  $sourceName")
-                    asmgen.signExtendAYlsb(BaseDataType.BYTE)
-                    asmgen.out("  sta  ${wordtarget.asmVarname},x |  inx |  tya |  sta  ${wordtarget.asmVarname},x")
+                    if (wordtarget.constArrayIndexValue != null) {
+                        val scaledIdx = wordtarget.constArrayIndexValue!! * 2u
+                        asmgen.out("  lda  $sourceName")
+                        asmgen.signExtendAYlsb(BaseDataType.BYTE)
+                        asmgen.out("  sta  ${wordtarget.asmVarname}+$scaledIdx |  sty  ${wordtarget.asmVarname}+$scaledIdx+1")
+                    } else {
+                        asmgen.loadScaledArrayIndexIntoRegister(wordtarget.array, CpuRegister.X)
+                        asmgen.out("  lda  $sourceName")
+                        asmgen.signExtendAYlsb(BaseDataType.BYTE)
+                        asmgen.out("  sta  ${wordtarget.asmVarname},x |  inx |  tya |  sta  ${wordtarget.asmVarname},x")
+                    }
                 }
             }
             TargetStorageKind.REGISTER -> {
@@ -3700,8 +3712,7 @@ $endLabel""")
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
-                if(target.array!!.splitWords)
-                    TODO("assign into split words ${target.position}")
+                require(!target.array!!.splitWords)
                 if (target.constArrayIndexValue!=null) {
                     val indexValue = target.constArrayIndexValue!!
                     asmgen.out("  lda  #${byte.toHex()} |  sta  ${target.asmVarname}+$indexValue")

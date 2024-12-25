@@ -808,11 +808,11 @@ _jump                       jmp  (${target.asmLabel})
                     asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
                     asmgen.out("  cpy  #0")
                 } else {
+                    var varname = asmgen.asmVariableName(value.identifier)
                     if(value.identifier.type.isSplitWordArray) {
-                        TODO("address of split word array")
-                    } else {
-                        asmgen.out("  lda  #>${asmgen.asmVariableName(value.identifier)}")
+                        varname += if(value.isMsbForSplitArray) "_msb" else "_lsb"
                     }
+                    asmgen.out("  lda  #>$varname")
                 }
             }
             else -> {
@@ -1607,13 +1607,13 @@ _jump                       jmp  (${target.asmLabel})
                     if(left.isFromArrayElement)
                         fallbackTranslateForSimpleCondition(stmt)
                     else {
-                        if(left.identifier.type.isSplitWordArray) {
-                            TODO("address of split word array")
+                        val varname = if(left.identifier.type.isSplitWordArray) {
+                            if(left.isMsbForSplitArray) left.identifier.name+"_msb" else left.identifier.name+"_lsb"
                         } else {
-                            asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                            val varname = left.identifier.name
-                            translateAYNotEquals("#<$varname", "#>$varname")
+                            left.identifier.name
                         }
+                        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                        translateAYNotEquals("#<$varname", "#>$varname")
                     }
                 }
                 else -> {
@@ -1659,13 +1659,13 @@ _jump                       jmp  (${target.asmLabel})
                     if(left.isFromArrayElement)
                         fallbackTranslateForSimpleCondition(stmt)
                     else {
-                        if(left.identifier.type.isSplitWordArray) {
-                            TODO("address of split word array")
+                        val varname = if(left.identifier.type.isSplitWordArray) {
+                            if(left.isMsbForSplitArray) left.identifier.name+"_msb" else left.identifier.name+"_lsb"
                         } else {
-                            asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                            val varname = left.identifier.name
-                            translateAYEquals("#<$varname", "#>$varname")
+                            left.identifier.name
                         }
+                        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
+                        translateAYEquals("#<$varname", "#>$varname")
                     }
                 }
                 else -> {
