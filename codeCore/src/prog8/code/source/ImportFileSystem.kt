@@ -2,6 +2,7 @@ package prog8.code.source
 
 import prog8.code.core.Position
 import java.nio.file.Path
+import java.util.TreeMap
 import kotlin.io.path.Path
 
 
@@ -38,7 +39,7 @@ object ImportFileSystem {
         val cached2 = cache[path.toString()]
         if(cached2 != null)
             return getLine(cached2, position.line)
-        throw NoSuchElementException("cannot get source line $position")
+        throw NoSuchElementException("cannot get source line $position, with path $path")
     }
 
     private fun getLine(code: SourceCode, lineIndex: Int): String {
@@ -55,6 +56,6 @@ object ImportFileSystem {
 
     private class LineSpan(val start: Int, val end: Int)
 
-    private val cache = mutableMapOf<String, SourceCode>()
+    private val cache = TreeMap<String, SourceCode>(String.CASE_INSENSITIVE_ORDER)
     private val lineSpanCache = mutableMapOf<SourceCode, Array<LineSpan>>()
 }
