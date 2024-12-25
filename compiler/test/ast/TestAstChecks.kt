@@ -383,4 +383,38 @@ main {
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "missing &"
     }
+
+    test("can't use uword[] as a parameter type give clear error") {
+        val src="""
+main {
+    sub start() {
+        uword[] @nosplit array = [1111,2222]
+        funcw1(array)
+        funcw1([1111,2222])
+        funcw2(array)
+        funcw2([1111,2222])
+        funcb([11,22])
+    }
+
+    sub funcw1(uword[] ptr) {
+        ; error
+    }
+
+    sub funcw2(uword ptr) {
+        ; ok
+    }
+
+    sub funcb(ubyte[] ptr) {
+        ; ok
+    }
+}
+"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.warnings.size shouldBe 0
+        errors.errors[0] shouldContain  ":5:16: argument 1 type mismatch"
+        errors.errors[1] shouldContain  ":6:16: argument 1 type mismatch"
+        errors.errors[2] shouldContain  ":12:16: this pass-by-reference type can't be used as a parameter type"
+    }
 })

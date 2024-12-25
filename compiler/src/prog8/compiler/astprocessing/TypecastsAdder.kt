@@ -264,7 +264,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         }
                     } else if(targetDt==BaseDataType.BOOL) {
                         addTypecastOrCastedValueModification(modifications, it.second, BaseDataType.BOOL, call as Node)
-                    } else if(argDt isAssignableTo DataType.forDt(targetDt)) {
+                    } else if(!targetDt.isIterable && argDt isAssignableTo DataType.forDt(targetDt)) {
                         if(!argDt.isString || targetDt!=BaseDataType.UWORD)
                             addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
                     }

@@ -533,7 +533,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("identifiers cannot start with an underscore", p.position)
 
             if(p.type.isPassByRef && !p.type.isString && !p.type.isUnsignedByteArray) {
-                errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use an uword to receive the address, or access the variable from the outer scope directly.", p.position)
+                errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use just 'uword' to receive the address, or maybe don't pass the value via a parameter but access it directly.", p.position)
             }
         }
     }
