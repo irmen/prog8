@@ -172,7 +172,6 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
         listOf(
             "animals",
             "balls",
-            "coroutines",
             "cube3d",
             "cube3d-float",
             "cube3d-gfx",
@@ -182,6 +181,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "maze",
             "mandelbrot",
             "mandelbrot-gfx",
+            "multitasking",
             "numbergame",
             "primes",
             "queens",

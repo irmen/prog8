@@ -353,6 +353,7 @@ main {
     sub start() {
         sys.push(11)
         sys.pushw(2222)
+        sys.push_returnaddress(3333)
         cx16.r2++
         cx16.r1 = sys.popw()
         cx16.r0L = sys.pop()
@@ -363,6 +364,7 @@ main {
         val assembly = assemblyFile.readText()
         assembly shouldContain "inlined routine follows: push"
         assembly shouldContain "inlined routine follows: pushw"
+        assembly shouldContain "inlined routine follows: push_returnaddress"
         assembly shouldContain "inlined routine follows: pop"
         assembly shouldContain "inlined routine follows: popw"
     }

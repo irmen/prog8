@@ -1,3 +1,6 @@
+; Cooperative Multitasking example.
+; Can be compiled for different targets (except virtual).
+
 %import coroutines
 %import textio
 
@@ -6,16 +9,15 @@
 
 main {
     sub start() {
-        cx16.r0--
-
         txt.print("cooperative multitasking / coroutines\n\n")
         txt.print("here are couple of routines that each\nrun a few loops bouncing a digit around.\n")
 
+        coroutines.killall()
         void coroutines.add(&task1)
         void coroutines.add(&task2)
         void coroutines.add(&task3)
         void coroutines.add(&task4)
-        void coroutines.add(&vsynctask)
+        void coroutines.add(&delaytask)
         coroutines.run()
 
         txt.print("we're all done!\n")
@@ -114,7 +116,7 @@ main {
         txt.setchr(15, y, sc:' ')
     }
 
-    sub vsynctask() {
+    sub delaytask() {
         repeat 200 {
             sys.waitvsync()
             sys.waitvsync()
@@ -122,4 +124,3 @@ main {
         }
     }
 }
-

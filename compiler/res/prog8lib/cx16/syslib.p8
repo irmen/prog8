@@ -1848,6 +1848,18 @@ save_SCRATCH_ZPWORD2	.word  0
         }}
     }
 
+    inline asmsub push_returnaddress(uword address @XY) {
+        %asm {{
+            ; push like JSR would:  address-1,  MSB first then LSB
+            cpx  #0
+            bne  +
+            dey
++           dex
+            phy
+            phx
+        }}
+    }
+
     inline asmsub pop() -> ubyte @A {
         %asm {{
             pla

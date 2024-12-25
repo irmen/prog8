@@ -190,6 +190,14 @@ sys {
         }}
     }
 
+    sub push_returnaddress(uword w) {
+        ; note: this actually doesn't do anything useful on the VM because the code execution doesn't use the simulated cpu stack
+        %ir {{
+            loadm.w r65535,sys.pushw.w
+            push.w r65535
+        }}
+    }
+
     sub pop() -> ubyte {
         ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
         %ir {{

@@ -918,6 +918,20 @@ _no_msb_size
         }}
     }
 
+    inline asmsub push_returnaddress(uword address @XY) {
+        %asm {{
+            ; push like JSR would:  address-1,  MSB first then LSB
+            cpx  #0
+            bne  +
+            dey
++           dex
+            tya
+            pha
+            txa
+            pha
+        }}
+    }
+
     inline asmsub pop() -> ubyte @A {
         %asm {{
             pla

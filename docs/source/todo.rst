@@ -12,7 +12,7 @@ Future Things and Ideas
 
 - support &, &< and &> on array elements from split word arrays too not just the array as a whole  (to get rid of the error "&< is only valid on array variables"
   and "cannot take the adress of a word element that is in a split-word array" and the TODOS "address of element of a split word array")
-- fix leftover asmgen split word array todo's
+- after that: fix leftover asmgen split word array todo's
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 
@@ -72,6 +72,7 @@ IR/VM
 
 Libraries
 ---------
+- coroutines: make yield() return a configured uword so that a task subroutine can get reused for multiple different things
 - monogfx: flood fill should be able to fill stippled (it could do this in the past? vm version does it?)
 - Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
