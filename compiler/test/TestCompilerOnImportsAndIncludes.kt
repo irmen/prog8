@@ -11,6 +11,7 @@ import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.*
+import kotlin.io.path.absolute
 import kotlin.io.path.name
 
 
@@ -97,7 +98,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
 
                 // the bug we're testing for (#54) was hidden if outputDir == workingDir
                 withClue("sanity check: workingDir and outputDir should not be the same folder") {
-                    outputDir.normalize().toAbsolutePath() shouldNotBe workingDir.normalize().toAbsolutePath()
+                    outputDir.absolute().normalize() shouldNotBe workingDir.absolute().normalize()
                 }
 
                 withClue("argument to assembler directive .binary " +

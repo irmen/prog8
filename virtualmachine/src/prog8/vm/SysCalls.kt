@@ -538,7 +538,7 @@ object SysCalls {
             Syscall.DIRECTORY -> {
                 // no arguments
                 val directory = Path("")
-                println("Directory listing for ${directory.toAbsolutePath().normalize()}")
+                println("Directory listing for ${directory.absolute().normalize()}")
                 directory.listDirectoryEntries().sorted().forEach {
                     println("${it.toFile().length()}\t${it.normalize()}")
                 }
@@ -574,7 +574,7 @@ object SysCalls {
             }
 
             Syscall.CURDIR -> {
-                val curdir = Path("").toAbsolutePath().toString()
+                val curdir = Path("").absolute().toString()
                 vm.memory.setString(0xfe00, curdir, true)
                 return returnValue(callspec.returns.single(), 0xfe00, vm)
             }

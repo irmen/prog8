@@ -61,7 +61,7 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
     }
     val filepath = searchIn.asSequence()
         .map { it.resolve("$source.p8") }
-        .map { it.normalize().absolute() }
+        .map { it.absolute().normalize() }
         .map { workingDir.relativize(it) }
         .first { it.exists() }
     val displayName = "${examplesDir.relativize(filepath.absolute())}: ${target.name}, optimize=$optimize"

@@ -103,7 +103,7 @@ class TestProg8Parser: FunSpec( {
             val nlUnix = "\n"
             val nlMac = "\r"
 
-            //parseModule(Paths.get("test", "fixtures", "mac_newlines.p8").toAbsolutePath())
+            //parseModule(Paths.get("test", "fixtures", "mac_newlines.p8").absolute())
 
             // a good mix of all kinds of newlines:
             val srcText =

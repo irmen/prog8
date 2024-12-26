@@ -15,6 +15,7 @@ import prog8.code.source.SourceCode
 import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
+import kotlin.io.path.absolute
 import kotlin.io.path.isRegularFile
 
 
@@ -257,10 +258,10 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
                 val offset: UInt? = if(directive.args.size>=2) directive.args[1].int!! else null
                 val length: UInt? = if(directive.args.size>=3) directive.args[2].int!! else null
                 val abspath = if(File(filename).isFile) {
-                    Path(filename).toAbsolutePath()
+                    Path(filename).absolute()
                 } else {
                     val sourcePath = Path(directive.definingModule.source.origin)
-                    sourcePath.resolveSibling(filename).toAbsolutePath()
+                    sourcePath.resolveSibling(filename).absolute()
                 }
                 if(abspath.toFile().isFile)
                     PtIncludeBinary(abspath, offset, length, directive.position)

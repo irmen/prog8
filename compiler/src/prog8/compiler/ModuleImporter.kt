@@ -135,7 +135,7 @@ class ModuleImporter(private val program: Program,
             if (importingModule == null) { // <=> imported from library module
                 sourcePaths
             } else {
-                val pathFromImportingModule = (Path(importingModule.position.file).parent ?: Path("")).absolute()
+                val pathFromImportingModule = (Path(importingModule.position.file).parent ?: Path("")).absolute().normalize()
                 listOf(pathFromImportingModule) + sourcePaths
             }
 

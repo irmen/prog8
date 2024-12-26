@@ -7,6 +7,7 @@ import prog8.code.source.ImportFileSystem
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
 import javax.xml.stream.XMLStreamWriter
+import kotlin.io.path.absolute
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
@@ -198,7 +199,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         }
         xml.writeCharacters("loadAddress=${irProgram.options.loadAddress.toHex()}\n")
         xml.writeCharacters("optimize=${irProgram.options.optimize}\n")
-        xml.writeCharacters("outputDir=${irProgram.options.outputDir.toAbsolutePath()}\n")
+        xml.writeCharacters("outputDir=${irProgram.options.outputDir.absolute()}\n")
         // other options not yet useful here?
         xml.writeEndElement()
         xml.writeCharacters("\n\n")

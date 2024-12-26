@@ -4,6 +4,7 @@ import java.io.IOException
 import java.nio.file.Path
 import java.text.Normalizer
 import kotlin.io.path.Path
+import kotlin.io.path.absolute
 import kotlin.io.path.readText
 
 /**
@@ -52,8 +53,8 @@ sealed class SourceCode {
          */
         private const val LIBRARYFILEPREFIX = "library:"
         private const val STRINGSOURCEPREFIX = "string:"
-        val curdir: Path = Path(".").toAbsolutePath()
-        fun relative(path: Path): Path = curdir.relativize(path.toAbsolutePath())
+        val curdir: Path = Path(".").absolute()
+        fun relative(path: Path): Path = curdir.relativize(path.absolute())
         fun isRegularFilesystemPath(pathString: String) = !isLibraryResource(pathString) && !isStringResource(pathString)
         fun isLibraryResource(path: String) = path.startsWith(LIBRARYFILEPREFIX)
         fun isStringResource(path: String) = path.startsWith(STRINGSOURCEPREFIX)

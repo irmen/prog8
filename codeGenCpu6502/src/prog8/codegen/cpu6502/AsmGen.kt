@@ -12,6 +12,7 @@ import prog8.code.source.SourceCode
 import prog8.code.target.Cx16Target
 import prog8.codegen.cpu6502.assignment.*
 import kotlin.io.path.Path
+import kotlin.io.path.absolute
 import kotlin.io.path.writeLines
 
 
@@ -1083,8 +1084,8 @@ $repeatLabel""")
         val sourcePath = Path(incbin.definingBlock()!!.source.origin)
         val includedPath = sourcePath.resolveSibling(incbin.file)
         val pathForAssembler = options.outputDir // #54: 64tass needs the path *relative to the .asm file*
-            .toAbsolutePath()
-            .relativize(includedPath.toAbsolutePath())
+            .absolute()
+            .relativize(includedPath.absolute())
             .normalize() // avoid assembler warnings (-Wportable; only some, not all)
             .toString().replace('\\', '/')
         out("  .binary \"$pathForAssembler\" $offset $length")

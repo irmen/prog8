@@ -3,6 +3,7 @@ package prog8
 import kotlinx.cli.*
 import prog8.ast.AstException
 import prog8.code.core.CbmPrgLauncherType
+import prog8.code.source.ImportFileSystem
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
 import prog8.code.target.getCompilationTargetByName
@@ -95,8 +96,8 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    val srcdirs = sourceDirs.toMutableList()
-    if(srcdirs.firstOrNull()!=".")
+    val srcdirs = sourceDirs.map { ImportFileSystem.expandTilde(it) }.toMutableList()
+    if(sourceDirs.firstOrNull()!=".")
         srcdirs.add(0, ".")
 
     if(startVm==null) {
