@@ -417,4 +417,31 @@ main {
         errors.errors[1] shouldContain  ":6:16: argument 1 type mismatch"
         errors.errors[2] shouldContain  ":12:16: this pass-by-reference type can't be used as a parameter type"
     }
+
+    test("proper type checking for multi-value assigns") {
+        val src="""
+main {
+    sub start() {
+        bool bb
+        ubyte ub
+        uword uw
+        uw, void = thing2()
+        uw, bb = thing2()
+        uw, ub = thing2()
+    }
+
+    asmsub thing2() -> ubyte @A, bool @Pc {
+        %asm {{
+            rts
+        }}
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
+        errors.errors[1] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
+        errors.errors[2] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
+        errors.errors[3] shouldContain  "can't assign returnvalue #2 to corresponding target; bool vs ubyte"
+    }
 })

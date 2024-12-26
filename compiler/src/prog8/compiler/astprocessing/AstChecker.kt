@@ -642,7 +642,7 @@ internal class AstChecker(private val program: Program,
         fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
             val (returnType, target) = p
             val targetDt = target.inferType(program).getOrUndef()
-            if (!target.void && !(returnType isAssignableTo targetDt))
+            if (!target.void && returnType != targetDt)
                 errors.err("can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt", target.position)
         }
     }
