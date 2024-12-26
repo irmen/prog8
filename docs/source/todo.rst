@@ -54,8 +54,8 @@ Future Things and Ideas
 
 IR/VM
 -----
-- make a list in the P8IR file of the data type of every used virtual register (it should have 1 unique type assigned to it when it is allocated, and never used for other types) via usedRegisters()
-- getting it in shape for code generation...
+- getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
+- addUsedRegistersCounts() doesn't always determine the datatype correctly. For instance with indirect instructions it thinks it still is a byte whereas it is a word (address)
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"
 - implement missing operators in AssignmentGen  (array shifts etc)

@@ -130,9 +130,41 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeCodeChunk(chunk: IRCodeChunk) {
+        val usedRegs = chunk.usedRegisters()
+        val regs = StringBuilder()
+        if(usedRegs.readRegs.any() || usedRegs.writeRegs.any()) {
+            regs.append("\nINT REGS:\n")
+            if (usedRegs.readRegs.any())
+                regs.append(" read: ${usedRegs.readRegs.toSortedMap().map { (reg, amount) -> "r$reg=${amount}" }}\n")
+            if (usedRegs.writeRegs.any())
+                regs.append(" write: ${usedRegs.writeRegs.toSortedMap().map { (reg, amount) -> "r$reg=${amount}" }}\n")
+            regs.append(" types:\n")
+            for ((regnum, types) in usedRegs.regsTypes.toSortedMap()) {
+                regs.append("  r$regnum -> $types")
+                if (types.size > 1) {
+                    regs.append(" !!!! more than one type !!!!\n")
+                    println("Detected multi-type register usage: $regnum->$types in ${chunk.label} at ${chunk.sourceLinesPositions.firstOrNull()}")
+                }
+                else
+                    regs.append("\n")
+            }
+        }
+        if(usedRegs.readFpRegs.any() || usedRegs.writeFpRegs.any()) {
+            regs.append("\nFP REGS:\n")
+            if(usedRegs.readFpRegs.any())
+                regs.append(" read: ${usedRegs.readFpRegs.toSortedMap().map { (reg, amount) -> "fr$reg=${amount}" }}\n")
+            if(usedRegs.writeFpRegs.any())
+                regs.append(" write: ${usedRegs.writeRegs.toSortedMap().map { (reg, amount) -> "fr$reg=${amount}" }}\n")
+        }
+
         xml.writeStartElement("CODE")
         chunk.label?.let { xml.writeAttribute("LABEL", chunk.label) }
+
         // xml.writeAttribute("used-registers", chunk.usedRegisters().toString())
+        xml.writeStartElement("REGS")
+        xml.writeCData(regs.toString())
+        xml.writeEndElement()
+
         writeSourcelines(xml, chunk)
         xml.writeCharacters("\n")
         chunk.instructions.forEach { instr ->

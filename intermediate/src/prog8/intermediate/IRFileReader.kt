@@ -11,6 +11,7 @@ import java.nio.file.Path
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.XMLInputFactory
 import javax.xml.stream.XMLStreamException
+import javax.xml.stream.events.XMLEvent
 import kotlin.io.path.Path
 import kotlin.io.path.inputStream
 
@@ -328,14 +329,21 @@ class IRFileReader {
 
     private fun parseCodeChunk(reader: XMLEventReader): IRCodeChunk {
         skipText(reader)
-        val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="CODE") { "missing CODE" }
-        val next = reader.peek()
+        val codeStart = reader.nextEvent().asStartElement()
+        require(codeStart.name.localPart=="CODE") { "missing CODE" }
+
+        // now skip <REGS> as it is informational
+        val regsStart = reader.nextEvent().asStartElement()
+        require(regsStart.name.localPart=="REGS") { "missing REGS" }
+        require(reader.nextEvent().isCharacters)
+        require(reader.nextEvent().isEndElement)
+
+        var next = reader.peek()
         if(next.isStartElement && next.asStartElement().name.localPart=="P8SRC") {
             reader.nextEvent()  // skip the P8SRC node
             while(!reader.nextEvent().isEndElement) { /* skip until end of P8SRC node */ }
         }
-        val label = start.attributes.asSequence().singleOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
+        val label = codeStart.attributes.asSequence().singleOrNull { it.name.localPart == "LABEL" }?.value?.ifBlank { null }
         val text = readText(reader).trim()
         val chunk = IRCodeChunk(label, null)
         if(text.isNotBlank()) {
@@ -353,6 +361,7 @@ class IRFileReader {
                 }
             }
         }
+
         require(reader.nextEvent().isEndElement)
         return chunk
     }
