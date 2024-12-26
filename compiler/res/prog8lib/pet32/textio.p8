@@ -225,13 +225,13 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 	    jsr  home
 	    cpy  #0
 	    beq  +
--	    lda  #17
+-	    lda  #29
 	    jsr  chrout
 	    dey
 	    bne  -
 +	    cpx  #0
 	    beq  +
--       lda  #29
+-       lda  #17
         jsr  chrout
         dex
         bne  -

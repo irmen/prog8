@@ -29,20 +29,22 @@ main {
         repeat {
             ubyte key = cbm.GETIN2()
             if key!=0 {
-                void coroutines.add(&countertask, key)
+                ubyte taskid = coroutines.add(&countertask, key)
+                counters[taskid] = 222
             }
             void coroutines.yield()
         }
     }
 
-    ubyte[coroutines.MAX_TASKS] counters = [100] * coroutines.MAX_TASKS
+    ubyte[coroutines.MAX_TASKS] counters
 
     sub countertask() {
         repeat {
             uword userdata = coroutines.yield()     ; yield and obtain our userdata
             ubyte tid = coroutines.current()        ; what task are we?
+            counters[tid]--                         ; our counter is in the array, it cannot be kept in a local variable (shared state)
+
             txt.plot(15, 10 + tid)
-            counters[tid]--                         ; our counter is in the array, cannot be a local variable (shared state)
             if counters[tid] == 0 {
                 txt.print("   ")
                 return              ; done, exit the task

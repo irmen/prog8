@@ -5,27 +5,28 @@
 ; Uses cpu stack return address juggling to cycle between different tasks.
 ;
 ; Features:
-; - can have a dynamic number of tasks (max 64), when tasks end they're automaticall removed from the task list.
-; - you can add new tasks, even from IRQ handlers, while the rest is already running.
+; - can have a dynamic number of active tasks (max 64), when a task ends it is automatically removed from the task list.
+; - you can add new tasks, while the rest is already running.  Just not yet from inside IRQ handlers!
 ; - tasks are regular subroutines but have to call yield() to pass control to the next task (round-robin)
 ; - yield() returns the registered userdata value for that task, so a single subroutine could be used as multiple tasks on different userdata
 ;   BUT!! in that case, the subroutine cannot have any variables of its own that keep state, because they're shared across the multiple tasks
 ; - you can kill a task (if you know it's id...)
 ; - when all tasks are finished the run() call will also return.
 ; - tasks can't push anything on the cpu stack before calling yield() - that will cause chaos.
+; - this library is not (yet) usable from IRQ handlers. Don't do it. It will end badly.  (can't manipulate the task list simultaneously)
 ;
 ; Difference from IRQ handlers:
 ; - you can have many tasks instead of only 2 (main program + irq handler)
 ; - it's not tied to any IRQ setup, and will run as fast as the tasks themselves allow
 ; - tasks fully control the switch to the next task; there is no preemptive switching
+; - tasks will need to save/restore their own state, maybe by useing the userdata (pointer?) and/or task id for that.
 ;
 ; USAGE:
 ; - call add(taskaddress) to add a new task.  It returns the task id.
 ; - call run() to start executing all tasks until none are left.
 ; - in tasks: call yield() to pass control to the next task. Use the returned userdata value to do different things.
-; - in tasks: if you need that userdata value immediately, simply start the task with a yield() call.
 ; - call current() to get the current task id.
-; - call kill(tasknumber) to kill a task by id.
+; - call kill(taskid) to kill a task by id.
 ; - call killall() to kill all tasks.
 ; - IMPORTANT:  if you add the same subroutine multiple times, IT CANNOT DEPEND ON ANY LOCAL VARIABLES OR R0-R15 TO KEEP STATE. NOT EVEN REPEAT LOOP COUNTERS.
 ;   Those are all shared in the different tasks! You HAVE to use a mechanism around the userdata value (pointer?) to keep separate state elsewhere!
@@ -41,18 +42,15 @@ coroutines {
         ; find the next empty slot in the tasklist and stick it there
         ; returns the task id of the new task, or 255 if there was no space for more tasks. 0 is a valid task id!
         ; also returns the success in the Carry flag (carry set=success, carry clear = task was not added)
-        sys.irqsafe_set_irqd()
         for cx16.r0L in 0 to len(tasklist)-1 {
             if tasklist[cx16.r0L] == 0 {
                 tasklist[cx16.r0L] = taskaddress
                 userdatas[cx16.r0L] = userdata
                 returnaddresses[cx16.r0L] = 0
-                sys.irqsafe_clear_irqd()
                 sys.set_carry()
                 return cx16.r0L
             }
         }
-        sys.irqsafe_clear_irqd()
         ; no space for new task
         sys.clear_carry()
         return 255
@@ -60,11 +58,9 @@ coroutines {
 
     sub killall() {
         ; kill all existing tasks
-        sys.irqsafe_set_irqd()
         for cx16.r0L in 0 to len(tasklist)-1 {
             kill(cx16.r0L)
         }
-        sys.irqsafe_clear_irqd()
     }
 
     sub run() {
@@ -104,7 +100,6 @@ resume_with_next_task:
 
         sub next_task() -> bool {
             ; search through the task list for the next active task
-            sys.irqsafe_set_irqd()
             repeat len(tasklist) {
                 active_task++
                 if active_task==len(returnaddresses)
@@ -112,18 +107,16 @@ resume_with_next_task:
                 task_start = tasklist[active_task]
                 if task_start!=0 {
                     task_continue = returnaddresses[active_task]
-                    sys.irqsafe_clear_irqd()
                     return true
                 }
             }
-            sys.irqsafe_clear_irqd()
             return false    ; no task
         }
     }
 
-    sub kill(ubyte tasknum) {
-        tasklist[tasknum] = 0
-        returnaddresses[tasknum] = 0
+    sub kill(ubyte taskid) {
+        tasklist[taskid] = 0
+        returnaddresses[taskid] = 0
     }
 
     sub current() -> ubyte {
