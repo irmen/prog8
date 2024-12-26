@@ -40,7 +40,7 @@ loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (only the lsb part used for indexing)
 loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2 (only the lsb part used for indexing)
-loadr       reg1, reg2                - load reg1 with value in register reg2
+loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
 loadha      reg1                      - load cpu hardware register A into reg1.b
 loadhx      reg1                      - load cpu hardware register X into reg1.b
 loadhy      reg1                      - load cpu hardware register Y into reg1.b
@@ -69,7 +69,7 @@ storehfacone         fpreg1           - store fpreg1.f into "cpu register" fac1
 CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction at 'location' (label/memory address)
-jumpi       rqg1                      - continue running at memory address in reg1  (indirect jump)
+jumpi       reg1                      - continue running at memory address in reg1  (indirect jump)
 preparecall numparams                 - indicator that the next instructions are the param setup and function call/syscall with <numparams> parameters
 calli       reg1                      - calls a subroutine (without arguments and without return valus) at memory addres in reg1 (indirect jsr)
 call   label(argument register list) [: resultreg.type]
@@ -252,6 +252,7 @@ sei                                       - set interrupt disable flag
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
 align        alignmentvalue               - represents a memory alignment directive
+lsig [b, w]   reg1, reg2                  - reg1 becomes the least significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
 msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
 concat [b, w] reg1, reg2, reg3            - reg1.w = 'concatenate' two registers: lsb/lsw of reg2 (as msb) and lsb/lsw of reg3 (as lsb) into word or int (int not yet implemented; requires 32bits regs)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
@@ -432,6 +433,7 @@ enum class Opcode {
     POP,
     PUSHST,
     POPST,
+    LSIG,
     MSIG,
     CONCAT,
     BREAKPOINT,
@@ -790,6 +792,7 @@ val instructionFormats = mutableMapOf(
     Opcode.FFLOOR     to InstructionFormat.from("F,>fr1,<fr2"),
     Opcode.FCEIL      to InstructionFormat.from("F,>fr1,<fr2"),
 
+    Opcode.LSIG       to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.MSIG       to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.PUSH       to InstructionFormat.from("BW,<r1       | F,<fr1"),
     Opcode.POP        to InstructionFormat.from("BW,>r1       | F,>fr1"),
@@ -926,35 +929,32 @@ data class IRInstruction(
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 readRegsCounts[this.reg1!!] = readRegsCounts.getValue(this.reg1)+1
-                if(type!=null) {
+                val actualtype = determineReg1Type()
+                if(actualtype!=null) {
                     var types = regsTypes[this.reg1]
                     if(types==null) types = mutableSetOf()
-                    types += type
+                    types += actualtype
                     regsTypes[this.reg1] = types
                 }
             }
             OperandDirection.WRITE -> {
                 writeRegsCounts[this.reg1!!] = writeRegsCounts.getValue(this.reg1)+1
-                if(type!=null) {
+                val actualtype = determineReg1Type()
+                if(actualtype!=null) {
                     var types = regsTypes[this.reg1]
                     if(types==null) types = mutableSetOf()
-                    types += type
+                    types += actualtype
                     regsTypes[this.reg1] = types
                 }
             }
             OperandDirection.READWRITE -> {
                 readRegsCounts[this.reg1!!] = readRegsCounts.getValue(this.reg1)+1
-                if(type!=null) {
-                    var types = regsTypes[this.reg1]
-                    if(types==null) types = mutableSetOf()
-                    types += type
-                    regsTypes[this.reg1] = types
-                }
                 writeRegsCounts[this.reg1] = writeRegsCounts.getValue(this.reg1)+1
-                if(type!=null) {
+                val actualtype = determineReg1Type()
+                if(actualtype!=null) {
                     var types = regsTypes[this.reg1]
                     if(types==null) types = mutableSetOf()
-                    types += type
+                    types += actualtype
                     regsTypes[this.reg1] = types
                 }
             }
@@ -963,10 +963,11 @@ data class IRInstruction(
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 writeRegsCounts[this.reg2!!] = writeRegsCounts.getValue(this.reg2)+1
-                if(type!=null) {
+                val actualtype = determineReg2Type()
+                if(actualtype!=null) {
                     var types = regsTypes[this.reg2]
                     if(types==null) types = mutableSetOf()
-                    types += type
+                    types += actualtype
                     regsTypes[this.reg2] = types
                 }
             }
@@ -976,10 +977,11 @@ data class IRInstruction(
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
                 writeRegsCounts[this.reg3!!] = writeRegsCounts.getValue(this.reg3)+1
-                if(type!=null) {
+                val actualtype = determineReg3Type()
+                if(actualtype!=null) {
                     var types = regsTypes[this.reg3]
                     if(types==null) types = mutableSetOf()
-                    types += type
+                    types += actualtype
                     regsTypes[this.reg3] = types
                 }
             }
@@ -1032,6 +1034,44 @@ data class IRInstruction(
                 }
             }
         }
+    }
+
+    private fun determineReg1Type(): IRDataType? {
+        if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI)
+            return IRDataType.WORD
+        if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
+            return when(type) {
+                IRDataType.BYTE -> IRDataType.WORD
+                IRDataType.WORD -> TODO("ext.w into long type")
+                else -> null
+            }
+        if(opcode==Opcode.CONCAT)
+            return when(type) {
+                IRDataType.BYTE -> IRDataType.WORD
+                IRDataType.WORD -> TODO("concat.w from long type")
+                else -> null
+            }
+        if(opcode==Opcode.ASRNM || opcode==Opcode.LSRNM || opcode==Opcode.LSLNM)
+            return IRDataType.BYTE
+        return this.type
+    }
+
+    private fun determineReg2Type(): IRDataType? {
+        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI)
+            return IRDataType.WORD
+        if(opcode==Opcode.MSIG || opcode==Opcode.LSIG)
+            return when(type) {
+                IRDataType.BYTE -> IRDataType.WORD
+                IRDataType.WORD -> TODO("msig/lsig.w from long type")
+                else -> null
+            }
+        if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
+            return IRDataType.BYTE
+        return this.type
+    }
+
+    private fun determineReg3Type(): IRDataType? {
+        return this.type
     }
 
     override fun toString(): String {

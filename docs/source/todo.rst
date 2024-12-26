@@ -55,11 +55,12 @@ Future Things and Ideas
 IR/VM
 -----
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- addUsedRegistersCounts() doesn't always determine the datatype correctly. For instance with indirect instructions it thinks it still is a byte whereas it is a word (address)
+- addUsedRegistersCounts() doesn't always determine the datatype correctly. --> GET RID OF THE Sxxx OPCODES FOR NOW?
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"
 - implement missing operators in AssignmentGen  (array shifts etc)
 - fix call() return value handling
+- try to get rid of LSIG opcode again (but this will introduce byte reads from word typed registers...)
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.

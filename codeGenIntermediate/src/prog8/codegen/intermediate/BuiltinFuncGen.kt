@@ -148,8 +148,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val right = exprGen.translateExpression(call.args[1])
         addToResult(result, left, left.resultReg, -1)
         addToResult(result, right, right.resultReg, -1)
-        result += codeGen.makeSyscall(IMSyscall.COMPARE_STRINGS, listOf(IRDataType.WORD to left.resultReg, IRDataType.WORD to right.resultReg), IRDataType.BYTE to left.resultReg)
-        return ExpressionCodeResult(result, IRDataType.BYTE, left.resultReg, -1)
+        val resultReg = codeGen.registers.nextFree()
+        result += codeGen.makeSyscall(IMSyscall.COMPARE_STRINGS, listOf(IRDataType.WORD to left.resultReg, IRDataType.WORD to right.resultReg), IRDataType.BYTE to resultReg)
+        return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
     }
 
     private fun funcCmp(call: PtBuiltinFunctionCall): ExpressionCodeResult {
@@ -501,9 +502,13 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcLsb(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        return exprGen.translateExpression(call.args.single())
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = exprGen.translateExpression(call.args.single())
+        addToResult(result, tr, tr.resultReg, -1)
+        val resultReg = codeGen.registers.nextFree()
+        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1 = resultReg, reg2 = tr.resultReg), null)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
-        // ....To be more strict, maybe we should introduce a new result register that is of type .b?
+        return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
     }
 
     private fun funcMsb(call: PtBuiltinFunctionCall): ExpressionCodeResult {

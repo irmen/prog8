@@ -313,6 +313,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.ROLM -> InsROLM(ins, false)
             Opcode.ROXL -> InsROL(ins, true)
             Opcode.ROXLM -> InsROLM(ins, true)
+            Opcode.LSIG -> InsLSIG(ins)
             Opcode.MSIG -> InsMSIG(ins)
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
@@ -2288,6 +2289,18 @@ class VirtualMachine(irProgram: IRProgram) {
         }
         nextPc()
         statusCarry = newStatusCarry
+    }
+
+    private fun InsLSIG(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                val value = registers.getUW(i.reg2!!)
+                registers.setUB(i.reg1!!, value.toUByte())
+            }
+            IRDataType.WORD -> throw IllegalArgumentException("lsig.w not yet supported, requires 32-bits registers")
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        nextPc()
     }
 
     private fun InsMSIG(i: IRInstruction) {
