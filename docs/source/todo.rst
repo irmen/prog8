@@ -72,7 +72,6 @@ IR/VM
 
 Libraries
 ---------
-- coroutines: make yield() return a configured uword so that a task subroutine can get reused for multiple different things
 - monogfx: flood fill should be able to fill stippled (it could do this in the past? vm version does it?)
 - Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?

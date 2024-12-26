@@ -8,6 +8,8 @@
 ; - can have a dynamic number of tasks (max 64), when tasks end they're automaticall removed from the task list.
 ; - you can add new tasks, even from IRQ handlers, while the rest is already running.
 ; - tasks are regular subroutines but have to call yield() to pass control to the next task (round-robin)
+; - yield() returns the registered userdata value for that task, so a single subroutine could be used as multiple tasks on different userdata
+;   BUT!! in that case, the subroutine cannot have any variables of its own that keep state, because they're shared across the multiple tasks
 ; - you can kill a task (if you know it's id...)
 ; - when all tasks are finished the run() call will also return.
 ; - tasks can't push anything on the cpu stack before calling yield() - that will cause chaos.
@@ -17,26 +19,25 @@
 ; - it's not tied to any IRQ setup, and will run as fast as the tasks themselves allow
 ; - tasks fully control the switch to the next task; there is no preemptive switching
 ;
-; TODO to make it actually even more useful, we probably have to:
-; - return a unique value (pointer that you had to provide when adding the task to the list?)
-;   from yield() that the subroutine could use to access unique state,
-;   because right now a single task == a single subroutine; right now you cannot re-use a subroutine to run
-;   the same task multiple times for different things.
-;
 ; USAGE:
 ; - call add(taskaddress) to add a new task.  It returns the task id.
 ; - call run() to start executing all tasks until none are left.
-; - in tasks: call yield() to pass control to the next task.
+; - in tasks: call yield() to pass control to the next task. Use the returned userdata value to do different things.
+; - in tasks: if you need that userdata value immediately, simply start the task with a yield() call.
+; - call current() to get the current task id.
 ; - call kill(tasknumber) to kill a task by id.
 ; - call killall() to kill all tasks.
+; - IMPORTANT:  if you add the same subroutine multiple times, IT CANNOT DEPEND ON ANY LOCAL VARIABLES OR R0-R15 TO KEEP STATE. NOT EVEN REPEAT LOOP COUNTERS.
+;   Those are all shared in the different tasks! You HAVE to use a mechanism around the userdata value (pointer?) to keep separate state elsewhere!
 
 coroutines {
     const ubyte MAX_TASKS = 64
     uword[MAX_TASKS] tasklist
+    uword[MAX_TASKS] userdatas
     uword[MAX_TASKS] returnaddresses
     ubyte active_task
 
-    sub add(uword taskaddress) -> ubyte {
+    sub add(uword taskaddress, uword userdata) -> ubyte {
         ; find the next empty slot in the tasklist and stick it there
         ; returns the task id of the new task, or 255 if there was no space for more tasks. 0 is a valid task id!
         ; also returns the success in the Carry flag (carry set=success, carry clear = task was not added)
@@ -44,6 +45,7 @@ coroutines {
         for cx16.r0L in 0 to len(tasklist)-1 {
             if tasklist[cx16.r0L] == 0 {
                 tasklist[cx16.r0L] = taskaddress
+                userdatas[cx16.r0L] = userdata
                 returnaddresses[cx16.r0L] = 0
                 sys.irqsafe_clear_irqd()
                 sys.set_carry()
@@ -76,16 +78,17 @@ coroutines {
         }
     }
 
-    sub yield() {
-        ; store the return address of the yielding task,
+    sub yield() -> uword {
+        ; Store the return address of the yielding task,
         ; and continue with the next one instead (round-robin)
+        ; Returns the associated userdata value
         uword task_start, task_continue
         returnaddresses[active_task] = sys.popw()
 
 resume_with_next_task:
         if not next_task() {
             void sys.popw()     ; remove return to the termination handler
-            return   ; exiting here will now actually return from the start() call back to the calling program :)
+            return 0   ; exiting here will now actually return from the start() call back to the calling program :)
         }
 
         if task_continue==0 {
@@ -96,7 +99,8 @@ resume_with_next_task:
             sys.push_returnaddress(task_start)
         } else
             sys.pushw(task_continue)
-        ; returning from yield then continues with the next coroutine
+
+        return userdatas[active_task]     ; returning from yield then continues with the next coroutine
 
         sub next_task() -> bool {
             ; search through the task list for the next active task
@@ -120,6 +124,10 @@ resume_with_next_task:
     sub kill(ubyte tasknum) {
         tasklist[tasknum] = 0
         returnaddresses[tasknum] = 0
+    }
+
+    sub current() -> ubyte {
+        return active_task
     }
 
     sub termination() {

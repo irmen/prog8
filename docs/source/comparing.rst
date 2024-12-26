@@ -73,7 +73,7 @@ Subroutines
   variables declared in their parent subroutine(s).
 - Everything in prog8 is publicly accessible from everywhere else (via fully scoped names) - there is no notion of private or public symbol accessibility.
 - Because there is no callstack for subroutine arguments, it becomes very easy to manipulate the return address that *does* get pushed on the stack by the cpu.
-  With only a little bit of code it is possible to implement a simple cooperative multitasking system that runs multiple tasks simultaneously. See the "coroutines" example.
+  With only a little bit of code it is possible to implement a simple cooperative multitasking system that runs multiple tasks simultaneously. See the "multitasking" example.
   Each task is a subroutine and it simply has its state stored in its statically allocated variables so it can resume after a yield, without doing anything special.
 
 Pointers
