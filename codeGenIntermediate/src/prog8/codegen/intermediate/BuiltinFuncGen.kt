@@ -42,8 +42,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "ror" -> funcRolRor(call)
             "rol2" -> funcRolRor(call)
             "ror2" -> funcRolRor(call)
-            "prog8_ifelse_bittest_set" -> throw AssemblyError("prog8_ifelse_bittest_set() should have been translated as part of an ifElse/ifExpression statement")
-            "prog8_ifelse_bittest_notset" -> throw AssemblyError("prog8_ifelse_bittest_notset() should have been translated as part of an ifElse/ifExpression statement")
             "prog8_lib_stringcompare" -> funcStringCompare(call)
             "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
             "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)

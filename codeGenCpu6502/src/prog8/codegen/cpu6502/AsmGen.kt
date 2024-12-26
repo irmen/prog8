@@ -1556,6 +1556,30 @@ $repeatLabel""")
             }
         }
     }
+
+    internal fun checkIfConditionCanUseBIT(condition: PtBinaryExpression): Triple<Boolean, PtIdentifier, Int>? {
+        if(condition.operator == "==" || condition.operator == "!=") {
+            if (condition.right.asConstInteger() == 0) {
+                val and = condition.left as? PtBinaryExpression
+                if (and != null && and.operator == "&" && and.type.isUnsignedByte) {
+                    val bitmask = and.right.asConstInteger()
+                    if(bitmask==128 || bitmask==64) {
+                        val variable = and.left as? PtIdentifier
+                        if (variable != null && variable.type.isByte) {
+                            return Triple(condition.operator=="!=", variable, bitmask)
+                        }
+                        val typecast = and.left as? PtTypeCast
+                        if (typecast != null && typecast.type.isUnsignedByte) {
+                            val castedVariable = typecast.value as? PtIdentifier
+                            if(castedVariable!=null && castedVariable.type.isByte)
+                                return Triple(condition.operator=="!=", castedVariable, bitmask)
+                        }
+                    }
+                }
+            }
+        }
+        return null
+    }
 }
 
 /**

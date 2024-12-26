@@ -32,6 +32,15 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
         val compareCond = stmt.condition as? PtBinaryExpression
         if(compareCond!=null) {
+
+            val useBIT = asmgen.checkIfConditionCanUseBIT(compareCond)
+            if(useBIT!=null) {
+                // use a BIT instruction to test for bit 7 or 6 set/clear
+                val (testBitSet, variable, bitmask) = useBIT
+                return translateIfBIT(stmt, jumpAfterIf, testBitSet, variable, bitmask)
+                return
+            }
+
             val rightDt = compareCond.right.type
             return when {
                 rightDt.isByteOrBool -> translateIfByte(stmt, jumpAfterIf)
@@ -58,6 +67,63 @@ internal class IfElseAsmGen(private val program: PtProgram,
         throw AssemblyError("weird non-boolean condition node type ${stmt.condition} at ${stmt.condition.position}")
     }
 
+    private fun translateIfBIT(ifElse: PtIfElse, jumpAfterIf: PtJump?, testForBitSet: Boolean, variable: PtIdentifier, bitmask: Int) {
+        // use a BIT instruction to test for bit 7 or 6 set/clear
+
+        fun branch(branchInstr: String, target: AsmGen6502Internal.JumpTarget) {
+            require(!target.needsExpressionEvaluation)
+            if(target.indirect)
+                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
+            if(ifElse.hasElse())
+                throw AssemblyError("didn't expect else part here ${ifElse.position}")
+            else
+                asmgen.out("  $branchInstr  ${target.asmLabel}")
+        }
+
+        when (bitmask) {
+            128 -> {
+                // test via bit + N flag
+                asmgen.out("  bit  ${variable.name}")
+                if(testForBitSet) {
+                    if(jumpAfterIf!=null) {
+                        val target = asmgen.getJumpTarget(jumpAfterIf)
+                        branch("bmi", target)
+                    }
+                    else
+                        translateIfElseBodies("bpl", ifElse)
+                } else {
+                    if(jumpAfterIf!=null) {
+                        val target = asmgen.getJumpTarget(jumpAfterIf)
+                        branch("bpl", target)
+                    }
+                    else
+                        translateIfElseBodies("bmi", ifElse)
+                }
+                return
+            }
+            64 -> {
+                // test via bit + V flag
+                asmgen.out("  bit  ${variable.name}")
+                if(testForBitSet) {
+                    if(jumpAfterIf!=null) {
+                        val target = asmgen.getJumpTarget(jumpAfterIf)
+                        branch("bvs", target)
+                    }
+                    else
+                        translateIfElseBodies("bvc", ifElse)
+                } else {
+                    if(jumpAfterIf!=null) {
+                        val target = asmgen.getJumpTarget(jumpAfterIf)
+                        branch("bvc", target)
+                    }
+                    else
+                        translateIfElseBodies("bvs", ifElse)
+                }
+                return
+            }
+            else -> throw AssemblyError("BIT only works for bits 6 and 7")
+        }
+    }
 
     private fun checkNotExtsubReturnsStatusReg(condition: PtExpression) {
         val fcall = condition as? PtFunctionCall
@@ -70,81 +136,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
     }
 
     private fun fallbackTranslateForSimpleCondition(ifElse: PtIfElse) {
-        val bittest = ifElse.condition as? PtBuiltinFunctionCall
         val jumpAfterIf = ifElse.ifScope.children.singleOrNull() as? PtJump
-
-        if(bittest!=null && bittest.name.startsWith("prog8_ifelse_bittest_")) {
-            val variable = bittest.args[0] as PtIdentifier
-            val bitnumber = (bittest.args[1] as PtNumber).number.toInt()
-            val testForBitSet = bittest.name.endsWith("_set")
-            when (bitnumber) {
-                7 -> {
-                    // test via bit + N flag
-                    asmgen.out("  bit  ${variable.name}")
-                    if(testForBitSet) {
-                        if(jumpAfterIf!=null) {
-                            val target = asmgen.getJumpTarget(jumpAfterIf)
-                            require(!target.needsExpressionEvaluation)
-                            if(target.indirect)
-                                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
-                            if(ifElse.hasElse())
-                                throw AssemblyError("didn't expect else part here ${ifElse.position}")
-                            else
-                                asmgen.out("  bmi  ${target.asmLabel}")
-                        }
-                        else
-                            translateIfElseBodies("bpl", ifElse)
-                    } else {
-                        if(jumpAfterIf!=null) {
-                            val target = asmgen.getJumpTarget(jumpAfterIf)
-                            require(!target.needsExpressionEvaluation)
-                            if(target.indirect)
-                                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
-                            if(ifElse.hasElse())
-                                throw AssemblyError("didn't expect else part here ${ifElse.position}")
-                            else
-                                asmgen.out("  bpl  ${target.asmLabel}")
-                        }
-                        else
-                            translateIfElseBodies("bmi", ifElse)
-                    }
-                    return
-                }
-                6 -> {
-                    // test via bit + V flag
-                    asmgen.out("  bit  ${variable.name}")
-                    if(testForBitSet) {
-                        if(jumpAfterIf!=null) {
-                            val target = asmgen.getJumpTarget(jumpAfterIf)
-                            require(!target.needsExpressionEvaluation)
-                            if(target.indirect)
-                                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
-                            if(ifElse.hasElse())
-                                throw AssemblyError("didn't expect else part here ${ifElse.position}")
-                            else
-                                asmgen.out("  bvs  ${target.asmLabel}")
-                        }
-                        else
-                            translateIfElseBodies("bvc", ifElse)
-                    } else {
-                        if(jumpAfterIf!=null) {
-                            val target = asmgen.getJumpTarget(jumpAfterIf)
-                            require(!target.needsExpressionEvaluation)
-                            if(target.indirect)
-                                throw AssemblyError("cannot BIT to indirect label ${ifElse.position}")
-                            if(ifElse.hasElse())
-                                throw AssemblyError("didn't expect else part here ${ifElse.position}")
-                            else
-                                asmgen.out("  bvc  ${target.asmLabel}")
-                        }
-                        else
-                            translateIfElseBodies("bvs", ifElse)
-                    }
-                    return
-                }
-                else -> throw AssemblyError("prog8_ifelse_bittest can only work on bits 7 and 6")
-            }
-        }
 
         // the condition is "simple" enough to just assign its 0/1 value to a register and branch on that
         asmgen.assignConditionValueToRegisterAndTest(ifElse.condition)

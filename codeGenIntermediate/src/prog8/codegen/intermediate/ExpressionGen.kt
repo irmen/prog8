@@ -96,15 +96,46 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if((ifExpr.condition as? PtPrefix)?.operator=="not")
             throw AssemblyError("not prefix in ifexpression should have been replaced by swapped values")
 
-        // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
-        val condTr = translateExpression(ifExpr.condition)
+        val result = mutableListOf<IRCodeChunkBase>()
         val trueTr = translateExpression(ifExpr.truevalue)
         val falseTr = translateExpression(ifExpr.falsevalue)
-        val irDt = irType(ifExpr.type)
-        val result = mutableListOf<IRCodeChunkBase>()
         val falseLabel = codeGen.createLabelName()
         val endLabel = codeGen.createLabelName()
+        val irDt = irType(ifExpr.type)
 
+        if(ifExpr.condition is PtBinaryExpression) {
+            val useBIT = checkIfConditionCanUseBIT(ifExpr.condition as PtBinaryExpression)
+            if(useBIT!=null) {
+                // use a BIT instruction to test for bit 7 or 6 set/clear
+                val (testBitSet, variable, bitmask) = useBIT
+                val bitBranchOpcode = when(testBitSet) {
+                    true -> when(bitmask) {
+                        64 -> Opcode.BSTVC
+                        128 -> Opcode.BSTPOS
+                        else -> throw AssemblyError("need bit 6 or 7")
+                    }
+                    false -> when(bitmask) {
+                        64 -> Opcode.BSTVS
+                        128 -> Opcode.BSTNEG
+                        else -> throw AssemblyError("need bit 6 or 7")
+                    }
+                }
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.BIT, IRDataType.BYTE, labelSymbol = variable.name)
+                    it += IRInstruction(bitBranchOpcode, labelSymbol = falseLabel)
+                }
+                addToResult(result, trueTr, trueTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+                result += IRCodeChunk(falseLabel, null)
+                addToResult(result, falseTr, trueTr.resultReg, -1)
+                result += IRCodeChunk(endLabel, null)
+                return ExpressionCodeResult(result, irDt, trueTr.resultReg, -1)
+            }
+        }
+
+
+        // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
+        val condTr = translateExpression(ifExpr.condition)
         addToResult(result, condTr, condTr.resultReg, -1)
         addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=condTr.resultReg, immediate = 0), null)
         addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = falseLabel), null)
@@ -533,7 +564,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
+    internal fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
         val callTarget = codeGen.symbolTable.flat.getValue(fcall.name)
 
         if(callTarget.scopedName in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw", "floats.push", "floats.pop")) {
@@ -723,6 +754,31 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             else -> throw AssemblyError("invalid node type")
         }
+    }
+
+    internal fun checkIfConditionCanUseBIT(condition: PtBinaryExpression): Triple<Boolean, PtIdentifier, Int>? {
+        // test for occurrence of:  x & 64 != 0    (or 128) , this can be performed with a BIT instruction
+        if(condition.operator == "==" || condition.operator == "!=") {
+            if (condition.right.asConstInteger() == 0) {
+                val and = condition.left as? PtBinaryExpression
+                if (and != null && and.operator == "&" && and.type.isUnsignedByte) {
+                    val bitmask = and.right.asConstInteger()
+                    if(bitmask==128 || bitmask==64) {
+                        val variable = and.left as? PtIdentifier
+                        if (variable != null && variable.type.isByte) {
+                            return Triple(condition.operator=="!=", variable, bitmask)
+                        }
+                        val typecast = and.left as? PtTypeCast
+                        if (typecast != null && typecast.type.isUnsignedByte) {
+                            val castedVariable = typecast.value as? PtIdentifier
+                            if(castedVariable!=null && castedVariable.type.isByte)
+                                return Triple(condition.operator=="!=", castedVariable, bitmask)
+                        }
+                    }
+                }
+            }
+        }
+        return null
     }
 
     private fun translateStackFunctions(fcall: PtFunctionCall, callTarget: StNode): ExpressionCodeResult {

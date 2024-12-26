@@ -1,19 +1,7 @@
 package prog8.codegen.cpu6502
 
-import prog8.code.ast.PtBinaryExpression
-import prog8.code.ast.PtBuiltinFunctionCall
-import prog8.code.ast.PtExpression
-import prog8.code.ast.PtIdentifier
-import prog8.code.ast.PtIfExpression
-import prog8.code.ast.PtNumber
-import prog8.code.ast.PtPrefix
-import prog8.code.core.AssemblyError
-import prog8.code.core.BaseDataType
-import prog8.code.core.CpuRegister
-import prog8.code.core.DataType
-import prog8.code.core.IErrorReporter
-import prog8.code.core.LogicalOperators
-import prog8.code.core.RegisterOrPair
+import prog8.code.ast.*
+import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.AssignmentAsmGen
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
@@ -67,31 +55,6 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         else if(condition is PtPrefix && condition.operator=="not") {
             throw AssemblyError("not prefix in ifexpression should have been replaced by swapped values")
         } else {
-            // 'simple' condition, check if it is a byte bittest
-            val bittest = condition as? PtBuiltinFunctionCall
-            if(bittest!=null && bittest.name.startsWith("prog8_ifelse_bittest_")) {
-                val variable = bittest.args[0] as PtIdentifier
-                val bitnumber = (bittest.args[1] as PtNumber).number.toInt()
-                val testForBitSet = bittest.name.endsWith("_set")
-                when (bitnumber) {
-                    7 -> {
-                        // test via bit + N flag
-                        asmgen.out("  bit  ${variable.name}")
-                        if(testForBitSet) asmgen.out("  bpl  $falseLabel")
-                        else asmgen.out("  bmi  $falseLabel")
-                        return
-                    }
-                    6 -> {
-                        // test via bit + V flag
-                        asmgen.out("  bit  ${variable.name}")
-                        if(testForBitSet) asmgen.out("  bvc  $falseLabel")
-                        else asmgen.out("  bvs  $falseLabel")
-                        return
-                    }
-                    else -> throw AssemblyError("prog8_ifelse_bittest can only work on bits 7 and 6")
-                }
-            }
-
             // the condition is "simple" enough to just assign its 0/1 value to a register and branch on that
             asmgen.assignConditionValueToRegisterAndTest(condition)
             asmgen.out("  beq  $falseLabel")
@@ -338,6 +301,30 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
 
     private fun translateIfCompareWithZeroByteBranch(condition: PtBinaryExpression, signed: Boolean, falseLabel: String) {
         // optimized code for byte comparisons with 0
+
+        val useBIT = asmgen.checkIfConditionCanUseBIT(condition)
+        if(useBIT!=null) {
+            // use a BIT instruction to test for bit 7 or 6 set/clear
+            val (testForBitSet, variable, bitmask) = useBIT
+            when (bitmask) {
+                128 -> {
+                    // test via bit + N flag
+                    asmgen.out("  bit  ${variable.name}")
+                    if(testForBitSet) asmgen.out("  bpl  $falseLabel")
+                    else asmgen.out("  bmi  $falseLabel")
+                    return
+                }
+                64 -> {
+                    // test via bit + V flag
+                    asmgen.out("  bit  ${variable.name}")
+                    if(testForBitSet) asmgen.out("  bvc  $falseLabel")
+                    else asmgen.out("  bvs  $falseLabel")
+                    return
+                }
+                else -> throw AssemblyError("BIT can only work on bits 7 and 6")
+            }
+        }
+
         asmgen.assignConditionValueToRegisterAndTest(condition.left)
         when (condition.operator) {
             "==" -> asmgen.out("  bne  $falseLabel")

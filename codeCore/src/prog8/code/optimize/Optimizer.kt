@@ -9,10 +9,7 @@ import prog8.code.core.*
 fun optimizeIntermediateAst(program: PtProgram, options: CompilationOptions, st: SymbolTable, errors: IErrorReporter) {
     if (!options.optimize)
         return
-    while (errors.noErrors() &&
-            (optimizeBitTest(program, options)
-            + optimizeAssignTargets(program, st)) > 0
-    ) {
+    while (errors.noErrors() && optimizeAssignTargets(program, st) > 0) {
         // keep rolling
     }
 }
@@ -69,82 +66,6 @@ private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable): Int {
             }
         }
         true
-    }
-    return changes
-}
-
-
-private fun optimizeBitTest(program: PtProgram, options: CompilationOptions): Int {
-    fun makeBittestCall(condition: PtBinaryExpression, and: PtBinaryExpression, variable: PtIdentifier, bitmask: Int): PtBuiltinFunctionCall {
-        require(bitmask==128 || bitmask==64)
-        val setOrNot = if(condition.operator=="!=") "set" else "notset"
-        val bittestCall = PtBuiltinFunctionCall("prog8_ifelse_bittest_$setOrNot", false, true, DataType.forDt(BaseDataType.BOOL), condition.position)
-        bittestCall.add(variable)
-        if(bitmask==128)
-            bittestCall.add(PtNumber(BaseDataType.UBYTE, 7.0, and.right.position))
-        else
-            bittestCall.add(PtNumber(BaseDataType.UBYTE, 6.0, and.right.position))
-        return bittestCall
-    }
-
-    fun isAndByteConditionForBRK(condition: PtBinaryExpression?): Triple<PtBinaryExpression, PtIdentifier, Int>? {
-        if(condition!=null && (condition.operator=="==" || condition.operator=="!=")) {
-            if (condition.right.asConstInteger() == 0) {
-                val and = condition.left as? PtBinaryExpression
-                if (and != null && and.operator == "&" && and.type.isUnsignedByte) {
-                    val bitmask = and.right.asConstInteger()
-                    if(bitmask==128 || bitmask==64) {
-                        val variable = and.left as? PtIdentifier
-                        if (variable != null && variable.type.isByte) {
-                            return Triple(and, variable, bitmask)
-                        }
-                        val typecast = and.left as? PtTypeCast
-                        if (typecast != null && typecast.type.isUnsignedByte) {
-                            val castedVariable = typecast.value as? PtIdentifier
-                            if(castedVariable!=null && castedVariable.type.isByte)
-                                return Triple(and, castedVariable, bitmask)
-                        }
-                    }
-                }
-            }
-        }
-        return null
-    }
-
-    var changes = 0
-    var recurse = true
-    walkAst(program) { node: PtNode, depth: Int ->
-        if(node is PtIfElse) {
-            val condition = node.condition as? PtBinaryExpression
-            val check = isAndByteConditionForBRK(condition)
-            if(check!=null) {
-                val (and, variable, bitmask) = check
-                val bittestCall = makeBittestCall(condition!!, and, variable, bitmask)
-                val ifElse = PtIfElse(node.position)
-                ifElse.add(bittestCall)
-                ifElse.add(node.ifScope)
-                if (node.hasElse())
-                    ifElse.add(node.elseScope)
-                val index = node.parent.children.indexOf(node)
-                node.parent.children[index] = ifElse
-                ifElse.parent = node.parent
-                changes++
-                recurse = false
-            }
-        }
-        if (node is PtIfExpression) {
-            val condition = node.condition as? PtBinaryExpression
-            val check = isAndByteConditionForBRK(condition)
-            if(check!=null) {
-                val (and, variable, bitmask) = check
-                val bittestCall = makeBittestCall(condition!!, and, variable, bitmask)
-                node.children[0] = bittestCall
-                bittestCall.parent = node
-                changes++
-                recurse = false
-            }
-        }
-        recurse
     }
     return changes
 }

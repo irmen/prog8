@@ -172,9 +172,6 @@ class VirtualMachine(irProgram: IRProgram) {
             }
             is IRInlineAsmChunk -> TODO("branch to inline asm chunk")
             is IRInlineBinaryChunk -> throw IllegalArgumentException("can't branch to inline binary chunk")
-            else -> {
-                throw IllegalArgumentException("VM can't execute code in a non-codechunk: $target")
-            }
         }
     }
 
@@ -349,8 +346,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.FCEIL -> InsFCEIL(ins)
             Opcode.FCOMP -> InsFCOMP(ins)
             Opcode.ALIGN -> nextPc()   // actual alignment ignored in the VM
-
-            else -> throw IllegalArgumentException("invalid opcode ${ins.opcode}")
         }
     }
 

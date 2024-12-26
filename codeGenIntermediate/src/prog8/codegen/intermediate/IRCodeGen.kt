@@ -1453,53 +1453,6 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
 
         fun translateSimple(condition: PtExpression, jumpFalseOpcode: Opcode, addCmpiZero: Boolean) {
-
-            fun ifElseUsingBIT(testBitSet: Boolean, value: PtIdentifier, bitnumber: Int) {
-                addInstr(result, IRInstruction(Opcode.BIT, IRDataType.BYTE, labelSymbol = value.name), null)
-                val bitBranchOpcode = when(testBitSet) {
-                    true -> when(bitnumber) {
-                        6 -> Opcode.BSTVC
-                        7 -> Opcode.BSTPOS
-                        else -> throw AssemblyError("need bit 6 or 7")
-                    }
-                    false -> when(bitnumber) {
-                        6 -> Opcode.BSTVS
-                        7 -> Opcode.BSTNEG
-                        else -> throw AssemblyError("need bit 6 or 7")
-                    }
-                }
-
-                if(ifElse.hasElse()) {
-                    val elseLabel = createLabelName()
-                    val afterIfLabel = createLabelName()
-                    addInstr(result, IRInstruction(bitBranchOpcode, labelSymbol = elseLabel), null)
-                    result += translateNode(ifElse.ifScope)
-                    addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
-                    result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
-                    result += IRCodeChunk(afterIfLabel, null)
-                } else {
-                    val afterIfLabel = createLabelName()
-                    addInstr(result, IRInstruction(bitBranchOpcode, labelSymbol = afterIfLabel), null)
-                    result += translateNode(ifElse.ifScope)
-                    result += IRCodeChunk(afterIfLabel, null)
-                }
-            }
-
-            if(condition is PtBuiltinFunctionCall && condition.name.startsWith("prog8_ifelse_bittest_")) {
-                // use a BIT instruction to test for bit 8 or 7
-                when(condition.name) {
-                    "prog8_ifelse_bittest_set" -> {
-                        ifElseUsingBIT(true, condition.args[0] as PtIdentifier, condition.args[1].asConstInteger()!!)
-                        return
-                    }
-                    "prog8_ifelse_bittest_notset" -> {
-                        ifElseUsingBIT(false, condition.args[0] as PtIdentifier, condition.args[1].asConstInteger()!!)
-                        return
-                    }
-                    else -> throw AssemblyError("weird bittest")
-                }
-            }
-
             val tr = expressionEval.translateExpression(condition)
             if(addCmpiZero)
                 tr.chunks.last().instructions.add(IRInstruction(Opcode.CMPI, tr.dt, reg1 = tr.resultReg, immediate = 0))
@@ -1523,6 +1476,41 @@ class IRCodeGen(
         fun translateBinExpr(condition: PtBinaryExpression) {
             if(condition.operator in LogicalOperators)
                 return translateSimple(condition, Opcode.BSTEQ, false)
+
+            val useBIT = expressionEval.checkIfConditionCanUseBIT(condition)
+            if(useBIT!=null) {
+                // use a BIT instruction to test for bit 7 or 6 set/clear
+                val (testBitSet, variable, bitmask) = useBIT
+                addInstr(result, IRInstruction(Opcode.BIT, IRDataType.BYTE, labelSymbol = variable.name), null)
+                val bitBranchOpcode = when(testBitSet) {
+                    true -> when(bitmask) {
+                        64 -> Opcode.BSTVC
+                        128 -> Opcode.BSTPOS
+                        else -> throw AssemblyError("need bit 6 or 7")
+                    }
+                    false -> when(bitmask) {
+                        64 -> Opcode.BSTVS
+                        128 -> Opcode.BSTNEG
+                        else -> throw AssemblyError("need bit 6 or 7")
+                    }
+                }
+
+                if(ifElse.hasElse()) {
+                    val elseLabel = createLabelName()
+                    val afterIfLabel = createLabelName()
+                    addInstr(result, IRInstruction(bitBranchOpcode, labelSymbol = elseLabel), null)
+                    result += translateNode(ifElse.ifScope)
+                    addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = afterIfLabel), null)
+                    result += labelFirstChunk(translateNode(ifElse.elseScope), elseLabel)
+                    result += IRCodeChunk(afterIfLabel, null)
+                } else {
+                    val afterIfLabel = createLabelName()
+                    addInstr(result, IRInstruction(bitBranchOpcode, labelSymbol = afterIfLabel), null)
+                    result += translateNode(ifElse.ifScope)
+                    result += IRCodeChunk(afterIfLabel, null)
+                }
+                return
+            }
 
             val signed = condition.left.type.isSigned
             val elseBranchFirstReg: Int

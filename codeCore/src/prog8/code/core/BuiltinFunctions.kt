@@ -27,8 +27,6 @@ class FParam(val name: String, vararg val possibleDatatypes: BaseDataType)
 private val IterableDatatypes = arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
 private val IntegerDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
 private val NumericDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-private val ByteDatatypes = arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
-private val ArrayDatatypes = arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
 
 
 class FSignature(val pure: Boolean,      // does it have side effects?
@@ -69,7 +67,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                 }
                 CallConvention(listOf(paramConv), returns)
             }
-            actualParamTypes.size==2 && (actualParamTypes[0] in ByteDatatypes && actualParamTypes[1].isWord) -> {
+            actualParamTypes.size==2 && (actualParamTypes[0].isByte && actualParamTypes[1].isWord) -> {
                 TODO("opportunity to pass word+byte arguments in A,Y and X registers but not implemented yet")
             }
             actualParamTypes.size==2 && (actualParamTypes[0].isWord && actualParamTypes[1].isByte) -> {
@@ -98,8 +96,6 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "prog8_lib_stringcompare"     to FSignature(true, BaseDataType.BYTE, FParam("str1", BaseDataType.STR), FParam("str2", BaseDataType.STR)),
     "prog8_lib_square_byte"       to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
     "prog8_lib_square_word"       to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.WORD, BaseDataType.UWORD)),
-    "prog8_ifelse_bittest_set"    to FSignature(true, BaseDataType.BOOL, FParam("variable", *ByteDatatypes), FParam("bitnumber", BaseDataType.UBYTE)),
-    "prog8_ifelse_bittest_notset" to FSignature(true, BaseDataType.BOOL, FParam("variable", *ByteDatatypes), FParam("bitnumber", BaseDataType.UBYTE)),
     "abs"           to FSignature(true, null, FParam("value", *NumericDatatypes)),
     "abs__byte"     to FSignature(true, BaseDataType.BYTE, FParam("value", BaseDataType.BYTE)),
     "abs__word"     to FSignature(true, BaseDataType.WORD, FParam("value", BaseDataType.WORD)),

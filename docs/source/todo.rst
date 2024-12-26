@@ -35,7 +35,6 @@ Future Things and Ideas
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 
 - Allow normal subroutines to return multiple values as well (just as asmsubs already can)
-- don't do BIT instruction tests via optimizeBitTest()  using a fake builtin function. Do it in the code generator when it encounters the correct bitwise and sequence. (also IR)
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
@@ -55,7 +54,7 @@ Future Things and Ideas
 
 IR/VM
 -----
-- make a liast in the P8IR file of the data type of every used virtual register (it should have 1 unique type assigned to it when it is allocated, and never used for other types)
+- make a list in the P8IR file of the data type of every used virtual register (it should have 1 unique type assigned to it when it is allocated, and never used for other types) via usedRegisters()
 - getting it in shape for code generation...
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"

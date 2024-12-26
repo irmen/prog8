@@ -570,7 +570,7 @@ main {
     test("bit instruction is used for testing bits 6 and 7 of a byte") {
         val text = """
 main {
-    sub start() {
+    sub start() {   
         if cx16.r0L & ${'$'}80 != 0
             return
         if cx16.r1L & ${'$'}80 == 0
@@ -579,6 +579,8 @@ main {
             return
         if cx16.r3L & ${'$'}40 == 0
             return
+        cx16.r9L = if cx16.r4L & ${'$'}80 != 0  11 else 22
+        cx16.r10L = if cx16.r5L & ${'$'}40 == 0  11 else 22
     } 
 }"""
         val result = compileText(C64Target(), true, text, writeAssembly = true)!!
@@ -588,6 +590,8 @@ main {
         assembly shouldContain "bit  cx16.r1L"
         assembly shouldContain "bit  cx16.r2L"
         assembly shouldContain "bit  cx16.r3L"
+        assembly shouldContain "bit  cx16.r4L"
+        assembly shouldContain "bit  cx16.r5L"
 
         val resultIR = compileText(VMTarget(), true, text, writeAssembly = true)!!
         val irFile = resultIR.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
@@ -596,5 +600,7 @@ main {
         ir shouldContain "bit.b ${'$'}ff04"     // r1
         ir shouldContain "bit.b ${'$'}ff06"     // f2
         ir shouldContain "bit.b ${'$'}ff08"     // r3
+        ir shouldContain "bit.b ${'$'}ff0a"     // r4
+        ir shouldContain "bit.b ${'$'}ff0c"     // r5
     }
 })
