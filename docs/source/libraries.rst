@@ -221,13 +221,6 @@ callfar2 (bank, address, argA, argX, argY, argCarry) -> uword
     Identical to ``callfar``, except here you can give arguments not only for AY,
     but for each of the A, X and Y registers (each an ubyte) and the Carry status bit as well (a boolean).
 
-syscall (callnr), syscall1 (callnr, arg), syscall2 (callnr, arg1, arg2), syscall3 (callnr, arg1, arg2, arg3)
-    Functions for doing a system call on targets that support this. Currently no actual target
-    uses this though except, possibly, the experimental code generation target!
-    The regular 6502 based compiler targets just use a subroutine call to asmsub Kernal routines at
-    specific memory locations. So these builtin function calls are not useful yet except for
-    experimentation in new code generation targets.
-
 rsave
     Saves all registers including status (or only X) on the stack
     Note: the 16 bit 'virtual' registers of the Commander X16 are *not* saved,
