@@ -1,32 +1,63 @@
 %import textio
+%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        cx16.r2 = $eeee
-        txt.print_uwhex(cx16.r2, true)
-        txt.nl()
-        cx16.r2,void = thing2()      ; TODO fix IR+6502 codegen missing an ext.b  (it is present when thing only returns single returnvalue)
-        txt.print_uwhex(cx16.r2, true)
-        txt.nl()
-        cx16.r2 = thing()      ; codegen does ext.b correctly here
-        txt.print_uwhex(cx16.r2, true)
-        txt.nl()
-    }
+        bool derp
 
-    asmsub thing() -> ubyte @A {
-        %asm {{
-            lda #$44
-            rts
-        }}
-    }
+        float @shared f1,f2
+        txt.nl()
 
-    asmsub thing2() -> ubyte @A, bool @Pc {
-        %asm {{
-            lda #$aa
-            clc
-            rts
-        }}
+
+        derp = cx16.r0L as bool
+        cx16.r0++
+        derp = cx16.r0 as bool
+
+        cx16.r0L=0
+        derp=true
+        if cx16.r0L==0 and derp
+            txt.print("fl is 0\n")
+        else
+            txt.print("fl is not 0\n")
+        if cx16.r0L!=0 and derp
+            txt.print("fl is not 0\n")
+        else
+            txt.print("fl is 0\n")
+
+        cx16.r0L = 1
+        if cx16.r0L==0 and derp
+            txt.print("fl is 0\n")
+        else
+            txt.print("fl is not 0\n")
+        if cx16.r0L!=0 and derp
+            txt.print("fl is not 0\n")
+        else
+            txt.print("fl is 0\n")
+
+
+
+        cx16.r0L=99
+        derp=true
+        if cx16.r0L==99 and derp
+            txt.print("fl is 99\n")
+        else
+            txt.print("fl is not 99\n")
+        if cx16.r0L!=99 and derp
+            txt.print("fl is not 99\n")
+        else
+            txt.print("fl is 99\n")
+
+        cx16.r0L = 122
+        if cx16.r0L==99 and derp
+            txt.print("fl is 99\n")
+        else
+            txt.print("fl is not 99\n")
+        if cx16.r0L!=99 and derp
+            txt.print("fl is not 99\n")
+        else
+            txt.print("fl is 99\n")
     }
 }
+
