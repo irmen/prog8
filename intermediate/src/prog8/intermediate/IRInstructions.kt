@@ -976,6 +976,13 @@ data class IRInstruction(
     }
 
     private fun determineReg1Type(): IRDataType? {
+        if(type==IRDataType.FLOAT) {
+            // some float instructions have an integer register as well.
+            if(opcode in arrayOf(Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB, Opcode.FCOMP))
+                return IRDataType.BYTE
+            else
+                return IRDataType.WORD
+        }
         if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI)
             return IRDataType.WORD
         if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
@@ -990,7 +997,7 @@ data class IRInstruction(
                 IRDataType.WORD -> TODO("concat.w from long type")
                 else -> null
             }
-        if(opcode==Opcode.ASRNM || opcode==Opcode.LSRNM || opcode==Opcode.LSLNM)
+        if(opcode==Opcode.ASRNM || opcode==Opcode.LSRNM || opcode==Opcode.LSLNM || opcode==Opcode.SQRT)
             return IRDataType.BYTE
         return this.type
     }

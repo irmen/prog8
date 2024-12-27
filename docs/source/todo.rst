@@ -60,6 +60,11 @@ IR/VM
 - add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"
+- sometimes source lines get missing in the output p8ir, for example the first assignment is gone in:
+     sub start() {
+         cx16.r0L = cx16.r1 as ubyte
+         cx16.r0sL = cx16.r1s as byte
+     }
 - implement missing operators in AssignmentGen  (array shifts etc)
 - fix call() return value handling
 - try to get rid of LSIG opcode again (but this will introduce byte reads from word typed registers...)

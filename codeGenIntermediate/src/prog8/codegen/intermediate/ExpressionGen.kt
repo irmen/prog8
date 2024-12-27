@@ -259,17 +259,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val endLabel = codeGen.createLabelName()
                     val elementTr = translateExpression(check.needle)
                     addToResult(result, elementTr, elementTr.resultReg, -1)
+                    val boolResultRegister = if(elementDt.isByteOrBool) elementTr.resultReg else codeGen.registers.nextFree()
                     result += IRCodeChunk(null, null).also {
                         for(value in haystack){
                             it += IRInstruction(Opcode.CMPI, irType(elementDt), elementTr.resultReg, immediate = value)
                             it += IRInstruction(Opcode.BSTEQ, labelSymbol = gottemLabel)
                         }
-                        it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, elementTr.resultReg, immediate = 0)
+                        it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, boolResultRegister, immediate = 0)
                         it += IRInstruction(Opcode.JUMP, labelSymbol = endLabel)
                     }
-                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, elementTr.resultReg, immediate = 1), gottemLabel)
+                    addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, boolResultRegister, immediate = 1), gottemLabel)
                     result += IRCodeChunk(endLabel, null)
-                    return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
+                    return ExpressionCodeResult(result, IRDataType.BYTE, boolResultRegister, -1)
                 }
                 elementDt.isFloat -> throw AssemblyError("containmentchecks for floats should always be done on an array variable with subroutine")
                 else -> throw AssemblyError("weird dt $elementDt")
@@ -448,8 +449,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             BaseDataType.UBYTE -> {
                 when(valueDt.base) {
-                    BaseDataType.BOOL, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD -> {
-                        actualResultReg2 = tr.resultReg  // just keep the LSB as it is
+                    BaseDataType.BOOL, BaseDataType.BYTE -> {
+                        actualResultReg2 = tr.resultReg
+                    }
+                    BaseDataType.UWORD, BaseDataType.WORD -> {
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.nextFree()
@@ -460,8 +465,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             BaseDataType.BYTE -> {
                 when(valueDt.base) {
-                    BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.UWORD, BaseDataType.WORD -> {
-                        actualResultReg2 = tr.resultReg  // just keep the LSB as it is
+                    BaseDataType.BOOL, BaseDataType.UBYTE -> {
+                        actualResultReg2 = tr.resultReg
+                    }
+                    BaseDataType.UWORD, BaseDataType.WORD -> {
+                        actualResultReg2 = codeGen.registers.nextFree()
+                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.nextFree()

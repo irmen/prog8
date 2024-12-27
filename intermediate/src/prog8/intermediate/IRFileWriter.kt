@@ -143,7 +143,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 regs.append("  r$regnum -> $types")
                 if (types.size > 1) {
                     regs.append(" !!!! more than one type !!!!\n")
-                    println("IR: Detected multi-type register usage: $regnum->$types in ${chunk.label} at ${chunk.sourceLinesPositions.firstOrNull()}")
+                    println("IR: Detected multi-type register usage: $regnum->$types in ${chunk.label} at perhaps ${chunk.sourceLinesPositions.firstOrNull()}")
                 }
                 else
                     regs.append("\n")
