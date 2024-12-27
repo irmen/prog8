@@ -83,7 +83,8 @@ call   label(argument register list) [: resultreg.type]
 syscall   number (argument register list) [: resultreg.type]
                                       - do a systemcall identified by number, result value(s) are pushed on value stack by the syscall code so
                                         will be POPped off into the given resultregister if any.
-                                        Always preceded by parameter setup and preparecall instructions
+                                        Always preceded by parameter setup and preparecall instructions.
+                                        All register types (arguments + result register) are ALWAYS WORDS.
 return                                - restore last saved instruction location and continue at that instruction. No return value.
 returnr     reg1                      - like return, but also returns the value in reg1 to the caller
 returni            number             - like return, but also returns the immediate value to the caller
@@ -862,7 +863,7 @@ data class IRInstruction(
         writeRegsCounts: MutableMap<Int, Int>,
         readFpRegsCounts: MutableMap<Int, Int>,
         writeFpRegsCounts: MutableMap<Int, Int>,
-        regsTypes: MutableMap<Int, MutableSet<IRDataType>>
+        regsTypes: MutableMap<Int, IRDataType>
     ) {
         when (this.reg1direction) {
             OperandDirection.UNUSED -> {}
@@ -870,20 +871,25 @@ data class IRInstruction(
                 readRegsCounts[this.reg1!!] = readRegsCounts.getValue(this.reg1)+1
                 val actualtype = determineReg1Type()
                 if(actualtype!=null) {
-                    var types = regsTypes[this.reg1]
-                    if(types==null) types = mutableSetOf()
-                    types += actualtype
-                    regsTypes[this.reg1] = types
+                    val existingType = regsTypes[reg1]
+                    if (existingType!=null) {
+                        if (existingType != actualtype)
+                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype")
+                    } else
+                        regsTypes[reg1] = actualtype
                 }
             }
             OperandDirection.WRITE -> {
                 writeRegsCounts[this.reg1!!] = writeRegsCounts.getValue(this.reg1)+1
                 val actualtype = determineReg1Type()
                 if(actualtype!=null) {
-                    var types = regsTypes[this.reg1]
-                    if(types==null) types = mutableSetOf()
-                    types += actualtype
-                    regsTypes[this.reg1] = types
+                    val existingType = regsTypes[reg1]
+                    if (existingType!=null) {
+                        if (existingType != actualtype)
+                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype")
+                    } else
+                        regsTypes[reg1] = actualtype
+
                 }
             }
             OperandDirection.READWRITE -> {
@@ -891,10 +897,13 @@ data class IRInstruction(
                 writeRegsCounts[this.reg1] = writeRegsCounts.getValue(this.reg1)+1
                 val actualtype = determineReg1Type()
                 if(actualtype!=null) {
-                    var types = regsTypes[this.reg1]
-                    if(types==null) types = mutableSetOf()
-                    types += actualtype
-                    regsTypes[this.reg1] = types
+                    val existingType = regsTypes[reg1]
+                    if (existingType!=null) {
+                        if (existingType != actualtype)
+                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype")
+                    } else
+                        regsTypes[reg1] = actualtype
+
                 }
             }
         }
@@ -904,10 +913,12 @@ data class IRInstruction(
                 writeRegsCounts[this.reg2!!] = writeRegsCounts.getValue(this.reg2)+1
                 val actualtype = determineReg2Type()
                 if(actualtype!=null) {
-                    var types = regsTypes[this.reg2]
-                    if(types==null) types = mutableSetOf()
-                    types += actualtype
-                    regsTypes[this.reg2] = types
+                    val existingType = regsTypes[reg2]
+                    if (existingType!=null) {
+                        if (existingType != actualtype)
+                            throw IllegalArgumentException("register $reg2 assigned multiple types! $existingType and $actualtype")
+                    } else
+                        regsTypes[reg2] = actualtype
                 }
             }
             else -> throw IllegalArgumentException("reg2 can only be read")
@@ -918,10 +929,12 @@ data class IRInstruction(
                 writeRegsCounts[this.reg3!!] = writeRegsCounts.getValue(this.reg3)+1
                 val actualtype = determineReg3Type()
                 if(actualtype!=null) {
-                    var types = regsTypes[this.reg3]
-                    if(types==null) types = mutableSetOf()
-                    types += actualtype
-                    regsTypes[this.reg3] = types
+                    val existingType = regsTypes[reg3]
+                    if (existingType!=null) {
+                        if (existingType != actualtype)
+                            throw IllegalArgumentException("register $reg3 assigned multiple types! $existingType and $actualtype")
+                    } else
+                        regsTypes[reg3] = actualtype
                 }
             }
             else -> throw IllegalArgumentException("reg3 can only be read")
@@ -949,13 +962,12 @@ data class IRInstruction(
                     writeFpRegsCounts[it.registerNum] = writeFpRegsCounts.getValue(it.registerNum) + 1
                 else {
                     writeRegsCounts[it.registerNum] = writeRegsCounts.getValue(it.registerNum) + 1
-                    val types = regsTypes[it.registerNum]
-                    if (types == null) {
-                        regsTypes[it.registerNum] = mutableSetOf(it.dt)
-                    } else {
-                        types += it.dt
-                        regsTypes[it.registerNum] = types
-                    }
+                    val existingType = regsTypes[it.registerNum]
+                    if (existingType!=null) {
+                        if (existingType != it.dt)
+                            throw IllegalArgumentException("register ${it.registerNum} assigned multiple types! $existingType and ${it.dt}")
+                    } else
+                        regsTypes[it.registerNum] = it.dt
                 }
             }
             fcallArgs.arguments.forEach {
@@ -963,13 +975,12 @@ data class IRInstruction(
                     readFpRegsCounts[it.reg.registerNum] = readFpRegsCounts.getValue(it.reg.registerNum)+1
                 else {
                     readRegsCounts[it.reg.registerNum] = readRegsCounts.getValue(it.reg.registerNum) + 1
-                    val types = regsTypes[it.reg.registerNum]
-                    if(types==null) {
-                        regsTypes[it.reg.registerNum] = mutableSetOf(it.reg.dt)
-                    } else {
-                        types += it.reg.dt
-                        regsTypes[it.reg.registerNum] = types
-                    }
+                    val existingType = regsTypes[it.reg.registerNum]
+                    if (existingType!=null) {
+                        if (existingType != it.reg.dt)
+                            throw IllegalArgumentException("register ${it.reg.registerNum} assigned multiple types! $existingType and ${it.reg.dt}")
+                    } else
+                        regsTypes[it.reg.registerNum] = it.reg.dt
                 }
             }
         }

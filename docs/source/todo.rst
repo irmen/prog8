@@ -56,6 +56,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- fix the syscall interface.  It should not use r0 as return reg, but something in the 65000 range.  Also, separete input regs for byte or word types.
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
 - fix TODO("IR rol/ror on split words array")

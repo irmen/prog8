@@ -139,14 +139,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             if (usedRegs.writeRegs.any())
                 regs.append(" write: ${usedRegs.writeRegs.toSortedMap().map { (reg, amount) -> "r$reg=${amount}" }}\n")
             regs.append(" types:\n")
-            for ((regnum, types) in usedRegs.regsTypes.toSortedMap()) {
-                regs.append("  r$regnum -> $types")
-                if (types.size > 1) {
-                    regs.append(" !!!! more than one type !!!!\n")
-                    println("IR: Detected multi-type register usage: $regnum->$types in ${chunk.label} at perhaps ${chunk.sourceLinesPositions.firstOrNull()}")
-                }
-                else
-                    regs.append("\n")
+            for ((regnum, type) in usedRegs.regsTypes.toSortedMap()) {
+                regs.append("  r$regnum -> $type\n")
             }
         }
         if(usedRegs.readFpRegs.any() || usedRegs.writeFpRegs.any()) {
