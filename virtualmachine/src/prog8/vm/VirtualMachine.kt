@@ -236,13 +236,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BLE -> InsBLE(ins)
             Opcode.BGES -> InsBGES(ins)
             Opcode.BLES -> InsBLES(ins)
-            Opcode.SNZ -> InsSNZ(ins)
-            Opcode.SLT -> InsSLT(ins)
-            Opcode.SLTS -> InsSLTS(ins)
             Opcode.SGT -> InsSGT(ins)
             Opcode.SGTS -> InsSGTS(ins)
-            Opcode.SLE -> InsSLE(ins)
-            Opcode.SLES -> InsSLES(ins)
             Opcode.SGE -> InsSGE(ins)
             Opcode.SGES -> InsSGES(ins)
             Opcode.INC -> InsINC(ins)
@@ -890,32 +885,6 @@ class VirtualMachine(irProgram: IRProgram) {
             nextPc()
     }
 
-    private fun InsSNZ(i: IRInstruction) {
-        val right = when(i.type) {
-            IRDataType.BYTE -> registers.getSB(i.reg2!!).toInt()
-            IRDataType.WORD -> registers.getSW(i.reg2!!).toInt()
-            IRDataType.FLOAT -> throw IllegalArgumentException("can't use float here")
-            null -> throw IllegalArgumentException("need type for branch instruction")
-        }
-        val value = if(right!=0) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
-    }
-
-    private fun InsSLT(i: IRInstruction) {
-        val (left, right) = getSetOnConditionOperandsU(i)
-        val value = if(left<right) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
-    }
-
-    private fun InsSLTS(i: IRInstruction) {
-        val (left, right) = getSetOnConditionOperands(i)
-        val value = if(left<right) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
-    }
-
     private fun InsSGT(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperandsU(i)
         val value = if(left>right) 1 else 0
@@ -926,20 +895,6 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsSGTS(i: IRInstruction) {
         val (left, right) = getSetOnConditionOperands(i)
         val value = if(left>right) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
-    }
-
-    private fun InsSLE(i: IRInstruction) {
-        val (left, right) = getSetOnConditionOperandsU(i)
-        val value = if(left<=right) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
-    }
-
-    private fun InsSLES(i: IRInstruction) {
-        val (left, right) = getSetOnConditionOperands(i)
-        val value = if(left<=right) 1 else 0
         setResultReg(i.reg1!!, value, i.type!!)
         nextPc()
     }

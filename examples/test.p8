@@ -10,10 +10,22 @@ main {
         float @shared f1,f2
         txt.nl()
 
-
-        derp = cx16.r0L as bool
-        cx16.r0++
-        derp = cx16.r0 as bool
+        cx16.r0 = $aaaa
+        cx16.r1 = $2222
+        f1 = 9999
+        cx16.r0=9999
+        txt.print_bool(f1 < 8000)
+        txt.spc()
+        txt.print_bool(f1 < 10000)
+        txt.spc()
+        txt.print_bool(f1 < 20000)
+        txt.nl()
+        txt.print_bool(cx16.r0 < 8000)
+        txt.spc()
+        txt.print_bool(cx16.r0 < 10000)
+        txt.spc()
+        txt.print_bool(cx16.r0 < 20000)
+        txt.nl()
 
         cx16.r0L=0
         derp=true

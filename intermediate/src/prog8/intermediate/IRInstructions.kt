@@ -123,11 +123,6 @@ bles        reg1, value,      address   - jump to location in program given by l
 bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 'blesr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed) ==> use bgesr with swapped operands
 
-snz         reg1, reg2                  - set reg1=1 if reg2!=0, else 0
-slt         reg1, reg2, reg3            - set reg1=1 if reg2 < reg3 (unsigned), else 0
-slts        reg1, reg2, reg3            - set reg1=1 if reg2 < reg3 (signed), else 0
-sle         reg1, reg2, reg3            - set reg1=1 if reg2 <= reg3 (unsigned), else 0
-sles        reg1, reg2, reg3            - set reg1=1 if reg2 <= reg3 (signed), else 0
 sgt         reg1, reg2, reg3            - set reg1=1 if reg2 > reg3 (unsigned), else 0
 sgts        reg1, reg2, reg3            - set reg1=1 if reg2 > reg3 (signed), else 0
 sge         reg1, reg2, reg3            - set reg1=1 if reg2 >= reg3 (unsigned), else 0
@@ -318,13 +313,8 @@ enum class Opcode {
     BGESR,
     BGES,
     BLES,
-    SNZ,
-    SLT,
-    SLTS,
     SGT,
     SGTS,
-    SLE,
-    SLES,
     SGE,
     SGES,
 
@@ -516,13 +506,8 @@ val OpcodesThatDependOnCarry = arrayOf(
 )
 
 val OpcodesThatSetRegFromStatusbits = arrayOf(
-    Opcode.SNZ,
-    Opcode.SLT,
-    Opcode.SLTS,
     Opcode.SGT,
     Opcode.SGTS,
-    Opcode.SLE,
-    Opcode.SLES,
     Opcode.SGE,
     Opcode.SGES
 )
@@ -677,13 +662,8 @@ val instructionFormats = mutableMapOf(
     Opcode.BGESR      to InstructionFormat.from("BW,<r1,<r2,<a"),
     Opcode.BGES       to InstructionFormat.from("BW,<r1,<i,<a"),
     Opcode.BLES       to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.SNZ        to InstructionFormat.from("BW,>r1,<r2"),
-    Opcode.SLT        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
-    Opcode.SLTS       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.SGT        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.SGTS       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
-    Opcode.SLE        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
-    Opcode.SLES       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.SGE        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.SGES       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.INC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
