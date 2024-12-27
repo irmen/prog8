@@ -285,9 +285,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(haystackVar)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
-                result += codeGen.makeSyscall(IMSyscall.STRING_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg), IRDataType.BYTE to elementTr.resultReg)
-                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
-                return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
+                val resultReg = codeGen.registers.nextFree()
+                result += codeGen.makeSyscall(IMSyscall.STRING_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg), IRDataType.BYTE to resultReg)
+                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
             haystackVar.type.isByteArray -> {
                 addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
@@ -298,9 +299,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val lengthReg = codeGen.registers.nextFree()
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
-                result += codeGen.makeSyscall(IMSyscall.BYTEARRAY_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to elementTr.resultReg)
-                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
-                return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
+                val resultReg = codeGen.registers.nextFree()
+                result += codeGen.makeSyscall(IMSyscall.BYTEARRAY_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
             haystackVar.type.isWordArray -> {
                 addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
@@ -311,9 +313,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val lengthReg = codeGen.registers.nextFree()
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
-                result += codeGen.makeSyscall(IMSyscall.WORDARRAY_CONTAINS, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to elementTr.resultReg)
-                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=elementTr.resultReg, immediate = 0), null)
-                return ExpressionCodeResult(result, IRDataType.BYTE, elementTr.resultReg, -1)
+                val resultReg = codeGen.registers.nextFree()
+                result += codeGen.makeSyscall(IMSyscall.WORDARRAY_CONTAINS, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
+                addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
             haystackVar.type.isFloatArray -> {
                 addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
@@ -1071,6 +1074,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val rightTr = translateExpression(binExpr.right)
+            require(rightTr.dt== IRDataType.BYTE) { "can only shift by 0-255" }
             addToResult(result, rightTr, rightTr.resultReg, -1)
             val opc = if (signed) Opcode.ASRN else Opcode.LSRN
             addInstr(result, IRInstruction(opc, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
@@ -1089,6 +1093,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val rightTr = translateExpression(binExpr.right)
+            require(rightTr.dt== IRDataType.BYTE) { "can only shift by 0-255" }
             addToResult(result, rightTr, rightTr.resultReg, -1)
             addInstr(result, IRInstruction(Opcode.LSLN, vmDt, reg1=leftTr.resultReg, rightTr.resultReg), null)
             ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)

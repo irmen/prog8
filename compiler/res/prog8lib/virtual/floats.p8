@@ -35,8 +35,8 @@ floats {
 sub print(float value) {
     ; ---- prints the floating point value (without a newline and no leading spaces).
     %ir {{
-        loadm.f fr65535,floats.print.value
-        syscall 15 (fr65535.f)
+        loadm.f fr99000,floats.print.value
+        syscall 15 (fr99000.f)
         return
     }}
 }
@@ -45,9 +45,9 @@ sub tostr(float value) -> str {
     ; ---- converts the floating point value to a string (no leading spaces)
     str @shared buffer=" "*20
     %ir {{
-        load.w r65535,floats.tostr.buffer
-        loadm.f fr65535,floats.tostr.value
-        syscall 34 (r65535.w, fr65535.f)
+        load.w r99000,floats.tostr.buffer
+        loadm.f fr99000,floats.tostr.value
+        syscall 34 (r99000.w, fr99000.f)
         load.w r0,floats.tostr.buffer
         returnr.w r0
     }}
@@ -56,9 +56,9 @@ sub tostr(float value) -> str {
 sub parse(str value) -> float {
     ; -- parse a string value of a number to float
     %ir {{
-        loadm.w  r65535,floats.parse.value
-        syscall 32 (r65535.w): fr0.f
-        returnr.f fr0
+        loadm.w  r99000,floats.parse.value
+        syscall 32 (r99000.w): fr99000.f
+        returnr.f fr99000
     }}
 }
 
@@ -170,15 +170,15 @@ sub ceil(float value) -> float {
 
 sub rnd() -> float {
     %ir {{
-        syscall 22 () : fr0.f
-        returnr.f fr0
+        syscall 22 () : fr99000.f
+        returnr.f fr99000
     }}
 }
 
 sub rndseed(float seed) {
     %ir {{
-        loadm.f  fr65535,floats.rndseed.seed
-        syscall 19 (fr65535.f)
+        loadm.f  fr99000,floats.rndseed.seed
+        syscall 19 (fr99000.f)
         return
     }}
 }
@@ -213,16 +213,16 @@ sub normalize(float value) -> float {
 sub push(float value) {
     ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
     %ir {{
-        loadm.f  fr65535,floats.push.value
-        push.f  fr65535
+        loadm.f  fr99000,floats.push.value
+        push.f  fr99000
     }}
 }
 
 sub pop() -> float {
     ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
     %ir {{
-        pop.f  fr65535
-        returnr.f fr65535
+        pop.f  fr99000
+        returnr.f fr99000
     }}
 }
 

@@ -1,8 +1,6 @@
 TODO
 ====
 
-- addUsedRegistersCounts() doesn't always determine the datatype correctly. --> GET RID OF THE Sxxx OPCODES FOR NOW?
-
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -56,8 +54,8 @@ Future Things and Ideas
 
 IR/VM
 -----
-- fix the syscall interface.  It should not use r0 as return reg, but something in the 65000 range.  Also, separete input regs for byte or word types.
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
+- registerPool should have separate pools, one for byte and word registers each (and 1 for floats)?
 - add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"

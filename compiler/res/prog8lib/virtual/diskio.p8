@@ -13,10 +13,8 @@ diskio {
     sub directory() -> bool {
         ; -- Prints the directory contents to the screen. Returns success.
         %ir {{
-            loadm.w r65534,diskio.load.filenameptr
-            loadm.w r65535,diskio.load.address_override
-            syscall 45 (): r0.b
-            returnr.b r0
+            syscall 45 (): r99100.b
+            returnr.b r99100
         }}
     }
 
@@ -64,9 +62,9 @@ diskio {
         ;          if you're going to read from it yourself instead of using f_read()!
 
         %ir {{
-            loadm.w r65535,diskio.f_open.filenameptr
-            syscall 52 (r65535.w): r0.b
-            returnr.b r0
+            loadm.w r99000,diskio.f_open.filenameptr
+            syscall 52 (r99000.w): r99100.b
+            returnr.b r99100
         }}
     }
 
@@ -76,8 +74,8 @@ diskio {
         uword actual
         repeat num_bytes {
             %ir {{
-                syscall 54 (): r0.w
-                storem.w r0,$ff02
+                syscall 54 (): r99000.w
+                storem.w r99000,$ff02
             }}
             if cx16.r0H==0
                 return actual
@@ -94,8 +92,8 @@ diskio {
         uword actual
         repeat {
             %ir {{
-                syscall 54 (): r0.w
-                storem.w r0,$ff02
+                syscall 54 (): r99000.w
+                storem.w r99000,$ff02
             }}
             if cx16.r0H==0
                 return actual
@@ -114,8 +112,8 @@ diskio {
         ubyte size
         repeat {
             %ir {{
-                syscall 54 (): r0.w
-                storem.w r0,$ff02
+                syscall 54 (): r99000.w
+                storem.w r99000,$ff02
             }}
 
             if cx16.r0H==0 {
@@ -157,9 +155,9 @@ diskio {
         ;    To be 100% sure if this call was successful, you have to use status()
         ;    and check the drive's status message!
         %ir {{
-            loadm.w r65535,diskio.f_open_w.filenameptr
-            syscall 53 (r65535.w): r0.b
-            returnr.b r0
+            loadm.w r99000,diskio.f_open_w.filenameptr
+            syscall 53 (r99000.w): r99100.b
+            returnr.b r99100
         }}
     }
 
@@ -169,9 +167,9 @@ diskio {
         repeat num_bytes {
             %ir {{
                 loadm.w r0,diskio.f_write.bufferpointer
-                loadi.b r1,r0
-                syscall 55 (r1.b): r0.b
-                storem.b r0,$ff02
+                loadi.b r99100,r0
+                syscall 55 (r99100.b): r99100.b
+                storem.b r99100,$ff02
             }}
             if cx16.r0L==0
                 return false
@@ -194,32 +192,32 @@ diskio {
     sub chdir(str path) {
         ; -- change current directory.
         %ir {{
-            loadm.w r65535,diskio.chdir.path
-            syscall 50 (r65535.w)
+            loadm.w r99000,diskio.chdir.path
+            syscall 50 (r99000.w)
         }}
     }
 
     sub mkdir(str name) {
         ; -- make a new subdirectory.
         %ir {{
-            loadm.w r65535,diskio.mkdir.name
-            syscall 49 (r65535.w)
+            loadm.w r99000,diskio.mkdir.name
+            syscall 49 (r99000.w)
         }}
     }
 
     sub rmdir(str name) {
         ; -- remove a subdirectory.
         %ir {{
-            loadm.w r65535,diskio.rmdir.name
-            syscall 51 (r65535.w)
+            loadm.w r99000,diskio.rmdir.name
+            syscall 51 (r99000.w)
         }}
     }
 
     sub curdir() -> uword {
         ; return current directory name or 0 if error
         %ir {{
-            syscall 48 (): r0.w
-            returnr.w r0
+            syscall 48 (): r99000.w
+            returnr.w r99000
         }}
     }
 
@@ -236,24 +234,24 @@ diskio {
 
     sub save(uword filenameptr, uword start_address, uword savesize) -> bool {
         %ir {{
-            load.b r65532,0
-            loadm.w r65533,diskio.save.filenameptr
-            loadm.w r65534,diskio.save.start_address
-            loadm.w r65535,diskio.save.savesize
-            syscall 42 (r65532.b, r65533.w, r65534.w, r65535.w): r0.b
-            returnr.b r0
+            load.b r99100,0
+            loadm.w r99000,diskio.save.filenameptr
+            loadm.w r99001,diskio.save.start_address
+            loadm.w r99002,diskio.save.savesize
+            syscall 42 (r99100.b, r99000.w, r99001.w, r99002.w): r99100.b
+            returnr.b r99100
         }}
     }
 
     ; like save() but omits the 2 byte prg header.
     sub save_raw(uword filenameptr, uword startaddress, uword savesize) -> bool {
         %ir {{
-            load.b r65532,1
-            loadm.w r65533,diskio.save.filenameptr
-            loadm.w r65534,diskio.save.start_address
-            loadm.w r65535,diskio.save.savesize
-            syscall 42 (r65532.b, r65533.w, r65534.w, r65535.w): r0.b
-            returnr.b r0
+            load.b r99100,1
+            loadm.w r99000,diskio.save.filenameptr
+            loadm.w r99001,diskio.save.start_address
+            loadm.w r99002,diskio.save.savesize
+            syscall 42 (r99100.b, r99000.w, r99001.w, r99002.w): r99100.b
+            returnr.b r99100
         }}
     }
 
@@ -265,10 +263,10 @@ diskio {
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
     sub load(uword filenameptr, uword address_override) -> uword {
         %ir {{
-            loadm.w r65534,diskio.load.filenameptr
-            loadm.w r65535,diskio.load.address_override
-            syscall 40 (r65534.w, r65535.w): r0.w
-            returnr.w r0
+            loadm.w r99000,diskio.load.filenameptr
+            loadm.w r99001,diskio.load.address_override
+            syscall 40 (r99000.w, r99001.w): r99002.w
+            returnr.w r99002
         }}
     }
 
@@ -277,27 +275,27 @@ diskio {
     ; See comments on load() for more details.
     sub load_raw(uword filenameptr, uword start_address) -> uword {
         %ir {{
-            loadm.w r65534,diskio.load_raw.filenameptr
-            loadm.w r65535,diskio.load_raw.start_address
-            syscall 41 (r65534.w, r65535.w): r0.w
-            returnr.w r0
+            loadm.w r99000,diskio.load_raw.filenameptr
+            loadm.w r99001,diskio.load_raw.start_address
+            syscall 41 (r99000.w, r99001.w): r99002.w
+            returnr.w r99002
         }}
     }
 
     sub delete(uword filenameptr) {
         ; -- delete a file on the drive
         %ir {{
-            loadm.w r65535,diskio.delete.filenameptr
-            syscall 43 (r65535.w)
+            loadm.w r99000,diskio.delete.filenameptr
+            syscall 43 (r99000.w)
         }}
     }
 
     sub rename(uword oldfileptr, uword newfileptr) {
         ; -- rename a file on the drive
         %ir {{
-            loadm.w r65534,diskio.rename.oldfileptr
-            loadm.w r65535,diskio.rename.newfileptr
-            syscall 44 (r65534.w, r65535.w)
+            loadm.w r99000,diskio.rename.oldfileptr
+            loadm.w r99001,diskio.rename.newfileptr
+            syscall 44 (r99000.w, r99001.w)
         }}
     }
 

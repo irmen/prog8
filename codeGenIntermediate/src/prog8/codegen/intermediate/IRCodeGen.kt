@@ -808,7 +808,7 @@ class IRCodeGen(
         else if(pow2>=1) {
             // just shift multiple bits
             val pow2reg = registers.nextFree()
-            code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
+            code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
             code += IRInstruction(Opcode.LSLN, dt, reg1=reg, reg2=pow2reg)
         } else {
             code += if (factor == 0) {
@@ -906,7 +906,7 @@ class IRCodeGen(
                 } else {
                     // just shift multiple bits (signed)
                     val pow2reg = registers.nextFree()
-                    code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
+                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
                     code += IRInstruction(Opcode.ASRN, dt, reg1=reg, reg2=pow2reg)
                 }
             } else {
@@ -916,7 +916,7 @@ class IRCodeGen(
                 } else {
                     // just shift multiple bits (unsigned)
                     val pow2reg = registers.nextFree()
-                    code += IRInstruction(Opcode.LOAD, dt, reg1 = pow2reg, immediate = pow2)
+                    code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = pow2reg, immediate = pow2)
                     code += IRInstruction(Opcode.LSRN, dt, reg1 = reg, reg2 = pow2reg)
                 }
             }

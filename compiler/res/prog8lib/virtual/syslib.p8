@@ -34,8 +34,8 @@ sys {
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
         %ir {{
-            loadm.w r65535,sys.wait.jiffies
-            syscall 13 (r65535.w)
+            loadm.w r99000,sys.wait.jiffies
+            syscall 13 (r99000.w)
         }}
     }
 
@@ -49,36 +49,36 @@ sys {
     sub internal_stringcopy(uword source, uword tgt) {
         ; Called when the compiler wants to assign a string value to another string.
         %ir {{
-            loadm.w r65534,sys.internal_stringcopy.source
-            loadm.w r65535,sys.internal_stringcopy.tgt
-            syscall 39 (r65534.w, r65535.w): r0.b
+            loadm.w r99000,sys.internal_stringcopy.source
+            loadm.w r99001,sys.internal_stringcopy.tgt
+            syscall 39 (r99000.w, r99001.w): r99100.b
         }}
     }
 
     sub memcopy(uword source, uword tgt, uword count)  {
         %ir {{
-            loadm.w r65533,sys.memcopy.source
-            loadm.w r65534,sys.memcopy.tgt
-            loadm.w r65535,sys.memcopy.count
-            syscall 36 (r65533.w, r65534.w, r65535.w)
+            loadm.w r99000,sys.memcopy.source
+            loadm.w r99001,sys.memcopy.tgt
+            loadm.w r99002,sys.memcopy.count
+            syscall 36 (r99000.w, r99001.w, r99002.w)
         }}
     }
 
     sub memset(uword mem, uword numbytes, ubyte value)  {
         %ir {{
-            loadm.w r65533,sys.memset.mem
-            loadm.w r65534,sys.memset.numbytes
-            loadm.b r65535,sys.memset.value
-            syscall 37 (r65533.w, r65534.w, r65535.b)
+            loadm.w r99000,sys.memset.mem
+            loadm.w r99001,sys.memset.numbytes
+            loadm.b r99100,sys.memset.value
+            syscall 37 (r99000.w, r99001.w, r99100.b)
         }}
     }
 
     sub memsetw(uword mem, uword numwords, uword value)  {
         %ir {{
-            loadm.w r65533,sys.memsetw.mem
-            loadm.w r65534,sys.memsetw.numwords
-            loadm.w r65535,sys.memsetw.value
-            syscall 38 (r65533.w, r65534.w, r65535.w)
+            loadm.w r99000,sys.memsetw.mem
+            loadm.w r99001,sys.memsetw.numwords
+            loadm.w r99002,sys.memsetw.value
+            syscall 38 (r99000.w, r99001.w, r99002.w)
         }}
     }
 
@@ -86,19 +86,19 @@ sys {
         ; Compares two blocks of memory of up to 65535 bytes in size
         ; Returns -1 (255), 0 or 1, meaning: block 1 sorts before, equal or after block 2.
         %ir {{
-            loadm.w r65533,sys.memcmp.address1
-            loadm.w r65534,sys.memcmp.address2
-            loadm.w r65535,sys.memcmp.size
-            syscall 47 (r65533.w, r65534.w, r65535.w) : r0.b
-            returnr.b r0
+            loadm.w r99000,sys.memcmp.address1
+            loadm.w r99001,sys.memcmp.address2
+            loadm.w r99002,sys.memcmp.size
+            syscall 47 (r99000.w, r99001.w, r99002.w) : r99100.b
+            returnr.b r99100
         }}
     }
 
     sub exit(ubyte returnvalue) {
         ; -- immediately exit the program with a return code in the A register
         %ir {{
-            loadm.b r65535,sys.exit.returnvalue
-            syscall 1 (r65535.b)
+            loadm.b r99100,sys.exit.returnvalue
+            syscall 1 (r99100.b)
         }}
     }
 
@@ -144,73 +144,73 @@ sys {
 
     sub gfx_enable(ubyte mode) {
         %ir {{
-            loadm.b r65535,sys.gfx_enable.mode
-            syscall 8 (r65535.b)
+            loadm.b r99100,sys.gfx_enable.mode
+            syscall 8 (r99100.b)
         }}
     }
 
     sub gfx_clear(ubyte color) {
         %ir {{
-            loadm.b r65535,sys.gfx_clear.color
-            syscall 9 (r65535.b)
+            loadm.b r99100,sys.gfx_clear.color
+            syscall 9 (r99100.b)
         }}
     }
 
     sub gfx_plot(uword xx, uword yy, ubyte color) {
         %ir {{
-            loadm.w r65533,sys.gfx_plot.xx
-            loadm.w r65534,sys.gfx_plot.yy
-            loadm.b r65535,sys.gfx_plot.color
-            syscall 10 (r65533.w, r65534.w, r65535.b)
+            loadm.w r99000,sys.gfx_plot.xx
+            loadm.w r99001,sys.gfx_plot.yy
+            loadm.b r99100,sys.gfx_plot.color
+            syscall 10 (r99000.w, r99001.w, r99100.b)
         }}
     }
 
     sub gfx_getpixel(uword xx, uword yy) -> ubyte {
         %ir {{
-            loadm.w r65534,sys.gfx_getpixel.xx
-            loadm.w r65535,sys.gfx_getpixel.yy
-            syscall 17 (r65534.w, r65535.w): r0.b
-            returnr.b r0
+            loadm.w r99000,sys.gfx_getpixel.xx
+            loadm.w r99001,sys.gfx_getpixel.yy
+            syscall 17 (r99000.w, r99001.w): r99100.b
+            returnr.b r99100
         }}
     }
 
     sub push(ubyte b) {
         ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
         %ir {{
-            loadm.b r65535,sys.push.b
-            push.b r65535
+            loadm.b r99100,sys.push.b
+            push.b r99100
         }}
     }
 
     sub pushw(uword w) {
         ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
         %ir {{
-            loadm.w r65535,sys.pushw.w
-            push.w r65535
+            loadm.w r99000,sys.pushw.w
+            push.w r99000
         }}
     }
 
     sub push_returnaddress(uword w) {
         ; note: this actually doesn't do anything useful on the VM because the code execution doesn't use the simulated cpu stack
         %ir {{
-            loadm.w r65535,sys.pushw.w
-            push.w r65535
+            loadm.w r99000,sys.pushw.w
+            push.w r99000
         }}
     }
 
     sub pop() -> ubyte {
         ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
         %ir {{
-            pop.b r65535
-            returnr.b r65535
+            pop.b r99100
+            returnr.b r99100
         }}
     }
 
     sub popw() -> uword {
         ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
         %ir {{
-            pop.w r65535
-            returnr.w r65535
+            pop.w r99000
+            returnr.w r99000
         }}
     }
 

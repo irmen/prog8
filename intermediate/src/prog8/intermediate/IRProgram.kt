@@ -286,7 +286,14 @@ class IRProgram(val name: String,
         }
 
         globalInits.instructions.forEach {
-            it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
+            it.addUsedRegistersCounts(
+                readRegsCounts,
+                writeRegsCounts,
+                readFpRegsCounts,
+                writeFpRegsCounts,
+                regsTypes,
+                globalInits
+            )
         }
 
         blocks.forEach {block ->
@@ -474,7 +481,7 @@ class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label
         val readFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
         val writeRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
         val writeFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes) }
+        instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, this) }
         return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
     }
 
@@ -559,7 +566,14 @@ private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersU
             if(t.isNotEmpty()) {
                 val result = parseIRCodeLine(t)
                 result.fold(
-                    ifLeft = { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts,readFpRegsCounts, writeFpRegsCounts, regsTypes) },
+                    ifLeft = { it.addUsedRegistersCounts(
+                        readRegsCounts,
+                        writeRegsCounts,
+                        readFpRegsCounts,
+                        writeFpRegsCounts,
+                        regsTypes,
+                        null
+                    ) },
                     ifRight = { /* labels can be skipped */ }
                 )
             }

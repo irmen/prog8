@@ -1,14 +1,8 @@
-%zeropage basicsafe
-%option no_sysinit
-
 main {
-    ubyte @shared width
-
     sub start() {
-        if width==22 or width==33 {
-            cx16.r1++
-        }
+        str localstr = "hello"
+        uword[] words = [1111,2222,"three"]
+        bool r1 = 'z' in localstr
+        bool result = 2222 in words
     }
-
 }
-

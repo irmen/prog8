@@ -96,10 +96,10 @@ strings {
         ; Often you don’t have to call this explicitly and can just write string1 = string2
         ; but this function is useful if you’re dealing with addresses for instance.
         %ir {{
-            loadm.w r65534,strings.copy.source
-            loadm.w r65535,strings.copy.target
-            syscall 39 (r65534.w, r65535.w): r0.b
-            returnr.b r0
+            loadm.w r99000,strings.copy.source
+            loadm.w r99001,strings.copy.target
+            syscall 39 (r99000.w, r99001.w): r99100.b
+            returnr.b r99100
         }}
     }
 
@@ -116,10 +116,10 @@ strings {
         ; Note that you can also directly compare strings and string values with eachother using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %ir {{
-            loadm.w r65534,strings.compare.st1
-            loadm.w r65535,strings.compare.st2
-            syscall 16 (r65534.w, r65535.w) : r0.b
-            returnr.b r0
+            loadm.w r99000,strings.compare.st1
+            loadm.w r99001,strings.compare.st2
+            syscall 16 (r99000.w, r99001.w) : r99100.b
+            returnr.b r99100
         }}
     }
 

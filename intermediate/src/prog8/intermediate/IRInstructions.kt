@@ -1,5 +1,6 @@
 package prog8.intermediate
 
+import prog8.code.core.AssemblyError
 import prog8.code.core.RegisterOrStatusflag
 import prog8.code.core.toHex
 
@@ -795,11 +796,11 @@ data class IRInstruction(
             }
         }
         if(labelSymbolOffset!=null) require(labelSymbolOffset>0 && labelSymbol!=null) {"labelsymbol offset inconsistency"}
-        require(reg1==null || reg1 in 0..65536) {"reg1 out of bounds"}
-        require(reg2==null || reg2 in 0..65536) {"reg2 out of bounds"}
-        require(reg3==null || reg3 in 0..65536) {"reg3 out of bounds"}
-        require(fpReg1==null || fpReg1 in 0..65536) {"fpReg1 out of bounds"}
-        require(fpReg2==null || fpReg2 in 0..65536) {"fpReg2 out of bounds"}
+        require(reg1==null || reg1 in 0..99999) {"reg1 out of bounds"}
+        require(reg2==null || reg2 in 0..99999) {"reg2 out of bounds"}
+        require(reg3==null || reg3 in 0..99999) {"reg3 out of bounds"}
+        require(fpReg1==null || fpReg1 in 0..99999) {"fpReg1 out of bounds"}
+        require(fpReg2==null || fpReg2 in 0..99999) {"fpReg2 out of bounds"}
         if(reg1!=null && reg2!=null) require(reg1!=reg2) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type
         if(reg1!=null && reg3!=null) require(reg1!=reg3) {"reg1 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
         if(reg2!=null && reg3!=null) require(reg2!=reg3) {"reg2 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
@@ -855,6 +856,20 @@ data class IRInstruction(
 
         if(opcode==Opcode.SYSCALL) {
             requireNotNull(immediate) { "syscall needs immediate integer for the syscall number" }
+            val callRegisters = fcallArgs?.arguments?.map { it.reg.registerNum } ?: emptyList()
+            val returnRegisters = fcallArgs?.returns?.map { it.registerNum } ?: emptyList()
+
+            val reused = callRegisters.intersect(returnRegisters)
+            if(reused.isNotEmpty()) {
+                for(r in reused) {
+                    val argType = fcallArgs!!.arguments.single { it.reg.registerNum==r }.reg.dt
+                    val returnType = fcallArgs.returns.single { it.registerNum==r }.dt
+                    if (argType!=IRDataType.FLOAT && returnType!=IRDataType.FLOAT) {
+                        if(argType!=returnType)
+                            throw AssemblyError("syscall cannot reuse argument register as return register with different type $this")
+                    }
+                }
+            }
         }
     }
 
@@ -863,7 +878,8 @@ data class IRInstruction(
         writeRegsCounts: MutableMap<Int, Int>,
         readFpRegsCounts: MutableMap<Int, Int>,
         writeFpRegsCounts: MutableMap<Int, Int>,
-        regsTypes: MutableMap<Int, IRDataType>
+        regsTypes: MutableMap<Int, IRDataType>,
+        chunk: IRCodeChunk?
     ) {
         when (this.reg1direction) {
             OperandDirection.UNUSED -> {}
@@ -874,7 +890,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg1]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype")
+                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
                     } else
                         regsTypes[reg1] = actualtype
                 }
@@ -886,7 +902,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg1]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype")
+                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
                     } else
                         regsTypes[reg1] = actualtype
 
@@ -900,7 +916,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg1]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype")
+                            throw IllegalArgumentException("register $reg1 assigned multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
                     } else
                         regsTypes[reg1] = actualtype
 
@@ -916,7 +932,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg2]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg2 assigned multiple types! $existingType and $actualtype")
+                            throw IllegalArgumentException("register $reg2 assigned multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
                     } else
                         regsTypes[reg2] = actualtype
                 }
@@ -932,7 +948,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg3]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg3 assigned multiple types! $existingType and $actualtype")
+                            throw IllegalArgumentException("register $reg3 assigned multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
                     } else
                         regsTypes[reg3] = actualtype
                 }
@@ -965,7 +981,7 @@ data class IRInstruction(
                     val existingType = regsTypes[it.registerNum]
                     if (existingType!=null) {
                         if (existingType != it.dt)
-                            throw IllegalArgumentException("register ${it.registerNum} assigned multiple types! $existingType and ${it.dt}")
+                            throw IllegalArgumentException("register ${it.registerNum} assigned multiple types! $existingType and ${it.dt}  in label ${chunk?.label} chunk $chunk")
                     } else
                         regsTypes[it.registerNum] = it.dt
                 }
@@ -978,7 +994,7 @@ data class IRInstruction(
                     val existingType = regsTypes[it.reg.registerNum]
                     if (existingType!=null) {
                         if (existingType != it.reg.dt)
-                            throw IllegalArgumentException("register ${it.reg.registerNum} assigned multiple types! $existingType and ${it.reg.dt}")
+                            throw IllegalArgumentException("register ${it.reg.registerNum} assigned multiple types! $existingType and ${it.reg.dt}  in label ${chunk?.label} chunk $chunk")
                     } else
                         regsTypes[it.reg.registerNum] = it.reg.dt
                 }

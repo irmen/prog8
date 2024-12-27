@@ -164,15 +164,15 @@ math {
 
     sub rnd() -> ubyte {
         %ir {{
-            syscall 20 (): r0.b
-            returnr.b r0
+            syscall 20 (): r99100.b
+            returnr.b r99100
         }}
     }
 
     sub rndw() -> uword {
         %ir {{
-            syscall 21 (): r0.w
-            returnr.w r0
+            syscall 21 (): r99000.w
+            returnr.w r99000
         }}
     }
 
@@ -197,9 +197,9 @@ math {
     sub rndseed(uword seed1, uword seed2) {
         ; -- reset the pseudo RNG's seed values. Defaults are: $a55a, $7653.
         %ir {{
-            loadm.w r65534,math.rndseed.seed1
-            loadm.w r65535,math.rndseed.seed2
-            syscall 18 (r65534.w, r65535.w)
+            loadm.w r99000,math.rndseed.seed1
+            loadm.w r99001,math.rndseed.seed2
+            syscall 18 (r99000.w, r99001.w)
             return
         }}
     }
@@ -276,12 +276,12 @@ math {
         ;; Calculate the angle, in a 256-degree circle, between two points into A.
         ;; The points (x1, y1) and (x2, y2) have to use *unsigned coordinates only* from the positive quadrant in the carthesian plane!
         %ir {{
-            loadm.b r65532,math.atan2.x1
-            loadm.b r65533,math.atan2.y1
-            loadm.b r65534,math.atan2.x2
-            loadm.b r65535,math.atan2.y2
-            syscall 31 (r65532.b, r65533.b, r65534.b, r65535.b): r0.b
-            returnr.b r0
+            loadm.b r99100,math.atan2.x1
+            loadm.b r99101,math.atan2.y1
+            loadm.b r99102,math.atan2.x2
+            loadm.b r99103,math.atan2.y2
+            syscall 31 (r99100.b, r99101.b, r99102.b, r99103.b): r99100.b
+            returnr.b r99100
         }}
     }
 
@@ -296,8 +296,8 @@ math {
         ;   - THE RESULT IS ONLY VALID IF THE MULTIPLICATION WAS DONE WITH UWORD ARGUMENTS (or two positive WORD arguments)
         ;     as soon as a negative word value (or 2) was used in the multiplication, these upper 16 bits are not valid!!
         %ir {{
-            syscall 33 (): r0.w
-            returnr.w r0
+            syscall 33 (): r99000.w
+            returnr.w r99000
         }}
     }
 

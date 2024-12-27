@@ -6,8 +6,8 @@ package prog8.vm
  * A,X and Y "physical" 6502 registers.
  */
 class Registers {
-    private val registers = Array<UShort>(65536) { 0u }
-    private val floatRegisters = Array(65536) { 0.0 }
+    private val registers = Array<UShort>(99999) { 0u }
+    private val floatRegisters = Array(99999) { 0.0 }
     var cpuA: UByte = 0u
     var cpuX: UByte = 0u
     var cpuY: UByte = 0u
