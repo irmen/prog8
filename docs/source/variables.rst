@@ -168,7 +168,7 @@ type identifier  type                     storage size       example var declara
 ``uword[]``      unsigned word array      depends on value   ``uword[] myvar = [1, 2, 3, 4]``
 ``float[]``      floating-point array     depends on value   ``float[] myvar = [1.1, 2.2, 3.3, 4.4]``
 ``bool[]``       boolean array            depends on value   ``bool[] myvar = [true, false, true]``  note: consider using bit flags in a byte or word instead to save space
-``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``
+``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
 ``str``          string (PETSCII)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
 ===============  =======================  =================  =========================================
@@ -326,11 +326,14 @@ Unlike array variables, negative indexing for pointer variables does *not* mean 
 Instead, it simply addresses memory that lies *before* the pointer variable.
 See also :ref:`pointervars`
 
-**LSB/MSB split word arrays:**
+**LSB/MSB split word and str arrays:**
 
-As an optimization, (u)word arrays are split by the compiler in memory as two separate arrays,
+As an optimization, (u)word arrays and str arrays are split by the compiler in memory as two separate arrays,
 one with the LSBs and one with the MSBs of the word values. This is more efficient to access by the 6502 cpu.
-It also enables a maximum length of 256 for word arrays, where normally it would have been 128.
+It also allows a maximum length of 256 for word arrays, where normally it would have been 128.
+
+For normal prog8 array indexing, the compiler takes care of the distiction for you under water.
+*But for assembly code, or code that otherwise accesses the array elements directly, you have to be aware of the distinction from 'normal' arrays.*
 In the assembly code, the array is generated as two byte arrays namely ``name_lsb`` and ``name_msb``, immediately following eachother in memory.
 
 The ``@split`` tag can be added to the variable declaration to *always* split the array even when the command line option -dontsplitarrays is set
