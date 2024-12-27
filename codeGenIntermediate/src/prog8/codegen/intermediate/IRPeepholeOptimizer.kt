@@ -351,15 +351,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                     }
                 }
             }
-
-            // a SNZ etc. whose target register is not used can be removed altogether
-            if(ins.opcode in OpcodesThatSetRegFromStatusbits) {
-                val usages = regUsages(ins.reg1!!)
-                if(usages.toList().sumOf { it.second } <= 1) {
-                    chunk.instructions.removeAt(idx)
-                    changed = true
-                }
-            }
         }
         return changed
     }

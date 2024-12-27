@@ -869,7 +869,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         greaterEquals: Boolean
     ): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        val cmpResultReg = codeGen.registers.nextFree()
         if(vmDt==IRDataType.FLOAT) {
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
@@ -877,15 +876,29 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
             val resultRegister = codeGen.registers.nextFree()
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=resultRegister, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
-            val zeroRegister = codeGen.registers.nextFree()
-            addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=zeroRegister, immediate = 0), null)
-            val ins = if (signed) {
-                if (greaterEquals) Opcode.SGES else Opcode.SGTS
+            addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultRegister, immediate = 0), null)
+            val other = codeGen.createLabelName()
+            val after = codeGen.createLabelName()
+            val resultReg = codeGen.registers.nextFree()
+            // TODO can this be done more efficiently? also see operatorLessThan
+            if(greaterEquals) {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.BSTPOS, labelSymbol = other)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
+                    it += IRInstruction(Opcode.JUMP, labelSymbol = after)
+                }
+                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultReg, immediate = 1), other)
             } else {
-                if (greaterEquals) Opcode.SGE else Opcode.SGT
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.BSTNEG, labelSymbol = other)
+                    it += IRInstruction(Opcode.BSTEQ, labelSymbol = other)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
+                    it += IRInstruction(Opcode.JUMP, labelSymbol = after)
+                }
+                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultReg, immediate = 0), other)
             }
-            addInstr(result, IRInstruction(ins, IRDataType.BYTE, reg1=cmpResultReg, reg2 = resultRegister, reg3 = zeroRegister), null)
-            return ExpressionCodeResult(result, IRDataType.BYTE, cmpResultReg, -1)
+            result += IRCodeChunk(after, null)
+            return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         } else {
             if(binExpr.left.type.isString || binExpr.right.type.isString) {
                 throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
@@ -894,13 +907,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, leftTr, leftTr.resultReg, -1)
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, rightTr.resultReg, -1)
-                val ins = if (signed) {
-                    if (greaterEquals) Opcode.SGES else Opcode.SGTS
+                val branch = if (signed) {
+                    if (greaterEquals) Opcode.BGESR else Opcode.BGTSR
                 } else {
-                    if (greaterEquals) Opcode.SGE else Opcode.SGT
+                    if (greaterEquals) Opcode.BGER else Opcode.BGTR
                 }
-                addInstr(result, IRInstruction(ins, vmDt, reg1=cmpResultReg, reg2 = leftTr.resultReg, reg3 = rightTr.resultReg), null)
-                return ExpressionCodeResult(result, IRDataType.BYTE, cmpResultReg, -1)
+                val resultReg = compareRegisterAsBooleanResult(branch, leftTr.dt, leftTr.resultReg, rightTr.resultReg, result)
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
         }
     }
@@ -923,7 +936,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val other = codeGen.createLabelName()
             val after = codeGen.createLabelName()
             val resultReg = codeGen.registers.nextFree()
-            // TODO can this be done more efficiently?
+            // TODO can this be done more efficiently? also see operatorGreaterThan
             if(lessEquals) {
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.BSTNEG, labelSymbol = other)

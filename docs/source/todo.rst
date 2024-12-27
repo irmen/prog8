@@ -1,6 +1,8 @@
 TODO
 ====
 
+- addUsedRegistersCounts() doesn't always determine the datatype correctly. --> GET RID OF THE Sxxx OPCODES FOR NOW?
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -54,9 +56,8 @@ Future Things and Ideas
 
 IR/VM
 -----
-- add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- addUsedRegistersCounts() doesn't always determine the datatype correctly. --> GET RID OF THE Sxxx OPCODES FOR NOW?
+- add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"
 - implement missing operators in AssignmentGen  (array shifts etc)

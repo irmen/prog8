@@ -236,10 +236,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.BLE -> InsBLE(ins)
             Opcode.BGES -> InsBGES(ins)
             Opcode.BLES -> InsBLES(ins)
-            Opcode.SGT -> InsSGT(ins)
-            Opcode.SGTS -> InsSGTS(ins)
-            Opcode.SGE -> InsSGE(ins)
-            Opcode.SGES -> InsSGES(ins)
             Opcode.INC -> InsINC(ins)
             Opcode.INCM -> InsINCM(ins)
             Opcode.DEC -> InsDEC(ins)
@@ -883,34 +879,6 @@ class VirtualMachine(irProgram: IRProgram) {
             branchTo(i)
         else
             nextPc()
-    }
-
-    private fun InsSGT(i: IRInstruction) {
-        val (left, right) = getSetOnConditionOperandsU(i)
-        val value = if(left>right) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
-    }
-
-    private fun InsSGTS(i: IRInstruction) {
-        val (left, right) = getSetOnConditionOperands(i)
-        val value = if(left>right) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
-    }
-
-    private fun InsSGE(i: IRInstruction) {
-        val (left, right) = getSetOnConditionOperandsU(i)
-        val value = if(left>=right) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
-    }
-
-    private fun InsSGES(i: IRInstruction) {
-        val (left, right) = getSetOnConditionOperands(i)
-        val value = if(left>=right) 1 else 0
-        setResultReg(i.reg1!!, value, i.type!!)
-        nextPc()
     }
 
     private fun InsINC(i: IRInstruction) {

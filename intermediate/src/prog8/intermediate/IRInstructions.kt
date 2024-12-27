@@ -123,12 +123,6 @@ bles        reg1, value,      address   - jump to location in program given by l
 bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
 'blesr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed) ==> use bgesr with swapped operands
 
-sgt         reg1, reg2, reg3            - set reg1=1 if reg2 > reg3 (unsigned), else 0
-sgts        reg1, reg2, reg3            - set reg1=1 if reg2 > reg3 (signed), else 0
-sge         reg1, reg2, reg3            - set reg1=1 if reg2 >= reg3 (unsigned), else 0
-sges        reg1, reg2, reg3            - set reg1=1 if reg2 >= reg3 (signed), else 0
-(note: on the M68k these instructions will set all bits to 1 (so value=-1 instead of 1), but the boolean logic here requires it to be 0 or 1 in this IR)
-
 
 ARITHMETIC
 ----------
@@ -313,10 +307,6 @@ enum class Opcode {
     BGESR,
     BGES,
     BLES,
-    SGT,
-    SGTS,
-    SGE,
-    SGES,
 
     INC,
     INCM,
@@ -505,13 +495,6 @@ val OpcodesThatDependOnCarry = arrayOf(
     Opcode.ROXRM,
 )
 
-val OpcodesThatSetRegFromStatusbits = arrayOf(
-    Opcode.SGT,
-    Opcode.SGTS,
-    Opcode.SGE,
-    Opcode.SGES
-)
-
 val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThatSetStatusbitsIncludingCarry
 
 
@@ -662,10 +645,6 @@ val instructionFormats = mutableMapOf(
     Opcode.BGESR      to InstructionFormat.from("BW,<r1,<r2,<a"),
     Opcode.BGES       to InstructionFormat.from("BW,<r1,<i,<a"),
     Opcode.BLES       to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.SGT        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
-    Opcode.SGTS       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
-    Opcode.SGE        to InstructionFormat.from("BW,<>r1,<r2,<r3"),
-    Opcode.SGES       to InstructionFormat.from("BW,<>r1,<r2,<r3"),
     Opcode.INC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
     Opcode.INCM       to InstructionFormat.from("BW,<>a       | F,<>a"),
     Opcode.DEC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),

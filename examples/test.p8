@@ -12,19 +12,34 @@ main {
 
         cx16.r0 = $aaaa
         cx16.r1 = $2222
-        f1 = 9999
-        cx16.r0=9999
-        txt.print_bool(f1 < 8000)
+        f1 = 10000
+        cx16.r0=10000
+        ; true false false
+        ; true true false
+        ; times 2.
+        txt.print_bool(f1 > 8000)
         txt.spc()
-        txt.print_bool(f1 < 10000)
+        txt.print_bool(f1 > 10000)
         txt.spc()
-        txt.print_bool(f1 < 20000)
+        txt.print_bool(f1 > 20000)
         txt.nl()
-        txt.print_bool(cx16.r0 < 8000)
+        txt.print_bool(f1 >= 8000)
         txt.spc()
-        txt.print_bool(cx16.r0 < 10000)
+        txt.print_bool(f1 >= 10000)
         txt.spc()
-        txt.print_bool(cx16.r0 < 20000)
+        txt.print_bool(f1 >= 20000)
+        txt.nl()
+        txt.print_bool(cx16.r0 > 8000)
+        txt.spc()
+        txt.print_bool(cx16.r0 > 10000)
+        txt.spc()
+        txt.print_bool(cx16.r0 > 20000)
+        txt.nl()
+        txt.print_bool(cx16.r0 >= 8000)
+        txt.spc()
+        txt.print_bool(cx16.r0 >= 10000)
+        txt.spc()
+        txt.print_bool(cx16.r0 >= 20000)
         txt.nl()
 
         cx16.r0L=0
