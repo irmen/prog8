@@ -33,7 +33,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             is PtBool -> {
                 val code = IRCodeChunk(null, null)
-                val resultRegister = codeGen.registers.nextFree()
+                val resultRegister = codeGen.registers.next()
                 code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultRegister, immediate = expr.asInt())
                 ExpressionCodeResult(code, IRDataType.BYTE, resultRegister, -1)
             }
@@ -41,12 +41,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val vmDt = irType(expr.type)
                 val code = IRCodeChunk(null, null)
                 if(vmDt==IRDataType.FLOAT) {
-                    val resultFpRegister = codeGen.registers.nextFreeFloat()
+                    val resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
                     code += IRInstruction(Opcode.LOAD, vmDt, fpReg1 = resultFpRegister, immediateFp = expr.number)
                     ExpressionCodeResult(code, vmDt,-1, resultFpRegister)
                 }
                 else {
-                    val resultRegister = codeGen.registers.nextFree()
+                    val resultRegister = codeGen.registers.next()
                     code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, immediate = expr.number.toInt())
                     ExpressionCodeResult(code, vmDt, resultRegister, -1)
                 }
@@ -56,12 +56,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 if (expr.type.isPassByValue) {
                     val vmDt = irType(expr.type)
                     if(vmDt==IRDataType.FLOAT) {
-                        val resultFpRegister = codeGen.registers.nextFreeFloat()
+                        val resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
                         code += IRInstruction(Opcode.LOADM, vmDt, fpReg1 = resultFpRegister, labelSymbol = expr.name)
                         ExpressionCodeResult(code, vmDt, -1, resultFpRegister)
                     }
                     else {
-                        val resultRegister = codeGen.registers.nextFree()
+                        val resultRegister = codeGen.registers.next()
                         code += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = expr.name)
                         ExpressionCodeResult(code, vmDt, resultRegister, -1)
                     }
@@ -69,7 +69,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     // for strings and arrays etc., load the *address* of the value instead
                     // for arrays this could mean a split word array, in which case we take the address of the _lsb array which comes first
                     val vmDt = if(expr.type.isUndefined) IRDataType.WORD else irType(expr.type)
-                    val resultRegister = codeGen.registers.nextFree()
+                    val resultRegister = codeGen.registers.next()
                     val labelsymbol = if(expr.type.isSplitWordArray) expr.name+"_lsb" else expr.name
                     code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = labelsymbol)
                     ExpressionCodeResult(code, vmDt, resultRegister, -1)
@@ -162,14 +162,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val symbol = expr.identifier.name
         // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
         val result = mutableListOf<IRCodeChunkBase>()
-        val resultRegister = codeGen.registers.nextFree()
+        val resultRegister = codeGen.registers.next()
         if(expr.isFromArrayElement) {
             if(expr.identifier.type.isSplitWordArray)
                 TODO("address of element of a split word array")
             addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
             val indexTr2 = translateExpression(expr.arrayIndexExpr!!)
             addToResult(result, indexTr2, indexTr2.resultReg, -1)
-            val indexWordReg = codeGen.registers.nextFree()
+            val indexWordReg = codeGen.registers.next()
             addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexTr2.resultReg), null)
             if(expr.identifier.type.isUnsignedWord) {
                 result += IRCodeChunk(null, null).also {
@@ -201,7 +201,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(mem: PtMemoryByte): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        val resultRegister = codeGen.registers.nextFree()
+        val resultRegister = codeGen.registers.next()
 
         val constAddress = mem.address as? PtNumber
         if(constAddress!=null) {
@@ -214,7 +214,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if((ptrWithOffset.right as? PtNumber)?.number?.toInt() in 0..255) {
                 // LOADIX only works with byte index.
                 val ptrName = (ptrWithOffset.left as PtIdentifier).name
-                val offsetReg = codeGen.registers.nextFree()
+                val offsetReg = codeGen.registers.next()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = ptrWithOffset.right.asConstInteger())
                     it += IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=resultRegister, reg2=offsetReg, labelSymbol = ptrName)
@@ -259,7 +259,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val endLabel = codeGen.createLabelName()
                     val elementTr = translateExpression(check.needle)
                     addToResult(result, elementTr, elementTr.resultReg, -1)
-                    val boolResultRegister = if(elementDt.isByteOrBool) elementTr.resultReg else codeGen.registers.nextFree()
+                    val boolResultRegister = if(elementDt.isByteOrBool) elementTr.resultReg else codeGen.registers.next()
                     result += IRCodeChunk(null, null).also {
                         for(value in haystack){
                             it += IRInstruction(Opcode.CMPI, irType(elementDt), elementTr.resultReg, immediate = value)
@@ -285,7 +285,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(haystackVar)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
-                val resultReg = codeGen.registers.nextFree()
+                val resultReg = codeGen.registers.next()
                 result += codeGen.makeSyscall(IMSyscall.STRING_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
@@ -296,10 +296,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(haystackVar)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
-                val lengthReg = codeGen.registers.nextFree()
+                val lengthReg = codeGen.registers.next()
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
-                val resultReg = codeGen.registers.nextFree()
+                val resultReg = codeGen.registers.next()
                 result += codeGen.makeSyscall(IMSyscall.BYTEARRAY_CONTAINS, listOf(IRDataType.BYTE to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
@@ -310,10 +310,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(haystackVar)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
-                val lengthReg = codeGen.registers.nextFree()
+                val lengthReg = codeGen.registers.next()
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
-                val resultReg = codeGen.registers.nextFree()
+                val resultReg = codeGen.registers.next()
                 result += codeGen.makeSyscall(IMSyscall.WORDARRAY_CONTAINS, listOf(IRDataType.WORD to elementTr.resultReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
                 addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultReg, immediate = 0), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
@@ -324,8 +324,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, elementTr, -1, elementTr.resultFpReg)
                 val iterableTr = translateExpression(haystackVar)
                 addToResult(result, iterableTr, iterableTr.resultReg, -1)
-                val lengthReg = codeGen.registers.nextFree()
-                val resultReg = codeGen.registers.nextFree()
+                val lengthReg = codeGen.registers.next()
+                val resultReg = codeGen.registers.next()
                 val iterableLength = codeGen.symbolTable.getLength(haystackVar.name)
                 addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=lengthReg, immediate = iterableLength!!), null)
                 result += codeGen.makeSyscall(IMSyscall.FLOATARRAY_CONTAINS, listOf(IRDataType.FLOAT to elementTr.resultFpReg, IRDataType.WORD to iterableTr.resultReg, IRDataType.BYTE to lengthReg), IRDataType.BYTE to resultReg)
@@ -345,12 +345,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         if(arrayIx.splitWords) {
             require(vmDt==IRDataType.WORD)
-            resultRegister = codeGen.registers.nextFree()
-            val finalResultReg = codeGen.registers.nextFree()
+            resultRegister = codeGen.registers.next()
+            val finalResultReg = codeGen.registers.next()
             if(arrayIx.index is PtNumber) {
                 val memOffset = (arrayIx.index as PtNumber).number.toInt()
                 result += IRCodeChunk(null, null).also {
-                    val tmpRegMsb = codeGen.registers.nextFree()
+                    val tmpRegMsb = codeGen.registers.next()
                     it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=tmpRegMsb, labelSymbol= "${arrayVarSymbol}_msb", symbolOffset = memOffset)
                     it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, labelSymbol= "${arrayVarSymbol}_lsb", symbolOffset = memOffset)
                     it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=tmpRegMsb, reg3=resultRegister)
@@ -359,7 +359,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val tr = translateExpression(arrayIx.index)
                 addToResult(result, tr, tr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    val tmpRegMsb = codeGen.registers.nextFree()
+                    val tmpRegMsb = codeGen.registers.next()
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2 = tr.resultReg, labelSymbol= "${arrayVarSymbol}_msb")
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=resultRegister, reg2 = tr.resultReg, labelSymbol= "${arrayVarSymbol}_lsb")
                     it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=finalResultReg, reg2=tmpRegMsb, reg3=resultRegister)
@@ -372,11 +372,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(arrayIx.index is PtNumber) {
             val memOffset = ((arrayIx.index as PtNumber).number.toInt() * eltSize)
             if(vmDt==IRDataType.FLOAT) {
-                resultFpRegister = codeGen.registers.nextFreeFloat()
+                resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
             }
             else {
-                resultRegister = codeGen.registers.nextFree()
+                resultRegister = codeGen.registers.next()
                 addInstr(result, IRInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
             }
         } else {
@@ -385,11 +385,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             if(eltSize>1)
                 result += codeGen.multiplyByConst(IRDataType.BYTE, tr.resultReg, eltSize)
             if(vmDt==IRDataType.FLOAT) {
-                resultFpRegister = codeGen.registers.nextFreeFloat()
+                resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = resultFpRegister, reg1=tr.resultReg, labelSymbol = arrayVarSymbol), null)
             }
             else {
-                resultRegister = codeGen.registers.nextFree()
+                resultRegister = codeGen.registers.next()
                 addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=tr.resultReg, labelSymbol = arrayVarSymbol), null)
             }
         }
@@ -441,7 +441,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 =loadStatusAsBooleanResult(Opcode.BSTNE, result)
                     }
                     valueDt.isFloat -> {
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         result += IRCodeChunk(null, null).also {
                             it += IRInstruction(Opcode.SGN, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg)
                             it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=actualResultReg2, immediate = 1)
@@ -456,11 +456,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = tr.resultReg
                     }
                     BaseDataType.UWORD, BaseDataType.WORD -> {
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.FLOAT -> {
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.FTOUB, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
                     }
                     else -> throw AssemblyError("weird cast value type")
@@ -472,11 +472,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = tr.resultReg
                     }
                     BaseDataType.UWORD, BaseDataType.WORD -> {
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.FLOAT -> {
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.FTOSB, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
                     }
                     else -> throw AssemblyError("weird cast value type")
@@ -486,19 +486,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 when(valueDt.base) {
                     BaseDataType.BYTE -> {
                         // byte -> uword:   sign extend
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2 = tr.resultReg), null)
                     }
                     BaseDataType.BOOL, BaseDataType.UBYTE -> {
                         // ubyte -> uword:   sign extend
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2 = tr.resultReg), null)
                     }
                     BaseDataType.WORD -> {
                         actualResultReg2 = tr.resultReg
                     }
                     BaseDataType.FLOAT -> {
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.FTOUW, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
                     }
                     else -> throw AssemblyError("weird cast value type")
@@ -508,26 +508,26 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 when(valueDt.base) {
                     BaseDataType.BYTE -> {
                         // byte -> word:   sign extend
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
                     BaseDataType.BOOL, BaseDataType.UBYTE -> {
                         // byte -> word:   sign extend
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
                     BaseDataType.UWORD -> {
                         actualResultReg2 = tr.resultReg
                     }
                     BaseDataType.FLOAT -> {
-                        actualResultReg2 = codeGen.registers.nextFree()
+                        actualResultReg2 = codeGen.registers.next()
                         addInstr(result, IRInstruction(Opcode.FTOSW, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
                     }
                     else -> throw AssemblyError("weird cast value type")
                 }
             }
             BaseDataType.FLOAT -> {
-                actualResultFpReg2 = codeGen.registers.nextFreeFloat()
+                actualResultFpReg2 = codeGen.registers.next(IRDataType.FLOAT)
                 when(valueDt.base) {
                     BaseDataType.BOOL, BaseDataType.UBYTE -> {
                         addInstr(result, IRInstruction(Opcode.FFROMUB, IRDataType.FLOAT, reg1=tr.resultReg, fpReg1 = actualResultFpReg2), null)
@@ -636,9 +636,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val returnRegSpec = if(fcall.void) null else {
                     val returnIrType = irType(callTarget.returnType!!)
                     if(returnIrType==IRDataType.FLOAT)
-                        FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), null)
+                        FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.next(IRDataType.FLOAT), null)
                     else
-                        FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFree(), null)
+                        FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.next(), null)
                 }
                 // create the call
                 addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name,
@@ -695,9 +695,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         val returns = callTarget.returns[0]
                         val returnIrType = irType(returns.type)
                         if (returnIrType == IRDataType.FLOAT)
-                            FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.nextFreeFloat(), returns.register)
+                            FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.next(IRDataType.FLOAT), returns.register)
                         else {
-                            val returnRegister = codeGen.registers.nextFree()
+                            val returnRegister = codeGen.registers.next()
                             FunctionCallArgs.RegSpec(returnIrType, returnRegister, returns.register)
                         }
                     }
@@ -729,7 +729,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         // assign status flag bit to the return value register
                         finalReturnRegister = returnRegSpec.registerNum
                         if(finalReturnRegister<0)
-                            finalReturnRegister = codeGen.registers.nextFree()
+                            finalReturnRegister = codeGen.registers.next()
                         when(statusFlagResult) {
                             Statusflag.Pc -> {
                                 result += IRCodeChunk(null, null).also {
@@ -815,13 +815,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             "sys.pop" -> {
                 // pop byte
-                val popReg = codeGen.registers.nextFree()
+                val popReg = codeGen.registers.next()
                 addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=popReg), null)
                 return ExpressionCodeResult(chunk, IRDataType.BYTE, popReg, -1)
             }
             "sys.popw" -> {
                 // pop word
-                val popReg = codeGen.registers.nextFree()
+                val popReg = codeGen.registers.next()
                 addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.WORD, reg1=popReg), null)
                 return ExpressionCodeResult(chunk, IRDataType.WORD, popReg, -1)
             }
@@ -834,7 +834,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             "floats.pop" -> {
                 // pop float
-                val popReg = codeGen.registers.nextFreeFloat()
+                val popReg = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.FLOAT, fpReg1 = popReg), null)
                 return ExpressionCodeResult(chunk, IRDataType.FLOAT, -1, resultFpReg = popReg)
             }
@@ -850,7 +850,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     ): ExpressionCodeResult {
         // return multiple values
         val returnRegisters = callTarget.returns.map {
-            val regnum = if(it.type.isFloat) codeGen.registers.nextFreeFloat() else codeGen.registers.nextFree()
+            val regnum = if(it.type.isFloat) codeGen.registers.next(IRDataType.FLOAT) else codeGen.registers.next()
             FunctionCallArgs.RegSpec(irType(it.type), regnum, it.register)
         }
         // create the call
@@ -886,12 +886,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             val rightTr = translateExpression(binExpr.right)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
-            val resultRegister = codeGen.registers.nextFree()
+            val resultRegister = codeGen.registers.next()
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=resultRegister, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
             addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultRegister, immediate = 0), null)
             val other = codeGen.createLabelName()
             val after = codeGen.createLabelName()
-            val resultReg = codeGen.registers.nextFree()
+            val resultReg = codeGen.registers.next()
             // TODO can this be done more efficiently? also see operatorLessThan
             if(greaterEquals) {
                 result += IRCodeChunk(null, null).also {
@@ -942,12 +942,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             val rightTr = translateExpression(binExpr.right)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
-            val resultRegister = codeGen.registers.nextFree()
+            val resultRegister = codeGen.registers.next()
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=resultRegister, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
             addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultRegister, immediate = 0), null)
             val other = codeGen.createLabelName()
             val after = codeGen.createLabelName()
-            val resultReg = codeGen.registers.nextFree()
+            val resultReg = codeGen.registers.next()
             // TODO can this be done more efficiently? also see operatorGreaterThan
             if(lessEquals) {
                 result += IRCodeChunk(null, null).also {
@@ -993,8 +993,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             val rightTr = translateExpression(binExpr.right)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
-            val resultRegister = codeGen.registers.nextFree()
-            val valueReg = codeGen.registers.nextFree()
+            val resultRegister = codeGen.registers.next()
+            val valueReg = codeGen.registers.next()
             val label = codeGen.createLabelName()
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultRegister, immediate = 0)
@@ -1036,7 +1036,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         // TODO this used to be a single instruction like SCC, SCS, SZ etc but those were problematic
         val other = codeGen.createLabelName()
         val after = codeGen.createLabelName()
-        val resultReg = codeGen.registers.nextFree()
+        val resultReg = codeGen.registers.next()
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(branchForTrue, labelSymbol = other)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
@@ -1051,7 +1051,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         // TODO this used to be a single instruction like SCC, SCS, SZ etc but those were problematic
         val other = codeGen.createLabelName()
         val after = codeGen.createLabelName()
-        val resultReg = codeGen.registers.nextFree()
+        val resultReg = codeGen.registers.next()
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(branchForTrue, dt, reg1=reg1, reg2=reg2, labelSymbol = other)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
