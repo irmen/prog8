@@ -102,7 +102,7 @@ Features
 - Several specialized built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
 - Various powerful built-in libraries to do I/O, number conversions, graphics and more
 - Floating point math is supported on certain compiler targets.
-- Easy and highly efficient integration with external subroutines and ROM routines on the target systems.
+- Provides access to most Kernal ROM routines as external subroutine definitions you can call normally.
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
 - Encode strings and characters into petscii or screencodes or even other encodings, as desired (C64/Cx16)
 - Automatic ROM/RAM bank switching on certain compiler targets when calling routines in other banks
