@@ -4,6 +4,7 @@
 %import bmx
 %import compression
 %import conv
+%import coroutines
 %import cx16logo
 %import diskio
 %import emudbg

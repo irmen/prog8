@@ -1,5 +1,5 @@
 
-Prog8 compiler v11.0 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v11.0.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -140,11 +140,31 @@ conv  {
 }
 
 
+LIBRARY MODULE NAME: coroutines
+-------------------------------
+
+coroutines  {
+    const ubyte  MAX_TASKS 
+    ubyte  active_task 
+    uword[]  returnaddresses 
+    uword  supervisor 
+    uword[]  tasklist 
+    uword[]  userdatas 
+    add  (uword taskaddress, uword userdata) -> ubyte 
+    current  () -> ubyte 
+    kill  (ubyte taskid) 
+    killall  () 
+    run  (uword supervisor_routine) 
+    termination  () 
+    yield  () -> uword 
+}
+
+
 LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    @nosplit uword[]  logo_lines 
+    uword[]  logo_lines 
     logo  () 
     logo_at  (ubyte column, ubyte row) 
 }
@@ -1186,6 +1206,7 @@ sys  {
     progend  () -> uword @AY 
     progstart  () -> uword @AY 
     push  (ubyte value @A) 
+    push_returnaddress  (uword address @XY) 
     pushw  (uword value @AY) 
     read_flags  () -> ubyte @A 
     reset_system  () 
@@ -1277,6 +1298,7 @@ txt  {
     setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) -> clobbers (A) 
     setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) -> clobbers (A) 
     spc  () 
+    t256c  (bool enable) 
     uppercase  () 
     waitkey  () -> ubyte @A 
     width  () -> clobbers (X,Y) -> ubyte @A 

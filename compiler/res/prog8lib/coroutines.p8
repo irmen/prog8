@@ -9,7 +9,8 @@
 ; - you can add new tasks, while the rest is already running.  Just not yet from inside IRQ handlers!
 ; - tasks are regular subroutines but have to call yield() to pass control to the next task (round-robin)
 ; - yield() returns the registered userdata value for that task, so a single subroutine could be used as multiple tasks on different userdata
-;   BUT!! in that case, the subroutine cannot have any variables of its own that keep state, because they're shared across the multiple tasks
+;   BUT!! in that case, the subroutine cannot have any variables of its own that keep state, because they're shared across the multiple tasks!
+;   (if a subroutine is just inserted as a task exactly ONCE, it's okay to use normal variables for state, because nobody will share them)
 ; - you can kill a task (if you know it's id...)
 ; - when all tasks are finished the run() call will also return.
 ; - tasks can't push anything on the cpu stack before calling yield() - that will cause chaos.
@@ -23,7 +24,9 @@
 ;
 ; USAGE:
 ; - call add(taskaddress) to add a new task.  It returns the task id.
-; - call run() to start executing all tasks until none are left.
+; - call run(supervisor) to start executing all tasks until none are left. Pass 0 or a pointer to a 'supervisor' routine.
+;   that routine can for instance call current() (or just look at the active_task variable) to get the id of the next task to execute.
+;   It has then to return a boolean: true=next task is to be executed, false=skip the task this time.
 ; - in tasks: call yield() to pass control to the next task. Use the returned userdata value to do different things.
 ; - call current() to get the current task id.
 ; - call kill(taskid) to kill a task by id.
@@ -37,6 +40,7 @@ coroutines {
     uword[MAX_TASKS] userdatas
     uword[MAX_TASKS] returnaddresses
     ubyte active_task
+    uword supervisor
 
     sub add(uword taskaddress, uword userdata) -> ubyte {
         ; find the next empty slot in the tasklist and stick it there
@@ -63,7 +67,8 @@ coroutines {
         }
     }
 
-    sub run() {
+    sub run(uword supervisor_routine) {
+        supervisor = supervisor_routine
         for active_task in 0 to len(tasklist)-1 {
             if tasklist[active_task]!=0 {
                 ; activate the termination handler and start the first task
@@ -87,6 +92,11 @@ resume_with_next_task:
             return 0   ; exiting here will now actually return from the start() call back to the calling program :)
         }
 
+        if supervisor!=0 {
+            if lsb(call(supervisor))==0
+                goto resume_with_next_task
+        }
+
         if task_continue==0 {
             ; fetch start address of next task.
             ; address on the stack must be pushed in reverse byte order
@@ -96,7 +106,8 @@ resume_with_next_task:
         } else
             sys.pushw(task_continue)
 
-        return userdatas[active_task]     ; returning from yield then continues with the next coroutine
+        ; returning from yield then continues with the next coroutine
+        return userdatas[active_task]
 
         sub next_task() -> bool {
             ; search through the task list for the next active task

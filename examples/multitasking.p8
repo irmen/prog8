@@ -20,8 +20,12 @@ main {
         void coroutines.add(&task4, sc:'4')
         void coroutines.add(&keyhandler, 0)
         void coroutines.add(&delaytask, 0)
-        coroutines.run()
+        coroutines.run(&supervisor)     ; can also use 0 if you don't need a supervisor routine
+        ; the supervisor is called every time a task switch is about to occur - and you can control that somewhat.
+        ; if that control is not needed you could also just add a "system" routine as a regular task,
+        ; much like the keyhandler and delay tasks above.
 
+        ; we will end up here if there are no more tasks to run (doesn't happen in this example)
         txt.print("we're all done!\n")
     }
 
@@ -34,6 +38,14 @@ main {
             }
             void coroutines.yield()
         }
+    }
+
+    sub supervisor() -> bool {
+        ; you can call coroutines.current() to get the id of the next task to run.
+        ; (or just read the active_task variable)
+        ; return true to execute that task, or false to skip it this time.
+        ; or do something else....?
+        return true
     }
 
     ubyte[coroutines.MAX_TASKS] counters

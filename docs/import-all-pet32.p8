@@ -3,6 +3,7 @@
 %import buffers
 %import compression
 %import conv
+%import coroutines
 %import cx16logo
 %import math
 %import prog8_lib

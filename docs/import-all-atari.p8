@@ -2,6 +2,7 @@
 
 %import buffers
 %import compression
+%import coroutines
 %import conv
 %import cx16logo
 %import math
