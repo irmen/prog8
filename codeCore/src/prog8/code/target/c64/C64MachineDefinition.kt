@@ -20,7 +20,7 @@ class C64MachineDefinition: IMachineDefinition {
             // note that at $cfe0-$cfff are the 16 'virtual registers' R0-R15
 
     override val BSSHIGHRAM_START = 0xc000u
-    override val BSSHIGHRAM_END = 0xcfffu
+    override val BSSHIGHRAM_END = 0xcfdfu
     override val BSSGOLDENRAM_START = 0u
     override val BSSGOLDENRAM_END = 0u
 

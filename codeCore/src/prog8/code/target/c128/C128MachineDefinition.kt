@@ -15,7 +15,7 @@ class C128MachineDefinition: IMachineDefinition {
     override val FLOAT_MEM_SIZE = Mflpt5.FLOAT_MEM_SIZE
     override val STARTUP_CODE_RESERVED_SIZE = 20u
     override val PROGRAM_LOAD_ADDRESS = 0x1c01u
-    override val PROGRAM_MEMTOP_ADDRESS = 0xff00u
+    override val PROGRAM_MEMTOP_ADDRESS = 0xc000u
 
     override val BSSHIGHRAM_START = 0u    // TODO
     override val BSSHIGHRAM_END = 0u      // TODO
