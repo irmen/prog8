@@ -104,14 +104,19 @@ io_error:
     }
 
     sub diskname() -> uword {
-        ; returns disk label name or 0 if error
-        cbm.SETNAM(3, "$")
+        ; -- Returns pointer to disk name string or 0 if failure.
+
+        cbm.SETNAM(1, "$")
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
-        ubyte status = 1
-        void cbm.OPEN()          ; open 12,8,0,"$=c"
+        bool okay = false
+        void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
             goto io_error
         reset_read_channel()
+
+        void cbm.CHRIN()
+        if cbm.READST()!=0
+            goto io_error
 
         while cbm.CHRIN()!='"' {
             ; skip up to entry name
@@ -130,14 +135,14 @@ io_error:
             }
             cx16.r0++
         }
-        status = cbm.READST()
+        okay = true
 
 io_error:
-        cbm.CLRCHN()
+        cbm.CLRCHN()        ; restore default i/o devices
         cbm.CLOSE(READ_IO_CHANNEL)
-        if status!=0 and status & $40 == 0
-            return 0
-        return list_filename
+        if okay
+            return &list_filename
+        return 0
     }
 
     ; internal variables for the iterative file lister / loader

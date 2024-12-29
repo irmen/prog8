@@ -92,11 +92,13 @@ io_error:
             goto io_error
         reset_read_channel()
 
+        void cbm.CHRIN()
+        if cbm.READST()!=0
+            goto io_error
+
         while cbm.CHRIN()!='"' {
             ; skip up to entry name
         }
-        if cbm.READST()!=0
-            goto io_error
 
         cx16.r0 = &list_filename
         repeat {
