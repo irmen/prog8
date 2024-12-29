@@ -373,6 +373,25 @@ API is experimental and may change or disappear in a future version.
 
 Read the `coroutines source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/coroutines.p8>`_
 to see what's in there. And look at the ``multitasking`` example to see how it can be used.
+Here is a minimal example (if the library gets more stable, better docs will be written here)::
+
+    %import coroutine
+
+    main {
+        sub start() {
+            coroutines.killall()
+            coroutines.add(&some_task, 1111)
+            ; ... add more tasks here or later
+            coroutines.run(0)
+        }
+
+        sub some_task() {
+            repeat 100 {
+                uword userdata = coroutines.yield()
+                ; ... do something...
+            }
+        }
+    }
 
 
 cx16

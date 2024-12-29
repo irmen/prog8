@@ -81,7 +81,7 @@ extsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; (via 810 ($32A
 extsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C)) close all files
 extsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 extsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; get size of text screen into X (columns) and Y (rows)
-extsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Also see txt.plot
+extsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ Y, ubyte @ X       ; read/set position of cursor on screen (Y=column, X=row).  Also see txt.plot
 extsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
 ; ---- utility

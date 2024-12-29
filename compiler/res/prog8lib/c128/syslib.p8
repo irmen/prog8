@@ -97,7 +97,7 @@ extsub $FFE7 = CLALL() clobbers(A,X)                            ; (via 812 ($32C
 extsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 extsub $FFED = SCREEN() -> ubyte @ X, ubyte @ Y                 ; get current window dimensions into X (columns) and Y (rows)  NOTE: changed behavior compared to VIC/C64/PET SCREEN() routine!
 extsub $FFED = SCRORG() -> ubyte @ X, ubyte @ Y                 ; get current window dimensions into X (columns) and Y (rows)  NOTE: changed behavior compared to VIC/C64/PET SCREEN() routine!
-extsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ X, ubyte @ Y       ; read/set position of cursor on screen.  Use txt.plot for a 'safe' wrapper that preserves X.
+extsub $FFF0 = PLOT(ubyte col @ Y, ubyte row @ X, bool dir @ Pc) clobbers(A) -> ubyte @ Y, ubyte @ X       ; read/set position of cursor on screen (Y=column, X=row).  Also see txt.plot
 extsub $FFF3 = IOBASE() -> uword @ XY                           ; read base address of I/O devices
 
 ; ---- end of C64 compatible ROM kernal routines ----

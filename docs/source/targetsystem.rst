@@ -127,18 +127,23 @@ So the normal IRQ vector can still run and will be when the program is started!
 CPU
 ===
 
-Directly Usable Registers
--------------------------
+Directly Accessible Registers
+-----------------------------
 
-The hardware CPU registers are not directly accessible from regular Prog8 code.
-If you need to mess with them, you'll have to use inline assembly.
+The hardware CPU registers (A, X, Y) are not directly accessible from regular Prog8 code.
+If you need to work with them, you'll have to use some inline assembly with ``%asm``.
+Or, if they are required to have a value as arguments to some external kernal or library assembly routine,
+just use a normal subroutine call to an ``extsub`` that correctly specifies what registers go where.
+The compiler will then take care of loading the arguments into the required registers and returning
+any response value(s) back to the prog8 code.
 
-The status register (P) carry flag and interrupt disable flag can be written via a couple of special
+The status register (P) carry flag and interrupt disable flag *can* be written via a couple of special
 builtin functions (``set_carry()``, ``clear_carry()``, ``set_irqd()``,  ``clear_irqd()``),
-and read via the ``read_flags()`` function.
+and read via the ``read_flags()`` function.  With the special status branch statements like ``if_cc``,
+``if_cs`` etc you can branch directly on the status of the flags.
 
 The 16 'virtual' 16-bit registers that are defined on the Commander X16 machine are not real hardware
-registers and are just 16 memory-mapped word values that you *can* access directly.
+registers and are just 16 memory-mapped word values that you *can* access directly from everywhere.
 
 
 IRQ Handling
