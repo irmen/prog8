@@ -7,7 +7,7 @@ plugins {
 dependencies {
     // should have no dependencies to other modules
     // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.0.0")
+    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.0.1")
 }
 
 sourceSets {

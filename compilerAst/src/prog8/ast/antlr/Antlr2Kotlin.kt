@@ -589,6 +589,7 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
         val addressOf = addressof()
         val identifier = addressOf.scoped_identifier()
         val msb = addressOf.ADDRESS_OF_MSB()!=null
+        // note: &<  (ADDRESS_OF_LSB)  is equivalent to a regular &.
         return if (identifier != null)
             AddressOf(addressof().scoped_identifier().toAst(), null, msb, toPosition())
         else {

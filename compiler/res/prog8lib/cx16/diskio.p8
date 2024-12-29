@@ -162,6 +162,9 @@ io_error:
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
         ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
         ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
+        ;    Note that no list of pointers of some form is returned, the names are just squashed together.
+        ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
+        ;    and registering when the next one starts after the 0-byte separator.
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
         filenames_buffer[0]=0

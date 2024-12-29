@@ -965,6 +965,7 @@ Provides string manipulation routines.
 ``pattern_match (string, pattern) -> bool`` (not on Virtual target)
     Returns true if the string matches the pattern, false if not.
     '?' in the pattern matches any one character. '*' in the pattern matches any substring.
+    An empty pattern matches nothing. If you need everything to match, use a single '*'.
 
 ``hash (string) -> ubyte``
     Returns a simple 8 bit hash value for the given string.
