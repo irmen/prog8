@@ -449,7 +449,7 @@ cbm  {
     MEMBOT  (uword address @XY, bool dir @Pc) -> uword @XY  = $ff9c
     MEMTOP  (uword address @XY, bool dir @Pc) -> uword @XY  = $ff99
     OPEN  () -> clobbers (X,Y) -> bool @Pc, ubyte @A  = $ffc0
-    PLOT  (ubyte col @Y, ubyte row @X, bool dir @Pc) -> clobbers (A) -> ubyte @X, ubyte @Y  = $fff0
+    PLOT  (ubyte col @Y, ubyte row @X, bool dir @Pc) -> clobbers (A) -> ubyte @Y, ubyte @X  = $fff0
     RAMTAS  () -> clobbers (A,X,Y)  = $ff87
     RDTIM  () -> ubyte @A, ubyte @X, ubyte @Y  = $ffde
     RDTIM16  () -> clobbers (X) -> uword @AY 
