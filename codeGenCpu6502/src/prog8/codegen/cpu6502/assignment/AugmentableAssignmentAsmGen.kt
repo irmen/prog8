@@ -668,7 +668,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sbc  cx16.r0H
                     sta  ${arrayVar}_msb+$index""")
             }
-            else -> TODO("in-place modify split-words array value for operator $operator")
+            else -> TODO("inplace split word array value $operator")
         }
     }
 

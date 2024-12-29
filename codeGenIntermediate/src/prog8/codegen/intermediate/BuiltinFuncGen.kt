@@ -548,7 +548,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val arr = (arg as? PtArrayIndexer)
         val index = arr?.index?.asConstInteger()
         if(arr!=null && index!=null) {
-            if(arr.splitWords)  TODO("IR rol/ror on split words array")
+            if(arr.splitWords)
+                TODO("IR rol/ror on split words array")
             val variable = arr.variable.name
             val offset = codeGen.program.memsizer.memorySize(arr.type, index)
             addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, labelSymbol = variable, symbolOffset = offset), null)

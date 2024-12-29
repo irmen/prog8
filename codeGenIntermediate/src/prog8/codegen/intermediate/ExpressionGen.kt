@@ -163,15 +163,24 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
         val result = mutableListOf<IRCodeChunkBase>()
         val resultRegister = codeGen.registers.next()
+
+        fun loadAddressOfArrayLabel(reg: Int) {
+            if (expr.isMsbForSplitArray) {
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = symbol + "_msb"), null)
+            } else if (expr.identifier.type.isSplitWordArray) {
+                // the _lsb split array comes first in memory
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = symbol + "_lsb"), null)
+            } else
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = symbol), null)
+        }
+
         if(expr.isFromArrayElement) {
-            if(expr.identifier.type.isSplitWordArray)
-                TODO("address of element of a split word array")
-            addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
-            val indexTr2 = translateExpression(expr.arrayIndexExpr!!)
-            addToResult(result, indexTr2, indexTr2.resultReg, -1)
+            val indexTr = translateExpression(expr.arrayIndexExpr!!)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
             val indexWordReg = codeGen.registers.next()
-            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexTr2.resultReg), null)
+            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexTr.resultReg), null)
             if(expr.identifier.type.isUnsignedWord) {
+                require(!expr.isMsbForSplitArray)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
@@ -179,22 +188,15 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             } else {
                 val eltSize = codeGen.program.memsizer.memorySize(expr.identifier.type, 1)
                 result += IRCodeChunk(null, null).also {
-                    // multiply indexTr resultreg by the eltSize and add this to the resultRegister.
-                    it += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol)
-                    if(eltSize>1) {
+                    loadAddressOfArrayLabel(resultRegister)
+                    if(eltSize>1 && !expr.identifier.type.isSplitWordArray) {
                         it += IRInstruction(Opcode.MUL, IRDataType.WORD, reg1=indexWordReg, immediate = eltSize)
                     }
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
                 }
             }
         } else {
-            if(expr.isMsbForSplitArray) {
-                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol+"_msb"), null)
-            } else if(expr.identifier.type.isSplitWordArray) {
-                // the _lsb split array comes first in memory
-                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol+"_lsb"), null)
-            } else
-                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = symbol), null)
+            loadAddressOfArrayLabel(resultRegister)
         }
         return ExpressionCodeResult(result, vmDt, resultRegister, -1)
     }

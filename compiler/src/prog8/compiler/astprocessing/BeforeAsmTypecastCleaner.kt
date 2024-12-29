@@ -48,7 +48,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                         listOf(
                             IAstModification.ReplaceNode(
                                 typecast,
-                                AddressOf(identifier, null, typecast.position),
+                                AddressOf(identifier, null, false, typecast.position),
                                 parent
                             )
                         )

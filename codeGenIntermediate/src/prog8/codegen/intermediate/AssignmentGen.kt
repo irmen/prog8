@@ -879,7 +879,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun operatorMultiplyInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): IRCodeChunks? {
-        return null  // TODO("inplace split word array *")
+        return null  // fallback to slow method   // TODO("inplace split word array *")
     }
 
     private fun operatorMinusInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): IRCodeChunks? {
@@ -900,10 +900,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
                 return result
             } else {
-                return null  // TODO("inplace split word array -")
+                return null  // fallback to slow method   // TODO("inplace split word array -")
             }
         }
-        return null  // TODO("inplace split word array -")
+        return null  // fallback to slow method   // TODO("inplace split word array -")
     }
 
     private fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
@@ -986,10 +986,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 result += IRCodeChunk(skip, null)
                 return result
             } else {
-                return null  // TODO("inplace split word array +")
+                return null  // fallback to slow method   // TODO("inplace split word array +")
             }
         }
-        return null  // TODO("inplace split word array +")
+        return null  // fallback to slow method   // TODO("inplace split word array +")
     }
 
     private fun operatorShiftRightInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {

@@ -10,15 +10,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
--  why is this code so much larger with charpos variable, than with just using cx16.r0L ?
-              ubyte charpos
-              for charpos in DIALOG_TOPX+1 to DIALOG_TOPX+30 {
-                  txt.setchr(charpos, cx16.r1L, txt.getchr(charpos, cx16.r1L) ^ 128)
-              }
-
-- support &, &< and &> on array elements from split word arrays too not just the array as a whole  (to get rid of the error "&< is only valid on array variables"
-  and "cannot take the adress of a word element that is in a split-word array" and the TODOS "address of element of a split word array")
-- after that: fix leftover asmgen split word array todo's
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 
@@ -59,6 +50,7 @@ IR/VM
 - add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"
+- implement fast code paths for TODO("inplace split....
 - sometimes source lines get missing in the output p8ir, for example the first assignment is gone in:
      sub start() {
          cx16.r0L = cx16.r1 as ubyte

@@ -231,7 +231,7 @@ internal class AssignmentAsmGen(
                     targetDt.isSignedWord -> assignVariableWord(assign.target, variable, assign.source.datatype)
                     targetDt.isUnsignedWord -> {
                         if(assign.source.datatype.isPassByRef)
-                            assignAddressOf(assign.target, variable, null, null)
+                            assignAddressOf(assign.target, variable, false, null, null)
                         else
                             assignVariableWord(assign.target, variable, assign.source.datatype)
                     }
@@ -447,7 +447,7 @@ internal class AssignmentAsmGen(
                         asmgen.asmSymbolName(value.identifier) + "_lsb"  // the _lsb split array comes first in memory
                     else
                         asmgen.asmSymbolName(value.identifier)
-                assignAddressOf(assign.target, sourceName, arrayDt, value.arrayIndexExpr)
+                assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, arrayDt, value.arrayIndexExpr)
             }
             is PtBool -> throw AssemblyError("source kind should have been literalboolean")
             is PtNumber -> throw AssemblyError("source kind should have been literalnumber")
@@ -1929,21 +1929,21 @@ $endLabel""")
             dt.isString -> {
                 assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt.isSigned)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, false, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #${numElements-1}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
             dt.isFloatArray -> {
                 assignExpressionToRegister(containment.needle, RegisterOrPair.FAC1, true)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, false, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  floats.containment_floatarray")
             }
             dt.isByteArray -> {
                 assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt.isSigned)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, false, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
@@ -1951,11 +1951,11 @@ $endLabel""")
             dt.isWordArray -> {
                 assignExpressionToVariable(containment.needle, "P8ZP_SCRATCH_W1", elementDt)
                 if(dt.isSplitWordArray) {
-                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName+"_lsb", null, null)
+                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName+"_lsb", false, null, null)
                     asmgen.out("  ldy  #$numElements")
                     asmgen.out("  jsr  prog8_lib.containment_splitwordarray")
                 } else {
-                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, null, null)
+                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, false, null, null)
                     asmgen.out("  ldy  #$numElements")
                     asmgen.out("  jsr  prog8_lib.containment_linearwordarray")
                 }
@@ -2576,13 +2576,12 @@ $endLabel""")
         }
     }
 
-    private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
+    private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, msb: Boolean, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         if(arrayIndexExpr!=null) {
-            if(arrayDt?.isSplitWordArray==true)
-                TODO("address of element of a split word array")
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
                 if (arrayDt?.isUnsignedWord==true) {
+                    require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     if(constIndex>0)
                         asmgen.out("""
@@ -2594,7 +2593,7 @@ $endLabel""")
                 }
                 else {
                     if(constIndex>0) {
-                        val offset = program.memsizer.memorySize(arrayDt!!, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
+                        val offset = if(arrayDt!!.isSplitWordArray) constIndex else program.memsizer.memorySize(arrayDt, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
                         asmgen.out("  lda  #<($sourceName + $offset) |  ldy  #>($sourceName + $offset)")
                     } else {
                         asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
@@ -2604,6 +2603,7 @@ $endLabel""")
                 return
             } else {
                 if (arrayDt?.isUnsignedWord==true) {
+                    require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     asmgen.saveRegisterStack(CpuRegister.A, false)
                     asmgen.saveRegisterStack(CpuRegister.Y, false)
