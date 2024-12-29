@@ -833,10 +833,10 @@ sorting (experimental)
 ----------------------
 Various sorting routines (gnome sort and shell sort variants) for byte, word and string arrays.
 API is experimental and may change or disappear in a future version.
-**NOTE:** all word arrays are assumed to be @nosplit, words and pointers need to be consecutive in memory.
+**NOTE:** all word and str arrays have to be @nosplit! Words and pointers need to be consecutive in memory for now.
 **NOTE:** sorting is done in ascending order.
 Read the `sorting source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/sorting.p8>`_
-to see what's in there.
+to see what's in there.   Also check out the `sortingbech` example.
 
 
 sprites  (cx16 only)

@@ -9,8 +9,8 @@
 main {
     ubyte[50] array1
     ubyte[50] array2
-    uword[50] warray1
-    uword[50] warray2
+    uword[50] @nosplit warray1
+    uword[50] @nosplit warray2
     str[22] @nosplit fruits
     str[] @nosplit original_fruits = ["mango", "banana", "cranberry", "zucchini", "blackberry", "orange", "dragonfruit", "cherry",
             "kiwifruit", "lychee", "peach", "apricot", "tomato", "avocado", "nectarine", "pear",

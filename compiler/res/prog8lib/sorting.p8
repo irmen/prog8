@@ -120,10 +120,9 @@ _done
                 uword @zp temp = peekw(values+i*$0002)
                 ubyte @zp j = i
                 ubyte @zp k = j-gap
-                repeat {
+                while j>=gap {
                     uword @zp v = peekw(values+k*2)
                     if v <= temp break
-                    if j < gap break
                     pokew(values+j*2, v)
                     j = k
                     k -= gap
@@ -144,11 +143,10 @@ _done
                 cx16.r1 = peekw(pointers+i*$0002)
                 ubyte @zp j = i
                 ubyte @zp k = j-gap
-                repeat {
+                while j>=gap {
                     cx16.r0 = peekw(pointers+k*2)
                     void call(comparefunc)
                     if_cs break
-                    if j < gap break
                     pokew(pointers+j*2, cx16.r0)
                     j = k
                     k -= gap
