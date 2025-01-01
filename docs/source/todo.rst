@@ -10,6 +10,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- reduce the number of collateral errors reported for undefined symbols
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 
@@ -72,8 +73,8 @@ IR/VM
 
 Libraries
 ---------
-- monogfx: flood fill should be able to fill stippled (it could do this in the past? vm version does it?)
 - Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
+- Monogfx: use *40 multiplication lookup tables (possibly *80 as well? but those are a bit large; needing lo,mid,hi)
 - Add split-word array sorting routines to sorting module?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)

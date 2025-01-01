@@ -401,15 +401,14 @@ drawmode:               ora  cx16.r15L
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
-        cx16.r14 = x1       ; internal plot X
 
         if dx >= dy {
             if cx16.r1L!=0 {
                 repeat {
-                    plot(cx16.r14, y1, draw)
-                    if cx16.r14==x2
+                    plot(x1, y1, draw)
+                    if x1==x2
                         return
-                    cx16.r14++
+                    x1++
                     d += dy2
                     if d > dx {
                         y1++
@@ -418,10 +417,10 @@ drawmode:               ora  cx16.r15L
                 }
             } else {
                 repeat {
-                    plot(cx16.r14, y1, draw)
-                    if cx16.r14==x2
+                    plot(x1, y1, draw)
+                    if x1==x2
                         return
-                    cx16.r14--
+                    x1--
                     d += dy2
                     if d > dx {
                         y1++
@@ -433,25 +432,25 @@ drawmode:               ora  cx16.r15L
         else {
             if cx16.r1L!=0 {
                 repeat {
-                    plot(cx16.r14, y1, draw)
+                    plot(x1, y1, draw)
                     if y1 == y2
                         return
                     y1++
                     d += dx2
                     if d > dy {
-                        cx16.r14++
+                        x1++
                         d -= dy2
                     }
                 }
             } else {
                 repeat {
-                    plot(cx16.r14, y1, draw)
+                    plot(x1, y1, draw)
                     if y1 == y2
                         return
                     y1++
                     d += dx2
                     if d > dy {
-                        cx16.r14--
+                        x1--
                         d -= dy2
                     }
                 }
@@ -655,6 +654,11 @@ nostipple:
                 %asm {{
                     tsb  cx16.VERA_DATA0
                 }}
+            } else {
+                prepare()
+                %asm {{
+                    trb  cx16.VERA_DATA0
+                }}
             }
         } else {
             ; only erase
@@ -682,9 +686,9 @@ invert:
             }}
             xx /= 8
             if width==320
-                xx += yy*(320/8)
+                xx += yy*(320/8)        ; TODO *40 table
             else
-                xx += yy*(640/8)
+                xx += yy*(640/8)        ; TODO *80 table? (a bit large, need lo,mid,hi.  maybe just reuse *40 table and do 1 shift.)
             %asm {{
                 stz  cx16.VERA_CTRL
                 stz  cx16.VERA_ADDR_H
@@ -715,9 +719,9 @@ invert:
         }}
         xx /= 8
         if width==320
-            xx += yy*(320/8)
+            xx += yy*(320/8)        ; TODO *40 table
         else
-            xx += yy*(640/8)
+            xx += yy*(640/8)        ; TODO *80 table? (a bit large, need lo,mid,hi  maybe just reuse *40 table and do 1 shift.)
 
         %asm {{
             stz  cx16.VERA_CTRL
@@ -827,9 +831,9 @@ skip:
             }}
             xpos /= 8
             if width==320
-                xpos += yy*(320/8) as uword
+                xpos += yy*(320/8) as uword     ; TODO *40 table
             else
-                xpos += yy*(640/8) as uword
+                xpos += yy*(640/8) as uword     ; TODO *80 table? (a bit large, need lo,mid,hi  maybe just reuse *40 table and do 1 shift.)
 
             %asm {{
                 stz  cx16.VERA_CTRL
@@ -848,10 +852,23 @@ skip:
                 eor  cx16.r11L
                 beq  +
                 rts
-+               ; cx16.r10L = new color to set
++               ; cx16.r10L = new color to set, check stipple mode
+                lda  p8v_mode
+                and  #1
+                beq  _normal
+                ; stipple drawing
+                lda  p8v_xx
+                eor  p8v_yy
+                and  #1
+                php
+                lda  p8s_plot.p8v_maskbits,y
+                plp
+                bra  _doplot
+
+_normal         ; cx16.r10L = new color to set
                 lda  p8s_plot.p8v_maskbits,y
                 ldx  cx16.r10L
-                beq  +
+_doplot         beq  +
                 tsb  cx16.VERA_DATA0
                 bra  ++
 +               trb  cx16.VERA_DATA0
@@ -863,9 +880,9 @@ skip:
 
     sub position(uword @zp xx, uword yy) {
         if width==320
-            cx16.r0 = yy*(320/8)
+            cx16.r0 = yy*(320/8)        ; TODO *40 table
         else
-            cx16.r0 = yy*(640/8)
+            cx16.r0 = yy*(640/8)        ; TODO *80 table? (a bit large, need lo,mid,hi  maybe just reuse *40 table and do 1 shift.)
         cx16.vaddr(0, cx16.r0+(xx/8), 0, 1)
     }
 

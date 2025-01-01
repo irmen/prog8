@@ -1948,6 +1948,8 @@ asmsub  cleanup_at_exit() {
         lda  #4
         sta  $01        ; rom bank 4 (basic)
         jsr  cbm.CLRCHN		; reset i/o channels
+        lda  #9
+        jsr  cbm.CHROUT     ; enable charset switch
 _exitcodeCarry = *+1
         lda  #0
         lsr  a

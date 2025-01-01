@@ -1152,24 +1152,23 @@ internal class AstChecker(private val program: Program,
 
         checkLongType(expr)
         val dt = expr.expression.inferType(program).getOrUndef()
-        if(dt.isUndefined)
-            return  // any error should be reported elsewhere
-
-        when (expr.operator) {
-            "-" -> {
-                if (!(dt.isSigned && dt.isNumeric)) {
-                    errors.err("can only take negative of a signed number type", expr.position)
+        if(!dt.isUndefined) {
+            when (expr.operator) {
+                "-" -> {
+                    if (!(dt.isSigned && dt.isNumeric)) {
+                        errors.err("can only take negative of a signed number type", expr.position)
+                    }
                 }
-            }
-            "~" -> {
-                if(!dt.isInteger)
-                    errors.err("can only use bitwise invert on integer types", expr.position)
-                else if(dt.isBool)
-                    errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
-            }
-            "not" -> {
-                if(!dt.isBool) {
-                    errors.err("logical not is for booleans", expr.position)
+                "~" -> {
+                    if(!dt.isInteger)
+                        errors.err("can only use bitwise invert on integer types", expr.position)
+                    else if(dt.isBool)
+                        errors.err("bitwise invert is for integer types, use 'not' on booleans", expr.position)
+                }
+                "not" -> {
+                    if(!dt.isBool) {
+                        errors.err("logical not is for booleans", expr.position)
+                    }
                 }
             }
         }

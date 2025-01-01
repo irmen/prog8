@@ -5,17 +5,17 @@
 %zeropage basicsafe
 
 ; A "TUI" for an interactive file selector, that scrolls the selection list if it doesn't fit on the screen.
+; Returns the name of the selected file.  If it is a directory instead, the name will start and end with a slash '/'.
 ; Depends a lot on diskio routines, and uses the drive set in the diskio.drivenumber variable (usually just 8)
 
-; TODO also show directories (how to distinguish them? what with the result value? start with a slash , so they sort together too?)
 ; TODO joystick control? mouse control?
-; TODO keyboard typing; jump to the first entry that starts with that character?
+; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then)
 
 
 main {
     sub start() {
 
-        fileselector.configure(20, 10, 20, 2)
+        fileselector.configure(20, 10, 20, true, 2)
         uword chosen = fileselector.select("*")
         txt.nl()
         txt.print_ub(cx16.getrambank())
@@ -40,17 +40,19 @@ fileselector {
     ubyte dialog_topy = 10
     ubyte max_lines = 20
     ubyte buffer_rambank = 1    ; default hiram bank to use for the data buffers
+    bool also_directories = true
 
     str chosen_filename = "?" * 32
     uword name_ptr
     ubyte num_visible_files
 
 
-    sub configure(ubyte column, ubyte row, ubyte max_entries, ubyte rambank) {
+    sub configure(ubyte column, ubyte row, ubyte max_entries, bool also_dirs, ubyte rambank) {
         dialog_topx = column
         dialog_topy = row
         max_lines = max_entries
         buffer_rambank = rambank
+        also_directories = also_dirs
     }
 
     sub select(str pattern) -> uword {
@@ -85,7 +87,7 @@ fileselector {
         txt.column(dialog_topx)
         footerline()
 
-        ubyte num_files = diskio.list_filenames(pattern, filenamesbuffer, filenamesbuf_size)    ; use Hiram bank to store the files
+        ubyte num_files = get_filenames(pattern, filenamesbuffer, filenamesbuf_size)    ; use Hiram bank to store the files
         ubyte selected_line
         ubyte top_index
         uword filename_ptrs
@@ -302,4 +304,40 @@ fileselector {
             }
         }
     }
+
+    sub get_filenames(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
+        uword buffer_start = filenames_buffer
+        ubyte files_found = 0
+        filenames_buffer[0]=0
+        if diskio.lf_start_list(pattern_ptr) {
+            while diskio.lf_next_entry() {
+                bool is_dir = diskio.list_filetype=="dir"
+                if is_dir {
+                    if not also_directories
+                        continue
+                    @(filenames_buffer) = '/'       ; directories start with a slash so they're grouped when sorting
+                    filenames_buffer++
+                }
+                filenames_buffer += strings.copy(diskio.list_filename, filenames_buffer)
+                if is_dir {
+                    @(filenames_buffer) = '/'       ; directories also end with a slash
+                    filenames_buffer++
+                    @(filenames_buffer) = 0
+                }
+                filenames_buffer++
+                files_found++
+                if filenames_buffer - buffer_start > filenames_buf_size-20 {
+                    @(filenames_buffer)=0
+                    diskio.lf_end_list()
+                    sys.set_carry()
+                    return files_found
+                }
+            }
+            diskio.lf_end_list()
+        }
+        @(filenames_buffer)=0
+        sys.clear_carry()
+        return files_found
+    }
+
 }
