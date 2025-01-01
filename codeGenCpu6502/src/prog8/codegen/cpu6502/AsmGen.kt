@@ -1115,6 +1115,21 @@ $repeatLabel""")
         }
     }
 
+    internal fun signExtendAXlsb(valueDt: BaseDataType) {
+        // sign extend signed byte in A to full word in AX
+        when(valueDt) {
+            BaseDataType.UBYTE -> out("  ldx  #0")
+            BaseDataType.BYTE -> out("""
+                ldx  #0
+                cmp  #$80
+                bcc  +
+                dex
++
+            """)
+            else -> throw AssemblyError("need byte type")
+        }
+    }
+
     internal fun signExtendVariableLsb(asmvar: String, valueDt: BaseDataType) {
         // sign extend signed byte in a var to a full word in that variable
         when(valueDt) {
