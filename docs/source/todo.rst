@@ -1,6 +1,10 @@
 TODO
 ====
 
+- optimize word addition  word += mul40[indexbyte]  to use adc with register indexed instructions
+- same with other operators (sbc, and, or, eor)
+- how is tye codegen for byte values here?
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -74,7 +78,6 @@ IR/VM
 Libraries
 ---------
 - Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
-- Monogfx: use *40 multiplication lookup tables (possibly *80 as well? but those are a bit large; needing lo,mid,hi)
 - Add split-word array sorting routines to sorting module?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)

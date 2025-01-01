@@ -16,6 +16,7 @@ monogfx {
     ; read-only control variables:
     uword width = 0
     uword height = 0
+    bool lores_mode
     ubyte mode
     const ubyte MODE_NORMAL  = %00000000
     const ubyte MODE_STIPPLE = %00000001
@@ -32,6 +33,7 @@ monogfx {
         cx16.VERA_L1_TILEBASE = 0
         width = 320
         height = 240
+        lores_mode = true
         mode = MODE_NORMAL
         clear_screen(false)
     }
@@ -47,6 +49,7 @@ monogfx {
         cx16.VERA_L1_TILEBASE = %00000001
         width = 640
         height = 480
+        lores_mode = false
         mode = MODE_NORMAL
         clear_screen(false)
     }
@@ -64,15 +67,12 @@ monogfx {
 
     sub clear_screen(bool draw) {
         position(0, 0)
-        when width {
-            320 -> {
-                repeat 240/2/8
-                    cs_innerloop640(draw)
-            }
-            640 -> {
-                repeat 480/8
-                    cs_innerloop640(draw)
-            }
+        if lores_mode {
+            repeat 240/2/8
+                cs_innerloop640(draw)
+        } else {
+            repeat 480/8
+                cs_innerloop640(draw)
         }
         position(0, 0)
     }
@@ -109,7 +109,7 @@ monogfx {
             return
         if length<=8 {
             ; just use 2 byte writes with shifted mask
-            position2(xx,yy,true)
+            position2(xx,yy)
             %asm {{
                 ldy  p8v_length
                 lda  p8v_masked_ends,y
@@ -309,8 +309,8 @@ _done
          }}
             if mode!=MODE_STIPPLE {
                 ; draw continuous line.
-                position2(xx,yy,true)
-                if width==320
+                position2(xx,yy)
+                if lores_mode
                     set_both_strides(11)    ; 40 increment = 1 line in 320 px monochrome
                 else
                     set_both_strides(12)    ; 80 increment = 1 line in 640 px monochrome
@@ -328,8 +328,8 @@ drawmode:               ora  cx16.r15L
                     lheight--
                 }
                 lheight++   ; because it is divided by 2 later, don't round off the last pixel
-                position2(xx,yy,true)
-                if width==320
+                position2(xx,yy)
+                if lores_mode
                     set_both_strides(12)    ; 80 increment = 2 line in 320 px monochrome
                 else
                     set_both_strides(13)    ; 160 increment = 2 line in 640 px monochrome
@@ -342,9 +342,9 @@ drawmode:               ora  cx16.r15L
                 }
             }
         } else {
-            position2(xx,yy,true)
+            position2(xx,yy)
             cx16.r15 = ~cx16.r15    ; erase pixels
-            if width==320
+            if lores_mode
                 set_both_strides(11)    ; 40 increment = 1 line in 320 px monochrome
             else
                 set_both_strides(12)    ; 80 increment = 1 line in 640 px monochrome
@@ -679,26 +679,51 @@ invert:
         return
 
         sub prepare() {
-            %asm {{
-                lda  p8v_xx
-                and  #7
-                pha     ; xbits
-            }}
-            xx /= 8
-            if width==320
-                xx += yy*(320/8)        ; TODO *40 table
-            else
-                xx += yy*(640/8)        ; TODO *80 table? (a bit large, need lo,mid,hi.  maybe just reuse *40 table and do 1 shift.)
-            %asm {{
-                stz  cx16.VERA_CTRL
-                stz  cx16.VERA_ADDR_H
-                lda  p8v_xx+1
-                sta  cx16.VERA_ADDR_M
-                lda  p8v_xx
-                sta  cx16.VERA_ADDR_L
-                ply     ; xbits
-                lda  p8v_maskbits,y
-            }}
+            if lores_mode {
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    stz  cx16.VERA_ADDR_H
+
+                    lda  p8v_xx+1
+                    lsr  a
+                    lda  p8v_xx
+                    ror  a
+                    lsr  a
+                    lsr  a
+
+                    clc
+                    ldy  p8v_yy
+                    adc  p8v_times40_lsb,y
+                    sta  cx16.VERA_ADDR_L
+                    lda  p8v_times40_msb,y
+                    adc  #0
+                    sta  cx16.VERA_ADDR_M
+
+                    lda  p8v_xx
+                    and  #7
+                    tax
+                    lda  p8v_maskbits,x
+                }}
+            } else {
+                ; width=640 (hires)
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    stz  cx16.VERA_ADDR_H
+                    lda  p8v_xx
+                    and  #7
+                    pha     ; xbits
+                }}
+                xx /= 8
+                xx += yy*(640/8)
+                %asm {{
+                    lda  p8v_xx+1
+                    sta  cx16.VERA_ADDR_M
+                    lda  p8v_xx
+                    sta  cx16.VERA_ADDR_L
+                    plx     ; xbits
+                    lda  p8v_maskbits,x
+                }}
+            }
         }
     }
 
@@ -718,10 +743,21 @@ invert:
             pha     ; xbits
         }}
         xx /= 8
-        if width==320
-            xx += yy*(320/8)        ; TODO *40 table
+        if lores_mode {
+            %asm {{
+                ; xx += yy * 40
+                ldy  p8v_yy
+                lda  p8v_xx
+                clc
+                adc  p8v_times40_lsb,y
+                sta  p8v_xx
+                lda  p8v_xx+1
+                adc  p8v_times40_msb,y
+                sta  p8v_xx+1
+            }}
+        }
         else
-            xx += yy*(640/8)        ; TODO *80 table? (a bit large, need lo,mid,hi  maybe just reuse *40 table and do 1 shift.)
+            xx += yy*(640/8)
 
         %asm {{
             stz  cx16.VERA_CTRL
@@ -830,10 +866,21 @@ skip:
                 pha     ; xbits
             }}
             xpos /= 8
-            if width==320
-                xpos += yy*(320/8) as uword     ; TODO *40 table
+            if lores_mode {
+                %asm {{
+                    ; xpos += yy*40
+                    ldy  p8v_yy
+                    lda  p8v_xpos
+                    clc
+                    adc  p8v_times40_lsb,y
+                    sta  p8v_xpos
+                    lda  p8v_xpos+1
+                    adc  p8v_times40_msb,y
+                    sta  p8v_xpos+1
+                }}
+            }
             else
-                xpos += yy*(640/8) as uword     ; TODO *80 table? (a bit large, need lo,mid,hi  maybe just reuse *40 table and do 1 shift.)
+                xpos += yy*(640/8) as uword
 
             %asm {{
                 stz  cx16.VERA_CTRL
@@ -878,19 +925,62 @@ _doplot         beq  +
         }
     }
 
-    sub position(uword @zp xx, uword yy) {
-        if width==320
-            cx16.r0 = yy*(320/8)        ; TODO *40 table
-        else
-            cx16.r0 = yy*(640/8)        ; TODO *80 table? (a bit large, need lo,mid,hi  maybe just reuse *40 table and do 1 shift.)
-        cx16.vaddr(0, cx16.r0+(xx/8), 0, 1)
+    sub position(uword xx, uword yy) {
+        if lores_mode {
+            %asm {{
+                stz  cx16.VERA_CTRL
+                lda  p8v_xx+1
+                lsr  a
+                lda  p8v_xx
+                ror  a
+                lsr  a
+                lsr  a
+                clc
+                ldy  p8v_yy
+                adc  p8v_times40_lsb,y
+                sta  cx16.VERA_ADDR_L
+                lda  p8v_times40_msb,y
+                adc  #0
+                sta  cx16.VERA_ADDR_M
+                lda  #%00010000     ; autoincr
+                sta  cx16.VERA_ADDR_H
+            }}
+        }
+        else {
+            cx16.r0 = yy*(640/8)
+            cx16.vaddr(0, cx16.r0+(xx/8), 0, 1)
+        }
+        return
     }
 
-    sub position2(uword @zp xx, uword yy, bool also_port_1) {
+    sub position2(uword xx, uword yy) {
         position(xx, yy)
-        if also_port_1
-            cx16.vaddr_clone(0)
+        ; also set port 1 like that
+        cx16.vaddr_clone(0)
     }
+
+    ; y*40 lookup table. Pretty compact because it all fits in a word and we only need 240 y positions.
+    ; a y*80 lookup table would be very large (lo,mid,hi for 480 values...)
+    uword[240] @split @shared times40 = [
+        0, 40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 440, 480, 520, 560, 600,
+        640, 680, 720, 760, 800, 840, 880, 920, 960, 1000, 1040, 1080, 1120, 1160,
+        1200, 1240, 1280, 1320, 1360, 1400, 1440, 1480, 1520, 1560, 1600, 1640, 1680,
+        1720, 1760, 1800, 1840, 1880, 1920, 1960, 2000, 2040, 2080, 2120, 2160, 2200,
+        2240, 2280, 2320, 2360, 2400, 2440, 2480, 2520, 2560, 2600, 2640, 2680, 2720,
+        2760, 2800, 2840, 2880, 2920, 2960, 3000, 3040, 3080, 3120, 3160, 3200, 3240,
+        3280, 3320, 3360, 3400, 3440, 3480, 3520, 3560, 3600, 3640, 3680, 3720, 3760,
+        3800, 3840, 3880, 3920, 3960, 4000, 4040, 4080, 4120, 4160, 4200, 4240, 4280,
+        4320, 4360, 4400, 4440, 4480, 4520, 4560, 4600, 4640, 4680, 4720, 4760, 4800,
+        4840, 4880, 4920, 4960, 5000, 5040, 5080, 5120, 5160, 5200, 5240, 5280, 5320,
+        5360, 5400, 5440, 5480, 5520, 5560, 5600, 5640, 5680, 5720, 5760, 5800, 5840,
+        5880, 5920, 5960, 6000, 6040, 6080, 6120, 6160, 6200, 6240, 6280, 6320, 6360,
+        6400, 6440, 6480, 6520, 6560, 6600, 6640, 6680, 6720, 6760, 6800, 6840, 6880,
+        6920, 6960, 7000, 7040, 7080, 7120, 7160, 7200, 7240, 7280, 7320, 7360, 7400,
+        7440, 7480, 7520, 7560, 7600, 7640, 7680, 7720, 7760, 7800, 7840, 7880, 7920,
+        7960, 8000, 8040, 8080, 8120, 8160, 8200, 8240, 8280, 8320, 8360, 8400, 8440,
+        8480, 8520, 8560, 8600, 8640, 8680, 8720, 8760, 8800, 8840, 8880, 8920, 8960,
+        9000, 9040, 9080, 9120, 9160, 9200, 9240, 9280, 9320, 9360, 9400, 9440, 9480,
+        9520, 9560]
 
     const ubyte charset_bank = $1
     const uword charset_addr = $f000       ; in bank 1, so $1f000
@@ -948,7 +1038,7 @@ _doplot         beq  +
                 bne  --
             }}
             ; left part of shifted char
-            position2(xx, yy, true)
+            position2(xx, yy)
             set_autoincrs()
             if draw {
                 %asm {{
@@ -974,7 +1064,7 @@ cdraw_mod1          ora  cx16.VERA_DATA1
             }
             ; right part of shifted char
             if lsb(xx) & 7 !=0 {
-                position2(xx+8, yy, true)
+                position2(xx+8, yy)
                 set_autoincrs()
                 if draw {
                     %asm {{
@@ -1005,7 +1095,7 @@ cdraw_mod2              ora  cx16.VERA_DATA1
 
         sub set_autoincrs() {
             ; set autoincrements to go to next pixel row (40 or 80 increment)
-            if width==320 {
+            if lores_mode {
                 cx16.VERA_CTRL = 1
                 cx16.VERA_ADDR_H = cx16.VERA_ADDR_H & $0f | (11<<4)
                 cx16.VERA_CTRL = 0
