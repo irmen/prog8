@@ -35,6 +35,8 @@
 ;   Those are all shared in the different tasks! You HAVE to use a mechanism around the userdata value (pointer?) to keep separate state elsewhere!
 
 coroutines {
+    %option ignore_unused
+
     const ubyte MAX_TASKS = 64
     uword[MAX_TASKS] tasklist
     uword[MAX_TASKS] userdatas

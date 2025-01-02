@@ -270,7 +270,7 @@ On the Commander X16 the stack and ringbuffer will use a HiRAM bank instead of s
 you have to initialize that via the init(bank) routine.
 
 Read the `buffers source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/diskio.p8>`_
-to see what's in there. Note that the init() routines have that extra bank parameter on the cx16.
+to see what's in there. Note that the init() routines have that extra bank parameter on the X16.
 
 
 compression (slightly experimental)
@@ -502,6 +502,8 @@ floats
 
 .. note::
     Floating point support is only available on c64, cx16 and virtual targets for now.
+    On the X16, make sure rom bank 4 is still active before doing floationg point operations (it's the bank that contains the fp routines).
+    On the C64, you have to make sure the Basic ROM is still banked in (same reason).
 
 Provides definitions for the ROM/Kernal subroutines and utility routines dealing with floating point variables.
 
@@ -599,7 +601,7 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 
 gfx_lores and gfx_hires (cx16 only)
 -----------------------------------
-Full-screen multicolor bitmap graphics routines, available on the Cx16 machine only.
+Full-screen multicolor bitmap graphics routines, available on the X16 machine only.
 
 - gfx_lores: optimized routines for 320x240  256 color bitmap graphics mode. Compatible with X16 screen mode 128.
 - gfx_hires: optimized routines for 640x480  4 color bitmap graphics mode
@@ -626,7 +628,7 @@ Bitmap graphics routines:
 
 This library is available both on the C64 and the cx16.
 It uses the ROM based graphics routines on the latter, and it is a very small library because of that.
-On the cx16 there's also various other graphics modules if you want more features and different screen modes. See below for those.
+On the X16 there's also various other graphics modules if you want more features and different screen modes. See below for those.
 
 Read the `graphics source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/c64/graphics.p8>`_
 to see what's in there. (Note: slight variations for different compiler targets)
@@ -783,7 +785,7 @@ but perhaps the provided ones can be of service too.
 
 monogfx  (cx16 and virtual)
 ---------------------------
-Full-screen lores or hires monochrome bitmap graphics routines, available on the Cx16 machine only.
+Full-screen lores or hires monochrome bitmap graphics routines, available on the X16 machine only.
 
 - two resolutions: lores 320*240 or hires 640*480 bitmap mode
 - optimized routines for monochrome (2-color) graphics

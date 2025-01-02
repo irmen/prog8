@@ -1,6 +1,7 @@
 ; **experimental** data sorting routines, API subject to change!!
 
 sorting {
+    %option ignore_unused
 
     ; GNOME SORT is tiny and extremely fast if the initial values are already almost sorted.
     ; SHELL SORT is quite a bit faster if the initial values are more randomly distributed.

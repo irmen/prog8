@@ -484,6 +484,7 @@ extsub $C006 = x16edit_loadfile_options(ubyte firstbank @X, ubyte lastbank @Y, s
                 uword disknumberAndColors @R3, uword headerAndStatusColors @R4) clobbers(A,X,Y)
 
 ; Audio (rom bank 10)
+; NOTE: because these are auto-banked, you should not call them from an IRQ handler routine (due to jsrfar race condition).
 extsub @bank 10  $C09F = audio_init() clobbers(A,X,Y) -> bool @Pc     ; (re)initialize both vera PSG and YM audio chips
 extsub @bank 10  $C000 = bas_fmfreq(ubyte channel @A, uword freq @XY, bool noretrigger @Pc) clobbers(A,X,Y) -> bool @Pc
 extsub @bank 10  $C003 = bas_fmnote(ubyte channel @A, ubyte note @X, ubyte fracsemitone @Y, bool noretrigger @Pc) clobbers(A,X,Y) -> bool @Pc

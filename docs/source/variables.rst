@@ -245,7 +245,7 @@ On the c64 and cx16, the rom routines are used for floating point operations,
 so on both systems the correct rom banks have to be banked in to make this work.
 Although the C128 shares the same floating point format, Prog8 currently doesn't support
 using floating point on that system (because the c128 fp routines require the fp variables
-to be in another ram bank than the program, something Prog8 doesn't do).
+to be in another ram bank than the program, something Prog8 doesn't support yet).
 
 Also your code needs to import the ``floats`` library to enable floating point support
 in the compiler, and to gain access to the floating point routines.
@@ -257,6 +257,11 @@ The largest 5-byte MFLPT float that can be stored is: **1.7014118345e+38**   (ne
 You can use underscores to group digits in floating point literals to make long numbers more readable:
 any underscores in the number are ignored by the compiler.
 For instance ``30_000.999_999`` is a valid floating point number 30000.999999.
+
+.. attention::
+    On the X16, make sure rom bank 4 is still active before doing floationg point operations (it's the bank that contains the fp routines).
+    On the C64, you have to make sure the Basic ROM is still banked in (same reason).
+
 
 .. _arrayvars:
 

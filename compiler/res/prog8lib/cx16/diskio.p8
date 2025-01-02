@@ -161,6 +161,7 @@ io_error:
         ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against.
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
         ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
+        ;    Note: NO case-folding is done in this routine! (unlike DOS"$ which does case folding on the basic prompt)
         ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
         ;    Note that no list of pointers of some form is returned, the names are just squashed together.
         ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
@@ -222,6 +223,7 @@ io_error:
         ; -- retrieve the next entry from an iterative file listing session.
         ;    results will be found in list_blocks, list_filename, and list_filetype.
         ;    if it returns false though, there are no more entries (or an error occurred).
+        ;    Note: NO case-folding is done in this routine! (unlike DOS"$ which does case folding on the basic prompt)
 
         if not iteration_in_progress
             return false
