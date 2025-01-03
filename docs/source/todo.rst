@@ -10,7 +10,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- reduce the number of collateral errors reported for undefined symbols
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 
