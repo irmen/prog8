@@ -1,6 +1,9 @@
 TODO
 ====
 
+- IR: implement "optimized << in array" / "optimized >> in array"
+- IR: implement "optimized << in split word array" / "optimized >> in split word array"
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -47,8 +50,6 @@ IR/VM
 -----
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
-- fix TODO("IR rol/ror on split words array")
-- fix "<< in array" / ">> in array"
 - implement fast code paths for TODO("inplace split....
 - sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:
      sub start() {

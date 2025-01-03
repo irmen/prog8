@@ -119,7 +119,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     origAssign.operator.dropLast(1)
                 }
             }
-            value = PtBinaryExpression(operator, origAssign.value.type, origAssign.value.position)
+            value = PtBinaryExpression(operator, origAssign.target.type, origAssign.value.position)
             val left: PtExpression = origAssign.target.children.single() as PtExpression
             value.add(left)
             value.add(origAssign.value)
@@ -997,10 +997,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorShiftRightInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
         if(array!=null) {
-            TODO(">> in array")
+            if(array.splitWords)
+                return null // TODO("optimized >> in split word array")
+            else {
+                return null // TODO("optimized >> in array")
+            }
         }
         if(constAddress==null && memory!=null)
-            return null  // TODO("optimized memory in-place >>"")
+            return null  //  TODO("optimized memory in-place >>"")
 
         val result = mutableListOf<IRCodeChunkBase>()
         if(codeGen.isOne(operand)) {
@@ -1025,7 +1029,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorShiftLeftInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            TODO("<< in array")
+            if(array.splitWords)
+                return null // TODO("optimized << in split word array")
+            else {
+                return null // TODO("optimized << in array")
+            }
         }
         if(constAddress==null && memory!=null)
             return null  // TODO("optimized memory in-place <<"")

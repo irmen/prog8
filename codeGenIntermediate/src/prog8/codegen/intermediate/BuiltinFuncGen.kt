@@ -549,10 +549,24 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val index = arr?.index?.asConstInteger()
         if(arr!=null && index!=null) {
             val variable = arr.variable.name
-            if(arr.splitWords)
-                TODO("IR rol/ror on split words array")
-            val offset = codeGen.program.memsizer.memorySize(arr.type, index)
-            addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, labelSymbol = variable, symbolOffset = offset), null)
+            if(arr.splitWords) {
+                result += IRCodeChunk(null, null).also {
+                    when(opcodeMemAndReg.first) {
+                        Opcode.ROXRM, Opcode.RORM -> {
+                            it += IRInstruction(opcodeMemAndReg.first, IRDataType.BYTE, labelSymbol = "${variable}_msb", symbolOffset = index)
+                            it += IRInstruction(opcodeMemAndReg.first, IRDataType.BYTE, labelSymbol = "${variable}_lsb", symbolOffset = index)
+                        }
+                        Opcode.ROXLM, Opcode.ROLM -> {
+                            it += IRInstruction(opcodeMemAndReg.first, IRDataType.BYTE, labelSymbol = "${variable}_lsb", symbolOffset = index)
+                            it += IRInstruction(opcodeMemAndReg.first, IRDataType.BYTE, labelSymbol = "${variable}_msb", symbolOffset = index)
+                        }
+                        else -> throw AssemblyError("wrong rol/ror opcode")
+                    }
+                }
+            } else {
+                val offset = codeGen.program.memsizer.memorySize(arr.type, index)
+                addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, labelSymbol = variable, symbolOffset = offset), null)
+            }
             return ExpressionCodeResult(result, vmDt, -1, -1)
         }
 
