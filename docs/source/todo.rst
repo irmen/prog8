@@ -1,9 +1,6 @@
 TODO
 ====
 
-- IR: implement "optimized << in array" / "optimized >> in array"
-- IR: implement "optimized << in split word array" / "optimized >> in split word array"
-
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -51,6 +48,7 @@ IR/VM
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
 - implement fast code paths for TODO("inplace split....
+- implement more TODOs in AssignmentGen
 - sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:
      sub start() {
          cx16.r0L = cx16.r1 as ubyte
