@@ -46,7 +46,6 @@ Future Things and Ideas
 IR/VM
 -----
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- registerPool should have separate pools, one for byte and word registers each (and 1 for floats)?
 - add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
 - fix TODO("IR rol/ror on split words array")
 - fix "<< in array" / ">> in array"

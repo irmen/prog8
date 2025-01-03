@@ -368,6 +368,24 @@ class IRProgram(val name: String,
             }
         }
     }
+
+    fun verifyRegisterTypes(registerTypes: Map<Int, IRDataType>) {
+        for(block in blocks) {
+            for(bc in block.children) {
+                when(bc) {
+                    is IRAsmSubroutine -> bc.usedRegisters().validate(registerTypes, null)
+                    is IRCodeChunk -> bc.usedRegisters().validate(registerTypes, bc)
+                    is IRInlineAsmChunk -> bc.usedRegisters().validate(registerTypes, bc)
+                    is IRInlineBinaryChunk -> bc.usedRegisters().validate(registerTypes, bc)
+                    is IRSubroutine -> {
+                        for(sc in bc.chunks) {
+                            sc.usedRegisters().validate(registerTypes, sc)
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 class IRBlock(
@@ -551,6 +569,15 @@ class RegistersUsed(
 
     fun used(register: Int) = register in readRegs || register in writeRegs
     fun usedFp(fpRegister: Int) = fpRegister in readFpRegs || fpRegister in writeFpRegs
+
+    fun validate(allowed: Map<Int, IRDataType>, chunk: IRCodeChunkBase?) {
+        for((reg, type) in regsTypes) {
+            if(allowed[reg]==null)
+                throw IllegalArgumentException("Reg type mismatch for register $reg type $type: no type known.  CodeChunk=$chunk label ${chunk?.label}")
+            if(allowed[reg]!=type)
+                throw IllegalArgumentException("Reg type mismatch for register $reg type $type: expected ${allowed[reg]}. CodeChunk=$chunk label ${chunk?.label}")
+        }
+    }
 }
 
 private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {

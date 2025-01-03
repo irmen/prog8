@@ -355,20 +355,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         return changed
     }
 
-    private fun regUsages(register: Int): Map<IRCodeChunkBase, Int> {
-        val chunks = mutableMapOf<IRCodeChunkBase, Int>()
-        irprog.foreachSub { sub ->
-            sub.chunks.forEach { chunk ->
-                val used = chunk.usedRegisters()
-                val numUsages = used.readRegs.getOrDefault(register, 0) + used.writeRegs.getOrDefault(register, 0)
-                if(numUsages>0) {
-                    chunks[chunk] = numUsages
-                }
-            }
-        }
-        return chunks
-    }
-
     private fun removeUselessArithmetic(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         // note: this is hard to solve for the non-immediate instructions atm because the values are loaded into registers first
         var changed = false

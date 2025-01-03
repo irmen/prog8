@@ -471,8 +471,8 @@ class IRCodeGen(
                 require(forLoop.variable.name == loopvar.scopedName)
                 val iterableLength = symbolTable.getLength(iterable.name)
                 val loopvarSymbol = forLoop.variable.name
-                val indexReg = registers.next()
-                val tmpReg = registers.next()
+                val indexReg = registers.next(IRDataType.BYTE)
+                val tmpReg = registers.next(IRDataType.BYTE)
                 val loopLabel = createLabelName()
                 val endLabel = createLabelName()
                 when {
@@ -498,9 +498,9 @@ class IRCodeGen(
                             throw AssemblyError("weird dt")
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
-                            val tmpRegLsb = registers.next()
-                            val tmpRegMsb = registers.next()
-                            val concatReg = registers.next()
+                            val tmpRegLsb = registers.next(IRDataType.BYTE)
+                            val tmpRegMsb = registers.next(IRDataType.BYTE)
+                            val concatReg = registers.next(IRDataType.WORD)
                             it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, labelSymbol=iterable.name+"_msb")
                             it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, labelSymbol=iterable.name+"_lsb")
                             it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=concatReg, reg2=tmpRegMsb, reg3=tmpRegLsb)
@@ -636,7 +636,6 @@ class IRCodeGen(
         val loopLabel = createLabelName()
         require(forLoop.variable.name == loopvar.scopedName)
         val loopvarSymbol = forLoop.variable.name
-        val indexReg = registers.next()
         val loopvarDt = when(loopvar) {
             is StMemVar -> loopvar.dt
             is StStaticVariable -> loopvar.dt
@@ -652,6 +651,7 @@ class IRCodeGen(
         val rangeEndExclusiveWrapped = if(loopvarDtIr==IRDataType.BYTE) rangeEndExclusiveUntyped and 255 else rangeEndExclusiveUntyped and 65535
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
+        val indexReg = registers.next(loopvarDtIr)
         chunk += IRInstruction(Opcode.LOAD, loopvarDtIr, reg1=indexReg, immediate = iterable.first)
         chunk += IRInstruction(Opcode.STOREM, loopvarDtIr, reg1=indexReg, labelSymbol=loopvarSymbol)
         result += chunk
@@ -744,7 +744,7 @@ class IRCodeGen(
                 }
             }
             else -> {
-                val valueReg = registers.next()
+                val valueReg = registers.next(dt)
                 if(value>0) {
                     code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = value)
                     code += if(knownAddress!=null)
@@ -807,7 +807,7 @@ class IRCodeGen(
         }
         else if(pow2>=1) {
             // just shift multiple bits
-            val pow2reg = registers.next()
+            val pow2reg = registers.next(IRDataType.BYTE)
             code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
             code += IRInstruction(Opcode.LSLN, dt, reg1=reg, reg2=pow2reg)
         } else {
@@ -834,7 +834,7 @@ class IRCodeGen(
         }
         else if(pow2>=1) {
             // just shift multiple bits
-            val pow2reg = registers.next()
+            val pow2reg = registers.next(dt)
             code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
             code += if(knownAddress!=null)
                 IRInstruction(Opcode.LSLNM, dt, reg1=pow2reg, address = knownAddress)
@@ -848,7 +848,7 @@ class IRCodeGen(
                     IRInstruction(Opcode.STOREZM, dt, labelSymbol = symbol)
             }
             else {
-                val factorReg = registers.next()
+                val factorReg = registers.next(dt)
                 code += IRInstruction(Opcode.LOAD, dt, reg1=factorReg, immediate = factor)
                 code += if(knownAddress!=null)
                     IRInstruction(Opcode.MULM, dt, reg1=factorReg, address = knownAddress)
@@ -905,7 +905,7 @@ class IRCodeGen(
                     code += IRInstruction(Opcode.ASR, dt, reg1=reg)
                 } else {
                     // just shift multiple bits (signed)
-                    val pow2reg = registers.next()
+                    val pow2reg = registers.next(IRDataType.BYTE)
                     code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
                     code += IRInstruction(Opcode.ASRN, dt, reg1=reg, reg2=pow2reg)
                 }
@@ -915,7 +915,7 @@ class IRCodeGen(
                     code += IRInstruction(Opcode.LSR, dt, reg1=reg)
                 } else {
                     // just shift multiple bits (unsigned)
-                    val pow2reg = registers.next()
+                    val pow2reg = registers.next(IRDataType.BYTE)
                     code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = pow2reg, immediate = pow2)
                     code += IRInstruction(Opcode.LSRN, dt, reg1 = reg, reg2 = pow2reg)
                 }
@@ -951,7 +951,7 @@ class IRCodeGen(
                         IRInstruction(Opcode.ASRM, dt, labelSymbol = symbol)
                 } else {
                     // just shift multiple bits (signed)
-                    val pow2reg = registers.next()
+                    val pow2reg = registers.next(dt)
                     code += IRInstruction(Opcode.LOAD, dt, reg1 = pow2reg, immediate = pow2)
                     code += if (knownAddress != null)
                                 IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, address = knownAddress)
@@ -968,7 +968,7 @@ class IRCodeGen(
                 }
                 else {
                     // just shift multiple bits (unsigned)
-                    val pow2reg = registers.next()
+                    val pow2reg = registers.next(dt)
                     code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
                     code += if(knownAddress!=null)
                                 IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = knownAddress)
@@ -982,7 +982,7 @@ class IRCodeGen(
         {
             // regular div
             if (factor == 0) {
-                val reg = registers.next()
+                val reg = registers.next(dt)
                 code += IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0xffff)
                 code += if(knownAddress!=null)
                     IRInstruction(Opcode.STOREM, dt, reg1=reg, address = knownAddress)
@@ -990,7 +990,7 @@ class IRCodeGen(
                     IRInstruction(Opcode.STOREM, dt, reg1=reg, labelSymbol = symbol)
             }
             else {
-                val factorReg = registers.next()
+                val factorReg = registers.next(dt)
                 code += IRInstruction(Opcode.LOAD, dt, reg1=factorReg, immediate = factor)
                 code += if(signed) {
                     if(knownAddress!=null)
@@ -1036,7 +1036,7 @@ class IRCodeGen(
         addToResult(result, rightTr, -1, rightTr.resultFpReg)
         var afterIfLabel = ""
         result += IRCodeChunk(null, null).also {
-            val compResultReg = registers.next()
+            val compResultReg = registers.next(IRDataType.BYTE)
             it += IRInstruction(
                 Opcode.FCOMP,
                 IRDataType.FLOAT,
@@ -1398,7 +1398,7 @@ class IRCodeGen(
         addToResult(result, leftTr, -1, leftTr.resultFpReg)
         val rightTr = expressionEval.translateExpression(condition.right)
         addToResult(result, rightTr, -1, rightTr.resultFpReg)
-        val compResultReg = registers.next()
+        val compResultReg = registers.next(IRDataType.BYTE)
         addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1 = compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
         val elseBranch: Opcode
         var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
@@ -1690,7 +1690,7 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
         if(constRepeats==65536) {
             // make use of the word wrap around to count to 65536
-            val resultRegister = registers.next()
+            val resultRegister = registers.next(IRDataType.WORD)
             addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultRegister, immediate = 0), null)
             result += labelFirstChunk(translateNode(repeat.statements), repeatLabel)
             result += IRCodeChunk(null, null).also {
@@ -1890,4 +1890,6 @@ class IRCodeGen(
             it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number, fcallArgs = FunctionCallArgs(args, returnSpec))
         }
     }
+
+    fun registerTypes(): Map<Int, IRDataType> = registers.getTypes()
 }

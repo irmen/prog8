@@ -19,9 +19,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private var numChunks = 0
     private var numInstr = 0
 
-
     fun write(): Path {
-
         println("Writing intermediate representation to $outfile")
         xml.writeStartDocument("utf-8", "1.0")
         xml.writeEndDocument()

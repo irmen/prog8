@@ -21,6 +21,7 @@ class ExperiCodeGen: ICodeGeneratorBackend {
         // but you can also use the Intermediate Representation to build a codegen on:
         val irCodeGen = IRCodeGen(program, symbolTable, options, errors)
         val irProgram = irCodeGen.generate()
+        irProgram.verifyRegisterTypes(irCodeGen.registerTypes())
 
         // this stub only writes the IR program to disk but doesn't generate anything else.
         IRFileWriter(irProgram, null).write()
