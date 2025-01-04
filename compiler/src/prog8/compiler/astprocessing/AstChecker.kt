@@ -912,9 +912,6 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(compilerOptions.zeropage==ZeropageType.DONTUSE && decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)
-            err("zeropage usage has been disabled by options")
-
         if(decl.datatype.isSplitWordArray) {
             if (!decl.datatype.isWordArray) {
                 errors.err("split can only be used on word arrays", decl.position)
@@ -1415,6 +1412,15 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        if(functionCallExpr.target.nameInSource.singleOrNull() in listOf("peek", "peekw")) {
+            val pointervar = functionCallExpr.args[0] as? IdentifierReference
+            if(pointervar!=null)
+                checkPointer(pointervar)
+            val binexpr = functionCallExpr.args[0] as? BinaryExpression
+            if(binexpr?.left is IdentifierReference && binexpr.right is NumericLiteral)
+                checkPointer(binexpr.left as IdentifierReference)
+        }
+
         super.visit(functionCallExpr)
     }
 
@@ -1489,6 +1495,15 @@ internal class AstChecker(private val program: Program,
         if(error!=null)
             errors.err(error.first, error.second)
 
+        if(functionCallStatement.target.nameInSource.singleOrNull() in listOf("poke", "pokew")) {
+            val pointervar = functionCallStatement.args[0] as? IdentifierReference
+            if(pointervar!=null)
+                checkPointer(pointervar)
+            val binexpr = functionCallStatement.args[0] as? BinaryExpression
+            if(binexpr?.left is IdentifierReference && binexpr.right is NumericLiteral)
+                checkPointer(binexpr.left as IdentifierReference)
+        }
+
         super.visit(functionCallStatement)
     }
 
@@ -1557,6 +1572,12 @@ internal class AstChecker(private val program: Program,
         args.forEach{
             checkLongType(it)
         }
+    }
+
+    private fun checkPointer(pointervar: IdentifierReference) {
+        val vardecl = pointervar.targetVarDecl(program)
+        if(vardecl?.zeropage == ZeropageWish.NOT_IN_ZEROPAGE)
+            errors.info("pointer variable should preferrably be in zeropage but is marked nozp", vardecl.position)
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
@@ -1687,6 +1708,14 @@ internal class AstChecker(private val program: Program,
                 errors.err("address for memory access isn't uword", memread.position)
             }
         }
+
+        val pointervar = memread.addressExpression as? IdentifierReference
+        if(pointervar!=null)
+            checkPointer(pointervar)
+        val binexpr = memread.addressExpression as? BinaryExpression
+        if(binexpr?.left is IdentifierReference && binexpr.right is NumericLiteral)
+            checkPointer(binexpr.left as IdentifierReference)
+
         super.visit(memread)
     }
 
@@ -1700,6 +1729,14 @@ internal class AstChecker(private val program: Program,
                 errors.err("address for memory access isn't uword", memwrite.position)
             }
         }
+
+        val pointervar = memwrite.addressExpression as? IdentifierReference
+        if(pointervar!=null)
+            checkPointer(pointervar)
+        val binexpr = memwrite.addressExpression as? BinaryExpression
+        if(binexpr?.left is IdentifierReference && binexpr.right is NumericLiteral)
+            checkPointer(binexpr.left as IdentifierReference)
+
         super.visit(memwrite)
     }
 

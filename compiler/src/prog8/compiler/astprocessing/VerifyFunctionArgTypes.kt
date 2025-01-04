@@ -70,6 +70,13 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
         super.visit(functionCallStatement)
     }
 
+    override fun visit(decl: VarDecl) {
+        if(options.zeropage==ZeropageType.DONTUSE && decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)
+            errors.err("zeropage usage has been disabled by options", decl.position)
+
+        super.visit(decl)
+    }
+
     companion object {
 
         private fun argTypeCompatible(argDt: DataType, paramDt: DataType): Boolean {

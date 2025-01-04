@@ -1,22 +1,20 @@
 %import textio
 %option no_sysinit
-%zeropage basicsafe
+%zeropage dontuse
 
 main {
     sub start() {
-        txt.print("\n\n\n\n\n\n                                  !")
+        uword @nozp pointer
+        pointer++
 
-        ubyte column, row
-
-        column, row = txt.get_cursor()
-        txt.nl()
-        txt.print_ub(column)
-        txt.spc()
-        txt.print_ub(row)
-        txt.nl()
-
-
-        repeat {
-        }
+        cx16.r0L = @(pointer)
+        cx16.r1L = @(pointer+100)
+        cx16.r1 = peekw(pointer)
+        cx16.r2 = peekw(pointer+100)
+        cx16.r3L = peek(pointer+100)
+        @(pointer) = 99
+        @(pointer+100) = 99
+        poke(pointer, 99)
+        pokew(pointer, 99)
     }
 }
