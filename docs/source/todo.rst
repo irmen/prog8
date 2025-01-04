@@ -1,8 +1,6 @@
 TODO
 ====
 
-- textio.get_cursor() should just return 2 bytes (rewrite it as asmsub...)
-
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -48,7 +46,9 @@ Future Things and Ideas
 IR/VM
 -----
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- add BZ and BNZ instructions?  To replace CMPI #0 + Branch?
+- split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
+- fix call() return value handling
+- proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
 - sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:
@@ -56,17 +56,12 @@ IR/VM
          cx16.r0L = cx16.r1 as ubyte
          cx16.r0sL = cx16.r1s as byte
      }
-- implement missing operators in AssignmentGen  (array shifts etc)
-- fix call() return value handling
-- try to get rid of LSIG opcode again (but this will introduce byte reads from word typed registers...)
-- proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
+- add more optimizations in IRPeepholeOptimizer
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
-- add more optimizations in IRPeepholeOptimizer
 - the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
-- split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
 - ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change
 
 

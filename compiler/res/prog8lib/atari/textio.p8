@@ -392,9 +392,16 @@ sub  plot(ubyte col, ubyte rownum) {
     row(rownum)
 }
 
-sub get_cursor(uword colptr, uword rowptr) {
-    @(colptr) = get_column()
-    @(rowptr) = get_row()
+asmsub get_cursor() -> ubyte @X, ubyte @Y {
+    %asm {{
+        jsr  get_column
+        pha
+        jsr  get_row
+        tay
+        pla
+        tax
+        rts
+    }}
 }
 
 asmsub waitkey() -> ubyte @A {

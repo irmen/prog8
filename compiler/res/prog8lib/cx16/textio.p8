@@ -81,15 +81,15 @@ asmsub get_row() -> ubyte @X {
     }}
 }
 
-sub get_cursor(uword colptr, uword rowptr) {
+asmsub get_cursor() -> ubyte @X, ubyte @Y {
     %asm {{
         sec
-        jsr cbm.PLOT
-        tya
-        ldy #$00
-        sta (colptr),y
-        txa
-        sta (rowptr),y
+        jsr  cbm.PLOT
+        phx     ; swap X and Y
+        phy
+        plx
+        ply
+        rts
     }}
 }
 
