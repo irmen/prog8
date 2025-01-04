@@ -1,12 +1,12 @@
 %import diskio
 %import textio
-%import sorting
 %import strings
 %zeropage basicsafe
 %option no_sysinit
 
 ; A "TUI" for an interactive file selector, that scrolls the selection list if it doesn't fit on the screen.
 ; Returns the name of the selected file.  If it is a directory instead, the name will start and end with a slash '/'.
+; Functions in PETSCII mode and in ISO mode as well (no case folding in ISO mode!)
 ; Depends a lot on diskio routines, and uses the drive set in the diskio.drivenumber variable (usually just 8)
 
 ; should case folding be done in diskio already? -> no, it doesn't know if you are in iso mode or not.
@@ -18,10 +18,13 @@
 
 main {
     sub start() {
-        txt.iso()
-        fileselector.configure_settings(true, true, 2)
-        fileselector.configure_appearance(10, 10, 20, $b3, $d0, true)
+        ; some configuration, optional
+        fileselector.configure_settings(%00000011, 2)
+        fileselector.configure_appearance(10, 10, 20, $b3, $d0)
+
+        ; show all files, using just the * wildcard
         uword chosen = fileselector.select("*")
+
         txt.nl()
         txt.nl()
         if chosen!=0 {
@@ -49,28 +52,25 @@ fileselector {
     ubyte colors_selected = $d0
     ubyte buffer_rambank = 1    ; default hiram bank to use for the data buffers
     ubyte show_what = 3         ; dirs and files
-    bool iso_mode = false
-    ubyte chr_topleft, chr_topright, chr_botleft, chr_botright, chr_horiz, chr_vert, chr_jointleft, chr_jointright
+    ubyte chr_topleft, chr_topright, chr_botleft, chr_botright, chr_horiz_top, chr_horiz_other, chr_vert, chr_jointleft, chr_jointright
 
     ubyte num_visible_files
     uword name_ptr
 
 
-    sub configure_settings(bool show_files, bool show_dirs, ubyte rambank) {
+    sub configure_settings(ubyte show_types, ubyte rambank) {
+        ; show_types is a bit mask , bit 0 = show files, bit 1 = show dirs
         buffer_rambank = rambank
-        show_what = 0
-        if show_files  show_what |= 1
-        if show_dirs   show_what |= 2
+        show_what = show_types
         set_characters(false)
     }
 
-    sub configure_appearance(ubyte column, ubyte row, ubyte max_entries, ubyte normal, ubyte selected, bool iso_chars) {
+    sub configure_appearance(ubyte column, ubyte row, ubyte max_entries, ubyte normal, ubyte selected) {
         dialog_topx = column
         dialog_topy = row
         max_lines = max_entries
         colors_normal = normal
         colors_selected = selected
-        iso_mode = iso_chars
     }
 
     sub select(str pattern) -> uword {
@@ -78,22 +78,20 @@ fileselector {
         cx16.rambank(buffer_rambank)
         defer cx16.rambank(old_bank)
 
-;        if pattern!=0 and pattern[0]==0
-;            pattern = 0        ; force pattern to be 0 instead of empty string, to be compatible with prog8 11.0 or older
-
         num_visible_files = 0
         diskio.list_filename[0] = 0
         name_ptr = diskio.diskname()
         if name_ptr==0 or cbm.READST()!=0
             return 0
 
+        bool iso_mode = cx16.get_charset()==1
         set_characters(iso_mode)
         txt.color2(colors_normal & 15, colors_normal>>4)
         background(0, 3)
 
         txt.plot(dialog_topx, dialog_topy)
         txt.chrout(chr_topleft)
-        linepart()
+        linepart(true)
         txt.chrout(chr_topright)
         txt.nl()
         txt.column(dialog_topx)
@@ -121,7 +119,7 @@ fileselector {
 
         construct_name_ptr_array()
         ; sort alphabetically
-        sorting.shellsort_pointers(filename_ptrs_start, num_files, sorting.string_comparator)
+        sorting.shellsort_pointers(filename_ptrs_start, num_files)
         num_visible_files = min(max_lines, num_files)
 
         ; initial display
@@ -140,15 +138,15 @@ fileselector {
         txt.nl()
         txt.column(dialog_topx)
         txt.chrout(chr_vert)
-        txt.print(" stop or q to abort           ")
+        txt.print(" esc/stop to abort            ")
         txt.chrout(chr_vert)
         txt.nl()
         txt.column(dialog_topx)
         txt.chrout(chr_jointleft)
-        linepart()
+        linepart(false)
         txt.chrout(chr_jointright)
         txt.nl()
-        print_up_indicator(false)
+        print_scroll_indicator(false, true)
         if num_files>0 {
             for selected_line in 0 to num_visible_files-1 {
                 txt.column(dialog_topx)
@@ -167,7 +165,7 @@ fileselector {
             txt.chrout(chr_vert)
             txt.nl()
         }
-        print_down_indicator(false)
+        print_scroll_indicator(false, false)
         txt.column(dialog_topx)
         footerline()
         selected_line = 0
@@ -180,7 +178,7 @@ fileselector {
 
             ubyte key = cbm.GETIN2()
             when key {
-                3, 27, 'q' -> return 0      ; STOP or Q  aborts  (and ESC?)
+                3, 27 -> return 0      ; STOP and ESC  aborts
                 '\n',' ' -> {
                     if num_files>0 {
                         void strings.copy(peekw(filename_ptrs_start + (top_index+selected_line)*$0002), &diskio.list_filename)
@@ -310,29 +308,19 @@ fileselector {
         sub print_up_and_down() {
             if num_files<=max_lines
                 return
-            print_up_indicator(top_index>0)
-            print_down_indicator(top_index + num_visible_files < num_files)
+            print_scroll_indicator(top_index>0, true)
+            print_scroll_indicator(top_index + num_visible_files < num_files, false)
         }
 
-        sub print_up_indicator(bool shown) {
-            txt.plot(dialog_topx, dialog_topy+5)
-            txt.chrout(chr_vert)
-            txt.column(dialog_topx+26)
-            if shown
-                txt.print("(up)")
-            else
-                txt.print("    ")
-            txt.spc()
-            txt.chrout(chr_vert)
-            txt.nl()
-        }
-
-        sub print_down_indicator(bool shown) {
-            txt.plot(dialog_topx, dialog_topy+6+num_visible_files)
+        sub print_scroll_indicator(bool visible, bool up) {
+            txt.plot(dialog_topx, dialog_topy + (if up  5  else  6+num_visible_files))
             txt.chrout(chr_vert)
             txt.column(dialog_topx+24)
-            if shown
-                txt.print("(down)")
+            if visible
+                if up
+                    txt.print("  (up)")
+                else
+                    txt.print("(down)")
             else
                 txt.print("      ")
             txt.spc()
@@ -342,12 +330,15 @@ fileselector {
 
         sub footerline() {
             txt.chrout(chr_botleft)
-            linepart()
+            linepart(false)
             txt.chrout(chr_botright)
         }
 
-        sub linepart() {
-            repeat 30 txt.chrout(chr_horiz)
+        sub linepart(bool top) {
+            cx16.r0L = chr_horiz_other
+            if top
+                cx16.r0L = chr_horiz_top
+            repeat 30 txt.chrout(cx16.r0L)
         }
 
         sub select_line(ubyte line) {
@@ -373,15 +364,18 @@ fileselector {
             chr_topright = iso:'ì'
             chr_botleft = iso:'`'
             chr_botright = iso:'\''
-            chr_jointleft = chr_jointright = iso:':'
+            chr_jointleft = chr_jointright = iso:'÷'
             chr_vert = iso:'|'
-            chr_horiz = iso:'-'
+            chr_horiz_top = iso:'¯'
+            chr_horiz_other = iso:'-'
         } else {
+            ; PETSCII box symbols
             chr_topleft = '┌'
             chr_topright = '┐'
             chr_botleft = '└'
             chr_botright = '┘'
-            chr_horiz = '─'
+            chr_horiz_top = '─'
+            chr_horiz_other = '─'
             chr_vert = '│'
             chr_jointleft = '├'
             chr_jointright = '┤'
@@ -435,4 +429,54 @@ fileselector {
         return files_found
     }
 
+}
+
+
+sorting {
+    ; note: cannot use the sorting library module because that relies on zeropage to be directly available (@requirezp pointer)
+    ;       and this code is meant to be able to being used without zeropage as well (except for R0-R15).
+
+    sub shellsort_pointers(uword stringpointers_array, ubyte num_elements) {
+        ; Comparefunc must be a routine that accepts 2 pointers in R0 and R1, and must return with Carry=1 if R0<=R1, otherwise Carry=0.
+        ; One such function, to compare strings, is provided as 'string_comparator' below.
+        cx16.r2 = stringpointers_array      ; need zeropage pointer
+        num_elements--
+        ubyte gap
+        for gap in [132, 57, 23, 10, 4, 1] {
+            ubyte i
+            for i in gap to num_elements {
+                cx16.r1 = peekw(cx16.r2+i*$0002)
+                ubyte @zp j = i
+                ubyte @zp k = j-gap
+                while j>=gap {
+                    cx16.r0 = peekw(cx16.r2+k*2)
+                    if string_comparator(cx16.r0, cx16.r1)
+                        break
+                    pokew(cx16.r2+j*2, cx16.r0)
+                    j = k
+                    k -= gap
+                }
+                pokew(cx16.r2+j*2, cx16.r1)
+            }
+        }
+
+        asmsub string_comparator(uword string1 @R0, uword string2 @R1) -> bool @Pc {
+            ; R0 and R1 are the two strings, must return Carry=1 when R0<=R1, else Carry=0
+            %asm {{
+                lda  cx16.r1L
+                ldy  cx16.r1H
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  cx16.r0L
+                ldy  cx16.r0H
+                jsr  prog8_lib.strcmp_mem
+                cmp  #1
+                bne  +
+                clc
+                rts
++               sec
+                rts
+            }}
+        }
+    }
 }

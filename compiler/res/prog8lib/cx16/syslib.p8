@@ -667,6 +667,30 @@ asmsub scnsiz(ubyte width @X, ubyte heigth @Y) clobbers(A,X,Y) {
     }}
 }
 
+asmsub get_charset() -> ubyte @A {
+    ;Get charset mode.  result: 0=unknown, 1=ISO, 2=PETSCII upper case/gfx, 3=PETSCII lowercase.
+    %asm {{
+
+KERNAL_MODE = $0372         ; internal kernal variable, risky to read it, but it's ben stable for many releases.
+        lda  KERNAL_MODE
+        beq  _end
+
+        bit  #$40                ;ISO mode flag
+        beq  +                   ;usually KERNAL_MODE 1 or 6 (| $40)
+        lda  #1
+        bra  _end
+
++       bit  #1                  ;PETSCII upper case/graphics
+        bne  +                   ;usually KERNAL_MODE 2 or 4
+        lda  #2
+        bra  _end
+
++       lda  #3                   ;PETSCII upper/lower case
+_end:
+        rts
+    }}
+}
+
 ; TODO : implement shims for the remaining extapi calls.
 
 

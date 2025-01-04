@@ -1,6 +1,8 @@
 TODO
 ====
 
+- textio.get_cursor() should just return 2 bytes (rewrite it as asmsub...)
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
