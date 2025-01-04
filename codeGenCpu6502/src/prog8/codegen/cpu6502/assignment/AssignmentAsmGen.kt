@@ -1161,6 +1161,23 @@ internal class AssignmentAsmGen(
                     }
                 }
             } else if(dt.isWord) {
+                if(shifts==7 && expr.operator == "<<") {
+                    // optimized shift left 7 (*128) by first swapping the lsb/msb and then doing just one final shift
+                    assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
+                    asmgen.out("""
+                        ; shift left 7
+                        sty  P8ZP_SCRATCH_REG   ; msb
+                        lsr  P8ZP_SCRATCH_REG
+                        php     ; save carry
+                        sta  P8ZP_SCRATCH_REG
+                        lda  #0
+                        plp     ; restore carry
+                        ror  P8ZP_SCRATCH_REG
+                        ror  a
+                        ldy  P8ZP_SCRATCH_REG""")
+                    return true
+                }
+
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
                 when (shifts) {
                     in 0..7 -> {

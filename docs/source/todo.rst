@@ -79,10 +79,8 @@ Libraries
 Optimizations
 -------------
 
-- optimize word*$0080 (also *$0040); don't shift 7 times, but swap lsb/msb   (rockrunner)
 - if abs(dx) < cave.VISIBLE_CELLS_H      looks like it treats abs(dx) as signed word still in codegen?  (rockrunner)
 - word offset = (row as uword) * 128 + col*2     inefficient code for col*2  (rockrunner)
-- is  @(cells+offset)  same code as cells[offset] ?
 - if magicwall_enabled and (jiffy_counter & 3 == 1)  sounds.magicwall()  -> generates shortcut jump to another jump, why not immediately after the if
 - explode(x, y+1)   pushes x on the stack and pops it, could simply load it in reverse order and not use the stack.normal
 - return mkword(attrs[cx16.r2L], object[cx16.r2L]) same as the explode() above
