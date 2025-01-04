@@ -199,6 +199,8 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                             IRInlineAsmChunk(label, candidate.assembly, candidate.isIR, candidate.next)
                         else
                             candidate
+                    } else {
+                        chunks += candidate
                     }
                 }
                 is IRInlineBinaryChunk -> {
@@ -210,6 +212,8 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                             IRInlineBinaryChunk(label, candidate.data, candidate.next)
                         else
                             candidate
+                    } else {
+                        chunks += candidate
                     }
                 }
             }

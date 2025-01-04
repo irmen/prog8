@@ -181,12 +181,12 @@ xor         reg1,          value             - reg1 = reg1 bitwise xor value
 xorm        reg1,        address             - memory = memory bitwise xor reg1
 inv         reg1                             - reg1 = bitwise invert of reg1 (all bits flipped)
 invm                     address             - memory = bitwise invert of that memory (all bits flipped)
-asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits (signed)  + set Carry to shifted bit
-lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + set Carry to shifted bit
-lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by reg2 bits  + set Carry to shifted bit
-asrnm       reg1,        address             - multi-shift memory right by reg1 bits (signed)  + set Carry to shifted bit
-lsrnm       reg1,        address             - multi-shift memoryright by reg1 bits + set Carry to shifted bit
-lslnm       reg1,        address             - multi-shift memory left by reg1 bits  + set Carry to shifted bit
+asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits (signed)  + Carry is undefined
+lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + Carry is undefined
+lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by reg2 bits + Carry is undefined
+asrnm       reg1,        address             - multi-shift memory right by reg1 bits (signed) + Carry is undefined
+lsrnm       reg1,        address             - multi-shift memoryright by reg1 bits + Carry is undefined
+lslnm       reg1,        address             - multi-shift memory left by reg1 bits + Carry is undefined
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit
 lsl         reg1                             - shift reg1 left by 1 bits + set Carry to shifted bit
