@@ -79,7 +79,6 @@ Libraries
 Optimizations
 -------------
 
-- if abs(dx) < cave.VISIBLE_CELLS_H      looks like it treats abs(dx) as signed word still in codegen?  (rockrunner)
 - word offset = (row as uword) * 128 + col*2     inefficient code for col*2  (rockrunner)
 - if magicwall_enabled and (jiffy_counter & 3 == 1)  sounds.magicwall()  -> generates shortcut jump to another jump, why not immediately after the if
 - explode(x, y+1)   pushes x on the stack and pops it, could simply load it in reverse order and not use the stack.normal
