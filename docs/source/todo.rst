@@ -1,9 +1,6 @@
 TODO
 ====
 
-return mkword(attrs[cx16.r2L], object[cx16.r2L]) same as the explode() above; push pops unneeded?
-
-
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -14,10 +11,11 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 - allow when stringvar.  Usecase: if sv=="aa" else if sv=="bb" else if sv=="cc"  -> needs much code,  when(stringvar) would avoid reloading both strings for every case  (rockrunner bdcff.p8)
-
+- this generates empty lines in the resulting asm, why?:
+        cx16.r0L = cx16.r1L
+        cx16.r0L += cx16.r2L
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
-
 - Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
   Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
   Add a -library $xxxx command line option (and/or some directive) to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
@@ -58,9 +56,8 @@ IR/VM
 - implement more TODOs in AssignmentGen
 - sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:
      sub start() {
-         cx16.r0L = cx16.r1 as ubyte
-         cx16.r0sL = cx16.r1s as byte
-     }
+     cx16.r0L = cx16.r1 as ubyte
+     cx16.r0sL = cx16.r1s as byte }
 - add more optimizations in IRPeepholeOptimizer
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
@@ -84,15 +81,9 @@ Libraries
 Optimizations
 -------------
 
-- word offset = (row as uword) * 128 + col*2     inefficient code for col*2  (rockrunner)
 - if magicwall_enabled and (jiffy_counter & 3 == 1)  sounds.magicwall()  -> generates shortcut jump to another jump, why not immediately after the if
 - if cx16.r0L>=97 and cx16.r0L<=122 {...}   -> treats the boolean condition as a byte 0/1 result , can't it somehow just act on the carry bit alone?
   same with if x1!=x2 or y1!=y2.....  but it's because of the way boolean expressions are handled... can this be optimized?
-
-- this generates empty lines in the resulting asm, why?:
-        cx16.r0L = cx16.r1L
-        cx16.r0L += cx16.r2L
-
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest

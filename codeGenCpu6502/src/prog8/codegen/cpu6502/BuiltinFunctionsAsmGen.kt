@@ -1044,27 +1044,47 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
         when(reg) {
             RegisterOrPair.AX -> {
-                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-                if(needAsaveForArg0)
-                    asmgen.out("  pha")
-                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
-                if(needAsaveForArg0)
-                    asmgen.out("  pla")
+                if(needAsaveForArg0 && !asmgen.needAsaveForExpr(fcall.args[1])) {
+                    // first 0 then 1
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                } else if(!needAsaveForArg0 && asmgen.needAsaveForExpr(fcall.args[1])) {
+                    // first 1 then 0
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
+                } else {
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                    if (needAsaveForArg0)
+                        asmgen.out("  pha")
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
+                    if (needAsaveForArg0)
+                        asmgen.out("  pla")
+                }
             }
             RegisterOrPair.AY -> {
-                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-                if(needAsaveForArg0)
-                    asmgen.out("  pha")
-                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
-                if(needAsaveForArg0)
-                    asmgen.out("  pla")
+                if(needAsaveForArg0 && !asmgen.needAsaveForExpr(fcall.args[1])) {
+                    // first 0 then 1
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                } else if(!needAsaveForArg0 && asmgen.needAsaveForExpr(fcall.args[1])) {
+                    // first 1 then 0
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
+                } else {
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                    if (needAsaveForArg0)
+                        asmgen.out("  pha")
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
+                    if (needAsaveForArg0)
+                        asmgen.out("  pla")
+                }
             }
             RegisterOrPair.XY -> {
                 asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-                if(needAsaveForArg0)
+                if (needAsaveForArg0)
                     asmgen.out("  pha")
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
-                if(needAsaveForArg0)
+                if (needAsaveForArg0)
                     asmgen.out("  pla")
                 asmgen.out("  tax")
             }
