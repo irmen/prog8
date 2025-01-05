@@ -1,6 +1,9 @@
 TODO
 ====
 
+- optimize @(cell_ptr-offset)  to use  DEC pointer_msb ; LDY #255 ;  INC pointer_msb instead.  See tryOptimizedPointerAccessWithA()
+
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -83,7 +86,6 @@ Optimizations
 - if magicwall_enabled and (jiffy_counter & 3 == 1)  sounds.magicwall()  -> generates shortcut jump to another jump, why not immediately after the if
 - explode(x, y+1)   pushes x on the stack and pops it, could simply load it in reverse order and not use the stack.normal
 - return mkword(attrs[cx16.r2L], object[cx16.r2L]) same as the explode() above
-- @(cell_ptr-1) = objects.amoeba      uses temp zp pointer, also when cell_ptr is zp already?
 - x = y + z    more efficient if rewritten to x=y; x+=z   ?
 - return peekw(table+64+pos*2)   .... or rather .. return <complex expression> -> can this be optimized by using a temporary variable and chop up the expression?
   likewise cx16.r0 = (gfx_lores.WIDTH-bmx.width)/2 + (gfx_lores.HEIGHT-bmx.height)/2*gfx_lores.WIDTH   a lot of register juggling

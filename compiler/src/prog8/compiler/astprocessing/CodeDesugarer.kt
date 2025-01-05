@@ -265,7 +265,7 @@ _after:
     override fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
         // for word variables:
         // @(&var) --> lsb(var)
-        // @(&var+1) --> msb(var)
+        // @(&var+1) --> msb(var)           NOTE: ONLY WHEN VAR IS AN ACTUAL WORD VARIABLE (POINTER)
 
         val addrOf = memread.addressExpression as? AddressOf
         if(addrOf?.arrayIndex!=null)
@@ -279,8 +279,11 @@ _after:
             val addressOf = expr.left as? AddressOf
             val offset = (expr.right as? NumericLiteral)?.number?.toInt()
             if(addressOf!=null && offset==1) {
-                val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), memread.position), mutableListOf(addressOf.identifier), memread.position)
-                return listOf(IAstModification.ReplaceNode(memread, msb, parent))
+                val variable = addressOf.identifier.targetVarDecl(program)
+                if(variable!=null && variable.datatype.isWord) {
+                    val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), memread.position), mutableListOf(addressOf.identifier), memread.position)
+                    return listOf(IAstModification.ReplaceNode(memread, msb, parent))
+                }
             }
         }
 

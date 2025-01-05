@@ -31,6 +31,13 @@ read_byte_from_address_in_AY_into_A	.proc
 		rts
 		.pend
 
+read_byte_from_address_in_AY_into_A_65c02	.proc
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		lda  (P8ZP_SCRATCH_W2)
+		rts
+		.pend
+
 
 write_byte_X_to_address_in_AY	.proc
 		sta  P8ZP_SCRATCH_W2
@@ -38,6 +45,14 @@ write_byte_X_to_address_in_AY	.proc
 		ldy  #0
 		txa
 		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+write_byte_X_to_address_in_AY_65c02	.proc
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		txa
+		sta  (P8ZP_SCRATCH_W2)
 		rts
 		.pend
 

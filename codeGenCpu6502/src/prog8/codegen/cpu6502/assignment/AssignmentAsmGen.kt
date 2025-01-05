@@ -306,38 +306,29 @@ internal class AssignmentAsmGen(
                     }
                 }
             }
-            SourceStorageKind.MEMORY -> {
-                val value = assign.source.memory!!
-                when (value.address) {
-                    is PtNumber -> {
-                        val address = (value.address as PtNumber).number.toUInt()
-                        assignMemoryByte(assign.target, address, null)
-                    }
-                    is PtIdentifier -> {
-                        assignMemoryByte(assign.target, null, value.address as PtIdentifier)
-                    }
-                    is PtBinaryExpression -> {
-                        val addrExpr = value.address as PtBinaryExpression
-                        if(asmgen.tryOptimizedPointerAccessWithA(addrExpr, false)) {
-                            assignRegisterByte(assign.target, CpuRegister.A, false, true)
-                        } else {
-                            assignByteFromAddressExpression(value.address, assign.target)
-                        }
-                    }
-                    else -> assignByteFromAddressExpression(value.address, assign.target)
-                }
-            }
-            SourceStorageKind.EXPRESSION -> {
-                assignExpression(assign, scope)
-            }
-            SourceStorageKind.REGISTER -> {
-                asmgen.assignRegister(assign.source.register!!, assign.target)
-            }
+            SourceStorageKind.MEMORY -> assignByteFromAddressExpression(assign.source.memory!!.address, assign.target)
+            SourceStorageKind.EXPRESSION -> assignExpression(assign, scope)
+            SourceStorageKind.REGISTER -> asmgen.assignRegister(assign.source.register!!, assign.target)
         }
     }
 
     private fun assignByteFromAddressExpression(address: PtExpression, target: AsmAssignTarget) {
-        if(address is PtBinaryExpression) {
+
+        if (address is PtNumber) {
+            val address = address.number.toUInt()
+            assignMemoryByte(target, address, null)
+            return
+        }
+        else if (address is PtIdentifier) {
+            assignMemoryByte(target, null, address)
+            return
+        }
+        else if (address is PtBinaryExpression) {
+            if(asmgen.tryOptimizedPointerAccessWithA(address, false)) {
+                assignRegisterByte(target, CpuRegister.A, false, true)
+                return
+            }
+
             if(address.operator=="+" && address.right.type.isUnsignedWord) {
                 if (address.left is PtIdentifier) {
                     // use (zp),Y instead of explicitly calculating the full zp pointer value
@@ -376,9 +367,11 @@ internal class AssignmentAsmGen(
                 }
             }
 //          else if(address.operator=="-") {
-//              // does this ever occur? we could optimize it too, but it seems like a pathological case
+//              // TODO does this ever occur? we could optimize it too, but it seems like a pathological case
 //          }
         }
+
+        // fallback assignmen through temporary pointer var
         assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
         assignRegisterByte(target, CpuRegister.A, false, true)
@@ -4010,18 +4003,6 @@ $endLabel""")
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
             addressExpr is PtBinaryExpression -> {
-                if(addressExpr.operator=="+" || addressExpr.operator=="-") {
-                    val addrOf = addressExpr.left as? PtAddressOf
-                    val offset = (addressExpr.right as? PtNumber)?.number?.toInt()
-                    if(addrOf!=null && offset!=null) {
-                        if(addrOf.isFromArrayElement) {
-                            TODO("address-of array element $addrOf")
-                        } else {
-                            asmgen.out("  sta  ${asmgen.asmSymbolName(addrOf.identifier)}${addressExpr.operator}${offset}")
-                            return
-                        }
-                    }
-                }
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))
                     storeViaExprEval()
             }

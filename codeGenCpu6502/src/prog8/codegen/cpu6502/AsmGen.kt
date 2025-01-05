@@ -1164,12 +1164,13 @@ $repeatLabel""")
         }
     }
 
-    internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression): Pair<PtExpression, PtExpression>? {
+    internal fun pointerViaIndexRegisterPossible(pointerOffsetExpr: PtExpression, allowNegativeIndex: Boolean=false): Pair<PtExpression, PtExpression>? {
         if (pointerOffsetExpr !is PtBinaryExpression) return null
         val operator = pointerOffsetExpr.operator
         val left = pointerOffsetExpr.left
         val right = pointerOffsetExpr.right
-        if (operator != "+") return null
+        if (operator != "+" && (operator != "-" || !allowNegativeIndex))
+            return null
         val leftDt = left.type
         val rightDt = right.type
         if(leftDt.isUnsignedWord && rightDt.isUnsignedByte)
@@ -1212,70 +1213,166 @@ $repeatLabel""")
         }
 
         if(addressExpr.operator=="+") {
-            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr)
-            if(ptrAndIndex!=null) {
+            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr, false)
+            if (ptrAndIndex == null) return false
+
+            if(write) {
+
+                // WRITING TO pointer + offset
+
+                val addrOf = ptrAndIndex.first as? PtAddressOf
+                val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
+                if(addrOf!=null && constOffset!=null) {
+                    if(addrOf.isFromArrayElement) {
+                        TODO("address-of array element $addrOf")
+                    } else {
+                        out("  sta  ${asmSymbolName(addrOf.identifier)}+${constOffset}")
+                        return true
+                    }
+                }
+
                 val pointervar = ptrAndIndex.first as? PtIdentifier
-                val target = if(pointervar==null) null else symbolTable.lookup(pointervar.name)!!.astNode
-                when(target) {
-                    is PtLabel -> {
+                if(pointervar!=null && isZpVar(pointervar)) {
+                    val saveA = evalBytevalueWillClobberA(ptrAndIndex.second)
+                    if(saveA) out("  pha")
+                    assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                    if(saveA) out("  pla")
+                    out("  sta  (${asmSymbolName(pointervar)}),y")
+                } else {
+                    // copy the pointer var to zp first
+                    val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
+                    if(saveA) out("  pha")
+                    if(ptrAndIndex.second.isSimple()) {
+                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                         assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        out("  lda  ${asmSymbolName(pointervar!!)},y")
-                        return true
+                        if(saveA) out("  pla")
+                        out("  sta  (P8ZP_SCRATCH_W2),y")
+                    } else {
+                        pushCpuStack(BaseDataType.UBYTE,  ptrAndIndex.second)
+                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                        restoreRegisterStack(CpuRegister.Y, true)
+                        if(saveA) out("  pla")
+                        out("  sta  (P8ZP_SCRATCH_W2),y")
                     }
-                    is IPtVariable, null -> {
-                        if(write) {
-                            if(pointervar!=null && isZpVar(pointervar)) {
-                                val saveA = evalBytevalueWillClobberA(ptrAndIndex.second)
-                                if(saveA)
-                                    out("  pha")
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                if(saveA)
-                                    out("  pla")
-                                out("  sta  (${asmSymbolName(pointervar)}),y")
-                            } else {
-                                // copy the pointer var to zp first
-                                val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
-                                if(saveA)
-                                    out("  pha")
-                                if(ptrAndIndex.second.isSimple()) {
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
-                                    assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                    if(saveA)
-                                        out("  pla")
-                                    out("  sta  (P8ZP_SCRATCH_W2),y")
-                                } else {
-                                    pushCpuStack(BaseDataType.UBYTE,  ptrAndIndex.second)
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
-                                    restoreRegisterStack(CpuRegister.Y, true)
-                                    if(saveA)
-                                        out("  pla")
-                                    out("  sta  (P8ZP_SCRATCH_W2),y")
-                                }
-                            }
+                }
+                return true
+            }
+
+            // READING FROM pointer + offset
+
+            val addrOf = ptrAndIndex.first as? PtAddressOf
+            val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
+            if(addrOf!=null && constOffset!=null) {
+                if(addrOf.isFromArrayElement) {
+                    TODO("address-of array element $addrOf")
+                } else {
+                    out("  lda  ${asmSymbolName(addrOf.identifier)}+${constOffset}")
+                    return true
+                }
+            }
+
+            val pointervar = ptrAndIndex.first as? PtIdentifier
+            val targetVariable = if(pointervar==null) null else symbolTable.lookup(pointervar.name)!!.astNode
+            when(targetVariable) {
+                is PtLabel -> {
+                    assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                    out("  lda  ${asmSymbolName(pointervar!!)},y")
+                    return true
+                }
+                is IPtVariable, null -> {
+                    if(pointervar!=null && isZpVar(pointervar)) {
+                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                        out("  lda  (${asmSymbolName(pointervar)}),y")
+                    } else {
+                        // copy the pointer var to zp first
+                        if(ptrAndIndex.second.isSimple()) {
+                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                            assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                            out("  lda  (P8ZP_SCRATCH_W2),y")
                         } else {
-                            if(pointervar!=null && isZpVar(pointervar)) {
-                                assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                out("  lda  (${asmSymbolName(pointervar)}),y")
-                            } else {
-                                // copy the pointer var to zp first
-                                if(ptrAndIndex.second.isSimple()) {
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
-                                    assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                                    out("  lda  (P8ZP_SCRATCH_W2),y")
-                                } else {
-                                    pushCpuStack(BaseDataType.UBYTE, ptrAndIndex.second)
-                                    assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
-                                    restoreRegisterStack(CpuRegister.Y, false)
-                                    out("  lda  (P8ZP_SCRATCH_W2),y")
-                                }
-                            }
+                            pushCpuStack(BaseDataType.UBYTE, ptrAndIndex.second)
+                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                            restoreRegisterStack(CpuRegister.Y, false)
+                            out("  lda  (P8ZP_SCRATCH_W2),y")
                         }
+                    }
+                    return true
+                }
+                else -> throw AssemblyError("invalid pointervar $pointervar")
+            }
+        }
+
+        else if(addressExpr.operator=="-") {
+            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr, true)
+            if (ptrAndIndex == null) return false
+
+            if(write) {
+
+                // WRITING TO pointer - offset
+
+                val addrOf = ptrAndIndex.first as? PtAddressOf
+                val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
+                if(addrOf!=null && constOffset!=null) {
+                    if(addrOf.isFromArrayElement) {
+                        TODO("address-of array element $addrOf")
+                    } else {
+                        out("  sta  ${asmSymbolName(addrOf.identifier)}-${constOffset}")
                         return true
                     }
-                    else -> throw AssemblyError("invalid pointervar $pointervar")
+                }
+
+                if(constOffset!=null) {
+                    println("MEMWRITE POINTER - $constOffset  ${addressExpr.position}")  // TODO
+/*
+                    val pointervar = ptrAndIndex.first as? PtIdentifier
+                    if(pointervar!=null && isZpVar(pointervar)) {
+                        val saveA = evalBytevalueWillClobberA(ptrAndIndex.second)
+                        if(saveA) out("  pha")
+                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                        if(saveA) out("  pla")
+                        out("  sta  (${asmSymbolName(pointervar)}),y")
+                    } else {
+                        // copy the pointer var to zp first
+                        val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
+                        if(saveA) out("  pha")
+                        if(ptrAndIndex.second.isSimple()) {
+                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                            assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
+                            if(saveA) out("  pla")
+                            out("  sta  (P8ZP_SCRATCH_W2),y")
+                        } else {
+                            pushCpuStack(BaseDataType.UBYTE,  ptrAndIndex.second)
+                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                            restoreRegisterStack(CpuRegister.Y, true)
+                            if(saveA) out("  pla")
+                            out("  sta  (P8ZP_SCRATCH_W2),y")
+                        }
+                    }
+                    return true
+*/
+                }
+            } else {
+
+                // READING FROM pointer - offset
+
+                val addrOf = ptrAndIndex.first as? PtAddressOf
+                val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
+                if(addrOf!=null && constOffset!=null) {
+                    if(addrOf.isFromArrayElement) {
+                        TODO("address-of array element $addrOf")
+                    } else {
+                        out("  lda  ${asmSymbolName(addrOf.identifier)}-${constOffset}")
+                        return true
+                    }
+                }
+
+                if(constOffset!=null) {
+                    println("MEMREAD POINTER - $constOffset  ${addressExpr.position}")  // TODO
+                    // TODO optimize more cases
                 }
             }
         }
+
         return false
     }
 

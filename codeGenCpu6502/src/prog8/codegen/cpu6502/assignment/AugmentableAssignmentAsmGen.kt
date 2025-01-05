@@ -169,10 +169,14 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     else -> {
                         if(memory.address is PtBinaryExpression && tryOptimizedMemoryInplace(memory.address as PtBinaryExpression, operator, value))
                             return
+                        // slower method to calculate and use the pointer to access the memory with:
                         asmgen.assignExpressionToRegister(memory.address, RegisterOrPair.AY, false)
                         asmgen.saveRegisterStack(CpuRegister.A, true)
                         asmgen.saveRegisterStack(CpuRegister.Y, true)
-                        asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY_into_A")
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY_into_A_65c02")
+                        else
+                            asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY_into_A")
                         when(value.kind) {
                             SourceStorageKind.LITERALBOOLEAN -> {
                                 inplacemodificationRegisterAwithVariable(operator, "#${value.boolean!!.asInt()}", false)
@@ -212,7 +216,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                         asmgen.restoreRegisterStack(CpuRegister.Y, false)
                         asmgen.restoreRegisterStack(CpuRegister.A, false)
-                        asmgen.out("  jsr  prog8_lib.write_byte_X_to_address_in_AY")
+                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  jsr  prog8_lib.write_byte_X_to_address_in_AY_65c02")
+                        else
+                            asmgen.out("  jsr  prog8_lib.write_byte_X_to_address_in_AY")
                     }
                 }
             }
