@@ -3695,7 +3695,9 @@ $endLabel""")
                     RegisterOrPair.XY -> asmgen.out("  ldx  #0 |  ldy  #0")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                     in Cx16VirtualRegisters -> {
-                        asmgen.out("  stz  cx16.${target.register.toString().lowercase()} |  stz  cx16.${target.register.toString().lowercase()}+1")
+                        asmgen.out("  stz  cx16.${target.register.toString().lowercase()}")
+                        if(target.datatype.isWord)
+                            asmgen.out("  stz  cx16.${target.register.toString().lowercase()}+1")
                     }
                     else -> throw AssemblyError("weird register")
                 }
@@ -3734,10 +3736,12 @@ $endLabel""")
                 RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                 in Cx16VirtualRegisters -> {
                     asmgen.out("  lda  #${byte.toHex()} |  sta  cx16.${target.register.toString().lowercase()}")
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                        asmgen.out("  stz  cx16.${target.register.toString().lowercase()}+1\n")
-                    else
-                        asmgen.out("  lda  #0 |  sta  cx16.${target.register.toString().lowercase()}+1\n")
+                    if(target.datatype.isWord) {
+                        if (asmgen.isTargetCpu(CpuType.CPU65c02))
+                            asmgen.out("  stz  cx16.${target.register.toString().lowercase()}+1\n")
+                        else
+                            asmgen.out("  lda  #0 |  sta  cx16.${target.register.toString().lowercase()}+1\n")
+                    }
                 }
                 else -> throw AssemblyError("weird register")
             }

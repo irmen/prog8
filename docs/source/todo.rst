@@ -1,6 +1,9 @@
 TODO
 ====
 
+return mkword(attrs[cx16.r2L], object[cx16.r2L]) same as the explode() above; push pops unneeded?
+
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -83,8 +86,6 @@ Optimizations
 
 - word offset = (row as uword) * 128 + col*2     inefficient code for col*2  (rockrunner)
 - if magicwall_enabled and (jiffy_counter & 3 == 1)  sounds.magicwall()  -> generates shortcut jump to another jump, why not immediately after the if
-- explode(x, y+1)   pushes x on the stack and pops it, could simply load it in reverse order and not use the stack.normal
-- return mkword(attrs[cx16.r2L], object[cx16.r2L]) same as the explode() above
 - if cx16.r0L>=97 and cx16.r0L<=122 {...}   -> treats the boolean condition as a byte 0/1 result , can't it somehow just act on the carry bit alone?
   same with if x1!=x2 or y1!=y2.....  but it's because of the way boolean expressions are handled... can this be optimized?
 

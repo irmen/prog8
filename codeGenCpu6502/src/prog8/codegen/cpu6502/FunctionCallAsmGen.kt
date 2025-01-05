@@ -159,12 +159,22 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             2 -> {
                 if(params[0].type.isByteOrBool && params[1].type.isByteOrBool) {
                     // 2 byte params, second in Y, first in A
-                    argumentViaRegister(sub, IndexedValue(0, params[0]), args[0], RegisterOrPair.A)
-                    if(asmgen.needAsaveForExpr(args[1]))
-                        asmgen.out("  pha")
-                    argumentViaRegister(sub, IndexedValue(1, params[1]), args[1], RegisterOrPair.Y)
-                    if(asmgen.needAsaveForExpr(args[1]))
-                        asmgen.out("  pla")
+                    if(asmgen.needAsaveForExpr(args[0]) && !asmgen.needAsaveForExpr(args[1])) {
+                        // first 0 then 1
+                        argumentViaRegister(sub, IndexedValue(0, params[0]), args[0], RegisterOrPair.A)
+                        argumentViaRegister(sub, IndexedValue(1, params[1]), args[1], RegisterOrPair.Y)
+                    } else if(!asmgen.needAsaveForExpr(args[0]) && asmgen.needAsaveForExpr(args[1])) {
+                        // first 1 then 0
+                        argumentViaRegister(sub, IndexedValue(1, params[1]), args[1], RegisterOrPair.Y)
+                        argumentViaRegister(sub, IndexedValue(0, params[0]), args[0], RegisterOrPair.A)
+                    } else {
+                        argumentViaRegister(sub, IndexedValue(0, params[0]), args[0], RegisterOrPair.A)
+                        if (asmgen.needAsaveForExpr(args[1]))
+                            asmgen.out("  pha")
+                        argumentViaRegister(sub, IndexedValue(1, params[1]), args[1], RegisterOrPair.Y)
+                        if (asmgen.needAsaveForExpr(args[1]))
+                            asmgen.out("  pla")
+                    }
                 } else {
                     throw AssemblyError("cannot use registers for word+byte")
                 }

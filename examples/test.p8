@@ -3,31 +3,18 @@
 %zeropage basicsafe
 
 main {
+    ubyte[4] attrs
+    ubyte[4] object
+
     sub start() {
-        ubyte @shared bb0, bb1, bb2, bb3, bb4
-        uword @shared ww0, ww1, ww2, ww3, ww4
+        cx16.r0 = mkword(attrs[cx16.r2L], object[cx16.r2L])
+        cx16.r1 = mkword(attrs[cx16.r2L], 22)
+        cx16.r2 = mkword(22,attrs[cx16.r2L])
+        explode(1, attrs[2]+2)
+        explode(attrs[2]+2, 1)
+    }
 
-        bb4 = 100
-        ww4 = 100
-
-        bb0 = min(bb1+10, 100)
-        bb0 = min(100, bb1+10)
-;        bb0 = min(bb1, bb4)
-;        bb2 = min(bb1+bb2, bb3+bb4)
-;
-;        bb0 = max(bb1, 100)
-;        bb0 = max(100, bb1)
-;        bb0 = max(bb1, bb4)
-;        bb2 = max(bb1+bb2, bb3+bb4)
-;
-;        ww0 = min(ww1, 100)
-;        ww0 = min(100, ww1)
-;        ww0 = min(ww1, ww4)
-;        ww2 = min(ww1+ww2, ww3+ww4)
-;
-;        ww0 = max(ww1, 100)
-;        ww0 = max(100, ww1)
-;        ww0 = max(ww1, ww4)
-;        ww2 = max(ww1+ww2, ww3+ww4)
+    sub explode(ubyte a1, ubyte a2) -> uword {
+        return mkword(attrs[cx16.r2L], object[cx16.r2L])
     }
 }

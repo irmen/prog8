@@ -1033,38 +1033,38 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcMkword(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         val reg = resultRegister ?: RegisterOrPair.AY
-        var needAsave = asmgen.needAsaveForExpr(fcall.args[0])
-        if(!needAsave) {
+        var needAsaveForArg0 = asmgen.needAsaveForExpr(fcall.args[0])
+        if(!needAsaveForArg0) {
             val mr0 = fcall.args[0] as? PtMemoryByte
             val mr1 = fcall.args[1] as? PtMemoryByte
             if (mr0 != null)
-                needAsave =  mr0.address !is PtNumber
+                needAsaveForArg0 =  mr0.address !is PtNumber
             if (mr1 != null)
-                needAsave = needAsave or (mr1.address !is PtNumber)
+                needAsaveForArg0 = needAsaveForArg0 or (mr1.address !is PtNumber)
         }
         when(reg) {
             RegisterOrPair.AX -> {
                 asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-                if(needAsave)
+                if(needAsaveForArg0)
                     asmgen.out("  pha")
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
-                if(needAsave)
+                if(needAsaveForArg0)
                     asmgen.out("  pla")
             }
             RegisterOrPair.AY -> {
                 asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-                if(needAsave)
+                if(needAsaveForArg0)
                     asmgen.out("  pha")
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
-                if(needAsave)
+                if(needAsaveForArg0)
                     asmgen.out("  pla")
             }
             RegisterOrPair.XY -> {
                 asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
-                if(needAsave)
+                if(needAsaveForArg0)
                     asmgen.out("  pha")
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
-                if(needAsave)
+                if(needAsaveForArg0)
                     asmgen.out("  pla")
                 asmgen.out("  tax")
             }
