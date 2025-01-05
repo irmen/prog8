@@ -1,8 +1,6 @@
 package prog8.intermediate
 
 import prog8.code.*
-import prog8.code.ast.PtConstant
-import prog8.code.ast.PtVariable
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.code.target.getCompilationTargetByName
@@ -11,7 +9,6 @@ import java.nio.file.Path
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.XMLInputFactory
 import javax.xml.stream.XMLStreamException
-import javax.xml.stream.events.XMLEvent
 import kotlin.io.path.Path
 import kotlin.io.path.inputStream
 

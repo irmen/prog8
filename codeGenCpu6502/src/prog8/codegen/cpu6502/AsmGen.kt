@@ -961,8 +961,7 @@ $repeatLabel""")
                         bne  +
                         cpy  #>${value.toHex()}
                         beq  $choiceLabel
-+
-                        """)
++""")
                     }
                 }
             }
@@ -1109,8 +1108,7 @@ $repeatLabel""")
                 cmp  #$80
                 bcc  +
                 dey
-+
-            """)
++""")
             else -> throw AssemblyError("need byte type")
         }
     }
@@ -1124,8 +1122,7 @@ $repeatLabel""")
                 cmp  #$80
                 bcc  +
                 dex
-+
-            """)
++""")
             else -> throw AssemblyError("need byte type")
         }
     }

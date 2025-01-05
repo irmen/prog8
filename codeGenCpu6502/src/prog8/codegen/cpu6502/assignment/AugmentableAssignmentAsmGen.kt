@@ -741,8 +741,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     txa
                     ora  $variable+1
                     tax
-                    tya
-                """)
+                    tya""")
                 return true
             }
             "&" -> {
@@ -752,8 +751,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     txa
                     and  $variable+1
                     tax
-                    tya
-                """)
+                    tya""")
                 return true
             }
             "^" -> {
@@ -763,8 +761,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     txa
                     eor  $variable+1
                     tax
-                    tya
-                """)
+                    tya""")
                 return true
             }
             else -> return false
@@ -856,8 +853,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     txa
                     ora  #>$number
                     tax
-                    tya
-                """)
+                    tya""")
                 return true
             }
             "&" -> {
@@ -867,8 +863,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     txa
                     and  #>$number
                     tax
-                    tya
-                """)
+                    tya""")
                 return true
             }
             "^" -> {
@@ -878,8 +873,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     txa
                     eor  #>$number
                     tax
-                    tya
-                """)
+                    tya""")
                 return true
             }
             else -> return false
@@ -1856,8 +1850,7 @@ $shortcutLabel:""")
                             ldy  #>$value
                             jsr  prog8_math.divmod_w_asm
                             sta  $lsb
-                            sty  $msb
-                        """)
+                            sty  $msb""")
                     }
                     else {
                         asmgen.out("""
@@ -1869,8 +1862,7 @@ $shortcutLabel:""")
                             ldy  #>$value
                             jsr  prog8_math.divmod_uw_asm
                             sta  $lsb
-                            sty  $msb
-                        """)
+                            sty  $msb""")
                     }
                 }
             }
@@ -1890,8 +1882,7 @@ $shortcutLabel:""")
                     lda  P8ZP_SCRATCH_W2
                     ldy  P8ZP_SCRATCH_W2+1
                     sta  $lsb
-                    sty  $msb
-                """)
+                    sty  $msb""")
             }
             "<<" -> {
                 when {
@@ -1927,8 +1918,7 @@ $shortcutLabel:""")
 -                       asl  $lsb
                         rol  $msb
                         dey
-                        bne  -
-                    """)
+                        bne  -""")
                     else -> repeat(value) { asmgen.out(" asl  $lsb |  rol  $msb") }
                 }
             }
@@ -2352,8 +2342,7 @@ $shortcutLabel:""")
                                 ldy  #0
                                 jsr  prog8_math.divmod_uw_asm
                                 sta  $name
-                                sty  $name+1
-                            """)
+                                sty  $name+1""")
                         } else {
                             asmgen.out("""
                                 lda  $name
@@ -2364,8 +2353,7 @@ $shortcutLabel:""")
                                 ldy  #0
                                 jsr  prog8_math.divmod_w_asm
                                 sta  $name
-                                sty  $name+1
-                            """)
+                                sty  $name+1""")
                         }
                     }
                     "%" -> {
@@ -2382,8 +2370,7 @@ $shortcutLabel:""")
                             lda  P8ZP_SCRATCH_W2
                             sta  $name
                             lda  P8ZP_SCRATCH_W2+1
-                            sta  $name+1
-                        """)
+                            sta  $name+1""")
                     }
                     "<<" -> {
                         asmgen.out("""
@@ -2532,8 +2519,7 @@ $shortcutLabel:""")
                             lda  P8ZP_SCRATCH_W2
                             sta  $name
                             lda  P8ZP_SCRATCH_W2+1
-                            sta  $name+1
-                        """)
+                            sta  $name+1""")
                     }
                     "<<", ">>" -> {
                         throw AssemblyError("shift by a word variable not supported, max is a byte")
@@ -2682,8 +2668,7 @@ $shortcutLabel:""")
                     stx  cx16.r0+1
                     jsr  verafx.muls
                     sta  $name
-                    sty  $name+1
-                """)
+                    sty  $name+1""")
             else
                 asmgen.out("""
                     sta  prog8_math.multiply_words.multiplier
@@ -2692,8 +2677,7 @@ $shortcutLabel:""")
                     ldy  $name+1
                     jsr  prog8_math.multiply_words
                     sta  $name
-                    sty  $name+1
-                """)
+                    sty  $name+1""")
         }
 
         fun divideVarByWordInAY() {
@@ -2725,8 +2709,7 @@ $shortcutLabel:""")
                 lda  P8ZP_SCRATCH_W2
                 ldy  P8ZP_SCRATCH_W2+1
                 sta  $name
-                sty  $name+1
-            """)
+                sty  $name+1""")
         }
         val valueDt = value.type
         when {
@@ -3003,29 +2986,25 @@ $shortcutLabel:""")
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  floats.FADD
-                """)
+                    jsr  floats.FADD""")
             }
             "-" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  floats.FSUB
-                """)
+                    jsr  floats.FSUB""")
             }
             "*" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  floats.FMULT
-                """)
+                    jsr  floats.FMULT""")
             }
             "/" -> {
                 asmgen.out("""
                     lda  #<$name
                     ldy  #>$name
-                    jsr  floats.FDIV
-                """)
+                    jsr  floats.FDIV""")
             }
             // pretty uncommon, who's going to assign a comparison boolean expression to a float var:
             "==" -> TODO("float-value-to-var comparison ==")
@@ -3037,8 +3016,7 @@ $shortcutLabel:""")
         asmgen.out("""
             ldx  #<$name
             ldy  #>$name
-            jsr  floats.MOVMF
-        """)
+            jsr  floats.MOVMF""")
     }
 
     private fun inplacemodificationFloatWithVariable(name: String, operator: String, otherName: String) {
@@ -3050,8 +3028,7 @@ $shortcutLabel:""")
                     jsr  floats.MOVFM
                     lda  #<$otherName
                     ldy  #>$otherName
-                    jsr  floats.FADD
-                """)
+                    jsr  floats.FADD""")
             }
             "-" -> {
                 asmgen.out("""
@@ -3060,8 +3037,7 @@ $shortcutLabel:""")
                     jsr  floats.MOVFM
                     lda  #<$name
                     ldy  #>$name
-                    jsr  floats.FSUB
-                """)
+                    jsr  floats.FSUB""")
             }
             "*" -> {
                 asmgen.out("""
@@ -3070,8 +3046,7 @@ $shortcutLabel:""")
                     jsr  floats.MOVFM
                     lda  #<$otherName
                     ldy  #>$otherName
-                    jsr  floats.FMULT
-                """)
+                    jsr  floats.FMULT""")
             }
             "/" -> {
                 asmgen.out("""
@@ -3080,8 +3055,7 @@ $shortcutLabel:""")
                     jsr  floats.MOVFM
                     lda  #<$name
                     ldy  #>$name
-                    jsr  floats.FDIV
-                """)
+                    jsr  floats.FDIV""")
             }
             // pretty uncommon, who's going to assign a comparison boolean expression to a float var:
             "==" -> {
@@ -3151,8 +3125,7 @@ $shortcutLabel:""")
         asmgen.out("""
             ldx  #<$name
             ldy  #>$name
-            jsr  floats.MOVMF
-        """)
+            jsr  floats.MOVMF""")
     }
 
     private fun inplacemodificationFloatWithLiteralval(name: String, operator: String, value: Double) {
@@ -3170,16 +3143,14 @@ $shortcutLabel:""")
                         lda  #<$name
                         ldy  #>$name
                         jsr  floats.MOVFM
-                        jsr  floats.FADDH
-                    """)
+                        jsr  floats.FADDH""")
                     else -> asmgen.out("""
                         lda  #<$name
                         ldy  #>$name
                         jsr  floats.MOVFM
                         lda  #<$constValueName
                         ldy  #>$constValueName
-                        jsr  floats.FADD
-                    """)
+                        jsr  floats.FADD""")
                 }
             }
             "-" -> {
@@ -3195,8 +3166,7 @@ $shortcutLabel:""")
                     jsr  floats.MOVFM
                     lda  #<$name
                     ldy  #>$name
-                    jsr  floats.FSUB
-                """)
+                    jsr  floats.FSUB""")
             }
             "*" -> {
                 // assume that code optimization is already done on the AST level for special cases such as 0, 1, 2...
@@ -3205,8 +3175,7 @@ $shortcutLabel:""")
                         lda  #<$name
                         ldy  #>$name
                         jsr  floats.MOVFM
-                        jsr  floats.MUL10
-                    """)
+                        jsr  floats.MUL10""")
                 } else {
                     asmgen.out("""
                         lda  #<$name
@@ -3214,8 +3183,7 @@ $shortcutLabel:""")
                         jsr  floats.MOVFM
                         lda  #<$constValueName
                         ldy  #>$constValueName
-                        jsr  floats.FMULT
-                    """)
+                        jsr  floats.FMULT""")
                 }
             }
             "/" -> {
@@ -3227,8 +3195,7 @@ $shortcutLabel:""")
                     jsr  floats.MOVFM
                     lda  #<$name
                     ldy  #>$name
-                    jsr  floats.FDIV
-                """)
+                    jsr  floats.FDIV""")
             }
             "==" -> {
                 asmgen.out("""
@@ -3297,7 +3264,6 @@ $shortcutLabel:""")
         asmgen.out("""
             ldx  #<$name
             ldy  #>$name
-            jsr  floats.MOVMF
-        """)
+            jsr  floats.MOVMF""")
     }
 }

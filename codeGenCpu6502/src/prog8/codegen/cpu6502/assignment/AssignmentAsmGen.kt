@@ -1491,8 +1491,7 @@ internal class AssignmentAsmGen(
                             assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                             val castedSymname = asmgen.asmVariableName(castedValue)
                             if (expr.operator == "+")
-                                asmgen.out(
-                                """
+                                asmgen.out("""
                                     clc
                                     adc  $castedSymname
                                     bcc  +
@@ -1500,8 +1499,7 @@ internal class AssignmentAsmGen(
 +"""
                             )
                             else
-                                asmgen.out(
-                                """
+                                asmgen.out("""
                                     sec
                                     sbc  $castedSymname
                                     bcs  +
@@ -2677,8 +2675,7 @@ $endLabel""")
                             lda  #<$sourceName
                             ldy  #>$sourceName
                             sta  ${target.asmVarname}
-                            sty  ${target.asmVarname}+1
-                        """)
+                            sty  ${target.asmVarname}+1""")
                     }
                     target.datatype.isString || target.datatype.isUnsignedByteArray || target.datatype.isByteArray -> {
                         asmgen.out("""
@@ -2798,13 +2795,11 @@ $endLabel""")
                         RegisterOrPair.AY -> asmgen.out("  ldy  $sourceName+1 |  lda  $sourceName")
                         RegisterOrPair.XY -> asmgen.out("  ldy  $sourceName+1 |  ldx  $sourceName")
                         in Cx16VirtualRegisters -> {
-                            asmgen.out(
-                                """
+                            asmgen.out("""
                                 lda  $sourceName
                                 sta  cx16.${target.register.toString().lowercase()}
                                 lda  $sourceName+1
-                                sta  cx16.${target.register.toString().lowercase()}+1
-                            """)
+                                sta  cx16.${target.register.toString().lowercase()}+1""")
                         }
                         else -> throw AssemblyError("can't load word in a single 8-bit register")
                     }
@@ -2825,8 +2820,7 @@ $endLabel""")
                 asmgen.out("""
                     ldx  #<${target.asmVarname}
                     ldy  #>${target.asmVarname}
-                    jsr  floats.MOVMF
-                """)
+                    jsr  floats.MOVMF""")
             }
             TargetStorageKind.ARRAY -> {
                 asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
@@ -2924,8 +2918,7 @@ $endLabel""")
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
                     lda  $sourceName
-                    sta  ${target.asmVarname}
-                    """)
+                    sta  ${target.asmVarname}""")
             }
             TargetStorageKind.MEMORY -> {
                 asmgen.out("  lda  $sourceName")
@@ -2951,13 +2944,11 @@ $endLabel""")
                     RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                     in Cx16VirtualRegisters -> {
-                        asmgen.out(
-                            """
+                        asmgen.out("""
                             lda  $sourceName
                             sta  cx16.${target.register.toString().lowercase()}
                             lda  #0
-                            sta  cx16.${target.register.toString().lowercase()}+1
-                            """)
+                            sta  cx16.${target.register.toString().lowercase()}+1""")
                     }
                     else -> throw AssemblyError("weird register")
                 }
@@ -2975,8 +2966,7 @@ $endLabel""")
                     ora  #$7f
                     bmi  +
                     lda  #0
-+                   sta  ${wordtarget.asmVarname}+1
-                    """)
++                   sta  ${wordtarget.asmVarname}+1""")
             }
             TargetStorageKind.ARRAY -> {
                 if(wordtarget.array!!.splitWords) {
@@ -3759,8 +3749,7 @@ $endLabel""")
                             stz  ${target.asmVarname}+1
                             stz  ${target.asmVarname}+2
                             stz  ${target.asmVarname}+3
-                            stz  ${target.asmVarname}+4
-                        """)
+                            stz  ${target.asmVarname}+4""")
                     else
                         asmgen.out("""
                             lda  #0
@@ -3768,8 +3757,7 @@ $endLabel""")
                             sta  ${target.asmVarname}+1
                             sta  ${target.asmVarname}+2
                             sta  ${target.asmVarname}+3
-                            sta  ${target.asmVarname}+4
-                        """)
+                            sta  ${target.asmVarname}+4""")
                 }
                 TargetStorageKind.ARRAY -> {
                     asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
@@ -3815,8 +3803,7 @@ $endLabel""")
                         sty  P8ZP_SCRATCH_W2
                         ldy  #>${target.asmVarname}
                         sty  P8ZP_SCRATCH_W2+1
-                        jsr  floats.set_array_float
-                    """)
+                        jsr  floats.set_array_float""")
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to memory byte")
                 TargetStorageKind.REGISTER -> {
@@ -3837,8 +3824,7 @@ $endLabel""")
                 TargetStorageKind.VARIABLE -> {
                     asmgen.out("""
                         lda  ${address.toHex()}
-                        sta  ${target.asmVarname}
-                        """)
+                        sta  ${target.asmVarname}""")
                 }
                 TargetStorageKind.MEMORY -> {
                     asmgen.out("  lda  ${address.toHex()}")
@@ -3857,13 +3843,11 @@ $endLabel""")
                     RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldy  ${address.toHex()}")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                     in Cx16VirtualRegisters -> {
-                        asmgen.out(
-                            """
+                        asmgen.out("""
                             lda  ${address.toHex()}
                             sta  cx16.${target.register.toString().lowercase()}
                             lda  #0
-                            sta  cx16.${target.register.toString().lowercase()}+1
-                        """)
+                            sta  cx16.${target.register.toString().lowercase()}+1""")
                     }
                     else -> throw AssemblyError("weird register")
                 }
@@ -3893,12 +3877,10 @@ $endLabel""")
                         RegisterOrPair.XY -> asmgen.out("  tax |  ldy  #0")
                         RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                         in Cx16VirtualRegisters -> {
-                            asmgen.out(
-                                """
+                            asmgen.out("""
                                 sta  cx16.${target.register.toString().lowercase()}
                                 lda  #0
-                                sta  cx16.${target.register.toString().lowercase()}+1
-                            """)
+                                sta  cx16.${target.register.toString().lowercase()}+1""")
                         }
                         else -> throw AssemblyError("weird register")
                     }
@@ -4232,8 +4214,7 @@ $endLabel""")
                         asmgen.out("""
                             lda  ${target.asmVarname}+1
                             eor  #$80
-                            sta  ${target.asmVarname}+1
-                        """)
+                            sta  ${target.asmVarname}+1""")
                     }
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
                     else -> throw AssemblyError("weird target for in-place float negation")

@@ -10,10 +10,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- allow when stringvar.  Usecase: if sv=="aa" else if sv=="bb" else if sv=="cc"  -> needs much code,  when(stringvar) would avoid reloading both strings for every case  (rockrunner bdcff.p8)
-- this generates empty lines in the resulting asm, why?:
-        cx16.r0L = cx16.r1L
-        cx16.r0L += cx16.r2L
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.

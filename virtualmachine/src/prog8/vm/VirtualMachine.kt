@@ -1995,8 +1995,6 @@ class VirtualMachine(irProgram: IRProgram) {
             }
             IRDataType.WORD -> {
                 val memvalue = memory.getUW(address).toInt()
-                val x1 = (memvalue shl operand)
-                val x2 = x1.toUShort()
                 memory.setUW(address, (memvalue shl operand).toUShort())
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
@@ -2387,28 +2385,6 @@ class VirtualMachine(irProgram: IRProgram) {
                 throw IllegalArgumentException("can't use float here")
             }
             null -> throw IllegalArgumentException("need type for logical instruction")
-        }
-    }
-
-    private fun getSetOnConditionOperands(ins: IRInstruction): Pair<Int, Int> {
-        return when(ins.type) {
-            IRDataType.BYTE -> Pair(registers.getSB(ins.reg2!!).toInt(), registers.getSB(ins.reg3!!).toInt())
-            IRDataType.WORD -> Pair(registers.getSW(ins.reg2!!).toInt(), registers.getSW(ins.reg3!!).toInt())
-            IRDataType.FLOAT -> {
-                throw IllegalArgumentException("can't use float here")
-            }
-            null -> throw IllegalArgumentException("need type for branch instruction")
-        }
-    }
-
-    private fun getSetOnConditionOperandsU(ins: IRInstruction): Pair<UInt, UInt> {
-        return when(ins.type) {
-            IRDataType.BYTE -> Pair(registers.getUB(ins.reg2!!).toUInt(), registers.getUB(ins.reg3!!).toUInt())
-            IRDataType.WORD -> Pair(registers.getUW(ins.reg2!!).toUInt(), registers.getUW(ins.reg3!!).toUInt())
-            IRDataType.FLOAT -> {
-                throw IllegalArgumentException("can't use float here")
-            }
-            null -> throw IllegalArgumentException("need type for branch instruction")
         }
     }
 

@@ -100,7 +100,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                 if(actualElementDt.isNumericOrBool && actualElementDt != BaseDataType.LONG)
                     DataType(BaseDataType.ARRAY, actualElementDt)
                 else
-                    throw NoSuchElementException("invalid element dt "+elementDt)
+                    throw NoSuchElementException("invalid element dt $elementDt")
             }
         }
     }
