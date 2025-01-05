@@ -81,9 +81,6 @@ Libraries
 Optimizations
 -------------
 
-- if magicwall_enabled and (jiffy_counter & 3 == 1)  sounds.magicwall()  -> generates shortcut jump to another jump, why not immediately after the if
-- if cx16.r0L>=97 and cx16.r0L<=122 {...}   -> treats the boolean condition as a byte 0/1 result , can't it somehow just act on the carry bit alone?
-  same with if x1!=x2 or y1!=y2.....  but it's because of the way boolean expressions are handled... can this be optimized?
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest

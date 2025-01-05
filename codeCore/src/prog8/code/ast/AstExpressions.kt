@@ -98,7 +98,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtFunctionCall -> false
             is PtIdentifier -> true
             is PtIrRegister -> true
-            is PtMemoryByte -> address is PtNumber || address is PtIdentifier
+            is PtMemoryByte -> address is PtNumber
             is PtBool -> true
             is PtNumber -> true
             is PtPrefix -> value.isSimple()
