@@ -1322,34 +1322,19 @@ $repeatLabel""")
                 }
 
                 if(constOffset!=null) {
-                    println("MEMWRITE POINTER - $constOffset  ${addressExpr.position}")  // TODO
-/*
                     val pointervar = ptrAndIndex.first as? PtIdentifier
                     if(pointervar!=null && isZpVar(pointervar)) {
-                        val saveA = evalBytevalueWillClobberA(ptrAndIndex.second)
-                        if(saveA) out("  pha")
-                        assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                        if(saveA) out("  pla")
-                        out("  sta  (${asmSymbolName(pointervar)}),y")
+                        val varname = asmSymbolName(pointervar)
+                        out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
+                        out("  dec  $varname+1 |  sta  ($varname),y |  inc  $varname+1")        // temporarily make MSB 1 less
+                        return true
                     } else {
                         // copy the pointer var to zp first
-                        val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
-                        if(saveA) out("  pha")
-                        if(ptrAndIndex.second.isSimple()) {
-                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
-                            assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
-                            if(saveA) out("  pla")
-                            out("  sta  (P8ZP_SCRATCH_W2),y")
-                        } else {
-                            pushCpuStack(BaseDataType.UBYTE,  ptrAndIndex.second)
-                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
-                            restoreRegisterStack(CpuRegister.Y, true)
-                            if(saveA) out("  pla")
-                            out("  sta  (P8ZP_SCRATCH_W2),y")
-                        }
+                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                        out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
+                        out("  dec  P8ZP_SCRATCH_W2+1 |  sta  (P8ZP_SCRATCH_W2),y |  inc  P8ZP_SCRATCH_W2+1")        // temporarily make MSB 1 less
+                        return true
                     }
-                    return true
-*/
                 }
             } else {
 
@@ -1367,8 +1352,19 @@ $repeatLabel""")
                 }
 
                 if(constOffset!=null) {
-                    println("MEMREAD POINTER - $constOffset  ${addressExpr.position}")  // TODO
-                    // TODO optimize more cases
+                    val pointervar = ptrAndIndex.first as? PtIdentifier
+                    if(pointervar!=null && isZpVar(pointervar)) {
+                        val varname = asmSymbolName(pointervar)
+                        out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
+                        out("  dec  $varname+1 |  lda  ($varname),y |  inc  $varname+1")        // temporarily make MSB 1 less
+                        return true
+                    } else {
+                        // copy the pointer var to zp first
+                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                        out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
+                        out("  dec  P8ZP_SCRATCH_W2+1 |  lda  (P8ZP_SCRATCH_W2),y |  inc  P8ZP_SCRATCH_W2+1")        // temporarily make MSB 1 less
+                        return true
+                    }
                 }
             }
         }

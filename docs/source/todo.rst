@@ -1,7 +1,7 @@
 TODO
 ====
 
-- optimize @(cell_ptr-offset)  to use  DEC pointer_msb ; LDY #255 ;  INC pointer_msb instead.  See tryOptimizedPointerAccessWithA()
+- min/max(x1,x2)  lots of code in a temp word,  can sometimes just use the existing variables x1 and x2
 
 
 - add paypal donation button as well?
@@ -21,7 +21,7 @@ Future Things and Ideas
   Add a -library $xxxx command line option (and/or some directive) to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
   Need to add some way to generate a stable jump table at a given address.
   Need library to not call init_system AND init_system_phase2 not either.
-  Library must not include prog8_program_start stuff either.
+  Library must not include prog8_program_start stuff either.  Must not require 'start' entrypoint either? Although they need some initialization entry point?
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
@@ -86,15 +86,15 @@ Optimizations
 - if magicwall_enabled and (jiffy_counter & 3 == 1)  sounds.magicwall()  -> generates shortcut jump to another jump, why not immediately after the if
 - explode(x, y+1)   pushes x on the stack and pops it, could simply load it in reverse order and not use the stack.normal
 - return mkword(attrs[cx16.r2L], object[cx16.r2L]) same as the explode() above
-- x = y + z    more efficient if rewritten to x=y; x+=z   ?
 - return peekw(table+64+pos*2)   .... or rather .. return <complex expression> -> can this be optimized by using a temporary variable and chop up the expression?
   likewise cx16.r0 = (gfx_lores.WIDTH-bmx.width)/2 + (gfx_lores.HEIGHT-bmx.height)/2*gfx_lores.WIDTH   a lot of register juggling
-- is there a trick to make @(pointer-1) = v   more efficient?   (like @(pointer+1)=v using Y indexed)
 - if sv=="aa" else if sv=="bb" else if sv=="cc"  -> needs much code, allow when(stringvar) too to avoid reloading both strings for every case  (rockrunner bdcff.p8)
 - if cx16.r0L>=97 and cx16.r0L<=122 {...}   -> treats the boolean condition as a byte 0/1 result , can't it somehow just act on the carry bit alone?
   same with if x1!=x2 or y1!=y2.....  but it's because of the way boolean expressions are handled... can this be optimized?
-- min(x1,x2)  lots of code in a temp word,  can just use the existing variables x1 and x2
 
+- this generates empty lines in the resulting asm, why?:
+        cx16.r0L = cx16.r1L
+        cx16.r0L += cx16.r2L
 
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?

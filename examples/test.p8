@@ -4,43 +4,35 @@
 
 main {
     sub start() {
-        ubyte[] array = [11,22,33,44,55,66,77,88,99]
-        uword @shared ptr = &array[5]
-        ubyte @shared offset
+        ubyte @shared bb0, bb1, bb2, bb3, bb4
+        uword @shared ww0, ww1, ww2, ww3, ww4
 
+        bb0 = min(bb1, 100)
+        bb1 = min(bb1, 100)
+        bb0 = min(100, bb1)
+        bb1 = min(100, bb1)
+        bb0 = min(bb1, bb2)
+        bb2 = min(bb1+bb2, bb3+bb4)
 
-        cx16.r0L = @(&start + 1)
-        cx16.r1L = @(&start - 1)
-        @(&start+1) = 99
-        @(&start-1) = 99
+        bb0 = max(bb1, 100)
+        bb1 = max(bb1, 100)
+        bb0 = max(100, bb1)
+        bb1 = max(100, bb1)
+        bb0 = max(bb1, bb2)
+        bb2 = max(bb1+bb2, bb3+bb4)
 
-;        @(ptr+1) = cx16.r0L
-;        @(ptr+2) = cx16.r0L
-;        @(ptr+offset) = cx16.r0L
-;        @(ptr-1) = cx16.r0L
-;        @(ptr-2) = cx16.r0L
-;        @(ptr-offset) = cx16.r0L
+        ww0 = min(ww1, 100)
+        ww1 = min(ww1, 100)
+        ww0 = min(100, ww1)
+        ww1 = min(100, ww1)
+        ww0 = min(ww1, ww2)
+        ww2 = min(ww1+ww2, ww3+ww4)
 
-
-;        cx16.r0L = @(ptr+1)
-;        cx16.r1L = @(ptr+2)
-;        cx16.r2L = @(ptr+offset)
-;        cx16.r3L = @(ptr-1)
-;        cx16.r4L = @(ptr-2)
-;        cx16.r5L = @(ptr-offset)
-
-
-
-;        %asm {{
-;            dec  p8v_ptr+1
-;            ldy  #255
-;            lda  (p8v_ptr),y
-;            inc  p8v_ptr+1
-;            sta  cx16.r0L
-;        }}
-
-        repeat {
-        }
-
+        ww0 = max(ww1, 100)
+        ww1 = max(ww1, 100)
+        ww0 = max(100, ww1)
+        ww1 = max(100, ww1)
+        ww0 = max(ww1, ww2)
+        ww2 = max(ww1+ww2, ww3+ww4)
     }
 }
