@@ -1,9 +1,6 @@
 TODO
 ====
 
-- min/max(x1,x2)  lots of code in a temp word,  can sometimes just use the existing variables x1 and x2
-
-
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -12,6 +9,8 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+
+- allow when stringvar.  Usecase: if sv=="aa" else if sv=="bb" else if sv=="cc"  -> needs much code,  when(stringvar) would avoid reloading both strings for every case  (rockrunner bdcff.p8)
 
 - Kotlin: can we use inline value classes in certain spots?
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
@@ -86,9 +85,6 @@ Optimizations
 - if magicwall_enabled and (jiffy_counter & 3 == 1)  sounds.magicwall()  -> generates shortcut jump to another jump, why not immediately after the if
 - explode(x, y+1)   pushes x on the stack and pops it, could simply load it in reverse order and not use the stack.normal
 - return mkword(attrs[cx16.r2L], object[cx16.r2L]) same as the explode() above
-- return peekw(table+64+pos*2)   .... or rather .. return <complex expression> -> can this be optimized by using a temporary variable and chop up the expression?
-  likewise cx16.r0 = (gfx_lores.WIDTH-bmx.width)/2 + (gfx_lores.HEIGHT-bmx.height)/2*gfx_lores.WIDTH   a lot of register juggling
-- if sv=="aa" else if sv=="bb" else if sv=="cc"  -> needs much code, allow when(stringvar) too to avoid reloading both strings for every case  (rockrunner bdcff.p8)
 - if cx16.r0L>=97 and cx16.r0L<=122 {...}   -> treats the boolean condition as a byte 0/1 result , can't it somehow just act on the carry bit alone?
   same with if x1!=x2 or y1!=y2.....  but it's because of the way boolean expressions are handled... can this be optimized?
 

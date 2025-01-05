@@ -9,6 +9,7 @@ import prog8.code.core.AssociativeOperators
 import prog8.code.core.BaseDataType
 import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
+import prog8.code.core.Position
 
 
 class StatementOptimizer(private val program: Program,
@@ -400,7 +401,89 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
+        val funcName = (assignment.value as? FunctionCallExpression)?.target?.nameInSource
+        if(funcName?.size==1) {
+            if(funcName[0].startsWith("min__")) {
+                val (v1, v2) = (assignment.value as FunctionCallExpression).args
+                if(v1 isSameAs v2)
+                    errors.err("identical values given, function is useless", assignment.value.position)
+                if ((v1 is NumericLiteral || v1 is IdentifierReference) && v2 isSameAs assignment.target) {
+                    // x = min(100, x)  ->  if x>100  x=100
+                    val ifstmt = makeMinMaxCheckAndAssignRight(v2, ">", v1, assignment.target, assignment.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, ifstmt, parent))
+                } else if ((v2 is NumericLiteral || v2 is IdentifierReference) && v1 isSameAs assignment.target) {
+                    // x = min(x, 100)  ->  if x>100  x=100
+                    val ifstmt = makeMinMaxCheckAndAssignRight(v1, ">", v2, assignment.target, assignment.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, ifstmt, parent))
+                }
+
+                if(v2 is NumericLiteral || v2 is IdentifierReference) {
+                    // x = min(expression, 100)  ->  x=expression,  if x>100  x=100
+                    val assign = Assignment(assignment.target.copy(), v1, AssignmentOrigin.OPTIMIZER, assignment.position)
+                    val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), ">", v2, assignment.target, assignment.position)
+                    return listOf(
+                        IAstModification.InsertAfter(assignment, ifstmt, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(assignment, assign, parent)
+                    )
+                } else if(v1 is NumericLiteral || v1 is IdentifierReference) {
+                    // x = min(100, expression)  ->  x=expression,  if x>100  x=100
+                    val assign = Assignment(assignment.target.copy(), v2, AssignmentOrigin.OPTIMIZER, assignment.position)
+                    val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), ">", v1, assignment.target, assignment.position)
+                    return listOf(
+                        IAstModification.InsertAfter(assignment, ifstmt, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(assignment, assign, parent)
+                    )
+                }
+
+            }
+            else if(funcName[0].startsWith("max__")) {
+                val (v1, v2) = (assignment.value as FunctionCallExpression).args
+                if(v1 isSameAs v2)
+                    errors.err("identical values given, function is useless", assignment.value.position)
+                if ((v1 is NumericLiteral || v1 is IdentifierReference) && v2 isSameAs assignment.target) {
+                    // x = max(100, x)  ->  if x<100  x=100
+                    val ifstmt = makeMinMaxCheckAndAssignRight(v2, "<", v1, assignment.target, assignment.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, ifstmt, parent))
+                } else if ((v2 is NumericLiteral || v2 is IdentifierReference) && v1 isSameAs assignment.target) {
+                    // x = max(x, 100)  ->  if x<100  x=100
+                    val ifstmt = makeMinMaxCheckAndAssignRight(v1, "<", v2, assignment.target, assignment.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, ifstmt, parent))
+                }
+
+                if(v2 is NumericLiteral || v2 is IdentifierReference) {
+                    // x = max(expression, 100)  ->  x=expression,  if x<100  x=100
+                    val assign = Assignment(assignment.target.copy(), v1, AssignmentOrigin.OPTIMIZER, assignment.position)
+                    val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), "<", v2, assignment.target, assignment.position)
+                    return listOf(
+                        IAstModification.InsertAfter(assignment, ifstmt, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(assignment, assign, parent)
+                    )
+                } else if(v1 is NumericLiteral || v1 is IdentifierReference) {
+                    // x = max(100, expression)  ->  x=expression,  if x<100  x=100
+                    val assign = Assignment(assignment.target.copy(), v2, AssignmentOrigin.OPTIMIZER, assignment.position)
+                    val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), "<", v1, assignment.target, assignment.position)
+                    return listOf(
+                        IAstModification.InsertAfter(assignment, ifstmt, parent as IStatementContainer),
+                        IAstModification.ReplaceNode(assignment, assign, parent)
+                    )
+                }
+
+            }
+        }
+
         return noModifications
+    }
+
+    private fun makeMinMaxCheckAndAssignRight(left: Expression, operator: String, right: Expression, target: AssignTarget, position: Position): IfElse {
+        require(right is NumericLiteral || right is IdentifierReference)
+        val compare = BinaryExpression(left, operator, right, position)
+        val assign = Assignment(target, right.copy(), AssignmentOrigin.OPTIMIZER, position)
+        return IfElse(
+            compare,
+            AnonymousScope(mutableListOf(assign), position),
+            AnonymousScope(mutableListOf(), position),
+            position
+        )
     }
 
     override fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> {

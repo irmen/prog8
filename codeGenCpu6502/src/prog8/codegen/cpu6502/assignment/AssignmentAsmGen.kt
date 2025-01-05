@@ -2455,11 +2455,9 @@ $endLabel""")
                     }
                     BaseDataType.UWORD, BaseDataType.WORD -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out(
-                                "  st${regs.toString().lowercase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
+                            asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
-                            asmgen.out(
-                                "  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
+                            asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
                     BaseDataType.FLOAT -> {
                         when(regs) {
@@ -2486,15 +2484,9 @@ $endLabel""")
                     }
                     BaseDataType.UWORD -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                            asmgen.out(
-                                "  st${
-                                    regs.toString().lowercase()
-                                }  $targetAsmVarName |  stz  $targetAsmVarName+1")
+                            asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
-                            asmgen.out(
-                                "  st${
-                                    regs.toString().lowercase()
-                                }  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
+                            asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
                     BaseDataType.WORD -> {
                         when(regs) {
