@@ -1,7 +1,9 @@
 ; Simple routines to control sprites.
+
 ; They're not written for high performance, but for simplicity.
-; That's why they control 1 sprite at a time. The exception is pos_batch().
-; which is quite efficient to update sprite positions of multiple sprites in one go.
+; That's why they control 1 sprite at a time. \
+; The exceptions are pos_batch() and pos_batch_split(); these are quite efficient
+; to update sprite positions of multiple sprites in one call.
 
 ; note: sprites z-order will be in front of all layers.
 ; note: collision mask is not supported here yet.

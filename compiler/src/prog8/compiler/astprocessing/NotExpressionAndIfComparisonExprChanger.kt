@@ -191,7 +191,6 @@ internal class NotExpressionAndIfComparisonExprChanger(val program: Program, val
         val prefix = ifExpr.condition as? PrefixExpression
         if(prefix?.operator=="not") {
             // if not x  a else b ->  if x  b else a
-            errors.info("invert condition and swap values", ifExpr.condition.position)
             ifExpr.condition = prefix.expression
             ifExpr.condition.parent = ifExpr
             val falsevalue = ifExpr.falsevalue

@@ -9,7 +9,7 @@ import prog8.codegen.cpu6502.assignment.TargetStorageKind
 internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, private val assignmentAsmGen: AssignmentAsmGen, private val errors: IErrorReporter) {
 
     internal fun assignIfExpression(target: AsmAssignTarget, expr: PtIfExpression) {
-        require(target.datatype==expr.type)
+        require(target.datatype==expr.type || target.datatype.isUnsignedWord && expr.type.isString)
         val falseLabel = asmgen.makeLabel("ifexpr_false")
         val endLabel = asmgen.makeLabel("ifexpr_end")
         evalIfExpressionConditonAndBranchWhenFalse(expr.condition, falseLabel)
@@ -22,7 +22,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 asmgen.out(endLabel)
                 assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
             }
-            expr.type.isWord -> {
+            expr.type.isWord || expr.type.isString -> {
                 asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.AY, false)
                 asmgen.jmp(endLabel)
                 asmgen.out(falseLabel)

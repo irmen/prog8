@@ -603,4 +603,18 @@ main {
         ir shouldContain "bit.b ${'$'}ff0a"     // r4
         ir shouldContain "bit.b ${'$'}ff0c"     // r5
     }
+
+    test("strings in if expression") {
+        val src="""
+main {
+    sub start() {
+       str foo = "foo"
+       str bar = "bar"
+       bool flag = true
+       uword @shared foobar = if flag foo else bar
+    }
+}"""
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+    }
 })

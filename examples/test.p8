@@ -1,10 +1,12 @@
+%import textio
 %option no_sysinit
 %zeropage basicsafe
 
 main {
     sub start() {
-        cx16.r0L = cx16.r1L
-        cx16.r1=9999
-        cx16.r2=9999
+       str foo = "foo"
+       str bar = "bar"
+       bool flag = true
+       uword @shared foobar = if flag foo else bar
     }
 }
