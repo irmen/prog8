@@ -619,13 +619,13 @@ internal class AstChecker(private val program: Program,
         super.visit(assignment)
     }
 
-    private fun numberOfReturnValuesError(actual: Int, expectedTypes: List<DataType>, position: Position) {
-        if(actual<expectedTypes.size) {
-            val missing = expectedTypes.drop(actual).joinToString(", ")
-            errors.err("some return values are not assigned: expected ${expectedTypes.size} got $actual, missing assignments for: $missing", position)
+    private fun numberOfReturnValuesError(numAssigns: Int, providedTypes: List<DataType>, position: Position) {
+        if(numAssigns<providedTypes.size) {
+            val missing = providedTypes.drop(numAssigns).joinToString(", ")
+            errors.err("call returns too many values: expected $numAssigns got ${providedTypes.size}, missing assignments for: $missing", position)
         }
         else
-            errors.err("too many return values are assigned: expected ${expectedTypes.size} got $actual", position)
+            errors.err("call returns too few values: expected $numAssigns got ${providedTypes.size}", position)
     }
 
     private fun checkMultiAssignment(assignment: Assignment, fcall: IFunctionCall?, fcallTarget: Subroutine?) {

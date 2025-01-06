@@ -4,10 +4,13 @@
 
 main {
     sub start() {
-        uword[10] @align64 @nosplit array1
-        uword[10] @align64 @split array2
+        cx16.r0L, cx16.r1, cx16.r2 = multiasm()
+        cx16.r0L = multiasm()
+    }
 
-        array1[2]++
-        array2[2]++
+    asmsub multiasm() -> ubyte @A, uword @R1 {
+        %asm {{
+            rts
+        }}
     }
 }
