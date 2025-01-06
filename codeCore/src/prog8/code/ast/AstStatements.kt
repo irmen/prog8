@@ -130,17 +130,7 @@ class PtRepeatLoop(position: Position) : PtNode(position) {
 }
 
 
-class PtReturn(position: Position) : PtNode(position) {
-    val hasValue: Boolean
-        get() = children.any()
-    val value: PtExpression?
-        get() {
-            return if(children.any())
-                children.single() as PtExpression
-            else
-                null
-        }
-}
+class PtReturn(position: Position) : PtNode(position)  // children are all expressions
 
 
 sealed interface IPtVariable {

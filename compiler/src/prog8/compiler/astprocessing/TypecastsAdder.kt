@@ -327,31 +327,44 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
         // add a typecast to the return type if it doesn't match the subroutine's signature
         // but only if no data loss occurs
-        val returnValue = returnStmt.value
+        if (returnStmt.values.isEmpty())
+            return noModifications
+        val subroutine = returnStmt.definingSubroutine!!
+        if (subroutine.returntypes.size != returnStmt.values.size)
+            return noModifications
+
+        for((index, pair) in returnStmt.values.zip(subroutine.returntypes).withIndex()) {
+            val (returnValue, subReturnType) = pair
+            println("$index   $returnValue   -> $subReturnType")
+        }
+
+        // 1 or more return values to check.
+        val returnValue = returnStmt.values.singleOrNull()
         if(returnValue!=null) {
-            val subroutine = returnStmt.definingSubroutine!!
-            if(subroutine.returntypes.size==1) {
-                val subReturnType = subroutine.returntypes.first()
-                val returnDt = returnValue.inferType(program)
-                if(!(returnDt istype subReturnType) && returnValue is NumericLiteral) {
-                    // see if we might change the returnvalue into the expected type
-                    val castedValue = returnValue.convertTypeKeepValue(subReturnType.base)
-                    if(castedValue.isValid) {
-                        return listOf(IAstModification.ReplaceNode(returnValue, castedValue.valueOrZero(), returnStmt))
-                    }
-                }
-                if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
-                    return noModifications
-                if (returnValue is NumericLiteral) {
-                    val cast = returnValue.cast(subReturnType.base, true)
-                    if(cast.isValid)
-                        returnStmt.value = cast.valueOrZero()
-                } else {
-                    val modifications = mutableListOf<IAstModification>()
-                    addTypecastOrCastedValueModification(modifications, returnValue, subReturnType.base, returnStmt)
-                    return modifications
+            val subReturnType = subroutine.returntypes.single()
+            val returnDt = returnValue.inferType(program)
+            if(!(returnDt istype subReturnType) && returnValue is NumericLiteral) {
+                // see if we might change the returnvalue into the expected type
+                val castedValue = returnValue.convertTypeKeepValue(subReturnType.base)
+                if(castedValue.isValid) {
+                    return listOf(IAstModification.ReplaceNode(returnValue, castedValue.valueOrZero(), returnStmt))
                 }
             }
+            if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
+                return noModifications
+            if (returnValue is NumericLiteral) {
+                val cast = returnValue.cast(subReturnType.base, true)
+                if(cast.isValid) {
+                    returnStmt.values[0] = cast.valueOrZero()
+                }
+            } else {
+                val modifications = mutableListOf<IAstModification>()
+                addTypecastOrCastedValueModification(modifications, returnValue, subReturnType.base, returnStmt)
+                return modifications
+            }
+        }
+        else if(returnStmt.values.size>1) {
+            TODO("multi-value return ; typecast")
         }
         return noModifications
     }

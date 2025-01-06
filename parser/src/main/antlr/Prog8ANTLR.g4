@@ -222,7 +222,9 @@ expression_list :
 	expression (',' EOL? expression)*           // you can split the expression list over several lines
 	;
 
-returnstmt : 'return' expression? ;
+returnstmt : 'return' returnvalues? ;
+
+returnvalues: expression (',' expression)*  ;
 
 breakstmt : 'break';
 
@@ -264,7 +266,7 @@ subroutine :
 	'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
 	;
 
-sub_return_part : '->' datatype  ;
+sub_return_part : '->' datatype (',' datatype)*  ;
 
 statement_block :
 	'{' EOL?

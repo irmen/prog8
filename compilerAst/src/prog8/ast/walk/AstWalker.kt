@@ -412,7 +412,7 @@ abstract class AstWalker {
 
     fun visit(returnStmt: Return, parent: Node) {
         track(before(returnStmt, parent), returnStmt, parent)
-        returnStmt.value?.accept(this, returnStmt)
+        returnStmt.values.forEach { it -> it.accept(this, returnStmt) }
         track(after(returnStmt, parent), returnStmt, parent)
     }
 

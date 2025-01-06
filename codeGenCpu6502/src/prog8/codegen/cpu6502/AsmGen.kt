@@ -1051,11 +1051,12 @@ $repeatLabel""")
     }
 
     private fun translate(ret: PtReturn) {
-        ret.value?.let { returnvalue ->
+        val returnvalue = ret.children.singleOrNull()
+        if(returnvalue!=null) {
             val sub = ret.definingSub()!!
             val returnReg = sub.returnRegister()!!
             if (sub.returntype?.isNumericOrBool==true) {
-                assignExpressionToRegister(returnvalue, returnReg.registerOrPair!!)
+                assignExpressionToRegister(returnvalue as PtExpression, returnReg.registerOrPair!!)
             }
             else {
                 // all else take its address and assign that also to AY register pair
@@ -1064,6 +1065,9 @@ $repeatLabel""")
                 addrofValue.parent = ret.parent
                 assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair!!, false)
             }
+        }
+        else if(ret.children.size>1) {
+            TODO("multi-value return")
         }
         out("  rts")
     }

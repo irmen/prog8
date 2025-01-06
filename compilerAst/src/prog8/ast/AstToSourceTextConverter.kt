@@ -399,8 +399,10 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(returnStmt: Return) {
-        output("return ")
-        returnStmt.value?.accept(this)
+        if(returnStmt.values.isEmpty())
+            output("return")
+        else
+            output("return ${returnStmt.values.map{it.accept(this)}.joinToString(", ")}")
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {

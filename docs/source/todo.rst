@@ -1,6 +1,8 @@
 TODO
 ====
 
+- implement the TODO multi-value return occurences.
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 

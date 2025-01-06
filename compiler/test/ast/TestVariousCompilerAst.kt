@@ -961,7 +961,7 @@ main {
         val ifscope_return = ifscope.children[2] as PtReturn
         ifscope_defer.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"
         ifscope_push.name shouldBe "sys.pushw"
-        (ifscope_return.value as PtFunctionCall).name shouldBe "sys.popw"
+        (ifscope_return.children.single() as PtFunctionCall).name shouldBe "sys.popw"
 
         val ending = sub.children[6] as PtFunctionCall
         ending.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"

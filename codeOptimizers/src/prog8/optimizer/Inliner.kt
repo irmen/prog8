@@ -13,7 +13,7 @@ import prog8.code.core.InternalCompilerException
 import prog8.code.target.VMTarget
 
 
-private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.value==null
+private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.values.size==0
 
 
 // inliner potentially enables *ONE LINED* subroutines, wihtout to be inlined.
@@ -38,26 +38,21 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                             // subroutine is possible candidate to be inlined
                             subroutine.inline =
                                 when (val stmt = subroutine.statements[0]) {
-                                    is Return -> {
-                                        if (stmt.value is NumericLiteral)
+                                    // TODO consider multi-value returns as well
+                                    is Return -> stmt.values.isEmpty() || stmt.values.size==1 &&
+                                        if (stmt.values[0] is NumericLiteral)
                                             true
-                                        else if (stmt.value == null)
+                                        else if (stmt.values[0] is IdentifierReference) {
+                                            makeFullyScoped(stmt.values[0] as IdentifierReference)
                                             true
-                                        else if (stmt.value is IdentifierReference) {
-                                            makeFullyScoped(stmt.value as IdentifierReference)
-                                            true
-                                        } else if (stmt.value!! is IFunctionCall && (stmt.value as IFunctionCall).args.size <= 1 && (stmt.value as IFunctionCall).args.all { it is NumericLiteral || it is IdentifierReference }) {
-                                            when (stmt.value) {
-                                                is FunctionCallExpression -> {
-                                                    makeFullyScoped(stmt.value as FunctionCallExpression)
-                                                    true
-                                                }
-
-                                                else -> false
+                                        } else if (stmt.values[0]!! is IFunctionCall && (stmt.values[0] as IFunctionCall).args.size <= 1 && (stmt.values[0] as IFunctionCall).args.all { it is NumericLiteral || it is IdentifierReference }) {
+                                            if (stmt.values[0] is FunctionCallExpression) {
+                                                makeFullyScoped(stmt.values[0] as FunctionCallExpression)
+                                                true
                                             }
+                                            else false
                                         } else
                                             false
-                                    }
 
                                     is Assignment -> {
                                         if (stmt.value.isSimple) {
@@ -182,14 +177,19 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 // note that we don't have to process any args, because we online inline parameterless subroutines.
                 when (val toInline = sub.statements.first()) {
                     is Return -> {
-                        val fcall = toInline.value as? FunctionCallExpression
-                        if(fcall!=null) {
-                            // insert the function call expression as a void function call directly
-                            sub.hasBeenInlined=true
-                            val call = FunctionCallStatement(fcall.target.copy(), fcall.args.map { it.copy() }.toMutableList(), true, fcall.position)
-                            listOf(IAstModification.ReplaceNode(origNode, call, parent))
-                        } else
+                        // TODO consider multi-value returns as well
+                        if(toInline.values.size!=1)
                             noModifications
+                        else {
+                            val fcall = toInline.values[0] as? FunctionCallExpression
+                            if(fcall!=null) {
+                                // insert the function call expression as a void function call directly
+                                sub.hasBeenInlined=true
+                                val call = FunctionCallStatement(fcall.target.copy(), fcall.args.map { it.copy() }.toMutableList(), true, fcall.position)
+                                listOf(IAstModification.ReplaceNode(origNode, call, parent))
+                            } else
+                                noModifications
+                        }
                     }
                     else -> {
                         if(origNode !== toInline) {
@@ -226,9 +226,10 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     is Return -> {
                         // is an expression, so we have to have a Return here in the inlined sub
                         // note that we don't have to process any args, because we online inline parameterless subroutines.
-                        if(toInline.value!=null && functionCallExpr!==toInline.value) {
+                        // TODO consider multi-value returns as well
+                        if(toInline.values.size==1 && functionCallExpr!==toInline.values[0]) {
                             sub.hasBeenInlined=true
-                            listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.value!!.copy(), parent))
+                            listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.values[0].copy(), parent))
                         }
                         else
                             noModifications

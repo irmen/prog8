@@ -143,14 +143,17 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
 
     // return exits
     for(ret in returnsToAugment) {
-        val value = ret.value
-        if(value==null || notComplex(value)) {
+        if(ret.children.isEmpty() || ret.children.all { notComplex(it as PtExpression) }) {
             invokedeferbefore(ret)
             continue
         }
 
         // complex return value, need to store it before calling the defer block
-        val (pushCall, popCall) = makePushPopFunctionCalls(value)
+        if(ret.children.size>1) {
+            TODO("multi-value return ; defer")
+        }
+
+        val (pushCall, popCall) = makePushPopFunctionCalls(ret.children[0] as PtExpression)
         val newRet = PtReturn(ret.position)
         newRet.add(popCall)
         val group = PtNodeGroup()

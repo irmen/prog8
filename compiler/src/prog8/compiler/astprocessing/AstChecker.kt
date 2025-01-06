@@ -122,25 +122,25 @@ internal class AstChecker(private val program: Program,
             throw FatalAstException("cannot use a return with one value in a subroutine that has multiple return values: $returnStmt")
         }
 
-        if(expectedReturnValues.isEmpty() && returnStmt.value!=null) {
-            errors.err("invalid number of return values", returnStmt.position)
+        if(returnStmt.values.size<expectedReturnValues.size) {
+            errors.err("too few return values for the subroutine: expected ${expectedReturnValues.size} got ${returnStmt.values.size}", returnStmt.position)
         }
-        if(expectedReturnValues.isNotEmpty() && returnStmt.value==null) {
-            errors.err("invalid number of return values", returnStmt.position)
+        else if(returnStmt.values.size>expectedReturnValues.size) {
+            errors.err("too many return values for the subroutine: expected ${expectedReturnValues.size} got ${returnStmt.values.size}", returnStmt.position)
         }
-        if(expectedReturnValues.size==1 && returnStmt.value!=null) {
-            val valueDt = returnStmt.value!!.inferType(program)
+        for((expectedDt, actual) in expectedReturnValues.zip(returnStmt.values)) {
+            val valueDt = actual.inferType(program)
             if(valueDt.isKnown) {
-                if (expectedReturnValues[0] != valueDt.getOrUndef()) {
-                    if(valueDt.isBool && expectedReturnValues[0].isUnsignedByte) {
+                if (expectedDt != valueDt.getOrUndef()) {
+                    if(valueDt.isBool && expectedDt.isUnsignedByte) {
                         // if the return value is a bool and the return type is ubyte, allow this. But give a warning.
-                        errors.info("return type of the subroutine should probably be bool instead of ubyte", returnStmt.position)
-                    } else if(valueDt.isIterable && expectedReturnValues[0].isUnsignedWord) {
+                        errors.info("return type of the subroutine should probably be bool instead of ubyte", actual.position)
+                    } else if(valueDt.isIterable && expectedDt.isUnsignedWord) {
                         // you can return a string or array when an uword (pointer) is returned
-                    } else if(valueDt issimpletype BaseDataType.UWORD && expectedReturnValues[0].isString) {
+                    } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
                     } else {
-                        errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedReturnValues[0]}",returnStmt.value!!.position)
+                        errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedDt}", actual.position)
                     }
                 }
             }

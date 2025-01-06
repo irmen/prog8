@@ -298,7 +298,8 @@ private fun InlineirContext.toAst(): InlineAssembly {
 }
 
 private fun ReturnstmtContext.toAst() : Return {
-    return Return(expression()?.toAst(), toPosition())
+    val values = if(returnvalues()==null || returnvalues().expression().size==0) arrayOf<Expression>() else returnvalues().expression().map { it.toAst() }.toTypedArray()
+    return Return(values, toPosition())
 }
 
 private fun UnconditionaljumpContext.toAst(): Jump {
@@ -313,11 +314,11 @@ private fun AliasContext.toAst(): Statement =
 
 private fun SubroutineContext.toAst() : Subroutine {
     // non-asm subroutine
-    val returntype = sub_return_part()?.datatype()?.toAst()
+    val returntypes = sub_return_part()?.datatype()?.map { it.toAst() } ?: emptyList()
     return Subroutine(
         identifier().text,
         sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
-        if (returntype == null) mutableListOf() else mutableListOf(DataType.forDt(returntype)),
+        returntypes.map { DataType.forDt(it) }.toMutableList(),
         emptyList(),
         emptyList(),
         emptySet(),

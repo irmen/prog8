@@ -51,14 +51,14 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         // and if an assembly block doesn't contain a rts/rti.
         if (!subroutine.isAsmSubroutine) {
             if(subroutine.isEmpty()) {
-                val returnStmt = Return(null, subroutine.position)
+                val returnStmt = Return(arrayOf(), subroutine.position)
                 mods += IAstModification.InsertLast(returnStmt, subroutine)
             } else {
                 val last = subroutine.statements.last()
                 if((last !is InlineAssembly || !last.hasReturnOrRts()) && last !is Return) {
                     val lastStatement = subroutine.statements.reversed().firstOrNull { it !is Subroutine }
                     if(lastStatement !is Return) {
-                        val returnStmt = Return(null, subroutine.position)
+                        val returnStmt = Return(arrayOf(), subroutine.position)
                         mods += IAstModification.InsertLast(returnStmt, subroutine)
                     }
                 }
@@ -76,7 +76,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 && prevStmt !is Subroutine
                 && prevStmt !is Return
             ) {
-                val returnStmt = Return(null, subroutine.position)
+                val returnStmt = Return(arrayOf(), subroutine.position)
                 mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
             }
         }

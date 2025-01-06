@@ -4,6 +4,7 @@ import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
+import prog8.code.ast.PtExpression
 import prog8.code.core.*
 import java.util.*
 
@@ -174,25 +175,26 @@ data class Label(override val name: String, override val position: Position) : S
     override fun toString()= "Label(name=$name, pos=$position)"
 }
 
-class Return(var value: Expression?, override val position: Position) : Statement() {
+class Return(val values: Array<Expression>, override val position: Position) : Statement() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        value?.linkParents(this)
+        values.forEach { it.linkParents(this) }
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        require(replacement is Expression)
-        value = replacement
-        replacement.parent = this
+        val index = values.indexOf(node)
+        if(replacement is Expression && index>=0) {
+            values[index] = replacement
+        } else throw FatalAstException("invalid replace")
     }
 
-    override fun copy() = Return(value?.copy(), position)
-    override fun referencesIdentifier(nameInSource: List<String>): Boolean = value?.referencesIdentifier(nameInSource)==true
+    override fun copy() = Return(values.map { it.copy() }.toTypedArray(), position)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = values.any{ it.referencesIdentifier(nameInSource) }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun toString() = "Return($value, pos=$position)"
+    override fun toString() = "Return($values, pos=$position)"
 }
 
 class Break(override val position: Position) : Statement() {

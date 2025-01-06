@@ -1758,10 +1758,14 @@ class IRCodeGen(
 
     private fun translate(ret: PtReturn): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
-        val value = ret.value
+        if(ret.children.size>1) {
+            TODO("multi-value return")
+        }
+        val value = ret.children.singleOrNull()
         if(value==null) {
             addInstr(result, IRInstruction(Opcode.RETURN), null)
         } else {
+            value as PtExpression
             if(value.type.isFloat) {
                 if(value is PtNumber) {
                     addInstr(result, IRInstruction(Opcode.RETURNI, IRDataType.FLOAT, immediateFp = value.number), null)

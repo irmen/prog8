@@ -484,8 +484,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transform(srcNode: Return): PtReturn {
         val ret = PtReturn(srcNode.position)
-        if(srcNode.value!=null)
-            ret.add(transformExpression(srcNode.value!!))
+        srcNode.values.forEach { ret.add(transformExpression(it)) }
         return ret
     }
 
