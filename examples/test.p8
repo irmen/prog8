@@ -4,9 +4,10 @@
 
 main {
     sub start() {
-       str foo = "foo"
-       str bar = "bar"
-       bool flag = true
-       uword @shared foobar = if flag foo else bar
+        uword[10] @align64 @nosplit array1
+        uword[10] @align64 @split array2
+
+        array1[2]++
+        array2[2]++
     }
 }

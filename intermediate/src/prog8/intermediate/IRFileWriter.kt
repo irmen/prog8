@@ -233,10 +233,15 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         fun writeNoInitVar(variable: IRStStaticVariable) {
             if(variable.dt.isSplitWordArray) {
                 // split into 2 ubyte arrays lsb+msb
-                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish} align=${variable.align}\n")
-                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb zp=${variable.zpwish} align=${variable.align}\n")
+                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish} split=true")
+                if(variable.align!=0)
+                    xml.writeCharacters(" align=${variable.align}")
+                xml.writeCharacters("\nubyte[${variable.length}] ${variable.name}_msb zp=${variable.zpwish} split=true\n")
             } else {
-                xml.writeCharacters("${variable.typeString} ${variable.name} zp=${variable.zpwish} align=${variable.align}\n")
+                xml.writeCharacters("${variable.typeString} ${variable.name} zp=${variable.zpwish}")
+                if(variable.align!=0)
+                    xml.writeCharacters(" align=${variable.align}")
+                xml.writeCharacters("\n")
             }
         }
 
@@ -272,8 +277,10 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             "@>${it.addressOfSymbol}"
                     }
                 }
-                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish} align=${variable.align}\n")
-                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish} align=${variable.align}\n")
+                xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish} split=true")
+                if(variable.align!=0)
+                    xml.writeCharacters(" align=${variable.align}")
+                xml.writeCharacters("\nubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish} split=true\n")
             } else {
                 val dt = variable.dt
                 val value: String = when {
@@ -309,7 +316,10 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     }
                     else -> throw InternalCompilerException("weird dt")
                 }
-                xml.writeCharacters("${variable.typeString} ${variable.name}=$value zp=${variable.zpwish} align=${variable.align}\n")
+                xml.writeCharacters("${variable.typeString} ${variable.name}=$value zp=${variable.zpwish}")
+                if(variable.align!=0)
+                    xml.writeCharacters(" align=${variable.align}")
+                xml.writeCharacters("\n")
             }
         }
 

@@ -159,17 +159,23 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val varPattern = Regex("(.+?)(\\[.+?\\])? (.+) zp=(.+) align=(.+)")
+            val varPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
             val variables = mutableListOf<StStaticVariable>()
             text.lineSequence().forEach { line ->
                 // example:  uword main.start.qq2 zp=DONTCARE
                 val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLESNOINIT $line")
-                val (type, arrayspec, name, zpwish, alignment) = match.destructured
+                val type = match.groups["type"]!!.value
+                val arrayspec = match.groups["arrayspec"]?.value ?: ""
+                val name = match.groups["name"]!!.value
+                val zpwish = match.groups["zp"]!!.value
+                val split = match.groups["split"]?.value ?: ""
+                val alignment = match.groups["align"]?.value ?: ""
                 if('.' !in name)
                     throw IRParseException("unscoped name: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
+                val isSplit = if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
                 val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, align.toInt(), null)
                 variables.add(newVar)
@@ -215,19 +221,26 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val varPattern = Regex("(.+?)(\\[.+?\\])? (.+)=(.*?) zp=(.+) align=(.+)")
+            val varPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+)=(?<value>.*?) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
             val variables = mutableListOf<StStaticVariable>()
             text.lineSequence().forEach { line ->
                 // examples:
                 // uword main.start.qq2=0 zp=REQUIRE_ZP
                 // ubyte[6] main.start.namestring=105,114,109,101,110,0
                 val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
-                val (type, arrayspec, name, value, zpwish, alignment) = match.destructured
+                val type = match.groups["type"]!!.value
+                val arrayspec = match.groups["arrayspec"]?.value ?: ""
+                val name = match.groups["name"]!!.value
+                val value = match.groups["value"]!!.value
+                val zpwish = match.groups["zp"]!!.value
+                val split = match.groups["split"]?.value ?: ""
+                val alignment = match.groups["align"]?.value ?: ""
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
+                val isSplit = if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
                 var initNumeric: Double? = null
                 var initArray: StArray? = null

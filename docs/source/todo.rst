@@ -45,7 +45,6 @@ Future Things and Ideas
 IR/VM
 -----
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- split word arrays, both _msb and _lsb arrays are tagged with an alignment. This is not what's intended; only the one put in memory first should be aligned (the other one should follow straight after it)
 - fix call() return value handling
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - implement fast code paths for TODO("inplace split....
@@ -54,6 +53,7 @@ IR/VM
      sub start() {
      cx16.r0L = cx16.r1 as ubyte
      cx16.r0sL = cx16.r1s as byte }
+- do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
