@@ -48,7 +48,7 @@ class TestCodegen: FunSpec({
         val codegen = AsmGen6502(prefixSymbols = false, 0)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main",false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "pi",
             DataType.forDt(BaseDataType.UBYTE),

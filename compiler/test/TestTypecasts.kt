@@ -802,7 +802,7 @@ main {
         val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
         val main = result.codegenAst!!.allBlocks().first()
         val derp = main.children.single { it is PtSub && it.name=="main.derp"} as PtSub
-        derp.returntype shouldBe DataType.forDt(BaseDataType.UWORD)
+        derp.returns shouldBe listOf(DataType.forDt(BaseDataType.UWORD))
         derp.parameters.single().type shouldBe DataType.forDt(BaseDataType.UWORD)
         val mult3 = main.children.single { it is PtAsmSub && it.name=="main.mult3"} as PtAsmSub
         mult3.parameters.single().second.type shouldBe DataType.forDt(BaseDataType.UWORD)

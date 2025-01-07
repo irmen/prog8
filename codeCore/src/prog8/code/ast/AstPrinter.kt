@@ -125,8 +125,8 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     "${it.type} ${it.name} $reg"
                 }
                 var str = "sub ${node.name}($params) "
-                if(node.returntype!=null)
-                    str += "-> ${node.returntype}"
+                if(node.returns.isNotEmpty())
+                    str += "-> ${node.returns.joinToString(",")}"
                 str
             }
             is PtVariable -> {

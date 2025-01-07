@@ -634,20 +634,27 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         result += codeGen.translateNode(assign)
                     }
                 }
-                // return value (always singular for normal Subs)
-                val returnRegSpec = if(fcall.void) null else {
-                    val returnIrType = irType(callTarget.returnType!!)
-                    FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.next(returnIrType), null)
+                // return value(s)
+                val returnRegSpecs = if(fcall.void) emptyList() else {
+                    callTarget.returns.map {
+                        val returnIrType = irType(it)
+                        FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.next(returnIrType), null)
+                    }
                 }
                 // create the call
                 addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name,
-                    fcallArgs = FunctionCallArgs(argRegisters, if(returnRegSpec==null) emptyList() else listOf(returnRegSpec))), null)
+                    fcallArgs = FunctionCallArgs(argRegisters, returnRegSpecs)), null)
                 return if(fcall.void)
-                    ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
-                else if(fcall.type.isFloat)
-                    ExpressionCodeResult(result, returnRegSpec!!.dt, -1, returnRegSpec.registerNum)
-                else
-                    ExpressionCodeResult(result, returnRegSpec!!.dt, returnRegSpec.registerNum, -1)
+                    ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)       // TODO void?
+                else if(returnRegSpecs.size==1) {
+                    val returnRegSpec = returnRegSpecs.single()
+                    if (fcall.type.isFloat)
+                        ExpressionCodeResult(result, returnRegSpec.dt, -1, returnRegSpec.registerNum)
+                    else
+                        ExpressionCodeResult(result, returnRegSpec.dt, returnRegSpec.registerNum, -1)
+                } else {
+                    TODO("multi-value return ; expression result")
+                }
             }
             is StExtSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()

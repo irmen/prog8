@@ -115,8 +115,8 @@ private fun makeSt(): SymbolTable {
     val astConstant2 = PtConstant("blockc", DataType.forDt(BaseDataType.UWORD), 999.0, Position.DUMMY)
     astBlock1.add(astConstant1)
     astBlock1.add(astConstant2)
-    val astSub1 = PtSub("sub1", emptyList(), null, Position.DUMMY)
-    val astSub2 = PtSub("sub2", emptyList(), null, Position.DUMMY)
+    val astSub1 = PtSub("sub1", emptyList(), emptyList(), Position.DUMMY)
+    val astSub2 = PtSub("sub2", emptyList(), emptyList(), Position.DUMMY)
     val astSub1v1 = PtVariable(
         "v1",
         DataType.forDt(BaseDataType.BYTE),
@@ -182,9 +182,9 @@ private fun makeSt(): SymbolTable {
     val astBfunc = PtIdentifier("msb", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)
     astBlock1.add(astBfunc)
     val astBlock2 = PtBlock("block2", false, SourceCode.Generated("block2"), PtBlock.Options(), Position.DUMMY)
-    val astSub21 = PtSub("sub1", emptyList(), null, Position.DUMMY)
-    val astSub22 = PtSub("sub2", emptyList(), null, Position.DUMMY)
-    val astSub221 = PtSub("subsub", emptyList(), null, Position.DUMMY)
+    val astSub21 = PtSub("sub1", emptyList(), emptyList(), Position.DUMMY)
+    val astSub22 = PtSub("sub2", emptyList(), emptyList(), Position.DUMMY)
+    val astSub221 = PtSub("subsub", emptyList(), emptyList(), Position.DUMMY)
     val astLabel = PtLabel("label", Position.DUMMY)
     astSub221.add(astLabel)
     astSub22.add(astSub221)

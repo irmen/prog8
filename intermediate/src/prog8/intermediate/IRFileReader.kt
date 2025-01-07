@@ -428,11 +428,11 @@ class IRFileReader {
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="SUB") { "missing SUB" }
         val attrs = start.attributes.asSequence().associate { it.name.localPart to it.value }
-        val returntype = attrs.getValue("RETURNTYPE")
+        val returns = attrs.getValue("RETURNS")
         skipText(reader)
         val sub = IRSubroutine(attrs.getValue("NAME"),
             parseParameters(reader),
-            if(returntype=="") null else parseDatatype(returntype, false),
+            if(returns=="") emptyList() else returns.split(',').map { parseDatatype(it, false) },
             parsePosition(attrs.getValue("POS")))
 
         skipText(reader)

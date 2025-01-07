@@ -1054,20 +1054,20 @@ $repeatLabel""")
         val returnvalue = ret.children.singleOrNull()
         if(returnvalue!=null) {
             val sub = ret.definingSub()!!
-            val returnReg = sub.returnRegister()!!
-            if (sub.returntype?.isNumericOrBool==true) {
-                assignExpressionToRegister(returnvalue as PtExpression, returnReg.registerOrPair!!)
+            val returnReg = sub.returnsWhatWhere().single()
+            if (sub.returns.single().isNumericOrBool==true) {
+                assignExpressionToRegister(returnvalue as PtExpression, returnReg.first.registerOrPair!!)
             }
             else {
                 // all else take its address and assign that also to AY register pair
                 val addrofValue = PtAddressOf(returnvalue.position)
                 addrofValue.add(returnvalue as PtIdentifier)
                 addrofValue.parent = ret.parent
-                assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.registerOrPair!!, false)
+                assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.first.registerOrPair!!, false)
             }
         }
         else if(ret.children.size>1) {
-            TODO("multi-value return")
+            TODO("multi-value return ; choose call convention: everything on stack?")
         }
         out("  rts")
     }

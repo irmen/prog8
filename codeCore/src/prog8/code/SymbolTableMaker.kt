@@ -58,7 +58,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             }
             is PtSub -> {
                 val params = node.parameters.map {StSubroutineParameter(it.name, it.type, it.register) }
-                StSub(node.name, params, node.returntype, node)
+                StSub(node.name, params, node.returns, node)
             }
             is PtVariable -> {
                 val initialNumeric: Double?

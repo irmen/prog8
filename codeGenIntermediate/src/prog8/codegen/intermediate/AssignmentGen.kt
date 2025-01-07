@@ -2,6 +2,7 @@ package prog8.codegen.intermediate
 
 import prog8.code.StExtSub
 import prog8.code.StExtSubParameter
+import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.intermediate.*
@@ -14,29 +15,37 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val values = assignment.value as? PtFunctionCall
                 ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
-            val sub = codeGen.symbolTable.lookup(values.name) as? StExtSub
-                ?: throw AssemblyError("only asmsubs can return multiple values")
-
             val result = mutableListOf<IRCodeChunkBase>()
-            val funcCall = this.expressionEval.translate(values)
+            val funcCall = expressionEval.translate(values)
             require(funcCall.multipleResultRegs.size + funcCall.multipleResultFpRegs.size >= 2)
-            if(funcCall.multipleResultFpRegs.isNotEmpty())
+            if (funcCall.multipleResultFpRegs.isNotEmpty())
                 TODO("deal with (multiple?) FP return registers")
             val assignmentTargets = assignment.children.dropLast(1)
             addToResult(result, funcCall, funcCall.resultReg, funcCall.resultFpReg)
-            if(sub.returns.size==assignmentTargets.size) {
-                // Targets and values match. Assign all the things. Skip 'void' targets.
-                sub.returns.zip(assignmentTargets).zip(funcCall.multipleResultRegs).forEach {
-                    val target = it.first.second as PtAssignTarget
-                    if(!target.void) {
-                        val regNumber = it.second
-                        val returns = it.first.first
-                        result += assignCpuRegister(returns, regNumber, target)
+
+            val extsub = codeGen.symbolTable.lookup(values.name) as? StExtSub
+            if(extsub!=null) {
+                if (extsub.returns.size == assignmentTargets.size) {
+                    // Targets and values match. Assign all the things. Skip 'void' targets.
+                    extsub.returns.zip(assignmentTargets).zip(funcCall.multipleResultRegs).forEach {
+                        val target = it.first.second as PtAssignTarget
+                        if (!target.void) {
+                            val regNumber = it.second
+                            val returns = it.first.first
+                            result += assignCpuRegister(returns, regNumber, target)
+                        }
                     }
+                } else {
+                    throw AssemblyError("number of values and targets don't match")
                 }
             } else {
-                throw AssemblyError("number of values and targets don't match")
+                val normalsub = codeGen.symbolTable.lookup(values.name) as? StSub
+                if (normalsub != null) {
+                    TODO()
+                }
+                else throw AssemblyError("expected extsub or normal sub")
             }
+
             return result
         } else {
             if (assignment.target.children.single() is PtIrRegister)

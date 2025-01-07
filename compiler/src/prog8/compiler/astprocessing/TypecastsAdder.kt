@@ -333,40 +333,31 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         if (subroutine.returntypes.size != returnStmt.values.size)
             return noModifications
 
+        val modifications = mutableListOf<IAstModification>()
         for((index, pair) in returnStmt.values.zip(subroutine.returntypes).withIndex()) {
             val (returnValue, subReturnType) = pair
-            println("$index   $returnValue   -> $subReturnType")
-        }
-
-        // 1 or more return values to check.
-        val returnValue = returnStmt.values.singleOrNull()
-        if(returnValue!=null) {
-            val subReturnType = subroutine.returntypes.single()
             val returnDt = returnValue.inferType(program)
             if(!(returnDt istype subReturnType) && returnValue is NumericLiteral) {
                 // see if we might change the returnvalue into the expected type
                 val castedValue = returnValue.convertTypeKeepValue(subReturnType.base)
                 if(castedValue.isValid) {
-                    return listOf(IAstModification.ReplaceNode(returnValue, castedValue.valueOrZero(), returnStmt))
+                    modifications += listOf(IAstModification.ReplaceNode(returnValue, castedValue.valueOrZero(), returnStmt))
+                    continue
                 }
             }
             if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
-                return noModifications
+                continue
             if (returnValue is NumericLiteral) {
                 val cast = returnValue.cast(subReturnType.base, true)
                 if(cast.isValid) {
-                    returnStmt.values[0] = cast.valueOrZero()
+                    returnStmt.values[index] = cast.valueOrZero()
                 }
             } else {
-                val modifications = mutableListOf<IAstModification>()
                 addTypecastOrCastedValueModification(modifications, returnValue, subReturnType.base, returnStmt)
-                return modifications
+                continue
             }
         }
-        else if(returnStmt.values.size>1) {
-            TODO("multi-value return ; typecast")
-        }
-        return noModifications
+        return modifications
     }
 
     override fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> {

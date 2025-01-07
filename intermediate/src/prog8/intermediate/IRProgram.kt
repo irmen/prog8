@@ -427,7 +427,7 @@ sealed interface IIRBlockElement {
 class IRSubroutine(
     override val label: String,
     val parameters: List<IRParam>,
-    val returnType: DataType?,
+    val returns: List<DataType>,
     val position: Position): IIRBlockElement {
 
     class IRParam(val name: String, val dt: DataType)
@@ -440,7 +440,7 @@ class IRSubroutine(
 
         // params and return value should not be str
         require(parameters.all{ it.dt.isNumericOrBool }) {"non-numeric/non-bool parameter"}
-        require(returnType==null || returnType.isNumericOrBool) {"non-numeric/non-bool returntype $returnType"}
+        require(returns.all { it.isNumericOrBool}) {"non-numeric/non-bool returntype"}
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) {

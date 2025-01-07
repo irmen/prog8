@@ -101,7 +101,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     is IRSubroutine -> {
                         xml.writeStartElement("SUB")
                         xml.writeAttribute("NAME", child.label)
-                        xml.writeAttribute("RETURNTYPE", child.returnType?.irTypeString(null)?.lowercase() ?: "")
+                        xml.writeAttribute("RETURNS", child.returns.joinToString(",") { it.irTypeString(null).lowercase() })
                         xml.writeAttribute("POS", child.position.toString())
                         xml.writeCharacters("\n")
                         xml.writeStartElement("PARAMS")

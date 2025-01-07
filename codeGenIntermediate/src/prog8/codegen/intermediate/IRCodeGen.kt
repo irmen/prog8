@@ -1804,7 +1804,7 @@ class IRCodeGen(
                 is PtVariable, is PtConstant, is PtMemMapped -> { /* vars should be looked up via symbol table */ }
                 is PtAlign -> TODO("ir support for inline %align")
                 is PtSub -> {
-                    val sub = IRSubroutine(child.name, translate(child.parameters), child.returntype, child.position)
+                    val sub = IRSubroutine(child.name, translate(child.parameters), child.returns, child.position)
                     for (subchild in child.children) {
                         translateNode(subchild).forEach { sub += it }
                     }

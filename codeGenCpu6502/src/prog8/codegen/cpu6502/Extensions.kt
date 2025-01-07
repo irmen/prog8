@@ -3,6 +3,7 @@ package prog8.codegen.cpu6502
 import prog8.code.ast.IPtSubroutine
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtSub
+import prog8.code.core.AssemblyError
 import prog8.code.core.DataType
 import prog8.code.core.RegisterOrPair
 import prog8.code.core.RegisterOrStatusflag
@@ -14,29 +15,25 @@ internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, D
             return returns
         }
         is PtSub -> {
-            // for non-asm subroutines, determine the return registers based on the type of the return value
-            return if(returntype==null)
-                emptyList()
-            else {
-                val register = when {
-                    returntype!!.isByteOrBool -> RegisterOrStatusflag(RegisterOrPair.A, null)
-                    returntype!!.isWord -> RegisterOrStatusflag(RegisterOrPair.AY, null)
-                    returntype!!.isFloat -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
-                    else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+            // for non-asm subroutines, determine the return registers based on the type of the return values
+
+            when(returns.size) {
+                0 -> return emptyList()
+                1 -> {
+                    val returntype = returns.single()
+                    val register = when {
+                        returntype.isByteOrBool -> RegisterOrStatusflag(RegisterOrPair.A, null)
+                        returntype.isWord -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+                        returntype.isFloat -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
+                        else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+                    }
+                    return listOf(Pair(register, returntype))
                 }
-                listOf(Pair(register, returntype!!))
+                else -> {
+                    // TODO for multi-value results, put the first one in register(s) and only the rest elsewhere (like stack)???
+                    throw AssemblyError("multi-value returns from a normal subroutine are not put into registers, this routine shouldn't have been called in this scenario")
+                }
             }
         }
-    }
-}
-
-
-internal fun PtSub.returnRegister(): RegisterOrStatusflag? {
-    return when {
-        returntype?.isByteOrBool==true -> RegisterOrStatusflag(RegisterOrPair.A, null)
-        returntype?.isWord==true -> RegisterOrStatusflag(RegisterOrPair.AY, null)
-        returntype?.isFloat==true -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
-        returntype==null -> null
-        else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
     }
 }

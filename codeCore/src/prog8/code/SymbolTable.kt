@@ -259,7 +259,7 @@ class StMemorySlab(
     StNode(name, StNodeType.MEMORYSLAB, astNode)
 
 
-class StSub(name: String, val parameters: List<StSubroutineParameter>, val returnType: DataType?, astNode: PtNode) :
+class StSub(name: String, val parameters: List<StSubroutineParameter>, val returns: List<DataType>, astNode: PtNode) :
         StNode(name, StNodeType.SUBROUTINE, astNode)
 
 

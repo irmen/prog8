@@ -4,8 +4,8 @@ import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.mapError
-import prog8.ast.Program
 import prog8.ast.FatalAstException
+import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
@@ -535,20 +535,19 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transformSub(srcSub: Subroutine): PtSub {
         val (vardecls, statements) = srcSub.statements.partition { it is VarDecl }
-        var returntype = srcSub.returntypes.singleOrNull()
-        if(returntype?.isString==true)
-            returntype=DataType.forDt(BaseDataType.UWORD)   // if a sub returns 'str', replace with uword.  Intermediate AST and I.R. don't contain 'str' datatype anymore.
-
+        // if a sub returns 'str', replace with uword.  Intermediate AST and I.R. don't contain 'str' datatype anymore.
+        var returnTypes = srcSub.returntypes.map {
+            if(it.isString) DataType.forDt(BaseDataType.UWORD) else it
+        }
         // do not bother about the 'inline' hint of the source subroutine.
         val sub = PtSub(srcSub.name,
             srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position) },
-            returntype,
+            returnTypes,
             srcSub.position)
         sub.parameters.forEach { it.parent=sub }
         makeScopeVarsDecls(vardecls).forEach { sub.add(it) }
         for (statement in statements)
             sub.add(transformStatement(statement))
-
         return sub
     }
 

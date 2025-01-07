@@ -4,6 +4,7 @@ import prog8.code.StMemVar
 import prog8.code.StExtSub
 import prog8.code.StExtSubParameter
 import prog8.code.StStaticVariable
+import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
@@ -39,27 +40,35 @@ internal class AssignmentAsmGen(
         val values = assignment.value as? PtFunctionCall
             ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
-        val sub = asmgen.symbolTable.lookup(values.name) as? StExtSub
-            ?: throw AssemblyError("only asmsubs can return multiple values")
+        // TODO use assignExpression() for all of this ??
 
-        require(sub.returns.size>=2)
-        if(sub.returns.any { it.type.isFloat })
-            TODO("deal with (multiple?) FP return registers")
+        val extsub = asmgen.symbolTable.lookup(values.name) as? StExtSub
+        if(extsub!=null) {
+            require(extsub.returns.size>=2)
+            if(extsub.returns.any { it.type.isFloat })
+                TODO("deal with (multiple?) FP return registers")
 
-        asmgen.translate(values)
+            asmgen.translate(values)
 
-        val assignmentTargets = assignment.children.dropLast(1)
-        if(sub.returns.size==assignmentTargets.size) {
-            // because we can only handle integer results right now we can just zip() it all up
-            val (statusFlagResults, registersResults) = sub.returns.zip(assignmentTargets).partition { it.first.register.statusflag!=null }
-            if (statusFlagResults.isEmpty())
-                assignRegisterResults(registersResults)
-            else if(registersResults.isEmpty())
-                assignOnlyTheStatusFlagsResults(false, statusFlagResults)
-            else
-                assignStatusFlagsAndRegistersResults(statusFlagResults, registersResults)
+            val assignmentTargets = assignment.children.dropLast(1)
+            if(extsub.returns.size==assignmentTargets.size) {
+                // because we can only handle integer results right now we can just zip() it all up
+                val (statusFlagResults, registersResults) = extsub.returns.zip(assignmentTargets).partition { it.first.register.statusflag!=null }
+                if (statusFlagResults.isEmpty())
+                    assignRegisterResults(registersResults)
+                else if(registersResults.isEmpty())
+                    assignOnlyTheStatusFlagsResults(false, statusFlagResults)
+                else
+                    assignStatusFlagsAndRegistersResults(statusFlagResults, registersResults)
+            } else {
+                throw AssemblyError("number of values and targets don't match")
+            }
         } else {
-            throw AssemblyError("number of values and targets don't match")
+            val sub = asmgen.symbolTable.lookup(values.name) as? StSub
+            if(sub!=null) {
+                TODO("multi-value returns ; asignment")
+            }
+            else throw AssemblyError("expected extsub or normal sub")
         }
     }
 
@@ -452,56 +461,60 @@ internal class AssignmentAsmGen(
                 val symbol = asmgen.symbolTable.lookup(value.name)
                 val sub = symbol!!.astNode as IPtSubroutine
                 asmgen.translateFunctionCall(value)
-                val returnValue = sub.returnsWhatWhere().singleOrNull { it.first.registerOrPair!=null } ?: sub.returnsWhatWhere().single { it.first.statusflag!=null }
-                when {
-                    returnValue.second.isString -> {
-                        val targetDt = assign.target.datatype
-                        when {
-                            targetDt.isUnsignedWord -> {
-                                // assign the address of the string result value
-                                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                if(sub is PtSub && sub.returns.size>1) {
+                    TODO("multi-value returns ;  handle functioncall result")
+                } else {
+                    val returnValue = sub.returnsWhatWhere().singleOrNull { it.first.registerOrPair!=null } ?: sub.returnsWhatWhere().single { it.first.statusflag!=null }
+                    when {
+                        returnValue.second.isString -> {
+                            val targetDt = assign.target.datatype
+                            when {
+                                targetDt.isUnsignedWord -> {
+                                    // assign the address of the string result value
+                                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                                }
+                                targetDt.isString || targetDt.isUnsignedByteArray || targetDt.isByteArray -> {
+                                    throw AssemblyError("stringvalue assignment should have been replaced by a call to strcpy")
+                                }
+                                else -> throw AssemblyError("weird target dt")
                             }
-                            targetDt.isString || targetDt.isUnsignedByteArray || targetDt.isByteArray -> {
-                                throw AssemblyError("stringvalue assignment should have been replaced by a call to strcpy")
-                            }
-                            else -> throw AssemblyError("weird target dt")
                         }
-                    }
-                    returnValue.second.isFloat -> {
-                        // float result from function sits in FAC1
-                        assignFAC1float(assign.target)
-                    }
-                    else -> {
-                        // do NOT restore X register before assigning the result values first
-                        when (returnValue.first.registerOrPair) {
-                            RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A, returnValue.second.isSigned, true)
-                            RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X, returnValue.second.isSigned, true)
-                            RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y, returnValue.second.isSigned, true)
-                            RegisterOrPair.AX -> assignVirtualRegister(assign.target, RegisterOrPair.AX)
-                            RegisterOrPair.AY -> assignVirtualRegister(assign.target, RegisterOrPair.AY)
-                            RegisterOrPair.XY -> assignVirtualRegister(assign.target, RegisterOrPair.XY)
-                            RegisterOrPair.R0 -> assignVirtualRegister(assign.target, RegisterOrPair.R0)
-                            RegisterOrPair.R1 -> assignVirtualRegister(assign.target, RegisterOrPair.R1)
-                            RegisterOrPair.R2 -> assignVirtualRegister(assign.target, RegisterOrPair.R2)
-                            RegisterOrPair.R3 -> assignVirtualRegister(assign.target, RegisterOrPair.R3)
-                            RegisterOrPair.R4 -> assignVirtualRegister(assign.target, RegisterOrPair.R4)
-                            RegisterOrPair.R5 -> assignVirtualRegister(assign.target, RegisterOrPair.R5)
-                            RegisterOrPair.R6 -> assignVirtualRegister(assign.target, RegisterOrPair.R6)
-                            RegisterOrPair.R7 -> assignVirtualRegister(assign.target, RegisterOrPair.R7)
-                            RegisterOrPair.R8 -> assignVirtualRegister(assign.target, RegisterOrPair.R8)
-                            RegisterOrPair.R9 -> assignVirtualRegister(assign.target, RegisterOrPair.R9)
-                            RegisterOrPair.R10 -> assignVirtualRegister(assign.target, RegisterOrPair.R10)
-                            RegisterOrPair.R11 -> assignVirtualRegister(assign.target, RegisterOrPair.R11)
-                            RegisterOrPair.R12 -> assignVirtualRegister(assign.target, RegisterOrPair.R12)
-                            RegisterOrPair.R13 -> assignVirtualRegister(assign.target, RegisterOrPair.R13)
-                            RegisterOrPair.R14 -> assignVirtualRegister(assign.target, RegisterOrPair.R14)
-                            RegisterOrPair.R15 -> assignVirtualRegister(assign.target, RegisterOrPair.R15)
-                            else -> {
-                                val sflag = returnValue.first.statusflag
-                                if(sflag!=null)
-                                    assignStatusFlagByte(assign.target, sflag)
-                                else
-                                    throw AssemblyError("should be just one register byte result value")
+                        returnValue.second.isFloat -> {
+                            // float result from function sits in FAC1
+                            assignFAC1float(assign.target)
+                        }
+                        else -> {
+                            // do NOT restore X register before assigning the result values first
+                            when (returnValue.first.registerOrPair) {
+                                RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A, returnValue.second.isSigned, true)
+                                RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X, returnValue.second.isSigned, true)
+                                RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y, returnValue.second.isSigned, true)
+                                RegisterOrPair.AX -> assignVirtualRegister(assign.target, RegisterOrPair.AX)
+                                RegisterOrPair.AY -> assignVirtualRegister(assign.target, RegisterOrPair.AY)
+                                RegisterOrPair.XY -> assignVirtualRegister(assign.target, RegisterOrPair.XY)
+                                RegisterOrPair.R0 -> assignVirtualRegister(assign.target, RegisterOrPair.R0)
+                                RegisterOrPair.R1 -> assignVirtualRegister(assign.target, RegisterOrPair.R1)
+                                RegisterOrPair.R2 -> assignVirtualRegister(assign.target, RegisterOrPair.R2)
+                                RegisterOrPair.R3 -> assignVirtualRegister(assign.target, RegisterOrPair.R3)
+                                RegisterOrPair.R4 -> assignVirtualRegister(assign.target, RegisterOrPair.R4)
+                                RegisterOrPair.R5 -> assignVirtualRegister(assign.target, RegisterOrPair.R5)
+                                RegisterOrPair.R6 -> assignVirtualRegister(assign.target, RegisterOrPair.R6)
+                                RegisterOrPair.R7 -> assignVirtualRegister(assign.target, RegisterOrPair.R7)
+                                RegisterOrPair.R8 -> assignVirtualRegister(assign.target, RegisterOrPair.R8)
+                                RegisterOrPair.R9 -> assignVirtualRegister(assign.target, RegisterOrPair.R9)
+                                RegisterOrPair.R10 -> assignVirtualRegister(assign.target, RegisterOrPair.R10)
+                                RegisterOrPair.R11 -> assignVirtualRegister(assign.target, RegisterOrPair.R11)
+                                RegisterOrPair.R12 -> assignVirtualRegister(assign.target, RegisterOrPair.R12)
+                                RegisterOrPair.R13 -> assignVirtualRegister(assign.target, RegisterOrPair.R13)
+                                RegisterOrPair.R14 -> assignVirtualRegister(assign.target, RegisterOrPair.R14)
+                                RegisterOrPair.R15 -> assignVirtualRegister(assign.target, RegisterOrPair.R15)
+                                else -> {
+                                    val sflag = returnValue.first.statusflag
+                                    if(sflag!=null)
+                                        assignStatusFlagByte(assign.target, sflag)
+                                    else
+                                        throw AssemblyError("should be just one register byte result value")
+                                }
                             }
                         }
                     }

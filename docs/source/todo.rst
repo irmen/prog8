@@ -1,7 +1,9 @@
 TODO
 ====
 
-- implement the TODO multi-value return occurences.
+- implement the TODO("multi-value   occurences in both codegens, to handle multi-value subroutine return values
+
+- rename "intermediate AST" into "simplified AST" (docs + classes in code)
 
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?

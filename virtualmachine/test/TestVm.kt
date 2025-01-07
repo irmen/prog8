@@ -46,7 +46,7 @@ class TestVm: FunSpec( {
     test("vm execution: modify memory") {
         val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
         val block = IRBlock("testmain", false, IRBlock.Options(), Position.DUMMY)
-        val startSub = IRSubroutine("testmain.testsub", emptyList(), null, Position.DUMMY)
+        val startSub = IRSubroutine("testmain.testsub", emptyList(), emptyList(), Position.DUMMY)
         val code = IRCodeChunk(startSub.label, null)
         code += IRInstruction(Opcode.NOP)
         code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=1, immediate=12345)

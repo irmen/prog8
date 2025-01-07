@@ -242,7 +242,7 @@ class PtFunctionCall(val name: String,
         if(void) require(type.isUndefined) {
             "void fcall should have undefined datatype"
         }
-        // note: non-void calls can have UNDEFINED type: is if they return more than 1 value
+        // note: non-void calls can have UNDEFINED type: if they return more than 1 value
     }
 }
 

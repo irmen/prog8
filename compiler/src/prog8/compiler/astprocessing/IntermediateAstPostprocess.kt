@@ -13,7 +13,7 @@ internal fun postprocessIntermediateAst(program: PtProgram, st: SymbolTable, err
 private fun processDefers(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
     val defers = setDeferMasks(program, errors)
     if(errors.noErrors())
-        integrateDefers(defers, program, st)
+        integrateDefers(defers, program, st, errors)
 }
 
 private const val maskVarName = "prog8_defers_mask"
@@ -77,7 +77,7 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
 }
 
 
-private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtProgram, st: SymbolTable) {
+private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
     val jumpsAndCallsToAugment = mutableListOf<PtNode>()
     val returnsToAugment = mutableListOf<PtReturn>()
     val subEndsToAugment = mutableListOf<PtSub>()
@@ -149,15 +149,14 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         }
 
         // complex return value, need to store it before calling the defer block
-        if(ret.children.size>1) {
-            TODO("multi-value return ; defer")
-        }
-
-        val (pushCall, popCall) = makePushPopFunctionCalls(ret.children[0] as PtExpression)
+        errors.warn("using defer with complex return value(s) incurs stack overhead", ret.children.first { !notComplex(it as PtExpression)}.position)
+        val pushAndPopCalls = ret.children.map { makePushPopFunctionCalls(it as PtExpression) }
+        val pushCalls = pushAndPopCalls.map { it.first }.reversed()     // push in reverse order
+        val popCalls = pushAndPopCalls.map { it.second }
         val newRet = PtReturn(ret.position)
-        newRet.add(popCall)
         val group = PtNodeGroup()
-        group.add(pushCall)
+        pushCalls.forEach { group.add(it) }
+        popCalls.forEach { newRet.add(it) }
         group.add(PtFunctionCall(ret.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true,DataType.forDt(BaseDataType.UNDEFINED), ret.position))
         group.add(newRet)
         group.parent = ret.parent
@@ -180,7 +179,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
 
     for( (sub, defers) in subdefers) {
         // create the routine that calls the enabled defers in reverse order
-        val defersRoutine = PtSub(invokeDefersRoutineName, emptyList(), null, Position.DUMMY)
+        val defersRoutine = PtSub(invokeDefersRoutineName, emptyList(), emptyList(), Position.DUMMY)
         defersRoutine.parent=sub
         for((idx, defer) in defers.reversed().withIndex()) {
             val shift = PtAugmentedAssign(">>=", Position.DUMMY)

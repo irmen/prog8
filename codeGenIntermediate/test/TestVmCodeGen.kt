@@ -45,7 +45,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "pi",
             DataType.forDt(BaseDataType.UBYTE),
@@ -160,7 +160,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "f1",
             DataType.forDt(BaseDataType.FLOAT),
@@ -231,7 +231,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "f1",
             DataType.forDt(BaseDataType.FLOAT),
@@ -298,7 +298,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "f1",
             DataType.forDt(BaseDataType.FLOAT),
@@ -353,7 +353,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "sb1",
             DataType.forDt(BaseDataType.BYTE),
@@ -424,7 +424,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "sb1",
             DataType.forDt(BaseDataType.BYTE),
@@ -491,7 +491,7 @@ class TestVmCodeGen: FunSpec({
         val codegen = VmCodeGen()
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         sub.add(PtVariable(
             "ub1",
             DataType.forDt(BaseDataType.BYTE),
@@ -541,7 +541,7 @@ class TestVmCodeGen: FunSpec({
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val extsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
         block.add(extsub)
-        val sub = PtSub("start", emptyList(), null, Position.DUMMY)
+        val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
         val call = PtFunctionCall("main.routine", true, DataType.forDt(BaseDataType.UNDEFINED), Position.DUMMY)
         sub.add(call)
         block.add(sub)

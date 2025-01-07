@@ -25,15 +25,15 @@ class PtAsmSub(
 class PtSub(
     name: String,
     val parameters: List<PtSubroutineParameter>,
-    val returntype: DataType?,
+    val returns: List<DataType>,
     position: Position
 ) : PtNamedNode(name, position), IPtSubroutine, IPtStatementContainer {
     init {
-        // params and return value should not be str
+        // params and return values should not be str
         if(parameters.any{ !it.type.isNumericOrBool })
             throw AssemblyError("non-numeric/non-bool parameter")
-        if(returntype!=null && !returntype.isNumericOrBool)
-            throw AssemblyError("non-numeric/non-bool returntype $returntype")
+        if(returns.any { !it.isNumericOrBool })
+            throw AssemblyError("non-numeric/non-bool returntype")
         parameters.forEach { it.parent=this }
     }
 }

@@ -118,10 +118,6 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(returnStmt: Return) {
         val expectedReturnValues = returnStmt.definingSubroutine?.returntypes ?: emptyList()
-        if(expectedReturnValues.size>1) {
-            throw FatalAstException("cannot use a return with one value in a subroutine that has multiple return values: $returnStmt")
-        }
-
         if(returnStmt.values.size<expectedReturnValues.size) {
             errors.err("too few return values for the subroutine: expected ${expectedReturnValues.size} got ${returnStmt.values.size}", returnStmt.position)
         }
@@ -403,11 +399,6 @@ internal class AstChecker(private val program: Program,
             err("address must be a constant")
 
         super.visit(subroutine)
-
-        // user-defined subroutines can only have zero or one return type
-        // (multiple return values are only allowed for asm subs)
-        if(!subroutine.isAsmSubroutine && subroutine.returntypes.size>1)
-            err("subroutines can only have one return value")
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp' or 'bra')
